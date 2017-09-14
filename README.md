@@ -9,3 +9,5 @@ The project should include:
 * documentation, samples
 * arduino library
 * ad-hoc testing code
+
+![Circuit to read HAN from PC](/Electrical/Simple%20HAN%20to%20FTDI%20Circuit.jpg)

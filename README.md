@@ -10,4 +10,8 @@ The project should include:
 * arduino library
 * ad-hoc testing code
 
+### Circuit to read HAN from PC (via FTDI)
 ![Circuit to read HAN from PC](/Electrical/Simple%20HAN%20to%20FTDI%20Circuit.jpg)
+
+### Circuit on breadboard
+![Breadboard](/Electrical/Simple%20HAN%20to%20FTDI%20Circuit%20(breadboard).jpg)

@@ -12,7 +12,10 @@
  * Created 14. september 2017 by Roar Fredriksen
  */
 
+#include "DlmsReader.h"
+#include "Crc16.h"
 
+DlmsReader reader;
 byte buffer[512];
 int bytesRead;
 
@@ -37,11 +40,14 @@ void loop() {
   if (Serial.available())
   {
     byte newByte = Serial.read();
-    buffer[bytesRead++] = newByte;
-    bool completed = bytesRead > 1 && newByte == 0x7E;
-        
-    if (completed)
+    //if (newByte < 0x10) Serial1.print("0");
+    //Serial1.print(newByte, HEX);
+
+    if (reader.Read(newByte))
+    {
+      bytesRead = reader.GetRawData(buffer, 0, 512);
       writeAndEmptyBuffer();
+    }
   }
 }
 

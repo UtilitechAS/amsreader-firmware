@@ -45,5 +45,21 @@ namespace HanDebuggerTest
             double actualList1To2Ratio = (double)packageCount[KaifaHanBeta.List1] / (double)packageCount[KaifaHanBeta.List2];
             Assert.AreEqual(targetList1To2Ratio, actualList1To2Ratio, 0.01, "There should be a ratio of List1:List2 of 4");
         }
+
+        [TestMethod]
+        public void TestGetConsumption()
+        {
+            List<int> consumption = new List<int>();
+            var packages = File.ReadAllLines("ESP 20170918 Raw.txt");
+            var lines = packages.Select(line => line.Trim().Split(' ').Select(v => (byte)int.Parse(v, System.Globalization.NumberStyles.HexNumber)).ToArray()).ToArray();
+            foreach (var line in lines)
+            {
+                if (KaifaHanBeta.GetPackageID(line, 0, line.Length) == KaifaHanBeta.List1)
+                {
+                    consumption.Add(KaifaHanBeta.GetInt(0, line, 0, line.Length));
+                }
+            }
+            Assert.AreEqual(1500.0, consumption.Average(), 500.0, "Consumption should be between 1000 and 2000 watts");
+        }
     }
 }

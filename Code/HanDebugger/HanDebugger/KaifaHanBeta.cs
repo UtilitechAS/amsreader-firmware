@@ -43,5 +43,28 @@ namespace HanDebugger
 
             return new DateTime(year, month, day, hour, minute, second).Subtract(new DateTime(1970, 1, 1, 0, 0, 0, 0)).TotalSeconds;
         }
+
+        public static int GetInt(int dataPosition, byte[] buffer, int start, int length)
+        {
+            const int dataStart = 24;
+            int value = 0;
+            int foundPosition = 0;
+            for (int i = start + dataStart; i < start + length; i++)
+            {
+                if (foundPosition == 0)
+                {
+                    if (buffer[i] == 0x06)
+                        foundPosition = i;
+                }
+                else
+                {
+                    value = value << 8 |
+                        buffer[i];
+                    if (i == foundPosition + 4)
+                        return value;
+                }
+            }
+            return 0;
+        }
     }
 }

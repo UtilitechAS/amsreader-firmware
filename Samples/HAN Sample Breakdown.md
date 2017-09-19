@@ -21,9 +21,9 @@ E6	|	Destination LSAP
 E7	|	Source LSAP
 00	|	LLC Quality
 0F 	|	Information, n*8 bits?
-40	|	(UNCERTAIN) Push setup, class_id=40
-00	|	(UNCERTAIN) version=0
-00 00 09 0C | 	(UNKNOWN, 2316?)
+40 00 00 00	|	(UNCERTAIN)
+09 | String following (really, it's a date!)
+0C | 12 bytes (length of the string)
 07 E1	|	2017 (year)
 09	|	09 (sep)
 0C	|	12 (date)
@@ -32,13 +32,14 @@ E7	|	Source LSAP
 12	|	18 (min)
 2A	|	42 (sec)
 FF 	|	(fff not specified)
-80 	|	(deviation not specified)
-00 00 	|	(clock_status)
-02 	|	(UNKNOWN)
-01 06 	|	(UNCERTAIN. 0106=List1, 0D09=List2, 1209=List3)
-00 	|	(UNKNOWN)
-00 	|	(UNKNOWN)
-05 28	|	1320 Watt
+80 	|	(deviation not specified?)
+00 00 |	(clock_status?) This is the 12th (0x0C) byte of the string
+02 01	|	(UNKNOWN) could this be another value, identified by 0x02?
+06 	|	Integer following: 1320 Watt
+00 	|	Byte 1 (MSB)
+00 	|	Byte 2
+05 | Byte 3
+28 | Byte 4 (LSB) 
 **End Data**|
 B8 0C	|	Frame check sequence (FCS) (Check sum calculated from full frame, excluding flags and FCS, according to RFC 1662)
 7E	|	Frame End flag

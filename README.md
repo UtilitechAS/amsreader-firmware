@@ -20,5 +20,5 @@ The project should include:
 ### Circuit to read HAN from PC (via FTDI)
 ![Circuit diagram](/Electrical/Schematics.PNG)
 
-### Circuit on breadboard
+### Circuit prototype
 ![Breadboard](/Electrical/Prototype.jpg)

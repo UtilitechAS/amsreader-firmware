@@ -15,7 +15,7 @@ namespace HanDebugger
         public const byte List2 = 0x0D;
         public const byte List3 = 0x12;
 
-        public static byte GetPackageID(byte[] package, int start, int length)
+        public static byte GetListID(byte[] package, int start, int length)
         {
             switch (package[start + 23])
             {

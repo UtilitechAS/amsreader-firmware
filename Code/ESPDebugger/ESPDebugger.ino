@@ -14,10 +14,12 @@
 
 #include "DlmsReader.h"
 #include "Crc16.h"
+#include "KaifaHan.h"
 
 DlmsReader reader;
 byte buffer[512];
 int bytesRead;
+KaifaHan kaifa;
 
 void setup() {
   // Initialize the Serial1 port for debugging
@@ -41,11 +43,22 @@ void loop() {
   {
     byte newByte = Serial.read();
     //if (newByte < 0x10) Serial1.print("0");
-    //Serial1.print(newByte, HEX);
+    Serial1.print(newByte, HEX);
 
     if (reader.Read(newByte))
     {
       bytesRead = reader.GetRawData(buffer, 0, 512);
+
+      byte list = kaifa.GetListID(buffer, 0, bytesRead);
+      Serial1.println("");
+      Serial1.print("List #");
+      Serial1.print(list, HEX);
+
+      time_t time = kaifa.GetPackageTime(buffer, 0, bytesRead);
+      Serial1.print(" (time is ");
+      Serial1.print(time);
+      Serial1.println("):");
+      
       writeAndEmptyBuffer();
     }
   }

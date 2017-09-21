@@ -20,7 +20,7 @@ namespace HanDebuggerTest
             var lines = packages.Select(line => line.Trim().Split(' ').Select(v => (byte)int.Parse(v, System.Globalization.NumberStyles.HexNumber)).ToArray()).ToArray();
             foreach (var line in lines)
             {
-                byte list = KaifaHanBeta.GetPackageID(line, 0, line.Length);
+                byte list = KaifaHanBeta.GetListID(line, 0, line.Length);
                 if (packageCount.ContainsKey(list))
                     packageCount[list]++;
                 else
@@ -54,7 +54,7 @@ namespace HanDebuggerTest
             var lines = packages.Select(line => line.Trim().Split(' ').Select(v => (byte)int.Parse(v, System.Globalization.NumberStyles.HexNumber)).ToArray()).ToArray();
             foreach (var line in lines)
             {
-                if (KaifaHanBeta.GetPackageID(line, 0, line.Length) == KaifaHanBeta.List1)
+                if (KaifaHanBeta.GetListID(line, 0, line.Length) == KaifaHanBeta.List1)
                 {
                     consumption.Add(KaifaHanBeta.GetInt(0, line, 0, line.Length));
                 }

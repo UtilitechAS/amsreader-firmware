@@ -28,6 +28,29 @@ long KaifaHan::GetPackageTime(byte *buffer, int start, int length)
   return toUnixTime(year, month, day, hour, minute, second);
 }
 
+int KaifaHan::GetInt(int dataPosition, byte *buffer, int start, int length)
+{
+  const int dataStart = 24;
+  int value = 0;
+  int foundPosition = 0;
+  for (int i = start + dataStart; i < start + length; i++)
+  {
+      if (foundPosition == 0)
+      {
+          if (buffer[i] == 0x06)
+              foundPosition = i;
+      }
+      else
+      {
+          value = value << 8 |
+              buffer[i];
+          if (i == foundPosition + 4)
+              return value;
+      }
+  }
+  return 0;
+}
+
 time_t KaifaHan::toUnixTime(int year, int month, int day, int hour, int minute, int second)
 {
   byte daysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };

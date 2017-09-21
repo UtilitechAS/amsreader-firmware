@@ -16,6 +16,7 @@ class KaifaHan
     const byte List3 = 0x12;
     byte GetListID(byte *buffer, int start, int length);
     long GetPackageTime(byte *buffer, int start, int length);
+    int GetInt(int dataPosition, byte *buffer, int start, int length);
   protected:
     
     

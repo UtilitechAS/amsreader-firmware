@@ -57,8 +57,15 @@ void loop() {
       time_t time = kaifa.GetPackageTime(buffer, 0, bytesRead);
       Serial1.print(" (time is ");
       Serial1.print(time);
-      Serial1.println("):");
+      Serial1.print(")");
       
+      if (list == 0x01)
+      {
+        int consumption = kaifa.GetInt(0, buffer, 0, bytesRead);
+        Serial1.print(" consumption is ");
+        Serial1.print(consumption);
+        Serial1.println(" Watts");
+      }
       writeAndEmptyBuffer();
     }
   }

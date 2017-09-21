@@ -18,7 +18,7 @@ The project should include:
 - [ ] Arduino sample sketch to read values and report to MQTT server
 
 ### Circuit to read HAN from PC (via FTDI)
-![Circuit to read HAN from PC](/Electrical/Simple%20HAN%20to%20FTDI%20Circuit.jpg)
+![Circuit diagram](/Electrical/Schematics.PNG)
 
-### Circuit on breadboard
-![Breadboard](/Electrical/Simple%20HAN%20to%20FTDI%20Circuit%20(breadboard).jpg)
+### Circuit prototype
+![Breadboard](/Electrical/Prototype.jpg)

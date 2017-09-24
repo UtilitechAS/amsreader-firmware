@@ -6,11 +6,11 @@ byte KaifaHan::GetListID(byte *buffer, int start, int length)
   if (length > 23)
   {
     byte list = buffer[start + 23];
-    if (list == List1) return List1;
-    if (list == List2) return List2;
-    if (list == List3) return List3;
+    if (list == (byte)List::List1) return (byte)List::List1;
+    if (list == (byte)List::List2) return (byte)List::List2;
+    if (list == (byte)List::List3) return (byte)List::List3;
   }
-  return ListUnknown;
+  return (byte)List::ListUnknown;
 }
 
 long KaifaHan::GetPackageTime(byte *buffer, int start, int length)
@@ -30,25 +30,49 @@ long KaifaHan::GetPackageTime(byte *buffer, int start, int length)
 
 int KaifaHan::GetInt(int dataPosition, byte *buffer, int start, int length)
 {
-  const int dataStart = 24;
-  int value = 0;
-  int foundPosition = 0;
-  for (int i = start + dataStart; i < start + length; i++)
+  int valuePosition = findValuePosition(dataPosition, buffer, start, length);
+  if (valuePosition > 0)
   {
-      if (foundPosition == 0)
-      {
-          if (buffer[i] == 0x06)
-              foundPosition = i;
-      }
-      else
-      {
-          value = value << 8 |
-              buffer[i];
-          if (i == foundPosition + 4)
-              return value;
-      }
+    int value = 0;
+    for (int i = valuePosition + 1; i < valuePosition + 5; i++)
+    {
+        value = value << 8 | buffer[i];
+    }
+    return value;
   }
   return 0;
+}
+
+int KaifaHan::findValuePosition(int dataPosition, byte *buffer, int start, int length)
+{
+  const int dataStart = 24;
+  for (int i=start + dataStart; i<length; i++)
+  {
+      if (dataPosition-- == 0)
+        return i;
+       else if (buffer[i] == 0x09) // string value
+        i += buffer[i+1] + 1;
+       else if (buffer[i] == 0x06) // integer value
+        i += 4;
+       else 
+        return 0; // unknown data type found
+  }
+  return 0;
+}
+
+String KaifaHan::GetString(int dataPosition, byte *buffer, int start, int length)
+{
+  int valuePosition = findValuePosition(dataPosition, buffer, start, length);
+  if (valuePosition > 0)
+  {
+    String value = String("");
+    for (int i = valuePosition + 2; i < valuePosition + buffer[valuePosition + 1]; i++)
+    {
+        value += String((char)buffer[i]);
+    }
+    return value;
+  }
+  return String("");
 }
 
 time_t KaifaHan::toUnixTime(int year, int month, int day, int hour, int minute, int second)

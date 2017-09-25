@@ -24,7 +24,6 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 #include "DlmsReader.h"
-#include "Crc16.h"
 #include "KaifaHan.h"
 
 DlmsReader reader;

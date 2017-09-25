@@ -24,4 +24,4 @@ The project should include:
 ![Breadboard](/Electrical/Prototype.jpg)
 
 ### MQTT output
-![MQTT screenshot](/Electrical/MQTT screenshot.png)
+![MQTT screenshot](/Electrical/MQTT%20screenshot.png)

@@ -1,0 +1,7 @@
+[Dd]ebug/
+[Rr]elease/
+
+# Visual Studio 2015 cache/options directory
+.vs/
+__vm/
+*.user

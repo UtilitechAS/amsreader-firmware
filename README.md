@@ -22,3 +22,6 @@ The project should include:
 
 ### Circuit prototype
 ![Breadboard](/Electrical/Prototype.jpg)
+
+### MQTT output
+![MQTT screenshot](/Electrical/MQTT screenshot.png)

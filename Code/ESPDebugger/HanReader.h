@@ -32,7 +32,7 @@ class HanReader
 
   private:
     Stream *debug;
-    Stream *han;
+    HardwareSerial *han;
     byte buffer[512];
     int bytesRead;
     KaifaHan kaifa;

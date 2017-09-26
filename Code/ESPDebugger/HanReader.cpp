@@ -11,6 +11,7 @@ void HanReader::setup(HardwareSerial *hanPort)
   hanPort->begin(2400, SERIAL_8E1);
   while (!hanPort) {}
   bytesRead = 0;
+  han = hanPort;
 }
 
 void HanReader::setup(HardwareSerial *hanPort, Stream *debugPort)

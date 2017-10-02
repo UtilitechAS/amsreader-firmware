@@ -37,3 +37,5 @@ R12,13|47K|[CF14JT47K0CT-ND](https://www.digikey.no/product-detail/en/stackpole-
 S1,2||[450-1650-ND](https://www.digikey.no/product-detail/en/te-connectivity-alcoswitch-switches/1825910-6/450-1650-ND/1632536)
 U2|LM1117-3.3|[LM1117IMPX-3.3/NOPBCT-ND](https://www.digikey.no/product-detail/en/texas-instruments/LM1117IMPX-3.3-NOPB/LM1117IMPX-3.3-NOPBCT-ND/3440160)
 U3|LM358|[LM358NGOS-ND](https://www.digikey.no/product-detail/en/on-semiconductor/LM358NG/LM358NGOS-ND/918519)
+
+Note: The ESP8266 is not included here. It can easily be found on ebay etc

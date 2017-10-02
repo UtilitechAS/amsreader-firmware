@@ -1,6 +1,6 @@
 # AMS <-> MQTT Bridge
 
-* [Electrical design](./Electical)
+* [Electrical design](./Electrical)
 
 ## Background
 The purpose of this project is to collect information and build a simplified bridge for reading serial DLSM/M-bus information from electrical power meters (AMS), provided over the HAN port, and publishing to some IoT friendly target.

@@ -1,0 +1,20 @@
+----------------------------------------------------------------------------------------------------------------------------------
+NCDrill File Report For: AMSTOMQTT.PcbDoc   10/2/2017  4:27:12 AM
+----------------------------------------------------------------------------------------------------------------------------------
+
+Layer Pair : Top Layer to Bottom Layer
+ASCII RoundHoles File : AMSTOMQTT.TXT
+
+Tool       Hole Size               Hole Tolerance               Hole Type       Hole Count   Plated         Tool Travel
+----------------------------------------------------------------------------------------------------------------------------------
+T1      28mil (0.7mm)                                             Round             9         PTH        4.25inch (107.84mm)
+T2      28mil (0.711mm)                                           Round             1         PTH        0.00inch (0.00mm)
+T3      30mil (0.76mm)                                            Round             10        PTH        0.91inch (23.16mm)
+T4      33mil (0.85mm)                                            Round             22        PTH        7.25inch (184.18mm)
+T5      35mil (0.9mm)                                             Round             18        PTH        5.72inch (145.35mm)
+T6      47mil (1.2mm)                                             Round             8         PTH        1.55inch (39.49mm)
+T7      126mil (3.2mm)                                            Round             2         PTH        0.45inch (11.43mm)
+----------------------------------------------------------------------------------------------------------------------------------
+Totals                                                                              70
+
+Total Processing Time (hh:mm:ss) : 00:00:00

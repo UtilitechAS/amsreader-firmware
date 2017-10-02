@@ -1,0 +1,12 @@
+Output: NC Drill Files
+Type  : NC Drill
+From  : Project [AMSTOMQTT.PrjPcb]
+   Generated File[AMSTOMQTT.TXT]
+   Generated File[AMSTOMQTT.LDP]
+   Generated File[AMSTOMQTT.DRR]
+
+
+Files Generated   : 3
+Documents Printed : 0
+
+Finished Output Generation At 4:27:12 AM On 10/2/2017

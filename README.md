@@ -1,5 +1,8 @@
 # AMS <-> MQTT Bridge
 
+* [Electrical design](./Electical)
+
+## Background
 The purpose of this project is to collect information and build a simplified bridge for reading serial DLSM/M-bus information from electrical power meters (AMS), provided over the HAN port, and publishing to some IoT friendly target.
 
 Components will be ESP8622, Arduino code, a (very simplified) M-bus <-> 3.3V serial interface
@@ -14,7 +17,7 @@ The project should include:
 - [x] [Documentation on HAN / MBus / DLMS/COSEM](/Documentation)
 - [X] Code to parse DLMS data into a structure
 - [X] Real schematics, including ESP8266
-- [ ] PCB layout
+- [X] PCB layout
 - [ ] Arduino library
 - [X] Arduino sample sketch to read values and report to MQTT server
 

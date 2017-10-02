@@ -13,7 +13,7 @@ The ESP8266 setup is a rather standaraized setup and will allow for programming 
 board, if needed. During programming, it might be neccessary to disconnect the incoming HAN.
 
 ## Schematics
-![Schematics](./Schematics.png)
+![Schematics](./Schematics.PNG)
 
 ## PCB
 ![PCB](./PCB.PNG)

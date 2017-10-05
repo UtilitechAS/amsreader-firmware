@@ -13,7 +13,7 @@ E6 E7 00 0F 40 00 00 00 | Uknown |
 Data | Explaination | Value
 ---- | ------------ | -----
 E6 E7 00 0F 40 00 00 00  | Unknown |
-09 0C 07 E1 09 18 07 11 2F 14 FF 80 00 00 | Date and time | 2017-09-24 17:47:20
+09 0C 07 E1 09 18 07 11 2F 14 FF 80 00 00 | Date and time | 2017-09-24 17:47:20 (FF=hundreds not available, 8000=deviation, 00=status)
 02 0D | List Identifier | 0x0D = List #2
 09 07 4B 46 4D 5F 30 30 31 | OBIL List version identifier | KFM_001
 09 10 36 39 37 30 36 33 31 34 30 31 37 35 33 39 38 35 | Meter -ID (GIAI GS1 -16 digit ) | 6970631401753985

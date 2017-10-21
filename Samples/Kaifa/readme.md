@@ -1,3 +1,9 @@
+## Sample for Kaifa KFM_001
+
+This sample shows a full data package, including start and stop bits.
+Please check the [data breakdown](./obisdata.md) for a more detailed description of each OBIS code value.
+
+A good portion of raw sample data is also available in [raw-raw-20170915.txt](./raw-raw-20170915.txt)
 
 ### SAMPLE Data:
 > **[2017-09-12 23.18.43.731 - Received 41 (0x29) bytes]**

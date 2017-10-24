@@ -14,16 +14,17 @@
     <ProjectCapability Include="SourceItemsFromImports" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="$(MSBuildThisFileDirectory)keywords.txt" />
     <Text Include="$(MSBuildThisFileDirectory)readme.txt" />
     <Text Include="$(MSBuildThisFileDirectory)library.properties" />
   </ItemGroup>
   <ItemGroup>
     <!-- <ClInclude Include="$(MSBuildThisFileDirectory)HanReader.h" /> -->
-    <ClInclude Include="$(MSBuildThisFileDirectory)..\KamstrupTest\Kamstrup.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)src\Crc16.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)src\DlmsReader.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)src\HanReader.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)src\Kaifa.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\Kamstrup.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)src\Crc16.cpp" />

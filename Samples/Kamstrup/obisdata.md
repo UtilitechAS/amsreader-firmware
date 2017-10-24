@@ -11,9 +11,9 @@ For the data parts, I have found they follow a pattern where the first byte dict
 Data | Explaination | Value
 ---- | ------------ | -----
 E6 E7 00 0F 00 00 00 00 | Uknown | 
-09 0C 07 E1 0A 14 05 03 2B 1E FF 80 00 00 | Date and time |
+09 0C 07 E1 0A 14 05 03 2B 1E FF 80 00 00 | Date and time | 2017-10-20 (fre) 03:43:30
 02 19 | List ID | 25 (List 1)
-0A 0E 4B 61 6D 73 74 72 75 70 5F 56 30 30 30 31 | OBIS List Version Identifier
+0A 0E 4B 61 6D 73 74 72 75 70 5F 56 30 30 30 31 | OBIS List Version Identifier | Kamstrup_V0001
 09 06 01 01 00 00 05 FF | OBIS for Meter ID | 1.1.0.0.5.255
 0A 10 35 37 30 36 35 36 37 32 37 34 33 38 39 37 30 32 | Meter ID | 5706567274389702
 09 06 01 01 60 01 01 FF | OBIS for Meter Type | 1.1.96.1.1.255

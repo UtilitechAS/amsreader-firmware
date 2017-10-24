@@ -19,15 +19,15 @@
   </ItemGroup>
   <ItemGroup>
     <!-- <ClInclude Include="$(MSBuildThisFileDirectory)HanReader.h" /> -->
+    <ClInclude Include="$(MSBuildThisFileDirectory)..\KamstrupTest\Kamstrup.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)src\Crc16.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)src\DlmsReader.h" />
     <ClInclude Include="$(MSBuildThisFileDirectory)src\HanReader.h" />
-    <ClInclude Include="$(MSBuildThisFileDirectory)src\KaifaHan.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\Kaifa.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="$(MSBuildThisFileDirectory)src\Crc16.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\DlmsReader.cpp" />
     <ClCompile Include="$(MSBuildThisFileDirectory)src\HanReader.cpp" />
-    <ClCompile Include="$(MSBuildThisFileDirectory)src\KaifaHan.cpp" />
   </ItemGroup>
 </Project>

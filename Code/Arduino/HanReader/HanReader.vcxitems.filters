@@ -20,9 +20,6 @@
     <ClCompile Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\HanReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\KaifaHan.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="$(MSBuildThisFileDirectory)readme.txt" />
@@ -38,7 +35,10 @@
     <ClInclude Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\HanReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\KaifaHan.h">
+    <ClInclude Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\..\KamstrupTest\Kamstrup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\Kaifa.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

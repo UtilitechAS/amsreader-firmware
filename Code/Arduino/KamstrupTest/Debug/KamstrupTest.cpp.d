@@ -32,8 +32,8 @@ C:\Users\roarf\AppData\Local\Temp\VMBuilds\KamstrupTest\esp8266_generic\Debug\Ka
  C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.3.0\cores\esp8266/debug.h \
  C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.3.0\variants\generic/pins_arduino.h \
  C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.3.0\variants\generic/common.h \
- C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src/hanreader.h \
+ C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src/HanReader.h \
  C:\Users\roarf\AppData\Local\arduino15\packages\esp8266\hardware\esp8266\2.3.0\cores\esp8266/arduino.h \
- C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src/KaifaHan.h \
  C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src/DlmsReader.h \
- C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src/Crc16.h
+ C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src/Crc16.h \
+ C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src/Kamstrup.h

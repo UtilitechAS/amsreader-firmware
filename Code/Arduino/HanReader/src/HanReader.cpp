@@ -115,7 +115,10 @@ int HanReader::findValuePosition(int dataPosition, byte *buffer, int start, int 
 
 time_t HanReader::getTime(int dataPosition, byte *buffer, int start, int length)
 {
+	// TODO: check if the time is represented always as a 12 byte string (0x09 0x0C)
 	int timeStart = findValuePosition(dataPosition, buffer, start, length);
+	timeStart += 2;
+
 	int year = buffer[start + timeStart] << 8 |
 		buffer[start + timeStart + 1];
 
@@ -154,7 +157,6 @@ int HanReader::getInt(int dataPosition, byte *buffer, int start, int length)
 			value = value << 8 | buffer[i];
 		}
 
-		debug->println(value);
 		return value;
 	}
 	return 0;
@@ -166,7 +168,7 @@ String HanReader::getString(int dataPosition, byte *buffer, int start, int lengt
 	if (valuePosition > 0)
 	{
 		String value = String("");
-		for (int i = valuePosition + 2; i < valuePosition + buffer[valuePosition + 1]; i++)
+		for (int i = valuePosition + 2; i < valuePosition + buffer[valuePosition + 1] + 2; i++)
 		{
 			value += String((char)buffer[i]);
 		}

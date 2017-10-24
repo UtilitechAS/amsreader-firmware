@@ -36,14 +36,13 @@ void setup() {
 	setupDebugPort();
 
 	// initialize the HanReader
-	// (passing Serial as the HAN port and Serial1 for debugging)
+	// (passing no han port, as we are feeding data manually, but provide Serial for debugging)
 	hanReader.setup(NULL, &Serial);
 }
 
 void setupDebugPort()
 {
-	// Initialize the Serial1 port for debugging
-	// (This port is fixed to Pin2 of the ESP8266)
+	// Initialize the Serial port for debugging
 	Serial.begin(115200);
 	while (!Serial) {}
 	Serial.setDebugOutput(true);
@@ -52,7 +51,7 @@ void setupDebugPort()
 }
 
 void loop() {
-	// Read one byte from the port, and see if we got a full package
+	// Read one byte from the "port", and see if we got a full package
 	if (hanReader.read(samples[sampleIndex++]))
 	{
 		// Get the list identifier
@@ -66,10 +65,39 @@ void loop() {
 		// Only care for the ACtive Power Imported, which is found in the first list
 		if (list == (int)Kamstrup::List1)
 		{
+			String id = hanReader.getString((int)Kamstrup_List1::Kamstrup_List1_ListVersionIdentifier);
+			Serial.println(id);
+
+			time_t time = hanReader.getPackageTime();
+			Serial.print("Time of the package is: ");
+			Serial.println(time);
+
 			int power = hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_ActivePowerPos);
 			Serial.print("Power consumtion is right now: ");
 			Serial.print(power);
 			Serial.println(" W");
+
+			float current[3];
+			current[0] = (float)hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_CurrentL1) / 100.0;
+			current[1] = (float)hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_CurrentL2) / 100.0;
+			current[2] = (float)hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_CurrentL3) / 100.0;
+
+			int voltage[3];
+			voltage[0] = hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_VoltageL1);
+			voltage[1] = hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_VoltageL2);
+			voltage[2] = hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_VoltageL3);
+
+			for (int i = 0; i < 3; i++)
+			{
+				Serial.print("L");
+				Serial.print(i + 1);
+				Serial.print(" is ");
+				Serial.print(voltage[i]);
+				Serial.print(" V (");
+				Serial.print(current[i]);
+				Serial.println(" A)");
+			}
+
 		}
 	}
 

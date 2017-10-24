@@ -9,7 +9,7 @@ For the data parts, I have found they follow a pattern where the first byte dict
 
 ## List #1 (0x19)
 No | Data | Explaination | Value
-- | ---- | ------------ | -----
+ | ---- | ------------ | -----
  | E6 E7 00 0F 00 00 00 00 | Uknown | 
 0 | 09 0C 07 E1 0A 14 05 03 2B 1E FF 80 00 00 | Date and time | 2017-10-20 (fre) 03:43:30
 1 | 02 19 | List ID | 25 (List 1)

@@ -5,20 +5,26 @@ HanReader::HanReader()
   
 }
 
+void HanReader::setup(HardwareSerial *hanPort, unsigned long baudrate, SerialConfig config, Stream *debugPort)
+{
+	// Initialize H/W serial port for MBus communication
+	hanPort->begin(baudrate, config);
+	while (!hanPort) {}
+	bytesRead = 0;
+	han = hanPort;
+
+	debug = debugPort;
+	if (debug) debug->println("MBUS serial setup complete");
+}
+
 void HanReader::setup(HardwareSerial *hanPort)
 {
-  // Initialize H/W serial port for MBus communication
-  hanPort->begin(2400, SERIAL_8E1);
-  while (!hanPort) {}
-  bytesRead = 0;
-  han = hanPort;
+	setup(hanPort, 2400, SERIAL_8E1, NULL);
 }
 
 void HanReader::setup(HardwareSerial *hanPort, Stream *debugPort)
 {
-  setup(hanPort);
-  debug = debugPort;
-  if (debug) debug->println("MBUS serial setup complete");
+	setup(hanPort, 2400, SERIAL_8E1, debugPort);
 }
 
 bool HanReader::read()

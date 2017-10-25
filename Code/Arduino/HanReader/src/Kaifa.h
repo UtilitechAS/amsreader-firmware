@@ -7,49 +7,51 @@ enum class Kaifa : byte {
 	List3 = 0x12
 };
 
-enum class Kaifa_List1_ObisObjects {
+enum class Kaifa_List1 {
+	Time,
+	ListID,
 	ActivePowerImported
 };
 
-enum class Kaifa_List2_ObisObjects {
+enum class Kaifa_List2 {
 	Time,
 	ListID,
 	ObisListVersionIdentifier,
 	MeterID,
 	MeterType,
-	ActivePowerImported,
-	ActivePowerExported,
-	ReactivePowerImported,
-	ReactivePowerExported,
-	CurrentPhaseL1,
-	CurrentPhaseL2,
-	CurrentPhaseL3,
-	VoltagePhaseL1,
-	VoltagePhaseL2,
-	VoltagePhaseL3
+	ActiveImportPower,
+	ActiveExportPower,
+	ReactiveImportPower,
+	ReactiveExportPower,
+	CurrentL1,
+	CurrentL2,
+	CurrentL3,
+	VoltageL1,
+	VoltageL2,
+	VoltageL3
 };
 
-enum class Kaifa_List3_ObisObjects {
+enum class Kaifa_List3 {
 	Time,
 	ListID,
 	ObisListVersionIdentifier,
 	MeterID,
 	MeterType,
-	ActivePowerImported,
-	ActivePowerExported,
-	ReactivePowerImported,
-	ReactivePowerExported,
-	CurrentPhaseL1,
-	CurrentPhaseL2,
-	CurrentPhaseL3,
-	VoltagePhaseL1,
-	VoltagePhaseL2,
-	VoltagePhaseL3,
-	ClockAndDate,
-	TotalActiveEnergyImported,
-	TotalActiveEnergyExported,
-	TotalReactiveEnergyImported,
-	TotalReactiveEnergyExported
+	ActiveImportPower,
+	ActiveExportPower,
+	ReactiveImportPower,
+	ReactiveExportPower,
+	CurrentL1,
+	CurrentL2,
+	CurrentL3,
+	VoltageL1,
+	VoltageL2,
+	VoltageL3,
+	MeterClock,
+	CumulativeActiveImportEnergy,
+	CumulativeActiveExportEnergy,
+	CumulativeReactiveImportEnergy,
+	CumulativeReactiveExportEnergy
 };
 
 #endif

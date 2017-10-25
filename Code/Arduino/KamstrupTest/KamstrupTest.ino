@@ -65,27 +65,27 @@ void loop() {
 		// Only care for the ACtive Power Imported, which is found in the first list
 		if (list == (int)Kamstrup::List1)
 		{
-			String id = hanReader.getString((int)Kamstrup_List1::Kamstrup_List1_ListVersionIdentifier);
+			String id = hanReader.getString((int)Kamstrup_List1::ListVersionIdentifier);
 			Serial.println(id);
 
 			time_t time = hanReader.getPackageTime();
 			Serial.print("Time of the package is: ");
 			Serial.println(time);
 
-			int power = hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_ActivePowerPos);
+			int power = hanReader.getInt((int)Kamstrup_List1::ActiveImportPower);
 			Serial.print("Power consumtion is right now: ");
 			Serial.print(power);
 			Serial.println(" W");
 
 			float current[3];
-			current[0] = (float)hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_CurrentL1) / 100.0;
-			current[1] = (float)hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_CurrentL2) / 100.0;
-			current[2] = (float)hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_CurrentL3) / 100.0;
+			current[0] = (float)hanReader.getInt((int)Kamstrup_List1::CurrentL1) / 100.0;
+			current[1] = (float)hanReader.getInt((int)Kamstrup_List1::CurrentL2) / 100.0;
+			current[2] = (float)hanReader.getInt((int)Kamstrup_List1::CurrentL3) / 100.0;
 
 			int voltage[3];
-			voltage[0] = hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_VoltageL1);
-			voltage[1] = hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_VoltageL2);
-			voltage[2] = hanReader.getInt((int)Kamstrup_List1::Kamstrup_List1_VoltageL3);
+			voltage[0] = hanReader.getInt((int)Kamstrup_List1::VoltageL1);
+			voltage[1] = hanReader.getInt((int)Kamstrup_List1::VoltageL2);
+			voltage[2] = hanReader.getInt((int)Kamstrup_List1::VoltageL3);
 
 			for (int i = 0; i < 3; i++)
 			{

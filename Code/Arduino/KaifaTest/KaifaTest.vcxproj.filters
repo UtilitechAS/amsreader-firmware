@@ -17,5 +17,9 @@
   <ItemGroup>
     <None Include="KaifaTest.ino" />
   </ItemGroup>
- 
+  <ItemGroup>
+    <ClInclude Include="__vm\.KaifaTest.vsarduino.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

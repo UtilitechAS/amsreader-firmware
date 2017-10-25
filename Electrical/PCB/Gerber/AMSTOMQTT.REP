@@ -7,12 +7,6 @@ Generating : Top Layer
 
     Adding Layer      : Top Layer
 
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
     Adding Layer      : Multi-Layer
 
 
@@ -35,10 +29,6 @@ Used DCodes :
     D25
     D26
     D27
-    D28
-    D29
-    D30
-    D31
 *************************************************************
 
 *************************************************************
@@ -46,12 +36,6 @@ Generating : Bottom Layer
       File : AMSTOMQTT.GBL
 
     Adding Layer      : Bottom Layer
-
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
 
     Adding Layer      : Multi-Layer
 
@@ -68,10 +52,6 @@ Used DCodes :
     D25
     D26
     D27
-    D28
-    D29
-    D30
-    D31
 *************************************************************
 
 *************************************************************
@@ -82,12 +62,6 @@ Generating : Bottom Pad Master
 
     Adding Layer      : Multi-Layer
 
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
 
 Used DCodes :
     D18
@@ -99,10 +73,6 @@ Used DCodes :
     D24
     D25
     D26
-    D27
-    D28
-    D29
-    D30
 *************************************************************
 
 *************************************************************
@@ -113,12 +83,6 @@ Generating : Top Pad Master
 
     Adding Layer      : Multi-Layer
 
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
 
 Used DCodes :
     D10
@@ -136,10 +100,6 @@ Used DCodes :
     D24
     D25
     D26
-    D27
-    D28
-    D29
-    D30
 *************************************************************
 
 *************************************************************
@@ -148,26 +108,17 @@ Generating : Top Overlay
 
     Adding Layer      : Top Overlay
 
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
 
 Used DCodes :
-    D18
-    D19
-    D20
-    D21
+    D28
+    D29
+    D30
+    D31
     D32
     D33
     D34
     D35
     D36
-    D37
-    D38
-    D39
 *************************************************************
 
 *************************************************************
@@ -175,12 +126,6 @@ Generating : Top Paste
       File : AMSTOMQTT.GTP
 
     Adding Layer      : Top Paste
-
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
 
     Adding Layer      : Top Layer
 
@@ -194,10 +139,6 @@ Used DCodes :
     D13
     D14
     D15
-    D18
-    D19
-    D20
-    D21
 *************************************************************
 
 *************************************************************
@@ -206,22 +147,15 @@ Generating : Top Solder
 
     Adding Layer      : Top Solder
 
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
     Adding Layer      : Top Layer
 
     Adding Layer      : Multi-Layer
 
 
 Used DCodes :
-    D18
-    D19
-    D20
-    D21
+    D37
+    D38
+    D39
     D40
     D41
     D42
@@ -236,9 +170,6 @@ Used DCodes :
     D51
     D52
     D53
-    D54
-    D55
-    D56
 *************************************************************
 
 *************************************************************
@@ -247,22 +178,15 @@ Generating : Bottom Solder
 
     Adding Layer      : Bottom Solder
 
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
     Adding Layer      : Bottom Layer
 
     Adding Layer      : Multi-Layer
 
 
 Used DCodes :
-    D18
-    D19
-    D20
-    D21
+    D43
+    D44
+    D45
     D46
     D47
     D48
@@ -271,9 +195,6 @@ Used DCodes :
     D51
     D52
     D53
-    D54
-    D55
-    D56
 *************************************************************
 
 *************************************************************
@@ -282,18 +203,9 @@ Generating : Keep-Out Layer
 
     Adding Layer      : Keep-Out Layer
 
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
 
 Used DCodes :
-    D18
-    D19
-    D20
-    D21
+    D32
 *************************************************************
 
 *************************************************************
@@ -302,18 +214,8 @@ Generating : Mechanical 1
 
     Adding Layer      : Mechanical 1
 
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
 
 Used DCodes :
-    D18
-    D19
-    D20
-    D21
 *************************************************************
 
 *************************************************************
@@ -322,18 +224,11 @@ Generating : Mechanical 13
 
     Adding Layer      : Mechanical 13
 
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
 
 Used DCodes :
-    D18
-    D19
-    D20
-    D21
+    D32
+    D54
+    D55
 *************************************************************
 
 *************************************************************
@@ -342,62 +237,10 @@ Generating : Mechanical 15
 
     Adding Layer      : Mechanical 15
 
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
 
 Used DCodes :
-    D18
-    D19
-    D20
-    D21
-*************************************************************
-
-*************************************************************
-Generating : Drill Drawing
-      File : AMSTOMQTT.GD1
-
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
-    Adding Drill Pair : Top Layer-Bottom Layer
-
-    Adding Layer      : Drill Drawing
-
-
-Used DCodes :
-    D18
-    D19
-    D20
-    D21
-    D57
-*************************************************************
-
-*************************************************************
-Generating : Drill Guide
-      File : AMSTOMQTT.GG1
-
-    Adding Layer      : Mechanical 1
-
-    Adding Layer      : Mechanical 13
-
-    Adding Layer      : Mechanical 15
-
-    Adding Drill Pair : Top Layer-Bottom Layer
-
-    Adding Layer      : Drill Guide
-
-
-Used DCodes :
-    D18
-    D19
-    D20
-    D21
+    D32
+    D54
+    D56
 *************************************************************
 

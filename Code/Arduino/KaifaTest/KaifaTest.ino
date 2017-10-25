@@ -47,24 +47,31 @@ void loop() {
 	if (hanReader.read(samples[sampleIndex++]))
 	{
 		// Get the list identifier
-		int list = hanReader.getList();
+		int listSize = hanReader.getListSize();
 
 		Serial.println("");
-		Serial.print("List #");
-		Serial.print((byte)list, HEX);
+		Serial.print("List size: ");
+		Serial.print(listSize);
 		Serial.print(": ");
 
 		// Only care for the ACtive Power Imported, which is found in the first list
-		if (list == (int)Kaifa::List1 || list == (int)Kaifa::List2 || list == (int)Kaifa::List3)
+		if (listSize == (int)Kaifa::List1 || listSize == (int)Kaifa::List2 || listSize == (int)Kaifa::List3)
 		{
-			String id = hanReader.getString((int)Kaifa_List1::ListID);
-			Serial.println(id);
+			if (listSize == (int)Kaifa::List1)
+			{
+				Serial.println(" (list #1 has no ID)");
+			}
+			else
+			{
+				String id = hanReader.getString((int)Kaifa_List2::ListVersionIdentifier);
+				Serial.println(id);
+			}
 
 			time_t time = hanReader.getPackageTime();
 			Serial.print("Time of the package is: ");
 			Serial.println(time);
 
-			if (list == (int)Kaifa::List1) 
+			if (listSize == (int)Kaifa::List1)
 			{
 				int power = hanReader.getInt((int)Kaifa_List1::ActivePowerImported);
 				Serial.print("Power consumtion is right now: ");
@@ -74,9 +81,9 @@ void loop() {
 			else
 			{
 				float current[3];
-				current[0] = (float)hanReader.getInt((int)Kaifa_List2::CurrentL1) / 100.0;
-				current[1] = (float)hanReader.getInt((int)Kaifa_List2::CurrentL2) / 100.0;
-				current[2] = (float)hanReader.getInt((int)Kaifa_List2::CurrentL3) / 100.0;
+				current[0] = (float)hanReader.getInt((int)Kaifa_List2::CurrentL1) / 1000.0;
+				current[1] = (float)hanReader.getInt((int)Kaifa_List2::CurrentL2) / 1000.0;
+				current[2] = (float)hanReader.getInt((int)Kaifa_List2::CurrentL3) / 1000.0;
 
 				int voltage[3];
 				voltage[0] = hanReader.getInt((int)Kaifa_List2::VoltageL1);
@@ -92,6 +99,13 @@ void loop() {
 					Serial.print(" V (");
 					Serial.print(current[i]);
 					Serial.println(" A)");
+				}
+
+				if (listSize == (int)Kaifa::List3)
+				{
+					time_t clock = hanReader.getTime((int)Kaifa_List3::MeterClock);
+					Serial.print("Clock is: ");
+					Serial.println(clock);
 				}
 			}
 		}

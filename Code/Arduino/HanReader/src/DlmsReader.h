@@ -9,7 +9,7 @@
   #include "WProgram.h"
 #endif
 
-#define DLMS_READER_BUFFER_SIZE 256
+#define DLMS_READER_BUFFER_SIZE 512
 #define DLMS_READER_MAX_ADDRESS_SIZE 5
 
 class DlmsReader

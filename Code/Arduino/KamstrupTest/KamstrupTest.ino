@@ -79,7 +79,7 @@ void loop() {
 		Serial.print(": ");
 
 		// Only care for the ACtive Power Imported, which is found in the first list
-		if (list == (int)Kamstrup::List1)
+		if (list == (int)Kamstrup::List1 || list == (int)Kamstrup::List2)
 		{
 			String id = hanReader.getString((int)Kamstrup_List1::ListVersionIdentifier);
 			Serial.println(id);

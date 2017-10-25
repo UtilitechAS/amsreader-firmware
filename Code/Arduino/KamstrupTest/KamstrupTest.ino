@@ -71,15 +71,15 @@ void loop() {
 	if (hanReader.read(samples[sampleIndex++]))
 	{
 		// Get the list identifier
-		int list = hanReader.getList();
+		int listSize = hanReader.getListSize();
 
 		Serial.println("");
-		Serial.print("List #");
-		Serial.print((byte)list, HEX);
+		Serial.print("List size: ");
+		Serial.print(listSize);
 		Serial.print(": ");
 
 		// Only care for the ACtive Power Imported, which is found in the first list
-		if (list == (int)Kamstrup::List1 || list == (int)Kamstrup::List2)
+		if (listSize == (int)Kamstrup::List1 || listSize == (int)Kamstrup::List2)
 		{
 			String id = hanReader.getString((int)Kamstrup_List1::ListVersionIdentifier);
 			Serial.println(id);
@@ -114,6 +114,12 @@ void loop() {
 				Serial.println(" A)");
 			}
 
+			if (listSize == (int)Kamstrup::List2)
+			{
+				time_t clock = hanReader.getTime((int)Kamstrup_List2::MeterClock);
+				Serial.print("Clock is: ");
+				Serial.println(clock);
+			}
 		}
 	}
 

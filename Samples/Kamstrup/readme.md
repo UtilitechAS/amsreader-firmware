@@ -3,7 +3,7 @@
 This sample shows a full data package, including start and stop bits.
 Please check the [data breakdown](./obisdata.md) for a more detailed description of each OBIS code value.
 
-A good portion of raw sample data is also available in [raw-raw-20170915.txt](./raw-raw-20170915.txt)
+A good portion of raw sample data is also available in [HAN 20171019 xibriz4.txt](./HAN%2020171019%20xibriz4.txt)
 
 ### SAMPLE Data:
 

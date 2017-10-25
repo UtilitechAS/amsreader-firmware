@@ -9,14 +9,14 @@ enum class Kaifa : byte {
 
 enum class Kaifa_List1 {
 	Time,
-	ListID,
+	ListSize,
 	ActivePowerImported
 };
 
 enum class Kaifa_List2 {
 	Time,
-	ListID,
-	ObisListVersionIdentifier,
+	ListSize,
+	ListVersionIdentifier,
 	MeterID,
 	MeterType,
 	ActiveImportPower,
@@ -33,8 +33,8 @@ enum class Kaifa_List2 {
 
 enum class Kaifa_List3 {
 	Time,
-	ListID,
-	ObisListVersionIdentifier,
+	ListSize,
+	ListVersionIdentifier,
 	MeterID,
 	MeterType,
 	ActiveImportPower,

@@ -35,7 +35,7 @@ bool HanReader::read(byte data)
 	if (reader.Read(data))
 	{
 		bytesRead = reader.GetRawData(buffer, 0, 512);
-		list = getInt(1, buffer, 0, bytesRead);
+		listSize = getInt(1, buffer, 0, bytesRead);
 		return true;
 	}
 }
@@ -50,9 +50,9 @@ bool HanReader::read()
 	return false;
 }
 
-int HanReader::getList()
+int HanReader::getListSize()
 {
-	return list;
+	return listSize;
 }
 
 time_t HanReader::getPackageTime()

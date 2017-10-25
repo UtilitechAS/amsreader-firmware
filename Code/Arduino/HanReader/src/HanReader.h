@@ -22,7 +22,7 @@ public:
 	void setup(HardwareSerial *hanPort, unsigned long baudrate, SerialConfig config, Stream *debugPort);
 	bool read();
 	bool read(byte data);
-	int getList();
+	int getListSize();
 	time_t getPackageTime();
 	int getInt(int objectId);
 	String getString(int objectId);
@@ -34,7 +34,7 @@ private:
 	byte buffer[512];
 	int bytesRead;
 	DlmsReader reader;
-	int list;
+	int listSize;
 
 	int findValuePosition(int dataPosition, byte *buffer, int start, int length);
 

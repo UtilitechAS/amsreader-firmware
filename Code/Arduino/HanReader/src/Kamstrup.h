@@ -13,7 +13,7 @@ enum class Kamstrup
 enum class Kamstrup_List1
 {
 	Time,
-	ListID,
+	ListSize,
 	ListVersionIdentifier,
 	MeterID_OBIS,
 	MeterID,
@@ -45,7 +45,7 @@ enum class Kamstrup_List1
 enum class Kamstrup_List2
 {
 	Time,
-	ListID,
+	ListSize,
 	ListVersionIdentifier,
 	MeterID_OBIS,
 	MeterID,

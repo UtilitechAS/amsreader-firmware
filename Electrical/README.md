@@ -12,6 +12,10 @@ regulator that provides the 3.3V will do.
 The ESP8266 setup is a rather standaraized setup and will allow for programming the ESP directly on the 
 board, if needed. During programming, it might be neccessary to disconnect the incoming HAN.
 
+### **!!important changes!!**
+> * R8 should not be used
+> * The two unused inputs on the LM358 should be grounded (Pin 5 and 6)
+
 ## Schematics
 ![Schematics](./Schematics.PNG)
 

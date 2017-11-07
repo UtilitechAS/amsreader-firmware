@@ -10,7 +10,7 @@ Components will be ESP8622, Arduino code, a (very simplified) M-bus <-> 3.3V ser
 As a start, we should try to get information from the three types of AMS meters currently being installed in Norway. Some details about these are available here: [NVE_Info_kunder_HANgrensesnitt.pdf](Documentation/NVE_Info_kunder_HANgrensesnitt.pdf)
 
 The project should include:
-- [x] [Simple circuit to transform MBus levels to 3.3V serial](/Electrical/Simple%20HAN%20to%20FTDI%20Circuit.jpg)
+- [x] [Simple circuit to transform MBus levels to 3.3V serial](/Electrical)
 - [x] [Code to capture and analyze data from PC](/Code/HanDebugger)
 - [x] [Code to capture and analyze data from Arduino](/Code/ESPDebugger)
 - [x] [Sample data from various meters](/Samples)

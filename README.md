@@ -15,11 +15,11 @@ The project should include:
 - [x] [Code to capture and analyze data from Arduino](/Code/ESPDebugger)
 - [x] [Sample data from various meters](/Samples)
 - [x] [Documentation on HAN / MBus / DLMS/COSEM](/Documentation)
-- [X] Code to parse DLMS data into a structure
-- [X] Real schematics, including ESP8266
-- [X] PCB layout
+- [X] [Code to parse DLMS data into a structure](/Code/Arduino/HanReader/src)
+- [X] [Real schematics, including ESP8266](/Electrical/PCB)
+- [X] [PCB layout](/Electrical/PCB)
 - [ ] Arduino library
-- [X] Arduino sample sketch to read values and report to MQTT server
+- [X] [Arduino sample sketch to read values and report to MQTT server](/Code/Arduino)
 
 ### Circuit to read HAN from PC (via FTDI)
 ![Circuit diagram](/Electrical/Schematics.PNG)

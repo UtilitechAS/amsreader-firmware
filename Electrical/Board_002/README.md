@@ -90,10 +90,28 @@ is the most natural and convinient choice and that if not then apparently
 MCP2221 needs some additional electronics in order to [work properly as
 an USB device](https://electronics.stackexchange.com/a/323551/568).
 
+For ethernet the
+[ENC28J60](http://www.microchip.com/wwwproducts/Devices.aspx?dDocName=en022889)
+chip seems to be the
+[go](https://www.reddit.com/r/arduino/comments/18pw59/diycheap_ethernet_shields/)
+[to](https://www.open-electronics.org/low-cost-ethernet-shield-with-enc28j60/)
+[solution](http://www.instructables.com/id/A-credit-card-sized-Ethernet-Arduino-compatable-co/)
+[for](https://www.pocketmagic.net/atmega8-and-enc28j60-for-ethernet-support/)
+[inexpensive](http://tuxgraphics.org/electronics/200606/article06061.shtml)<sup>2</sup>
+DYI solutions. It only supports 10Mpbs, but that is more than
+good engough for pushing out MQTT messages. It draws a significant
+amount of current (~120mA or more) and gets gets hot so it might
+need heatsinking, but that is an [inherent problem with all ethernet
+controlles](https://electronics.stackexchange.com/questions/52349/why-is-ethernet-so-power-hungry).
 
 -------------------
 
 <sup>1</sup> Less than 20 NOK at [Elfa
 Distrelec](https://www.elfadistrelec.no/en/interface-ic-uart-usb-so-14-microchip-mcp2221-sl/p/11087556),
 cheaper elsewhere.
+
+<sup>2</sup> 20-30 NOK for the
+[chip](https://www.elfadistrelec.no/search?q=ENC28J60&filter_Category1=&filter_Category1=&filter_Category1=&filter_Category1=&filter_Category1=),
+from 30-40 NOK for the
+[connector](https://www.elfadistrelec.no/search?q=magjack&filter_Category1=&filter_Category1=&filter_Category1=&filter_Category1=&filter_Category1=&sort=Price:asc&page=1).
 

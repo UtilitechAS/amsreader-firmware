@@ -27,7 +27,7 @@ The project should include:
 
 ## Electrical design
 
-* [Electrical design](./Electrical/Board_001)
+* [Electrical design](./Electrical)
 
 
 ### Circuit prototype

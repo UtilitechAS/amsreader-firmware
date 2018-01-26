@@ -1,5 +1,10 @@
 # AMS <-> MQTT Bridge
 
+![](logo/powerlines.png?raw=true)
+![](logo/simple_meter_icon.png?raw=true)
+![](logo/bridge.png?raw=true)
+![](logo/pcb.png?raw=true)
+![](logo/network-transmit-receive.png?raw=true)
 
 ## Background
 The purpose of this project is to collect information and build a simplified bridge for reading serial DLSM/M-bus information from electrical power meters (AMS), provided over the HAN port, and publishing to some IoT friendly target.

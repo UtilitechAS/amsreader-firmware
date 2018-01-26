@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   id="svg2"
+   viewBox="0 0 358.11735 215.66126"
+   version="1.1"
+   sodipodi:docname="simple_meter_icon.svg"
+   inkscape:version="0.92.1 r15371"
+   width="358.11734"
+   height="215.66125"
+   inkscape:export-filename="/media/juhele/data_2TB/_GRAFIKA/2017_09_RAMESIS_wiki/zareni_podlozi/simple_meter_icon.png"
+   inkscape:export-xdpi="68.551949"
+   inkscape:export-ydpi="68.551949">
+  <sodipodi:namedview
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1"
+     objecttolerance="10"
+     gridtolerance="10"
+     guidetolerance="10"
+     inkscape:pageopacity="0"
+     inkscape:pageshadow="2"
+     inkscape:window-width="1920"
+     inkscape:window-height="1125"
+     id="namedview177"
+     showgrid="false"
+     inkscape:zoom="1.2540271"
+     inkscape:cx="242.09399"
+     inkscape:cy="75.38954"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="g4265"
+     fit-margin-top="2"
+     fit-margin-left="2"
+     fit-margin-right="2"
+     fit-margin-bottom="2" />
+  <defs
+     id="defs4" />
+  <g
+     id="layer3"
+     transform="translate(-124.1149,-88.88262)">
+    <g
+       id="g4265"
+       transform="translate(16.916065,23.682491)">
+      <g
+         id="g4334">
+        <g
+           id="g4294">
+          <rect
+             y="67.836823"
+             x="109.83553"
+             height="210.38786"
+             width="352.84396"
+             id="rect4246"
+             style="opacity:1;fill:#e6e6e6;fill-opacity:1;stroke:#040000;stroke-width:1.27338696;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1" />
+          <path
+             style="fill:#ffffff;stroke:#040000;stroke-width:2;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
+             inkscape:connector-curvature="0"
+             d="m 284.26622,81.458418 c -89.57613,0 -162.17993,70.438612 -162.17993,157.343392 0,6.17225 0.37441,12.24749 1.08709,18.23447 h 322.18109 c 0.71267,-5.98688 1.08709,-12.06276 1.08709,-18.23447 0,-86.90123 -72.60472,-157.343392 -162.17992,-157.343392 z"
+             id="path4559-3" />
+          <g
+             style="stroke:#050000;stroke-opacity:1"
+             transform="matrix(-1,0,0,1,585.23643,-137.15812)"
+             id="g3491">
+            <path
+               inkscape:connector-curvature="0"
+               style="fill:#ffd001;stroke:#050000;stroke-opacity:1"
+               d="m 301.19,230.54 v 53.156 c 10.481,0 20.57,1.656 30.031,4.7188 l 16.312,-50.281 c -14.397,-4.8256 -29.927,-7.1432 -46.344,-7.5938 z"
+               id="path3092-3" />
+            <path
+               inkscape:connector-curvature="0"
+               style="fill:#f7ac15;stroke:#050000;stroke-opacity:1"
+               d="m 298.31,230.79 c -14.27,0.18636 -28.826,2.7395 -43.594,7.0938 l 16.438,50.531 c 9.4519,-3.0597 19.53,-4.7155 30,-4.7188 V 230.79 c -0.94898,-0.009 -1.8924,-0.0124 -2.8438,0 z"
+               id="path3117-3" />
+            <path
+               inkscape:connector-curvature="0"
+               style="fill:#f59502;stroke:#050000;stroke-opacity:1"
+               d="m 254.78,238.13 c -14.484,4.5584 -28.392,11.84 -41.938,21.125 l 31.188,42.938 c 8.1653,-5.9227 17.293,-10.605 27.094,-13.781 L 254.78,238.131 Z"
+               id="path3119-6" />
+            <path
+               inkscape:connector-curvature="0"
+               style="fill:#f66013;stroke:#050000;stroke-opacity:1"
+               d="m 212.97,259.47 c -12.366,8.8111 -23.392,20.015 -33.406,33.031 l 42.906,31.156 c 6.0192,-8.2308 13.307,-15.481 21.562,-21.469 L 212.97,259.469 Z"
+               id="path3121-2" />
+            <path
+               inkscape:connector-curvature="0"
+               style="fill:#f93817;stroke:#050000;stroke-opacity:1"
+               d="m 179.78,292.66 c -9.0384,12.201 -16.061,26.276 -21.562,41.75 l 50.375,16.344 c 3.2141,-9.8027 7.911,-18.938 13.875,-27.094 z"
+               id="path3123-8" />
+            <path
+               inkscape:connector-curvature="0"
+               style="fill:#fa0001;stroke:#050000;stroke-opacity:1"
+               d="m 158.47,334.51 c -4.8256,14.531 -7.1432,30.206 -7.5937,46.774 h 52.875 c 0.0296,-10.596 1.7423,-20.785 4.8438,-30.342 l -50.125,-16.433 z"
+               id="path3125-2" />
+            <path
+               inkscape:connector-curvature="0"
+               style="fill:#f4e216;stroke:#050000;stroke-opacity:1"
+               d="m 347.63,237.88 -16.406,50.531 c 9.8061,3.1744 18.924,7.8572 27.094,13.781 l 31.031,-42.75 C 377.148,250.4036 363.104,243.381 347.63,237.88 Z"
+               id="path3129-8" />
+            <path
+               inkscape:connector-curvature="0"
+               style="fill:#d8ee21;stroke:#050000;stroke-opacity:1"
+               d="m 389.53,259.26 -31.188,42.938 c 8.2497,5.9852 15.515,13.243 21.531,21.469 l 42.688,-31.031 C 413.7499,280.27 402.546,269.275 389.53,259.261 Z"
+               id="path3131-9" />
+            <path
+               inkscape:connector-curvature="0"
+               style="fill:#b1d211;stroke:#050000;stroke-opacity:1"
+               d="m 422.78,292.51 -42.906,31.156 c 5.9605,8.1493 10.691,17.268 13.906,27.062 l 50.094,-16.281 c -4.5585,-14.484 -11.809,-28.392 -21.094,-41.938 z"
+               id="path3133-2" />
+            <path
+               inkscape:connector-curvature="0"
+               style="fill:#9bb714;stroke:#050000;stroke-opacity:1"
+               d="m 444.13,334.41 -50.344,16.452 c 3.1043,9.53 4.8109,19.694 4.8438,30.261 h 52.625 c 0.1404,-15.284 -2.4806,-30.856 -7.125,-46.712 z"
+               id="path3135-6" />
+          </g>
+        </g>
+      </g>
+      <g
+         transform="rotate(-71.369094,196.25092,324.31137)"
+         inkscape:transform-center-y="-53.830259"
+         inkscape:transform-center-x="21.526505"
+         id="g4315">
+        <path
+           style="fill:#1a1a1a"
+           inkscape:connector-curvature="0"
+           id="rect4171-4-2"
+           d="m 387.62,293.47 c 10.192,-8.5026 12.22,-6.1812 3.4881,3.5824 l -82.605,91.596 -14.65,-15.046 z" />
+        <path
+           style="fill:#1a1a1a"
+           inkscape:connector-curvature="0"
+           id="path4191-8"
+           d="m 326.28,393.77 a 32.5775,37.881581 0 1 1 -65.155,0 32.5775,37.881581 0 1 1 65.155,0 z"
+           transform="matrix(0.30351,0.31171,-0.26807,0.26102,317.6,186.79)" />
+        <path
+           style="fill:#ff0000;stroke:#ffffff;stroke-width:2.06579995"
+           inkscape:connector-curvature="0"
+           id="path4198-5"
+           d="m 326.28,393.77 a 32.5775,37.881581 0 1 1 -65.155,0 32.5775,37.881581 0 1 1 65.155,0 z"
+           transform="matrix(0.21157,0.21729,-0.18687,0.18195,312.63,245.66)" />
+      </g>
+    </g>
+  </g>
+  <metadata
+     id="metadata174">
+    <rdf:RDF>
+      <cc:Work>
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <cc:license
+           rdf:resource="http://creativecommons.org/publicdomain/zero/1.0/" />
+        <dc:publisher>
+          <cc:Agent
+             rdf:about="http://openclipart.org/">
+            <dc:title>Openclipart</dc:title>
+          </cc:Agent>
+        </dc:publisher>
+        <dc:title></dc:title>
+        <dc:date>2013-05-15T07:43:23</dc:date>
+        <dc:description>Flipped the colors. When the value gets higher the more danger there is the redder the color should get.</dc:description>
+        <dc:source>https://openclipart.org/detail/178160/pressure-by-peterm-178160</dc:source>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>PeterM</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>meter</rdf:li>
+            <rdf:li>pressure</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+        <dc:contributor>
+          <cc:Agent>
+            <dc:title>remixed by Juhele</dc:title>
+          </cc:Agent>
+        </dc:contributor>
+      </cc:Work>
+      <cc:License
+         rdf:about="http://creativecommons.org/publicdomain/zero/1.0/">
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#Reproduction" />
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#Distribution" />
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#DerivativeWorks" />
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+</svg>

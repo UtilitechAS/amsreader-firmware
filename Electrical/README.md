@@ -28,3 +28,13 @@ This [board design](Board_002) is a newer alternative to the original. It
 ### Status
 
 Unfinished, just started.
+
+## Board 3
+
+This [board](Board_003) is a M-bus master simulator to be able to develop and
+test the other boards without being dependent on having and using a real
+AMS unit.
+
+### Status
+
+Unfinished, just started.

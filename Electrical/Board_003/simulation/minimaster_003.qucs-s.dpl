@@ -1,0 +1,41 @@
+<Qucs Schematic 0.0.20>
+<Properties>
+  <View=-140,-62,1413,953,1,46,62>
+  <Grid=10,10,0>
+  <DataSet=minimaster_003.qucs-s.dat>
+  <DataDisplay=minimaster_003.qucs-s.sch>
+  <OpenDisplay=1>
+  <Script=minimaster_003.qucs-s.m>
+  <RunScript=0>
+  <showFrame=0>
+  <FrameText0=Title>
+  <FrameText1=Drawn By:>
+  <FrameText2=Date:>
+  <FrameText3=Revision:>
+</Properties>
+<Symbol>
+</Symbol>
+<Components>
+</Components>
+<Wires>
+</Wires>
+<Diagrams>
+  <Rect 640 212 726 182 3 #c0c0c0 1 00 1 0 0.2 1 1 -0.1 0.5 1.1 1 -0.1 0.5 1.1 315 0 225 "" "" "">
+	<"ngspice/minimaster_003:v(t2base)" #0000ff 0 3 0 0 0>
+  </Rect>
+  <Rect 640 448 729 168 3 #c0c0c0 1 00 1 0 0.2 1 1 -0.1 0.5 1.1 1 -0.1 0.5 1.1 315 0 225 "" "" "">
+	<"ngspice/minimaster_003:v(t5base)" #0000ff 0 3 0 0 0>
+  </Rect>
+  <Rect 630 776 738 236 3 #c0c0c0 1 00 1 0 0.2 1 1 -0.1 0.5 1.1 1 -0.1 0.5 1.1 315 0 225 "" "" "">
+	<"ngspice/minimaster_003:v(t4base)" #0000ff 0 3 0 0 0>
+	<"ngspice/minimaster_003:v(t4emitter)" #ff0000 0 3 0 0 0>
+  </Rect>
+  <Rect 0 496 497 146 3 #c0c0c0 1 00 1 0 0.2 1 1 -0.1 0.5 1.1 1 -0.1 0.5 1.1 315 0 225 "" "" "">
+	<"ngspice/minimaster_003:i(pr2)" #0000ff 0 3 0 0 0>
+  </Rect>
+  <Rect 10 233 480 143 3 #c0c0c0 1 00 1 0 1 15 1 -0.000387336 0.001 0.00426069 1 -1 0.5 1 315 0 225 "" "" "">
+	<"ngspice/minimaster_003:i(pr1)" #0000ff 0 3 0 0 0>
+  </Rect>
+</Diagrams>
+<Paintings>
+</Paintings>

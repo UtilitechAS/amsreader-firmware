@@ -1,0 +1,30 @@
+<Qucs Schematic 0.0.20>
+<Properties>
+  <View=0,-120,1252,800,1,0,0>
+  <Grid=10,10,0>
+  <DataSet=minimaster_001.qucs-s.dat>
+  <DataDisplay=minimaster_001.qucs-s.sch>
+  <OpenDisplay=1>
+  <Script=minimaster_001.qucs-s.m>
+  <RunScript=0>
+  <showFrame=0>
+  <FrameText0=Title>
+  <FrameText1=Drawn By:>
+  <FrameText2=Date:>
+  <FrameText3=Revision:>
+</Properties>
+<Symbol>
+</Symbol>
+<Components>
+</Components>
+<Wires>
+</Wires>
+<Diagrams>
+  <Rect 240 471 894 331 3 #c0c0c0 1 00 1 0 0.2 1 1 -0.1 0.5 1.1 1 -0.1 0.5 1.1 315 0 225 "" "" "">
+	<"ngspice/minimaster_001:tran.v(mbusminus)" #0000ff 0 3 0 0 0>
+	<"ngspice/minimaster_001:tran.v(mbusplus)" #ff0000 0 3 0 0 0>
+	<"ngspice/minimaster_001:tran.v(txd)" #ff00ff 0 3 0 0 0>
+  </Rect>
+</Diagrams>
+<Paintings>
+</Paintings>

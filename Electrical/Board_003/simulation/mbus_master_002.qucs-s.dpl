@@ -1,6 +1,6 @@
 <Qucs Schematic 0.0.20>
 <Properties>
-  <View=0,0,935,800,1,0,0>
+  <View=0,-52,2255,800,1,0,52>
   <Grid=10,10,0>
   <DataSet=mbus_master_002.qucs-s.dat>
   <DataDisplay=mbus_master_002.qucs-s.sch>
@@ -20,8 +20,13 @@
 <Wires>
 </Wires>
 <Diagrams>
-  <Rect 140 503 755 383 3 #c0c0c0 1 00 1 0 0.1 1 1 -0.1 0.2 1.1 1 -0.1 0.2 1.1 315 0 225 "" "" "">
+  <Rect 80 265 558 225 3 #c0c0c0 1 00 1 0 0.1 1 1 -0.1 0.2 1.1 1 -0.1 0.2 1.1 315 0 225 "" "" "">
 	<"ngspice/mbus_master_002:tran.v(mbusminus)" #0000ff 0 3 0 0 0>
+	<"ngspice/mbus_master_002:tran.v(txd)" #ff0000 0 3 0 0 0>
+  </Rect>
+  <Rect 740 443 755 383 3 #c0c0c0 1 00 1 0 0.0005 0.005 1 -1.28635 2 14.7499 1 -1 0.2 1 315 0 225 "" "" "">
+	<"ngspice/mbus_master_002:tran.vdrop" #ff00ff 0 3 0 0 0>
+	  <Mkr 0.00100411 214 -214 3 0 0>
 	<"ngspice/mbus_master_002:tran.v(txd)" #ff0000 0 3 0 0 0>
   </Rect>
 </Diagrams>

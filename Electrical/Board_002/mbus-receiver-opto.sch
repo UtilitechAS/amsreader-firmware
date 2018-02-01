@@ -1,0 +1,367 @@
+EESchema Schematic File Version 2
+LIBS:power
+LIBS:device
+LIBS:transistors
+LIBS:conn
+LIBS:linear
+LIBS:regul
+LIBS:74xx
+LIBS:cmos4000
+LIBS:adc-dac
+LIBS:memory
+LIBS:xilinx
+LIBS:microcontrollers
+LIBS:dsp
+LIBS:microchip
+LIBS:analog_switches
+LIBS:motorola
+LIBS:texas
+LIBS:intel
+LIBS:audio
+LIBS:interface
+LIBS:digital-audio
+LIBS:philips
+LIBS:display
+LIBS:cypress
+LIBS:siliconi
+LIBS:opto
+LIBS:atmel
+LIBS:contrib
+LIBS:valves
+LIBS:amstomqtt
+LIBS:shield1-cache
+EELAYER 25 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 2 2
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+Text HLabel 9200 3150 2    60   Input ~ 0
+MBUS_SIGNAL
+Text HLabel 9200 3650 2    60   Input ~ 0
+MBUS_GND
+Text HLabel 3250 3100 0    60   Input ~ 0
+TTL_TX_COLL
+$Comp
+L TSS721A U2
+U 1 1 5A611A62
+P 7150 3500
+F 0 "U2" H 7150 4300 60  0000 C CNN
+F 1 "TSS721A" H 7125 3450 60  0000 C CNN
+F 2 "" H 7300 2650 60  0001 C CNN
+F 3 "" H 7300 2650 60  0001 C CNN
+	1    7150 3500
+	1    0    0    -1  
+$EndComp
+Text Label 9050 3650 3    60   ~ 0
+MGND
+Text Label 7150 5350 3    60   ~ 0
+MGND
+Wire Wire Line
+	7150 4550 7150 5350
+$Comp
+L R R5
+U 1 1 5A611BDA
+P 5700 3550
+F 0 "R5" V 5780 3550 50  0000 C CNN
+F 1 "100k" V 5700 3550 50  0000 C CNN
+F 2 "" V 5630 3550 50  0001 C CNN
+F 3 "" H 5700 3550 50  0001 C CNN
+	1    5700 3550
+	0    1    1    0   
+$EndComp
+$Comp
+L R R6
+U 1 1 5A611C0E
+P 5700 3700
+F 0 "R6" V 5780 3700 50  0000 C CNN
+F 1 "100k" V 5700 3700 50  0000 C CNN
+F 2 "" V 5630 3700 50  0001 C CNN
+F 3 "" H 5700 3700 50  0001 C CNN
+	1    5700 3700
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	5850 3700 6050 3700
+Wire Wire Line
+	5850 3550 6050 3550
+Wire Wire Line
+	5350 3550 5550 3550
+Wire Wire Line
+	5350 3700 5550 3700
+Text Label 5350 3700 2    60   ~ 0
+MGND
+$Comp
+L R R4
+U 1 1 5A611DAD
+P 5700 3400
+F 0 "R4" V 5780 3400 50  0000 C CNN
+F 1 "100k" V 5700 3400 50  0000 C CNN
+F 2 "" V 5630 3400 50  0001 C CNN
+F 3 "" H 5700 3400 50  0001 C CNN
+	1    5700 3400
+	0    1    1    0   
+$EndComp
+$Comp
+L R R3
+U 1 1 5A611DD7
+P 5700 3250
+F 0 "R3" V 5780 3250 50  0000 C CNN
+F 1 "100k" V 5700 3250 50  0000 C CNN
+F 2 "" V 5630 3250 50  0001 C CNN
+F 3 "" H 5700 3250 50  0001 C CNN
+	1    5700 3250
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	6050 3250 5850 3250
+Wire Wire Line
+	5850 3400 6050 3400
+Wire Wire Line
+	5550 3400 5350 3400
+Wire Wire Line
+	5350 3250 5550 3250
+Wire Wire Line
+	6050 1500 6050 3100
+$Comp
+L CP C3
+U 1 1 5A61201F
+P 7650 4850
+F 0 "C3" H 7675 4950 50  0000 L CNN
+F 1 "CP" H 7675 4750 50  0000 L CNN
+F 2 "" H 7688 4700 50  0001 C CNN
+F 3 "" H 7650 4850 50  0001 C CNN
+	1    7650 4850
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7650 4550 7650 4700
+$Comp
+L R R10
+U 1 1 5A61220B
+P 7400 4850
+F 0 "R10" V 7480 4850 50  0000 C CNN
+F 1 "R" V 7400 4850 50  0000 C CNN
+F 2 "" V 7330 4850 50  0001 C CNN
+F 3 "" H 7400 4850 50  0001 C CNN
+	1    7400 4850
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7400 4550 7400 4700
+Wire Wire Line
+	7400 5200 7400 5000
+Wire Wire Line
+	6650 5200 7650 5200
+Connection ~ 7150 5200
+Wire Wire Line
+	7650 5200 7650 5000
+Connection ~ 7400 5200
+$Comp
+L R R7
+U 1 1 5A6127A2
+P 5700 4000
+F 0 "R7" V 5780 4000 50  0000 C CNN
+F 1 "100k" V 5700 4000 50  0000 C CNN
+F 2 "" V 5630 4000 50  0001 C CNN
+F 3 "" H 5700 4000 50  0001 C CNN
+	1    5700 4000
+	0    1    1    0   
+$EndComp
+Wire Wire Line
+	5850 4000 6050 4000
+Wire Wire Line
+	5550 4000 5350 4000
+Text Label 5350 4000 2    60   ~ 0
+MGND
+$Comp
+L LTV-356T U1
+U 1 1 5A612A13
+P 4000 3200
+F 0 "U1" H 3790 3390 50  0000 L CNN
+F 1 "LTV-356T" H 4000 3400 50  0000 L CNN
+F 2 "Housings_SOIC:SO-4_4.4x3.6mm_Pitch2.54mm" H 3800 3000 50  0001 L CIN
+F 3 "" H 4000 3200 50  0001 L CNN
+	1    4000 3200
+	-1   0    0    -1  
+$EndComp
+Text HLabel 3250 3300 0    60   Input ~ 0
+TTL_TX_EMIT
+Wire Wire Line
+	3250 3100 3700 3100
+Wire Wire Line
+	3250 3300 3700 3300
+$Comp
+L R R2
+U 1 1 5A612D72
+P 4300 3600
+F 0 "R2" V 4380 3600 50  0000 C CNN
+F 1 "R" V 4300 3600 50  0000 C CNN
+F 2 "" V 4230 3600 50  0001 C CNN
+F 3 "" H 4300 3600 50  0001 C CNN
+	1    4300 3600
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4300 3850 6050 3850
+Wire Wire Line
+	4300 3850 4300 3750
+Wire Wire Line
+	4300 3450 4300 3300
+$Comp
+L TEST_1P J4
+U 1 1 5A613111
+P 4600 3700
+F 0 "J4" H 4600 3970 50  0000 C CNN
+F 1 "TEST_1P" H 4600 3900 50  0000 C CNN
+F 2 "" H 4800 3700 50  0001 C CNN
+F 3 "" H 4800 3700 50  0001 C CNN
+	1    4600 3700
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4300 2400 4300 3100
+Wire Wire Line
+	4300 2550 1950 2550
+Wire Wire Line
+	1950 2550 1950 6100
+Wire Wire Line
+	1950 6100 8150 6100
+Wire Wire Line
+	8150 6100 8150 4650
+Wire Wire Line
+	8150 4650 7650 4650
+Connection ~ 7650 4650
+Wire Wire Line
+	5350 3250 5350 3700
+Connection ~ 5350 3400
+Connection ~ 5350 3550
+NoConn ~ 8250 3400
+$Comp
+L C C2
+U 1 1 5A6138A2
+P 7000 1800
+F 0 "C2" H 7025 1900 50  0000 L CNN
+F 1 "C" H 7025 1700 50  0000 L CNN
+F 2 "" H 7038 1650 50  0001 C CNN
+F 3 "" H 7000 1800 50  0001 C CNN
+	1    7000 1800
+	1    0    0    -1  
+$EndComp
+$Comp
+L R R9
+U 1 1 5A6138F1
+P 6700 1800
+F 0 "R9" V 6780 1800 50  0000 C CNN
+F 1 "R" V 6700 1800 50  0000 C CNN
+F 2 "" V 6630 1800 50  0001 C CNN
+F 3 "" H 6700 1800 50  0001 C CNN
+	1    6700 1800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7000 1950 7000 2100
+Text Label 7000 2100 3    60   ~ 0
+MGND
+Wire Wire Line
+	6700 1950 6700 2000
+Wire Wire Line
+	6700 2000 7000 2000
+Connection ~ 7000 2000
+Wire Wire Line
+	6050 1500 7000 1500
+Wire Wire Line
+	7000 1500 7000 1650
+Connection ~ 6050 2950
+Wire Wire Line
+	6700 1650 6700 1500
+Connection ~ 6700 1500
+Text Notes 7200 1850 0    60   ~ 0
+C_VDD
+Text Notes 6300 1850 0    60   ~ 0
+R_LOAD
+$Comp
+L TEST_1P J3
+U 1 1 5A6141FE
+P 4300 2400
+F 0 "J3" H 4300 2670 50  0000 C CNN
+F 1 "TEST_1P" H 4300 2600 50  0000 C CNN
+F 2 "" H 4500 2400 50  0001 C CNN
+F 3 "" H 4500 2400 50  0001 C CNN
+	1    4300 2400
+	1    0    0    -1  
+$EndComp
+$Comp
+L R R11
+U 1 1 5A614833
+P 8700 3150
+F 0 "R11" V 8780 3150 50  0000 C CNN
+F 1 "220" V 8700 3150 50  0000 C CNN
+F 2 "" V 8630 3150 50  0001 C CNN
+F 3 "" H 8700 3150 50  0001 C CNN
+	1    8700 3150
+	0    1    1    0   
+$EndComp
+$Comp
+L R R12
+U 1 1 5A6148F9
+P 8700 3650
+F 0 "R12" V 8780 3650 50  0000 C CNN
+F 1 "220" V 8700 3650 50  0000 C CNN
+F 2 "" V 8630 3650 50  0001 C CNN
+F 3 "" H 8700 3650 50  0001 C CNN
+	1    8700 3650
+	0    1    1    0   
+$EndComp
+$Comp
+L C C1
+U 1 1 5A615080
+P 6900 4850
+F 0 "C1" H 6925 4950 50  0000 L CNN
+F 1 "C" H 6925 4750 50  0000 L CNN
+F 2 "" H 6938 4700 50  0001 C CNN
+F 3 "" H 6900 4850 50  0001 C CNN
+	1    6900 4850
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6900 4550 6900 4700
+Wire Wire Line
+	6900 5000 6900 5200
+$Comp
+L R R8
+U 1 1 5A615354
+P 6650 4850
+F 0 "R8" V 6730 4850 50  0000 C CNN
+F 1 "R" V 6650 4850 50  0000 C CNN
+F 2 "" V 6580 4850 50  0001 C CNN
+F 3 "" H 6650 4850 50  0001 C CNN
+	1    6650 4850
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6650 4550 6650 4700
+Wire Wire Line
+	6650 5000 6650 5200
+Connection ~ 6900 5200
+Wire Wire Line
+	4600 3700 4600 3850
+Connection ~ 4600 3850
+Connection ~ 4300 2550
+Wire Wire Line
+	8250 3150 8550 3150
+Wire Wire Line
+	8850 3150 9200 3150
+Wire Wire Line
+	9200 3650 8850 3650
+Wire Wire Line
+	8250 3650 8550 3650
+$EndSCHEMATC

@@ -104,6 +104,15 @@ amount of current (~120mA or more) and gets gets hot so it might
 need heatsinking, but that is an [inherent problem with all ethernet
 controlles](https://electronics.stackexchange.com/questions/52349/why-is-ethernet-so-power-hungry).
 
+# Schematic
+
+![](shield1.png?raw=true)
+![](mbus-receiver-opto.png?raw=true)
+
+# PCB
+
+None yet.
+
 -------------------
 
 <sup>1</sup> Less than 20 NOK at [Elfa

@@ -32,6 +32,15 @@ This could be accomplished by reducing the 22k resistor so that it
 draws enough current.
 
 
+## Schematic
+
+![](MBus_Simulator.schematic.png?raw=true)
+
+## PCB
+
+![](MBus_Simulator.B.Cu.png?raw=true)
+![](MBus_Simulator.F.Cu.png?raw=true)
+
 
 -------------
 

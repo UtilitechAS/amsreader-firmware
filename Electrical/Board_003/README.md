@@ -9,7 +9,7 @@ to a M-bus level signal. It only supports sending. Based on
 It depends on an external power source capable of delivering 25-40 Volt.
 Most DC-DC boost/step-up converter modules<sup>2</sup> should be fine for this.
 
-![](mbus_master.png)
+![](MBus_Simulator.png?raw=true)
 
 ## BOM
 

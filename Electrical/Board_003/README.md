@@ -9,7 +9,7 @@ to a M-bus level signal. It only supports sending. Based on
 It depends on an external power source capable of delivering 25-40 Volt.
 Most DC-DC boost/step-up converter modules<sup>2</sup> should be fine for this.
 
-![](mbus_master.png)
+![](MBus_Simulator.png?raw=true)
 
 ## BOM
 
@@ -31,6 +31,15 @@ e.g. like 1N5350 whereas a BZX55 will probably not operate properly.
 This could be accomplished by reducing the 22k resistor so that it
 draws enough current.
 
+
+## Schematic
+
+![](MBus_Simulator.schematic.png?raw=true)
+
+## PCB
+
+![](MBus_Simulator.B.Cu.png?raw=true)
+![](MBus_Simulator.F.Cu.png?raw=true)
 
 
 -------------

@@ -1,4 +1,4 @@
-update=lø. 27. jan. 2018 kl. 11.31 +0100
+update=ma. 26. feb. 2018 kl. 17.58 +0100
 version=1
 last_client=kicad
 [pcbnew]
@@ -23,9 +23,11 @@ ModuleOutlineThickness=0.150000000000
 [cvpcb]
 version=1
 NetIExt=net
+[general]
+version=1
 [eeschema]
 version=1
-LibDir=
+LibDir=../kicad-libs/kicad-symbols
 [eeschema/libraries]
 LibName1=power
 LibName2=device
@@ -59,5 +61,4 @@ LibName29=opto
 LibName30=atmel
 LibName31=contrib
 LibName32=valves
-[general]
-version=1
+LibName33=Mechanical

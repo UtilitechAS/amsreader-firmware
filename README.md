@@ -27,11 +27,12 @@ The project should include:
 
 ## Electrical design
 
-* [Electrical design](./Electrical)
+One original hardware design has been made and a new one is currently being developed.
+More details in [electrical design](./Electrical).
 
 
 ### Circuit prototype
-![Breadboard](/Electrical/Board_001/Prototype.jpg)
+![Breadboard](Electrical/Board_001/Prototype.jpg)
 
 ### MQTT output
-![MQTT screenshot](/Electrical/Board_001/MQTT%20screenshot.png)
+![MQTT screenshot](Electrical/Board_001/MQTT%20screenshot.png)

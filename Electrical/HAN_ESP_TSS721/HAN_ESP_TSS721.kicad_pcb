@@ -65,8 +65,8 @@
     (aux_axis_origin 0 0)
     (visible_elements 7FFFFFBF)
     (pcbplotparams
-      (layerselection 0x00030_80000001)
-      (usegerberextensions false)
+      (layerselection 0x010f0_ffffffff)
+      (usegerberextensions true)
       (usegerberattributes false)
       (usegerberadvancedattributes false)
       (creategerberjobfile false)
@@ -90,7 +90,7 @@
       (mirror false)
       (drillshape 0)
       (scaleselection 1)
-      (outputdirectory ./images))
+      (outputdirectory ./gerber))
   )
 
   (net 0 "")

@@ -5,7 +5,7 @@ Here are links to the different board designs together with a short summary.
 
 ## HAN_ESP_TSS721 (The current design)
 
-This is the current and most robust design for the [main board](HAN_ESP_TS7221). There's been great help in creating this, both here on GitHub, but also at the Norwegian home automation forum, [www.hjemmeautomasjon.no](https://www.hjemmeautomasjon.no/forums/topic/1982-lesing-av-ams-data-amshan-iot/)
+This is the current and most robust design for the [main board](HAN_ESP_TS721). There's been great help in creating this, both here on GitHub, but also at the Norwegian home automation forum, [www.hjemmeautomasjon.no](https://www.hjemmeautomasjon.no/forums/topic/1982-lesing-av-ams-data-amshan-iot/)
 
 The board
 

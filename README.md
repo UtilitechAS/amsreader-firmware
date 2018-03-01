@@ -14,14 +14,14 @@ Components will be ESP8622, Arduino code, a (very simplified) M-bus <-> 3.3V ser
 As a start, we should try to get information from the three types of AMS meters currently being installed in Norway. Some details about these are available here: [NVE_Info_kunder_HANgrensesnitt.pdf](Documentation/NVE_Info_kunder_HANgrensesnitt.pdf)
 
 The project should include:
-- [x] [Simple circuit to transform MBus levels to 3.3V serial](/Electrical/Board_001)
+- [x] [Simple circuit to transform MBus levels to 3.3V serial](/Electrical/HAN_ESP_Simple)
 - [x] [Code to capture and analyze data from PC](/Code/HanDebugger)
 - [x] [Code to capture and analyze data from Arduino](/Code/ESPDebugger)
 - [x] [Sample data from various meters](/Samples)
 - [x] [Documentation on HAN / MBus / DLMS/COSEM](/Documentation)
 - [X] [Code to parse DLMS data into a structure](/Code/Arduino/HanReader/src)
-- [X] [Real schematics, including ESP8266](/Electrical/Board_001/PCB)
-- [X] [PCB layout](/Electrical/Board_001/PCB)
+- [X] [Real schematics, including ESP8266](/Electrical/HAN_ESP_Simple/PCB)
+- [X] [PCB layout](/Electrical/HAN_ESP_Simple/PCB)
 - [ ] Arduino library
 - [X] [Arduino sample sketch to read values and report to MQTT server](/Code/Arduino)
 
@@ -32,7 +32,7 @@ More details in [electrical design](./Electrical).
 
 
 ### Circuit prototype
-![Breadboard](Electrical/Board_001/Prototype.jpg)
+![Breadboard](Electrical/HAN_ESP_Simple/Prototype.jpg)
 
 ### MQTT output
-![MQTT screenshot](Electrical/Board_001/MQTT%20screenshot.png)
+![MQTT screenshot](Electrical/HAN_ESP_Simple/MQTT%20screenshot.png)

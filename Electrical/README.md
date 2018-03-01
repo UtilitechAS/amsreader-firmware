@@ -3,9 +3,9 @@
 
 Here are links to the different board designs together with a short summary.
 
-## Board 1
+## HAN_ESP_Simple (Was: Board 1)
 
-The project's original [board design](Board_001). It
+The project's original [board design](HAN_ESP_Simple). It
 
 * is based on the ESP8266 chip.
 * is powered by USB.
@@ -16,9 +16,9 @@ The project's original [board design](Board_001). It
 
 Prototypes have been made and some people have started using them(?).
 
-## Board 2
+## HAN_TTL_TSS721 (Was: Board 2)
 
-This [board design](Board_002) is a newer alternative to the original. It
+This [board design](HAN_TTL_TSS721) is a newer alternative to the original. It
 
 * is an Arduino shield.
 * uses the industry standard TSS721 chip to interface the M-bus.
@@ -29,9 +29,9 @@ This [board design](Board_002) is a newer alternative to the original. It
 
 Unfinished, just started.
 
-## Board 3
+## MBUS_Simulator (Was: Board 3)
 
-This [board](Board_003) is a M-bus master simulator to be able to develop and
+This [board](MBUS_Simulator) is a M-bus master simulator to be able to develop and
 test the other boards without being dependent on having and using a real
 AMS unit.
 

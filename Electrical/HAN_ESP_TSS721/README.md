@@ -11,10 +11,11 @@ Other than this, it's all about software. You can find the [Arduino code](../../
 
 
 ## Schematics
-![Schematics](./images/schematics.PNG)
+![Schematics](./images/schematics.png)
 
 ## PCB
-![PCB](./images/PCB_3D.PNG)
+![PCB](./images/PCB_3D.png)
+
 ### Layers
 | Top Copper | Bottom Copper | Silk | Combined |
 | ---------- | ------------- | ---- | -------- |

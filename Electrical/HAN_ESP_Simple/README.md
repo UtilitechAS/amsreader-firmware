@@ -1,5 +1,12 @@
 # Electrical Design
 
+### **!!NOTE!!**
+The more mature version of a HAN Port reader is available under the folder [HAN_ESP_TSS721](HAN_ESP_TSS721). The main difference in these two versions are that this one is using a proprietary (but simpler) circuit for the M-bus to TTL
+conversion and has very limited resources available for doing work on the schematics and PCB. The [HAN_ESP_TSS721](HAN_ESP_TSS721) is using a TSS721 circuit
+from Texas Instruments, specifically designed for M-bus to TTL conversion. Also
+all design is available for you in a [KiCad](https://www.kicad-pcb.org) format.
+
+
 ## Explained
 The design is using an opamp as a compined level converter and a schmitt trigger, in order to convert 
 the HAN signal into a 3.3V compatible serial format. As the input levels on the opamp is much higher 

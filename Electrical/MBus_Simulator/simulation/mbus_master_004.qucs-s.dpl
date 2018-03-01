@@ -1,0 +1,33 @@
+<Qucs Schematic 0.0.20>
+<Properties>
+  <View=0,-1080,1119,3261,1,0,0>
+  <Grid=10,10,0>
+  <DataSet=mbus_master_004.qucs-s.dat>
+  <DataDisplay=mbus_master_004.qucs-s.sch>
+  <OpenDisplay=1>
+  <Script=mbus_master_004.qucs-s.m>
+  <RunScript=0>
+  <showFrame=0>
+  <FrameText0=Title>
+  <FrameText1=Drawn By:>
+  <FrameText2=Date:>
+  <FrameText3=Revision:>
+</Properties>
+<Symbol>
+</Symbol>
+<Components>
+</Components>
+<Wires>
+</Wires>
+<Diagrams>
+  <Rect 140 -826 936 194 3 #c0c0c0 1 00 1 12 2 34 1 -0.00203476 0.01 0.0223864 1 -1 0.5 1 315 0 225 "" "" "">
+	<"ngspice/mbus_master_004:i(pr1)" #0000ff 0 3 0 0 0>
+	<"ngspice/mbus_master_004:i(pr2)" #ff0000 0 3 0 0 0>
+	<"ngspice/mbus_master_004:i(pr4)" #00ff00 0 3 0 0 0>
+  </Rect>
+  <Rect 140 -609 937 161 3 #c0c0c0 1 00 1 12 2 34 1 -0.00203476 0.01 0.0223864 1 -1 0.5 1 315 0 225 "" "" "">
+	<"ngspice/mbus_master_004:i(pr3)" #ff00ff 0 3 0 0 0>
+  </Rect>
+</Diagrams>
+<Paintings>
+</Paintings>

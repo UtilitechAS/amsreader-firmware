@@ -58,5 +58,5 @@ JP1 | | [XG8S-0241](https://www.digikey.no/product-detail/en/omron-electronics-i
 JP2 | | [XG8S-0241](https://www.digikey.no/product-detail/en/omron-electronics-inc-emc-div/XG8S-0241/Z5374-ND/4947394) | Jumper header
 SW1 | Tactile Switch | [1825910-6](https://www.digikey.no/product-detail/en/te-connectivity-alcoswitch-switches/1825910-6/450-1650-ND/1632536) | Tactile Button
 SW2 | Tactile Switch | [1825910-6](https://www.digikey.no/product-detail/en/te-connectivity-alcoswitch-switches/1825910-6/450-1650-ND/1632536) | Tactile Button
--   | | [STC02SYAN](https://www.digikey.no/product-detail/en/sullins-connector-solutions/STC02SYAN/S9000-ND/76372) | Unless you have these lying in your drawer, you'll need two
+NONAME | | [STC02SYAN](https://www.digikey.no/product-detail/en/sullins-connector-solutions/STC02SYAN/S9000-ND/76372) | Unless you have these lying in your drawer, you'll need two
 

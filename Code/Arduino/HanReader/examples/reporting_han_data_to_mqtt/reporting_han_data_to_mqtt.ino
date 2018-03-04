@@ -16,6 +16,7 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include "HanReader.h"
+#include "Kaifa.h"
 
 // The HAN Port reader
 HanReader hanReader;
@@ -79,83 +80,93 @@ void loop() {
 	// Read one byt from the port, and see if we got a full package
 	if (hanReader.read())
 	{
-		// Get the list identifier
-		List list = hanReader.getList();
-		Serial1.println("");
-		Serial1.print("List #");
-		Serial1.print((byte)list, HEX);
-		Serial1.print(": ");
+    // Get the list identifier
+    int listSize = hanReader.getListSize();
 
-		// Make sure we got a valid list
-		if (list == List::ListUnknown)
-		{
-			Serial1.println("Invalid list");
-			return;
-		}
+    Serial1.println("");
+    Serial1.print("List size: ");
+    Serial1.print(listSize);
+    Serial1.print(": ");
 
-		// Get the timestamp (as unix time) from the package
-		time_t time = hanReader.getPackageTime();
+    // Only care for the ACtive Power Imported, which is found in the first list
+    if (listSize == (int)Kaifa::List1 || listSize == (int)Kaifa::List2 || listSize == (int)Kaifa::List3)
+    {
+      if (listSize == (int)Kaifa::List1)
+      {
+        Serial1.println(" (list #1 has no ID)");
+      }
+      else
+      {
+        String id = hanReader.getString((int)Kaifa_List2::ListVersionIdentifier);
+        Serial1.println(id);
+      }
 
-		// Define a json object to keep the data
-		StaticJsonBuffer<500> jsonBuffer;
-		JsonObject& root = jsonBuffer.createObject();
-		
-		// Any generic useful info here
-		root["id"] = "espdebugger";
-		root["up"] = millis();
-		root["t"] = time;
-
-		// Add a sub-structure to the json object, 
-		// to keep the data from the meter itself
-		JsonObject& data = root.createNestedObject("data");
-		
-		// Based on the list number, get all details 
-		// according to OBIS specifications for the meter
-		if (list == List::List1)
-		{
-			data["P"] = hanReader.getInt(List1_ObisObjects::ActivePowerImported);
-		}
-		else if (list == List::List2)
-		{
-			data["lv"] = hanReader.getString(List2_ObisObjects::ObisListVersionIdentifier);
-			data["id"] = hanReader.getString(List2_ObisObjects::MeterID);
-			data["type"] = hanReader.getString(List2_ObisObjects::MeterType);
-			data["P"] = hanReader.getInt(List2_ObisObjects::ActivePowerImported);
-			data["Q"] = hanReader.getInt(List2_ObisObjects::ReactivePowerImported);
-			data["I1"] = hanReader.getInt(List2_ObisObjects::CurrentPhaseL1);
-			data["I2"] = hanReader.getInt(List2_ObisObjects::CurrentPhaseL2);
-			data["I3"] = hanReader.getInt(List2_ObisObjects::CurrentPhaseL3);
-			data["U1"] = hanReader.getInt(List2_ObisObjects::VoltagePhaseL1);
-			data["U2"] = hanReader.getInt(List2_ObisObjects::VoltagePhaseL1);
-			data["U3"] = hanReader.getInt(List2_ObisObjects::VoltagePhaseL1);
-		}
-		else if (list == List::List3)
-		{
-			data["lv"] = hanReader.getString(List3_ObisObjects::ObisListVersionIdentifier);;
-			data["id"] = hanReader.getString(List3_ObisObjects::MeterID);
-			data["type"] = hanReader.getString(List3_ObisObjects::MeterType);
-			data["P"] = hanReader.getInt(List3_ObisObjects::ActivePowerImported);
-			data["Q"] = hanReader.getInt(List3_ObisObjects::ReactivePowerImported);
-			data["I1"] = hanReader.getInt(List3_ObisObjects::CurrentPhaseL1);
-			data["I2"] = hanReader.getInt(List3_ObisObjects::CurrentPhaseL2);
-			data["I3"] = hanReader.getInt(List3_ObisObjects::CurrentPhaseL3);
-			data["U1"] = hanReader.getInt(List3_ObisObjects::VoltagePhaseL1);
-			data["U2"] = hanReader.getInt(List3_ObisObjects::VoltagePhaseL1);
-			data["U3"] = hanReader.getInt(List3_ObisObjects::VoltagePhaseL1);
-			data["tPI"] = hanReader.getInt(List3_ObisObjects::TotalActiveEnergyImported);
-			data["tPO"] = hanReader.getInt(List3_ObisObjects::TotalActiveEnergyExported);
-			data["tQI"] = hanReader.getInt(List3_ObisObjects::TotalReactiveEnergyImported);
-			data["tQO"] = hanReader.getInt(List3_ObisObjects::TotalReactiveEnergyExported);
-		}
-
-		// Write the json to the debug port
-		root.printTo(Serial1);
-		Serial1.println();
-
-		// Publish the json to the MQTT server
-		char msg[1024];
-		root.printTo(msg, 1024);
-		client.publish("sensors/out/espdebugger", msg);
+  		// Get the timestamp (as unix time) from the package
+  		time_t time = hanReader.getPackageTime();
+      Serial.print("Time of the package is: ");
+      Serial.println(time);
+  
+  		// Define a json object to keep the data
+  		StaticJsonBuffer<500> jsonBuffer;
+  		JsonObject& root = jsonBuffer.createObject();
+  		
+  		// Any generic useful info here
+  		root["id"] = "espdebugger";
+  		root["up"] = millis();
+  		root["t"] = time;
+  
+  		// Add a sub-structure to the json object, 
+  		// to keep the data from the meter itself
+  		JsonObject& data = root.createNestedObject("data");
+  		
+  		// Based on the list number, get all details 
+  		// according to OBIS specifications for the meter
+  		if (listSize == (int)Kaifa::List1)
+  		{
+  			data["P"] = hanReader.getInt((int)Kaifa_List1::ActivePowerImported);
+  		}
+  		else if (listSize == (int)Kaifa::List2)
+  		{
+  			data["lv"] = hanReader.getString((int)Kaifa_List2::ListVersionIdentifier);
+  			data["id"] = hanReader.getString((int)Kaifa_List2::MeterID);
+  			data["type"] = hanReader.getString((int)Kaifa_List2::MeterType);
+  			data["P"] = hanReader.getInt((int)Kaifa_List2::ActiveImportPower);
+  			data["Q"] = hanReader.getInt((int)Kaifa_List2::ReactiveImportPower);
+  			data["I1"] = hanReader.getInt((int)Kaifa_List2::CurrentL1);
+  			data["I2"] = hanReader.getInt((int)Kaifa_List2::CurrentL2);
+  			data["I3"] = hanReader.getInt((int)Kaifa_List2::CurrentL3);
+  			data["U1"] = hanReader.getInt((int)Kaifa_List2::VoltageL1);
+  			data["U2"] = hanReader.getInt((int)Kaifa_List2::VoltageL2);
+  			data["U3"] = hanReader.getInt((int)Kaifa_List2::VoltageL3);
+  		}
+  		else if (listSize == (int)Kaifa::List3)
+  		{
+  			data["lv"] = hanReader.getString((int)Kaifa_List3::ListVersionIdentifier);;
+  			data["id"] = hanReader.getString((int)Kaifa_List3::MeterID);
+  			data["type"] = hanReader.getString((int)Kaifa_List3::MeterType);
+  			data["P"] = hanReader.getInt((int)Kaifa_List3::ActiveImportPower);
+  			data["Q"] = hanReader.getInt((int)Kaifa_List3::ReactiveImportPower);
+  			data["I1"] = hanReader.getInt((int)Kaifa_List3::CurrentL1);
+  			data["I2"] = hanReader.getInt((int)Kaifa_List3::CurrentL2);
+  			data["I3"] = hanReader.getInt((int)Kaifa_List3::CurrentL3);
+  			data["U1"] = hanReader.getInt((int)Kaifa_List3::VoltageL1);
+  			data["U2"] = hanReader.getInt((int)Kaifa_List3::VoltageL2);
+  			data["U3"] = hanReader.getInt((int)Kaifa_List3::VoltageL3);
+  			data["tPI"] = hanReader.getInt((int)Kaifa_List3::CumulativeActiveImportEnergy);
+  			data["tPO"] = hanReader.getInt((int)Kaifa_List3::CumulativeActiveExportEnergy);
+  			data["tQI"] = hanReader.getInt((int)Kaifa_List3::CumulativeReactiveImportEnergy);
+  			data["tQO"] = hanReader.getInt((int)Kaifa_List3::CumulativeReactiveExportEnergy);
+  		}
+  
+  		// Write the json to the debug port
+  		root.printTo(Serial1);
+  		Serial1.println();
+  
+  		// Publish the json to the MQTT server
+  		char msg[1024];
+  		root.printTo(msg, 1024);
+  		client.publish("sensors/out/espdebugger", msg);
+  	}
 	}
 }
 

@@ -17,4 +17,4 @@ Very similar to the HanDebugger, simply reading the HAN data and outputting the 
 ### SerialTestPattern (Arduino sketch, any variant)
 This code outputs a changing serial test pattern.
 
-![](SerialTestPattern.gif)
+![](SerialTestPattern/SerialTestPattern.gif)

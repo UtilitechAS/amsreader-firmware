@@ -13,6 +13,7 @@
  */
 
 #include "HanReader.h"
+#include "Kaifa.h"
 
 // The HAN Port reader
 HanReader hanReader;
@@ -41,20 +42,20 @@ void loop() {
 	if (hanReader.read())
 	{
 		// Get the list identifier
-		List list = hanReader.getList();
+		int listSize = hanReader.getListSize();
 		
-		Serial1.println("");
-		Serial1.print("List #");
-		Serial1.print((byte)list, HEX);
-		Serial1.print(": ");
+    Serial1.println("");
+    Serial1.print("List size: ");
+    Serial1.print(listSize);
+    Serial1.print(": ");
 
 		// Only care for the ACtive Power Imported, which is found in the first list
-		if (list == List::List1)
-		{
-			int power = hanReader.getInt(List1_ObisObjects::ActivePowerImported);
+    if (listSize == (int)Kaifa::List1)
+    {
+      int power = hanReader.getInt((int)Kaifa_List1::ActivePowerImported);
       Serial1.print("Power consumtion is right now: ");
       Serial1.print(power);
       Serial1.println(" W");
-		}
+    }
 	}
 }

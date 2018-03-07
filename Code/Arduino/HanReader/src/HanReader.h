@@ -15,6 +15,7 @@ class HanReader
 {
 public:
 	const uint dataHeader = 8;
+	bool compensateFor09HeaderBug = false;
 
 	HanReader();
 	void setup(HardwareSerial *hanPort);

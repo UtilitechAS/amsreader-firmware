@@ -102,7 +102,10 @@ int HanReader::getListSize()
 
 time_t HanReader::getPackageTime()
 {
-	return getTime(buffer, 8, bytesRead);
+	int packageTimePosition = dataHeader 
+		+ (compensateFor09HeaderBug ? 1 : 0);
+
+	return getTime(buffer, packageTimePosition, bytesRead);
 }
 
 time_t HanReader::getTime(int objectId)
@@ -125,7 +128,8 @@ int HanReader::findValuePosition(int dataPosition, byte *buffer, int start, int 
 {
 	// The first byte after the header gives the length 
 	// of the extended header information (variable)
-	int firstData = dataHeader + buffer[dataHeader] + 1;
+	int headerSize = dataHeader + (compensateFor09HeaderBug ? 1 : 0);
+	int firstData = headerSize + buffer[headerSize] + 1;
 
 	for (int i = start + firstData; i<length; i++)
 	{

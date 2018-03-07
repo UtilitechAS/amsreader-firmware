@@ -35,9 +35,54 @@ bool HanReader::read(byte data)
 	if (reader.Read(data))
 	{
 		bytesRead = reader.GetRawData(buffer, 0, 512);
-		listSize = getInt(1, buffer, 0, bytesRead);
+		if (debug)
+		{
+			debug->print("Got valid DLMS data (");
+			debug->print(bytesRead);
+			debug->println(" bytes):");
+			debugPrint(buffer, 0, bytesRead);
+		}
+
+		/*
+			Data should start with E6 E7 00 0F
+			and continue with four bytes for the InvokeId
+		*/
+		if (bytesRead < 9)
+		{
+			if (debug) debug->println("Invalid HAN data: Less than 9 bytes received");
+			return false;
+		}
+		else if (
+			buffer[0] != 0xE6 || 
+			buffer[1] != 0xE7 ||
+			buffer[2] != 0x00 ||
+			buffer[3] != 0x0F
+		)
+		{
+			if (debug) debug->println("Invalid HAN data: Start should be E6 E7 00 0F");
+			return false;
+		}
+
+		if (debug) debug->println("HAN data is valid");
+		listSize = getInt(0, buffer, 0, bytesRead);
 		return true;
 	}
+}
+
+void HanReader::debugPrint(byte *buffer, int start, int length)
+{
+	for (int i = start; i < start + length; i++)
+	{
+		if (buffer[i] < 0x10)
+			debug->print("0");
+		debug->print(buffer[i], HEX);
+		debug->print(" ");
+		if ((i - start + 1) % 16 == 0)
+			debug->println("");
+		else if ((i - start + 1) % 4 == 0)
+			debug->print(" ");
+	}
+	debug->println("");
 }
 
 bool HanReader::read()
@@ -57,7 +102,7 @@ int HanReader::getListSize()
 
 time_t HanReader::getPackageTime()
 {
-	return getTime(0);
+	return getTime(buffer, 8, bytesRead);
 }
 
 time_t HanReader::getTime(int objectId)
@@ -78,7 +123,11 @@ String HanReader::getString(int objectId)
 
 int HanReader::findValuePosition(int dataPosition, byte *buffer, int start, int length)
 {
-	for (int i = start + dataHeader; i<length; i++)
+	// The first byte after the header gives the length 
+	// of the extended header information (variable)
+	int firstData = dataHeader + buffer[dataHeader] + 1;
+
+	for (int i = start + firstData; i<length; i++)
 	{
 		if (dataPosition-- == 0)
 			return i;
@@ -117,18 +166,33 @@ time_t HanReader::getTime(int dataPosition, byte *buffer, int start, int length)
 {
 	// TODO: check if the time is represented always as a 12 byte string (0x09 0x0C)
 	int timeStart = findValuePosition(dataPosition, buffer, start, length);
-	timeStart += 2;
+	timeStart += 1;
+	return getTime(buffer, start + timeStart, length - timeStart);
+}
 
-	int year = buffer[start + timeStart] << 8 |
-		buffer[start + timeStart + 1];
+time_t HanReader::getTime(byte *buffer, int start, int length)
+{
+	int pos = start;
+	int dataLength = buffer[pos++];
 
-	int month = buffer[start + timeStart + 2];
-	int day = buffer[start + timeStart + 3];
-	int hour = buffer[start + timeStart + 5];
-	int minute = buffer[start + timeStart + 6];
-	int second = buffer[start + timeStart + 7];
+	if (dataLength == 0x0C)
+	{
+		int year = buffer[pos] << 8 |
+			buffer[pos + 1];
 
-	return toUnixTime(year, month, day, hour, minute, second);
+		int month = buffer[pos + 2];
+		int day = buffer[pos + 3];
+		int hour = buffer[pos + 5];
+		int minute = buffer[pos + 6];
+		int second = buffer[pos + 7];
+
+		return toUnixTime(year, month, day, hour, minute, second);
+	}
+	else
+	{
+		// Date format not supported
+		return (time_t)0L;
+	}
 }
 
 int HanReader::getInt(int dataPosition, byte *buffer, int start, int length)

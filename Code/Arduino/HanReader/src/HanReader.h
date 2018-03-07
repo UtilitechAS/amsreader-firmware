@@ -38,11 +38,14 @@ private:
 
 	int findValuePosition(int dataPosition, byte *buffer, int start, int length);
 
-	long getTime(int dataPosition, byte *buffer, int start, int length);
+	time_t getTime(int dataPosition, byte *buffer, int start, int length);
+	time_t getTime(byte *buffer, int start, int length);
 	int getInt(int dataPosition, byte *buffer, int start, int length);
 	String getString(int dataPosition, byte *buffer, int start, int length);
 
 	time_t toUnixTime(int year, int month, int day, int hour, int minute, int second);
+
+	void debugPrint(byte *buffer, int start, int length);
 };
 
 

@@ -28,7 +28,7 @@ E7	|	Source LSAP
 00	|	LLC Quality
 0F 	|	Information, n*8 bits?
 40 00 00 00	|	(UNCERTAIN)
-09 | String following (really, it's a date!)
+09 | ??String?? Kamstrup removed this, will it also disappear from Kaifa?
 0C | 12 bytes (length of the string)
 07 E1	|	2017 (year)
 09	|	09 (sep)

@@ -13,3 +13,8 @@ Very similar to the HanDebugger, simply reading the HAN data and outputting the 
 
 ![ESPCircuit](./ESPDebugger/Circuit%20(breadboard).jpg)
 ![ESPScreenshot](./ESPDebugger/screenshot.png)
+
+### SerialTestPattern (Arduino sketch, any variant)
+This code outputs a changing serial test pattern.
+
+![](SerialTestPattern/SerialTestPattern.gif)

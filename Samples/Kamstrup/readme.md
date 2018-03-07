@@ -1,3 +1,5 @@
+> NOTE: There has been a change in the Kamstrup firmware which removes the 09 preceeding the first timestamp. See the ~~strikthrough~~ in the table below
+
 ## Sample for Kamstrup
 
 This sample shows a full data package, including start and stop bits.
@@ -31,8 +33,8 @@ E6	|	Destination LSAP
 E7	|	Source LSAP
 00	|	LLC Quality
 0F 	|	Information, n*8 bits?
-00 00 00 00	|	(UNCERTAIN)
-09 | String following (really, it's a date!)
+00 00 00 00	|	INVOKE_ID_AND_PRIORITY 
+~~09~~ | ~~String following (really, it's a date!)~~
 0C | 12 bytes (length of the string)
 07 E1	|	2017 (year)
 0A	|	10 (oct)

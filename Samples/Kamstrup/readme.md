@@ -1,4 +1,4 @@
-> NOTE: There has been a change in the Kamstrup firmware which removes the 09 preceeding the first timestamp
+> NOTE: There has been a change in the Kamstrup firmware which removes the 09 preceeding the first timestamp. See the ~~strikthrough~~ in the table below
 
 ## Sample for Kamstrup
 
@@ -34,7 +34,7 @@ E7	|	Source LSAP
 00	|	LLC Quality
 0F 	|	Information, n*8 bits?
 00 00 00 00	|	INVOKE_ID_AND_PRIORITY 
-~~09 | String following (really, it's a date!)~~
+~~09~~ | ~~String following (really, it's a date!)~~
 0C | 12 bytes (length of the string)
 07 E1	|	2017 (year)
 0A	|	10 (oct)

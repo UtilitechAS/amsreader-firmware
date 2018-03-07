@@ -11,13 +11,13 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\Crc16.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\Crc16.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\DlmsReader.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\DlmsReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\HanReader.cpp">
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\HanReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -27,19 +27,19 @@
     <Text Include="$(MSBuildThisFileDirectory)keywords.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\Crc16.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\Crc16.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\DlmsReader.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\DlmsReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\HanReader.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\HanReader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\Kaifa.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\Kaifa.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="C:\Users\roarf\OneDrive\Documents\GitHub\AmsToMqttBridge\Code\Arduino\HanReader\src\Kamstrup.h">
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\Kamstrup.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

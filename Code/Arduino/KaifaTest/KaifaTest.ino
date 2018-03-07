@@ -30,6 +30,7 @@ void setup() {
 	// initialize the HanReader
 	// (passing no han port, as we are feeding data manually, but provide Serial for debugging)
 	hanReader.setup(NULL, &Serial);
+	hanReader.compensateFor09HeaderBug = true;
 }
 
 void setupDebugPort()

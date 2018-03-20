@@ -81,6 +81,8 @@ void HanReader::debugPrint(byte *buffer, int start, int length)
 			debug->println("");
 		else if ((i - start + 1) % 4 == 0)
 			debug->print(" ");
+		
+		yield(); // Let other get some resources too
 	}
 	debug->println("");
 }

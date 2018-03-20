@@ -6,11 +6,11 @@
 
 bool configuration::hasConfig() 
 {
-	bool has = false;
+	bool hasConfig = false;
 	EEPROM.begin(EEPROM_SIZE);
-	has = EEPROM.read(EEPROM_CONFIG_ADDRESS) == EEPROM_CHECK_SUM;
+	hasConfig = EEPROM.read(EEPROM_CONFIG_ADDRESS) == EEPROM_CHECK_SUM;
 	EEPROM.end();
-	return has;
+	return hasConfig;
 }
 
 bool configuration::save()
@@ -23,6 +23,7 @@ bool configuration::save()
 
 	address += saveString(address, ssid);
 	address += saveString(address, ssidPassword);
+	address += saveByte(address, meterType);
 	address += saveString(address, mqtt);
 	address += saveInt(address, mqttPort);
 	address += saveString(address, mqttClientID);
@@ -37,10 +38,10 @@ bool configuration::save()
 	else
 		address += saveBool(address, false);
 
-	bool vRet = EEPROM.commit();
+	bool success = EEPROM.commit();
 	EEPROM.end();
 
-	return vRet;
+	return success;
 }
 
 
@@ -56,6 +57,7 @@ bool configuration::load()
 
 		address += readString(address, &ssid);
 		address += readString(address, &ssidPassword);
+		address += readByte(address, &meterType);
 		address += readString(address, &mqtt);
 		address += readInt(address, &mqttPort);
 		address += readString(address, &mqttClientID);
@@ -82,6 +84,7 @@ bool configuration::load()
 	{
 		ssid = (char*)String("").c_str();
 		ssidPassword = (char*)String("").c_str();
+		meterType = (byte)0;
 		mqtt = (char*)String("").c_str();
 		mqttClientID = (char*)String("").c_str();
 		mqttPublishTopic = (char*)String("").c_str();
@@ -99,45 +102,55 @@ bool configuration::isSecure()
 	return (mqttUser != 0) && (String(mqttUser).length() > 0);
 }
 
-int configuration::readInt(int pAddress, int *pValue)
+int configuration::readInt(int address, int *value)
 {
-	int lower = EEPROM.read(pAddress);
-	int higher = EEPROM.read(pAddress + 1);
-	*pValue = lower + (higher << 8);
+	int lower = EEPROM.read(address);
+	int higher = EEPROM.read(address + 1);
+	*value = lower + (higher << 8);
 	return 2;
 }
-int configuration::saveInt(int pAddress, int pValue)
+int configuration::saveInt(int address, int value)
 {
-	byte lowByte = pValue & 0xFF;
-	byte highByte = ((pValue >> 8) & 0xFF);
+	byte lowByte = value & 0xFF;
+	byte highByte = ((value >> 8) & 0xFF);
 
-	EEPROM.write(pAddress, lowByte);
-	EEPROM.write(pAddress + 1, highByte);
+	EEPROM.write(address, lowByte);
+	EEPROM.write(address + 1, highByte);
 
 	return 2;
 }
 
-int configuration::readBool(int pAddress, bool *pValue)
+int configuration::readBool(int address, bool *value)
 {
-	byte y = EEPROM.read(pAddress);
-	*pValue = (bool)y;
-	//Serial.printf("Read bool as %#x [%s]\r\n", y, (*pValue ? "true" : "false"));
+	byte y = EEPROM.read(address);
+	*value = (bool)y;
 	return 1;
 }
 
-int configuration::saveBool(int pAddress, bool pValue)
+int configuration::saveBool(int address, bool value)
 {
-	byte y = (byte)pValue;
-	//Serial.printf("Writing bool as %#x [%s]\r\n", y, (pValue ? "true" : "false"));
-	EEPROM.write(pAddress, y);
+	byte y = (byte)value;
+	EEPROM.write(address, y);
+	return 1;
+}
+
+int configuration::readByte(int address, byte *value)
+{
+	*value = EEPROM.read(address);
+	return 1;
+}
+
+int configuration::saveByte(int address, byte value)
+{
+	EEPROM.write(address, value);
 	return 1;
 }
 void configuration::print(Stream& serial)
 {
-
 	/*
 	char* ssid;
 	char* ssidPassword;
+	byte meterType;
 	char* mqtt;
 	int mqttPort;
 	char* mqttClientID;
@@ -152,6 +165,7 @@ void configuration::print(Stream& serial)
 	serial.println("-----------------------------------------------");
 	serial.printf("ssid:                 %s\r\n", this->ssid);
 	serial.printf("ssidPassword:         %s\r\n", this->ssidPassword);
+	serial.printf("meterType:            %i\r\n", this->meterType);
 	serial.printf("mqtt:                 %s\r\n", this->mqtt);
 	serial.printf("mqttPort:             %i\r\n", this->mqttPort);
 	serial.printf("mqttClientID:         %s\r\n", this->mqttClientID);
@@ -166,8 +180,6 @@ void configuration::print(Stream& serial)
 	}
 	serial.println("-----------------------------------------------");
 }
-
-
 
 template <class T> int configuration::writeAnything(int ee, const T& value)
 {
@@ -190,38 +202,25 @@ template <class T> int configuration::readAnything(int ee, T& value)
 int configuration::readString(int pAddress, char* pString[])
 {
 	int address = 0;
-
-	byte vLength = EEPROM.read(pAddress + address);
+	byte length = EEPROM.read(pAddress + address);
 	address++;
 
-	//Serial.print("Found length of string: ");
-	//Serial.println(vLength);
-
-	char* buffer = new char[vLength];
-	for (int i = 0; i<vLength; i++)
+	char* buffer = new char[length];
+	for (int i = 0; i<length; i++)
 	{
 		buffer[i] = EEPROM.read(pAddress + address++);
 	}
 	*pString = buffer;
-
-	//Serial.print("Read string from EEPROM: [");
-	//Serial.print(*pString);
-	//Serial.println("]");
-
 	return address;
 }
 int configuration::saveString(int pAddress, char* pString)
 {
 	int address = 0;
-	int vLength = strlen(pString) + 1;
-	//Serial.print("Storing length of string: ");
-	//Serial.println(vLength);
-	EEPROM.put(pAddress + address, vLength);
+	int length = strlen(pString) + 1;
+	EEPROM.put(pAddress + address, length);
 	address++;
 
-	//Serial.print("Storing string: ");
-	//Serial.println(pString);
-	for (int i = 0; i<vLength; i++)
+	for (int i = 0; i < length; i++)
 	{
 		EEPROM.put(pAddress + address, pString[i]);
 		address++;

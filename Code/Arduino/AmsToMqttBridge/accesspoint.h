@@ -18,26 +18,28 @@ class accesspoint {
 public:
 	void setup(int accessPointButtonPin, Stream& debugger);
 	bool loop();
+	bool hasConfig();
+	configuration config;
+	bool isActivated = false;
 
 private:
 	const char* AP_SSID = "AMS2MQTT";
-
-	configuration config;
-	bool isActivated = false;
-	Stream* debugger = NULL;
 
 	// DNS server
 	const byte DNS_PORT = 53;
 	DNSServer dnsServer;
 
-	size_t print(const char* text);
-	size_t println(const char* text);
-	size_t print(const Printable& data);
-	size_t println(const Printable& data);
+	static size_t print(const char* text);
+	static size_t println(const char* text);
+	static size_t print(const Printable& data);
+	static size_t println(const Printable& data);
 
 	// Web server
 	static void handleRoot();
+	static void handleSave();
 	static ESP8266WebServer server;
+
+	static Stream* debugger;
 };
 
 #endif

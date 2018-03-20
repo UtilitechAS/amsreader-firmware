@@ -23,6 +23,7 @@ public:
 	char* mqttSubscribeTopic;
 	char* mqttUser;
 	char* mqttPass;
+	byte meterType;
 
 	bool hasConfig();
 	bool isSecure();
@@ -34,7 +35,7 @@ protected:
 
 private:
 	const int EEPROM_SIZE = 512;
-	const byte EEPROM_CHECK_SUM = 124; // Used to check if config is stored. Change if structure changes
+	const byte EEPROM_CHECK_SUM = 71; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 
 	int saveString(int pAddress, char* pString);
@@ -43,6 +44,8 @@ private:
 	int readInt(int pAddress, int *pValue);
 	int saveBool(int pAddress, bool pValue);
 	int readBool(int pAddress, bool *pValue);
+	int saveByte(int pAddress, byte pValue);
+	int readByte(int pAddress, byte *pValue);
 
 
 	template <class T> int writeAnything(int ee, const T& value);

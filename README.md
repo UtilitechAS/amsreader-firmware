@@ -8,7 +8,7 @@
 ## The completed hardware
 ![The HAN Reader Hardware](./Electrical/HAN_ESP_TSS721/images/HanReaderInEnclosure.PNG)
 
-*The completed board mounted in a 3D printed enclosure*
+*The completed board mounted in a [3D printed enclosure](/Electrical/HAN_ESP_TSS721/enclosure)*
 
 ![The HAN Reader Installed](./Electrical/HAN_ESP_TSS721/images/HanReaderConnected.PNG)
 
@@ -35,9 +35,9 @@ Quite some work was put into parse and guess how the data protocol was defined. 
 - [X] [PCB layout](/Electrical/HAN_ESP_TSS721#pcb)
 - [X] [Component list](/Electrical/HAN_ESP_TSS721#componenet-list)
 - [X] [Arduino library](/Code/Arduino)
-- [X] [Complete Arduino sketch to read values and report to MQTT server](/Code/Arduino/HanReader/examples)
+- [X] [Complete Arduino sketch to read values and report to MQTT server](/Code/Arduino/AmsToMqttBridge)
 
-The completed project also includes:
+[The completed project](/Code/Arduino/AmsToMqttBridge) also includes:
 
 - Boot as Access Point and web server to allow config from a web browser. This allows you to set SSID, password, MQTT server and port, as well as topics for publish and subscribe
 - On-board temperature sensor, also reported in json to MQTT

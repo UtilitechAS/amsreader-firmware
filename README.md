@@ -12,7 +12,12 @@
 
 ![The HAN Reader Installed](./Electrical/HAN_ESP_TSS721/images/HanReaderConnected.PNG)
 
-*...and installed with the electrical meter*
+*...installed with the electrical meter...*
+
+![Data from MQTT displayed on a Node Red Dashboard](./logo/NodeRedScreen.PNG)
+
+*...and, showing data on a [Node Red](https://nodered.org/) dashboard*
+
 
 ## Background
 The purpose of this project is to collect information and build a simplified bridge for reading serial DLSM/M-bus information from electrical power meters (AMS), provided over the HAN port, and publishing to some IoT friendly target.

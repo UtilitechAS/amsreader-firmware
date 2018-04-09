@@ -6,11 +6,11 @@
 > *Building this project will require some skills in ordering and assembling  electronic circuits as well as programming, and I have not included detailed instructions to take a beginner through the steps. I still hope some still find information here useful, maybe also for other projects.*
 
 ## The completed hardware
-![The HAN Reader Hardware](./Electrical/HAN_ESP_TSS721/images/HanReaderInEnclosure.png)
+![The HAN Reader Hardware](./Electrical/HAN_ESP_TSS721/images/HanReaderInEnclosure.PNG)
 
 *The completed board mounted in a 3D printed enclosure*
 
-![The HAN Reader Installed](./Electrical/HAN_ESP_TSS721/images/HanReaderConnected.png)
+![The HAN Reader Installed](./Electrical/HAN_ESP_TSS721/images/HanReaderConnected.PNG)
 
 *...and installed with the electrical meter*
 

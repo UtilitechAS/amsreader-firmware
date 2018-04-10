@@ -114,6 +114,10 @@ void setupWiFi()
 	// Connect to WiFi
 	WiFi.begin(ap.config.ssid, ap.config.ssidPassword);
 	
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(500);
+	}
+	
 	// Initialize WiFi and MQTT clients
 	if (ap.config.isSecure())
 		client = new WiFiClientSecure();

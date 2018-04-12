@@ -114,6 +114,10 @@ void setupWiFi()
 	// Connect to WiFi
 	WiFi.begin(ap.config.ssid, ap.config.ssidPassword);
 	
+	while (WiFi.status() != WL_CONNECTED) {
+		delay(500);
+	}
+	
 	// Initialize WiFi and MQTT clients
 	if (ap.config.isSecure())
 		client = new WiFiClientSecure();
@@ -168,11 +172,11 @@ void readHanPort()
 		case 1: // Kaifa
 			readHanPort_Kaifa(listSize);
 			break;
-		case 2: // Kamstrup
-			readHanPort_Kamstrup(listSize);
-			break;
-		case 3: // Aidon
+		case 2: // Aidon
 			readHanPort_Aidon(listSize);
+			break;
+		case 3: // Kamstrup
+			readHanPort_Kamstrup(listSize);
 			break;
 		default:
 			debugger->print("Meter type ");

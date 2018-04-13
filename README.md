@@ -31,18 +31,18 @@ Quite some work was put into parse and guess how the data protocol was defined. 
 ### This project includes
 
 - [X] [Circuit to read MBus data, parse the DSLM and report to MQTT over WiFi](/Electrical/HAN_ESP_TSS721)
-- [X] [Code to capture and analyze data from a PC](/Code/HanDebugger)
-- [X] [Code to capture and analyze data from Arduino](/Code/ESPDebugger)
-- [X] [Sample data from various meters](/Samples)
-- [X] [Documentation on HAN / MBus / DLMS/COSEM](/Documentation)
-- [X] [Code to parse DLMS data into a structure](/Code/Arduino/HanReader/src)
-- [X] [Real schematics, including ESP8266](/Electrical/HAN_ESP_TSS721#schematics)
-- [X] [PCB layout](/Electrical/HAN_ESP_TSS721#pcb)
-- [X] [Component list](/Electrical/HAN_ESP_TSS721#componenet-list)
-- [X] [Arduino library](/Code/Arduino)
-- [X] [Complete Arduino sketch to read values and report to MQTT server](/Code/Arduino/AmsToMqttBridge)
+- [X] [Code to capture and analyze data from a PC](./Code/HanDebugger)
+- [X] [Code to capture and analyze data from Arduino](./Code/ESPDebugger)
+- [X] [Sample data from various meters](./Samples)
+- [X] [Documentation on HAN / MBus / DLMS/COSEM](./Documentation)
+- [X] [Code to parse DLMS data into a structure](./Code/Arduino/HanReader/src)
+- [X] [Real schematics, including ESP8266](./Electrical/HAN_ESP_TSS721#schematics)
+- [X] [PCB layout](./Electrical/HAN_ESP_TSS721#pcb)
+- [X] [Component list](./Electrical/HAN_ESP_TSS721#componenet-list)
+- [X] [Arduino library](./Code/Arduino)
+- [X] [Complete Arduino sketch to read values and report to MQTT server](./Code/Arduino/AmsToMqttBridge)
 
-[The completed project](/Code/Arduino/AmsToMqttBridge) also includes:
+[The completed project](./Code/Arduino/AmsToMqttBridge) also includes:
 
 - Boot as Access Point and web server to allow config from a web browser. This allows you to set SSID, password, MQTT server and port, as well as topics for publish and subscribe
 - On-board temperature sensor, also reported in json to MQTT

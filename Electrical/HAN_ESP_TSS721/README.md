@@ -26,7 +26,7 @@ Other than this, it's all about software. You can find the [Arduino code](../../
 The full KiCad source for these design files are here in this folder. Download this repository, start KiCad, chose open project and select HAN_ESP_TSS721.pro to get going.
 
 
-## Componenet list
+## Component list
 | Name | Value | Part | Comments |
 | -----| ----- | ---- | -------- |
 C1|220uF / 16V|[UVR1C221MED1TA](https://www.digikey.no/product-detail/en/nichicon/UVR1C221MED1TA/493-6096-1-ND/3438470)     | Electrolytic Capacitor |

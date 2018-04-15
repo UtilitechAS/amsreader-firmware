@@ -53,3 +53,25 @@ cd AmsToMqttBridge
 git submodule init
 git submodule update --recursive
 ```
+
+Make sure that all submodules are fetched. If not `git submodule status` will show something like the following (notice the `-` in front):
+
+```bash
+-f886cacb58461d356730e744d9d2ae55590825e4 kicad-symbols
+```
+
+while when properly fetched it will show the commit id normally
+(plus any labels if appropriate):
+
+```bash
+ f886cacb58461d356730e744d9d2ae55590825e4 kicad-symbols (5.0.0-rc1)
+```
+
+To mitigate, run update:
+
+```bash
+$ git submodule update --init
+Submodule 'Electrical/kicad-libs/kicad-symbols' (https://github.com/kicad/kicad-symbols) registered for path 'kicad-symbols'
+Cloning into '.../AmsToMqttBridge/Electrical/kicad-libs/kicad-symbols'...
+Submodule path 'kicad-symbols': checked out 'f886cacb58461d356730e744d9d2ae55590825e4'
+```

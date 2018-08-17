@@ -1,5 +1,5 @@
 >!!! NOTE !!!
->I am currently editing this fork to focus on the 'HAN_ESP_TSS721' board which is complete, but needs some work with the software. 
+>I am currently editing this fork to focus on the 'HAN_ESP_TSS721' board which is complete, but needs some minor work with the software to make it more user friendly.
 >I'm organizing the files differently to separate simulators and HAN documentation, deleting theme-related files which aren't necessary for functionality etc. so it's easier to get the files you need for creating one yourself, without worrying about the development documentation.
 >
 >There will be tutorial for ordering, assembly and for uploding software, which would make this project more approachable for everyone interested. 

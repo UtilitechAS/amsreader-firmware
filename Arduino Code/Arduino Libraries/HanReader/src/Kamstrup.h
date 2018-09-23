@@ -7,7 +7,9 @@
 enum class Kamstrup
 {
 	List1 = 0x19,
-	List2 = 0x23
+	List2 = 0x23,
+    List3 = 0x11,
+    List4 = 0x1B
 };
 
 enum class Kamstrup_List1
@@ -81,6 +83,59 @@ enum class Kamstrup_List2
 	CumulativeReactiveExportEnergy
 };
 
+enum class Kamstrup_List3
+{
+    ListSize,
+    ListVersionIdentifier,
+    MeterID_OBIS,
+    MeterID,
+    MeterType_OBIS,
+    MeterType,
+    ActiveImportPower_OBIS,
+    ActiveImportPower,
+    ActiveExportPower_OBIS,
+    ActiveExportPower,
+    ReactiveImportPower_OBIS,
+    ReactiveImportPower,
+    ReactiveExportPower_OBIS,
+    ReactiveExportPower,
+    CurrentL1_OBIS,
+    CurrentL1,
+    VoltageL1_OBIS,
+    VoltageL1
+};
+
+enum class Kamstrup_List4
+{
+    ListSize,
+    ListVersionIdentifier,
+    MeterID_OBIS,
+    MeterID,
+    MeterType_OBIS,
+    MeterType,
+    ActiveImportPower_OBIS,
+    ActiveImportPower,
+    ActiveExportPower_OBIS,
+    ActiveExportPower,
+    ReactiveImportPower_OBIS,
+    ReactiveImportPower,
+    ReactiveExportPower_OBIS,
+    ReactiveExportPower,
+    CurrentL1_OBIS,
+    CurrentL1,
+    VoltageL1_OBIS,
+    VoltageL1,
+    MeterClock_OBIS,
+    MeterClock,
+    CumulativeActiveImportEnergy_OBIS,
+    CumulativeActiveImportEnergy,
+    CumulativeActiveExportEnergy_OBIS,
+    CumulativeActiveExportEnergy,
+    CumulativeReactiveImportEnergy_OBIS,
+    CumulativeReactiveImportEnergy,
+    CumulativeReactiveExportEnergy_OBIS,
+    CumulativeReactiveExportEnergy
+};
 
 #endif
 

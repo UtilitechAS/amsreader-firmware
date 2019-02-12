@@ -193,9 +193,79 @@ void readHanPort()
 
 void readHanPort_Aidon(int listSize)
 {
-	if (debugger)
-		debugger->println("Meter type Aidon is not yet implemented");
-	delay(10000);
+	if (listSize == (int)Aidon::List1 || listSize == (int)Aidon::List2 || listSize == (int)Aidon::List3)
+	{
+		if (listSize == (int)Aidon::List1)
+		{
+			if (debugger) debugger->println(" (list #1 has no ID)");
+		}
+		else
+		{
+			String id = hanReader.getString((int)Aidon_List2::ListVersionIdentifier);
+			if (debugger) debugger->println(id);
+		}
+
+		// Get the timestamp (as unix time) from the package
+		time_t time = hanReader.getPackageTime();
+		if (debugger) debugger->print("Time of the package is: ");
+		if (debugger) debugger->println(time);
+
+		// Define a json object to keep the data
+		//StaticJsonBuffer<500> jsonBuffer;
+		DynamicJsonBuffer jsonBuffer;
+		JsonObject& root = jsonBuffer.createObject();
+
+		// Any generic useful info here
+		root["id"] = WiFi.macAddress();
+		root["up"] = millis();
+		root["t"] = time;
+
+		// Add a sub-structure to the json object, 
+		// to keep the data from the meter itself
+		JsonObject& data = root.createNestedObject("data");
+
+		// Get the temperature too
+		tempSensor.requestTemperatures();
+		float temperature = tempSensor.getTempCByIndex(0);
+		data["temp"] = String(temperature);
+
+		// Based on the list number, get all details 
+		// according to OBIS specifications for the meter
+		if (listSize == (int)Aidon::List1)
+		{
+			data["P"] = hanReader.getInt((int)Aidon_List1::ActivePowerImported);
+		}
+		else if (listSize == (int)Aidon::List2)
+		{
+			data["lv"] = hanReader.getString((int)Aidon_List2::ListVersionIdentifier);
+			data["id"] = hanReader.getString((int)Aidon_List2::MeterID);
+			data["type"] = hanReader.getString((int)Aidon_List2::MeterType);
+			data["P"] = hanReader.getInt((int)Aidon_List2::ActiveImportPower);
+			data["Q"] = hanReader.getInt((int)Aidon_List2::ReactiveImportPower);
+			data["I1"] = hanReader.getInt((int)Aidon_List2::CurrentL1);
+			data["I2"] = hanReader.getInt((int)Aidon_List2::CurrentL2);
+			data["I3"] = hanReader.getInt((int)Aidon_List2::CurrentL3);
+			data["U1"] = hanReader.getInt((int)Aidon_List2::VoltageL1);
+			data["U2"] = hanReader.getInt((int)Aidon_List2::VoltageL2);
+			data["U3"] = hanReader.getInt((int)Aidon_List2::VoltageL3);
+		}
+
+		// Write the json to the debug port
+		if (debugger) {
+			debugger->print("Sending data to MQTT: ");
+			root.printTo(*debugger);
+			debugger->println();
+		}
+
+		// Make sure we have configured a publish topic
+		if (ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
+			return;
+
+		// Publish the json to the MQTT server
+		char msg[1024];
+		root.printTo(msg, 1024);
+		mqtt.publish(ap.config.mqttPublishTopic, msg);
+	}
 }
 
 void readHanPort_Kamstrup(int listSize)

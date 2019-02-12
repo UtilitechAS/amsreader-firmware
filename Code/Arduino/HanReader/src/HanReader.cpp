@@ -137,16 +137,26 @@ int HanReader::findValuePosition(int dataPosition, byte *buffer, int start, int 
 	{
 		if (dataPosition-- == 0)
 			return i;
-		else if (buffer[i] == 0x0A) // OBIS code value
+		else if (buffer[i] == 0x00) // null
+			i += 0;
+		else if (buffer[i] == 0x0A) // String
 			i += buffer[i + 1] + 1;
-		else if (buffer[i] == 0x09) // string value
+		else if (buffer[i] == 0x09) // byte array
 			i += buffer[i + 1] + 1;
-		else if (buffer[i] == 0x02) // byte value (1 byte)
+		else if (buffer[i] == 0x01) // array (1 byte for reading size)
 			i += 1;
-		else if (buffer[i] == 0x12) // integer value (2 bytes)
+		else if (buffer[i] == 0x02) // struct (1 byte for reading size)
+			i += 1;
+		else if (buffer[i] == 0x10) // int16 value (2 bytes)
 			i += 2;
-		else if (buffer[i] == 0x06) // integer value (4 bytes)
+		else if (buffer[i] == 0x12) // uint16 value (2 bytes)
+			i += 2;
+		else if (buffer[i] == 0x06) // uint32 value (4 bytes)
 			i += 4;
+		else if (buffer[i] == 0x0F) // int8 value (1 bytes)
+			i += 1;
+		else if (buffer[i] == 0x16) // enum (1 bytes)
+			i += 1;
 		else
 		{
 			if (debug)
@@ -211,6 +221,9 @@ int HanReader::getInt(int dataPosition, byte *buffer, int start, int length)
 		int bytes = 0;
 		switch (buffer[valuePosition++])
 		{
+			case 0x10: 
+				bytes = 2;
+				break;
 			case 0x12: 
 				bytes = 2;
 				break;
@@ -218,6 +231,15 @@ int HanReader::getInt(int dataPosition, byte *buffer, int start, int length)
 				bytes = 4;
 				break;
 			case 0x02:
+				bytes = 1;
+				break;
+			case 0x01:
+				bytes = 1;
+				break;
+			case 0x0F:
+				bytes = 1;
+				break;
+			case 0x16:
 				bytes = 1;
 				break;
 		}

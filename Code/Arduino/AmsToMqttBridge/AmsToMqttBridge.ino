@@ -4,7 +4,8 @@
  Author:	roarf
 */
 
-
+#include <ESP8266WiFi.h>
+#include <RemoteDebug.h>
 #include <DallasTemperature.h>
 #include <OneWire.h>
 #include <ArduinoJson.h>
@@ -33,6 +34,7 @@ MQTTClient mqtt(256);
 
 // Object used for debugging
 HardwareSerial* debugger = NULL;
+RemoteDebug Debug;
 
 // The HAN Port reader, used to read serial data and decode DLMS
 HanReader hanReader;
@@ -42,6 +44,7 @@ void setup()
 {
 	// Uncomment to debug over the same port as used for HAN communication
 	debugger = &Serial;
+  Debug.begin("AMS2MQTT", Debug.WARNING);
 	
 	if (debugger) {
 		// Setup serial port for debugging
@@ -49,6 +52,7 @@ void setup()
 		while (!&debugger);
 		debugger->println("Started...");
 	}
+  rdebugI("Started...");
 
 	// Assign pin for boot as AP
 	delay(1000);
@@ -105,6 +109,8 @@ void loop()
 		else
 			digitalWrite(LED_PIN, HIGH);
 	}
+
+  Debug.handle();
 }
 
 void setupWiFi()
@@ -131,6 +137,7 @@ void setupWiFi()
 
 	// Notify everyone we're here!
 	sendMqttData("Connected!");
+  rdebugI("Connected!");
 }
 
 void mqttMessageReceived(String &topic, String &payload)
@@ -143,6 +150,8 @@ void mqttMessageReceived(String &topic, String &payload)
 		debugger->print("] ");
 		debugger->println(payload);
 	}
+  rdebugI("Incoming MQTT message: [%s] \n", &topic);
+  rdebugI("%s\n", &payload); 
 
 	// Do whatever needed here...
 	// Ideas could be to query for values or to initiate OTA firmware update
@@ -157,6 +166,7 @@ void readHanPort()
 
 		// Get the list identifier
 		int listSize = hanReader.getListSize();
+    rdebugI("Listsize: %d\n", listSize);
 
 		switch (ap.config.meterType)
 		{
@@ -250,8 +260,10 @@ void readHanPort_Aidon(int listSize)
     // Publish the json to the MQTT server
     char msg[1024];
     root.printTo(msg, 1024);
+    rdebugI("Sending data to MQTT: %s\n", msg);
     mqtt.publish(ap.config.mqttPublishTopic, msg);
-    mqtt.loop();
+  } else {
+    debugPrintData(hanReader.getBuffer(), 0, hanReader.getBytesRead());
   }
 }
 
@@ -343,7 +355,10 @@ void readHanPort_Kamstrup(int listSize)
 		// Publish the json to the MQTT server
 		char msg[1024];
 		root.printTo(msg, 1024);
+    rdebugI("Sending data to MQTT: %s\n", msg);
 		mqtt.publish(ap.config.mqttPublishTopic, msg);
+  } else {
+    debugPrintData(hanReader.getBuffer(), 0, hanReader.getBytesRead());
 	}
 }
 
@@ -403,9 +418,9 @@ void readHanPort_Kaifa(int listSize)
 			data["I1"] = hanReader.getInt((int)Kaifa_List2::CurrentL1);
 			data["I2"] = hanReader.getInt((int)Kaifa_List2::CurrentL2);
 			data["I3"] = hanReader.getInt((int)Kaifa_List2::CurrentL3);
-			data["U1"] = hanReader.getInt((int)Kaifa_List2::VoltageL1);
-			data["U2"] = hanReader.getInt((int)Kaifa_List2::VoltageL2);
-			data["U3"] = hanReader.getInt((int)Kaifa_List2::VoltageL3);
+			data["U1"] = ((double) hanReader.getInt((int)Kaifa_List2::VoltageL1)) / 10;
+			data["U2"] = ((double) hanReader.getInt((int)Kaifa_List2::VoltageL2)) / 10;
+			data["U3"] = ((double) hanReader.getInt((int)Kaifa_List2::VoltageL3)) / 10;
 		}
 		else if (listSize == (int)Kaifa::List3)
 		{
@@ -417,9 +432,9 @@ void readHanPort_Kaifa(int listSize)
 			data["I1"] = hanReader.getInt((int)Kaifa_List3::CurrentL1);
 			data["I2"] = hanReader.getInt((int)Kaifa_List3::CurrentL2);
 			data["I3"] = hanReader.getInt((int)Kaifa_List3::CurrentL3);
-			data["U1"] = hanReader.getInt((int)Kaifa_List3::VoltageL1);
-			data["U2"] = hanReader.getInt((int)Kaifa_List3::VoltageL2);
-			data["U3"] = hanReader.getInt((int)Kaifa_List3::VoltageL3);
+			data["U1"] = ((double) hanReader.getInt((int)Kaifa_List3::VoltageL1)) / 10;
+			data["U2"] = ((double) hanReader.getInt((int)Kaifa_List3::VoltageL2)) / 10;
+			data["U3"] = ((double) hanReader.getInt((int)Kaifa_List3::VoltageL3)) / 10;
 			data["tPI"] = hanReader.getInt((int)Kaifa_List3::CumulativeActiveImportEnergy);
 			data["tPO"] = hanReader.getInt((int)Kaifa_List3::CumulativeActiveExportEnergy);
 			data["tQI"] = hanReader.getInt((int)Kaifa_List3::CumulativeReactiveImportEnergy);
@@ -440,7 +455,10 @@ void readHanPort_Kaifa(int listSize)
 		// Publish the json to the MQTT server
 		char msg[1024];
 		root.printTo(msg, 1024);
+    rdebugI("Sending data to MQTT: %s\n", msg);
 		mqtt.publish(ap.config.mqttPublishTopic, msg);
+	} else {
+    debugPrintData(hanReader.getBuffer(), 0, hanReader.getBytesRead());
 	}
 }
 
@@ -497,6 +515,9 @@ void MQTT_connect()
 		debugger->print(ap.config.mqttPort);
 		debugger->println();
 	}
+  rdebugI("\n\nWifi connected\n");
+  rdebugI("Connecting to MQTT: %s\n", ap.config.mqtt);
+  rdebugI(", port: %d\n", ap.config.mqttPort);
 
 	// Wait for the MQTT connection to complete
 	while (!mqtt.connected()) {
@@ -506,6 +527,7 @@ void MQTT_connect()
 			(ap.config.mqttUser != 0 && mqtt.connect(ap.config.mqttClientID, ap.config.mqttUser, ap.config.mqttPass)))
 		{
 			if (debugger) debugger->println("\nSuccessfully connected to MQTT!");
+      rdebugI("\nSuccessfully connected to MQTT!");
 
 			// Subscribe to the chosen MQTT topic, if set in configuration
 			if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0)
@@ -522,6 +544,7 @@ void MQTT_connect()
 				debugger->print("failed, ");
 				debugger->println(" trying again in 5 seconds");
 			}
+      rdebugE(".failed, trying again in 5 seconds\n");
 
 			// Wait 2 seconds before retrying
 			mqtt.disconnect();
@@ -560,4 +583,19 @@ void sendMqttData(String data)
 
 	// Send the json over MQTT
 	mqtt.publish(ap.config.mqttPublishTopic, msg.c_str());
+}
+
+void debugPrintData(byte *buffer, int start, int length)
+{
+  for (int i = start; i < start + length; i++)
+  {
+    rdebugD("%01X ", buffer[i]);
+    if ((i - start + 1) % 16 == 0)
+      rdebugD("\n");
+    else if ((i - start + 1) % 4 == 0)
+      rdebugD(" ");
+    
+    yield(); // Let other get some resources too
+  }
+  rdebugD("\n");
 }

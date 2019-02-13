@@ -295,3 +295,11 @@ time_t HanReader::toUnixTime(int year, int month, int day, int hour, int minute,
 
 	return (time_t)time;
 }
+
+byte* HanReader::getBuffer() {
+	return buffer;
+}
+
+int HanReader::getBytesRead() {
+	return bytesRead;
+}

@@ -28,6 +28,8 @@ public:
 	int getInt(int objectId);
 	String getString(int objectId);
 	time_t getTime(int objectId);
+	byte* getBuffer();
+	int getBytesRead();
 
 private:
 	Stream *debug;

@@ -8,7 +8,7 @@
 #include <DallasTemperature.h>
 #include <OneWire.h>
 #include <ArduinoJson.h>
-#include <PubSubClient.h>
+#include <MQTT.h>
 #include <HanReader.h>
 #include <Aidon.h>
 #include <Kaifa.h>
@@ -29,7 +29,7 @@ accesspoint ap;
 
 // WiFi client and MQTT client
 WiFiClient *client;
-PubSubClient mqtt;
+MQTTClient mqtt(256);
 
 // Object used for debugging
 HardwareSerial* debugger = NULL;
@@ -120,39 +120,28 @@ void setupWiFi()
 		delay(500);
 	}
 	
-	// Initialize WiFi and MQTT clients
-//	if (ap.config.isSecure())
-//		client = new WiFiClientSecure();
-//	else
-		client = new WiFiClient();
-	mqtt = PubSubClient(*client);
-	mqtt.setServer(ap.config.mqtt, ap.config.mqttPort);
+  client = new WiFiClient();
+	mqtt.begin(ap.config.mqtt, *client);
 
 	// Direct incoming MQTT messages
-	if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0)
-		mqtt.setCallback(mqttMessageReceived);
-
-	// Connect to the MQTT server
-	MQTT_connect();
+	if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0) {
+    mqtt.subscribe(ap.config.mqttSubscribeTopic);
+    mqtt.onMessage(mqttMessageReceived);
+	}
 
 	// Notify everyone we're here!
 	sendMqttData("Connected!");
 }
 
-void mqttMessageReceived(char* topic, unsigned char* payload, unsigned int length)
+void mqttMessageReceived(String &topic, String &payload)
 {
-	// make the incoming message a null-terminated string
-	char message[1000];
-	for (int i = 0; i < length; i++)
-		message[i] = payload[i];
-	message[length] = 0;
 
 	if (debugger) {
 		debugger->println("Incoming MQTT message:");
 		debugger->print("[");
 		debugger->print(topic);
 		debugger->print("] ");
-		debugger->println(message);
+		debugger->println(payload);
 	}
 
 	// Do whatever needed here...
@@ -213,9 +202,9 @@ void readHanPort_Aidon(int listSize)
     JsonObject& root = jsonBuffer.createObject();
 
     // Any generic useful info here
-   // root["id"] = WiFi.macAddress();
-   // root["up"] = millis();
-   // root["t"] = time;
+    root["id"] = WiFi.macAddress();
+    root["up"] = millis();
+    root["t"] = time;
 
     // Add a sub-structure to the json object, 
     // to keep the data from the meter itself
@@ -234,9 +223,9 @@ void readHanPort_Aidon(int listSize)
     }
     else if (listSize == (int)Aidon::List2)
     {
-//      data["lv"] = hanReader.getString((int)Aidon_List2::ListVersionIdentifier);
-//      data["id"] = hanReader.getString((int)Aidon_List2::MeterID);
-//      data["type"] = hanReader.getString((int)Aidon_List2::MeterType);
+      data["lv"] = hanReader.getString((int)Aidon_List2::ListVersionIdentifier);
+      data["id"] = hanReader.getString((int)Aidon_List2::MeterID);
+      data["type"] = hanReader.getString((int)Aidon_List2::MeterType);
       data["P"] = hanReader.getInt((int)Aidon_List2::ActiveImportPower);
       data["Q"] = hanReader.getInt((int)Aidon_List2::ReactiveExportPower);
       data["I1"] = ((double) hanReader.getInt((int)Aidon_List2::CurrentL1)) / 10;
@@ -530,8 +519,7 @@ void MQTT_connect()
 			if (debugger)
 			{
 				debugger->print(".");
-				debugger->print("failed, mqtt.state() = ");
-				debugger->print(mqtt.state());
+				debugger->print("failed, ");
 				debugger->println(" trying again in 5 seconds");
 			}
 

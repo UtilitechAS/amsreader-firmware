@@ -33,7 +33,7 @@ WiFiClient *client;
 MQTTClient mqtt(256);
 
 // Object used for debugging
-HardwareSerial* debugger = NULL;
+boolean debugEnabled = false;
 RemoteDebug Debug;
 
 // The HAN Port reader, used to read serial data and decode DLMS
@@ -42,17 +42,14 @@ HanReader hanReader;
 // the setup function runs once when you press reset or power the board
 void setup() 
 {
+	Serial.begin(2400, SERIAL_8E1);
 	// Uncomment to debug over the same port as used for HAN communication
-	debugger = &Serial;
-  Debug.begin("AMS2MQTT", Debug.WARNING);
-	
-	if (debugger) {
-		// Setup serial port for debugging
-		debugger->begin(2400, SERIAL_8E1);
-		while (!&debugger);
-		debugger->println("Started...");
+	if(debugEnabled) {
+		Debug.begin("AMS2MQTT", Debug.WARNING);
+		Debug.setSerialEnabled(true);
 	}
-  rdebugI("Started...");
+	
+	rdebugI("Started...");
 
 	// Assign pin for boot as AP
 	delay(1000);
@@ -119,39 +116,32 @@ void setupWiFi()
 	WiFi.enableAP(false);
 	
 	// Connect to WiFi
-  WiFi.mode(WIFI_STA);
+	WiFi.mode(WIFI_STA);
 	WiFi.begin(ap.config.ssid, ap.config.ssidPassword);
 	
 	while (WiFi.status() != WL_CONNECTED) {
 		delay(500);
 	}
+	rdebugI("Connected to WiFi");
 	
-  client = new WiFiClient();
+	client = new WiFiClient();
 	mqtt.begin(ap.config.mqtt, *client);
 
 	// Direct incoming MQTT messages
 	if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0) {
-    mqtt.subscribe(ap.config.mqttSubscribeTopic);
-    mqtt.onMessage(mqttMessageReceived);
+		mqtt.subscribe(ap.config.mqttSubscribeTopic);
+		mqtt.onMessage(mqttMessageReceived);
 	}
 
 	// Notify everyone we're here!
 	sendMqttData("Connected!");
-  rdebugI("Connected!");
+	rdebugI("Connected to MQTT");
 }
 
 void mqttMessageReceived(String &topic, String &payload)
 {
-
-	if (debugger) {
-		debugger->println("Incoming MQTT message:");
-		debugger->print("[");
-		debugger->print(topic);
-		debugger->print("] ");
-		debugger->println(payload);
-	}
-  rdebugI("Incoming MQTT message: [%s] \n", &topic);
-  rdebugI("%s\n", &payload); 
+	rdebugI("Incoming MQTT message: [%s] \n", &topic);
+	rdebugI("%s\n", &payload); 
 
 	// Do whatever needed here...
 	// Ideas could be to query for values or to initiate OTA firmware update
@@ -166,7 +156,7 @@ void readHanPort()
 
 		// Get the list identifier
 		int listSize = hanReader.getListSize();
-    rdebugI("Listsize: %d\n", listSize);
+		rdebugD("Listsize: %d\n", listSize);
 
 		switch (ap.config.meterType)
 		{
@@ -180,10 +170,8 @@ void readHanPort()
 			readHanPort_Kamstrup(listSize);
 			break;
 		default:
-			debugger->print("Meter type ");
-			debugger->print(ap.config.meterType, HEX);
-			debugger->println(" is unknown");
-			delay(10000);
+			rdebugW("Meter type %X is unknown", ap.config.meterType);
+			delay(1000);
 			break;
 		}
 
@@ -196,16 +184,8 @@ void readHanPort_Aidon(int listSize)
 {
   if (listSize == (int)Aidon::List1 || listSize == (int)Aidon::List2)
   {
-    if (listSize == (int)Aidon::List2)
-    {
-      String id = hanReader.getString((int)Aidon_List2::ListVersionIdentifier);
-      if (debugger) debugger->println(id);
-    }
-
     // Get the timestamp (as unix time) from the package
     time_t time = hanReader.getPackageTime();
-    if (debugger) debugger->print("Time of the package is: ");
-    if (debugger) debugger->println(time);
 
     // Define a json object to keep the data
     StaticJsonBuffer<500> jsonBuffer;
@@ -246,13 +226,6 @@ void readHanPort_Aidon(int listSize)
       data["U3"] = ((double) hanReader.getInt((int)Aidon_List2::VoltageL3)) / 10;
     }
 
-    // Write the json to the debug port
-    if (debugger) {
-      debugger->print("Sending data to MQTT: ");
-      root.printTo(*debugger);
-      debugger->println();
-    }
-
     // Make sure we have configured a publish topic
     if (ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
       return;
@@ -260,7 +233,8 @@ void readHanPort_Aidon(int listSize)
     // Publish the json to the MQTT server
     char msg[1024];
     root.printTo(msg, 1024);
-    rdebugI("Sending data to MQTT: %s\n", msg);
+    rdebugI("Sending data to MQTT");
+    rdebugD("Payload: %s", msg);
     mqtt.publish(ap.config.mqttPublishTopic, msg);
   } else {
     debugPrintData(hanReader.getBuffer(), 0, hanReader.getBytesRead());
@@ -272,21 +246,8 @@ void readHanPort_Kamstrup(int listSize)
 	// Only care for the ACtive Power Imported, which is found in the first list
 	if (listSize == (int)Kamstrup::List1 || listSize == (int)Kamstrup::List2)
 	{
-		if (listSize == (int)Kamstrup::List1)
-		{
-			String id = hanReader.getString((int)Kamstrup_List1::ListVersionIdentifier);
-			if (debugger) debugger->println(id);
-		}
-		else if (listSize == (int)Kamstrup::List2)
-		{
-			String id = hanReader.getString((int)Kamstrup_List2::ListVersionIdentifier);
-			if (debugger) debugger->println(id);
-		}
-
 		// Get the timestamp (as unix time) from the package
 		time_t time = hanReader.getPackageTime();
-		if (debugger) debugger->print("Time of the package is: ");
-		if (debugger) debugger->println(time);
 
 		// Define a json object to keep the data
 		StaticJsonBuffer<500> jsonBuffer;
@@ -341,13 +302,6 @@ void readHanPort_Kamstrup(int listSize)
 			data["tQO"] = hanReader.getInt((int)Kamstrup_List2::CumulativeReactiveExportEnergy);
 		}
 
-		// Write the json to the debug port
-		if (debugger) {
-			debugger->print("Sending data to MQTT: ");
-			root.printTo(*debugger);
-			debugger->println();
-		}
-
 		// Make sure we have configured a publish topic
 		if (ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
 			return;
@@ -355,10 +309,11 @@ void readHanPort_Kamstrup(int listSize)
 		// Publish the json to the MQTT server
 		char msg[1024];
 		root.printTo(msg, 1024);
-    rdebugI("Sending data to MQTT: %s\n", msg);
+		rdebugI("Sending data to MQTT");
+		rdebugD("Payload: %s", msg);
 		mqtt.publish(ap.config.mqttPublishTopic, msg);
   } else {
-    debugPrintData(hanReader.getBuffer(), 0, hanReader.getBytesRead());
+		debugPrintData(hanReader.getBuffer(), 0, hanReader.getBytesRead());
 	}
 }
 
@@ -368,20 +323,8 @@ void readHanPort_Kaifa(int listSize)
 	// Only care for the ACtive Power Imported, which is found in the first list
 	if (listSize == (int)Kaifa::List1 || listSize == (int)Kaifa::List2 || listSize == (int)Kaifa::List3)
 	{
-		if (listSize == (int)Kaifa::List1)
-		{
-			if (debugger) debugger->println(" (list #1 has no ID)");
-		}
-		else
-		{
-			String id = hanReader.getString((int)Kaifa_List2::ListVersionIdentifier);
-			if (debugger) debugger->println(id);
-		}
-
 		// Get the timestamp (as unix time) from the package
 		time_t time = hanReader.getPackageTime();
-		if (debugger) debugger->print("Time of the package is: ");
-		if (debugger) debugger->println(time);
 
 		// Define a json object to keep the data
 		//StaticJsonBuffer<500> jsonBuffer;
@@ -441,13 +384,6 @@ void readHanPort_Kaifa(int listSize)
 			data["tQO"] = hanReader.getInt((int)Kaifa_List3::CumulativeReactiveExportEnergy);
 		}
 
-		// Write the json to the debug port
-		if (debugger) {
-			debugger->print("Sending data to MQTT: ");
-			root.printTo(*debugger);
-			debugger->println();
-		}
-
 		// Make sure we have configured a publish topic
 		if (ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
 			return;
@@ -455,10 +391,11 @@ void readHanPort_Kaifa(int listSize)
 		// Publish the json to the MQTT server
 		char msg[1024];
 		root.printTo(msg, 1024);
-    rdebugI("Sending data to MQTT: %s\n", msg);
+		rdebugI("Sending data to MQTT");
+		rdebugD("Payload: %s", msg);
 		mqtt.publish(ap.config.mqttPublishTopic, msg);
 	} else {
-    debugPrintData(hanReader.getBuffer(), 0, hanReader.getBytesRead());
+		debugPrintData(hanReader.getBuffer(), 0, hanReader.getBytesRead());
 	}
 }
 
@@ -467,16 +404,10 @@ void readHanPort_Kaifa(int listSize)
 void MQTT_connect() 
 {
 	// Connect to WiFi access point.
-	if (debugger)
-	{
-		debugger->println(); 
-		debugger->println();
-		debugger->print("Connecting to WiFi network ");
-		debugger->println(ap.config.ssid);
-	}
 
 	if (WiFi.status() != WL_CONNECTED)
 	{
+		rdebugI("Connecting to WiFi network %s", ap.config.ssid);
 		// Make one first attempt at connect, this seems to considerably speed up the first connection
 		WiFi.disconnect();
 		WiFi.begin(ap.config.ssid, ap.config.ssidPassword);
@@ -487,37 +418,19 @@ void MQTT_connect()
 	long vTimeout = millis() + WIFI_CONNECTION_TIMEOUT;
 	while (WiFi.status() != WL_CONNECTED) {
 		delay(50);
-		if (debugger) debugger->print(".");
 		
 		// If we timed out, disconnect and try again
 		if (vTimeout < millis())
 		{
-			if (debugger)
-			{
-				debugger->print("Timout during connect. WiFi status is: ");
-				debugger->println(WiFi.status());
-			}
+			rdebugW("Timeout during connect. WiFi status is: %d", WiFi.status());
 			WiFi.disconnect();
 			WiFi.begin(ap.config.ssid, ap.config.ssidPassword);
 			vTimeout = millis() + WIFI_CONNECTION_TIMEOUT;
 		}
 		yield();
 	}
-
-	if (debugger) {
-		debugger->println();
-		debugger->println("WiFi connected");
-		debugger->println("IP address: ");
-		debugger->println(WiFi.localIP());
-		debugger->print("\nconnecting to MQTT: ");
-		debugger->print(ap.config.mqtt);
-		debugger->print(", port: ");
-		debugger->print(ap.config.mqttPort);
-		debugger->println();
-	}
-  rdebugI("\n\nWifi connected\n");
-  rdebugI("Connecting to MQTT: %s\n", ap.config.mqtt);
-  rdebugI(", port: %d\n", ap.config.mqttPort);
+	rdebugI("Wifi connected, IP: %s", WiFi.localIP());
+	rdebugI("Connecting to MQTT server %s:%d", ap.config.mqtt, ap.config.mqttPort);
 
 	// Wait for the MQTT connection to complete
 	while (!mqtt.connected()) {
@@ -526,25 +439,18 @@ void MQTT_connect()
 		if ((ap.config.mqttUser == 0 && mqtt.connect(ap.config.mqttClientID)) || 
 			(ap.config.mqttUser != 0 && mqtt.connect(ap.config.mqttClientID, ap.config.mqttUser, ap.config.mqttPass)))
 		{
-			if (debugger) debugger->println("\nSuccessfully connected to MQTT!");
-      rdebugI("\nSuccessfully connected to MQTT!");
+			rdebugI("MQTT connected");
 
 			// Subscribe to the chosen MQTT topic, if set in configuration
 			if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0)
 			{
 				mqtt.subscribe(ap.config.mqttSubscribeTopic);
-				if (debugger) debugger->printf("  Subscribing to [%s]\r\n", ap.config.mqttSubscribeTopic);
+				mqtt.onMessage(mqttMessageReceived);
 			}
 		}
 		else
 		{
-			if (debugger)
-			{
-				debugger->print(".");
-				debugger->print("failed, ");
-				debugger->println(" trying again in 5 seconds");
-			}
-      rdebugE(".failed, trying again in 5 seconds\n");
+			rdebugE("MQTT connection failed, trying again in 5 seconds");
 
 			// Wait 2 seconds before retrying
 			mqtt.disconnect();
@@ -554,7 +460,6 @@ void MQTT_connect()
 
 		// Allow some resources for the WiFi connection
 		yield();
-    delay(2000);
 	}
 }
 

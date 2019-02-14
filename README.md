@@ -1,9 +1,16 @@
+>!!! NOTE !!!
+>I am currently editing this fork to focus on the 'HAN_ESP_TSS721' board which is complete, but needs some minor work with the software to make it more user friendly.
+>I'm organizing the files differently to separate simulators and HAN documentation, deleting theme-related files which aren't necessary for functionality etc. so it's easier to get the files you need for creating one yourself, without worrying about the development documentation.
+>
+>There will be tutorial for ordering, assembly and for uploding software, which would make this project more approachable for everyone interested. 
+>Later on the PCB might be redesigned to use less SMD parts to be more soldering friendly. 
+
 # AMS <-> MQTT Bridge
-> This project may help you build your own reader for HAN data streamed from the new AMS electrical meters installed in Norway in 2017/2018. Data is read using an Arduino-programmed ESP8266 (in an ESP12 module from AI Thinker), then pushed to MQTT over WiFi. You can have full control over this data, and you can basically do anything with it. 
->
-> This project does not include any fancy UI setup or even storage for the AMS data.
->
-> *Building this project will require some skills in ordering and assembling  electronic circuits as well as programming, and I have not included detailed instructions to take a beginner through the steps. I still hope some still find information here useful, maybe also for other projects.*
+ This project may help you build your own reader for HAN data streamed from the new AMS electrical meters installed in Norway in 2017/2018. Data is read using an Arduino-programmed ESP8266 (in an ESP12 module from AI Thinker), then pushed to MQTT over WiFi. You can have full control over this data, and you can basically do anything with it. 
+
+ This project does not include any fancy UI setup or even storage for the AMS data.
+
+ *Building this project will require some skills in ordering and assembling  electronic circuits as well as programming, and I have not included detailed instructions to take a beginner through the steps. I still hope some still find information here useful, maybe also for other projects.*
 
 ## The completed hardware
 ![The HAN Reader Hardware](./Electrical/HAN_ESP_TSS721/images/HanReaderInEnclosure.PNG)

@@ -35,7 +35,7 @@ Quite some work was put into parse and guess how the data protocol was defined. 
 - [X] [Code to capture and analyze data from Arduino](./Debugging/Code/ESPDebugger)
 - [X] [Sample data from various meters](./Debugging/Samples)
 - [X] [Documentation on HAN / MBus / DLMS/COSEM](./Debugging/Documentation)
-- [X] [Code to parse DLMS data into a structure](./Arduino%20Code/Arduino Libraries/HanReader/src)
+- [X] [Code to parse DLMS data into a structure](./Arduino%20Code/Arduino%20Libraries/HanReader/src)
 - [X] [Real schematics, including ESP8266](./PCB/KiCAD/HAN_ESP_TSS721#schematics)
 - [X] [PCB layout](./PCB/KiCAD/HAN_ESP_TSS721#pcb)
 - [X] [Component list](./PCB/KiCAD/HAN_ESP_TSS721#componenet-list)

@@ -35,14 +35,14 @@ Quite some work was put into parse and guess how the data protocol was defined. 
 - [X] [Code to capture and analyze data from Arduino](./Debugging/Code/ESPDebugger)
 - [X] [Sample data from various meters](./Debugging/Samples)
 - [X] [Documentation on HAN / MBus / DLMS/COSEM](./Debugging/Documentation)
-- [X] [Code to parse DLMS data into a structure](./Arduino\ Code/Arduino Libraries/HanReader/src)
+- [X] [Code to parse DLMS data into a structure](./Arduino%20Code/Arduino Libraries/HanReader/src)
 - [X] [Real schematics, including ESP8266](./PCB/KiCAD/HAN_ESP_TSS721#schematics)
 - [X] [PCB layout](./PCB/KiCAD/HAN_ESP_TSS721#pcb)
 - [X] [Component list](./PCB/KiCAD/HAN_ESP_TSS721#componenet-list)
-- [X] [Arduino library](./Arduino\ Code)
-- [X] [Complete Arduino sketch to read values and report to MQTT server](./Arduino\ Code/AmsToMqttBridge)
+- [X] [Arduino library](./Arduino%20Code)
+- [X] [Complete Arduino sketch to read values and report to MQTT server](./Arduino%20Code/AmsToMqttBridge)
 
-[The completed project](./Arduino\ Code/AmsToMqttBridge) also includes:
+[The completed project](./Arduino%20Code/AmsToMqttBridge) also includes:
 
 - Boot as Access Point and web server to allow config from a web browser. This allows you to set SSID, password, MQTT server and port, as well as topics for publish and subscribe
 - On-board temperature sensor, also reported in json to MQTT

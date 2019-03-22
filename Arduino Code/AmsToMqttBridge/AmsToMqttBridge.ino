@@ -125,7 +125,7 @@ void setupWiFi()
 	rdebugI("Connected to WiFi");
 	
 	client = new WiFiClient();
-	mqtt.begin(ap.config.mqtt, *client);
+	mqtt.begin(ap.config.mqtt, ap.config.mqttPort, *client);
 
 	// Direct incoming MQTT messages
 	if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0) {
@@ -429,8 +429,8 @@ void MQTT_connect()
 		}
 		yield();
 	}
-	rdebugI("Wifi connected, IP: %s", WiFi.localIP());
-	rdebugI("Connecting to MQTT server %s:%d", ap.config.mqtt, ap.config.mqttPort);
+	rdebugI("Wifi connected, IP: %s\n", WiFi.localIP().toString().c_str());
+	rdebugI("Connecting to MQTT server: %s, port: %d\n", ap.config.mqtt, ap.config.mqttPort);
 
 	// Wait for the MQTT connection to complete
 	while (!mqtt.connected()) {
@@ -439,7 +439,7 @@ void MQTT_connect()
 		if ((ap.config.mqttUser == 0 && mqtt.connect(ap.config.mqttClientID)) || 
 			(ap.config.mqttUser != 0 && mqtt.connect(ap.config.mqttClientID, ap.config.mqttUser, ap.config.mqttPass)))
 		{
-			rdebugI("MQTT connected");
+			rdebugI("MQTT connected\n");
 
 			// Subscribe to the chosen MQTT topic, if set in configuration
 			if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0)

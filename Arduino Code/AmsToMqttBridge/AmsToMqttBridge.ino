@@ -237,17 +237,17 @@ void readHanPort_Aidon(int listSize)
     }
     else if (listSize == (int)Aidon::List3)
     {
-      data["lv"] = hanReader.getString((int)Aidon_List2::ListVersionIdentifier);
-      data["id"] = hanReader.getString((int)Aidon_List2::MeterID);
-      data["type"] = hanReader.getString((int)Aidon_List2::MeterType);
-      data["P"] = hanReader.getInt((int)Aidon_List2::ActiveImportPower);
-      data["Q"] = hanReader.getInt((int)Aidon_List2::ReactiveExportPower);
-      data["I1"] = ((double) hanReader.getInt((int)Aidon_List2::CurrentL1)) / 10;
-      data["I2"] = ((double) hanReader.getInt((int)Aidon_List2::CurrentL2)) / 10;
-      data["I3"] = ((double) hanReader.getInt((int)Aidon_List2::CurrentL3)) / 10;
-      data["U1"] = ((double) hanReader.getInt((int)Aidon_List2::VoltageL1)) / 10;
-      data["U2"] = ((double) hanReader.getInt((int)Aidon_List2::VoltageL2)) / 10; 
-      data["U3"] = ((double) hanReader.getInt((int)Aidon_List2::VoltageL3)) / 10;
+      data["lv"] = hanReader.getString((int)Aidon_List3::ListVersionIdentifier);
+      data["id"] = hanReader.getString((int)Aidon_List3::MeterID);
+      data["type"] = hanReader.getString((int)Aidon_List3::MeterType);
+      data["P"] = hanReader.getInt((int)Aidon_List3::ActiveImportPower);
+      data["Q"] = hanReader.getInt((int)Aidon_List3::ReactiveExportPower);
+      data["I1"] = ((double) hanReader.getInt((int)Aidon_List3::CurrentL1)) / 10;
+      data["I2"] = ((double) hanReader.getInt((int)Aidon_List3::CurrentL2)) / 10;
+      data["I3"] = ((double) hanReader.getInt((int)Aidon_List3::CurrentL3)) / 10;
+      data["U1"] = ((double) hanReader.getInt((int)Aidon_List3::VoltageL1)) / 10;
+      data["U2"] = ((double) hanReader.getInt((int)Aidon_List3::VoltageL2)) / 10; 
+      data["U3"] = ((double) hanReader.getInt((int)Aidon_List3::VoltageL3)) / 10;
       data["tPI"] = hanReader.getInt((int)Aidon_List3::CumulativeActiveImportEnergy);
       data["tPO"] = hanReader.getInt((int)Aidon_List3::CumulativeActiveExportEnergy);
       data["tQI"] = hanReader.getInt((int)Aidon_List3::CumulativeReactiveImportEnergy);

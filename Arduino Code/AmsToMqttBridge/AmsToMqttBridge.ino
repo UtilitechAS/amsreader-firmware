@@ -184,7 +184,7 @@ void readHanPort()
 
 void readHanPort_Aidon(int listSize)
 {
-  if (listSize == (int)Aidon::List1 || listSize == (int)Aidon::List2)
+  if (listSize == (int)Aidon::List1 || listSize == (int)Aidon::List2 || listSize == (int)Aidon::List3)
   {
     if (listSize == (int)Aidon::List2)
     {

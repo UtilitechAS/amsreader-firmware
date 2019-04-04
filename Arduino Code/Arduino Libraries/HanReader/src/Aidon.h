@@ -8,6 +8,7 @@ enum class Aidon
 {
 	List1 = 0x01,
 	List2 = 0x0D,
+	List2_p1 = 0x09,
 	List3 = 0x12
 };
 
@@ -95,6 +96,56 @@ enum class Aidon_List2
 	IGN_22,
 	VoltageL3Int8,
 	VoltageL3Enum
+};
+
+enum class Aidon_List2_1p
+{
+	ListSize,
+	IGN_0,
+	ListVersionIdentifier_OBIS,
+	ListVersionIdentifier,
+	IGN_1,
+	MeterID_OBIS,
+	MeterID,
+	IGN_2,
+	MeterType_OBIS,
+	MeterType,
+	IGN_3,
+	ActiveImportPower_OBIS,
+	ActiveImportPower,
+	IGN_4,
+	ActiveImportPowerInt8,
+	ActiveImportPowerEnum,
+	IGN_5,
+	ActiveExportPower_OBIS,
+	ActiveExportPower,
+	IGN_6,
+	ActiveExportPowerInt8,
+	ActiveExportPowerEnum,
+	IGN_7,
+	ReactiveImportPower_OBIS,
+	ReactiveImportPower,
+	IGN_8,
+	ReactiveImportPowerInt8,
+	ReactiveImportPowerEnum,
+	IGN_9,
+	ReactiveExportPower_OBIS,
+	ReactiveExportPower,
+	IGN_10,
+	ReactiveExportPowerInt8,
+	ReactiveExportPowerEnum,
+	IGN_11,
+	Current_OBIS,
+	Current,
+	IGN_12,
+	CurrentInt8,
+	CurrentEnum,
+	IGN_13,
+	Voltage_OBIS,
+	Voltage,
+	IGN_14,
+	VoltageInt8,
+	VoltageEnum,
 };
 
 enum class Aidon_List3

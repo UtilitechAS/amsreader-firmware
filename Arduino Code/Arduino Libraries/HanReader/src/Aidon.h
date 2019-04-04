@@ -145,7 +145,7 @@ enum class Aidon_List2_1p
 	Voltage,
 	IGN_14,
 	VoltageInt8,
-	VoltageEnum,
+	VoltageEnum
 };
 
 enum class Aidon_List3

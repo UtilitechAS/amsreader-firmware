@@ -3,3 +3,5 @@
 [Rr]elease/
 **/__vm/
 .DS_Store
+
+*.sw[op]

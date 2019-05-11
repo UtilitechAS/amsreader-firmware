@@ -67,8 +67,11 @@ void setup()
 	if (!ap.isActivated)
 	{
 		setupWiFi();
-		hanReader.setup(&Serial, 2400, SERIAL_8E1, 0);
-		
+		Serial.begin(2400, SERIAL_8E1);
+		while (!Serial);
+
+		hanReader.setup(&Serial, debugger);
+
 		// Compensate for the known Kaifa bug
 		hanReader.compensateFor09HeaderBug = (ap.config.meterType == 1);
 	}

@@ -5,15 +5,8 @@ HanReader::HanReader()
   
 }
 
-void HanReader::setup(HardwareSerial *hanPort, unsigned long baudrate, SerialConfig config, Stream *debugPort)
+void HanReader::setup(HardwareSerial *hanPort, Stream *debugPort)
 {
-	// Initialize H/W serial port for MBus communication
-	if (hanPort != NULL)
-	{
-		hanPort->begin(baudrate, config);
-		while (!hanPort) {}
-	}
-	
 	han = hanPort;
 	bytesRead = 0;
 	debug = debugPort;
@@ -22,12 +15,7 @@ void HanReader::setup(HardwareSerial *hanPort, unsigned long baudrate, SerialCon
 
 void HanReader::setup(HardwareSerial *hanPort)
 {
-	setup(hanPort, 2400, SERIAL_8E1, NULL);
-}
-
-void HanReader::setup(HardwareSerial *hanPort, Stream *debugPort)
-{
-	setup(hanPort, 2400, SERIAL_8E1, debugPort);
+	setup(hanPort, NULL);
 }
 
 bool HanReader::read(byte data)
@@ -63,8 +51,9 @@ bool HanReader::read(byte data)
 			return false;
 		}
 
-		if (debug) debug->println("HAN data is valid");
 		listSize = getInt(0, buffer, 0, bytesRead);
+		if (debug) debug->print("HAN data is valid, listSize: ");
+		if (debug) debug->println(listSize);
 		return true;
 	}
 }

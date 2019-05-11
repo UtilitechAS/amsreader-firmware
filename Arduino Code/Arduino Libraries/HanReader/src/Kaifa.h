@@ -4,7 +4,8 @@
 enum class Kaifa : byte {
 	List1 = 0x01,
 	List2 = 0x0D,
-	List3 = 0x12
+	List3 = 0x12,
+	List4 = 0x09
 };
 
 enum class Kaifa_List1 {
@@ -49,6 +50,19 @@ enum class Kaifa_List3 {
 	CumulativeActiveExportEnergy,
 	CumulativeReactiveImportEnergy,
 	CumulativeReactiveExportEnergy
+};
+
+enum class Kaifa_List4 { // TODO: Stop using list size like this?
+	ListSize,
+	ListVersionIdentifier,
+	MeterID,
+	MeterType,
+	ActiveImportPower,
+	ActiveExportPower,
+	ReactiveImportPower,
+	ReactiveExportPower,
+	CurrentL1,
+	CurrentL2,
 };
 
 #endif

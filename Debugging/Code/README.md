@@ -18,3 +18,9 @@ Very similar to the HanDebugger, simply reading the HAN data and outputting the 
 This code outputs a changing serial test pattern.
 
 ![](SerialTestPattern/SerialTestPattern.gif)
+
+### SerialSimulator (Python code to send sample HAN data over serial port)
+
+Use this Python3 script (e.g. running on a desktop computer using a USB to serial dongle) to simulate the data sent over the HAN port (after being translate from Mbus to uart signals).
+
+![](SerialSimulator/ams_serial_simulator.jpg)

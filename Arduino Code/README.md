@@ -21,3 +21,7 @@ the sketch runs on the [Adafruit Feather M0 WiFi w/ATWINC1500](https://www.adafr
 
 The shared library to read from a serial port and decode the data into packets.
 
+### Arduino Libraries/HanToJson
+
+Shared library to create a json structure from the read HAN packets (for the different meter types).
+

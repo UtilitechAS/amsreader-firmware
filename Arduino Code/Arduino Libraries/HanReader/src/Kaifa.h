@@ -3,9 +3,9 @@
 
 enum class Kaifa : byte {
 	List1 = 0x01,
+	List21 = 0x09,
 	List2 = 0x0D,
-	List3 = 0x12,
-	List4 = 0x09
+	List3 = 0x12
 };
 
 enum class Kaifa_List1 {
@@ -52,7 +52,7 @@ enum class Kaifa_List3 {
 	CumulativeReactiveExportEnergy
 };
 
-enum class Kaifa_List4 { // TODO: Stop using list size like this?
+enum class Kaifa_List4 { // TODO: Stop using list size like this? Only really need a single long list.
 	ListSize,
 	ListVersionIdentifier,
 	MeterID,

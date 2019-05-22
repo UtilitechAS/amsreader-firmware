@@ -29,7 +29,7 @@ accesspoint ap;
 
 // WiFi client and MQTT client
 WiFiClient *client;
-MQTTClient mqtt(256);
+MQTTClient mqtt(384);
 
 // Object used for debugging
 HardwareSerial* debugger = NULL;

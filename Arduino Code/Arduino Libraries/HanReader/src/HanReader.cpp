@@ -56,6 +56,8 @@ bool HanReader::read(byte data)
 		if (debug) debug->println(listSize);
 		return true;
 	}
+
+	return false;
 }
 
 void HanReader::debugPrint(byte *buffer, int start, int length)

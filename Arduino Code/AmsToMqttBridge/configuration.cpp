@@ -145,7 +145,7 @@ int configuration::saveByte(int address, byte value)
 	EEPROM.write(address, value);
 	return 1;
 }
-void configuration::print(Stream& serial)
+void configuration::print(Stream* debugger)
 {
 	/*
 	char* ssid;
@@ -161,24 +161,24 @@ void configuration::print(Stream& serial)
 	char* mqttPass;
 	*/
 
-	serial.println("Configuration:");
-	serial.println("-----------------------------------------------");
-	serial.printf("ssid:                 %s\r\n", this->ssid);
-	serial.printf("ssidPassword:         %s\r\n", this->ssidPassword);
-	serial.printf("meterType:            %i\r\n", this->meterType);
-	serial.printf("mqtt:                 %s\r\n", this->mqtt);
-	serial.printf("mqttPort:             %i\r\n", this->mqttPort);
-	serial.printf("mqttClientID:         %s\r\n", this->mqttClientID);
-	serial.printf("mqttPublishTopic:     %s\r\n", this->mqttPublishTopic);
-	serial.printf("mqttSubscribeTopic:   %s\r\n", this->mqttSubscribeTopic);
+	debugger->println("Configuration:");
+	debugger->println("-----------------------------------------------");
+	debugger->printf("ssid:                 %s\r\n", this->ssid);
+	debugger->printf("ssidPassword:         %s\r\n", this->ssidPassword);
+	debugger->printf("meterType:            %i\r\n", this->meterType);
+	debugger->printf("mqtt:                 %s\r\n", this->mqtt);
+	debugger->printf("mqttPort:             %i\r\n", this->mqttPort);
+	debugger->printf("mqttClientID:         %s\r\n", this->mqttClientID);
+	debugger->printf("mqttPublishTopic:     %s\r\n", this->mqttPublishTopic);
+	debugger->printf("mqttSubscribeTopic:   %s\r\n", this->mqttSubscribeTopic);
 
 	if (this->isSecure())
 	{
-		serial.printf("SECURE MQTT CONNECTION:\r\n");
-		serial.printf("mqttUser:             %s\r\n", this->mqttUser);
-		serial.printf("mqttPass:             %s\r\n", this->mqttPass);
+		debugger->printf("SECURE MQTT CONNECTION:\r\n");
+		debugger->printf("mqttUser:             %s\r\n", this->mqttUser);
+		debugger->printf("mqttPass:             %s\r\n", this->mqttPass);
 	}
-	serial.println("-----------------------------------------------");
+	debugger->println("-----------------------------------------------");
 }
 
 template <class T> int configuration::writeAnything(int ee, const T& value)

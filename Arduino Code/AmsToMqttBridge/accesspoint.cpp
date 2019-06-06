@@ -11,9 +11,9 @@ bool accesspoint::hasConfig() {
 	return config.hasConfig();
 }
 
-void accesspoint::setup(int accessPointButtonPin, Stream& debugger) 
+void accesspoint::setup(int accessPointButtonPin, Stream* debugger) 
 {
-	this->debugger = &debugger;
+	this->debugger = debugger;
 
 	// Test if we're missing configuration
 	if (!config.hasConfig())
@@ -26,7 +26,7 @@ void accesspoint::setup(int accessPointButtonPin, Stream& debugger)
 	{
 		// Load the configuration
 		config.load();
-		if (this->debugger) config.print(debugger);
+		if (this->debugger) config.print(this->debugger);
 
 		// Test if we're holding down the AP pin, over 5 seconds
 		int time = millis() + 5000;
@@ -36,7 +36,6 @@ void accesspoint::setup(int accessPointButtonPin, Stream& debugger)
 			print(".");
 			if (digitalRead(accessPointButtonPin) == LOW)
 			{
-				println("");
 				print("AP button was pressed. Booting as access point now. Look for SSID ");
 				println(this->AP_SSID);
 				isActivated = true;
@@ -44,6 +43,7 @@ void accesspoint::setup(int accessPointButtonPin, Stream& debugger)
 			}
 			delay(100);
 		}
+		println("");
 	}
 
 	if (isActivated)
@@ -145,7 +145,7 @@ void accesspoint::handleSave() {
 
 	println("Saving configuration now...");
 
-	if (accesspoint::debugger) config->print(*accesspoint::debugger);
+	if (accesspoint::debugger) config->print(accesspoint::debugger);
 	if (config->save())
 	{
 		println("Successfully saved. Will roboot now.");

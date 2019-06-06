@@ -9,10 +9,8 @@
 #include <OneWire.h>
 #include <ArduinoJson.h>
 #include <MQTT.h>
-#include <HanReader.h>
-#include <Aidon.h>
-#include <Kaifa.h>
-#include <Kamstrup.h>
+#include "HanReader.h"
+#include "HanToJson.h"
 #include "configuration.h"
 #include "accesspoint.h"
 
@@ -47,6 +45,7 @@ void setup()
 		// Setup serial port for debugging
 		debugger->begin(2400, SERIAL_8E1);
 		while (!&debugger);
+		debugger->println("");
 		debugger->println("Started...");
 	}
 
@@ -59,7 +58,7 @@ void setup()
 	digitalWrite(LED_PIN, LOW);
 	
 	// Initialize the AP
-	ap.setup(0, Serial);
+	ap.setup(0, debugger);
 	
 	// Turn off the blue LED
 	digitalWrite(LED_PIN, HIGH);
@@ -119,17 +118,20 @@ void setupWiFi()
   WiFi.mode(WIFI_STA);
 	WiFi.begin(ap.config.ssid, ap.config.ssidPassword);
 	
+	if (debugger) debugger->print("\nWaiting for WiFi to connect...");
 	while (WiFi.status() != WL_CONNECTED) {
+		if (debugger) debugger->print(".");
 		delay(500);
 	}
+	if (debugger) debugger->println(" connected");
 	
   client = new WiFiClient();
 	mqtt.begin(ap.config.mqtt, *client);
 
 	// Direct incoming MQTT messages
 	if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0) {
-    mqtt.subscribe(ap.config.mqttSubscribeTopic);
-    mqtt.onMessage(mqttMessageReceived);
+	mqtt.subscribe(ap.config.mqttSubscribeTopic);
+	mqtt.onMessage(mqttMessageReceived);
 	}
 
 	// Notify everyone we're here!
@@ -158,310 +160,52 @@ void readHanPort()
 		// Flash LED on, this shows us that data is received
 		digitalWrite(LED_PIN, LOW);
 
-		// Get the list identifier
-		int listSize = hanReader.getListSize();
+		// Get the timestamp (as unix time) from the package
+		time_t time = hanReader.getPackageTime();
+		if (debugger) debugger->print("Time of the package is: ");
+		if (debugger) debugger->println(time);
 
-		switch (ap.config.meterType)
-		{
-		case 1: // Kaifa
-			readHanPort_Kaifa(listSize);
-			break;
-		case 2: // Aidon
-			readHanPort_Aidon(listSize);
-			break;
-		case 3: // Kamstrup
-			readHanPort_Kamstrup(listSize);
-			break;
-		default:
-			debugger->print("Meter type ");
-			debugger->print(ap.config.meterType, HEX);
-			debugger->println(" is unknown");
-			delay(10000);
-			break;
+		// Get the temperature too
+		tempSensor.requestTemperatures();
+		float temperature = tempSensor.getTempCByIndex(0);
+
+		// Define a json object to keep the data
+		StaticJsonDocument<500> json;
+
+		// Any generic useful info here
+		json["id"] = WiFi.macAddress(); // TODO: Fix?
+		json["up"] = millis();
+		json["t"] = time;
+
+		// Add a sub-structure to the json object,
+		// to keep the data from the meter itself
+		JsonObject data = json.createNestedObject("data");
+		data["temp"] = temperature;
+
+		hanToJson(data, ap.config.meterType, hanReader);
+
+		// Write the json to the debug port
+		if (debugger) {
+			debugger->print("Sending data to MQTT: ");
+			serializeJsonPretty(json, *debugger);
+			debugger->println();
 		}
+
+		// Make sure we have configured a publish topic
+		if (ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
+		{
+			return;
+		}
+
+		// Publish the json to the MQTT server
+		String msg;
+		serializeJson(json, msg);
+
+		mqtt.publish(ap.config.mqttPublishTopic, msg.c_str());
+		mqtt.loop();
 
 		// Flash LED off
 		digitalWrite(LED_PIN, HIGH);
-	}
-}
-
-void readHanPort_Aidon(int listSize)
-{
-  if (listSize == (int)Aidon::List1 || listSize == (int)Aidon::List2 || listSize == (int)Aidon::List3)
-  {
-    if (listSize == (int)Aidon::List2)
-    {
-      String id = hanReader.getString((int)Aidon_List2::ListVersionIdentifier);
-      if (debugger) debugger->println(id);
-    }
-
-    // Get the timestamp (as unix time) from the package
-    time_t time = hanReader.getPackageTime();
-    if (debugger) debugger->print("Time of the package is: ");
-    if (debugger) debugger->println(time);
-
-    // Define a json object to keep the data
-    StaticJsonBuffer<500> jsonBuffer;
-    JsonObject& root = jsonBuffer.createObject();
-
-    // Any generic useful info here
-    root["id"] = WiFi.macAddress();
-    root["up"] = millis();
-    root["t"] = time;
-
-    // Add a sub-structure to the json object, 
-    // to keep the data from the meter itself
-    JsonObject& data = root.createNestedObject("data");
-
-    // Get the temperature too
-    tempSensor.requestTemperatures();
-    float temperature = tempSensor.getTempCByIndex(0);
-    data["temp"] = temperature;
-
-    // Based on the list number, get all details 
-    // according to OBIS specifications for the meter
-    if (listSize == (int)Aidon::List1)
-    {
-      data["P"] = hanReader.getInt((int)Aidon_List1::ActiveImportPower);
-    }
-    else if (listSize == (int)Aidon::List2)
-    {
-      data["lv"] = hanReader.getString((int)Aidon_List2::ListVersionIdentifier);
-      data["id"] = hanReader.getString((int)Aidon_List2::MeterID);
-      data["type"] = hanReader.getString((int)Aidon_List2::MeterType);
-      data["P"] = hanReader.getInt((int)Aidon_List2::ActiveImportPower);
-      data["Q"] = hanReader.getInt((int)Aidon_List2::ReactiveExportPower);
-      data["I1"] = ((double) hanReader.getInt((int)Aidon_List2::CurrentL1)) / 10;
-      data["I2"] = ((double) hanReader.getInt((int)Aidon_List2::CurrentL2)) / 10;
-      data["I3"] = ((double) hanReader.getInt((int)Aidon_List2::CurrentL3)) / 10;
-      data["U1"] = ((double) hanReader.getInt((int)Aidon_List2::VoltageL1)) / 10;
-      data["U2"] = ((double) hanReader.getInt((int)Aidon_List2::VoltageL2)) / 10; 
-      data["U3"] = ((double) hanReader.getInt((int)Aidon_List2::VoltageL3)) / 10;
-    }
-    else if (listSize == (int)Aidon::List3)
-    {
-      data["lv"] = hanReader.getString((int)Aidon_List3::ListVersionIdentifier);
-      data["id"] = hanReader.getString((int)Aidon_List3::MeterID);
-      data["type"] = hanReader.getString((int)Aidon_List3::MeterType);
-      data["P"] = hanReader.getInt((int)Aidon_List3::ActiveImportPower);
-      data["Q"] = hanReader.getInt((int)Aidon_List3::ReactiveExportPower);
-      data["I1"] = ((double) hanReader.getInt((int)Aidon_List3::CurrentL1)) / 10;
-      data["I2"] = ((double) hanReader.getInt((int)Aidon_List3::CurrentL2)) / 10;
-      data["I3"] = ((double) hanReader.getInt((int)Aidon_List3::CurrentL3)) / 10;
-      data["U1"] = ((double) hanReader.getInt((int)Aidon_List3::VoltageL1)) / 10;
-      data["U2"] = ((double) hanReader.getInt((int)Aidon_List3::VoltageL2)) / 10; 
-      data["U3"] = ((double) hanReader.getInt((int)Aidon_List3::VoltageL3)) / 10;
-      data["tPI"] = hanReader.getInt((int)Aidon_List3::CumulativeActiveImportEnergy);
-      data["tPO"] = hanReader.getInt((int)Aidon_List3::CumulativeActiveExportEnergy);
-      data["tQI"] = hanReader.getInt((int)Aidon_List3::CumulativeReactiveImportEnergy);
-      data["tQO"] = hanReader.getInt((int)Aidon_List3::CumulativeReactiveExportEnergy);
-    }
-
-    // Write the json to the debug port
-    if (debugger) {
-      debugger->print("Sending data to MQTT: ");
-      root.printTo(*debugger);
-      debugger->println();
-    }
-
-    // Make sure we have configured a publish topic
-    if (ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
-      return;
-
-    // Publish the json to the MQTT server
-    char msg[1024];
-    root.printTo(msg, 1024);
-    mqtt.publish(ap.config.mqttPublishTopic, msg);
-    mqtt.loop();
-  }
-}
-
-void readHanPort_Kamstrup(int listSize)
-{
-	// Only care for the ACtive Power Imported, which is found in the first list
-	if (listSize == (int)Kamstrup::List1 || listSize == (int)Kamstrup::List2)
-	{
-		if (listSize == (int)Kamstrup::List1)
-		{
-			String id = hanReader.getString((int)Kamstrup_List1::ListVersionIdentifier);
-			if (debugger) debugger->println(id);
-		}
-		else if (listSize == (int)Kamstrup::List2)
-		{
-			String id = hanReader.getString((int)Kamstrup_List2::ListVersionIdentifier);
-			if (debugger) debugger->println(id);
-		}
-
-		// Get the timestamp (as unix time) from the package
-		time_t time = hanReader.getPackageTime();
-		if (debugger) debugger->print("Time of the package is: ");
-		if (debugger) debugger->println(time);
-
-		// Define a json object to keep the data
-		StaticJsonBuffer<500> jsonBuffer;
-		JsonObject& root = jsonBuffer.createObject();
-
-		// Any generic useful info here
-		root["id"] = WiFi.macAddress();
-		root["up"] = millis();
-		root["t"] = time;
-
-		// Add a sub-structure to the json object, 
-		// to keep the data from the meter itself
-		JsonObject& data = root.createNestedObject("data");
-
-		// Get the temperature too
-		tempSensor.requestTemperatures();
-		float temperature = tempSensor.getTempCByIndex(0);
-		data["temp"] = temperature;
-
-		// Based on the list number, get all details 
-		// according to OBIS specifications for the meter
-		if (listSize == (int)Kamstrup::List1)
-		{
-			data["lv"] = hanReader.getString((int)Kamstrup_List1::ListVersionIdentifier);
-			data["id"] = hanReader.getString((int)Kamstrup_List1::MeterID);
-			data["type"] = hanReader.getString((int)Kamstrup_List1::MeterType);
-			data["P"] = hanReader.getInt((int)Kamstrup_List1::ActiveImportPower);
-			data["Q"] = hanReader.getInt((int)Kamstrup_List1::ReactiveImportPower);
-			data["I1"] = hanReader.getInt((int)Kamstrup_List1::CurrentL1);
-			data["I2"] = hanReader.getInt((int)Kamstrup_List1::CurrentL2);
-			data["I3"] = hanReader.getInt((int)Kamstrup_List1::CurrentL3);
-			data["U1"] = hanReader.getInt((int)Kamstrup_List1::VoltageL1);
-			data["U2"] = hanReader.getInt((int)Kamstrup_List1::VoltageL2);
-			data["U3"] = hanReader.getInt((int)Kamstrup_List1::VoltageL3);
-		}
-		else if (listSize == (int)Kamstrup::List2)
-		{
-			data["lv"] = hanReader.getString((int)Kamstrup_List2::ListVersionIdentifier);;
-			data["id"] = hanReader.getString((int)Kamstrup_List2::MeterID);
-			data["type"] = hanReader.getString((int)Kamstrup_List2::MeterType);
-			data["P"] = hanReader.getInt((int)Kamstrup_List2::ActiveImportPower);
-			data["Q"] = hanReader.getInt((int)Kamstrup_List2::ReactiveImportPower);
-			data["I1"] = hanReader.getInt((int)Kamstrup_List2::CurrentL1);
-			data["I2"] = hanReader.getInt((int)Kamstrup_List2::CurrentL2);
-			data["I3"] = hanReader.getInt((int)Kamstrup_List2::CurrentL3);
-			data["U1"] = hanReader.getInt((int)Kamstrup_List2::VoltageL1);
-			data["U2"] = hanReader.getInt((int)Kamstrup_List2::VoltageL2);
-			data["U3"] = hanReader.getInt((int)Kamstrup_List2::VoltageL3);
-			data["tPI"] = hanReader.getInt((int)Kamstrup_List2::CumulativeActiveImportEnergy);
-			data["tPO"] = hanReader.getInt((int)Kamstrup_List2::CumulativeActiveExportEnergy);
-			data["tQI"] = hanReader.getInt((int)Kamstrup_List2::CumulativeReactiveImportEnergy);
-			data["tQO"] = hanReader.getInt((int)Kamstrup_List2::CumulativeReactiveExportEnergy);
-		}
-
-		// Write the json to the debug port
-		if (debugger) {
-			debugger->print("Sending data to MQTT: ");
-			root.printTo(*debugger);
-			debugger->println();
-		}
-
-		// Make sure we have configured a publish topic
-		if (ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
-			return;
-
-		// Publish the json to the MQTT server
-		char msg[1024];
-		root.printTo(msg, 1024);
-		mqtt.publish(ap.config.mqttPublishTopic, msg);
-	}
-}
-
-
-void readHanPort_Kaifa(int listSize) 
-{
-	// Only care for the ACtive Power Imported, which is found in the first list
-	if (listSize == (int)Kaifa::List1 || listSize == (int)Kaifa::List2 || listSize == (int)Kaifa::List3)
-	{
-		if (listSize == (int)Kaifa::List1)
-		{
-			if (debugger) debugger->println(" (list #1 has no ID)");
-		}
-		else
-		{
-			String id = hanReader.getString((int)Kaifa_List2::ListVersionIdentifier);
-			if (debugger) debugger->println(id);
-		}
-
-		// Get the timestamp (as unix time) from the package
-		time_t time = hanReader.getPackageTime();
-		if (debugger) debugger->print("Time of the package is: ");
-		if (debugger) debugger->println(time);
-
-		// Define a json object to keep the data
-		//StaticJsonBuffer<500> jsonBuffer;
-		DynamicJsonBuffer jsonBuffer;
-		JsonObject& root = jsonBuffer.createObject();
-
-		// Any generic useful info here
-		root["id"] = WiFi.macAddress();
-		root["up"] = millis();
-		root["t"] = time;
-
-		// Add a sub-structure to the json object, 
-		// to keep the data from the meter itself
-		JsonObject& data = root.createNestedObject("data");
-
-		// Get the temperature too
-		tempSensor.requestTemperatures();
-		float temperature = tempSensor.getTempCByIndex(0);
-		data["temp"] = String(temperature);
-
-		// Based on the list number, get all details 
-		// according to OBIS specifications for the meter
-		if (listSize == (int)Kaifa::List1)
-		{
-			data["P"] = hanReader.getInt((int)Kaifa_List1::ActivePowerImported);
-		}
-		else if (listSize == (int)Kaifa::List2)
-		{
-			data["lv"] = hanReader.getString((int)Kaifa_List2::ListVersionIdentifier);
-			data["id"] = hanReader.getString((int)Kaifa_List2::MeterID);
-			data["type"] = hanReader.getString((int)Kaifa_List2::MeterType);
-			data["P"] = hanReader.getInt((int)Kaifa_List2::ActiveImportPower);
-			data["Q"] = hanReader.getInt((int)Kaifa_List2::ReactiveImportPower);
-			data["I1"] = hanReader.getInt((int)Kaifa_List2::CurrentL1);
-			data["I2"] = hanReader.getInt((int)Kaifa_List2::CurrentL2);
-			data["I3"] = hanReader.getInt((int)Kaifa_List2::CurrentL3);
-			data["U1"] = hanReader.getInt((int)Kaifa_List2::VoltageL1);
-			data["U2"] = hanReader.getInt((int)Kaifa_List2::VoltageL2);
-			data["U3"] = hanReader.getInt((int)Kaifa_List2::VoltageL3);
-		}
-		else if (listSize == (int)Kaifa::List3)
-		{
-			data["lv"] = hanReader.getString((int)Kaifa_List3::ListVersionIdentifier);;
-			data["id"] = hanReader.getString((int)Kaifa_List3::MeterID);
-			data["type"] = hanReader.getString((int)Kaifa_List3::MeterType);
-			data["P"] = hanReader.getInt((int)Kaifa_List3::ActiveImportPower);
-			data["Q"] = hanReader.getInt((int)Kaifa_List3::ReactiveImportPower);
-			data["I1"] = hanReader.getInt((int)Kaifa_List3::CurrentL1);
-			data["I2"] = hanReader.getInt((int)Kaifa_List3::CurrentL2);
-			data["I3"] = hanReader.getInt((int)Kaifa_List3::CurrentL3);
-			data["U1"] = hanReader.getInt((int)Kaifa_List3::VoltageL1);
-			data["U2"] = hanReader.getInt((int)Kaifa_List3::VoltageL2);
-			data["U3"] = hanReader.getInt((int)Kaifa_List3::VoltageL3);
-			data["tPI"] = hanReader.getInt((int)Kaifa_List3::CumulativeActiveImportEnergy);
-			data["tPO"] = hanReader.getInt((int)Kaifa_List3::CumulativeActiveExportEnergy);
-			data["tQI"] = hanReader.getInt((int)Kaifa_List3::CumulativeReactiveImportEnergy);
-			data["tQO"] = hanReader.getInt((int)Kaifa_List3::CumulativeReactiveExportEnergy);
-		}
-
-		// Write the json to the debug port
-		if (debugger) {
-			debugger->print("Sending data to MQTT: ");
-			root.printTo(*debugger);
-			debugger->println();
-		}
-
-		// Make sure we have configured a publish topic
-		if (ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
-			return;
-
-		// Publish the json to the MQTT server
-		char msg[1024];
-		root.printTo(msg, 1024);
-		mqtt.publish(ap.config.mqttPublishTopic, msg);
 	}
 }
 
@@ -552,7 +296,7 @@ void MQTT_connect()
 
 		// Allow some resources for the WiFi connection
 		yield();
-    delay(2000);
+	delay(2000);
 	}
 }
 
@@ -569,16 +313,18 @@ void sendMqttData(String data)
 	}
 
 	// Build a json with the message in a "data" attribute
-	DynamicJsonBuffer jsonBuffer;
-	JsonObject& json = jsonBuffer.createObject();
+	StaticJsonDocument<500> json;
 	json["id"] = WiFi.macAddress();
 	json["up"] = millis();
 	json["data"] = data;
 
 	// Stringify the json
 	String msg;
-	json.printTo(msg);
+	serializeJson(json, msg);
 
 	// Send the json over MQTT
 	mqtt.publish(ap.config.mqttPublishTopic, msg.c_str());
+
+	if (debugger) debugger->print("sendMqttData: ");
+	if (debugger) debugger->println(data);
 }

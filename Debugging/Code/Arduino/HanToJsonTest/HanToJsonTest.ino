@@ -1,20 +1,24 @@
-/*
- * Simple sketch to simulate reading data from a Kamstrup
- * AMS Meter.
+/**
+ * Simple sketch to simulate reading data from different meters.
  *
  * Created 24. October 2017 by Roar Fredriksen
  */
 
 #include <ArduinoJson.h>
-#include "Kaifa.h"
+//#include "Kaifa.h"
+//#include "Kamstrup.h"
+//#include "Aidon.h"
 #include "HanReader.h"
 #include "HanToJson.h"
 
 // The HAN Port reader
 HanReader hanReader;
 
+HardwareSerial* debugger = NULL;
+
 byte meterType = 1; // Start with Kaifa
 int  sampleIndex = 0;
+int  expectIndex = 0;
 byte kaifa_samples[] =
 {
     // List #1
@@ -53,6 +57,12 @@ byte kaifa_samples[] =
     0x06, 0x00, 0x00, 0x00,  0x21, 0x06, 0x00, 0x00,  0x00, 0x00, 0x06, 0x00,  0x00, 0x10, 0x0e, 0x06,
     0x00, 0x00, 0x09, 0x0a,  0x98, 0x76, 0x7e,
 };
+String kaifa_expect[] = {
+	String("{\"t\":1505417462,\"data\":{\"P\":920}}"),
+	String("{\"t\":1505417470,\"data\":{\"lv\":\"KFM_001\",\"id\":\"6970631401753985\",\"type\":\"MA304H3E\",\"P\":918,\"Q\":0,\"I1\":1380,\"I2\":3218,\"I3\":3145,\"U1\":2374,\"U2\":0,\"U3\":2382}}"),
+	String("{\"t\":1505419210,\"data\":{\"lv\":\"KFM_001\",\"id\":\"6970631401753985\",\"type\":\"MA304H3E\",\"P\":1022,\"Q\":0,\"I1\":1937,\"I2\":3229,\"I3\":3430,\"U1\":2369,\"U2\":0,\"U3\":2380,\"tPI\":180073,\"tPO\":0,\"tQI\":247,\"tQO\":16380}}"),
+	String("{\"t\":1557354760,\"data\":{\"lv\":\"KFM_001\",\"id\":\"6970631401991684\",\"type\":\"MA105H2E\",\"P\":933,\"Q\":33,\"I1\":4110,\"U1\":2314}}")
+};
 
 byte aidon_samples[] =
 { // From Aidon-HAN-Interface-Description-v10A-ID-34331.pdf
@@ -71,6 +81,9 @@ byte aidon_samples[] =
     0x00, 0x1f, 0x07, 0x00,  0xff, 0x10, 0x00, 0x5d,  0x02, 0x02, 0x0f, 0xff,  0x16, 0x21, 0x02, 0x03,
     0x09, 0x06, 0x01, 0x00,  0x20, 0x07, 0x00, 0xff,  0x12, 0x09, 0xc4, 0x02,  0x02, 0x0f, 0xff, 0x16,
     0x23, 0xe0, 0xc4, 0x7e
+};
+String aidon_expect[] = {
+	String("{\"t\":0,\"data\":{\"lv\":\"AIDON_V0001\",\"id\":\"7359992890941742\",\"type\":\"6515\",\"P\":1362,\"Q\":0,\"I1\":9.3,\"U1\":250}}")
 };
 
 byte kamstrup_samples[] =
@@ -113,16 +126,35 @@ byte kamstrup_samples[] =
     0x00, 0x09, 0x06, 0x01,  0x01, 0x03, 0x08, 0x00,  0xFF, 0x06, 0x00, 0x00,  0x05, 0x64, 0x09, 0x06,
     0x01, 0x01, 0x04, 0x08,  0x00, 0xFF, 0x06, 0x00,  0x02, 0x7B, 0x21, 0x20,  0x92, 0x7E
 };
+String kamstrup_expect[] = {
+	String("{\"t\":1520197190,\"data\":{\"lv\":\"Kamstrup_V0001\",\"id\":\"5706567274389702\",\"type\":\"6841121BN243101040\",\"P\":4392,\"Q\":132,\"I1\":1382,\"I2\":780,\"I3\":1370,\"U1\":224,\"U2\":223,\"U3\":223}}"),
+	String("{\"t\":1520197205,\"data\":{\"lv\":\"Kamstrup_V0001\",\"id\":\"5706567274389702\",\"type\":\"6841121BN243101040\",\"P\":3643,\"Q\":134,\"I1\":1057,\"I2\":780,\"I3\":1052,\"U1\":226,\"U2\":224,\"U3\":223,\"tPI\":1720393,\"tPO\":0,\"tQI\":1380,\"tQO\":162593}}")
+};
+
+
+void assert_equal(DynamicJsonDocument& doc, const String& expected)
+{
+	String jsonActual;
+	serializeJson(doc, jsonActual);
+	if (jsonActual != expected)
+	{
+		debugger->printf("Test assert failed:\n  %s\n  !=\n  %s\n", jsonActual.c_str(), expected.c_str());
+		while (true) {}
+	}
+}
+
 
 void setup() {
-    Serial.begin(115200);
-    while (!Serial) {}
-    Serial.println("Serial debugging port initialized");
+    Serial1.begin(115200);
+    //while (!Serial) {}
+    Serial1.println("Serial1 debugging port initialized");
 
     // initialize the HanReader
     // (passing no han port, as we are feeding data manually, but provide Serial for debugging)
-    hanReader.setup(NULL, &Serial);
+    hanReader.setup(NULL, &Serial1);
     hanReader.compensateFor09HeaderBug = true; // Starting with Kaifa
+
+	debugger = &Serial1;
 }
 
 void loopKaifa()
@@ -131,22 +163,34 @@ void loopKaifa()
     {
         meterType++;
         sampleIndex = 0;
-        hanReader.setup(NULL, &Serial);
+		expectIndex = 0;
+        hanReader.setup(NULL, debugger);
         hanReader.compensateFor09HeaderBug = false;
-        Serial.println("Done with Kaifa");
+        Serial1.println("Done with Kaifa");
     }
 
     // Read one byte from the "port", and see if we got a full package
     if (hanReader.read(kaifa_samples[sampleIndex++]))
     {
-        StaticJsonDocument<500> doc;
+        DynamicJsonDocument doc(500);
+
+		doc["t"] = hanReader.getPackageTime();
+
         JsonObject data = doc.createNestedObject("data");
 
         hanToJson(data, meterType, hanReader);
 
-        Serial.println("Kaifa JsonData: ");
-        serializeJsonPretty(doc, Serial);
-        Serial.println();
+        debugger->println("Kaifa JsonData: ");
+        serializeJsonPretty(doc, Serial1);
+        debugger->println();
+
+		if (expectIndex < sizeof(kaifa_expect) / sizeof(kaifa_expect[0]))
+		{
+			assert_equal(doc, kaifa_expect[expectIndex++]);
+		} else {
+			debugger->println("Not enough expected results spesified");
+			while (true) {}
+		}
     }
 }
 
@@ -156,21 +200,33 @@ void loopAidon()
     {
         meterType++;
         sampleIndex = 0;
-        hanReader.setup(NULL, &Serial);
-        Serial.println("Done with Aidon");
+		expectIndex = 0;
+        hanReader.setup(NULL, &Serial1);
+        debugger->println("Done with Aidon");
     }
 
     // Read one byte from the "port", and see if we got a full package
     if (hanReader.read(aidon_samples[sampleIndex++]))
     {
         DynamicJsonDocument doc(500);
+
+		doc["t"] = hanReader.getPackageTime();
+
         JsonObject data = doc.createNestedObject("data");
 
         hanToJson(data, meterType, hanReader);
 
-        Serial.println("Aidon JsonData: ");
-        serializeJsonPretty(doc, Serial);
-        Serial.println();
+        debugger->println("Aidon JsonData: ");
+        serializeJsonPretty(doc, Serial1);
+        debugger->println();
+
+		if (expectIndex < sizeof(aidon_expect) / sizeof(aidon_expect[0]))
+		{
+			assert_equal(doc, aidon_expect[expectIndex++]);
+		} else {
+			debugger->println("Not enough expected results spesified");
+			while (true) {}
+		}
     }
 }
 
@@ -180,27 +236,36 @@ void loopKamstrup()
     {
         meterType++;
         sampleIndex = 0;
-        hanReader.setup(NULL, &Serial);
-        Serial.println("Done with Kamstrup");
+        hanReader.setup(NULL, &Serial1);
+        debugger->println("Done with Kamstrup");
     }
 
     // Read one byte from the "port", and see if we got a full package
     if (hanReader.read(kamstrup_samples[sampleIndex++]))
     {
         DynamicJsonDocument doc(500);
+
+		doc["t"] = hanReader.getPackageTime();
+
         JsonObject data = doc.createNestedObject("data");
 
         hanToJson(data, meterType, hanReader);
 
-        Serial.println("Kamstrup JsonData: ");
-        serializeJsonPretty(doc, Serial);
-        Serial.println();
+        debugger->println("Kamstrup JsonData: ");
+        serializeJsonPretty(doc, Serial1);
+        debugger->println();
+
+		if (expectIndex < sizeof(kamstrup_expect) / sizeof(kamstrup_expect[0]))
+		{
+			assert_equal(doc, kamstrup_expect[expectIndex++]);
+		} else {
+			debugger->println("Not enough expected results spesified");
+			while (true) {}
+		}
     }
 }
 
 void loop() {
-    delay(2);
-
     switch (meterType)
     {
         case 1: // Kaifa
@@ -210,8 +275,9 @@ void loop() {
         case 3: // Kamstrup
             return loopKamstrup();
         default:
-            Serial.println("Done");
+            debugger->println("Done");
             while (true) ;
             break;
     }
 }
+

@@ -36,6 +36,7 @@ void connect_wifi() {
         Serial.print("Attempting to connect to SSID: ");
         Serial.println(ssid);
         // Connect to WPA/WPA2 network. Change this line if using open or WEP network:
+        WiFi.disconnect();
         int status = WiFi.begin(ssid, pass);
 
         if (status == WL_CONNECTED) {
@@ -45,6 +46,7 @@ void connect_wifi() {
         // wait 1 seconds for connection:
         Serial.print("Waiting 1 before trying again. status: ");
         Serial.println(status);
+        yield();
         delay(1000);
     }
 

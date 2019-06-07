@@ -28,13 +28,11 @@ void setup() {
     delay(100);
 
     // Initialize serial and wait for port to open:
-    Serial.begin(9600);
-    while (!Serial) {
-        ; // wait for serial port to connect. Needed for native USB port only
-    }
+    //Serial.begin(9600);
+    //while (!Serial) ; // wait for serial port to connect. Needed for native USB port only
 
     // Uncomment to debug over uart
-    debugger = &Serial;
+    //debugger = &Serial;
 
     if (debugger) debugger->print("Unwantingly wait 5"); // Allow programming during restart
     delay(1000);
@@ -62,7 +60,7 @@ void setup() {
         while (true);
     }
 
-    //connect_wifi();
+    connect_wifi();
 
     hanReader.setup(&Serial1, debugger);
 

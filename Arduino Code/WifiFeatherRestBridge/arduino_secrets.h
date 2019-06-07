@@ -1,3 +1,3 @@
-#define SECRET_SSID ""
-#define SECRET_PASS ""
-#define AUTH_HEADER "Basic [base64-user:pass-string]"
+#define SECRET_SSID "flyndrefisken"
+#define SECRET_PASS "dzwe.lzgq.ztzs"
+#define AUTH_HEADER "Basic dmVnYXJ3ZTpmaXNrZW4="

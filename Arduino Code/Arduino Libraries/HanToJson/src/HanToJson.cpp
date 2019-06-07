@@ -21,7 +21,7 @@ static void hanToJsonKaifa3phase(int listSize, JsonObject& data, HanReader& hanR
         data["U3"]   = hanReader.getInt(     (int)Kaifa_List3::VoltageL3);
     }
 
-    if (listSize >  (int)Kaifa::List3) // Note: Bug in Kaifa? (Should have been '>=')
+    if (listSize >=  (int)Kaifa::List3)
     {
         data["tPI"]  = hanReader.getInt(     (int)Kaifa_List3::CumulativeActiveImportEnergy);
         data["tPO"]  = hanReader.getInt(     (int)Kaifa_List3::CumulativeActiveExportEnergy);
@@ -43,7 +43,7 @@ static void hanToJsonKaifa1phase(int listSize, JsonObject& data, HanReader& hanR
         data["U1"]   = hanReader.getInt(     (int)Kaifa_List31::VoltageL1);
     }
 
-    if (listSize >  (int)Kaifa::List31)
+    if (listSize >=  (int)Kaifa::List31)
     {
         data["tPI"]  = hanReader.getInt(     (int)Kaifa_List31::CumulativeActiveImportEnergy);
         data["tPO"]  = hanReader.getInt(     (int)Kaifa_List31::CumulativeActiveExportEnergy);
@@ -70,6 +70,9 @@ static void hanToJsonKaifa(JsonObject& data, HanReader& hanReader, Stream *debug
         case (int)Kaifa::List21:
         case (int)Kaifa::List31:
             return hanToJsonKaifa1phase(listSize, data, hanReader, debugger);
+		default:
+			if (debugger) debugger->printf("Warning: Unknown listSize %d\n", listSize);
+			return;
     }
 }
 
@@ -173,6 +176,9 @@ static void hanToJsonKamstrup(JsonObject& data, HanReader& hanReader, Stream *de
         case (int)Kamstrup::List3:
         case (int)Kamstrup::List4:
             return hanToJsonKamstrup1phase(listSize, data, hanReader, debugger);
+		default:
+			if (debugger) debugger->printf("Warning: Unknown listSize %d\n", listSize);
+			return;
     }
 }
 

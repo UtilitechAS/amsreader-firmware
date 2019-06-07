@@ -6,10 +6,11 @@
 
 enum class Aidon
 {
-	List1 = 0x01,
-	List21 = 0x09,
-	List2 = 0x0D,
-	List3 = 0x12
+	List1			= 0x01,
+	List1PhaseShort = 0x09,
+	List1PhaseLong	= 0xff, // TODO: Need sample
+	List3PhaseShort = 0x0D,
+	List3PhaseLong	= 0x12
 };
 
 enum class Aidon_List1
@@ -24,7 +25,7 @@ enum class Aidon_List1
 };
 
 
-enum class Aidon_List2
+enum class Aidon_List1Phase
 {
 	ListSize,
 	IGN_0,
@@ -67,38 +68,14 @@ enum class Aidon_List2
 	CurrentL1Int8,
 	CurrentL1Enum,
 	IGN_13,
-	CurrentL2_OBIS,
-	CurrentL2,
-	IGN_14,
-	CurrentL2Int8,
-	CurrentL2Enum,
-	IGN_15,
-	CurrentL3_OBIS,
-	CurrentL3,
-	IGN_16,
-	CurrentL3Int8,
-	CurrentL3Enum,
-	IGN_17,
 	VoltageL1_OBIS,
 	VoltageL1,
-	IGN_18,
+	IGN_14,
 	VoltageL1Int8,
 	VoltageL1Enum,
-	IGN_19,
-	VoltageL2_OBIS,
-	VoltageL2,
-	IGN_20,
-	VoltageL2Int8,
-	VoltageL2Enum,
-	IGN_21,
-	VoltageL3_OBIS,
-	VoltageL3,
-	IGN_22,
-	VoltageL3Int8,
-	VoltageL3Enum
 };
 
-enum class Aidon_List3
+enum class Aidon_List3Phase
 {
 	ListSize,
 	IGN_0,

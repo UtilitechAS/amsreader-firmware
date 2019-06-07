@@ -6,44 +6,13 @@
 
 enum class Kamstrup
 {
-	List1 = 0x19,
-	List2 = 0x23,
-    List3 = 0x11,
-    List4 = 0x1B
+	List3PhaseShort = 0x19,
+	List3PhaseLong  = 0x23,
+    List1PhaseShort = 0x11,
+    List1PhaseLong  = 0x1B
 };
 
-enum class Kamstrup_List1
-{
-	ListSize,
-	ListVersionIdentifier,
-	MeterID_OBIS,
-	MeterID,
-	MeterType_OBIS,
-	MeterType,
-	ActiveImportPower_OBIS,
-	ActiveImportPower,
-	ActiveExportPower_OBIS,
-	ActiveExportPower,
-	ReactiveImportPower_OBIS,
-	ReactiveImportPower,
-	ReactiveExportPower_OBIS,
-	ReactiveExportPower,
-	CurrentL1_OBIS,
-	CurrentL1,
-	CurrentL2_OBIS,
-	CurrentL2,
-	CurrentL3_OBIS,
-	CurrentL3,
-	VoltageL1_OBIS,
-	VoltageL1,
-	VoltageL2_OBIS,
-	VoltageL2,
-	VoltageL3_OBIS,
-	VoltageL3
-};
-
-
-enum class Kamstrup_List2
+enum class Kamstrup_List3Phase
 {
 	ListSize,
 	ListVersionIdentifier,
@@ -83,29 +52,7 @@ enum class Kamstrup_List2
 	CumulativeReactiveExportEnergy
 };
 
-enum class Kamstrup_List3
-{
-    ListSize,
-    ListVersionIdentifier,
-    MeterID_OBIS,
-    MeterID,
-    MeterType_OBIS,
-    MeterType,
-    ActiveImportPower_OBIS,
-    ActiveImportPower,
-    ActiveExportPower_OBIS,
-    ActiveExportPower,
-    ReactiveImportPower_OBIS,
-    ReactiveImportPower,
-    ReactiveExportPower_OBIS,
-    ReactiveExportPower,
-    CurrentL1_OBIS,
-    CurrentL1,
-    VoltageL1_OBIS,
-    VoltageL1
-};
-
-enum class Kamstrup_List4
+enum class Kamstrup_List1Phase
 {
     ListSize,
     ListVersionIdentifier,

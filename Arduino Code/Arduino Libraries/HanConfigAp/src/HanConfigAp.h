@@ -9,12 +9,20 @@
 	#include "WProgram.h"
 #endif
 
-#include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
+#if defined(ESP8266)
+	#include <ESP8266WiFi.h>
+	#include <ESP8266WebServer.h>
+#elif defined(ESP32) // ARDUINO_ARCH_ESP32
+	#include <WiFi.h>
+	#include <WebServer.h>
+#else
+	#warning "Unsupported board type"
+#endif
+
 #include <DNSServer.h>
 #include "configuration.h"
 
-class accesspoint {
+class HanConfigAp {
 public:
 	void setup(int accessPointButtonPin, Stream* debugger);
 	bool loop();
@@ -37,7 +45,11 @@ private:
 	// Web server
 	static void handleRoot();
 	static void handleSave();
+#if defined(ESP8266)
 	static ESP8266WebServer server;
+#elif defined(ESP32) // ARDUINO_ARCH_ESP32
+	static WebServer server;
+#endif
 
 	static Stream* debugger;
 };

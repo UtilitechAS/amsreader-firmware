@@ -5,14 +5,14 @@
 */
 
 
-#include <DallasTemperature.h>
-#include <OneWire.h>
 #include <ArduinoJson.h>
+#include <DallasTemperature.h>
 #include <MQTT.h>
+#include <OneWire.h>
+#include <ESP8266WiFi.h>
+#include "HanConfigAp.h"
 #include "HanReader.h"
 #include "HanToJson.h"
-#include "configuration.h"
-#include "accesspoint.h"
 
 #define WIFI_CONNECTION_TIMEOUT 30000;
 #define TEMP_SENSOR_PIN 5 // Temperature sensor connected to GPIO5
@@ -23,7 +23,7 @@ DallasTemperature tempSensor(&oneWire);
 long lastTempDebug = 0;
 
 // Object used to boot as Access Point
-accesspoint ap;
+HanConfigAp ap;
 
 // WiFi client and MQTT client
 WiFiClient *client;

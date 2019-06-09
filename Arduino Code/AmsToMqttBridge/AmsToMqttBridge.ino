@@ -5,22 +5,45 @@
 */
 
 
+#define HAS_DALLAS_TEMP_SENSOR 1		// Set to zero if Dallas one wire temp sensor is not present
+#define IS_CUSTOM_AMS_BOARD 1			// Set to zero if using NodeMCU or board not designed by Roar Fredriksen
+
 #include <ArduinoJson.h>
-#include <DallasTemperature.h>
 #include <MQTT.h>
+
+#if HAS_DALLAS_TEMP_SENSOR
+#include <DallasTemperature.h>
 #include <OneWire.h>
+#endif
+
+#if defined(ESP8266)
 #include <ESP8266WiFi.h>
+#elif defined(ESP32)
+#include <WiFi.h>
+#endif
+
 #include "HanConfigAp.h"
 #include "HanReader.h"
 #include "HanToJson.h"
 
 #define WIFI_CONNECTION_TIMEOUT 30000;
+
+#if IS_CUSTOM_AMS_BOARD
+#define LED_PIN 2 // The blue on-board LED of the ESP8266 custom AMS board
+#define LED_ACTIVE_HIGH 0
+#define AP_BUTTON_PIN 0
+#else
+#define LED_PIN LED_BUILTIN
+#define LED_ACTIVE_HIGH 1
+#define AP_BUTTON_PIN INVALID_BUTTON_PIN
+#endif
+
+#if HAS_DALLAS_TEMP_SENSOR
 #define TEMP_SENSOR_PIN 5 // Temperature sensor connected to GPIO5
-#define LED_PIN 2 // The blue on-board LED of the ESP
 
 OneWire oneWire(TEMP_SENSOR_PIN);
 DallasTemperature tempSensor(&oneWire);
-long lastTempDebug = 0;
+#endif
 
 // Object used to boot as Access Point
 HanConfigAp ap;
@@ -36,36 +59,35 @@ HardwareSerial* debugger = NULL;
 HanReader hanReader;
 
 // the setup function runs once when you press reset or power the board
-void setup() 
+void setup()
 {
 	// Uncomment to debug over the same port as used for HAN communication
-	debugger = &Serial;
-	
+	//debugger = &Serial;
+
 	if (debugger) {
 		// Setup serial port for debugging
 		debugger->begin(2400, SERIAL_8E1);
-		while (!&debugger);
+		//debugger->begin(115200);
+		while (!debugger);
 		debugger->println("");
 		debugger->println("Started...");
 	}
 
-	// Assign pin for boot as AP
-	delay(1000);
-	pinMode(0, INPUT_PULLUP);
-	
-	// Flash the blue LED, to indicate we can boot as AP now
+	// Flash the LED, to indicate we can boot as AP now
 	pinMode(LED_PIN, OUTPUT);
-	digitalWrite(LED_PIN, LOW);
-	
+	led_on();
+
+	delay(1000);
+
 	// Initialize the AP
-	ap.setup(0, debugger);
-	
-	// Turn off the blue LED
-	digitalWrite(LED_PIN, HIGH);
+	ap.setup(AP_BUTTON_PIN, debugger);
+
+	led_off();
 
 	if (!ap.isActivated)
 	{
 		setupWiFi();
+		// Configure uart for AMS data
 		Serial.begin(2400, SERIAL_8E1);
 		while (!Serial);
 
@@ -82,8 +104,8 @@ void loop()
 	// Only do normal stuff if we're not booted as AP
 	if (!ap.loop())
 	{
-		// turn off the blue LED
-		digitalWrite(LED_PIN, HIGH);
+		// Turn off the LED
+		led_off();
 
 		// allow the MQTT client some resources
 		mqtt.loop();
@@ -101,37 +123,57 @@ void loop()
 	}
 	else
 	{
-		// Continously flash the blue LED when AP mode
-		if (millis() / 1000 % 2 == 0)
-			digitalWrite(LED_PIN, LOW);
-		else
-			digitalWrite(LED_PIN, HIGH);
+		// Continously flash the LED when AP mode
+		if (millis() / 1000 % 2 == 0)   led_on();
+		else                            led_off();
 	}
 }
+
+
+void led_on()
+{
+#if LED_ACTIVE_HIGH
+    digitalWrite(LED_PIN, HIGH);
+#else
+    digitalWrite(LED_PIN, LOW);
+#endif
+}
+
+
+void led_off()
+{
+#if LED_ACTIVE_HIGH
+    digitalWrite(LED_PIN, LOW);
+#else
+    digitalWrite(LED_PIN, HIGH);
+#endif
+}
+
 
 void setupWiFi()
 {
 	// Turn off AP
 	WiFi.enableAP(false);
-	
+
 	// Connect to WiFi
-  WiFi.mode(WIFI_STA);
+	WiFi.mode(WIFI_STA);
 	WiFi.begin(ap.config.ssid, ap.config.ssidPassword);
-	
+
+	// Wait for WiFi connection
 	if (debugger) debugger->print("\nWaiting for WiFi to connect...");
 	while (WiFi.status() != WL_CONNECTED) {
 		if (debugger) debugger->print(".");
 		delay(500);
 	}
 	if (debugger) debugger->println(" connected");
-	
-  client = new WiFiClient();
+
+	client = new WiFiClient();
 	mqtt.begin(ap.config.mqtt, *client);
 
 	// Direct incoming MQTT messages
 	if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0) {
-	mqtt.subscribe(ap.config.mqttSubscribeTopic);
-	mqtt.onMessage(mqttMessageReceived);
+		mqtt.subscribe(ap.config.mqttSubscribeTopic);
+		mqtt.onMessage(mqttMessageReceived);
 	}
 
 	// Notify everyone we're here!
@@ -158,29 +200,30 @@ void readHanPort()
 	if (hanReader.read())
 	{
 		// Flash LED on, this shows us that data is received
-		digitalWrite(LED_PIN, LOW);
+		led_on();
 
 		// Get the timestamp (as unix time) from the package
 		time_t time = hanReader.getPackageTime();
 		if (debugger) debugger->print("Time of the package is: ");
 		if (debugger) debugger->println(time);
 
-		// Get the temperature too
-		tempSensor.requestTemperatures();
-		float temperature = tempSensor.getTempCByIndex(0);
-
 		// Define a json object to keep the data
 		StaticJsonDocument<500> json;
 
 		// Any generic useful info here
-		json["id"] = WiFi.macAddress(); // TODO: Fix?
+		json["id"] = WiFi.macAddress();
 		json["up"] = millis();
 		json["t"] = time;
 
 		// Add a sub-structure to the json object,
 		// to keep the data from the meter itself
 		JsonObject data = json.createNestedObject("data");
-		data["temp"] = temperature;
+
+#if HAS_DALLAS_TEMP_SENSOR
+		// Get the temperature too
+		tempSensor.requestTemperatures();
+		data["temp"] = tempSensor.getTempCByIndex(0);
+#endif
 
 		hanToJson(data, ap.config.meterType, hanReader);
 
@@ -192,31 +235,30 @@ void readHanPort()
 		}
 
 		// Make sure we have configured a publish topic
-		if (ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
+		if (! ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
 		{
-			return;
+			// Publish the json to the MQTT server
+			String msg;
+			serializeJson(json, msg);
+
+			mqtt.publish(ap.config.mqttPublishTopic, msg.c_str());
+			mqtt.loop();
 		}
 
-		// Publish the json to the MQTT server
-		String msg;
-		serializeJson(json, msg);
-
-		mqtt.publish(ap.config.mqttPublishTopic, msg.c_str());
-		mqtt.loop();
-
 		// Flash LED off
-		digitalWrite(LED_PIN, HIGH);
+		led_off();
 	}
 }
 
+
 // Function to connect and reconnect as necessary to the MQTT server.
 // Should be called in the loop function and it will take care if connecting.
-void MQTT_connect() 
+void MQTT_connect()
 {
 	// Connect to WiFi access point.
 	if (debugger)
 	{
-		debugger->println(); 
+		debugger->println();
 		debugger->println();
 		debugger->print("Connecting to WiFi network ");
 		debugger->println(ap.config.ssid);
@@ -235,7 +277,7 @@ void MQTT_connect()
 	while (WiFi.status() != WL_CONNECTED) {
 		delay(50);
 		if (debugger) debugger->print(".");
-		
+
 		// If we timed out, disconnect and try again
 		if (vTimeout < millis())
 		{
@@ -265,9 +307,8 @@ void MQTT_connect()
 
 	// Wait for the MQTT connection to complete
 	while (!mqtt.connected()) {
-		
 		// Connect to a unsecure or secure MQTT server
-		if ((ap.config.mqttUser == 0 && mqtt.connect(ap.config.mqttClientID)) || 
+		if ((ap.config.mqttUser == 0 && mqtt.connect(ap.config.mqttClientID)) ||
 			(ap.config.mqttUser != 0 && mqtt.connect(ap.config.mqttClientID, ap.config.mqttUser, ap.config.mqttPass)))
 		{
 			if (debugger) debugger->println("\nSuccessfully connected to MQTT!");
@@ -296,7 +337,7 @@ void MQTT_connect()
 
 		// Allow some resources for the WiFi connection
 		yield();
-	delay(2000);
+		delay(2000);
 	}
 }
 

@@ -28,22 +28,28 @@ void HanConfigAp::setup(int accessPointButtonPin, Stream* debugger)
 		config.load();
 		if (this->debugger) config.print(this->debugger);
 
-		// Test if we're holding down the AP pin, over 5 seconds
-		int time = millis() + 5000;
-		print("Press the AP button now to boot as access point");
-		while (millis() < time)
+		if (accessPointButtonPin != INVALID_BUTTON_PIN)
 		{
-			print(".");
-			if (digitalRead(accessPointButtonPin) == LOW)
+			// Assign pin for boot as AP
+			pinMode(accessPointButtonPin, INPUT_PULLUP);
+
+			// Test if we're holding down the AP pin, over 5 seconds
+			int time = millis() + 5000;
+			print("Press the AP button now to boot as access point");
+			while (millis() < time)
 			{
-				print("AP button was pressed. Booting as access point now. Look for SSID ");
-				println(this->AP_SSID);
-				isActivated = true;
-				break;
+				print(".");
+				if (digitalRead(accessPointButtonPin) == LOW)
+				{
+					print("AP button was pressed. Booting as access point now. Look for SSID ");
+					println(this->AP_SSID);
+					isActivated = true;
+					break;
+				}
+				delay(100);
 			}
-			delay(100);
+			println("");
 		}
-		println("");
 	}
 
 	if (isActivated)

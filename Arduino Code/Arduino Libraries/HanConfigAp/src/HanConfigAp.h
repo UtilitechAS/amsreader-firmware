@@ -22,6 +22,8 @@
 #include <DNSServer.h>
 #include "configuration.h"
 
+#define INVALID_BUTTON_PIN  0xFFFFFFFF
+
 class HanConfigAp {
 public:
 	void setup(int accessPointButtonPin, Stream* debugger);

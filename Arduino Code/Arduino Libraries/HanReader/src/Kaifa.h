@@ -3,10 +3,10 @@
 
 enum class Kaifa : byte {
 	List1			= 0x01,
-	List1PhaseShort = 0x09,
+	List1PhaseShort	= 0x09,
 	List3PhaseShort	= 0x0D,
 	List1PhaseLong	= 0x0E,
-	List3PhaseLong  = 0x12
+	List3PhaseLong	= 0x12
 };
 
 enum class Kaifa_List1 {

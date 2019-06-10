@@ -62,20 +62,20 @@ bool HanReader::read(byte data)
 
 void HanReader::debugPrint(byte *buffer, int start, int length)
 {
-       for (int i = start; i < start + length; i++)
-       {
-               if (buffer[i] < 0x10)
-                       debug->print("0");
-               debug->print(buffer[i], HEX);
-               debug->print(" ");
-               if ((i - start + 1) % 16 == 0)
-                       debug->println("");
-               else if ((i - start + 1) % 4 == 0)
-                       debug->print(" ");
+	for (int i = start; i < start + length; i++)
+	{
+		if (buffer[i] < 0x10)
+			debug->print("0");
+		debug->print(buffer[i], HEX);
+		debug->print(" ");
+		if ((i - start + 1) % 16 == 0)
+			debug->println("");
+		else if ((i - start + 1) % 4 == 0)
+			debug->print(" ");
 
-               yield(); // Let other get some resources too
-       }
-       debug->println("");
+		yield(); // Let other get some resources too
+	}
+	debug->println("");
 }
 
 bool HanReader::read()

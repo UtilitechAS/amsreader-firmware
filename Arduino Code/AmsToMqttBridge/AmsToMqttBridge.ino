@@ -125,7 +125,7 @@ void loop()
 	{
 		// Continously flash the LED when AP mode
 		if (millis() / 1000 % 2 == 0)   led_on();
-		else                            led_off();
+		else							led_off();
 	}
 }
 
@@ -133,9 +133,9 @@ void loop()
 void led_on()
 {
 #if LED_ACTIVE_HIGH
-    digitalWrite(LED_PIN, HIGH);
+	digitalWrite(LED_PIN, HIGH);
 #else
-    digitalWrite(LED_PIN, LOW);
+	digitalWrite(LED_PIN, LOW);
 #endif
 }
 
@@ -143,9 +143,9 @@ void led_on()
 void led_off()
 {
 #if LED_ACTIVE_HIGH
-    digitalWrite(LED_PIN, LOW);
+	digitalWrite(LED_PIN, LOW);
 #else
-    digitalWrite(LED_PIN, HIGH);
+	digitalWrite(LED_PIN, HIGH);
 #endif
 }
 

@@ -8,7 +8,7 @@ enum class Aidon
 {
 	List1 = 0x01,
 	List2 = 0x0D,
-	List2_p1 = 0x09,
+	List2_1p = 0x09,
 	List3 = 0x12
 };
 

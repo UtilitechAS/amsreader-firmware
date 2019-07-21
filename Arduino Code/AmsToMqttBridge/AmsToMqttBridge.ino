@@ -184,7 +184,7 @@ void readHanPort()
 
 void readHanPort_Aidon(int listSize)
 {
-  if (listSize == (int)Aidon::List1 || listSize == (int)Aidon::List2 || listSize == (int)Aidon::List3 || listSize == (int)Aidon::List2_p1 ||)
+  if (listSize == (int)Aidon::List1 || listSize == (int)Aidon::List2 || listSize == (int)Aidon::List3 || listSize == (int)Aidon::List2_1p)
   {
     if (listSize == (int)Aidon::List2)
     {
@@ -235,15 +235,15 @@ void readHanPort_Aidon(int listSize)
       data["U2"] = ((double) hanReader.getInt((int)Aidon_List2::VoltageL2)) / 10; 
       data["U3"] = ((double) hanReader.getInt((int)Aidon_List2::VoltageL3)) / 10;
     }
-    else if (listSize == (int)Aidon::List2_p1)
+    else if (listSize == (int)Aidon::List2_1p)
     {
-      data["lv"] = hanReader.getString((int)Aidon_List2_p1::ListVersionIdentifier);
-      data["id"] = hanReader.getString((int)Aidon_List2_p1::MeterID);
-      data["type"] = hanReader.getString((int)Aidon_List2_p1::MeterType);
-      data["P"] = hanReader.getInt((int)Aidon_List2_p1::ActiveImportPower);
-      data["Q"] = hanReader.getInt((int)Aidon_List2_p1::ReactiveExportPower);
-      data["I1"] = ((double) hanReader.getInt((int)Aidon_List2_p1::Current)) / 10;
-      data["U1"] = ((double) hanReader.getInt((int)Aidon_List2_p1::Voltage)) / 10;
+      data["lv"] = hanReader.getString((int)Aidon_List2_1p::ListVersionIdentifier);
+      data["id"] = hanReader.getString((int)Aidon_List2_1p::MeterID);
+      data["type"] = hanReader.getString((int)Aidon_List2_1p::MeterType);
+      data["P"] = hanReader.getInt((int)Aidon_List2_1p::ActiveImportPower);
+      data["Q"] = hanReader.getInt((int)Aidon_List2_1p::ReactiveExportPower);
+      data["I1"] = ((double) hanReader.getInt((int)Aidon_List2_1p::Current)) / 10;
+      data["U1"] = ((double) hanReader.getInt((int)Aidon_List2_1p::Voltage)) / 10;
     }
     else if (listSize == (int)Aidon::List3)
     {

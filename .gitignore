@@ -3,6 +3,6 @@
 [Rr]elease/
 **/__vm/
 .DS_Store
-.vcode
+.vscode
 .pio
 platformio.ini

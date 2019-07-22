@@ -1,19 +1,19 @@
-// 
-// 
-// 
+#include "HanConfigAp.h"
 
-#include "accesspoint.h"
+#if defined(ESP8266)
+ESP8266WebServer HanConfigAp::server(80);
+#elif defined(ESP32) // ARDUINO_ARCH_ESP32
+WebServer HanConfigAp::server(80);
+#endif
+Stream* HanConfigAp::debugger;
 
-ESP8266WebServer accesspoint::server(80);
-Stream* accesspoint::debugger;
-
-bool accesspoint::hasConfig() {
+bool HanConfigAp::hasConfig() {
 	return config.hasConfig();
 }
 
-void accesspoint::setup(int accessPointButtonPin, Stream& debugger) 
+void HanConfigAp::setup(int accessPointButtonPin, Stream* debugger)
 {
-	this->debugger = &debugger;
+	this->debugger = debugger;
 
 	// Test if we're missing configuration
 	if (!config.hasConfig())
@@ -26,23 +26,29 @@ void accesspoint::setup(int accessPointButtonPin, Stream& debugger)
 	{
 		// Load the configuration
 		config.load();
-		if (this->debugger) config.print(debugger);
+		if (this->debugger) config.print(this->debugger);
 
-		// Test if we're holding down the AP pin, over 5 seconds
-		int time = millis() + 5000;
-		print("Press the AP button now to boot as access point");
-		while (millis() < time)
+		if (accessPointButtonPin != INVALID_BUTTON_PIN)
 		{
-			print(".");
-			if (digitalRead(accessPointButtonPin) == LOW)
+			// Assign pin for boot as AP
+			pinMode(accessPointButtonPin, INPUT_PULLUP);
+
+			// Test if we're holding down the AP pin, over 5 seconds
+			int time = millis() + 5000;
+			print("Press the AP button now to boot as access point");
+			while (millis() < time)
 			{
-				println("");
-				print("AP button was pressed. Booting as access point now. Look for SSID ");
-				println(this->AP_SSID);
-				isActivated = true;
-				break;
+				print(".");
+				if (digitalRead(accessPointButtonPin) == LOW)
+				{
+					print("AP button was pressed. Booting as access point now. Look for SSID ");
+					println(this->AP_SSID);
+					isActivated = true;
+					break;
+				}
+				delay(100);
 			}
-			delay(100);
+			println("");
 		}
 	}
 
@@ -71,7 +77,7 @@ void accesspoint::setup(int accessPointButtonPin, Stream& debugger)
 	}
 }
 
-bool accesspoint::loop() {
+bool HanConfigAp::loop() {
 	if (isActivated)
 	{
 		//DNS
@@ -87,7 +93,7 @@ bool accesspoint::loop() {
 }
 
 /** Handle root or redirect to captive portal */
-void accesspoint::handleRoot() {
+void HanConfigAp::handleRoot() {
 	println("Serving / over http...");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -102,7 +108,7 @@ void accesspoint::handleRoot() {
 }
 
 
-void accesspoint::handleSave() {
+void HanConfigAp::handleSave() {
 	configuration *config = new configuration();
 
 	String temp;
@@ -145,13 +151,17 @@ void accesspoint::handleSave() {
 
 	println("Saving configuration now...");
 
-	if (accesspoint::debugger) config->print(*accesspoint::debugger);
+	if (HanConfigAp::debugger) config->print(HanConfigAp::debugger);
 	if (config->save())
 	{
 		println("Successfully saved. Will roboot now.");
 		String html = "<html><body><h1>Successfully Saved!</h1><h3>Device is restarting now...</h3></form>";
 		server.send(200, "text/html", html);
+#if defined(ESP8266)
 		ESP.reset();
+#elif defined(ESP32)
+		ESP.restart();
+#endif
 	}
 	else
 	{
@@ -161,19 +171,19 @@ void accesspoint::handleSave() {
 	}
 }
 
-size_t accesspoint::print(const char* text)
+size_t HanConfigAp::print(const char* text)
 {
 	if (debugger) debugger->print(text);
 }
-size_t accesspoint::println(const char* text)
+size_t HanConfigAp::println(const char* text)
 {
 	if (debugger) debugger->println(text);
 }
-size_t accesspoint::print(const Printable& data)
+size_t HanConfigAp::print(const Printable& data)
 {
 	if (debugger) debugger->print(data);
 }
-size_t accesspoint::println(const Printable& data)
+size_t HanConfigAp::println(const Printable& data)
 {
 	if (debugger) debugger->println(data);
 }

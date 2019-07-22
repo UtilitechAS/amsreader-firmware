@@ -20,7 +20,6 @@ public:
 	HanReader();
 	void setup(HardwareSerial *hanPort);
 	void setup(HardwareSerial *hanPort, Stream *debugPort);
-	void setup(HardwareSerial *hanPort, unsigned long baudrate, SerialConfig config, Stream *debugPort);
 	bool read();
 	bool read(byte data);
 	int getListSize();

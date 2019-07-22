@@ -30,7 +30,7 @@ public:
 	bool save();
 	bool load();
 
-	void print(Stream& serial);
+	void print(Stream* debugger);
 protected:
 
 private:

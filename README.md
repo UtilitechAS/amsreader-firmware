@@ -8,7 +8,7 @@
 ## The completed hardware
 ![The HAN Reader Hardware](./Images/HanReaderInEnclosure.PNG)
 
-*The completed board mounted in a [3D printed enclosure](/Electrical/HAN_ESP_TSS721/enclosure)*
+*The completed board mounted in a [3D printed enclosure](/Enclosure)*
 
 ![The HAN Reader Installed](./Images/HanReaderConnected.PNG)
 
@@ -49,4 +49,20 @@ Quite some work was put into parse and guess how the data protocol was defined. 
 
 ## Electrical design
 
-The [most recent design](/PCB/KiCAD/HAN_ESP_TSS721) uses an [ESP8266](http://esp8266.net/) in an ESP12 module from [AI Thinker](https://www.ai-thinker.com) for micro processing and the [TSS721](http://www.ti.com/product/TSS721A) from Texas Instruments for level conversion from M-Bus to TTL (3.3V). An earlier design solved the level conversion using an op-amp, which might be an easier and more available solution, but also more error-prone. See more details in [electrical design](./Electrical).
+The [most recent design](/PCB/KiCAD/HAN_ESP_TSS721) uses an [ESP8266](http://esp8266.net/) in an ESP12 module from [AI Thinker](https://www.ai-thinker.com) for micro processing and the [TSS721](http://www.ti.com/product/TSS721A) from Texas Instruments for level conversion from M-Bus to TTL (3.3V). An earlier design solved the level conversion using an op-amp, which might be an easier and more available solution, but also more error-prone. See more details in [electrical design](/PCB).
+
+
+## Release binaries
+
+In the [Release section](https://github.com/gskjold/AmsToMqttBridge/releases) of this repository, you will find precompiled binaries for some common boards.
+
+- _esp12e_ :: Compiled for a general ESP8266 board with 12E or 12F chip, ex NodeMCU board.
+- _hw1esp12e_ :: Compiled for first version hardware with ESP 12E of 12F chip.
+
+### Flashing binaries with [esptool.py](https://github.com/espressif/esptool)
+
+Linux:
+```esptool.py --port /dev/ttyUSB0 write_flash 0x0 binary-file.bin```
+
+Windows:
+```esptool.py --port COM1 write_flash 0x0 binary-file.bin```

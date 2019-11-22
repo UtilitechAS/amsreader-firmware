@@ -5,8 +5,8 @@
 */
 
 
-#define HAS_DALLAS_TEMP_SENSOR 1		// Set to zero if Dallas one wire temp sensor is not present
-#define IS_CUSTOM_AMS_BOARD 1			// Set to zero if using NodeMCU or board not designed by Roar Fredriksen
+//#define HAS_DALLAS_TEMP_SENSOR 1		// Set to zero if Dallas one wire temp sensor is not present
+//#define IS_CUSTOM_AMS_BOARD 1			// Set to zero if using NodeMCU or board not designed by Roar Fredriksen
 
 #include <ArduinoJson.h>
 #include <MQTT.h>

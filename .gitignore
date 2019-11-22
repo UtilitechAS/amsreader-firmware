@@ -6,3 +6,4 @@
 *.sw[op]
 .vscode
 .pio
+platformio-user.ini

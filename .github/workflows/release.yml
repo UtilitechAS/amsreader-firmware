@@ -14,6 +14,11 @@ jobs:
     steps:
     - name: Check out code from repo
       uses: actions/checkout@v1
+    - name: Get release version from tag
+      id: release_tag
+      env:
+        GITHUB_REF: ${{ github.ref }}
+      run: echo ::set-output name=tag::$(echo ${GITHUB_REF:11})
     - name: Cache Python dependencies
       uses: actions/cache@v1
       with:

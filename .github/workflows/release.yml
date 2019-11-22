@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code from repo
+      uses: actions/checkout@v1
+    - name: Cache Python dependencies
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('platformio.ini') }}
+    - name: Cache PlatformIO dependencies
+      uses: actions/cache@v1
+      with:
+        path: ~/.pio/libdeps
+        key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -U platformio
+    - name: PlatformIO lib install
+      run: pio lib install
+    - name: PlatformIO run
+      run: pio run
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        draft: false
+        prerelease: false
+    - name: Upload esp12e binary to release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: .pio/build/esp12e/firmware.bin
+        asset_name: ams2mqtt-esp12e-${{ steps.release_tag.outputs.tag }}.bin
+        asset_content_type: application/octet-stream
+    - name: Upload hw1esp12e binary to release
+      uses: actions/upload-release-asset@v1.0.1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: .pio/build/hw1esp12e/firmware.bin
+        asset_name: ams2mqtt-hw1esp12e-${{ steps.release_tag.outputs.tag }}.bin
+        asset_content_type: application/octet-stream

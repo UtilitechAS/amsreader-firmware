@@ -88,7 +88,11 @@ void setup()
 	{
 		setupWiFi();
 		// Configure uart for AMS data
-		Serial.begin(2400, SERIAL_8E1);
+		if(ap.config.meterType == 3) {
+			Serial.begin(2400, SERIAL_8N1);
+		} else {
+			Serial.begin(2400, SERIAL_8E1);
+		}
 		while (!Serial);
 
 		hanReader.setup(&Serial, debugger);

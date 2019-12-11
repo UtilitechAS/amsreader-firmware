@@ -8,25 +8,25 @@ static void hanToJsonKaifa3phase(int listSize, JsonObject& data, HanReader& hanR
 {
     if (listSize >= (int)Kaifa::List3PhaseShort)
     {
-        data["lv"]   = hanReader.getString(  (int)Kaifa_List3Phase::ListVersionIdentifier);
-        data["id"]   = hanReader.getString(  (int)Kaifa_List3Phase::MeterID);
-        data["type"] = hanReader.getString(  (int)Kaifa_List3Phase::MeterType);
-        data["P"]    = hanReader.getInt(     (int)Kaifa_List3Phase::ActiveImportPower);
-        data["Q"]    = hanReader.getInt(     (int)Kaifa_List3Phase::ReactiveImportPower);
-        data["I1"]   = hanReader.getInt(     (int)Kaifa_List3Phase::CurrentL1);
-        data["I2"]   = hanReader.getInt(     (int)Kaifa_List3Phase::CurrentL2);
-        data["I3"]   = hanReader.getInt(     (int)Kaifa_List3Phase::CurrentL3);
-        data["U1"]   = hanReader.getInt(     (int)Kaifa_List3Phase::VoltageL1);
-        data["U2"]   = hanReader.getInt(     (int)Kaifa_List3Phase::VoltageL2);
-        data["U3"]   = hanReader.getInt(     (int)Kaifa_List3Phase::VoltageL3);
+        data["lv"]   = hanReader.getString(       (int)Kaifa_List3Phase::ListVersionIdentifier);
+        data["id"]   = hanReader.getString(       (int)Kaifa_List3Phase::MeterID);
+        data["type"] = hanReader.getString(      (int)Kaifa_List3Phase::MeterType);
+        data["P"]    = hanReader.getInt(          (int)Kaifa_List3Phase::ActiveImportPower);
+        data["Q"]    = hanReader.getInt(          (int)Kaifa_List3Phase::ReactiveImportPower);
+        data["I1"]   = ((double) hanReader.getInt((int)Kaifa_List3Phase::CurrentL1)) / 1000;
+        data["I2"]   = ((double) hanReader.getInt((int)Kaifa_List3Phase::CurrentL2)) / 1000;
+        data["I3"]   = ((double) hanReader.getInt((int)Kaifa_List3Phase::CurrentL3)) / 1000;
+        data["U1"]   = ((double) hanReader.getInt((int)Kaifa_List3Phase::VoltageL1)) / 10;
+        data["U2"]   = ((double) hanReader.getInt((int)Kaifa_List3Phase::VoltageL2)) / 10;
+        data["U3"]   = ((double) hanReader.getInt((int)Kaifa_List3Phase::VoltageL3)) / 10;
     }
 
     if (listSize >=  (int)Kaifa::List3PhaseLong)
     {
-        data["tPI"]  = hanReader.getInt(     (int)Kaifa_List3Phase::CumulativeActiveImportEnergy);
-        data["tPO"]  = hanReader.getInt(     (int)Kaifa_List3Phase::CumulativeActiveExportEnergy);
-        data["tQI"]  = hanReader.getInt(     (int)Kaifa_List3Phase::CumulativeReactiveImportEnergy);
-        data["tQO"]  = hanReader.getInt(     (int)Kaifa_List3Phase::CumulativeReactiveExportEnergy);
+        data["tPI"]  = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeActiveImportEnergy);
+        data["tPO"]  = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeActiveExportEnergy);
+        data["tQI"]  = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeReactiveImportEnergy);
+        data["tQO"]  = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeReactiveExportEnergy);
     }
 }
 
@@ -34,21 +34,21 @@ static void hanToJsonKaifa1phase(int listSize, JsonObject& data, HanReader& hanR
 {
     if (listSize >=  (int)Kaifa::List1PhaseShort)
     {
-        data["lv"]   = hanReader.getString(  (int)Kaifa_List1Phase::ListVersionIdentifier);
-        data["id"]   = hanReader.getString(  (int)Kaifa_List1Phase::MeterID);
-        data["type"] = hanReader.getString(  (int)Kaifa_List1Phase::MeterType);
-        data["P"]    = hanReader.getInt(     (int)Kaifa_List1Phase::ActiveImportPower);
-        data["Q"]    = hanReader.getInt(     (int)Kaifa_List1Phase::ReactiveImportPower);
-        data["I1"]   = hanReader.getInt(     (int)Kaifa_List1Phase::CurrentL1);
-        data["U1"]   = hanReader.getInt(     (int)Kaifa_List1Phase::VoltageL1);
+        data["lv"]   = hanReader.getString(       (int)Kaifa_List1Phase::ListVersionIdentifier);
+        data["id"]   = hanReader.getString(       (int)Kaifa_List1Phase::MeterID);
+        data["type"] = hanReader.getString(       (int)Kaifa_List1Phase::MeterType);
+        data["P"]    = hanReader.getInt(          (int)Kaifa_List1Phase::ActiveImportPower);
+        data["Q"]    = hanReader.getInt(          (int)Kaifa_List1Phase::ReactiveImportPower);
+        data["I1"]   = ((double) hanReader.getInt((int)Kaifa_List1Phase::CurrentL1)) / 1000;
+        data["U1"]   = ((double) hanReader.getInt((int)Kaifa_List1Phase::VoltageL1)) / 10;
     }
 
     if (listSize >=  (int)Kaifa::List1PhaseLong)
     {
-        data["tPI"]  = hanReader.getInt(     (int)Kaifa_List1Phase::CumulativeActiveImportEnergy);
-        data["tPO"]  = hanReader.getInt(     (int)Kaifa_List1Phase::CumulativeActiveExportEnergy);
-        data["tQI"]  = hanReader.getInt(     (int)Kaifa_List1Phase::CumulativeReactiveImportEnergy);
-        data["tQO"]  = hanReader.getInt(     (int)Kaifa_List1Phase::CumulativeReactiveExportEnergy);
+        data["tPI"]  = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeActiveImportEnergy);
+        data["tPO"]  = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeActiveExportEnergy);
+        data["tQI"]  = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeReactiveImportEnergy);
+        data["tQO"]  = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeReactiveExportEnergy);
     }
 }
 
@@ -151,25 +151,25 @@ static void hanToJsonKamstrup3phase(int listSize, JsonObject& data, HanReader& h
 {
     if (listSize >= (int)Kamstrup::List3PhaseShort)
     {
-        data["lv"]      = hanReader.getString(  (int)Kamstrup_List3Phase::ListVersionIdentifier);
-        data["id"]      = hanReader.getString(  (int)Kamstrup_List3Phase::MeterID);
-        data["type"]    = hanReader.getString(  (int)Kamstrup_List3Phase::MeterType);
-        data["P"]       = hanReader.getInt(     (int)Kamstrup_List3Phase::ActiveImportPower);
-        data["Q"]       = hanReader.getInt(     (int)Kamstrup_List3Phase::ReactiveImportPower);
-        data["I1"]      = hanReader.getInt(     (int)Kamstrup_List3Phase::CurrentL1);
-        data["I2"]      = hanReader.getInt(     (int)Kamstrup_List3Phase::CurrentL2);
-        data["I3"]      = hanReader.getInt(     (int)Kamstrup_List3Phase::CurrentL3);
-        data["U1"]      = hanReader.getInt(     (int)Kamstrup_List3Phase::VoltageL1);
-        data["U2"]      = hanReader.getInt(     (int)Kamstrup_List3Phase::VoltageL2);
-        data["U3"]      = hanReader.getInt(     (int)Kamstrup_List3Phase::VoltageL3);
+        data["lv"]      = hanReader.getString(       (int)Kamstrup_List3Phase::ListVersionIdentifier);
+        data["id"]      = hanReader.getString(       (int)Kamstrup_List3Phase::MeterID);
+        data["type"]    = hanReader.getString(       (int)Kamstrup_List3Phase::MeterType);
+        data["P"]       = hanReader.getInt(          (int)Kamstrup_List3Phase::ActiveImportPower);
+        data["Q"]       = hanReader.getInt(          (int)Kamstrup_List3Phase::ReactiveImportPower);
+        data["I1"]      = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CurrentL1)) / 100;
+        data["I2"]      = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CurrentL2)) / 100;
+        data["I3"]      = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CurrentL3)) / 100;
+        data["U1"]      = hanReader.getInt(          (int)Kamstrup_List3Phase::VoltageL1);
+        data["U2"]      = hanReader.getInt(          (int)Kamstrup_List3Phase::VoltageL2);
+        data["U3"]      = hanReader.getInt(          (int)Kamstrup_List3Phase::VoltageL3);
     }
 
     if (listSize >= (int)Kamstrup::List3PhaseLong)
     {
-        data["tPI"]     = hanReader.getInt(     (int)Kamstrup_List3Phase::CumulativeActiveImportEnergy);
-        data["tPO"]     = hanReader.getInt(     (int)Kamstrup_List3Phase::CumulativeActiveExportEnergy);
-        data["tQI"]     = hanReader.getInt(     (int)Kamstrup_List3Phase::CumulativeReactiveImportEnergy);
-        data["tQO"]     = hanReader.getInt(     (int)Kamstrup_List3Phase::CumulativeReactiveExportEnergy);
+        data["tPI"]     = hanReader.getInt(          (int)Kamstrup_List3Phase::CumulativeActiveImportEnergy);
+        data["tPO"]     = hanReader.getInt(          (int)Kamstrup_List3Phase::CumulativeActiveExportEnergy);
+        data["tQI"]     = hanReader.getInt(          (int)Kamstrup_List3Phase::CumulativeReactiveImportEnergy);
+        data["tQO"]     = hanReader.getInt(          (int)Kamstrup_List3Phase::CumulativeReactiveExportEnergy);
     }
 }
 
@@ -177,21 +177,21 @@ static void hanToJsonKamstrup1phase(int listSize, JsonObject& data, HanReader& h
 {
     if (listSize >= (int)Kamstrup::List1PhaseShort)
     {
-        data["lv"]      = hanReader.getString(  (int)Kamstrup_List1Phase::ListVersionIdentifier);
-        data["id"]      = hanReader.getString(  (int)Kamstrup_List1Phase::MeterID);
-        data["type"]    = hanReader.getString(  (int)Kamstrup_List1Phase::MeterType);
-        data["P"]       = hanReader.getInt(     (int)Kamstrup_List1Phase::ActiveImportPower);
-        data["Q"]       = hanReader.getInt(     (int)Kamstrup_List1Phase::ReactiveImportPower);
-        data["I1"]      = hanReader.getInt(     (int)Kamstrup_List1Phase::CurrentL1);
-        data["U1"]      = hanReader.getInt(     (int)Kamstrup_List1Phase::VoltageL1);
+        data["lv"]      = hanReader.getString(       (int)Kamstrup_List1Phase::ListVersionIdentifier);
+        data["id"]      = hanReader.getString(       (int)Kamstrup_List1Phase::MeterID);
+        data["type"]    = hanReader.getString(       (int)Kamstrup_List1Phase::MeterType);
+        data["P"]       = hanReader.getInt(          (int)Kamstrup_List1Phase::ActiveImportPower);
+        data["Q"]       = hanReader.getInt(          (int)Kamstrup_List1Phase::ReactiveImportPower);
+        data["I1"]      = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CurrentL1)) / 100;
+        data["U1"]      = hanReader.getInt(          (int)Kamstrup_List1Phase::VoltageL1);
     }
 
     if (listSize >= (int)Kamstrup::List1PhaseLong)
     {
-        data["tPI"]     = hanReader.getInt(     (int)Kamstrup_List1Phase::CumulativeActiveImportEnergy);
-        data["tPO"]     = hanReader.getInt(     (int)Kamstrup_List1Phase::CumulativeActiveExportEnergy);
-        data["tQI"]     = hanReader.getInt(     (int)Kamstrup_List1Phase::CumulativeReactiveImportEnergy);
-        data["tQO"]     = hanReader.getInt(     (int)Kamstrup_List1Phase::CumulativeReactiveExportEnergy);
+        data["tPI"]     = hanReader.getInt(          (int)Kamstrup_List1Phase::CumulativeActiveImportEnergy);
+        data["tPO"]     = hanReader.getInt(          (int)Kamstrup_List1Phase::CumulativeActiveExportEnergy);
+        data["tQI"]     = hanReader.getInt(          (int)Kamstrup_List1Phase::CumulativeReactiveImportEnergy);
+        data["tQO"]     = hanReader.getInt(          (int)Kamstrup_List1Phase::CumulativeReactiveExportEnergy);
     }
 }
 

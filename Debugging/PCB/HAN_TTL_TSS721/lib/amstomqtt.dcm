@@ -1,8 +1,0 @@
-EESchema-DOCLIB  Version 2.0
-#
-$CMP TSS721A
-D Meter-Bus transeiver
-K M-Bus
-$ENDCMP
-#
-#End Doc Library

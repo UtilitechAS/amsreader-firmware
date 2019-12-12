@@ -7,8 +7,9 @@ This repository contains the code and schematics necessary to build a device to 
 
 In the [Release section](https://github.com/gskjold/AmsToMqttBridge/releases) of this repository, you will find precompiled binaries for some common boards.
 
-- _esp12e_ :: Compiled for a general ESP8266 board with 12E or 12F chip, ex NodeMCU board.
-- _hw1esp12e_ :: Compiled for first version hardware with ESP 12E of 12F chip.
+- _esp12e_ :: General ESP8266 board with 12E or 12F chip, ex NodeMCU board.
+- _hw1esp12e_ :: First version hardware with ESP 12E of 12F chip.
+- _featheresp32_ :: Adafruit ESP32 feather
 
 ### Flashing binaries with [esptool.py](https://github.com/espressif/esptool)
 

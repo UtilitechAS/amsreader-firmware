@@ -3,8 +3,6 @@ Orignally designed and coded by [@roarfred](https://github.com/roarfred), see th
 
 This repository contains the code and schematics necessary to build a device to receive and convert data from AMS electrical meters installed in Norway. The code can be used on both ESP8266 and ESP32, both as custom build devices or built from readily available modules. It reads data from the HAN port of the meter and sends this to a configured MQTT bus.
 
- *Building this project will require some skills in ordering and assembling  electronic circuits as well as programming, and I have not included detailed instructions to take a beginner through the steps. I still hope some still find information here useful, maybe also for other projects.*
-
 ## Release binaries
 
 In the [Release section](https://github.com/gskjold/AmsToMqttBridge/releases) of this repository, you will find precompiled binaries for some common boards.

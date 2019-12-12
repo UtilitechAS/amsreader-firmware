@@ -18,4 +18,4 @@ Use a ESP based developmentboard and a M-bus module.
 
 [TSS721 M-BUS module board](https://www.aliexpress.com/item/TSS721/32751482255.html)
 
-![FeatherMbus](/Debugging/Documentation/feather_3010-00_mbus_slave.jpg)
+![FeatherMbus](./feather_3010-00_mbus_slave.jpg)

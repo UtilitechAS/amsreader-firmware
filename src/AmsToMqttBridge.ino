@@ -59,10 +59,11 @@ HardwareSerial* debugger = NULL;
 HanReader hanReader;
 
 // the setup function runs once when you press reset or power the board
-void setup()
-{
-	// Uncomment to debug over the same port as used for HAN communication
-	//debugger = &Serial;
+void setup() {
+
+#if DEBUG_MODE
+	debugger = &Serial;
+#endif
 
 	if (debugger) {
 		// Setup serial port for debugging
@@ -100,6 +101,8 @@ void setup()
 		// Compensate for the known Kaifa bug
 		hanReader.compensateFor09HeaderBug = (ap.config.meterType == 1);
 	}
+
+	ap.enableWeb();
 }
 
 // the loop function runs over and over again until power down or reset

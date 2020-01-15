@@ -65,6 +65,19 @@ const char CONFIG_HTML[] PROGMEM = R"=="==(
                         <input class="submit-button" type='submit' value='save'>
                     </div>
                 </div>
+                <div class="inner-wrapper">
+                    <div>
+                        <h2>Webserver</h2>
+                    </div>
+                    <div>
+                        <label>Username:</label>
+                        <input type='text' name='authUser' value="${config.authUser}" placeholder="Blank for insecure">
+                    </div>
+                    <div>
+                        <label>Password:</label>
+                        <input type='password' name='authPass' value="${config.authPass}" placeholder="Blank for insecure">
+                    </div>
+                </div>
             </div>
         </form>
     <body>

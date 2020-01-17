@@ -25,8 +25,12 @@ public:
 	char* mqttPass;
 	byte meterType;
 
+	char* authUser;
+	char* authPass;
+
 	bool hasConfig();
 	bool isSecure();
+	bool isAuth();
 	bool save();
 	bool load();
 
@@ -35,7 +39,7 @@ protected:
 
 private:
 	const int EEPROM_SIZE = 512;
-	const byte EEPROM_CHECK_SUM = 71; // Used to check if config is stored. Change if structure changes
+	const byte EEPROM_CHECK_SUM = 72; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 
 	int saveString(int pAddress, char* pString);

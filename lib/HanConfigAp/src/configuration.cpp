@@ -38,6 +38,13 @@ bool configuration::save()
 	else
 		address += saveBool(address, false);
 
+
+	address += saveBool(address, isAuth());
+	if (isAuth()) {
+		address += saveString(address, authUser);
+		address += saveString(address, authPass);
+	}
+
 	bool success = EEPROM.commit();
 	EEPROM.end();
 
@@ -50,8 +57,22 @@ bool configuration::load()
 	int address = EEPROM_CONFIG_ADDRESS;
 	bool success = false;
 
+	ssid = (char*)String("").c_str();
+	ssidPassword = (char*)String("").c_str();
+	meterType = (byte)0;
+	mqtt = (char*)String("").c_str();
+	mqttClientID = (char*)String("").c_str();
+	mqttPublishTopic = (char*)String("").c_str();
+	mqttSubscribeTopic = (char*)String("").c_str();
+	mqttUser = 0;
+	mqttPass = 0;
+	mqttPort = 1883;
+	authUser = 0;
+	authPass = 0;
+
 	EEPROM.begin(EEPROM_SIZE);
-	if (EEPROM.read(address) == EEPROM_CHECK_SUM)
+	int cs = EEPROM.read(address);
+	if (cs >= 71)
 	{
 		address++;
 
@@ -80,18 +101,18 @@ bool configuration::load()
 
 		success = true;
 	}
-	else
-	{
-		ssid = (char*)String("").c_str();
-		ssidPassword = (char*)String("").c_str();
-		meterType = (byte)0;
-		mqtt = (char*)String("").c_str();
-		mqttClientID = (char*)String("").c_str();
-		mqttPublishTopic = (char*)String("").c_str();
-		mqttSubscribeTopic = (char*)String("").c_str();
-		mqttUser = 0;
-		mqttPass = 0;
-		mqttPort = 1883;
+	if(cs >= 72) {
+		bool auth = false;
+		address += readBool(address, &auth);
+		if (auth) {
+			address += readString(address, &authUser);
+			address += readString(address, &authPass);
+		} else {
+			authUser = 0;
+			authPass = 0;
+		}
+
+		success = true;
 	}
 	EEPROM.end();
 	return success;
@@ -100,6 +121,10 @@ bool configuration::load()
 bool configuration::isSecure()
 {
 	return (mqttUser != 0) && (String(mqttUser).length() > 0);
+}
+
+bool configuration::isAuth() {
+	return (authUser != 0) && (String(authUser).length() > 0);
 }
 
 int configuration::readInt(int address, int *value)
@@ -147,20 +172,6 @@ int configuration::saveByte(int address, byte value)
 }
 void configuration::print(Stream* debugger)
 {
-	/*
-	char* ssid;
-	char* ssidPassword;
-	byte meterType;
-	char* mqtt;
-	int mqttPort;
-	char* mqttClientID;
-	char* mqttPublishTopic;
-	char* mqttSubscribeTopic;
-	bool secure;
-	char* mqttUser;
-	char* mqttPass;
-	*/
-
 	debugger->println("Configuration:");
 	debugger->println("-----------------------------------------------");
 	debugger->printf("ssid:                 %s\r\n", this->ssid);
@@ -178,6 +189,13 @@ void configuration::print(Stream* debugger)
 		debugger->printf("mqttUser:             %s\r\n", this->mqttUser);
 		debugger->printf("mqttPass:             %s\r\n", this->mqttPass);
 	}
+
+	if (this->isAuth()) {
+		debugger->printf("WEB AUTH:\r\n");
+		debugger->printf("authUser:             %s\r\n", this->authUser);
+		debugger->printf("authPass:             %s\r\n", this->authPass);
+	}
+
 	debugger->println("-----------------------------------------------");
 }
 

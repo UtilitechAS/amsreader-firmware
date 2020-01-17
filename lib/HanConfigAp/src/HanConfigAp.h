@@ -27,6 +27,7 @@
 class HanConfigAp {
 public:
 	void setup(int accessPointButtonPin, Stream* debugger);
+	void enableWeb();
 	bool loop();
 	bool hasConfig();
 	configuration config;
@@ -46,6 +47,7 @@ private:
 
 	// Web server
 	static void handleRoot();
+	static void handleStyle();
 	static void handleSave();
 #if defined(ESP8266)
 	static ESP8266WebServer server;

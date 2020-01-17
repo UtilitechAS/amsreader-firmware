@@ -1,13 +1,14 @@
+const char INDEX_HTML[] PROGMEM = R"=="==(
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AMS reader - configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap.min.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap.css"/>
     <link rel="stylesheet" type="text/css" href="/css/application.css"/>
-    <script src="/js/jquery.min.js"></script>
-    <script src="/js/GaugeMeter.js"></script>
+    <script src="/js/jquery.js"></script>
+    <script src="/js/gaugemeter.js"></script>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
@@ -63,10 +64,11 @@
             <a href="https://github.com/gskjold/AmsToMqttBridge/releases" class="btn btn-outline-secondary">Release notes</a>
         </div>
         <div class="col-6 text-right">
-            <a href="/configuration.html" class="btn btn-primary">Configuration</a>
+            <a href="/configuration" class="btn btn-primary">Configuration</a>
         </div>
     </div>
 </main>
-<script src="/js/meter.js"></script>
+<script src="/js/index.js"></script>
 </body>
 </html>
+)=="==";

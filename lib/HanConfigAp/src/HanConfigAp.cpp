@@ -1,6 +1,12 @@
 #include "HanConfigAp.h"
-#include "config_html.h"
-#include "style_css.h"
+
+#include "index_html.h"
+#include "configuration_html.h"
+#include "bootstrap_css.h"
+#include "application_css.h"
+#include "jquery_js.h"
+#include "gaugemeter_js.h"
+#include "index_js.h"
 
 #include "Base64.h"
 
@@ -74,9 +80,16 @@ void HanConfigAp::setup(int accessPointButtonPin, Stream* debugger)
 }
 
 void HanConfigAp::enableWeb() {
-	server.on("/", handleRoot);
-	server.on("/style.css", handleStyle);
+	server.on("/", indexHtml);
+	server.on("/configuration", configurationHtml);
+	server.on("/css/bootstrap.css", bootstrapCss);
+	server.on("/css/application.css", applicationCss);
+	server.on("/js/jquery.js", jqueryJs);
+	server.on("/js/gaugemeter.js", gaugemeterJs);
+	server.on("/js/index.js", indexJs);
+
 	server.on("/save", handleSave);
+
 	server.begin(); // Web server start
 
 	print("Web server is ready for config at http://");
@@ -98,113 +111,6 @@ bool HanConfigAp::loop() {
 	server.handleClient();
 
 	return isActivated;
-}
-
-/** Handle root or redirect to captive portal */
-void HanConfigAp::handleRoot() {
-	println("Serving / over http...");
-
-	configuration *config = new configuration();
-	config->load();
-
-	String html = CONFIG_HTML;
-
-	if(config->hasConfig()) {
-		bool access = !config->isAuth();
-		if(config->isAuth() && server.hasHeader("Authorization")) {
-			String expectedAuth = String(config->authUser) + ":" + String(config->authPass);
-
-			String providedPwd = server.header("Authorization");
-			providedPwd.replace("Basic ", "");
-			char inputString[providedPwd.length()];
-			providedPwd.toCharArray(inputString, providedPwd.length()+1);
-
-			int inputStringLength = sizeof(inputString);
-			int decodedLength = Base64.decodedLength(inputString, inputStringLength);
-			char decodedString[decodedLength];
-			Base64.decode(decodedString, inputString, inputStringLength);
-			print("Received auth: ");
-			println(decodedString);
-			access = String(decodedString).equals(expectedAuth);
-		}
-
-		if(!access) {
-			server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure Area\"");
-			server.send(401, "text/html", "");
-		} else {
-			server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-			server.sendHeader("Pragma", "no-cache");
-			server.sendHeader("Expires", "-1");
-
-			html.replace("${config.ssid}", config->ssid);
-			html.replace("${config.ssidPassword}", config->ssidPassword);
-			switch (config->meterType) {
-				case 1:
-					html.replace("${config.meterType0}", "");
-					html.replace("${config.meterType1}", "selected");
-					html.replace("${config.meterType2}", "");
-					html.replace("${config.meterType3}", "");
-					break;
-				case 2:
-					html.replace("${config.meterType0}", "");
-					html.replace("${config.meterType1}", "");
-					html.replace("${config.meterType2}", "selected");
-					html.replace("${config.meterType3}", "");
-					break;
-				case 3:
-					html.replace("${config.meterType0}", "");
-					html.replace("${config.meterType1}", "");
-					html.replace("${config.meterType2}", "");
-					html.replace("${config.meterType3}", "selected");
-					break;
-				default:
-					html.replace("${config.meterType0}", "selected");
-					html.replace("${config.meterType1}", "");
-					html.replace("${config.meterType2}", "");
-					html.replace("${config.meterType3}", "");
-			}
-			html.replace("${config.mqtt}", config->mqtt);
-			html.replace("${config.mqttPort}", String(config->mqttPort));
-			html.replace("${config.mqttClientID}", config->mqttClientID);
-			html.replace("${config.mqttPublishTopic}", config->mqttPublishTopic);
-			html.replace("${config.mqttSubscribeTopic}", config->mqttSubscribeTopic);
-			html.replace("${config.mqttUser}", config->mqttUser);
-			html.replace("${config.mqttPass}", config->mqttPass);
-			html.replace("${config.authUser}", config->authUser);
-			html.replace("${config.authPass}", config->authPass);
-		}
-
-	} else {
-		server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-		server.sendHeader("Pragma", "no-cache");
-		server.sendHeader("Expires", "-1");
-
-		html.replace("${config.ssid}", "");
-		html.replace("${config.ssidPassword}", "");
-		html.replace("${config.meterType0}", "selected");
-		html.replace("${config.meterType1}", "");
-		html.replace("${config.meterType2}", "");
-		html.replace("${config.meterType3}", "");
-		html.replace("${config.mqtt}", "");
-		html.replace("${config.mqttPort}", "1883");
-		html.replace("${config.mqttClientID}", "");
-		html.replace("${config.mqttPublishTopic}", "");
-		html.replace("${config.mqttSubscribeTopic}", "");
-		html.replace("${config.mqttUser}", "");
-		html.replace("${config.mqttPass}", "");
-		html.replace("${config.authUser}", "");
-		html.replace("${config.authPass}", "");
-	}
-	server.send(200, "text/html", html);
-}
-
-void HanConfigAp::handleStyle() {
-	println("Serving /style.css over http...");
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-	server.send(200, "text/html", STYLE_CSS, sizeof(STYLE_CSS));
 }
 
 void HanConfigAp::handleSave() {
@@ -248,6 +154,8 @@ void HanConfigAp::handleSave() {
 	config->mqttPass = new char[temp.length() + 1];
 	temp.toCharArray(config->mqttPass, temp.length() + 1, 0);
 
+	config->authSecurity = (byte)server.arg("authSecurity").toInt();
+
 	temp = server.arg("authUser");
 	config->authUser = new char[temp.length() + 1];
 	temp.toCharArray(config->authUser, temp.length() + 1, 0);
@@ -256,14 +164,18 @@ void HanConfigAp::handleSave() {
 	config->authPass = new char[temp.length() + 1];
 	temp.toCharArray(config->authPass, temp.length() + 1, 0);
 
+	config->fuseSize = (int)server.arg("fuseSize").toInt();
+
 	println("Saving configuration now...");
 
 	if (HanConfigAp::debugger) config->print(HanConfigAp::debugger);
 	if (config->save())
 	{
 		println("Successfully saved. Will reboot now.");
-		String html = "<html><body><h1>Successfully Saved!</h1><h3>Device is restarting now...</h3></form>";
+		String html = "<html><body><h1>Successfully Saved!</h1><h3>Device is restarting now...</h3><a href=\"/\">Go to index</a></form>";
 		server.send(200, "text/html", html);
+		yield();
+		delay(1000);
 #if defined(ESP8266)
 		ESP.reset();
 #elif defined(ESP32)
@@ -276,6 +188,153 @@ void HanConfigAp::handleSave() {
 		String html = "<html><body><h1>Error saving configuration!</h1></form>";
 		server.send(500, "text/html", html);
 	}
+}
+
+void HanConfigAp::indexHtml() {
+	println("Serving /index.html over http...");
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+	server.send(200, "text/html", INDEX_HTML, sizeof(INDEX_HTML)-1);
+
+}
+
+void HanConfigAp::configurationHtml() {
+	println("Serving /configuration.html over http...");
+
+	configuration *config = new configuration();
+	config->load();
+
+	bool access = !config->hasConfig() || config->authSecurity == 0;
+	if(config->authSecurity > 0 && server.hasHeader("Authorization")) {
+		String expectedAuth = String(config->authUser) + ":" + String(config->authPass);
+
+		String providedPwd = server.header("Authorization");
+		providedPwd.replace("Basic ", "");
+		char inputString[providedPwd.length()];
+		providedPwd.toCharArray(inputString, providedPwd.length()+1);
+
+		int inputStringLength = sizeof(inputString);
+		int decodedLength = Base64.decodedLength(inputString, inputStringLength);
+		char decodedString[decodedLength];
+		Base64.decode(decodedString, inputString, inputStringLength);
+		print("Received auth: ");
+		println(decodedString);
+		access = String(decodedString).equals(expectedAuth);
+	}
+
+	if(!access) {
+		server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure Area\"");
+		server.send(401, "text/html", "");
+		return;
+	}
+	String html = CONFIGURATION_HTML;
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+
+	if(config->hasConfig()) {
+		html.replace("${config.ssid}", config->ssid);
+		html.replace("${config.ssidPassword}", config->ssidPassword);
+		html.replace("${config.meterType}", String(config->fuseSize));
+		for(int i = 0; i<3; i++) {
+			html.replace("${config.meterType" + String(i) + "}", config->meterType == i ? "selected"  : "");
+		}
+		html.replace("${config.mqtt}", config->mqtt);
+		html.replace("${config.mqttPort}", String(config->mqttPort));
+		html.replace("${config.mqttClientID}", config->mqttClientID);
+		html.replace("${config.mqttPublishTopic}", config->mqttPublishTopic);
+		html.replace("${config.mqttSubscribeTopic}", config->mqttSubscribeTopic);
+		html.replace("${config.mqttUser}", config->mqttUser);
+		html.replace("${config.mqttPass}", config->mqttPass);
+		html.replace("${config.authUser}", config->authUser);
+		html.replace("${config.authSecurity}", String(config->authSecurity));
+		for(int i = 0; i<2; i++) {
+			html.replace("${config.authSecurity" + String(i) + "}", config->authSecurity == i ? "selected"  : "");
+		}
+		html.replace("${config.authPass}", config->authPass);
+		html.replace("${config.fuseSize}", String(config->fuseSize));
+		for(int i = 0; i<63; i++) {
+			html.replace("${config.fuseSize" + String(i) + "}", config->fuseSize == i ? "selected"  : "");
+		}
+	} else {
+		html.replace("${config.ssid}", "");
+		html.replace("${config.ssidPassword}", "");
+		html.replace("${config.meterType}", "");
+		for(int i = 0; i<3; i++) {
+			html.replace("${config.meterType" + String(i) + "}", i == 0 ? "selected"  : "");
+		}
+		html.replace("${config.mqtt}", "");
+		html.replace("${config.mqttPort}", "1883");
+		html.replace("${config.mqttClientID}", "");
+		html.replace("${config.mqttPublishTopic}", "");
+		html.replace("${config.mqttSubscribeTopic}", "");
+		html.replace("${config.mqttUser}", "");
+		html.replace("${config.mqttPass}", "");
+		html.replace("${config.authSecurity}", "");
+		for(int i = 0; i<2; i++) {
+			html.replace("${config.authSecurity" + String(i) + "}", i == 0 ? "selected"  : "");
+		}
+		html.replace("${config.authUser}", "");
+		html.replace("${config.authPass}", "");
+		html.replace("${config.fuseSize}", "");
+		for(int i = 0; i<63; i++) {
+			html.replace("${config.fuseSize" + String(i) + "}", i == 0 ? "selected"  : "");
+		}
+	}
+	server.send(200, "text/html", html);
+}
+
+void HanConfigAp::bootstrapCss() {
+	println("Serving /bootstrap.css over http...");
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+	server.send(200, "text/html", BOOTSTRAP_CSS, sizeof(BOOTSTRAP_CSS)-1);
+
+}
+
+void HanConfigAp::applicationCss() {
+	println("Serving /application.css over http...");
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+	server.send(200, "text/html", APPLICATION_CSS, sizeof(APPLICATION_CSS)-1);
+
+}
+
+void HanConfigAp::jqueryJs() {
+	println("Serving /jquery.js over http...");
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+	server.send(200, "text/html", JQUERY_JS, sizeof(JQUERY_JS)-1);
+
+}
+
+void HanConfigAp::gaugemeterJs() {
+	println("Serving /gaugemeter.js over http...");
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+	server.send(200, "text/html", GAUEGMETER_JS, sizeof(GAUEGMETER_JS)-1);
+
+}
+
+void HanConfigAp::indexJs() {
+	println("Serving /index.js over http...");
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+	server.send(200, "text/html", INDEX_JS, sizeof(INDEX_JS)-1);
+
 }
 
 size_t HanConfigAp::print(const char* text)

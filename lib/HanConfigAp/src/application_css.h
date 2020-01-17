@@ -1,3 +1,4 @@
+const char APPLICATION_CSS[] PROGMEM = R"=="==(
 .bg-purple {
     background-color: var(--purple);
 }
@@ -42,3 +43,4 @@
     font-weight: 200;
     opacity: .8;
 }
+)=="==";

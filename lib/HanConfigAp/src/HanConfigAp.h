@@ -46,9 +46,16 @@ private:
 	static size_t println(const Printable& data);
 
 	// Web server
-	static void handleRoot();
-	static void handleStyle();
+	static void indexHtml();
+	static void configurationHtml();
+	static void bootstrapCss();
+	static void applicationCss();
+	static void jqueryJs();
+	static void gaugemeterJs();
+	static void indexJs();
+
 	static void handleSave();
+
 #if defined(ESP8266)
 	static ESP8266WebServer server;
 #elif defined(ESP32) // ARDUINO_ARCH_ESP32

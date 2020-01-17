@@ -9,5 +9,6 @@ lib_deps = ${common.lib_deps}
 build_flags =
     -D HAS_DALLAS_TEMP_SENSOR=0
     -D IS_CUSTOM_AMS_BOARD=0
+    -D DEBUG_MODE=1
 monitor_speed = 2400
 monitor_flags = --parity E

@@ -1,3 +1,4 @@
+const char INDEX_JS[] PROGMEM = R"=="==(
 $(function() {
     $(".GaugeMeter").gaugeMeter();
 
@@ -9,3 +10,4 @@ $(function() {
         console.log(el);
     });
 });
+)=="==";

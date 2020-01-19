@@ -3,7 +3,7 @@ const char INDEX_HTML[] PROGMEM = R"=="==(
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - configuration</title>
+    <title>AMS reader</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" type="text/css" href="/css/bootstrap.css"/>
     <link rel="stylesheet" type="text/css" href="/css/application.css"/>
@@ -14,8 +14,8 @@ const char INDEX_HTML[] PROGMEM = R"=="==(
 <main role="main" class="container">
     <div class="d-flex align-items-center p-3 my-2 text-white-50 bg-purple rounded shadow">
         <div class="lh-100">
-            <h6 class="mb-0 text-white lh-100">AMS reader - configuration</h6>
-            <small>v1.0.0</small>
+            <h6 class="mb-0 text-white lh-100">AMS reader</h6>
+            <small>${version}</small>
         </div>
     </div>
     <div class="my-3 p-3 bg-white rounded shadow">
@@ -32,28 +32,28 @@ const char INDEX_HTML[] PROGMEM = R"=="==(
                          data-animationstep="0"
                          data-animate_gauge_colors="1"
 
-                         data-percent="55"
-                         data-text="20.1"
+                         data-percent="0"
+                         data-text="-"
                          data-label="Consumption"
-                         data-append="kW"
+                         data-append="W"
                     ></div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="row">
+                <div id="P1" class="row" style="display: none;">
                     <div class="col-2">P1</div>
-                    <div class="col-5 text-right">232.4V</div>
-                    <div class="col-5 text-right">19.23A</div>
+                    <div class="col-5 text-right"><span id="U1">-</span> V</div>
+                    <div class="col-5 text-right"><span id="I1">-</span> A</div>
                 </div>
-                <div class="row">
+                <div id="P2" class="row" style="display: none;">
                     <div class="col-2">P2</div>
-                    <div class="col-5 text-right">234.1V</div>
-                    <div class="col-5 text-right">22.53A</div>
+                    <div class="col-5 text-right"><span id="U2">-</span> V</div>
+                    <div class="col-5 text-right"><span id="I2">-</span> A</div>
                 </div>
-                <div class="row">
+                <div id="P3" class="row" style="display: none;">
                     <div class="col-2">P3</div>
-                    <div class="col-5 text-right">228.9V</div>
-                    <div class="col-5 text-right">17.83A</div>
+                    <div class="col-5 text-right"><span id="U3">-</span> V</div>
+                    <div class="col-5 text-right"><span id="I3">-</span> A</div>
                 </div>
             </div>
         </div>

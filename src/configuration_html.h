@@ -13,7 +13,7 @@ const char CONFIGURATION_HTML[] PROGMEM = R"=="==(
     <div class="d-flex align-items-center p-3 my-2 text-white-50 bg-purple rounded shadow">
         <div class="lh-100">
             <h6 class="mb-0 text-white lh-100">AMS reader - configuration</h6>
-            <small>v1.0.0</small>
+            <small>${version}</small>
         </div>
     </div>
     <form method="post" action="/save">

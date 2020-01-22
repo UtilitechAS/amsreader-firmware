@@ -4,9 +4,7 @@
  Author:	roarf
 */
 
-
-//#define HAS_DALLAS_TEMP_SENSOR 1		// Set to zero if Dallas one wire temp sensor is not present
-//#define IS_CUSTOM_AMS_BOARD 1			// Set to zero if using NodeMCU or board not designed by Roar Fredriksen
+ADC_MODE(ADC_VCC);    
 
 #include <ArduinoJson.h>
 #include <MQTT.h>
@@ -76,6 +74,15 @@ void setup() {
 		debugger->println("");
 		debugger->println("Started...");
 	}
+
+	if (ESP.getVcc() < 3300) {
+		if(debugger) {
+			debugger->print("Voltage is too low: ");
+			debugger->print(ESP.getVcc());
+			debugger->println("v");
+		}
+		ESP.deepSleep(5000000);    //Deep sleep for 5 seconds to allow output cap to charge up
+	}  
 
 	// Flash the LED, to indicate we can boot as AP now
 	pinMode(LED_PIN, OUTPUT);

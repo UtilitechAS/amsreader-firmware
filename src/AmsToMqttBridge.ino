@@ -73,13 +73,16 @@ void setup() {
 		while (!debugger);
 		debugger->println("");
 		debugger->println("Started...");
+		debugger->print("Voltage: ");
+		debugger->print(ESP.getVcc());
+		debugger->println("mV");
 	}
 
 	if (ESP.getVcc() < 3300) {
 		if(debugger) {
 			debugger->print("Voltage is too low: ");
 			debugger->print(ESP.getVcc());
-			debugger->println("v");
+			debugger->println("mV");
 		}
 		ESP.deepSleep(5000000);    //Deep sleep for 5 seconds to allow output cap to charge up
 	}  
@@ -138,8 +141,11 @@ void loop()
 	else
 	{
 		// Continously flash the LED when AP mode
-		if (millis() / 1000 % 2 == 0)   led_on();
+		if (millis() / 50 % 64 == 0)   led_on();
 		else							led_off();
+
+		// Make sure there is enough power to run
+		delay(max(10, 3500-ESP.getVcc()));
 	}
 	ws.loop();
 }
@@ -229,6 +235,7 @@ void readHanPort()
 		json["id"] = WiFi.macAddress();
 		json["up"] = millis();
 		json["t"] = time;
+		json["vcc"] = ((double) ESP.getVcc()) / 1000;
 
 		// Add a sub-structure to the json object,
 		// to keep the data from the meter itself
@@ -372,6 +379,7 @@ void sendMqttData(String data)
 	json["id"] = WiFi.macAddress();
 	json["up"] = millis();
 	json["data"] = data;
+	json["vcc"] = ((double) ESP.getVcc()) / 1000;
 
 	// Stringify the json
 	String msg;

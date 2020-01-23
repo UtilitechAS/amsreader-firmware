@@ -5,7 +5,6 @@
 #include "configuration_html.h"
 #include "bootstrap_css.h"
 #include "application_css.h"
-#include "jquery_js.h"
 #include "gaugemeter_js.h"
 #include "index_js.h"
 
@@ -25,7 +24,6 @@ void AmsWebServer::setup(configuration* config, Stream* debugger) {
 	server.on("/configuration", std::bind(&AmsWebServer::configurationHtml, this));
 	server.on("/css/bootstrap.css", std::bind(&AmsWebServer::bootstrapCss, this));
 	server.on("/css/application.css", std::bind(&AmsWebServer::applicationCss, this));
-	server.on("/js/jquery.js", std::bind(&AmsWebServer::jqueryJs, this));
 	server.on("/js/gaugemeter.js", std::bind(&AmsWebServer::gaugemeterJs, this)); 
 	server.on("/js/index.js", std::bind(&AmsWebServer::indexJs, this));
 	server.on("/data.json", std::bind(&AmsWebServer::dataJson, this));
@@ -91,11 +89,10 @@ void AmsWebServer::indexHtml() {
 	if(!checkSecurity(2))
 		return;
 
-	String html = INDEX_HTML;
+	String html = String((const __FlashStringHelper*) INDEX_HTML);
 	html.replace("${version}", VERSION);
 	if(WiFi.getMode() != WIFI_AP) {
 		html.replace("/css/bootstrap.css", "https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css");
-		html.replace("/js/jquery.js", "https://code.jquery.com/jquery-3.4.1.min.js");
 	}
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -110,11 +107,10 @@ void AmsWebServer::configurationHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	String html = CONFIGURATION_HTML;
+	String html = String((const __FlashStringHelper*) CONFIGURATION_HTML);
 	html.replace("${version}", VERSION);
 	if(WiFi.getMode() != WIFI_AP) {
 		html.replace("/css/bootstrap.css", "https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css");
-		html.replace("/js/jquery.js", "https://code.jquery.com/jquery-3.4.1.min.js");
 	}
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -189,15 +185,6 @@ void AmsWebServer::applicationCss() {
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
 	server.send(200, "text/css", APPLICATION_CSS);
-}
-
-void AmsWebServer::jqueryJs() {
-	println("Serving /jquery.js over http...");
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-	server.send(200, "application/javascript", JQUERY_JS);
 }
 
 void AmsWebServer::gaugemeterJs() {

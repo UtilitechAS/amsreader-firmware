@@ -7,7 +7,7 @@ const char INDEX_HTML[] PROGMEM = R"=="==(
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" type="text/css" href="/css/bootstrap.css"/>
     <link rel="stylesheet" type="text/css" href="/css/application.css"/>
-    <script src="/js/jquery.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="/js/gaugemeter.js"></script>
 </head>
 <body class="bg-light">

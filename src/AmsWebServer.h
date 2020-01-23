@@ -44,7 +44,6 @@ private:
 	void configurationHtml();
 	void bootstrapCss();
 	void applicationCss();
-	void jqueryJs();
 	void gaugemeterJs();
 	void indexJs();
     void dataJson();

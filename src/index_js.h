@@ -8,7 +8,9 @@ var fetch = function() {
         url: '/data.json',
         dataType: 'json',
     }).done(function(json) {
+        $(".SimpleMeter").hide();
         var el = $(".GaugeMeter");
+        el.show();
         var rate = 2500;
         if(json.data) {
             el.data('percent', json.pct);
@@ -59,9 +61,6 @@ var fetch = function() {
             el.data('percent', 0);
             el.data('text', '-');
             el.gaugeMeter();
-            $('#P1').hide();
-            $('#P2').hide();
-            $('#P3').hide();
             nextrefresh = 2500;
         }
         if(!nextrefresh || nextrefresh < 500) {
@@ -72,9 +71,6 @@ var fetch = function() {
         el.data('percent', 0);
         el.data('text', '-');
         el.gaugeMeter();
-        $('#P1').hide();
-        $('#P2').hide();
-        $('#P3').hide();
         nextrefresh = 10000;
         setTimeout(fetch, nextrefresh);
     });

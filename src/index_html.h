@@ -5,9 +5,10 @@ const char INDEX_HTML[] PROGMEM = R"=="==(
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AMS reader</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/boot.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.css"/>
     <link rel="stylesheet" type="text/css" href="/css/application.css"/>
-    <script src="/js/jquery.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="/js/gaugemeter.js"></script>
 </head>
 <body class="bg-light">
@@ -23,7 +24,11 @@ const char INDEX_HTML[] PROGMEM = R"=="==(
         <div class="row">
             <div class="col-md-4">
                 <div class="text-center">
+                    <div id="P" class="SimpleMeter">
+                        ${data.P} W
+                    </div>
                     <div class="GaugeMeter rounded"
+                        style="display: none;"
                          data-size="200px"
                          data-text_size="0.11"
                          data-width="25"
@@ -40,20 +45,20 @@ const char INDEX_HTML[] PROGMEM = R"=="==(
                 </div>
             </div>
             <div class="col-md-4">
-                <div id="P1" class="row" style="display: none;">
+                <div id="P1" class="row">
                     <div class="col-2">P1</div>
-                    <div class="col-5 text-right"><span id="U1">-</span> V</div>
-                    <div class="col-5 text-right"><span id="I1">-</span> A</div>
+                    <div class="col-5 text-right"><span id="U1">${data.U1}</span> V</div>
+                    <div class="col-5 text-right"><span id="I1">${data.I1}</span> A</div>
                 </div>
-                <div id="P2" class="row" style="display: none;">
+                <div id="P2" class="row">
                     <div class="col-2">P2</div>
-                    <div class="col-5 text-right"><span id="U2">-</span> V</div>
-                    <div class="col-5 text-right"><span id="I2">-</span> A</div>
+                    <div class="col-5 text-right"><span id="U2">${data.U2}</span> V</div>
+                    <div class="col-5 text-right"><span id="I2">${data.I2}</span> A</div>
                 </div>
-                <div id="P3" class="row" style="display: none;">
+                <div id="P3" class="row">
                     <div class="col-2">P3</div>
-                    <div class="col-5 text-right"><span id="U3">-</span> V</div>
-                    <div class="col-5 text-right"><span id="I3">-</span> A</div>
+                    <div class="col-5 text-right"><span id="U3">${data.U3}</span> V</div>
+                    <div class="col-5 text-right"><span id="I3">${data.I3}</span> A</div>
                 </div>
             </div>
         </div>

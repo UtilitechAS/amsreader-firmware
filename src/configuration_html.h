@@ -5,7 +5,8 @@ const char CONFIGURATION_HTML[] PROGMEM = R"=="==(
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AMS reader - configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap.css"/>
+    <link rel="stylesheet" type="text/css" href="/css/boot.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.css"/>
     <link rel="stylesheet" type="text/css" href="/css/application.css"/>
 </head>
 <body class="bg-light">

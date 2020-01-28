@@ -65,6 +65,16 @@ void AmsWebServer::setJson(StaticJsonDocument<500> json) {
 			i1 = json["data"]["I1"].as<double>();
 			i2 = json["data"]["I2"].as<double>();
 			i3 = json["data"]["I3"].as<double>();
+
+			if(config->hasConfig() && u1 > 0) {
+				maxPwr = config->fuseSize * u1;
+				if(u2 > 0) {
+					maxPwr += config->fuseSize * u2;
+					if(u3 > 0) {
+						maxPwr += config->fuseSize * u3;
+					}
+				}
+			}
 		}
 	}
 }
@@ -230,23 +240,8 @@ void AmsWebServer::dataJson() {
 	if(!json.isNull()) {
 		println(" json has data");
 
-		int u1 = json["data"]["U1"].as<int>();
-		int u2 = json["data"]["U2"].as<int>();
-		int u3 = json["data"]["U3"].as<int>();
-		int pwr = json["data"]["P"].as<int>();
-
-		if(config->hasConfig() && u1 > 0) {
-			maxPwr = config->fuseSize * u1;
-			if(u2 > 0) {
-				maxPwr += config->fuseSize * u2;
-				if(u3 > 0) {
-					maxPwr += config->fuseSize * u3;
-				}
-			}
-		}
-
 		json["maxPower"] = maxPwr;
-		json["pct"]     = min(pwr*100/maxPwr, 100);
+		json["pct"]     = min(p*100/maxPwr, 100);
 		json["meterType"] = config->meterType;
 		json["currentMillis"] = millis();
 

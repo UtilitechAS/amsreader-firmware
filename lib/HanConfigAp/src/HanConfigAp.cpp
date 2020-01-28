@@ -107,7 +107,7 @@ void HanConfigAp::handleRoot() {
 	configuration *config = new configuration();
 	config->load();
 
-	String html = CONFIG_HTML;
+	String html = String((const __FlashStringHelper*) CONFIG_HTML);
 
 	if(config->hasConfig()) {
 		bool access = !config->isAuth();
@@ -201,10 +201,12 @@ void HanConfigAp::handleRoot() {
 void HanConfigAp::handleStyle() {
 	println("Serving /style.css over http...");
 
+	String css = String((const __FlashStringHelper*) STYLE_CSS);
+
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
-	server.send(200, "text/html", STYLE_CSS, sizeof(STYLE_CSS));
+	server.send(200, "text/css", css);
 }
 
 void HanConfigAp::handleSave() {

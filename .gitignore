@@ -7,3 +7,4 @@
 .vscode
 .pio
 platformio-user.ini
+src/version.h

@@ -31,6 +31,8 @@ private:
 	Stream* debugger;
     StaticJsonDocument<500> json;
     int maxPwr;
+	int p;
+	double u1, u2, u3, i1, i2, i3;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;
@@ -42,7 +44,7 @@ private:
 
 	void indexHtml();
 	void configurationHtml();
-	void bootstrapCss();
+	void bootCss();
 	void applicationCss();
 	void gaugemeterJs();
 	void indexJs();

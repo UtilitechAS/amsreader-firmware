@@ -3,7 +3,7 @@
 
 #include "index_html.h"
 #include "configuration_html.h"
-#include "bootstrap_css.h"
+#include "boot_css.h"
 #include "application_css.h"
 #include "gaugemeter_js.h"
 #include "index_js.h"
@@ -22,7 +22,7 @@ void AmsWebServer::setup(configuration* config, Stream* debugger) {
 
 	server.on("/", std::bind(&AmsWebServer::indexHtml, this));
 	server.on("/configuration", std::bind(&AmsWebServer::configurationHtml, this));
-	server.on("/css/bootstrap.css", std::bind(&AmsWebServer::bootstrapCss, this));
+	server.on("/css/boot.css", std::bind(&AmsWebServer::bootCss, this));
 	server.on("/css/application.css", std::bind(&AmsWebServer::applicationCss, this));
 	server.on("/js/gaugemeter.js", std::bind(&AmsWebServer::gaugemeterJs, this)); 
 	server.on("/js/index.js", std::bind(&AmsWebServer::indexJs, this));
@@ -53,6 +53,20 @@ void AmsWebServer::loop() {
 
 void AmsWebServer::setJson(StaticJsonDocument<500> json) {
     this->json = json;
+
+	if(!json.isNull()) {
+		println(" json has data");
+
+		p = json["data"]["P"].as<int>();
+		if(json["data"].containsKey("U1")) {
+			u1 = json["data"]["U1"].as<double>();
+			u2 = json["data"]["U2"].as<double>();
+			u3 = json["data"]["U3"].as<double>();
+			i1 = json["data"]["I1"].as<double>();
+			i2 = json["data"]["I2"].as<double>();
+			i3 = json["data"]["I3"].as<double>();
+		}
+	}
 }
 
 bool AmsWebServer::checkSecurity(byte level) {
@@ -91,9 +105,13 @@ void AmsWebServer::indexHtml() {
 
 	String html = String((const __FlashStringHelper*) INDEX_HTML);
 	html.replace("${version}", VERSION);
-	if(WiFi.getMode() != WIFI_AP) {
-		html.replace("/css/bootstrap.css", "https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css");
-	}
+	html.replace("${data.P}", String(p));
+	html.replace("${data.U1}", String(u1, 1));
+	html.replace("${data.U2}", String(u2, 1));
+	html.replace("${data.U3}", String(u3, 1));
+	html.replace("${data.I1}", String(i1, 1));
+	html.replace("${data.I2}", String(i2, 1));
+	html.replace("${data.I3}", String(i3, 1));
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -109,9 +127,6 @@ void AmsWebServer::configurationHtml() {
 
 	String html = String((const __FlashStringHelper*) CONFIGURATION_HTML);
 	html.replace("${version}", VERSION);
-	if(WiFi.getMode() != WIFI_AP) {
-		html.replace("/css/bootstrap.css", "https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css");
-	}
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -169,13 +184,13 @@ void AmsWebServer::configurationHtml() {
 	server.send(200, "text/html", html);
 }
 
-void AmsWebServer::bootstrapCss() {
-	println("Serving /bootstrap.css over http...");
+void AmsWebServer::bootCss() {
+	println("Serving /boot.css over http...");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
-	server.send(200, "text/css", BOOTSTRAP_CSS);
+	server.send(200, "text/css", BOOT_CSS);
 }
 
 void AmsWebServer::applicationCss() {

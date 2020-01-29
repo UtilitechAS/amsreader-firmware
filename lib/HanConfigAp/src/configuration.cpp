@@ -39,11 +39,13 @@ bool configuration::save()
 		address += saveBool(address, false);
 
 
-	address += saveBool(address, isAuth());
-	if (isAuth()) {
+	address += saveByte(address, authSecurity);
+	if (authSecurity > 0) {
 		address += saveString(address, authUser);
 		address += saveString(address, authPass);
 	}
+
+	address += saveInt(address, fuseSize);
 
 	bool success = EEPROM.commit();
 	EEPROM.end();
@@ -67,8 +69,10 @@ bool configuration::load()
 	mqttUser = 0;
 	mqttPass = 0;
 	mqttPort = 1883;
+	authSecurity = 0;
 	authUser = 0;
 	authPass = 0;
+	fuseSize = 0;
 
 	EEPROM.begin(EEPROM_SIZE);
 	int cs = EEPROM.read(address);
@@ -102,17 +106,17 @@ bool configuration::load()
 		success = true;
 	}
 	if(cs >= 72) {
-		bool auth = false;
-		address += readBool(address, &auth);
-		if (auth) {
+		address += readByte(address, &authSecurity);
+		if (authSecurity > 0) {
 			address += readString(address, &authUser);
 			address += readString(address, &authPass);
 		} else {
 			authUser = 0;
 			authPass = 0;
 		}
-
-		success = true;
+	}
+	if(cs >= 73) {
+		address += readInt(address, &fuseSize);
 	}
 	EEPROM.end();
 	return success;
@@ -121,10 +125,6 @@ bool configuration::load()
 bool configuration::isSecure()
 {
 	return (mqttUser != 0) && (String(mqttUser).length() > 0);
-}
-
-bool configuration::isAuth() {
-	return (authUser != 0) && (String(authUser).length() > 0);
 }
 
 int configuration::readInt(int address, int *value)
@@ -190,11 +190,13 @@ void configuration::print(Stream* debugger)
 		debugger->printf("mqttPass:             %s\r\n", this->mqttPass);
 	}
 
-	if (this->isAuth()) {
+	if (this->authSecurity > 0) {
 		debugger->printf("WEB AUTH:\r\n");
+		debugger->printf("authSecurity:         %i\r\n", this->authSecurity);
 		debugger->printf("authUser:             %s\r\n", this->authUser);
 		debugger->printf("authPass:             %s\r\n", this->authPass);
 	}
+	debugger->printf("fuseSize:             %i\r\n", this->fuseSize);
 
 	debugger->println("-----------------------------------------------");
 }

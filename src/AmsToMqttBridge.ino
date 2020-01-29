@@ -22,6 +22,7 @@
 #include <WiFi.h>
 #endif
 
+#include "AmsWebServer.h"
 #include "HanConfigAp.h"
 #include "HanReader.h"
 #include "HanToJson.h"
@@ -47,6 +48,8 @@ DallasTemperature tempSensor(&oneWire);
 
 // Object used to boot as Access Point
 HanConfigAp ap;
+
+AmsWebServer ws;
 
 // WiFi client and MQTT client
 WiFiClient *client;
@@ -102,7 +105,7 @@ void setup() {
 		hanReader.compensateFor09HeaderBug = (ap.config.meterType == 1);
 	}
 
-	ap.enableWeb();
+	ws.setup(&ap.config, debugger);
 }
 
 // the loop function runs over and over again until power down or reset
@@ -121,10 +124,7 @@ void loop()
 		// Reconnect to WiFi and MQTT as needed
 		if (!mqtt.connected()) {
 			MQTT_connect();
-		}
-		else
-		{
-			// Read data from the HAN port
+		} else {
 			readHanPort();
 		}
 	}
@@ -134,6 +134,7 @@ void loop()
 		if (millis() / 1000 % 2 == 0)   led_on();
 		else							led_off();
 	}
+	ws.loop();
 }
 
 
@@ -204,7 +205,7 @@ void mqttMessageReceived(String &topic, String &payload)
 
 void readHanPort()
 {
-	if (hanReader.read())
+	if (hanReader.read() && ap.config.hasConfig())
 	{
 		// Flash LED on, this shows us that data is received
 		led_on();
@@ -234,16 +235,14 @@ void readHanPort()
 
 		hanToJson(data, ap.config.meterType, hanReader);
 
-		// Write the json to the debug port
-		if (debugger) {
-			debugger->print("Sending data to MQTT: ");
-			serializeJsonPretty(json, *debugger);
-			debugger->println();
-		}
+		if(ap.config.mqtt != 0 && strlen(ap.config.mqtt) != 0 && ap.config.mqttPublishTopic != 0 && strlen(ap.config.mqttPublishTopic) != 0) {
+			// Write the json to the debug port
+			if (debugger) {
+				debugger->print("Sending data to MQTT: ");
+				serializeJsonPretty(json, *debugger);
+				debugger->println();
+			}
 
-		// Make sure we have configured a publish topic
-		if (! ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
-		{
 			// Publish the json to the MQTT server
 			String msg;
 			serializeJson(json, msg);
@@ -251,6 +250,7 @@ void readHanPort()
 			mqtt.publish(ap.config.mqttPublishTopic, msg.c_str());
 			mqtt.loop();
 		}
+		ws.setJson(json);
 
 		// Flash LED off
 		led_off();

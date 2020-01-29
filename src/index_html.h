@@ -45,17 +45,17 @@ const char INDEX_HTML[] PROGMEM = R"=="==(
                 </div>
             </div>
             <div class="col-md-4">
-                <div id="P1" class="row">
+                <div id="P1" class="row" style="display: ${display.P1}">
                     <div class="col-2">P1</div>
                     <div class="col-5 text-right"><span id="U1">${data.U1}</span> V</div>
                     <div class="col-5 text-right"><span id="I1">${data.I1}</span> A</div>
                 </div>
-                <div id="P2" class="row">
+                <div id="P2" class="row" style="display: ${display.P2}">
                     <div class="col-2">P2</div>
                     <div class="col-5 text-right"><span id="U2">${data.U2}</span> V</div>
                     <div class="col-5 text-right"><span id="I2">${data.I2}</span> A</div>
                 </div>
-                <div id="P3" class="row">
+                <div id="P3" class="row" style="display: ${display.P3}">
                     <div class="col-2">P3</div>
                     <div class="col-5 text-right"><span id="U3">${data.U3}</span> V</div>
                     <div class="col-5 text-right"><span id="I3">${data.I3}</span> A</div>

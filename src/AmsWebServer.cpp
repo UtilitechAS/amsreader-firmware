@@ -52,11 +52,7 @@ void AmsWebServer::loop() {
 }
 
 void AmsWebServer::setJson(StaticJsonDocument<500> json) {
-    this->json = json;
-
 	if(!json.isNull()) {
-		println(" json has data");
-
 		p = json["data"]["P"].as<int>();
 		if(json["data"].containsKey("U1")) {
 			u1 = json["data"]["U1"].as<double>();
@@ -75,7 +71,21 @@ void AmsWebServer::setJson(StaticJsonDocument<500> json) {
 					}
 				}
 			}
+		} else {
+			if(u1 > 0) {
+				json["data"]["U1"] = u1;
+				json["data"]["I1"] = i1;
+			}
+			if(u2 > 0) {
+				json["data"]["U2"] = u2;
+				json["data"]["I2"] = i2;
+			}
+			if(u3 > 0) {
+				json["data"]["U3"] = u3;
+				json["data"]["I3"] = i3;
+			}
 		}
+	    this->json = json;
 	}
 }
 
@@ -116,12 +126,18 @@ void AmsWebServer::indexHtml() {
 	String html = String((const __FlashStringHelper*) INDEX_HTML);
 	html.replace("${version}", VERSION);
 	html.replace("${data.P}", String(p));
-	html.replace("${data.U1}", String(u1, 1));
-	html.replace("${data.U2}", String(u2, 1));
-	html.replace("${data.U3}", String(u3, 1));
-	html.replace("${data.I1}", String(i1, 1));
-	html.replace("${data.I2}", String(i2, 1));
-	html.replace("${data.I3}", String(i3, 1));
+
+	html.replace("${data.U1}", u1 > 0 ? String(u1, 1) : "");
+	html.replace("${data.I1}", u1 > 0 ? String(i1, 1) : "");
+	html.replace("${display.P1}", u1 > 0 ? "" : "none");
+
+	html.replace("${data.U2}", u2 > 0 ? String(u2, 1) : "");
+	html.replace("${data.I2}", u2 > 0 ? String(i2, 1) : "");
+	html.replace("${display.P2}", u2 > 0 ? "" : "none");
+
+	html.replace("${data.U3}", u3 > 0 ? String(u3, 1) : "");
+	html.replace("${data.I3}", u3 > 0 ? String(i3, 1) : "");
+	html.replace("${display.P3}", u3 > 0 ? "" : "none");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");

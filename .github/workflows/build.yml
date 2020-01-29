@@ -5,6 +5,7 @@ on:
     paths: 
       - src/**
       - lib/**
+      - platformio.ini
     branches:
       - master
     tags:

@@ -1,4 +1,3 @@
-const char GAUEGMETER_JS[] PROGMEM = R"=="==(
 /*
  * AshAlom Gauge Meter.  Version 2.0.0
  * Copyright AshAlom.com  All rights reserved.
@@ -274,4 +273,3 @@ const char GAUEGMETER_JS[] PROGMEM = R"=="==(
     };
 }
 (jQuery);
-)=="==";

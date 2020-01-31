@@ -1,4 +1,3 @@
-const char INDEX_JS[] PROGMEM = R"=="==(
 $(".GaugeMeter").gaugeMeter();
 
 var wait = 500;
@@ -76,5 +75,3 @@ var fetch = function() {
     });
 }
 setTimeout(fetch, nextrefresh);
-
-)=="==";

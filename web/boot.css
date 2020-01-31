@@ -1,4 +1,3 @@
-const char BOOT_CSS[] PROGMEM = R"=="==(
 /* Ripped necessary style from bootstrap 4.4.1 to make the page look good without internet access. Meant to be overridden by CSS from CDN */
 :root {
     --blue: #007bff;
@@ -324,4 +323,3 @@ hr {
 *, ::after, ::before {
     box-sizing: border-box;
 }
-)=="==";

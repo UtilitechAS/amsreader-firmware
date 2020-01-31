@@ -1,12 +1,12 @@
 #include "AmsWebServer.h"
 #include "version.h"
 
-#include "index_html.h"
-#include "configuration_html.h"
-#include "boot_css.h"
-#include "application_css.h"
-#include "gaugemeter_js.h"
-#include "index_js.h"
+#include "root/index_html.h"
+#include "root/configuration_html.h"
+#include "root/boot_css.h"
+#include "root/application_css.h"
+#include "root/gaugemeter_js.h"
+#include "root/index_js.h"
 
 #include "Base64.h"
 
@@ -22,10 +22,10 @@ void AmsWebServer::setup(configuration* config, Stream* debugger) {
 
 	server.on("/", std::bind(&AmsWebServer::indexHtml, this));
 	server.on("/configuration", std::bind(&AmsWebServer::configurationHtml, this));
-	server.on("/css/boot.css", std::bind(&AmsWebServer::bootCss, this));
-	server.on("/css/application.css", std::bind(&AmsWebServer::applicationCss, this));
-	server.on("/js/gaugemeter.js", std::bind(&AmsWebServer::gaugemeterJs, this)); 
-	server.on("/js/index.js", std::bind(&AmsWebServer::indexJs, this));
+	server.on("/boot.css", std::bind(&AmsWebServer::bootCss, this));
+	server.on("/application.css", std::bind(&AmsWebServer::applicationCss, this));
+	server.on("/gaugemeter.js", std::bind(&AmsWebServer::gaugemeterJs, this)); 
+	server.on("/index.js", std::bind(&AmsWebServer::indexJs, this));
 	server.on("/data.json", std::bind(&AmsWebServer::dataJson, this));
 
 	server.on("/save", std::bind(&AmsWebServer::handleSave, this));
@@ -234,7 +234,7 @@ void AmsWebServer::gaugemeterJs() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
-	server.send(200, "application/javascript", GAUEGMETER_JS);
+	server.send(200, "application/javascript", GAUGEMETER_JS);
 }
 
 void AmsWebServer::indexJs() {

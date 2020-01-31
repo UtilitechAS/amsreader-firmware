@@ -39,12 +39,6 @@ void AmsWebServer::setup(configuration* config, Stream* debugger) {
 		print(WiFi.localIP());
 	}
 	println("/");
-
-    if(config->hasConfig() && config->fuseSize > 0) {
-        maxPwr = config->fuseSize * 230;
-    } else {
-		maxPwr = 20000;
-	}
 }
 
 void AmsWebServer::loop() {
@@ -62,13 +56,12 @@ void AmsWebServer::setJson(StaticJsonDocument<500> json) {
 			i2 = json["data"]["I2"].as<double>();
 			i3 = json["data"]["I3"].as<double>();
 
-			if(config->hasConfig() && u1 > 0) {
-				maxPwr = config->fuseSize * u1;
+			if(maxPwr == 0 && config->hasConfig() && config->fuseSize > 0 && config->distSys > 0) {
+				int volt = config->distSys == 2 ? 400 : 230;
 				if(u2 > 0) {
-					maxPwr += config->fuseSize * u2;
-					if(u3 > 0) {
-						maxPwr += config->fuseSize * u3;
-					}
+					maxPwr = config->fuseSize * sqrt(3) * volt;
+				} else {
+					maxPwr = config->fuseSize * 230;
 				}
 			}
 		} else {
@@ -182,6 +175,9 @@ void AmsWebServer::configurationHtml() {
 		for(int i = 0; i<64; i++) {
 			html.replace("${config.fuseSize" + String(i) + "}", config->fuseSize == i ? "selected"  : "");
 		}
+		for(int i = 0; i<3; i++) {
+			html.replace("${config.distSys" + String(i) + "}", config->distSys == i ? "selected"  : "");
+		}
 	} else {
 		html.replace("${config.ssid}", "");
 		html.replace("${config.ssidPassword}", "");
@@ -205,6 +201,9 @@ void AmsWebServer::configurationHtml() {
 		html.replace("${config.fuseSize}", "");
 		for(int i = 0; i<64; i++) {
 			html.replace("${config.fuseSize" + String(i) + "}", i == 0 ? "selected"  : "");
+		}
+		for(int i = 0; i<3; i++) {
+			html.replace("${config.distSys" + String(i) + "}", i == 0 ? "selected"  : "");
 		}
 	}
 	server.send(200, "text/html", html);
@@ -255,6 +254,15 @@ void AmsWebServer::dataJson() {
     String jsonStr;
 	if(!json.isNull()) {
 		println(" json has data");
+
+		int maxPwr = this->maxPwr;
+		if(maxPwr == 0) {
+			if(u2 > 0) {
+				maxPwr = 25000;
+			} else {
+				maxPwr = 15000;
+			}
+		}
 
 		json["maxPower"] = maxPwr;
 		json["pct"]     = min(p*100/maxPwr, 100);
@@ -323,6 +331,8 @@ void AmsWebServer::handleSave() {
 	temp.toCharArray(config->authPass, temp.length() + 1, 0);
 
 	config->fuseSize = (int)server.arg("fuseSize").toInt();
+
+	config->distSys = (byte)server.arg("distSys").toInt();
 
 	println("Saving configuration now...");
 

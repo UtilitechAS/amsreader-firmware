@@ -37,8 +37,18 @@
                 <div class="my-3 p-3 bg-white rounded shadow">
                     <h6 class="border-bottom border-gray pb-2 mb-4">AMS meter</h6>
                     <div class="row form-group">
-                        <label class="col-4">Meter type</label>
-                        <div class="col-8">
+                        <label class="col-6">Distribution system</label>
+                        <div class="col-6">
+                            <select class="form-control" name="distSys">
+                                <option value="" ${config.distSys0}></option>
+                                <option value="1" ${config.distSys1}>IT (230V)</option>
+                                <option value="2" ${config.distSys2}>TN (400V)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row form-group">
+                        <label class="col-6">Meter type</label>
+                        <div class="col-6">
                             <select class="form-control" name="meterType">
                                 <option value="0" ${config.meterType0} disabled></option>
                                 <option value="1" ${config.meterType1}>Kaifa</option>
@@ -48,8 +58,8 @@
                         </div>
                     </div>
                     <div class="row form-group">
-                        <label class="col-4">Main fuse</label>
-                        <div class="col-8">
+                        <label class="col-6">Main fuse</label>
+                        <div class="col-6">
                             <select class="form-control" name="fuseSize">
                                 <option value="" ${config.fuseSize0}></option>
                                 <option value="25" ${config.fuseSize25}>25A</option>

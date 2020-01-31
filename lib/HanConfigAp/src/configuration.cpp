@@ -8,7 +8,7 @@ bool configuration::hasConfig()
 {
 	bool hasConfig = false;
 	EEPROM.begin(EEPROM_SIZE);
-	hasConfig = EEPROM.read(EEPROM_CONFIG_ADDRESS) == EEPROM_CHECK_SUM;
+	hasConfig = EEPROM.read(EEPROM_CONFIG_ADDRESS) >= 71;
 	EEPROM.end();
 	return hasConfig;
 }
@@ -46,6 +46,7 @@ bool configuration::save()
 	}
 
 	address += saveInt(address, fuseSize);
+	address += saveInt(address, distSys);
 
 	bool success = EEPROM.commit();
 	EEPROM.end();
@@ -73,6 +74,7 @@ bool configuration::load()
 	authUser = 0;
 	authPass = 0;
 	fuseSize = 0;
+	distSys = 0;
 
 	EEPROM.begin(EEPROM_SIZE);
 	int cs = EEPROM.read(address);
@@ -117,6 +119,9 @@ bool configuration::load()
 	}
 	if(cs >= 73) {
 		address += readInt(address, &fuseSize);
+	}
+	if(cs >= 74) {
+		address += readByte(address, &distSys);
 	}
 	EEPROM.end();
 	return success;

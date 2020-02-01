@@ -5,9 +5,10 @@ import shutil
 webroot = "web"
 srcroot = "src/web/root"
 
-shutil.rmtree(srcroot)
 
-if not os.path.exists(srcroot):
+if os.path.exists(srcroot):
+    shutil.rmtree(srcroot)
+else:
     os.mkdir(srcroot)
 
 for filename in os.listdir(webroot):

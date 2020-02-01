@@ -16,7 +16,7 @@ class configuration {
 public:
 	char* ssid;
 	char* ssidPassword;
-	char* mqtt;
+	char* mqttHost;
 	int mqttPort;
 	char* mqttClientID;
 	char* mqttPublishTopic;

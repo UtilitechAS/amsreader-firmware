@@ -91,6 +91,13 @@ void setup() {
 	if (!ap.isActivated)
 	{
 		setupWiFi();
+
+		if(ap.config.mqttHost) {
+			mqtt.begin(ap.config.mqttHost, *client);
+
+			// Notify everyone we're here!
+			sendMqttData("Connected!");
+		}
 		// Configure uart for AMS data
 		if(ap.config.meterType == 3) {
 			Serial.begin(2400, SERIAL_8N1);
@@ -117,16 +124,19 @@ void loop()
 		// Turn off the LED
 		led_off();
 
-		// allow the MQTT client some resources
-		mqtt.loop();
-		delay(10); // <- fixes some issues with WiFi stability
-
 		// Reconnect to WiFi and MQTT as needed
-		if (!mqtt.connected()) {
-			MQTT_connect();
-		} else {
-			readHanPort();
+		if (WiFi.status() != WL_CONNECTED) {
+			WiFi_connect();
 		}
+
+		if (ap.config.mqttHost) {
+			mqtt.loop();
+			delay(10); // <- fixes some issues with WiFi stability
+			if(!mqtt.connected()) {
+				MQTT_connect();
+			}
+		}
+		readHanPort();
 	}
 	else
 	{
@@ -176,16 +186,6 @@ void setupWiFi()
 	if (debugger) debugger->println(" connected");
 
 	client = new WiFiClient();
-	mqtt.begin(ap.config.mqtt, *client);
-
-	// Direct incoming MQTT messages
-	if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0) {
-		mqtt.subscribe(ap.config.mqttSubscribeTopic);
-		mqtt.onMessage(mqttMessageReceived);
-	}
-
-	// Notify everyone we're here!
-	sendMqttData("Connected!");
 }
 
 void mqttMessageReceived(String &topic, String &payload)
@@ -235,7 +235,7 @@ void readHanPort()
 
 		hanToJson(data, ap.config.meterType, hanReader);
 
-		if(ap.config.mqtt != 0 && strlen(ap.config.mqtt) != 0 && ap.config.mqttPublishTopic != 0 && strlen(ap.config.mqttPublishTopic) != 0) {
+		if(ap.config.mqttHost != 0 && strlen(ap.config.mqttHost) != 0 && ap.config.mqttPublishTopic != 0 && strlen(ap.config.mqttPublishTopic) != 0) {
 			// Write the json to the debug port
 			if (debugger) {
 				debugger->print("Sending data to MQTT: ");
@@ -257,11 +257,7 @@ void readHanPort()
 	}
 }
 
-
-// Function to connect and reconnect as necessary to the MQTT server.
-// Should be called in the loop function and it will take care if connecting.
-void MQTT_connect()
-{
+void WiFi_connect() {
 	// Connect to WiFi access point.
 	if (debugger)
 	{
@@ -305,13 +301,20 @@ void MQTT_connect()
 		debugger->println("WiFi connected");
 		debugger->println("IP address: ");
 		debugger->println(WiFi.localIP());
-		debugger->print("\nconnecting to MQTT: ");
-		debugger->print(ap.config.mqtt);
+	}
+}
+
+// Function to connect and reconnect as necessary to the MQTT server.
+// Should be called in the loop function and it will take care if connecting.
+void MQTT_connect()
+{
+	if(debugger) {
+		debugger->print("Connecting to MQTT: ");
+		debugger->print(ap.config.mqttHost);
 		debugger->print(", port: ");
 		debugger->print(ap.config.mqttPort);
 		debugger->println();
 	}
-
 	// Wait for the MQTT connection to complete
 	while (!mqtt.connected()) {
 		// Connect to a unsecure or secure MQTT server

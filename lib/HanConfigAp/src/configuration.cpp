@@ -24,7 +24,7 @@ bool configuration::save()
 	address += saveString(address, ssid);
 	address += saveString(address, ssidPassword);
 	address += saveByte(address, meterType);
-	address += saveString(address, mqtt);
+	address += saveString(address, mqttHost);
 	address += saveInt(address, mqttPort);
 	address += saveString(address, mqttClientID);
 	address += saveString(address, mqttPublishTopic);
@@ -63,7 +63,7 @@ bool configuration::load()
 	ssid = (char*)String("").c_str();
 	ssidPassword = (char*)String("").c_str();
 	meterType = (byte)0;
-	mqtt = (char*)String("").c_str();
+	mqttHost = (char*)String("").c_str();
 	mqttClientID = (char*)String("").c_str();
 	mqttPublishTopic = (char*)String("").c_str();
 	mqttSubscribeTopic = (char*)String("").c_str();
@@ -85,7 +85,7 @@ bool configuration::load()
 		address += readString(address, &ssid);
 		address += readString(address, &ssidPassword);
 		address += readByte(address, &meterType);
-		address += readString(address, &mqtt);
+		address += readString(address, &mqttHost);
 		address += readInt(address, &mqttPort);
 		address += readString(address, &mqttClientID);
 		address += readString(address, &mqttPublishTopic);
@@ -182,11 +182,13 @@ void configuration::print(Stream* debugger)
 	debugger->printf("ssid:                 %s\r\n", this->ssid);
 	debugger->printf("ssidPassword:         %s\r\n", this->ssidPassword);
 	debugger->printf("meterType:            %i\r\n", this->meterType);
-	debugger->printf("mqtt:                 %s\r\n", this->mqtt);
-	debugger->printf("mqttPort:             %i\r\n", this->mqttPort);
-	debugger->printf("mqttClientID:         %s\r\n", this->mqttClientID);
-	debugger->printf("mqttPublishTopic:     %s\r\n", this->mqttPublishTopic);
-	debugger->printf("mqttSubscribeTopic:   %s\r\n", this->mqttSubscribeTopic);
+	if(this->mqttHost) {
+		debugger->printf("mqttHost:             %s\r\n", this->mqttHost);
+		debugger->printf("mqttPort:             %i\r\n", this->mqttPort);
+		debugger->printf("mqttClientID:         %s\r\n", this->mqttClientID);
+		debugger->printf("mqttPublishTopic:     %s\r\n", this->mqttPublishTopic);
+		debugger->printf("mqttSubscribeTopic:   %s\r\n", this->mqttSubscribeTopic);
+	}
 
 	if (this->isSecure())
 	{
@@ -202,6 +204,7 @@ void configuration::print(Stream* debugger)
 		debugger->printf("authPass:             %s\r\n", this->authPass);
 	}
 	debugger->printf("fuseSize:             %i\r\n", this->fuseSize);
+	debugger->printf("distSys:              %i\r\n", this->distSys);
 
 	debugger->println("-----------------------------------------------");
 }
@@ -241,7 +244,7 @@ int configuration::readString(int pAddress, char* pString[])
 int configuration::saveString(int pAddress, char* pString)
 {
 	int address = 0;
-	int length = strlen(pString) + 1;
+	int length = pString ? strlen(pString) + 1 : 0;
 	EEPROM.put(pAddress + address, length);
 	address++;
 

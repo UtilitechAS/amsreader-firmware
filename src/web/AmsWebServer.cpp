@@ -4,9 +4,7 @@
 #include "root/index_html.h"
 #include "root/configuration_html.h"
 #include "root/boot_css.h"
-#include "root/application_css.h"
 #include "root/gaugemeter_js.h"
-#include "root/index_js.h"
 
 #include "Base64.h"
 
@@ -23,9 +21,7 @@ void AmsWebServer::setup(configuration* config, Stream* debugger) {
 	server.on("/", std::bind(&AmsWebServer::indexHtml, this));
 	server.on("/configuration", std::bind(&AmsWebServer::configurationHtml, this));
 	server.on("/boot.css", std::bind(&AmsWebServer::bootCss, this));
-	server.on("/application.css", std::bind(&AmsWebServer::applicationCss, this));
 	server.on("/gaugemeter.js", std::bind(&AmsWebServer::gaugemeterJs, this)); 
-	server.on("/index.js", std::bind(&AmsWebServer::indexJs, this));
 	server.on("/data.json", std::bind(&AmsWebServer::dataJson, this));
 
 	server.on("/save", std::bind(&AmsWebServer::handleSave, this));
@@ -158,7 +154,8 @@ void AmsWebServer::configurationHtml() {
 		for(int i = 0; i<4; i++) {
 			html.replace("${config.meterType" + String(i) + "}", config->meterType == i ? "selected"  : "");
 		}
-		html.replace("${config.mqtt}", config->mqtt);
+		html.replace("${config.mqtt}", config->mqttHost == 0 ? "" : "checked");
+		html.replace("${config.mqttHost}", config->mqttHost);
 		html.replace("${config.mqttPort}", String(config->mqttPort));
 		html.replace("${config.mqttClientID}", config->mqttClientID);
 		html.replace("${config.mqttPublishTopic}", config->mqttPublishTopic);
@@ -186,6 +183,7 @@ void AmsWebServer::configurationHtml() {
 			html.replace("${config.meterType" + String(i) + "}", i == 0 ? "selected"  : "");
 		}
 		html.replace("${config.mqtt}", "");
+		html.replace("${config.mqttHost}", "");
 		html.replace("${config.mqttPort}", "1883");
 		html.replace("${config.mqttClientID}", "");
 		html.replace("${config.mqttPublishTopic}", "");
@@ -218,15 +216,6 @@ void AmsWebServer::bootCss() {
 	server.send(200, "text/css", BOOT_CSS);
 }
 
-void AmsWebServer::applicationCss() {
-	println("Serving /application.css over http...");
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-	server.send(200, "text/css", APPLICATION_CSS);
-}
-
 void AmsWebServer::gaugemeterJs() {
 	println("Serving /gaugemeter.js over http...");
 
@@ -234,15 +223,6 @@ void AmsWebServer::gaugemeterJs() {
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
 	server.send(200, "application/javascript", GAUGEMETER_JS);
-}
-
-void AmsWebServer::indexJs() {
-	println("Serving /index.js over http...");
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-	server.send(200, "application/javascript", INDEX_JS);
 }
 
 void AmsWebServer::dataJson() {
@@ -258,9 +238,9 @@ void AmsWebServer::dataJson() {
 		int maxPwr = this->maxPwr;
 		if(maxPwr == 0) {
 			if(u2 > 0) {
-				maxPwr = 25000;
+				maxPwr = 20000;
 			} else {
-				maxPwr = 15000;
+				maxPwr = 10000;
 			}
 		}
 
@@ -294,41 +274,51 @@ void AmsWebServer::handleSave() {
 
 	config->meterType = (byte)server.arg("meterType").toInt();
 
-	temp = server.arg("mqtt");
-	config->mqtt = new char[temp.length() + 1];
-	temp.toCharArray(config->mqtt, temp.length() + 1, 0);
+	if(server.hasArg("mqtt") && server.arg("mqtt") == "true") {
+		println("MQTT enabled");
+		temp = server.arg("mqttHost");
+		config->mqttHost = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttHost, temp.length() + 1, 0);
 
-	config->mqttPort = (int)server.arg("mqttPort").toInt();
+		config->mqttPort = (int)server.arg("mqttPort").toInt();
 
-	temp = server.arg("mqttClientID");
-	config->mqttClientID = new char[temp.length() + 1];
-	temp.toCharArray(config->mqttClientID, temp.length() + 1, 0);
+		temp = server.arg("mqttClientID");
+		config->mqttClientID = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttClientID, temp.length() + 1, 0);
 
-	temp = server.arg("mqttPublishTopic");
-	config->mqttPublishTopic = new char[temp.length() + 1];
-	temp.toCharArray(config->mqttPublishTopic, temp.length() + 1, 0);
+		temp = server.arg("mqttPublishTopic");
+		config->mqttPublishTopic = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttPublishTopic, temp.length() + 1, 0);
 
-	temp = server.arg("mqttSubscribeTopic");
-	config->mqttSubscribeTopic = new char[temp.length() + 1];
-	temp.toCharArray(config->mqttSubscribeTopic, temp.length() + 1, 0);
+		temp = server.arg("mqttSubscribeTopic");
+		config->mqttSubscribeTopic = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttSubscribeTopic, temp.length() + 1, 0);
 
-	temp = server.arg("mqttUser");
-	config->mqttUser = new char[temp.length() + 1];
-	temp.toCharArray(config->mqttUser, temp.length() + 1, 0);
+		temp = server.arg("mqttUser");
+		config->mqttUser = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttUser, temp.length() + 1, 0);
 
-	temp = server.arg("mqttPass");
-	config->mqttPass = new char[temp.length() + 1];
-	temp.toCharArray(config->mqttPass, temp.length() + 1, 0);
+		temp = server.arg("mqttPass");
+		config->mqttPass = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttPass, temp.length() + 1, 0);
+	} else {
+		println("MQTT disabled");
+		config->mqttHost = NULL;
+		config->mqttUser = NULL;
+		config->mqttPass = NULL;
+	}
 
 	config->authSecurity = (byte)server.arg("authSecurity").toInt();
 
-	temp = server.arg("authUser");
-	config->authUser = new char[temp.length() + 1];
-	temp.toCharArray(config->authUser, temp.length() + 1, 0);
+	if(config->authSecurity > 0) {
+		temp = server.arg("authUser");
+		config->authUser = new char[temp.length() + 1];
+		temp.toCharArray(config->authUser, temp.length() + 1, 0);
 
-	temp = server.arg("authPass");
-	config->authPass = new char[temp.length() + 1];
-	temp.toCharArray(config->authPass, temp.length() + 1, 0);
+		temp = server.arg("authPass");
+		config->authPass = new char[temp.length() + 1];
+		temp.toCharArray(config->authPass, temp.length() + 1, 0);
+	}
 
 	config->fuseSize = (int)server.arg("fuseSize").toInt();
 

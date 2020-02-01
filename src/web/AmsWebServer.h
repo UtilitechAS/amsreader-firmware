@@ -45,9 +45,7 @@ private:
 	void indexHtml();
 	void configurationHtml();
 	void bootCss();
-	void applicationCss();
 	void gaugemeterJs();
-	void indexJs();
     void dataJson();
 
 	void handleSave();

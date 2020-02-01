@@ -1,8 +1,11 @@
 import os
 import re
+import shutil
 
 webroot = "web"
 srcroot = "src/web/root"
+
+shutil.rmtree(srcroot)
 
 if not os.path.exists(srcroot):
     os.mkdir(srcroot)

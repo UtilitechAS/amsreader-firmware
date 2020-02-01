@@ -236,6 +236,10 @@ a {
     border-radius: .25rem;
     transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
+.form-control:disabled, .form-control[readonly] {
+    background-color: #e9ecef;
+    opacity: 1;
+}
 input:not([type="image" i]) {
     box-sizing: border-box;
 }

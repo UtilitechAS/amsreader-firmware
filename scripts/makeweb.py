@@ -8,6 +8,7 @@ srcroot = "src/web/root"
 
 if os.path.exists(srcroot):
     shutil.rmtree(srcroot)
+    os.mkdir(srcroot)
 else:
     os.mkdir(srcroot)
 

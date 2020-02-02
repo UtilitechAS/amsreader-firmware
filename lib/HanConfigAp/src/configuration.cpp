@@ -8,7 +8,7 @@ bool configuration::hasConfig()
 {
 	bool hasConfig = false;
 	EEPROM.begin(EEPROM_SIZE);
-	hasConfig = EEPROM.read(EEPROM_CONFIG_ADDRESS) >= 71;
+	hasConfig = EEPROM.read(EEPROM_CONFIG_ADDRESS) == EEPROM_CHECK_SUM;
 	EEPROM.end();
 	return hasConfig;
 }

@@ -46,6 +46,8 @@ OneWire oneWire(TEMP_SENSOR_PIN);
 DallasTemperature tempSensor(&oneWire);
 #endif
 
+configuration config;
+
 // Object used to boot as Access Point
 HanConfigAp ap;
 
@@ -68,11 +70,18 @@ void setup() {
 	debugger = &Serial;
 #endif
 
+	if(config.hasConfig()) {
+		config.load();
+	}
+
+	if(config.meterType == 3) {
+		Serial.begin(2400, SERIAL_8N1);
+	} else {
+		Serial.begin(2400, SERIAL_8E1);
+	}
+	while (!Serial);
+
 	if (debugger) {
-		// Setup serial port for debugging
-		debugger->begin(2400, SERIAL_8E1);
-		//debugger->begin(115200);
-		while (!debugger);
 		debugger->println("");
 		debugger->println("Started...");
 	}
@@ -84,7 +93,7 @@ void setup() {
 	delay(1000);
 
 	// Initialize the AP
-	ap.setup(AP_BUTTON_PIN, debugger);
+	ap.setup(AP_BUTTON_PIN, &config, debugger);
 
 	led_off();
 
@@ -92,27 +101,21 @@ void setup() {
 	{
 		setupWiFi();
 
-		if(ap.config.mqttHost) {
-			mqtt.begin(ap.config.mqttHost, *client);
+		if(config.mqttHost) {
+			mqtt.begin(config.mqttHost, *client);
 
 			// Notify everyone we're here!
 			sendMqttData("Connected!");
 		}
 		// Configure uart for AMS data
-		if(ap.config.meterType == 3) {
-			Serial.begin(2400, SERIAL_8N1);
-		} else {
-			Serial.begin(2400, SERIAL_8E1);
-		}
-		while (!Serial);
 
 		hanReader.setup(&Serial, debugger);
 
 		// Compensate for the known Kaifa bug
-		hanReader.compensateFor09HeaderBug = (ap.config.meterType == 1);
+		hanReader.compensateFor09HeaderBug = (config.meterType == 1);
 	}
 
-	ws.setup(&ap.config, debugger);
+	ws.setup(&config, debugger);
 }
 
 // the loop function runs over and over again until power down or reset
@@ -129,7 +132,7 @@ void loop()
 			WiFi_connect();
 		}
 
-		if (ap.config.mqttHost) {
+		if (config.mqttHost) {
 			mqtt.loop();
 			delay(10); // <- fixes some issues with WiFi stability
 			if(!mqtt.connected()) {
@@ -175,7 +178,7 @@ void setupWiFi()
 
 	// Connect to WiFi
 	WiFi.mode(WIFI_STA);
-	WiFi.begin(ap.config.ssid, ap.config.ssidPassword);
+	WiFi.begin(config.ssid, config.ssidPassword);
 
 	// Wait for WiFi connection
 	if (debugger) debugger->print("\nWaiting for WiFi to connect...");
@@ -205,7 +208,7 @@ void mqttMessageReceived(String &topic, String &payload)
 
 void readHanPort()
 {
-	if (hanReader.read() && ap.config.hasConfig())
+	if (hanReader.read() && config.hasConfig())
 	{
 		// Flash LED on, this shows us that data is received
 		led_on();
@@ -233,9 +236,9 @@ void readHanPort()
 		data["temp"] = tempSensor.getTempCByIndex(0);
 #endif
 
-		hanToJson(data, ap.config.meterType, hanReader);
+		hanToJson(data, config.meterType, hanReader);
 
-		if(ap.config.mqttHost != 0 && strlen(ap.config.mqttHost) != 0 && ap.config.mqttPublishTopic != 0 && strlen(ap.config.mqttPublishTopic) != 0) {
+		if(config.mqttHost != 0 && strlen(config.mqttHost) != 0 && config.mqttPublishTopic != 0 && strlen(config.mqttPublishTopic) != 0) {
 			// Write the json to the debug port
 			if (debugger) {
 				debugger->print("Sending data to MQTT: ");
@@ -247,7 +250,7 @@ void readHanPort()
 			String msg;
 			serializeJson(json, msg);
 
-			mqtt.publish(ap.config.mqttPublishTopic, msg.c_str());
+			mqtt.publish(config.mqttPublishTopic, msg.c_str());
 			mqtt.loop();
 		}
 		ws.setJson(json);
@@ -264,14 +267,14 @@ void WiFi_connect() {
 		debugger->println();
 		debugger->println();
 		debugger->print("Connecting to WiFi network ");
-		debugger->println(ap.config.ssid);
+		debugger->println(config.ssid);
 	}
 
 	if (WiFi.status() != WL_CONNECTED)
 	{
 		// Make one first attempt at connect, this seems to considerably speed up the first connection
 		WiFi.disconnect();
-		WiFi.begin(ap.config.ssid, ap.config.ssidPassword);
+		WiFi.begin(config.ssid, config.ssidPassword);
 		delay(1000);
 	}
 
@@ -290,7 +293,7 @@ void WiFi_connect() {
 				debugger->println(WiFi.status());
 			}
 			WiFi.disconnect();
-			WiFi.begin(ap.config.ssid, ap.config.ssidPassword);
+			WiFi.begin(config.ssid, config.ssidPassword);
 			vTimeout = millis() + WIFI_CONNECTION_TIMEOUT;
 		}
 		yield();
@@ -310,24 +313,24 @@ void MQTT_connect()
 {
 	if(debugger) {
 		debugger->print("Connecting to MQTT: ");
-		debugger->print(ap.config.mqttHost);
+		debugger->print(config.mqttHost);
 		debugger->print(", port: ");
-		debugger->print(ap.config.mqttPort);
+		debugger->print(config.mqttPort);
 		debugger->println();
 	}
 	// Wait for the MQTT connection to complete
 	while (!mqtt.connected()) {
 		// Connect to a unsecure or secure MQTT server
-		if ((ap.config.mqttUser == 0 && mqtt.connect(ap.config.mqttClientID)) ||
-			(ap.config.mqttUser != 0 && mqtt.connect(ap.config.mqttClientID, ap.config.mqttUser, ap.config.mqttPass)))
+		if ((config.mqttUser == 0 && mqtt.connect(config.mqttClientID)) ||
+			(config.mqttUser != 0 && mqtt.connect(config.mqttClientID, config.mqttUser, config.mqttPass)))
 		{
 			if (debugger) debugger->println("\nSuccessfully connected to MQTT!");
 
 			// Subscribe to the chosen MQTT topic, if set in configuration
-			if (ap.config.mqttSubscribeTopic != 0 && strlen(ap.config.mqttSubscribeTopic) > 0)
+			if (config.mqttSubscribeTopic != 0 && strlen(config.mqttSubscribeTopic) > 0)
 			{
-				mqtt.subscribe(ap.config.mqttSubscribeTopic);
-				if (debugger) debugger->printf("  Subscribing to [%s]\r\n", ap.config.mqttSubscribeTopic);
+				mqtt.subscribe(config.mqttSubscribeTopic);
+				if (debugger) debugger->printf("  Subscribing to [%s]\r\n", config.mqttSubscribeTopic);
 			}
 		}
 		else
@@ -355,7 +358,7 @@ void MQTT_connect()
 void sendMqttData(String data)
 {
 	// Make sure we have configured a publish topic
-	if (ap.config.mqttPublishTopic == 0 || strlen(ap.config.mqttPublishTopic) == 0)
+	if (config.mqttPublishTopic == 0 || strlen(config.mqttPublishTopic) == 0)
 		return;
 
 	// Make sure we're connected
@@ -374,7 +377,7 @@ void sendMqttData(String data)
 	serializeJson(json, msg);
 
 	// Send the json over MQTT
-	mqtt.publish(ap.config.mqttPublishTopic, msg.c_str());
+	mqtt.publish(config.mqttPublishTopic, msg.c_str());
 
 	if (debugger) debugger->print("sendMqttData: ");
 	if (debugger) debugger->println(data);

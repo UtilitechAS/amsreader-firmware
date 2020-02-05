@@ -3,15 +3,16 @@
 Stream* HanConfigAp::debugger;
 
 bool HanConfigAp::hasConfig() {
-	return config.hasConfig();
+	return config->hasConfig();
 }
 
-void HanConfigAp::setup(int accessPointButtonPin, Stream* debugger)
+void HanConfigAp::setup(int accessPointButtonPin, configuration* config, Stream* debugger)
 {
 	this->debugger = debugger;
+	this->config = config;
 
 	// Test if we're missing configuration
-	if (!config.hasConfig())
+	if (!config->hasConfig())
 	{
 		print("No config. We're booting as AP. Look for SSID ");
 		println(this->AP_SSID);
@@ -20,8 +21,7 @@ void HanConfigAp::setup(int accessPointButtonPin, Stream* debugger)
 	else
 	{
 		// Load the configuration
-		config.load();
-		if (this->debugger) config.print(this->debugger);
+		if (this->debugger) config->print(this->debugger);
 
 		if (accessPointButtonPin != INVALID_BUTTON_PIN)
 		{

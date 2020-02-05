@@ -24,14 +24,15 @@
 
 class HanConfigAp {
 public:
-	void setup(int accessPointButtonPin, Stream* debugger);
+	void setup(int accessPointButtonPin, configuration* config, Stream* debugger);
 	bool loop();
 	bool hasConfig();
-	configuration config;
 	bool isActivated = false;
 
 private:
 	const char* AP_SSID = "AMS2MQTT";
+
+	configuration* config;
 
 	// DNS server
 	const byte DNS_PORT = 53;

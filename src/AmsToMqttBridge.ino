@@ -33,6 +33,10 @@
 #define LED_PIN 2 // The blue on-board LED of the ESP8266 custom AMS board
 #define LED_ACTIVE_HIGH 0
 #define AP_BUTTON_PIN 0
+#elif defined(ARDUINO_LOLIN_D32)
+#define LED_PIN 5
+#define LED_ACTIVE_HIGH 0
+#define AP_BUTTON_PIN INVALID_BUTTON_PIN
 #else
 #define LED_PIN LED_BUILTIN
 #define LED_ACTIVE_HIGH 1

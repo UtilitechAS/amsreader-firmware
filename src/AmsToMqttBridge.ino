@@ -97,7 +97,7 @@ void setup() {
 			debugger->print(ESP.getVcc());
 			debugger->println("mV");
 		}
-		ESP.deepSleep(5000000);    //Deep sleep for 5 seconds to allow output cap to charge up
+		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
 	}  
 
 	// Flash the LED, to indicate we can boot as AP now

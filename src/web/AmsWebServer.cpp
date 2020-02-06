@@ -1,12 +1,10 @@
 #include "AmsWebServer.h"
 #include "version.h"
 
-#include "index_html.h"
-#include "configuration_html.h"
-#include "boot_css.h"
-#include "application_css.h"
-#include "gaugemeter_js.h"
-#include "index_js.h"
+#include "root/index_html.h"
+#include "root/configuration_html.h"
+#include "root/boot_css.h"
+#include "root/gaugemeter_js.h"
 
 #include "Base64.h"
 
@@ -22,10 +20,8 @@ void AmsWebServer::setup(configuration* config, Stream* debugger) {
 
 	server.on("/", std::bind(&AmsWebServer::indexHtml, this));
 	server.on("/configuration", std::bind(&AmsWebServer::configurationHtml, this));
-	server.on("/css/boot.css", std::bind(&AmsWebServer::bootCss, this));
-	server.on("/css/application.css", std::bind(&AmsWebServer::applicationCss, this));
-	server.on("/js/gaugemeter.js", std::bind(&AmsWebServer::gaugemeterJs, this)); 
-	server.on("/js/index.js", std::bind(&AmsWebServer::indexJs, this));
+	server.on("/boot.css", std::bind(&AmsWebServer::bootCss, this));
+	server.on("/gaugemeter.js", std::bind(&AmsWebServer::gaugemeterJs, this)); 
 	server.on("/data.json", std::bind(&AmsWebServer::dataJson, this));
 
 	server.on("/save", std::bind(&AmsWebServer::handleSave, this));
@@ -39,12 +35,6 @@ void AmsWebServer::setup(configuration* config, Stream* debugger) {
 		print(WiFi.localIP());
 	}
 	println("/");
-
-    if(config->hasConfig() && config->fuseSize > 0) {
-        maxPwr = config->fuseSize * 230;
-    } else {
-		maxPwr = 20000;
-	}
 }
 
 void AmsWebServer::loop() {
@@ -62,13 +52,12 @@ void AmsWebServer::setJson(StaticJsonDocument<500> json) {
 			i2 = json["data"]["I2"].as<double>();
 			i3 = json["data"]["I3"].as<double>();
 
-			if(config->hasConfig() && u1 > 0) {
-				maxPwr = config->fuseSize * u1;
+			if(maxPwr == 0 && config->hasConfig() && config->fuseSize > 0 && config->distSys > 0) {
+				int volt = config->distSys == 2 ? 400 : 230;
 				if(u2 > 0) {
-					maxPwr += config->fuseSize * u2;
-					if(u3 > 0) {
-						maxPwr += config->fuseSize * u3;
-					}
+					maxPwr = config->fuseSize * sqrt(3) * volt;
+				} else {
+					maxPwr = config->fuseSize * 230;
 				}
 			}
 		} else {
@@ -165,7 +154,8 @@ void AmsWebServer::configurationHtml() {
 		for(int i = 0; i<4; i++) {
 			html.replace("${config.meterType" + String(i) + "}", config->meterType == i ? "selected"  : "");
 		}
-		html.replace("${config.mqtt}", config->mqtt);
+		html.replace("${config.mqtt}", config->mqttHost == 0 ? "" : "checked");
+		html.replace("${config.mqttHost}", config->mqttHost);
 		html.replace("${config.mqttPort}", String(config->mqttPort));
 		html.replace("${config.mqttClientID}", config->mqttClientID);
 		html.replace("${config.mqttPublishTopic}", config->mqttPublishTopic);
@@ -182,6 +172,9 @@ void AmsWebServer::configurationHtml() {
 		for(int i = 0; i<64; i++) {
 			html.replace("${config.fuseSize" + String(i) + "}", config->fuseSize == i ? "selected"  : "");
 		}
+		for(int i = 0; i<3; i++) {
+			html.replace("${config.distSys" + String(i) + "}", config->distSys == i ? "selected"  : "");
+		}
 	} else {
 		html.replace("${config.ssid}", "");
 		html.replace("${config.ssidPassword}", "");
@@ -190,6 +183,7 @@ void AmsWebServer::configurationHtml() {
 			html.replace("${config.meterType" + String(i) + "}", i == 0 ? "selected"  : "");
 		}
 		html.replace("${config.mqtt}", "");
+		html.replace("${config.mqttHost}", "");
 		html.replace("${config.mqttPort}", "1883");
 		html.replace("${config.mqttClientID}", "");
 		html.replace("${config.mqttPublishTopic}", "");
@@ -206,6 +200,9 @@ void AmsWebServer::configurationHtml() {
 		for(int i = 0; i<64; i++) {
 			html.replace("${config.fuseSize" + String(i) + "}", i == 0 ? "selected"  : "");
 		}
+		for(int i = 0; i<3; i++) {
+			html.replace("${config.distSys" + String(i) + "}", i == 0 ? "selected"  : "");
+		}
 	}
 	server.send(200, "text/html", html);
 }
@@ -219,31 +216,13 @@ void AmsWebServer::bootCss() {
 	server.send(200, "text/css", BOOT_CSS);
 }
 
-void AmsWebServer::applicationCss() {
-	println("Serving /application.css over http...");
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-	server.send(200, "text/css", APPLICATION_CSS);
-}
-
 void AmsWebServer::gaugemeterJs() {
 	println("Serving /gaugemeter.js over http...");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
-	server.send(200, "application/javascript", GAUEGMETER_JS);
-}
-
-void AmsWebServer::indexJs() {
-	println("Serving /index.js over http...");
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-	server.send(200, "application/javascript", INDEX_JS);
+	server.send(200, "application/javascript", GAUGEMETER_JS);
 }
 
 void AmsWebServer::dataJson() {
@@ -255,6 +234,15 @@ void AmsWebServer::dataJson() {
     String jsonStr;
 	if(!json.isNull()) {
 		println(" json has data");
+
+		int maxPwr = this->maxPwr;
+		if(maxPwr == 0) {
+			if(u2 > 0) {
+				maxPwr = 20000;
+			} else {
+				maxPwr = 10000;
+			}
+		}
 
 		json["maxPower"] = maxPwr;
 		json["pct"]     = min(p*100/maxPwr, 100);
@@ -286,43 +274,55 @@ void AmsWebServer::handleSave() {
 
 	config->meterType = (byte)server.arg("meterType").toInt();
 
-	temp = server.arg("mqtt");
-	config->mqtt = new char[temp.length() + 1];
-	temp.toCharArray(config->mqtt, temp.length() + 1, 0);
+	if(server.hasArg("mqtt") && server.arg("mqtt") == "true") {
+		println("MQTT enabled");
+		temp = server.arg("mqttHost");
+		config->mqttHost = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttHost, temp.length() + 1, 0);
 
-	config->mqttPort = (int)server.arg("mqttPort").toInt();
+		config->mqttPort = (int)server.arg("mqttPort").toInt();
 
-	temp = server.arg("mqttClientID");
-	config->mqttClientID = new char[temp.length() + 1];
-	temp.toCharArray(config->mqttClientID, temp.length() + 1, 0);
+		temp = server.arg("mqttClientID");
+		config->mqttClientID = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttClientID, temp.length() + 1, 0);
 
-	temp = server.arg("mqttPublishTopic");
-	config->mqttPublishTopic = new char[temp.length() + 1];
-	temp.toCharArray(config->mqttPublishTopic, temp.length() + 1, 0);
+		temp = server.arg("mqttPublishTopic");
+		config->mqttPublishTopic = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttPublishTopic, temp.length() + 1, 0);
 
-	temp = server.arg("mqttSubscribeTopic");
-	config->mqttSubscribeTopic = new char[temp.length() + 1];
-	temp.toCharArray(config->mqttSubscribeTopic, temp.length() + 1, 0);
+		temp = server.arg("mqttSubscribeTopic");
+		config->mqttSubscribeTopic = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttSubscribeTopic, temp.length() + 1, 0);
 
-	temp = server.arg("mqttUser");
-	config->mqttUser = new char[temp.length() + 1];
-	temp.toCharArray(config->mqttUser, temp.length() + 1, 0);
+		temp = server.arg("mqttUser");
+		config->mqttUser = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttUser, temp.length() + 1, 0);
 
-	temp = server.arg("mqttPass");
-	config->mqttPass = new char[temp.length() + 1];
-	temp.toCharArray(config->mqttPass, temp.length() + 1, 0);
+		temp = server.arg("mqttPass");
+		config->mqttPass = new char[temp.length() + 1];
+		temp.toCharArray(config->mqttPass, temp.length() + 1, 0);
+	} else {
+		println("MQTT disabled");
+		config->mqttHost = NULL;
+		config->mqttUser = NULL;
+		config->mqttPass = NULL;
+	}
 
 	config->authSecurity = (byte)server.arg("authSecurity").toInt();
 
-	temp = server.arg("authUser");
-	config->authUser = new char[temp.length() + 1];
-	temp.toCharArray(config->authUser, temp.length() + 1, 0);
+	if(config->authSecurity > 0) {
+		temp = server.arg("authUser");
+		config->authUser = new char[temp.length() + 1];
+		temp.toCharArray(config->authUser, temp.length() + 1, 0);
 
-	temp = server.arg("authPass");
-	config->authPass = new char[temp.length() + 1];
-	temp.toCharArray(config->authPass, temp.length() + 1, 0);
+		temp = server.arg("authPass");
+		config->authPass = new char[temp.length() + 1];
+		temp.toCharArray(config->authPass, temp.length() + 1, 0);
+	}
 
 	config->fuseSize = (int)server.arg("fuseSize").toInt();
+
+	config->distSys = (byte)server.arg("distSys").toInt();
 
 	println("Saving configuration now...");
 

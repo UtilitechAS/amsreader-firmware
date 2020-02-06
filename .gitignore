@@ -8,3 +8,5 @@
 .pio
 platformio-user.ini
 /src/version.h
+/src/web/root
+/src/AmsToMqttBridge.ino.cpp

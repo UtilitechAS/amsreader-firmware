@@ -1,4 +1,3 @@
-const char BOOT_CSS[] PROGMEM = R"=="==(
 /* Ripped necessary style from bootstrap 4.4.1 to make the page look good without internet access. Meant to be overridden by CSS from CDN */
 :root {
     --blue: #007bff;
@@ -237,6 +236,10 @@ a {
     border-radius: .25rem;
     transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
+.form-control:disabled, .form-control[readonly] {
+    background-color: #e9ecef;
+    opacity: 1;
+}
 input:not([type="image" i]) {
     box-sizing: border-box;
 }
@@ -324,4 +327,3 @@ hr {
 *, ::after, ::before {
     box-sizing: border-box;
 }
-)=="==";

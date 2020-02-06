@@ -16,7 +16,7 @@ class configuration {
 public:
 	char* ssid;
 	char* ssidPassword;
-	char* mqtt;
+	char* mqttHost;
 	int mqttPort;
 	char* mqttClientID;
 	char* mqttPublishTopic;
@@ -30,6 +30,7 @@ public:
 	char* authPass;
 
 	int fuseSize;
+	byte distSys;
 
 	bool hasConfig();
 	bool isSecure();
@@ -41,7 +42,7 @@ protected:
 
 private:
 	const int EEPROM_SIZE = 512;
-	const byte EEPROM_CHECK_SUM = 73; // Used to check if config is stored. Change if structure changes
+	const byte EEPROM_CHECK_SUM = 75; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 
 	int saveString(int pAddress, char* pString);

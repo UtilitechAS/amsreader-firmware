@@ -1,13 +1,17 @@
-const char CONFIGURATION_HTML[] PROGMEM = R"=="==(
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AMS reader - configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" type="text/css" href="/css/boot.css"/>
+    <link rel="stylesheet" type="text/css" href="boot.css"/>
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.css"/>
-    <link rel="stylesheet" type="text/css" href="/css/application.css"/>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <style>
+    .bg-purple {
+        background-color: var(--purple);
+    }
+    </style>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
@@ -38,8 +42,18 @@ const char CONFIGURATION_HTML[] PROGMEM = R"=="==(
                 <div class="my-3 p-3 bg-white rounded shadow">
                     <h6 class="border-bottom border-gray pb-2 mb-4">AMS meter</h6>
                     <div class="row form-group">
-                        <label class="col-4">Meter type</label>
-                        <div class="col-8">
+                        <label class="col-6">Distribution system</label>
+                        <div class="col-6">
+                            <select class="form-control" name="distSys">
+                                <option value="" ${config.distSys0}></option>
+                                <option value="1" ${config.distSys1}>IT (230V)</option>
+                                <option value="2" ${config.distSys2}>TN (400V)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row form-group">
+                        <label class="col-6">Meter type</label>
+                        <div class="col-6">
                             <select class="form-control" name="meterType">
                                 <option value="0" ${config.meterType0} disabled></option>
                                 <option value="1" ${config.meterType1}>Kaifa</option>
@@ -49,8 +63,8 @@ const char CONFIGURATION_HTML[] PROGMEM = R"=="==(
                         </div>
                     </div>
                     <div class="row form-group">
-                        <label class="col-4">Main fuse</label>
-                        <div class="col-8">
+                        <label class="col-6">Main fuse</label>
+                        <div class="col-6">
                             <select class="form-control" name="fuseSize">
                                 <option value="" ${config.fuseSize0}></option>
                                 <option value="25" ${config.fuseSize25}>25A</option>
@@ -67,39 +81,45 @@ const char CONFIGURATION_HTML[] PROGMEM = R"=="==(
                 <div class="my-2 p-3 bg-white rounded shadow">
                     <h6 class="border-bottom border-gray pb-2 mb-4">MQTT</h6>
                     <div class="row form-group">
+                        <label class="col-4">Enable</label>
+                        <div class="col-8">
+                            <input id="mqttEnable" type="checkbox" name="mqtt" value="true" ${config.mqtt}/>
+                        </div>
+                    </div>
+                    <div class="row form-group">
                         <label class="col-4">Hostname</label>
                         <div class="col-8">
-                            <input type="text" class="form-control" name="mqtt" value="${config.mqtt}"/>
+                            <input type="text" class="form-control mqtt-config" name="mqttHost" value="${config.mqttHost}"/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-4">Port</label>
                         <div class="col-8">
-                            <input type="text" class="form-control" name="mqttPort" value="${config.mqttPort}"/>
+                            <input type="text" class="form-control mqtt-config" name="mqttPort" value="${config.mqttPort}"/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-4">Client ID</label>
                         <div class="col-8">
-                            <input type="text" class="form-control" name="mqttClientID" value="${config.mqttClientID}"/>
+                            <input type="text" class="form-control mqtt-config" name="mqttClientID" value="${config.mqttClientID}"/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-4">Topic</label>
                         <div class="col-8">
-                            <input type="text" class="form-control" name="mqttPublishTopic" value="${config.mqttPublishTopic}"/>
+                            <input type="text" class="form-control mqtt-config" name="mqttPublishTopic" value="${config.mqttPublishTopic}"/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-4">Username</label>
                         <div class="col-8">
-                            <input type="text" class="form-control" name="mqttUser" value="${config.mqttUser}"/>
+                            <input type="text" class="form-control mqtt-config" name="mqttUser" value="${config.mqttUser}"/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-4">Password</label>
                         <div class="col-8">
-                            <input type="password" class="form-control" name="mqttPass" value="${config.mqttPass}"/>
+                            <input type="password" class="form-control mqtt-config" name="mqttPass" value="${config.mqttPass}"/>
                         </div>
                     </div>
                 </div>
@@ -110,7 +130,7 @@ const char CONFIGURATION_HTML[] PROGMEM = R"=="==(
                     <div class="row form-group">
                         <label class="col-4">Security</label>
                         <div class="col-8">
-                            <select class="form-control" name="authSecurity">
+                            <select id="authSecurity" class="form-control" name="authSecurity">
                                 <option value="0" ${config.authSecurity0}>None</option>
                                 <option value="1" ${config.authSecurity1}>Only configuration</option>
                                 <option value="2" ${config.authSecurity2}>Everything</option>
@@ -120,13 +140,13 @@ const char CONFIGURATION_HTML[] PROGMEM = R"=="==(
                     <div class="row form-group">
                         <label class="col-4">Username</label>
                         <div class="col-8">
-                            <input type="text" class="form-control" name="authUser" value="${config.authUser}"/>
+                            <input type="text" class="form-control auth-config" name="authUser" value="${config.authUser}"/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-4">Password</label>
                         <div class="col-8">
-                            <input type="password" class="form-control" name="authPass" value="${config.authPass}"/>
+                            <input type="password" class="form-control auth-config" name="authPass" value="${config.authPass}"/>
                         </div>
                     </div>
                 </div>
@@ -143,6 +163,21 @@ const char CONFIGURATION_HTML[] PROGMEM = R"=="==(
         </div>
     </form>
 </main>
+<script>
+$('#mqttEnable').on('change', function() {
+    var inputs = $('.mqtt-config');
+    inputs.prop('disabled', !$(this).is(':checked'));
+});
+
+$('#authSecurity').on('change', function() {
+    var inputs = $('.auth-config');
+    inputs.prop('disabled', $(this).val() == 0);
+});
+
+$(function() {
+    $('#mqttEnable').trigger('change');
+    $('#authSecurity').trigger('change');
+});
+</script>
 </body>
 </html>
-)=="==";

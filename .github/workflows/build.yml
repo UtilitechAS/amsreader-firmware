@@ -5,6 +5,8 @@ on:
     paths: 
       - src/**
       - lib/**
+      - scripts/**
+      - web/**
       - platformio.ini
     branches:
       - master

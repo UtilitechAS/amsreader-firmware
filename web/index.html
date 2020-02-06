@@ -1,0 +1,199 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AMS reader</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" type="text/css" href="boot.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.css"/>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="gaugemeter.js"></script>
+    <style>
+    .bg-purple {
+        background-color: var(--purple);
+    }
+
+    .GaugeMeter {
+        position: Relative;
+        text-align: Center;
+        overflow: Hidden;
+        cursor: Default;
+        display: inline-block;
+    }
+
+    .GaugeMeter SPAN, .GaugeMeter B {
+        width: 54%;
+        position: Absolute;
+        text-align: Center;
+        display: Inline-Block;
+        color: RGBa(0,0,0,.8);
+        font-weight: 100;
+        font-family: "Open Sans", Arial;
+        overflow: Hidden;
+        white-space: NoWrap;
+        text-overflow: Ellipsis;
+        margin: 0 23%;
+    }
+
+    .GaugeMeter[data-style="Semi"] B {
+        width: 80%;
+        margin: 0 10%;
+    }
+
+    .GaugeMeter S, .GaugeMeter U {
+        text-decoration: None;
+        font-size: .60em;
+        font-weight: 200;
+        opacity: .6;
+    }
+
+    .GaugeMeter B {
+        color: #000;
+        font-weight: 200;
+        opacity: .8;
+    }
+    </style>
+</head>
+<body class="bg-light">
+<main role="main" class="container">
+    <div class="d-flex align-items-center p-3 my-2 text-white-50 bg-purple rounded shadow">
+        <div class="lh-100">
+            <h6 class="mb-0 text-white lh-100">AMS reader</h6>
+            <small>${version}</small>
+        </div>
+    </div>
+    <div class="my-3 p-3 bg-white rounded shadow">
+        <h6 class="border-bottom border-gray pb-2 mb-4">Current meter values</h6>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="text-center">
+                    <div id="P" class="SimpleMeter">
+                        ${data.P} W
+                    </div>
+                    <div class="GaugeMeter rounded"
+                        style="display: none;"
+                         data-size="200px"
+                         data-text_size="0.11"
+                         data-width="25"
+                         data-style="Arch"
+                         data-theme="Green-Gold-Red"
+                         data-animationstep="0"
+                         data-animate_gauge_colors="1"
+
+                         data-percent="0"
+                         data-text="-"
+                         data-label="Consumption"
+                         data-append="W"
+                    ></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div id="P1" class="row" style="display: ${display.P1}">
+                    <div class="col-2">P1</div>
+                    <div class="col-5 text-right"><span id="U1">${data.U1}</span> V</div>
+                    <div class="col-5 text-right"><span id="I1">${data.I1}</span> A</div>
+                </div>
+                <div id="P2" class="row" style="display: ${display.P2}">
+                    <div class="col-2">P2</div>
+                    <div class="col-5 text-right"><span id="U2">${data.U2}</span> V</div>
+                    <div class="col-5 text-right"><span id="I2">${data.I2}</span> A</div>
+                </div>
+                <div id="P3" class="row" style="display: ${display.P3}">
+                    <div class="col-2">P3</div>
+                    <div class="col-5 text-right"><span id="U3">${data.U3}</span> V</div>
+                    <div class="col-5 text-right"><span id="I3">${data.I3}</span> A</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <hr/>
+    <div class="row form-group">
+        <div class="col-6">
+            <a href="https://github.com/gskjold/AmsToMqttBridge/releases" class="btn btn-outline-secondary">Release notes</a>
+        </div>
+        <div class="col-6 text-right">
+            <a href="configuration" class="btn btn-primary">Configuration</a>
+        </div>
+    </div>
+</main>
+<script>
+$(".GaugeMeter").gaugeMeter();
+
+var wait = 500;
+var nextrefresh = wait;
+var fetch = function() {
+    $.ajax({
+        url: '/data.json',
+        dataType: 'json',
+    }).done(function(json) {
+        $(".SimpleMeter").hide();
+        var el = $(".GaugeMeter");
+        el.show();
+        var rate = 2500;
+        if(json.data) {
+            el.data('percent', json.pct);
+            if(json.data.P) {
+                var num = parseFloat(json.data.P);
+                if(num > 1000) {
+                    num = num / 1000;
+                    el.data('text', num.toFixed(1));
+                    el.data('append','kW');
+                } else {
+                    el.data('text', num);
+                    el.data('append','W');
+                }
+            }
+            el.gaugeMeter();
+
+            for(var id in json.data) {
+                var str = json.data[id];
+                if(isNaN(str)) {
+                    $('#'+id).html(str);
+                } else {
+                    var num = parseFloat(str);
+                    $('#'+id).html(num.toFixed(1));
+                }
+            }
+
+            if(json.data.U1 > 0) {
+                $('#P1').show();
+            }
+
+            if(json.data.U2 > 0) {
+                $('#P2').show();
+            }
+
+            if(json.data.U3 > 0) {
+                $('#P3').show();
+            }
+
+            if(json.meterType == 3) {
+                rate = 10000;
+            }
+            if(json.currentMillis && json.up) {
+                nextrefresh = rate - ((json.currentMillis - json.up) % rate) + wait;
+            } else {
+                nextrefresh = 2500;
+            }
+        } else {
+            el.data('percent', 0);
+            el.data('text', '-');
+            el.gaugeMeter();
+            nextrefresh = 2500;
+        }
+        if(!nextrefresh || nextrefresh < 500) {
+            nextrefresh = 2500;
+        }
+        setTimeout(fetch, nextrefresh);
+    }).fail(function() {
+        el.data('percent', 0);
+        el.data('text', '-');
+        el.gaugeMeter();
+        nextrefresh = 10000;
+        setTimeout(fetch, nextrefresh);
+    });
+}
+setTimeout(fetch, nextrefresh);
+</script>
+</body>
+</html>

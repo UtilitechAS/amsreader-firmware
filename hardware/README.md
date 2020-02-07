@@ -12,9 +12,20 @@ Building this project will require some skills in ordering and assembling electr
 *The completed board mounted in a [3D printed enclosure](/Enclosure)*
 
 ## Assembly of readily available modules
-Use a ESP based developmentboard and a M-bus module.
+You can also use a ESP based development board and combine this with a M-Bus module. Here are a few boards that have been tested, each one has a dedicated firmware file in the releases section. 
 
-[Adafruit Feather M0 WiFi w/ATWINC1500](https://www.adafruit.com/product/3010)
+### ESP8266 based boards
+
+[Wemos D1 mini](https://docs.wemos.cc/en/latest/d1/d1_mini.html) - M-Bus connected to GPIO 5
+
+### ESP32 based boards
+
+[Wemos D32](https://docs.wemos.cc/en/latest/d32/d32.html) - M-Bus connected to GPIO 21
+
+[Adafruit HUZZAH32](https://www.adafruit.com/product/3405) - M-Bus connected to RX
+
+
+Combine one of above board with an M-Bus module. Connect 3.3v and GND together between the boards and connect the TX pin from the M-Bus board to the dedicated M-Bus pin on the ESP board.
 
 [TSS721 M-BUS module board](https://www.aliexpress.com/item/TSS721/32751482255.html)
 

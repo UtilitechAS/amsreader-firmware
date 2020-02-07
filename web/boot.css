@@ -243,7 +243,6 @@ a {
 input:not([type="image" i]) {
     box-sizing: border-box;
 }
-
 button, input {
     overflow: visible;
 }

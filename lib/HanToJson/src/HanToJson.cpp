@@ -101,8 +101,6 @@ static void hanToJsonAidon3phase(int listSize, JsonObject& data, HanReader& hanR
         data["tQI"]     = hanReader.getInt(             (int)Aidon_List3Phase::CumulativeReactiveImportEnergy);
         data["tQO"]     = hanReader.getInt(             (int)Aidon_List3Phase::CumulativeReactiveExportEnergy);
     }
-
-	// TODO: Do not divide Aidon values by 10!?
 }
 
 static void hanToJsonAidon1phase(int listSize, JsonObject& data, HanReader& hanReader, Stream *debugger)
@@ -118,7 +116,46 @@ static void hanToJsonAidon1phase(int listSize, JsonObject& data, HanReader& hanR
         data["U1"]      = ((double) hanReader.getInt(   (int)Aidon_List1Phase::VoltageL1)) / 10;
     }
 
-	// TODO Aidon::List1PhaseLong
+    if (listSize >= (int)Aidon::List1PhaseLong)
+    {
+        data["tPI"]     = hanReader.getInt(             (int)Aidon_List1Phase::CumulativeActiveImportEnergy);
+        data["tPO"]     = hanReader.getInt(             (int)Aidon_List1Phase::CumulativeActiveExportEnergy);
+        data["tQI"]     = hanReader.getInt(             (int)Aidon_List1Phase::CumulativeReactiveImportEnergy);
+        data["tQO"]     = hanReader.getInt(             (int)Aidon_List1Phase::CumulativeReactiveExportEnergy);
+    }
+}
+
+static void hanToJsonAidon3phaseIT(int listSize, JsonObject& data, HanReader& hanReader, Stream *debugger)
+{
+    if (listSize >= (int)Aidon::List3PhaseITShort)
+    {
+        data["lv"]      = hanReader.getString(          (int)Aidon_List3PhaseIT::ListVersionIdentifier);
+        data["id"]      = hanReader.getString(          (int)Aidon_List3PhaseIT::MeterID);
+        data["type"]    = hanReader.getString(          (int)Aidon_List3PhaseIT::MeterType);
+        int p           = hanReader.getInt(             (int)Aidon_List3PhaseIT::ActiveImportPower);
+        data["P"]       = p;
+        data["Q"]       = hanReader.getInt(             (int)Aidon_List3PhaseIT::ReactiveExportPower);
+        double i1       = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CurrentL1)) / 10;
+        double i3       = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CurrentL3)) / 10;
+        double u1       = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL1)) / 10;
+        double u2       = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL2)) / 10;
+        double u3       = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL3)) / 10;
+        double i2       = 0.00;
+        data["I1"]      = i1;
+        data["I2"]      = i2;
+        data["I3"]      = i3;
+        data["U1"]      = u1;
+        data["U2"]      = u2;
+        data["U3"]      = u3;
+    }
+
+    if (listSize >= (int)Aidon::List3PhaseITLong)
+    {
+        data["tPI"]     = hanReader.getInt(             (int)Aidon_List3PhaseIT::CumulativeActiveImportEnergy);
+        data["tPO"]     = hanReader.getInt(             (int)Aidon_List3PhaseIT::CumulativeActiveExportEnergy);
+        data["tQI"]     = hanReader.getInt(             (int)Aidon_List3PhaseIT::CumulativeReactiveImportEnergy);
+        data["tQO"]     = hanReader.getInt(             (int)Aidon_List3PhaseIT::CumulativeReactiveExportEnergy);
+    }
 }
 
 static void hanToJsonAidon(JsonObject& data, HanReader& hanReader, Stream *debugger)
@@ -141,6 +178,9 @@ static void hanToJsonAidon(JsonObject& data, HanReader& hanReader, Stream *debug
         case (int)Aidon::List1PhaseShort:
         case (int)Aidon::List1PhaseLong:
             return hanToJsonAidon1phase(listSize, data, hanReader, debugger);
+        case (int)Aidon::List3PhaseITShort:
+        case (int)Aidon::List3PhaseITLong:
+            return hanToJsonAidon3phaseIT(listSize, data, hanReader, debugger);
 		default:
 			if (debugger) debugger->printf("Warning: Unknown listSize %d\n", listSize);
 			return;

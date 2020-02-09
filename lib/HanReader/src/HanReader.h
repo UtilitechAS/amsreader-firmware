@@ -18,8 +18,8 @@ public:
 	bool compensateFor09HeaderBug = false;
 
 	HanReader();
-	void setup(HardwareSerial *hanPort);
-	void setup(HardwareSerial *hanPort, Stream *debugPort);
+	void setup(Stream *hanPort);
+	void setup(Stream *hanPort, Stream *debugPort);
 	bool read();
 	bool read(byte data);
 	int getListSize();
@@ -30,7 +30,7 @@ public:
 
 private:
 	Stream *debug;
-	HardwareSerial *han;
+	Stream *han;
 	byte buffer[512];
 	int bytesRead;
 	DlmsReader reader;

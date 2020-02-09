@@ -243,29 +243,6 @@ a {
 input:not([type="image" i]) {
     box-sizing: border-box;
 }
-input {
-    -webkit-writing-mode: horizontal-tb !important;
-    text-rendering: auto;
-    color: -internal-light-dark-color(black, white);
-    letter-spacing: normal;
-    word-spacing: normal;
-    text-transform: none;
-    text-indent: 0px;
-    text-shadow: none;
-    display: inline-block;
-    text-align: start;
-    -webkit-appearance: textfield;
-    background-color: -internal-light-dark-color(white, black);
-    -webkit-rtl-ordering: logical;
-    cursor: text;
-    margin: 0em;
-    font: 400 13.3333px Arial;
-    padding: 1px 0px;
-    border-width: 2px;
-    border-style: inset;
-    border-color: initial;
-    border-image: initial;
-}
 button, input {
     overflow: visible;
 }
@@ -274,6 +251,10 @@ button, input, optgroup, select, textarea {
     font-family: inherit;
     font-size: inherit;
     line-height: inherit;
+}
+input[type="radio"], input[type="checkbox"] {
+    box-sizing: border-box;
+    padding: 0;
 }
 hr {
     margin-top: 1rem;
@@ -321,9 +302,6 @@ hr {
     }
 }
 
-*, ::after, ::before {
-    box-sizing: border-box;
-}
 *, ::after, ::before {
     box-sizing: border-box;
 }

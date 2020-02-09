@@ -44,13 +44,21 @@ void AmsWebServer::loop() {
 void AmsWebServer::setJson(StaticJsonDocument<500> json) {
 	if(!json.isNull()) {
 		p = json["data"]["P"].as<int>();
+
 		if(json["data"].containsKey("U1")) {
 			u1 = json["data"]["U1"].as<double>();
-			u2 = json["data"]["U2"].as<double>();
-			u3 = json["data"]["U3"].as<double>();
 			i1 = json["data"]["I1"].as<double>();
-			i2 = json["data"]["I2"].as<double>();
-			i3 = json["data"]["I3"].as<double>();
+	
+			if(json["data"].containsKey("U2")) {
+				u2 = json["data"]["U2"].as<double>();
+				i2 = json["data"]["I2"].as<double>();
+
+				if(json["data"].containsKey("U3")) {
+					u3 = json["data"]["U3"].as<double>();
+					i3 = json["data"]["I3"].as<double>();
+				}
+			}
+
 
 			if(maxPwr == 0 && config->hasConfig() && config->fuseSize > 0 && config->distSys > 0) {
 				int volt = config->distSys == 2 ? 400 : 230;

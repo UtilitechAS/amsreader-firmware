@@ -56,7 +56,6 @@ void HanConfigAp::setup(int accessPointButtonPin, configuration* config, Stream*
 		delay(2000);
 
 		WiFi.mode(WIFI_AP);
-		WiFi.setOutputPower(0);
 		WiFi.softAP(AP_SSID);
 
 		/* Setup the DNS server redirecting all the domains to this IP */

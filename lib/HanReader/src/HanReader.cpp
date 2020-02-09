@@ -5,7 +5,7 @@ HanReader::HanReader()
   
 }
 
-void HanReader::setup(HardwareSerial *hanPort, Stream *debugPort)
+void HanReader::setup(Stream *hanPort, Stream *debugPort)
 {
 	han = hanPort;
 	bytesRead = 0;
@@ -13,7 +13,7 @@ void HanReader::setup(HardwareSerial *hanPort, Stream *debugPort)
 	if (debug) debug->println("MBUS serial setup complete");
 }
 
-void HanReader::setup(HardwareSerial *hanPort)
+void HanReader::setup(Stream *hanPort)
 {
 	setup(hanPort, NULL);
 }

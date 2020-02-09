@@ -4,55 +4,26 @@
  Author:	roarf
 */
 
-ADC_MODE(ADC_VCC);    
+#if defined(ESP8266)
+ADC_MODE(ADC_VCC);  
+#endif  
 
+#include "AmsToMqttBridge.h"
 #include <ArduinoJson.h>
 #include <MQTT.h>
-
-#if HAS_DALLAS_TEMP_SENSOR
-#include <DallasTemperature.h>
-#include <OneWire.h>
-#endif
-
-#if defined(ESP8266)
-#include <ESP8266WiFi.h>
-#elif defined(ESP32)
-#include <WiFi.h>
-#endif
 
 #include "web/AmsWebServer.h"
 #include "HanConfigAp.h"
 #include "HanReader.h"
 #include "HanToJson.h"
 
-#define WIFI_CONNECTION_TIMEOUT 30000;
-
-#if IS_CUSTOM_AMS_BOARD
-#define LED_PIN 2 // The blue on-board LED of the ESP8266 custom AMS board
-#define LED_ACTIVE_HIGH 0
-#define AP_BUTTON_PIN 0
-#elif defined(ARDUINO_LOLIN_D32)
-#define LED_PIN 5
-#define LED_ACTIVE_HIGH 0
-#define AP_BUTTON_PIN INVALID_BUTTON_PIN
-#else
-#define LED_PIN LED_BUILTIN
-#define LED_ACTIVE_HIGH 1
-#define AP_BUTTON_PIN INVALID_BUTTON_PIN
-#endif
-
-#if HAS_DALLAS_TEMP_SENSOR
-#define TEMP_SENSOR_PIN 5 // Temperature sensor connected to GPIO5
-
-OneWire oneWire(TEMP_SENSOR_PIN);
-DallasTemperature tempSensor(&oneWire);
-#endif
-
+// Configuration
 configuration config;
 
 // Object used to boot as Access Point
 HanConfigAp ap;
 
+// Web server
 AmsWebServer ws;
 
 // WiFi client and MQTT client
@@ -67,30 +38,35 @@ HanReader hanReader;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
-
-#if DEBUG_MODE
-	debugger = &Serial;
-#endif
-
 	if(config.hasConfig()) {
 		config.load();
 	}
 
-	if(config.meterType == 3) {
-		Serial.begin(2400, SERIAL_8N1);
-	} else {
-		Serial.begin(2400, SERIAL_8E1);
-	}
-	while (!Serial);
+#if DEBUG_MODE
+	debugger = &Serial;
+	#if SOFTWARE_SERIAL
+		debugger->begin(115200, SERIAL_8N1);
+	#else
+		if(config.meterType == 3) {
+			hanSerial->begin(2400, SERIAL_8N1);
+		} else {
+			hanSerial->begin(2400, SERIAL_8E1);
+		}
+	#endif
+	while (!&debugger);
+#endif
 
 	if (debugger) {
 		debugger->println("");
 		debugger->println("Started...");
+#if defined(ESP8266)
 		debugger->print("Voltage: ");
 		debugger->print(ESP.getVcc());
 		debugger->println("mV");
+#endif
 	}
 
+#if defined(ESP8266)
 	if (ESP.getVcc() < 3300) {
 		if(debugger) {
 			debugger->print("Voltage is too low: ");
@@ -99,6 +75,7 @@ void setup() {
 		}
 		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
 	}  
+#endif
 
 	// Flash the LED, to indicate we can boot as AP now
 	pinMode(LED_PIN, OUTPUT);
@@ -122,8 +99,25 @@ void setup() {
 			sendMqttData("Connected!");
 		}
 		// Configure uart for AMS data
+#if defined SOFTWARE_SERIAL
+		if(config.meterType == 3) {
+			hanSerial->begin(2400, SWSERIAL_8N1);
+		} else {
+			hanSerial->begin(2400, SWSERIAL_8E1);
+		}
+#else
+		if(config.meterType == 3) {
+			hanSerial->begin(2400, SERIAL_8N1);
+		} else {
+			hanSerial->begin(2400, SERIAL_8E1);
+		}
+#if defined UART2
+		hanSerial->swap();
+#endif
+#endif
+		while (!&hanSerial);
 
-		hanReader.setup(&Serial, debugger);
+		hanReader.setup(hanSerial, debugger);
 
 		// Compensate for the known Kaifa bug
 		hanReader.compensateFor09HeaderBug = (config.meterType == 1);
@@ -161,8 +155,13 @@ void loop()
 		if (millis() / 50 % 64 == 0)   led_on();
 		else							led_off();
 
+#if defined(ESP8266)
 		// Make sure there is enough power to run
 		delay(max(10, 3500-ESP.getVcc()));
+#else
+		delay(10);
+#endif
+
 	}
 	ws.loop();
 }
@@ -242,13 +241,15 @@ void readHanPort()
 		json["id"] = WiFi.macAddress();
 		json["up"] = millis();
 		json["t"] = time;
+#if defined(ESP8266)
 		json["vcc"] = ((double) ESP.getVcc()) / 1000;
+#endif
 
 		// Add a sub-structure to the json object,
 		// to keep the data from the meter itself
 		JsonObject data = json.createNestedObject("data");
 
-#if HAS_DALLAS_TEMP_SENSOR
+#if defined TEMP_SENSOR_PIN
 		// Get the temperature too
 		tempSensor.requestTemperatures();
 		data["temp"] = tempSensor.getTempCByIndex(0);
@@ -389,7 +390,9 @@ void sendMqttData(String data)
 	json["id"] = WiFi.macAddress();
 	json["up"] = millis();
 	json["data"] = data;
+#if defined(ESP8266)
 	json["vcc"] = ((double) ESP.getVcc()) / 1000;
+#endif
 
 	// Stringify the json
 	String msg;

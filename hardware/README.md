@@ -16,13 +16,18 @@ You can also use a ESP based development board and combine this with a M-Bus mod
 
 ### ESP8266 based boards
 
-[Wemos D1 mini](https://docs.wemos.cc/en/latest/d1/d1_mini.html) - M-Bus connected to GPIO 5
+[Wemos D1 mini](https://docs.wemos.cc/en/latest/d1/d1_mini.html)
+- M-Bus connected to GPIO5 (D1)
+- Jump GPIO4 (D2) to GND to force AP mode during boot
 
 ### ESP32 based boards
 
-[Wemos D32](https://docs.wemos.cc/en/latest/d32/d32.html) - M-Bus connected to GPIO 21
+[Wemos D32](https://docs.wemos.cc/en/latest/d32/d32.html) 
+- M-Bus connected to GPIO21
+- Jump GPIO4 to GND to force AP mode during boot
 
-[Adafruit HUZZAH32](https://www.adafruit.com/product/3405) - M-Bus connected to RX
+[Adafruit HUZZAH32](https://www.adafruit.com/product/3405) 
+- M-Bus connected to RX
 
 
 Combine one of above board with an M-Bus module. Connect 3.3v and GND together between the boards and connect the TX pin from the M-Bus board to the dedicated M-Bus pin on the ESP board.

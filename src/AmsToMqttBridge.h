@@ -23,7 +23,7 @@ HardwareSerial *hanSerial = &Serial;
 #elif defined(ARDUINO_LOLIN_D32)
 #define LED_PIN 5
 #define LED_ACTIVE_HIGH 0
-#define AP_BUTTON_PIN INVALID_BUTTON_PIN
+#define AP_BUTTON_PIN 4
 
 #define SOFTWARE_SERIAL 1
 #include <SoftwareSerial.h>
@@ -31,9 +31,9 @@ SoftwareSerial *hanSerial = new SoftwareSerial(GPIO_NUM_21);
 
 // Build settings for Wemos D1 mini
 #elif defined(ARDUINO_ESP8266_WEMOS_D1MINI)
-#define LED_PIN LED_BUILTIN
+#define LED_PIN D4
 #define LED_ACTIVE_HIGH 0
-#define AP_BUTTON_PIN INVALID_BUTTON_PIN
+#define AP_BUTTON_PIN D2
 
 #define SOFTWARE_SERIAL 1
 #include <SoftwareSerial.h>

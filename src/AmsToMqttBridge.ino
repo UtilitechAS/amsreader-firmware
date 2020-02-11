@@ -73,7 +73,7 @@ void setup() {
 		setupWiFi();
 
 		if(config.mqttHost) {
-			mqtt.begin(config.mqttHost, *client);
+			mqtt.begin(config.mqttHost, config.mqttPort, *client);
 
 			// Notify everyone we're here!
 			sendMqttData("Connected!");
@@ -297,8 +297,17 @@ void WiFi_connect() {
 
 // Function to connect and reconnect as necessary to the MQTT server.
 // Should be called in the loop function and it will take care if connecting.
-void MQTT_connect()
-{
+
+unsigned long lastMqttRetry = -10000;
+void MQTT_connect() {
+	if(!config.mqttHost) {
+		if(debugger) debugger->println("No MQTT config");
+		return;
+	}
+	if(millis() - lastMqttRetry < 5000) {
+		return;
+	}
+	lastMqttRetry = millis();
 	if(debugger) {
 		debugger->print("Connecting to MQTT: ");
 		debugger->print(config.mqttHost);
@@ -306,40 +315,23 @@ void MQTT_connect()
 		debugger->print(config.mqttPort);
 		debugger->println();
 	}
-	// Wait for the MQTT connection to complete
-	while (!mqtt.connected()) {
-		// Connect to a unsecure or secure MQTT server
-		if ((config.mqttUser == 0 && mqtt.connect(config.mqttClientID)) ||
-			(config.mqttUser != 0 && mqtt.connect(config.mqttClientID, config.mqttUser, config.mqttPass)))
-		{
-			if (debugger) debugger->println("\nSuccessfully connected to MQTT!");
+	// Connect to a unsecure or secure MQTT server
+	if ((config.mqttUser == 0 && mqtt.connect(config.mqttClientID)) ||
+		(config.mqttUser != 0 && mqtt.connect(config.mqttClientID, config.mqttUser, config.mqttPass))) {
+		if (debugger) debugger->println("\nSuccessfully connected to MQTT!");
 
-			// Subscribe to the chosen MQTT topic, if set in configuration
-			if (config.mqttSubscribeTopic != 0 && strlen(config.mqttSubscribeTopic) > 0)
-			{
-				mqtt.subscribe(config.mqttSubscribeTopic);
-				if (debugger) debugger->printf("  Subscribing to [%s]\r\n", config.mqttSubscribeTopic);
-			}
+		// Subscribe to the chosen MQTT topic, if set in configuration
+		if (config.mqttSubscribeTopic != 0 && strlen(config.mqttSubscribeTopic) > 0) {
+			mqtt.subscribe(config.mqttSubscribeTopic);
+			if (debugger) debugger->printf("  Subscribing to [%s]\r\n", config.mqttSubscribeTopic);
 		}
-		else
-		{
-			if (debugger)
-			{
-				debugger->print(".");
-				debugger->print("failed, ");
-				debugger->println(" trying again in 5 seconds");
-			}
-
-			// Wait 2 seconds before retrying
-			mqtt.disconnect();
-
-			delay(2000);
+	} else {
+		if (debugger) {
+			debugger->print(" failed, ");
+			debugger->println(" trying again in 5 seconds");
 		}
-
-		// Allow some resources for the WiFi connection
-		yield();
-		delay(2000);
 	}
+	yield();
 }
 
 // Send a simple string embedded in json over MQTT

@@ -155,62 +155,32 @@ void AmsWebServer::configurationHtml() {
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
 
-	if(config->hasConfig()) {
-		html.replace("${config.ssid}", config->ssid);
-		html.replace("${config.ssidPassword}", config->ssidPassword);
-		html.replace("${config.meterType}", String(config->fuseSize));
-		for(int i = 0; i<4; i++) {
-			html.replace("${config.meterType" + String(i) + "}", config->meterType == i ? "selected"  : "");
-		}
-		html.replace("${config.mqtt}", config->mqttHost == 0 ? "" : "checked");
-		html.replace("${config.mqttHost}", config->mqttHost);
-		html.replace("${config.mqttPort}", String(config->mqttPort));
-		html.replace("${config.mqttClientID}", config->mqttClientID);
-		html.replace("${config.mqttPublishTopic}", config->mqttPublishTopic);
-		html.replace("${config.mqttSubscribeTopic}", config->mqttSubscribeTopic);
-		html.replace("${config.mqttUser}", config->mqttUser);
-		html.replace("${config.mqttPass}", config->mqttPass);
-		html.replace("${config.authUser}", config->authUser);
-		html.replace("${config.authSecurity}", String(config->authSecurity));
-		for(int i = 0; i<3; i++) {
-			html.replace("${config.authSecurity" + String(i) + "}", config->authSecurity == i ? "selected"  : "");
-		}
-		html.replace("${config.authPass}", config->authPass);
-		html.replace("${config.fuseSize}", String(config->fuseSize));
-		for(int i = 0; i<64; i++) {
-			html.replace("${config.fuseSize" + String(i) + "}", config->fuseSize == i ? "selected"  : "");
-		}
-		for(int i = 0; i<3; i++) {
-			html.replace("${config.distSys" + String(i) + "}", config->distSys == i ? "selected"  : "");
-		}
-	} else {
-		html.replace("${config.ssid}", "");
-		html.replace("${config.ssidPassword}", "");
-		html.replace("${config.meterType}", "");
-		for(int i = 0; i<4; i++) {
-			html.replace("${config.meterType" + String(i) + "}", i == 0 ? "selected"  : "");
-		}
-		html.replace("${config.mqtt}", "");
-		html.replace("${config.mqttHost}", "");
-		html.replace("${config.mqttPort}", "1883");
-		html.replace("${config.mqttClientID}", "");
-		html.replace("${config.mqttPublishTopic}", "");
-		html.replace("${config.mqttSubscribeTopic}", "");
-		html.replace("${config.mqttUser}", "");
-		html.replace("${config.mqttPass}", "");
-		html.replace("${config.authSecurity}", "");
-		for(int i = 0; i<3; i++) {
-			html.replace("${config.authSecurity" + String(i) + "}", i == 0 ? "selected"  : "");
-		}
-		html.replace("${config.authUser}", "");
-		html.replace("${config.authPass}", "");
-		html.replace("${config.fuseSize}", "");
-		for(int i = 0; i<64; i++) {
-			html.replace("${config.fuseSize" + String(i) + "}", i == 0 ? "selected"  : "");
-		}
-		for(int i = 0; i<3; i++) {
-			html.replace("${config.distSys" + String(i) + "}", i == 0 ? "selected"  : "");
-		}
+	html.replace("${config.ssid}", config->ssid);
+	html.replace("${config.ssidPassword}", config->ssidPassword);
+	html.replace("${config.meterType}", String(config->fuseSize));
+	for(int i = 0; i<4; i++) {
+		html.replace("${config.meterType" + String(i) + "}", config->meterType == i ? "selected"  : "");
+	}
+	html.replace("${config.mqtt}", config->mqttHost == 0 ? "" : "checked");
+	html.replace("${config.mqttHost}", config->mqttHost);
+	html.replace("${config.mqttPort}", String(config->mqttPort));
+	html.replace("${config.mqttClientID}", config->mqttClientID);
+	html.replace("${config.mqttPublishTopic}", config->mqttPublishTopic);
+	html.replace("${config.mqttSubscribeTopic}", config->mqttSubscribeTopic);
+	html.replace("${config.mqttUser}", config->mqttUser);
+	html.replace("${config.mqttPass}", config->mqttPass);
+	html.replace("${config.authUser}", config->authUser);
+	html.replace("${config.authSecurity}", String(config->authSecurity));
+	for(int i = 0; i<3; i++) {
+		html.replace("${config.authSecurity" + String(i) + "}", config->authSecurity == i ? "selected"  : "");
+	}
+	html.replace("${config.authPass}", config->authPass);
+	html.replace("${config.fuseSize}", String(config->fuseSize));
+	for(int i = 0; i<64; i++) {
+		html.replace("${config.fuseSize" + String(i) + "}", config->fuseSize == i ? "selected"  : "");
+	}
+	for(int i = 0; i<3; i++) {
+		html.replace("${config.distSys" + String(i) + "}", config->distSys == i ? "selected"  : "");
 	}
 	server.send(200, "text/html", html);
 }

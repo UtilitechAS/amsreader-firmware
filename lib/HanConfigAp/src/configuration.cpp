@@ -69,19 +69,14 @@ bool configuration::load()
 
 	ssid = 0;
 	ssidPassword = 0;
-	meterType = (byte)0;
 	mqttHost = 0;
 	mqttClientID = 0;
 	mqttPublishTopic = 0;
 	mqttSubscribeTopic = 0;
 	mqttUser = 0;
 	mqttPass = 0;
-	mqttPort = 1883;
-	authSecurity = 0;
 	authUser = 0;
 	authPass = 0;
-	fuseSize = 0;
-	distSys = 0;
 
 	EEPROM.begin(EEPROM_SIZE);
 	int cs = EEPROM.read(address);

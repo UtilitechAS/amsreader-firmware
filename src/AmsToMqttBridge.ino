@@ -13,6 +13,10 @@
 #include "HanReader.h"
 #include "HanToJson.h"
 
+#include "Aidon.h"
+#include "Kaifa.h"
+#include "Kamstrup.h"
+
 // Configuration
 configuration config;
 
@@ -68,44 +72,40 @@ void setup() {
 
 	led_off();
 
-	if (!ap.isActivated)
-	{
+	if (!ap.isActivated) {
 		setupWiFi();
-
-		// Configure uart for AMS data
-#if defined SOFTWARE_SERIAL
-		if(config.meterType == 3) {
-			hanSerial->begin(2400, SWSERIAL_8N1);
-		} else {
-			hanSerial->begin(2400, SWSERIAL_8E1);
-		}
-#else
-		if(config.meterType == 3) {
-			hanSerial->begin(2400, SERIAL_8N1);
-		} else {
-			hanSerial->begin(2400, SERIAL_8E1);
-		}
-#if defined UART2
-		hanSerial->swap();
-#endif
-#endif
-		while (!&hanSerial);
-
-		hanReader.setup(hanSerial, debugger);
-
-		// Compensate for the known Kaifa bug
-		hanReader.compensateFor09HeaderBug = (config.meterType == 1);
 	}
+
+#if defined SOFTWARE_SERIAL
+	if(config.meterType == 3) {
+		hanSerial->begin(2400, SWSERIAL_8N1);
+	} else {
+		hanSerial->begin(2400, SWSERIAL_8E1);
+	}
+#else
+	if(config.meterType == 3) {
+		hanSerial->begin(2400, SERIAL_8N1);
+	} else {
+		hanSerial->begin(2400, SERIAL_8E1);
+	}
+#if defined UART2
+	hanSerial->swap();
+#endif
+#endif
+	while (!&hanSerial);
+
+	hanReader.setup(hanSerial, debugger);
+
+	// Compensate for the known Kaifa bug
+	hanReader.compensateFor09HeaderBug = (config.meterType == 1);
 
 	ws.setup(&config, debugger);
 }
 
 // the loop function runs over and over again until power down or reset
-void loop()
-{
+void loop() {
 	// Only do normal stuff if we're not booted as AP
-	if (!ap.loop())
-	{
+	if (!ap.loop()) {
 		// Turn off the LED
 		led_off();
 
@@ -121,15 +121,12 @@ void loop()
 				}
 			}
 		}
-
-		readHanPort();
-	}
-	else
-	{
+	} else {
 		// Continously flash the LED when AP mode
 		if (millis() / 1000 % 2 == 0)   led_on();
 		else							led_off();
 	}
+	readHanPort();
 	ws.loop();
 }
 
@@ -189,57 +186,111 @@ void mqttMessageReceived(String &topic, String &payload)
 	// Ideas could be to query for values or to initiate OTA firmware update
 }
 
-void readHanPort()
-{
-	if (hanReader.read() && config.hasConfig())
-	{
-		// Flash LED on, this shows us that data is received
-		led_on();
+bool even = true;
+unsigned long lastSuccessfulRead = 0;
+void readHanPort() {
+	if (hanReader.read()) {
+		lastSuccessfulRead = millis();
 
-		// Get the timestamp (as unix time) from the package
-		time_t time = hanReader.getPackageTime();
-		if (debugger) debugger->print("Time of the package is: ");
-		if (debugger) debugger->println(time);
+		if(config.meterType > 0) {
+			// Flash LED on, this shows us that data is received
+			led_on();
 
-		// Define a json object to keep the data
-		StaticJsonDocument<500> json;
+			// Get the timestamp (as unix time) from the package
+			time_t time = hanReader.getPackageTime();
+			if (debugger) debugger->print("Time of the package is: ");
+			if (debugger) debugger->println(time);
 
-		// Any generic useful info here
-		json["id"] = WiFi.macAddress();
-		json["up"] = millis();
-		json["t"] = time;
+			// Define a json object to keep the data
+			StaticJsonDocument<500> json;
 
-		// Add a sub-structure to the json object,
-		// to keep the data from the meter itself
-		JsonObject data = json.createNestedObject("data");
+			// Any generic useful info here
+			json["id"] = WiFi.macAddress();
+			json["up"] = millis();
+			json["t"] = time;
+
+			// Add a sub-structure to the json object,
+			// to keep the data from the meter itself
+			JsonObject data = json.createNestedObject("data");
 
 #if defined TEMP_SENSOR_PIN
-		// Get the temperature too
-		tempSensor.requestTemperatures();
-		data["temp"] = tempSensor.getTempCByIndex(0);
+			// Get the temperature too
+			tempSensor.requestTemperatures();
+			data["temp"] = tempSensor.getTempCByIndex(0);
 #endif
 
-		hanToJson(data, config.meterType, hanReader);
+			hanToJson(data, config.meterType, hanReader);
 
-		if(config.mqttHost != 0 && strlen(config.mqttHost) != 0 && config.mqttPublishTopic != 0 && strlen(config.mqttPublishTopic) != 0) {
-			// Write the json to the debug port
-			if (debugger) {
-				debugger->print("Sending data to MQTT: ");
-				serializeJsonPretty(json, *debugger);
-				debugger->println();
+			if(config.mqttHost != 0 && strlen(config.mqttHost) != 0 && config.mqttPublishTopic != 0 && strlen(config.mqttPublishTopic) != 0) {
+				// Write the json to the debug port
+				if (debugger) {
+					debugger->print("Sending data to MQTT: ");
+					serializeJsonPretty(json, *debugger);
+					debugger->println();
+				}
+
+				// Publish the json to the MQTT server
+				String msg;
+				serializeJson(json, msg);
+
+				mqtt.publish(config.mqttPublishTopic, msg.c_str());
+				mqtt.loop();
 			}
+			ws.setJson(json);
 
-			// Publish the json to the MQTT server
-			String msg;
-			serializeJson(json, msg);
-
-			mqtt.publish(config.mqttPublishTopic, msg.c_str());
-			mqtt.loop();
+			// Flash LED off
+			led_off();
+		} else {
+			for(int i = 1; i <= 3; i++) {
+				String list;
+				switch(i) {
+					case 1:
+						list = hanReader.getString((int) Kaifa_List1Phase::ListVersionIdentifier);
+						break;
+					case 2:
+						list = hanReader.getString((int) Aidon_List1Phase::ListVersionIdentifier);
+						break;
+					case 3:
+						list = hanReader.getString((int) Kamstrup_List1Phase::ListVersionIdentifier);
+						break;
+				}
+				if(!list.isEmpty()) {
+					list.toLowerCase();
+					if(list.startsWith("kfm")) {
+						config.meterType = 1;
+						if(debugger) debugger->println("Detected Kaifa meter");
+						break;
+					} else if(list.startsWith("aidon")) {
+						config.meterType = 2;
+						if(debugger) debugger->println("Detected Aidon meter");
+						break;
+					} else if(list.startsWith("kamstrup")) {
+						config.meterType = 3;
+						if(debugger) debugger->println("Detected Kamstrup meter");
+						break;
+					}
+				}
+			}
+			hanReader.compensateFor09HeaderBug = (config.meterType == 1);
 		}
-		ws.setJson(json);
+	}
 
-		// Flash LED off
-		led_off();
+	if(config.meterType == 0 && millis() - lastSuccessfulRead > 10000) {
+		lastSuccessfulRead = millis();
+#if defined SOFTWARE_SERIAL
+			if(even) {
+				hanSerial->begin(2400, SWSERIAL_8N1);
+			} else {
+				hanSerial->begin(2400, SWSERIAL_8E1);
+			}
+#else
+			if(even) {
+				hanSerial->begin(2400, SERIAL_8N1);
+			} else {
+				hanSerial->begin(2400, SERIAL_8E1);
+			}
+#endif
+		even = !even;
 	}
 }
 

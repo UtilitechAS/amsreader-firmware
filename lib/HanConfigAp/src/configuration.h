@@ -17,7 +17,7 @@ public:
 	char* ssid;
 	char* ssidPassword;
 	char* mqttHost;
-	int mqttPort;
+	int mqttPort = 1883;
 	char* mqttClientID;
 	char* mqttPublishTopic;
 	char* mqttSubscribeTopic;

@@ -240,7 +240,7 @@ void AmsWebServer::dataJson() {
 	if(!checkSecurity(2))
 		return;
 
-	StaticJsonDocument<500> json;
+	StaticJsonDocument<768> json;
 
     String jsonStr;
 	if(!this->json.isNull() && this->json.containsKey("data")) {

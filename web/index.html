@@ -186,8 +186,7 @@
 <script>
 $(".GaugeMeter").gaugeMeter();
 
-var wait = 500;
-var nextrefresh = wait;
+var interval = 2500;
 var fetch = function() {
     $.ajax({
         url: '/data.json',
@@ -209,7 +208,7 @@ var fetch = function() {
                 var num = parseFloat(str);
                 $('#'+id).html(num.toFixed(num < 0 ? 0 : num < 10 ? 2  : 1));
             }
-        }0
+        }
 
         if(json.status) {
             for(var id in json.status) {
@@ -268,34 +267,20 @@ var fetch = function() {
                     $('#'+id+'-row').show();
                 }
             }
-
-            if(json.meterType == 3) {
-                rate = 10000;
-            }
-            if(json.currentMillis && json.up) {
-                nextrefresh = rate - ((json.currentMillis - json.up) % rate) + wait;
-            } else {
-                nextrefresh = 2500;
-            }
         } else {
             el.data('percent', 0);
             el.data('text', '-');
             el.gaugeMeter();
-            nextrefresh = 2500;
         }
-        if(!nextrefresh || nextrefresh < 500) {
-            nextrefresh = 2500;
-        }
-        setTimeout(fetch, nextrefresh);
+        setTimeout(fetch, interval);
     }).fail(function() {
         el.data('percent', 0);
         el.data('text', '-');
         el.gaugeMeter();
-        nextrefresh = 10000;
-        setTimeout(fetch, nextrefresh);
+        setTimeout(fetch, interval*4);
     });
 }
-setTimeout(fetch, nextrefresh);
+setTimeout(fetch, interval);
 </script>
 </body>
 </html>

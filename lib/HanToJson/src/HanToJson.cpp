@@ -10,9 +10,11 @@ static void hanToJsonKaifa3phase(int listSize, JsonObject& data, HanReader& hanR
     {
         data["lv"]   = hanReader.getString(       (int)Kaifa_List3Phase::ListVersionIdentifier);
         data["id"]   = hanReader.getString(       (int)Kaifa_List3Phase::MeterID);
-        data["type"] = hanReader.getString(      (int)Kaifa_List3Phase::MeterType);
+        data["type"] = hanReader.getString(       (int)Kaifa_List3Phase::MeterType);
         data["P"]    = hanReader.getInt(          (int)Kaifa_List3Phase::ActiveImportPower);
         data["Q"]    = hanReader.getInt(          (int)Kaifa_List3Phase::ReactiveImportPower);
+        data["PO"]   = hanReader.getInt(          (int)Kaifa_List3Phase::ActiveExportPower);
+        data["QO"]   = hanReader.getInt(          (int)Kaifa_List3Phase::ReactiveExportPower);
         data["I1"]   = ((double) hanReader.getInt((int)Kaifa_List3Phase::CurrentL1)) / 1000;
         data["I2"]   = ((double) hanReader.getInt((int)Kaifa_List3Phase::CurrentL2)) / 1000;
         data["I3"]   = ((double) hanReader.getInt((int)Kaifa_List3Phase::CurrentL3)) / 1000;
@@ -39,6 +41,8 @@ static void hanToJsonKaifa1phase(int listSize, JsonObject& data, HanReader& hanR
         data["type"] = hanReader.getString(       (int)Kaifa_List1Phase::MeterType);
         data["P"]    = hanReader.getInt(          (int)Kaifa_List1Phase::ActiveImportPower);
         data["Q"]    = hanReader.getInt(          (int)Kaifa_List1Phase::ReactiveImportPower);
+        data["PO"]   = hanReader.getInt(          (int)Kaifa_List1Phase::ActiveExportPower);
+        data["QO"]   = hanReader.getInt(          (int)Kaifa_List1Phase::ReactiveExportPower);
         data["I1"]   = ((double) hanReader.getInt((int)Kaifa_List1Phase::CurrentL1)) / 1000;
         data["U1"]   = ((double) hanReader.getInt((int)Kaifa_List1Phase::VoltageL1)) / 10;
     }
@@ -85,7 +89,9 @@ static void hanToJsonAidon3phase(int listSize, JsonObject& data, HanReader& hanR
         data["id"]      = hanReader.getString(          (int)Aidon_List3Phase::MeterID);
         data["type"]    = hanReader.getString(          (int)Aidon_List3Phase::MeterType);
         data["P"]       = hanReader.getInt(             (int)Aidon_List3Phase::ActiveImportPower);
-        data["Q"]       = hanReader.getInt(             (int)Aidon_List3Phase::ReactiveExportPower);
+        data["Q"]       = hanReader.getInt(             (int)Aidon_List3Phase::ReactiveImportPower);
+        data["PO"]      = hanReader.getInt(             (int)Aidon_List3Phase::ActiveExportPower);
+        data["QO"]      = hanReader.getInt(             (int)Aidon_List3Phase::ReactiveExportPower);
         data["I1"]      = ((double) hanReader.getInt(   (int)Aidon_List3Phase::CurrentL1)) / 10;
         data["I2"]      = ((double) hanReader.getInt(   (int)Aidon_List3Phase::CurrentL2)) / 10;
         data["I3"]      = ((double) hanReader.getInt(   (int)Aidon_List3Phase::CurrentL3)) / 10;
@@ -111,7 +117,9 @@ static void hanToJsonAidon1phase(int listSize, JsonObject& data, HanReader& hanR
         data["id"]      = hanReader.getString(          (int)Aidon_List1Phase::MeterID);
         data["type"]    = hanReader.getString(          (int)Aidon_List1Phase::MeterType);
         data["P"]       = hanReader.getInt(             (int)Aidon_List1Phase::ActiveImportPower);
-        data["Q"]       = hanReader.getInt(             (int)Aidon_List1Phase::ReactiveExportPower);
+        data["Q"]       = hanReader.getInt(             (int)Aidon_List1Phase::ReactiveImportPower);
+        data["PO"]      = hanReader.getInt(             (int)Aidon_List1Phase::ActiveExportPower);
+        data["QO"]      = hanReader.getInt(             (int)Aidon_List1Phase::ReactiveExportPower);
         data["I1"]      = ((double) hanReader.getInt(   (int)Aidon_List1Phase::CurrentL1)) / 10;
         data["U1"]      = ((double) hanReader.getInt(   (int)Aidon_List1Phase::VoltageL1)) / 10;
     }
@@ -132,21 +140,16 @@ static void hanToJsonAidon3phaseIT(int listSize, JsonObject& data, HanReader& ha
         data["lv"]      = hanReader.getString(          (int)Aidon_List3PhaseIT::ListVersionIdentifier);
         data["id"]      = hanReader.getString(          (int)Aidon_List3PhaseIT::MeterID);
         data["type"]    = hanReader.getString(          (int)Aidon_List3PhaseIT::MeterType);
-        int p           = hanReader.getInt(             (int)Aidon_List3PhaseIT::ActiveImportPower);
-        data["P"]       = p;
-        data["Q"]       = hanReader.getInt(             (int)Aidon_List3PhaseIT::ReactiveExportPower);
-        double i1       = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CurrentL1)) / 10;
-        double i3       = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CurrentL3)) / 10;
-        double u1       = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL1)) / 10;
-        double u2       = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL2)) / 10;
-        double u3       = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL3)) / 10;
-        double i2       = 0.00;
-        data["I1"]      = i1;
-        data["I2"]      = i2;
-        data["I3"]      = i3;
-        data["U1"]      = u1;
-        data["U2"]      = u2;
-        data["U3"]      = u3;
+        data["P"]       = hanReader.getInt(             (int)Aidon_List3PhaseIT::ActiveImportPower);
+        data["Q"]       = hanReader.getInt(             (int)Aidon_List3PhaseIT::ReactiveImportPower);
+        data["PO"]      = hanReader.getInt(             (int)Aidon_List3PhaseIT::ActiveExportPower);
+        data["QO"]      = hanReader.getInt(             (int)Aidon_List3PhaseIT::ReactiveExportPower);
+        data["I1"]      = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CurrentL1)) / 10;
+        data["I1"]      = 0;
+        data["I3"]      = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CurrentL3)) / 10;
+        data["U1"]      = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL1)) / 10;
+        data["U2"]      = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL2)) / 10;
+        data["U3"]      = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL3)) / 10;
     }
 
     if (listSize >= (int)Aidon::List3PhaseITLong)
@@ -196,6 +199,8 @@ static void hanToJsonKamstrup3phase(int listSize, JsonObject& data, HanReader& h
         data["type"]    = hanReader.getString(       (int)Kamstrup_List3Phase::MeterType);
         data["P"]       = hanReader.getInt(          (int)Kamstrup_List3Phase::ActiveImportPower);
         data["Q"]       = hanReader.getInt(          (int)Kamstrup_List3Phase::ReactiveImportPower);
+        data["PO"]      = hanReader.getInt(          (int)Kamstrup_List3Phase::ActiveExportPower);
+        data["QO"]      = hanReader.getInt(          (int)Kamstrup_List3Phase::ReactiveExportPower);
         data["I1"]      = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CurrentL1)) / 100;
         data["I2"]      = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CurrentL2)) / 100;
         data["I3"]      = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CurrentL3)) / 100;
@@ -222,6 +227,8 @@ static void hanToJsonKamstrup1phase(int listSize, JsonObject& data, HanReader& h
         data["type"]    = hanReader.getString(       (int)Kamstrup_List1Phase::MeterType);
         data["P"]       = hanReader.getInt(          (int)Kamstrup_List1Phase::ActiveImportPower);
         data["Q"]       = hanReader.getInt(          (int)Kamstrup_List1Phase::ReactiveImportPower);
+        data["PO"]      = hanReader.getInt(          (int)Kamstrup_List1Phase::ActiveExportPower);
+        data["QO"]      = hanReader.getInt(          (int)Kamstrup_List1Phase::ReactiveExportPower);
         data["I1"]      = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CurrentL1)) / 100;
         data["U1"]      = hanReader.getInt(          (int)Kamstrup_List1Phase::VoltageL1);
     }

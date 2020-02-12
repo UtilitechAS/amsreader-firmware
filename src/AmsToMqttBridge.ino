@@ -28,7 +28,7 @@ AmsWebServer ws;
 
 // WiFi client and MQTT client
 WiFiClient *client;
-MQTTClient mqtt(384);
+MQTTClient mqtt(512);
 
 // Object used for debugging
 HardwareSerial* debugger = NULL;

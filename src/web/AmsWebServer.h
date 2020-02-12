@@ -2,6 +2,7 @@
 #define _AMSWEBSERVER_h
 
 #include <ArduinoJson.h>
+#include <MQTT.h>
 #include "configuration.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
@@ -22,17 +23,18 @@
 
 class AmsWebServer {
 public:
-    void setup(configuration* config, Stream* debugger);
+    void setup(configuration* config, Stream* debugger, MQTTClient* mqtt);
     void loop();
 	void setJson(StaticJsonDocument<500> json);
 
 private:
     configuration* config;
 	Stream* debugger;
+	MQTTClient* mqtt;
     StaticJsonDocument<500> json;
     int maxPwr;
 	int p;
-	double u1, u2, u3, i1, i2, i3;
+	double u1, u2, u3, i1, i2, i3, tpi, tpo, tqi, tqo;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;

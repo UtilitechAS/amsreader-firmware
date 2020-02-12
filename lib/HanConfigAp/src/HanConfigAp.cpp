@@ -28,8 +28,8 @@ void HanConfigAp::setup(int accessPointButtonPin, configuration* config, Stream*
 			// Assign pin for boot as AP
 			pinMode(accessPointButtonPin, INPUT_PULLUP);
 
-			// Test if we're holding down the AP pin, over 5 seconds
-			int time = millis() + 5000;
+			// Test if we're holding down the AP pin, over 1 second
+			int time = millis() + 1000;
 			print("Press the AP button now to boot as access point");
 			while (millis() < time)
 			{
@@ -55,8 +55,8 @@ void HanConfigAp::setup(int accessPointButtonPin, configuration* config, Stream*
 		WiFi.mode(WIFI_OFF);
 		delay(2000);
 
-		WiFi.softAP(AP_SSID);
 		WiFi.mode(WIFI_AP);
+		WiFi.softAP(AP_SSID);
 
 		/* Setup the DNS server redirecting all the domains to this IP */
 		dnsServer.setErrorReplyCode(DNSReplyCode::NoError);

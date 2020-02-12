@@ -4,6 +4,10 @@
  Author:	roarf
 */
 
+#if defined(ESP8266)
+ADC_MODE(ADC_VCC);  
+#endif  
+
 #include "AmsToMqttBridge.h"
 #include <ArduinoJson.h>
 #include <MQTT.h>
@@ -59,7 +63,24 @@ void setup() {
 	if (debugger) {
 		debugger->println("");
 		debugger->println("Started...");
+#if defined(ESP8266)
+		debugger->print("Voltage: ");
+		debugger->print(ESP.getVcc());
+		debugger->println("mV");
+#endif
 	}
+
+#if defined(ESP8266)
+	if (ESP.getVcc() < 2800) {
+		if(debugger) {
+			debugger->print("Voltage is too low: ");
+			debugger->print(ESP.getVcc());
+			debugger->println("mV");
+			debugger->flush();
+		}
+		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
+	}  
+#endif
 
 	// Flash the LED, to indicate we can boot as AP now
 	pinMode(LED_PIN, OUTPUT);
@@ -99,7 +120,7 @@ void setup() {
 	// Compensate for the known Kaifa bug
 	hanReader.compensateFor09HeaderBug = (config.meterType == 1);
 
-	ws.setup(&config, debugger);
+	ws.setup(&config, debugger, &mqtt);
 }
 
 // the loop function runs over and over again until power down or reset
@@ -123,8 +144,16 @@ void loop() {
 		}
 	} else {
 		// Continously flash the LED when AP mode
-		if (millis() / 1000 % 2 == 0)   led_on();
+		if (millis() / 50 % 64 == 0)   led_on();
 		else							led_off();
+
+#if defined(ESP8266)
+		// Make sure there is enough power to run
+		delay(max(10, 3500-ESP.getVcc()));
+#else
+		delay(10);
+#endif
+
 	}
 	readHanPort();
 	ws.loop();
@@ -208,6 +237,12 @@ void readHanPort() {
 			json["id"] = WiFi.macAddress();
 			json["up"] = millis();
 			json["t"] = time;
+#if defined(ESP8266)
+			json["vcc"] = ((double) ESP.getVcc()) / 1000;
+#endif
+			float rssi = WiFi.RSSI();
+			rssi = isnan(rssi) ? -100.0 : rssi;
+			json["rssi"] = rssi;
 
 			// Add a sub-structure to the json object,
 			// to keep the data from the meter itself
@@ -400,6 +435,9 @@ void sendMqttData(String data)
 	json["id"] = WiFi.macAddress();
 	json["up"] = millis();
 	json["data"] = data;
+#if defined(ESP8266)
+	json["vcc"] = ((double) ESP.getVcc()) / 1000;
+#endif
 
 	// Stringify the json
 	String msg;

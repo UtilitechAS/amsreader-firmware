@@ -14,9 +14,10 @@ ESP8266WebServer server(80);
 WebServer server(80);
 #endif
 
-void AmsWebServer::setup(configuration* config, Stream* debugger) {
+void AmsWebServer::setup(configuration* config, Stream* debugger, MQTTClient* mqtt) {
     this->config = config;
     this->debugger = debugger;
+	this->mqtt = mqtt;
 
 	server.on("/", std::bind(&AmsWebServer::indexHtml, this));
 	server.on("/configuration", std::bind(&AmsWebServer::configurationHtml, this));
@@ -59,7 +60,6 @@ void AmsWebServer::setJson(StaticJsonDocument<500> json) {
 				}
 			}
 
-
 			if(maxPwr == 0 && config->hasConfig() && config->fuseSize > 0 && config->distSys > 0) {
 				int volt = config->distSys == 2 ? 400 : 230;
 				if(u2 > 0) {
@@ -67,6 +67,13 @@ void AmsWebServer::setJson(StaticJsonDocument<500> json) {
 				} else {
 					maxPwr = config->fuseSize * 230;
 				}
+			}
+
+			if(json["data"].containsKey("tPI")) {
+				tpi = json["data"]["tPI"].as<double>();
+				tpo = json["data"]["tPO"].as<double>();
+				tqi = json["data"]["tQI"].as<double>();
+				tqo = json["data"]["tQO"].as<double>();
 			}
 		} else {
 			if(u1 > 0) {
@@ -80,6 +87,12 @@ void AmsWebServer::setJson(StaticJsonDocument<500> json) {
 			if(u3 > 0) {
 				json["data"]["U3"] = u3;
 				json["data"]["I3"] = i3;
+			}
+			if(tpi > 0) {
+				json["data"]["tPI"] = tpi;
+				json["data"]["tPO"] = tpo;
+				json["data"]["tQI"] = tqi;
+				json["data"]["tQO"] = tqo;
 			}
 		}
 	    this->json = json;
@@ -135,6 +148,24 @@ void AmsWebServer::indexHtml() {
 	html.replace("${data.U3}", u3 > 0 ? String(u3, 1) : "");
 	html.replace("${data.I3}", u3 > 0 ? String(i3, 1) : "");
 	html.replace("${display.P3}", u3 > 0 ? "" : "none");
+
+	html.replace("${data.tPI}", tpi > 0 ? String(tpi, 1) : "");
+	html.replace("${data.tPO}", tpi > 0 ? String(tpo, 1) : "");
+	html.replace("${data.tQI}", tpi > 0 ? String(tqi, 1) : "");
+	html.replace("${data.tQO}", tpi > 0 ? String(tqo, 1) : "");
+	html.replace("${display.accumulative}", tpi > 0 ? "" : "none");
+
+	double vcc = 0;
+#if defined(ESP8266)	
+	vcc = ((double) ESP.getVcc()) / 1000;
+#endif
+	html.replace("${vcc}", vcc > 0 ? String(vcc, 2) : "");
+
+	float rssi = WiFi.RSSI();
+	rssi = isnan(rssi) ? -100.0 : rssi;
+	html.replace("${wifi.rssi}", vcc > 0 ? String(rssi, 0) : "");
+	html.replace("${wifi.channel}", WiFi.channel() > 0 ? String(WiFi.channel()) : "");
+	html.replace("${wifi.ssid}", !WiFi.SSID().isEmpty() ? String(WiFi.SSID()) : "");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -209,8 +240,10 @@ void AmsWebServer::dataJson() {
 	if(!checkSecurity(2))
 		return;
 
+	StaticJsonDocument<500> json;
+
     String jsonStr;
-	if(!json.isNull()) {
+	if(!this->json.isNull() && this->json.containsKey("data")) {
 		println(" json has data");
 
 		int maxPwr = this->maxPwr;
@@ -222,16 +255,90 @@ void AmsWebServer::dataJson() {
 			}
 		}
 
-		json["maxPower"] = maxPwr;
-		json["pct"]     = min(p*100/maxPwr, 100);
-		json["meterType"] = config->meterType;
-		json["currentMillis"] = millis();
+		json["up"] = this->json["up"];
+		json["t"] = this->json["t"];
+		json["data"] = this->json["data"];
 
-		serializeJson(json, jsonStr);
+		json["pct"]     = min(p*100/maxPwr, 100);
 	} else {
+		json["pct"]     = -1;
 		println(" json is empty");
-		jsonStr = "{}";
 	}
+
+	unsigned long now = millis();
+	json["id"] = WiFi.macAddress();
+	json["maxPower"] = maxPwr;
+	json["meterType"] = config->meterType;
+	json["currentMillis"] = now;
+
+	double vcc = 0;
+#if defined(ESP8266)	
+	vcc = ((double) ESP.getVcc()) / 1000;
+#endif
+	json["vcc"] = vcc;
+
+	json.createNestedObject("wifi");
+	float rssi = WiFi.RSSI();
+	rssi = isnan(rssi) ? -100.0 : rssi;
+	json["wifi"]["ssid"] = WiFi.SSID();
+	json["wifi"]["channel"] = (int) WiFi.channel();
+	json["wifi"]["rssi"] = rssi;
+
+	json.createNestedObject("status");
+
+	String espStatus;
+	if(vcc == 0) {
+		espStatus = "secondary";
+	} else if(vcc > 3.1) {
+		espStatus = "success";
+	} else if(vcc > 2.8) {
+		espStatus = "warning";
+	} else {
+		espStatus = "danger";
+	}
+	json["status"]["esp"] = espStatus;
+
+	unsigned long lastHan = json.isNull() ? 0 : json["up"].as<unsigned long>();
+	String hanStatus;
+	if(config->meterType == 0) {
+		hanStatus = "secondary";
+	} else if(now - lastHan < 15000) {
+		hanStatus = "success";
+	} else if(now - lastHan < 30000) {
+		hanStatus = "warning";
+	} else {
+		hanStatus = "danger";
+	}
+	json["status"]["han"] = hanStatus;
+
+	String wifiStatus;
+	if(!config->ssid) {
+		wifiStatus = "secondary";
+	} else if(rssi > -75) {
+		wifiStatus = "success";
+	} else if(rssi > -95) {
+		wifiStatus = "warning";
+	} else {
+		wifiStatus = "danger";
+	}
+	json["status"]["wifi"] = wifiStatus;
+
+	String mqttStatus;
+	if(!config->mqttHost) {
+		mqttStatus = "secondary";
+	} else if(mqtt->connected()) {
+		mqttStatus = "success";
+	} else if(mqtt->lastError() == 0) {
+		mqttStatus = "warning";
+	} else {
+		mqttStatus = "danger";
+	}
+	json["status"]["mqtt"] = mqttStatus;
+
+	json.createNestedObject("mqtt");
+	json["mqtt"]["lastError"] = (int) mqtt->lastError();
+
+	serializeJson(json, jsonStr);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");

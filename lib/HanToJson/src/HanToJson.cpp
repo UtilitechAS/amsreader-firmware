@@ -102,10 +102,10 @@ static void hanToJsonAidon3phase(int listSize, JsonObject& data, HanReader& hanR
 
     if (listSize >= (int)Aidon::List3PhaseLong)
     {
-        data["tPI"]     = hanReader.getInt(             (int)Aidon_List3Phase::CumulativeActiveImportEnergy);
-        data["tPO"]     = hanReader.getInt(             (int)Aidon_List3Phase::CumulativeActiveExportEnergy);
-        data["tQI"]     = hanReader.getInt(             (int)Aidon_List3Phase::CumulativeReactiveImportEnergy);
-        data["tQO"]     = hanReader.getInt(             (int)Aidon_List3Phase::CumulativeReactiveExportEnergy);
+        data["tPI"]     = ((double) hanReader.getInt(   (int)Aidon_List3Phase::CumulativeActiveImportEnergy)) / 100;
+        data["tPO"]     = ((double) hanReader.getInt(   (int)Aidon_List3Phase::CumulativeActiveExportEnergy)) / 100;
+        data["tQI"]     = ((double) hanReader.getInt(   (int)Aidon_List3Phase::CumulativeReactiveImportEnergy)) / 100;
+        data["tQO"]     = ((double) hanReader.getInt(   (int)Aidon_List3Phase::CumulativeReactiveExportEnergy)) / 100;
     }
 }
 
@@ -126,10 +126,10 @@ static void hanToJsonAidon1phase(int listSize, JsonObject& data, HanReader& hanR
 
     if (listSize >= (int)Aidon::List1PhaseLong)
     {
-        data["tPI"]     = hanReader.getInt(             (int)Aidon_List1Phase::CumulativeActiveImportEnergy);
-        data["tPO"]     = hanReader.getInt(             (int)Aidon_List1Phase::CumulativeActiveExportEnergy);
-        data["tQI"]     = hanReader.getInt(             (int)Aidon_List1Phase::CumulativeReactiveImportEnergy);
-        data["tQO"]     = hanReader.getInt(             (int)Aidon_List1Phase::CumulativeReactiveExportEnergy);
+        data["tPI"]     = ((double) hanReader.getInt(   (int)Aidon_List1Phase::CumulativeActiveImportEnergy)) / 100;
+        data["tPO"]     = ((double) hanReader.getInt(   (int)Aidon_List1Phase::CumulativeActiveExportEnergy)) / 100;
+        data["tQI"]     = ((double) hanReader.getInt(   (int)Aidon_List1Phase::CumulativeReactiveImportEnergy)) / 100;
+        data["tQO"]     = ((double) hanReader.getInt(   (int)Aidon_List1Phase::CumulativeReactiveExportEnergy)) / 100;
     }
 }
 
@@ -154,10 +154,10 @@ static void hanToJsonAidon3phaseIT(int listSize, JsonObject& data, HanReader& ha
 
     if (listSize >= (int)Aidon::List3PhaseITLong)
     {
-        data["tPI"]     = hanReader.getInt(             (int)Aidon_List3PhaseIT::CumulativeActiveImportEnergy);
-        data["tPO"]     = hanReader.getInt(             (int)Aidon_List3PhaseIT::CumulativeActiveExportEnergy);
-        data["tQI"]     = hanReader.getInt(             (int)Aidon_List3PhaseIT::CumulativeReactiveImportEnergy);
-        data["tQO"]     = hanReader.getInt(             (int)Aidon_List3PhaseIT::CumulativeReactiveExportEnergy);
+        data["tPI"]     = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CumulativeActiveImportEnergy)) / 100;
+        data["tPO"]     = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CumulativeActiveExportEnergy)) / 100;
+        data["tQI"]     = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CumulativeReactiveImportEnergy)) / 100;
+        data["tQO"]     = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CumulativeReactiveExportEnergy)) / 100;
     }
 }
 

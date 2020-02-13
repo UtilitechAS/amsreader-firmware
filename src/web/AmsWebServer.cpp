@@ -41,7 +41,7 @@ void AmsWebServer::loop() {
 	server.handleClient();
 }
 
-void AmsWebServer::setJson(StaticJsonDocument<500> json) {
+void AmsWebServer::setJson(StaticJsonDocument<1024> json) {
 	if(!json.isNull()) {
 		p = json["data"]["P"].as<int>();
 

@@ -194,6 +194,7 @@ static void hanToJsonKamstrup3phase(int listSize, JsonObject& data, HanReader& h
 {
     if (listSize >= (int)Kamstrup::List3PhaseShort)
     {
+        data["ls"]      = listSize;
         data["lv"]      = hanReader.getString(       (int)Kamstrup_List3Phase::ListVersionIdentifier);
         data["id"]      = hanReader.getString(       (int)Kamstrup_List3Phase::MeterID);
         data["type"]    = hanReader.getString(       (int)Kamstrup_List3Phase::MeterType);

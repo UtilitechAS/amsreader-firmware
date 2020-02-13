@@ -63,7 +63,7 @@
 </head>
 <body class="bg-light">
 <main role="main" class="container">
-    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bg-purple rounded mt-2">
+    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bg-purple rounded mt-2 mb-4">
         <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
@@ -172,7 +172,7 @@
                     <div class="col-6">RSSI</div>
                     <div class="col-6 text-right"><span id="rssi">${wifi.rssi}</span> dBm</div>
                 </div>
-                <hr/>
+                <hr class="d-none mqtt-error mqtt-error-1 mqtt-error-2 mqtt-error-3 mqtt-error-4 mqtt-error-5 mqtt-error-6 mqtt-error-7 mqtt-error-8 mqtt-error-9 mqtt-error-10 mqtt-error-11 mqtt-error-12 mqtt-error-13"/>
                 <div class="d-none badge badge-danger mqtt-error mqtt-error-1 mqtt-error-2 mqtt-error-5 mqtt-error-6 mqtt-error-7 mqtt-error-8 mqtt-error-9 mqtt-error-12">MQTT communication error (<span id="mqtt-lastError">-</span>)</div>
                 <div class="d-none badge badge-danger mqtt-error mqtt-error-3">MQTT failed to connect</div>
                 <div class="d-none badge badge-danger mqtt-error mqtt-error-4">MQTT network timeout</div>
@@ -280,7 +280,7 @@ var fetch = function() {
         setTimeout(fetch, interval*4);
     });
 }
-setTimeout(fetch, interval);
+fetch();
 </script>
 </body>
 </html>

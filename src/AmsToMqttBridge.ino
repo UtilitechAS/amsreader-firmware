@@ -131,6 +131,7 @@ void loop()
 		else							led_off();
 	}
 	ws.loop();
+	delay(1); // Needed for auto modem sleep
 }
 
 

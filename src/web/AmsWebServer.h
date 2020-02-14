@@ -25,13 +25,13 @@ class AmsWebServer {
 public:
     void setup(configuration* config, Stream* debugger, MQTTClient* mqtt);
     void loop();
-	void setJson(StaticJsonDocument<500> json);
+	void setJson(StaticJsonDocument<1024> json);
 
 private:
     configuration* config;
 	Stream* debugger;
 	MQTTClient* mqtt;
-    StaticJsonDocument<500> json;
+    StaticJsonDocument<1024> json;
     int maxPwr;
 	int p;
 	double u1, u2, u3, i1, i2, i3, tpi, tpo, tqi, tqo;

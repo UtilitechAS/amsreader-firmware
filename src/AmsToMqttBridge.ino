@@ -231,7 +231,7 @@ void readHanPort() {
 			if (debugger) debugger->println(time);
 
 			// Define a json object to keep the data
-			StaticJsonDocument<500> json;
+			StaticJsonDocument<1024> json;
 
 			// Any generic useful info here
 			json["id"] = WiFi.macAddress();

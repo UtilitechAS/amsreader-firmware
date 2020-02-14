@@ -25,6 +25,7 @@ static void hanToJsonKaifa3phase(int listSize, JsonObject& data, HanReader& hanR
 
     if (listSize >=  (int)Kaifa::List3PhaseLong)
     {
+        data["rtc"]  = hanReader.getTime(         (int)Kaifa_List3Phase::MeterClock);
         data["tPI"]  = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeActiveImportEnergy);
         data["tPO"]  = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeActiveExportEnergy);
         data["tQI"]  = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeReactiveImportEnergy);
@@ -49,6 +50,7 @@ static void hanToJsonKaifa1phase(int listSize, JsonObject& data, HanReader& hanR
 
     if (listSize >=  (int)Kaifa::List1PhaseLong)
     {
+        data["rtc"]  = hanReader.getTime(         (int)Kaifa_List1Phase::MeterClock);
         data["tPI"]  = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeActiveImportEnergy);
         data["tPO"]  = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeActiveExportEnergy);
         data["tQI"]  = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeReactiveImportEnergy);
@@ -81,10 +83,8 @@ static void hanToJsonKaifa(JsonObject& data, HanReader& hanReader, Stream *debug
 }
 
 
-static void hanToJsonAidon3phase(int listSize, JsonObject& data, HanReader& hanReader, Stream *debugger)
-{
-    if (listSize >= (int)Aidon::List3PhaseShort)
-    {
+static void hanToJsonAidon3phase(int listSize, JsonObject& data, HanReader& hanReader, Stream *debugger) {
+    if (listSize >= (int)Aidon::List3PhaseShort) {
         data["lv"]      = hanReader.getString(          (int)Aidon_List3Phase::ListVersionIdentifier);
         data["id"]      = hanReader.getString(          (int)Aidon_List3Phase::MeterID);
         data["type"]    = hanReader.getString(          (int)Aidon_List3Phase::MeterType);
@@ -102,6 +102,7 @@ static void hanToJsonAidon3phase(int listSize, JsonObject& data, HanReader& hanR
 
     if (listSize >= (int)Aidon::List3PhaseLong)
     {
+        data["rtc"]     = hanReader.getTime(            (int)Aidon_List3Phase::Timestamp);
         data["tPI"]     = ((double) hanReader.getInt(   (int)Aidon_List3Phase::CumulativeActiveImportEnergy)) / 100;
         data["tPO"]     = ((double) hanReader.getInt(   (int)Aidon_List3Phase::CumulativeActiveExportEnergy)) / 100;
         data["tQI"]     = ((double) hanReader.getInt(   (int)Aidon_List3Phase::CumulativeReactiveImportEnergy)) / 100;
@@ -126,6 +127,7 @@ static void hanToJsonAidon1phase(int listSize, JsonObject& data, HanReader& hanR
 
     if (listSize >= (int)Aidon::List1PhaseLong)
     {
+        data["rtc"]     = hanReader.getTime(            (int)Aidon_List1Phase::Timestamp);
         data["tPI"]     = ((double) hanReader.getInt(   (int)Aidon_List1Phase::CumulativeActiveImportEnergy)) / 100;
         data["tPO"]     = ((double) hanReader.getInt(   (int)Aidon_List1Phase::CumulativeActiveExportEnergy)) / 100;
         data["tQI"]     = ((double) hanReader.getInt(   (int)Aidon_List1Phase::CumulativeReactiveImportEnergy)) / 100;
@@ -154,6 +156,7 @@ static void hanToJsonAidon3phaseIT(int listSize, JsonObject& data, HanReader& ha
 
     if (listSize >= (int)Aidon::List3PhaseITLong)
     {
+        data["rtc"]     = hanReader.getTime(            (int)Aidon_List3PhaseIT::Timestamp);
         data["tPI"]     = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CumulativeActiveImportEnergy)) / 100;
         data["tPO"]     = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CumulativeActiveExportEnergy)) / 100;
         data["tQI"]     = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CumulativeReactiveImportEnergy)) / 100;
@@ -190,10 +193,8 @@ static void hanToJsonAidon(JsonObject& data, HanReader& hanReader, Stream *debug
     }
 }
 
-static void hanToJsonKamstrup3phase(int listSize, JsonObject& data, HanReader& hanReader, Stream *debugger)
-{
-    if (listSize >= (int)Kamstrup::List3PhaseShort)
-    {
+static void hanToJsonKamstrup3phase(int listSize, JsonObject& data, HanReader& hanReader, Stream *debugger) {
+    if (listSize >= (int)Kamstrup::List3PhaseShort) {
         data["lv"]      = hanReader.getString(       (int)Kamstrup_List3Phase::ListVersionIdentifier);
         data["id"]      = hanReader.getString(       (int)Kamstrup_List3Phase::MeterID);
         data["type"]    = hanReader.getString(       (int)Kamstrup_List3Phase::MeterType);
@@ -211,6 +212,7 @@ static void hanToJsonKamstrup3phase(int listSize, JsonObject& data, HanReader& h
 
     if (listSize >= (int)Kamstrup::List3PhaseLong)
     {
+        data["rtc"]     = hanReader.getTime(         (int)Kamstrup_List3Phase::MeterClock);
         data["tPI"]     = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CumulativeActiveImportEnergy)) / 100;
         data["tPO"]     = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CumulativeActiveExportEnergy)) / 100;
         data["tQI"]     = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CumulativeReactiveImportEnergy)) / 100;
@@ -218,10 +220,8 @@ static void hanToJsonKamstrup3phase(int listSize, JsonObject& data, HanReader& h
     }
 }
 
-static void hanToJsonKamstrup1phase(int listSize, JsonObject& data, HanReader& hanReader, Stream *debugger)
-{
-    if (listSize >= (int)Kamstrup::List1PhaseShort)
-    {
+static void hanToJsonKamstrup1phase(int listSize, JsonObject& data, HanReader& hanReader, Stream *debugger) {
+    if (listSize >= (int)Kamstrup::List1PhaseShort) {
         data["lv"]      = hanReader.getString(       (int)Kamstrup_List1Phase::ListVersionIdentifier);
         data["id"]      = hanReader.getString(       (int)Kamstrup_List1Phase::MeterID);
         data["type"]    = hanReader.getString(       (int)Kamstrup_List1Phase::MeterType);
@@ -235,6 +235,7 @@ static void hanToJsonKamstrup1phase(int listSize, JsonObject& data, HanReader& h
 
     if (listSize >= (int)Kamstrup::List1PhaseLong)
     {
+        data["rtc"]     = hanReader.getTime(         (int)Kamstrup_List1Phase::MeterClock);
         data["tPI"]     = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeActiveImportEnergy)) / 100;
         data["tPO"]     = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeActiveExportEnergy)) / 100;
         data["tQI"]     = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeReactiveImportEnergy)) / 100;
@@ -242,8 +243,7 @@ static void hanToJsonKamstrup1phase(int listSize, JsonObject& data, HanReader& h
     }
 }
 
-static void hanToJsonKamstrup(JsonObject& data, HanReader& hanReader, Stream *debugger)
-{
+static void hanToJsonKamstrup(JsonObject& data, HanReader& hanReader, Stream *debugger) {
     int listSize = hanReader.getListSize();
 
     switch (listSize) {

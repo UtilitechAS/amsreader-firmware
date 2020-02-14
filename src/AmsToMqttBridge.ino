@@ -4,14 +4,16 @@
  Author:	roarf
 */
 
-#if defined(ESP8266)
-ADC_MODE(ADC_VCC);  
-#endif   
-
 #include "AmsToMqttBridge.h"
 #include <ArduinoJson.h>
 #include <MQTT.h>
 #include <DNSServer.h>
+
+#if defined(ESP8266)
+ADC_MODE(ADC_VCC);  
+#endif   
+
+#include "HwTools.h"
 
 #include "web/AmsWebServer.h"
 #include "AmsConfiguration.h"
@@ -21,6 +23,8 @@ ADC_MODE(ADC_VCC);
 #include "Aidon.h"
 #include "Kaifa.h"
 #include "Kamstrup.h"
+
+HwTools hw;
 
 DNSServer dnsServer;
 
@@ -40,6 +44,8 @@ Stream* debugger = NULL;
 // The HAN Port reader, used to read serial data and decode DLMS
 HanReader hanReader;
 
+boolean hasTempSensor = false;
+
 // the setup function runs once when you press reset or power the board
 void setup() {
 	if(config.hasConfig()) {
@@ -58,27 +64,25 @@ void setup() {
 	debugger = ser;
 #endif
 
+	double vcc = hw.getVcc();
+
 	if (debugger) {
 		debugger->println("");
 		debugger->println("Started...");
-#if defined(ESP8266)
 		debugger->print("Voltage: ");
-		debugger->print(ESP.getVcc());
+		debugger->print(vcc);
 		debugger->println("mV");
-#endif
 	}
 
-#if defined(ESP8266)
-	if (ESP.getVcc() < 2800) {
+	if (vcc > 0 && vcc < 3.1) {
 		if(debugger) {
 			debugger->print("Voltage is too low: ");
-			debugger->print(ESP.getVcc());
+			debugger->print(vcc);
 			debugger->println("mV");
 			debugger->flush();
 		}
 		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
 	}  
-#endif
 
 	// Flash the LED, to indicate we can boot as AP now
 	pinMode(LED_PIN, OUTPUT);
@@ -87,6 +91,14 @@ void setup() {
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
+
+	if(debugger) {
+		if(hasTempSensor) {
+			debugger->println("Has temp sensor");
+		} else {
+			debugger->println("No temp sensor found");
+		}
+	}
 
 	if(config.hasConfig()) {
 		if(debugger) config.print(debugger);
@@ -177,12 +189,13 @@ void loop() {
 		if (millis() / 50 % 64 == 0)   led_on();
 		else							led_off();
 
-#if defined(ESP8266)
 		// Make sure there is enough power to run
-		delay(max(10, 3500-ESP.getVcc()));
-#else
-		delay(10);
-#endif
+		double vcc = hw.getVcc();
+		if(vcc > 0) {
+			delay(max(10, 3500-(int)(vcc*1000)));
+		} else {
+			delay(10);
+		}
 
 	}
 	readHanPort();
@@ -271,22 +284,21 @@ void readHanPort() {
 			json["id"] = WiFi.macAddress();
 			json["up"] = millis();
 			json["t"] = time;
-#if defined(ESP8266)
-			json["vcc"] = ((double) ESP.getVcc()) / 1000;
-#endif
+			double vcc = hw.getVcc();
+			if(vcc > 0) {
+				json["vcc"] = vcc;
+			}
 			float rssi = WiFi.RSSI();
 			rssi = isnan(rssi) ? -100.0 : rssi;
 			json["rssi"] = rssi;
+			double temp = hw.getTemperature();
+			if(temp != -127) {
+				json["temp"] = temp;
+			}
 
 			// Add a sub-structure to the json object,
 			// to keep the data from the meter itself
 			JsonObject data = json.createNestedObject("data");
-
-#if defined TEMP_SENSOR_PIN
-			// Get the temperature too
-			tempSensor.requestTemperatures();
-			data["temp"] = tempSensor.getTempCByIndex(0);
-#endif
 
 			hanToJson(data, config.getMeterType(), hanReader);
 
@@ -387,7 +399,6 @@ void WiFi_connect() {
 
 		WiFi.enableAP(false);
 		WiFi.mode(WIFI_STA);
-		WiFi.setOutputPower(0);
 		if(!config.getWifiIp().isEmpty()) {
 			IPAddress ip, gw, sn(255,255,255,0);
 			ip.fromString(config.getWifiIp());
@@ -458,9 +469,10 @@ void sendMqttData(String data)
 	json["id"] = WiFi.macAddress();
 	json["up"] = millis();
 	json["data"] = data;
-#if defined(ESP8266)
-	json["vcc"] = ((double) ESP.getVcc()) / 1000;
-#endif
+	double vcc = hw.getVcc();
+	if(vcc > 0) {
+		json["vcc"] = vcc;
+	}
 	float rssi = WiFi.RSSI();
 	rssi = isnan(rssi) ? -100.0 : rssi;
 	json["rssi"] = rssi;
@@ -475,3 +487,5 @@ void sendMqttData(String data)
 	if (debugger) debugger->print("sendMqttData: ");
 	if (debugger) debugger->println(data);
 }
+
+

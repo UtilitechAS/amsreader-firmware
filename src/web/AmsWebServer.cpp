@@ -153,10 +153,7 @@ void AmsWebServer::indexHtml() {
 	html.replace("${data.tQO}", tpi > 0 ? String(tqo, 1) : "");
 	html.replace("${display.accumulative}", tpi > 0 ? "" : "none");
 
-	double vcc = 0;
-#if defined(ESP8266)	
-	vcc = ((double) ESP.getVcc()) / 1000;
-#endif
+	double vcc = hw.getVcc();
 	html.replace("${vcc}", vcc > 0 ? String(vcc, 2) : "");
 
 	float rssi = WiFi.RSSI();
@@ -321,12 +318,8 @@ void AmsWebServer::dataJson() {
 	json["maxPower"] = maxPwr;
 	json["meterType"] = config->getMeterType();
 	json["currentMillis"] = now;
-
-	double vcc = 0;
-#if defined(ESP8266)	
-	vcc = ((double) ESP.getVcc()) / 1000;
-#endif
-	json["vcc"] = vcc;
+	double vcc = hw.getVcc();
+	json["vcc"] = vcc > 0 ? vcc : 0;
 
 	json.createNestedObject("wifi");
 	float rssi = WiFi.RSSI();

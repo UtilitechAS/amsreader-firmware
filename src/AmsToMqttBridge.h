@@ -14,10 +14,7 @@
 #define LED_PIN 2 // The blue on-board LED of the ESP8266 custom AMS board
 #define LED_ACTIVE_HIGH 0
 #define AP_BUTTON_PIN 0
-
-#include <DallasTemperature.h>
-#include <OneWire.h>
-#define TEMP_SENSOR_PIN 5 // Temperature sensor connected to GPIO5
+#define TEMP_SENSOR_PIN 5
 
 #if DEBUG_MODE
 #define SOFTWARE_SERIAL 1
@@ -32,6 +29,7 @@ HardwareSerial *hanSerial = &Serial;
 #define LED_PIN 5
 #define LED_ACTIVE_HIGH 0
 #define AP_BUTTON_PIN 4
+#define TEMP_SENSOR_PIN 14
 
 #define SOFTWARE_SERIAL 1
 #include <SoftwareSerial.h>
@@ -42,6 +40,7 @@ SoftwareSerial *hanSerial = new SoftwareSerial(GPIO_NUM_21);
 #define LED_PIN D4
 #define LED_ACTIVE_HIGH 0
 #define AP_BUTTON_PIN D2
+#define TEMP_SENSOR_PIN D5
 
 #define SOFTWARE_SERIAL 1
 #include <SoftwareSerial.h>
@@ -63,10 +62,4 @@ HardwareSerial *hanSerial = &Serial;
 #define SOFTWARE_SERIAL 1
 #include <SoftwareSerial.h>
 SoftwareSerial *hanSerial = new SoftwareSerial(5);
-#endif
-
-
-#if defined TEMP_SENSOR_PIN
-OneWire oneWire(TEMP_SENSOR_PIN);
-DallasTemperature tempSensor(&oneWire);
 #endif

@@ -4,6 +4,7 @@
 #include <ArduinoJson.h>
 #include <MQTT.h>
 #include "AmsConfiguration.h"
+#include "HwTools.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -28,6 +29,7 @@ public:
 	void setJson(StaticJsonDocument<1024> json);
 
 private:
+	HwTools hw;
     AmsConfiguration* config;
 	Stream* debugger;
 	MQTTClient* mqtt;

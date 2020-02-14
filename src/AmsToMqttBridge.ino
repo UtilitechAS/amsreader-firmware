@@ -6,14 +6,15 @@
 
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);  
-#endif  
+#endif   
 
 #include "AmsToMqttBridge.h"
 #include <ArduinoJson.h>
 #include <MQTT.h>
+#include <DNSServer.h>
 
 #include "web/AmsWebServer.h"
-#include "HanConfigAp.h"
+#include "AmsConfiguration.h"
 #include "HanReader.h"
 #include "HanToJson.h"
 
@@ -21,11 +22,10 @@ ADC_MODE(ADC_VCC);
 #include "Kaifa.h"
 #include "Kamstrup.h"
 
-// Configuration
-configuration config;
+DNSServer dnsServer;
 
-// Object used to boot as Access Point
-HanConfigAp ap;
+// Configuration
+AmsConfiguration config;
 
 // Web server
 AmsWebServer ws;
@@ -51,7 +51,7 @@ void setup() {
 	#if SOFTWARE_SERIAL
 		debugger->begin(115200, SERIAL_8N1);
 	#else
-		if(config.meterType == 3) {
+		if(config.getMeterType() == 3) {
 			hanSerial->begin(2400, SERIAL_8N1);
 		} else {
 			hanSerial->begin(2400, SERIAL_8E1);
@@ -84,27 +84,31 @@ void setup() {
 
 	// Flash the LED, to indicate we can boot as AP now
 	pinMode(LED_PIN, OUTPUT);
-	led_on();
+	pinMode(AP_BUTTON_PIN, INPUT_PULLUP);
 
-	delay(1000);
+	WiFi.disconnect(true);
+	WiFi.softAPdisconnect(true);
+	WiFi.mode(WIFI_OFF);
 
-	// Initialize the AP
-	ap.setup(AP_BUTTON_PIN, &config, debugger);
-
-	led_off();
-
-	if (!ap.isActivated) {
-		setupWiFi();
+	if(config.hasConfig()) {
+		if(debugger) config.print(debugger);
+		client = new WiFiClient();
+	} else {
+		if(debugger) {
+			debugger->println("No configuration, booting AP");
+		}
+		swapWifiMode();
 	}
 
 #if defined SOFTWARE_SERIAL
-	if(config.meterType == 3) {
+	if(config.getMeterType() == 3) {
 		hanSerial->begin(2400, SWSERIAL_8N1);
 	} else {
 		hanSerial->begin(2400, SWSERIAL_8E1);
 	}
+#elif defined DEBUG_MODE
 #else
-	if(config.meterType == 3) {
+	if(config.getMeterType() == 3) {
 		hanSerial->begin(2400, SERIAL_8N1);
 	} else {
 		hanSerial->begin(2400, SERIAL_8E1);
@@ -113,20 +117,44 @@ void setup() {
 	hanSerial->swap();
 #endif
 #endif
-	while (!&hanSerial);
 
-	hanReader.setup(hanSerial, debugger);
+	hanReader.setup(hanSerial, 0);
 
 	// Compensate for the known Kaifa bug
-	hanReader.compensateFor09HeaderBug = (config.meterType == 1);
+	hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
 
 	ws.setup(&config, debugger, &mqtt);
 }
 
-// the loop function runs over and over again until power down or reset
+int buttonTimer = 0;
+bool buttonActive = false;
+unsigned long longPressTime = 5000;
+bool longPressActive = false;
+
 void loop() {
+	if (digitalRead(AP_BUTTON_PIN) == LOW) {
+		if (buttonActive == false) {
+			buttonActive = true;
+			buttonTimer = millis();
+		}
+
+		if ((millis() - buttonTimer > longPressTime) && (longPressActive == false)) {
+			longPressActive = true;
+			swapWifiMode();
+		}
+	} else {
+		if (buttonActive == true) {
+			if (longPressActive == true) {
+				longPressActive = false;
+			} else {
+				// Single press action
+			}
+			buttonActive = false;
+		}
+	}
+
 	// Only do normal stuff if we're not booted as AP
-	if (!ap.loop()) {
+	if (WiFi.getMode() != WIFI_AP) {
 		// Turn off the LED
 		led_off();
 
@@ -134,15 +162,19 @@ void loop() {
 		if (WiFi.status() != WL_CONNECTED) {
 			WiFi_connect();
 		} else {
-			if (config.mqttHost) {
+			if (!config.getMqttHost().isEmpty()) {
 				mqtt.loop();
 				yield();
-				if(!mqtt.connected()) {
+				if(!mqtt.connected() || config.isMqttChanged()) {
 					MQTT_connect();
 				}
+			} else if(mqtt.connected()) {
+				mqtt.disconnect();
+				yield();
 			}
 		}
 	} else {
+		dnsServer.processNextRequest();
 		// Continously flash the LED when AP mode
 		if (millis() / 50 % 64 == 0)   led_on();
 		else							led_off();
@@ -157,6 +189,7 @@ void loop() {
 	}
 	readHanPort();
 	ws.loop();
+	delay(1); // Needed for auto modem sleep
 }
 
 
@@ -179,25 +212,28 @@ void led_off()
 #endif
 }
 
+void swapWifiMode() {
+	led_on();
+	WiFiMode_t mode = WiFi.getMode();
+	dnsServer.stop();
+	WiFi.disconnect(true);
+	WiFi.softAPdisconnect(true);
+	WiFi.mode(WIFI_OFF);
+	yield();
 
-void setupWiFi()
-{
-	// Turn off AP
-	WiFi.enableAP(false);
+	if (mode != WIFI_AP) {
+		if(debugger) debugger->println("Swapping to AP mode");
+		WiFi.softAP("AMS2MQTT");
+		WiFi.mode(WIFI_AP);
 
-	// Connect to WiFi
-	WiFi.mode(WIFI_STA);
-	WiFi.begin(config.ssid, config.ssidPassword);
-
-	// Wait for WiFi connection
-	if (debugger) debugger->print("\nWaiting for WiFi to connect...");
-	while (WiFi.status() != WL_CONNECTED) {
-		if (debugger) debugger->print(".");
-		delay(500);
+		dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+		dnsServer.start(53, "*", WiFi.softAPIP());
+	} else {
+		if(debugger) debugger->println("Swapping to STA mode");
+		WiFi_connect();
 	}
-	if (debugger) debugger->println(" connected");
-
-	client = new WiFiClient();
+	delay(500);
+	led_off();
 }
 
 void mqttMessageReceived(String &topic, String &payload)
@@ -221,7 +257,7 @@ void readHanPort() {
 	if (hanReader.read()) {
 		lastSuccessfulRead = millis();
 
-		if(config.meterType > 0) {
+		if(config.getMeterType() > 0) {
 			// Flash LED on, this shows us that data is received
 			led_on();
 
@@ -254,9 +290,9 @@ void readHanPort() {
 			data["temp"] = tempSensor.getTempCByIndex(0);
 #endif
 
-			hanToJson(data, config.meterType, hanReader);
+			hanToJson(data, config.getMeterType(), hanReader);
 
-			if(config.mqttHost != 0 && strlen(config.mqttHost) != 0 && config.mqttPublishTopic != 0 && strlen(config.mqttPublishTopic) != 0) {
+			if(!config.getMqttHost().isEmpty() && !config.getMqttPublishTopic().isEmpty()) {
 				// Write the json to the debug port
 				if (debugger) {
 					debugger->print("Sending data to MQTT: ");
@@ -268,7 +304,7 @@ void readHanPort() {
 				String msg;
 				serializeJson(json, msg);
 
-				mqtt.publish(config.mqttPublishTopic, msg.c_str());
+				mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
 				mqtt.loop();
 			}
 			ws.setJson(json);
@@ -292,26 +328,27 @@ void readHanPort() {
 				if(!list.isEmpty()) {
 					list.toLowerCase();
 					if(list.startsWith("kfm")) {
-						config.meterType = 1;
+						config.setMeterType(1);
 						if(debugger) debugger->println("Detected Kaifa meter");
 						break;
 					} else if(list.startsWith("aidon")) {
-						config.meterType = 2;
+						config.setMeterType(2);
 						if(debugger) debugger->println("Detected Aidon meter");
 						break;
 					} else if(list.startsWith("kamstrup")) {
-						config.meterType = 3;
+						config.setMeterType(3);
 						if(debugger) debugger->println("Detected Kamstrup meter");
 						break;
 					}
 				}
 			}
-			hanReader.compensateFor09HeaderBug = (config.meterType == 1);
+			hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
 		}
 	}
 
-	if(config.meterType == 0 && millis() - lastSuccessfulRead > 10000) {
+	if(config.getMeterType() == 0 && millis() - lastSuccessfulRead > 10000) {
 		lastSuccessfulRead = millis();
+		if(debugger) debugger->println("No data for current setting, switching parity");
 #if defined SOFTWARE_SERIAL
 			if(even) {
 				hanSerial->begin(2400, SWSERIAL_8N1);
@@ -329,59 +366,45 @@ void readHanPort() {
 	}
 }
 
+unsigned long wifiTimeout = WIFI_CONNECTION_TIMEOUT;
+unsigned long lastWifiRetry = -WIFI_CONNECTION_TIMEOUT;
 void WiFi_connect() {
-	// Connect to WiFi access point.
+	if(millis() - lastWifiRetry < wifiTimeout) {
+		delay(50);
+		return;
+	}
+	lastWifiRetry = millis();
+
 	if (debugger)
 	{
 		debugger->println();
 		debugger->println();
 		debugger->print("Connecting to WiFi network ");
-		debugger->println(config.ssid);
+		debugger->println(config.getWifiSsid());
 	}
 
-	if (WiFi.status() != WL_CONNECTED)
-	{
-		// Make one first attempt at connect, this seems to considerably speed up the first connection
+	if (WiFi.status() != WL_CONNECTED) {
 		WiFi.disconnect();
-		WiFi.begin(config.ssid, config.ssidPassword);
-		delay(1000);
-	}
-
-	// Wait for the WiFi connection to complete
-	long vTimeout = millis() + WIFI_CONNECTION_TIMEOUT;
-	while (WiFi.status() != WL_CONNECTED) {
-		delay(50);
-		if (debugger) debugger->print(".");
-
-		// If we timed out, disconnect and try again
-		if (vTimeout < millis())
-		{
-			if (debugger)
-			{
-				debugger->print("Timout during connect. WiFi status is: ");
-				debugger->println(WiFi.status());
-			}
-			WiFi.disconnect();
-			WiFi.begin(config.ssid, config.ssidPassword);
-			vTimeout = millis() + WIFI_CONNECTION_TIMEOUT;
-		}
 		yield();
-	}
 
-	if (debugger) {
-		debugger->println();
-		debugger->println("WiFi connected");
-		debugger->println("IP address: ");
-		debugger->println(WiFi.localIP());
+		WiFi.enableAP(false);
+		WiFi.mode(WIFI_STA);
+		WiFi.setOutputPower(0);
+		if(!config.getWifiIp().isEmpty()) {
+			IPAddress ip, gw, sn(255,255,255,0);
+			ip.fromString(config.getWifiIp());
+			gw.fromString(config.getWifiGw());
+			sn.fromString(config.getWifiSubnet());
+			WiFi.config(ip, gw, sn);
+		}
+		WiFi.begin(config.getWifiSsid().c_str(), config.getWifiPassword().c_str());
+		yield();
 	}
 }
 
-// Function to connect and reconnect as necessary to the MQTT server.
-// Should be called in the loop function and it will take care if connecting.
-
 unsigned long lastMqttRetry = -10000;
 void MQTT_connect() {
-	if(!config.mqttHost) {
+	if(config.getMqttHost().isEmpty()) {
 		if(debugger) debugger->println("No MQTT config");
 		return;
 	}
@@ -392,25 +415,27 @@ void MQTT_connect() {
 	lastMqttRetry = millis();
 	if(debugger) {
 		debugger->print("Connecting to MQTT: ");
-		debugger->print(config.mqttHost);
+		debugger->print(config.getMqttHost());
 		debugger->print(", port: ");
-		debugger->print(config.mqttPort);
+		debugger->print(config.getMqttPort());
 		debugger->println();
 	}
 
 	mqtt.disconnect();
+	yield();
 
-	mqtt.begin(config.mqttHost, config.mqttPort, *client);
+	mqtt.begin(config.getMqttHost().c_str(), config.getMqttPort(), *client);
 
 	// Connect to a unsecure or secure MQTT server
-	if ((config.mqttUser == 0 && mqtt.connect(config.mqttClientID)) ||
-		(config.mqttUser != 0 && mqtt.connect(config.mqttClientID, config.mqttUser, config.mqttPass))) {
+	if ((config.getMqttUser().isEmpty() && mqtt.connect(config.getMqttClientId().c_str())) ||
+		(!config.getMqttUser().isEmpty() && mqtt.connect(config.getMqttClientId().c_str(), config.getMqttUser().c_str(), config.getMqttPassword().c_str()))) {
 		if (debugger) debugger->println("\nSuccessfully connected to MQTT!");
+		config.ackMqttChange();
 
 		// Subscribe to the chosen MQTT topic, if set in configuration
-		if (config.mqttSubscribeTopic != 0 && strlen(config.mqttSubscribeTopic) > 0) {
-			mqtt.subscribe(config.mqttSubscribeTopic);
-			if (debugger) debugger->printf("  Subscribing to [%s]\r\n", config.mqttSubscribeTopic);
+		if (!config.getMqttSubscribeTopic().isEmpty()) {
+			mqtt.subscribe(config.getMqttSubscribeTopic());
+			if (debugger) debugger->printf("  Subscribing to [%s]\r\n", config.getMqttSubscribeTopic().c_str());
 		}
 
 		sendMqttData("Connected!");
@@ -427,7 +452,7 @@ void MQTT_connect() {
 void sendMqttData(String data)
 {
 	// Make sure we have configured a publish topic
-	if (config.mqttPublishTopic == 0 || strlen(config.mqttPublishTopic) == 0)
+	if (config.getMqttPublishTopic().isEmpty())
 		return;
 
 	// Build a json with the message in a "data" attribute
@@ -438,13 +463,16 @@ void sendMqttData(String data)
 #if defined(ESP8266)
 	json["vcc"] = ((double) ESP.getVcc()) / 1000;
 #endif
+	float rssi = WiFi.RSSI();
+	rssi = isnan(rssi) ? -100.0 : rssi;
+	json["rssi"] = rssi;
 
 	// Stringify the json
 	String msg;
 	serializeJson(json, msg);
 
 	// Send the json over MQTT
-	mqtt.publish(config.mqttPublishTopic, msg.c_str());
+	mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
 
 	if (debugger) debugger->print("sendMqttData: ");
 	if (debugger) debugger->println(data);

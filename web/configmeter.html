@@ -46,6 +46,7 @@
         </ul>
     </header>
     <form method="post" action="/save">
+        <input type="hidden" name="meterConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
             <div class="row">
                 <div class="col-md-4">
@@ -63,10 +64,10 @@
                     <div class="row form-group">
                         <label class="col-6">Distribution system</label>
                         <div class="col-6">
-                            <select class="form-control" name="distSys">
-                                <option value="0" ${config.distSys0}></option>
-                                <option value="1" ${config.distSys1}>IT (230V)</option>
-                                <option value="2" ${config.distSys2}>TN (400V)</option>
+                            <select class="form-control" name="distributionSystem">
+                                <option value="0" ${config.distributionSystem0}></option>
+                                <option value="1" ${config.distributionSystem1}>IT (230V)</option>
+                                <option value="2" ${config.distributionSystem2}>TN (400V)</option>
                             </select>
                         </div>
                     </div>
@@ -75,23 +76,23 @@
                     <div class="row form-group">
                         <label class="col-6">Main fuse</label>
                         <div class="col-6">
-                            <select class="form-control" name="fuseSize">
-                                <option value="0" ${config.fuseSize0}></option>
-                                <option value="25" ${config.fuseSize25}>25A</option>
-                                <option value="32" ${config.fuseSize32}>32A</option>
-                                <option value="35" ${config.fuseSize32}>35A</option>
-                                <option value="40" ${config.fuseSize40}>40A</option>
-                                <option value="50" ${config.fuseSize50}>50A</option>
-                                <option value="63" ${config.fuseSize63}>63A</option>
+                            <select class="form-control" name="mainFuse">
+                                <option value="0" ${config.mainFuse0}></option>
+                                <option value="25" ${config.mainFuse25}>25A</option>
+                                <option value="32" ${config.mainFuse32}>32A</option>
+                                <option value="35" ${config.mainFuse32}>35A</option>
+                                <option value="40" ${config.mainFuse40}>40A</option>
+                                <option value="50" ${config.mainFuse50}>50A</option>
+                                <option value="63" ${config.mainFuse63}>63A</option>
                             </select>
                         </div>
                     </div>
                     <div class="row form-group">
-                        <label class="col-6">Export capacity</label>
+                        <label class="col-6">Production capacity</label>
                         <div class="col-6">
                             <div class="input-group">
-                                <input class="form-control" name="exportCapacity" type="number" min="0" max="50" value="${config.exportCapacity}"/>
-                                <div class="input-group-append"><span class="input-group-text">kW</span></div>
+                                <input class="form-control" name="productionCapacity" type="number" min="0" max="50" value="${config.productionCapacity}"/>
+                                <div class="input-group-append"><span class="input-group-text">kWp</span></div>
                             </div>
                         </div>
                     </div>

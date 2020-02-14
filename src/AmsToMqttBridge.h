@@ -1,5 +1,7 @@
 #define WIFI_CONNECTION_TIMEOUT 30000;
 
+#define INVALID_BUTTON_PIN  0xFFFFFFFF
+
 
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>

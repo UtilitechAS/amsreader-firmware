@@ -3,7 +3,7 @@
 
 #include <ArduinoJson.h>
 #include <MQTT.h>
-#include "configuration.h"
+#include "AmsConfiguration.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -23,12 +23,12 @@
 
 class AmsWebServer {
 public:
-    void setup(configuration* config, Stream* debugger, MQTTClient* mqtt);
+    void setup(AmsConfiguration* config, Stream* debugger, MQTTClient* mqtt);
     void loop();
 	void setJson(StaticJsonDocument<1024> json);
 
 private:
-    configuration* config;
+    AmsConfiguration* config;
 	Stream* debugger;
 	MQTTClient* mqtt;
     StaticJsonDocument<1024> json;
@@ -45,7 +45,10 @@ private:
 	bool checkSecurity(byte level);
 
 	void indexHtml();
-	void configurationHtml();
+	void configMeterHtml();
+	void configWifiHtml();
+	void configMqttHtml();
+	void configWebHtml();
 	void bootCss();
 	void gaugemeterJs();
     void dataJson();

@@ -2,7 +2,10 @@
 #include "version.h"
 
 #include "root/index_html.h"
-#include "root/configuration_html.h"
+#include "root/configmeter_html.h"
+#include "root/configwifi_html.h"
+#include "root/configmqtt_html.h"
+#include "root/configweb_html.h"
 #include "root/boot_css.h"
 #include "root/gaugemeter_js.h"
 
@@ -14,13 +17,16 @@ ESP8266WebServer server(80);
 WebServer server(80);
 #endif
 
-void AmsWebServer::setup(configuration* config, Stream* debugger, MQTTClient* mqtt) {
+void AmsWebServer::setup(AmsConfiguration* config, Stream* debugger, MQTTClient* mqtt) {
     this->config = config;
     this->debugger = debugger;
 	this->mqtt = mqtt;
 
 	server.on("/", std::bind(&AmsWebServer::indexHtml, this));
-	server.on("/configuration", std::bind(&AmsWebServer::configurationHtml, this));
+	server.on("/config/meter", std::bind(&AmsWebServer::configMeterHtml, this));
+	server.on("/config/wifi", std::bind(&AmsWebServer::configWifiHtml, this));
+	server.on("/config/mqtt", std::bind(&AmsWebServer::configMqttHtml, this));
+	server.on("/config/web", std::bind(&AmsWebServer::configWebHtml, this));
 	server.on("/boot.css", std::bind(&AmsWebServer::bootCss, this));
 	server.on("/gaugemeter.js", std::bind(&AmsWebServer::gaugemeterJs, this)); 
 	server.on("/data.json", std::bind(&AmsWebServer::dataJson, this));
@@ -28,14 +34,6 @@ void AmsWebServer::setup(configuration* config, Stream* debugger, MQTTClient* mq
 	server.on("/save", std::bind(&AmsWebServer::handleSave, this));
 
 	server.begin(); // Web server start
-
-	print("Web server is ready for config at http://");
-	if(WiFi.getMode() == WIFI_AP) {
-		print(WiFi.softAPIP());
-	} else {
-		print(WiFi.localIP());
-	}
-	println("/");
 }
 
 void AmsWebServer::loop() {
@@ -60,12 +58,12 @@ void AmsWebServer::setJson(StaticJsonDocument<1024> json) {
 				}
 			}
 
-			if(maxPwr == 0 && config->hasConfig() && config->fuseSize > 0 && config->distSys > 0) {
-				int volt = config->distSys == 2 ? 400 : 230;
+			if(maxPwr == 0 && config->hasConfig() && config->getMainFuse() > 0 && config->getDistributionSystem() > 0) {
+				int volt = config->getDistributionSystem() == 2 ? 400 : 230;
 				if(u2 > 0) {
-					maxPwr = config->fuseSize * sqrt(3) * volt;
+					maxPwr = config->getMainFuse() * sqrt(3) * volt;
 				} else {
-					maxPwr = config->fuseSize * 230;
+					maxPwr = config->getMainFuse() * 230;
 				}
 			}
 
@@ -100,10 +98,10 @@ void AmsWebServer::setJson(StaticJsonDocument<1024> json) {
 }
 
 bool AmsWebServer::checkSecurity(byte level) {
-	bool access = WiFi.getMode() == WIFI_AP || !config->hasConfig() || config->authSecurity < level;
-	if(!access && config->authSecurity >= level && server.hasHeader("Authorization")) {
+	bool access = WiFi.getMode() == WIFI_AP || !config->hasConfig() || config->getAuthSecurity() < level;
+	if(!access && config->getAuthSecurity() >= level && server.hasHeader("Authorization")) {
 		println(" forcing web security");
-		String expectedAuth = String(config->authUser) + ":" + String(config->authPass);
+		String expectedAuth = String(config->getAuthUser()) + ":" + String(config->getAuthPassword());
 
 		String providedPwd = server.header("Authorization");
 		providedPwd.replace("Basic ", "");
@@ -173,46 +171,99 @@ void AmsWebServer::indexHtml() {
 	server.send(200, "text/html", html);
 }
 
-void AmsWebServer::configurationHtml() {
-	println("Serving /configuration.html over http...");
+void AmsWebServer::configMeterHtml() {
+	println("Serving /config/meter.html over http...");
 
 	if(!checkSecurity(1))
 		return;
 
-	String html = String((const __FlashStringHelper*) CONFIGURATION_HTML);
+	String html = String((const __FlashStringHelper*) CONFIGMETER_HTML);
 	html.replace("${version}", VERSION);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
 
-	html.replace("${config.ssid}", config->ssid);
-	html.replace("${config.ssidPassword}", config->ssidPassword);
-	html.replace("${config.meterType}", String(config->fuseSize));
+	html.replace("${config.meterType}", String(config->getMainFuse()));
 	for(int i = 0; i<4; i++) {
-		html.replace("${config.meterType" + String(i) + "}", config->meterType == i ? "selected"  : "");
+		html.replace("${config.meterType" + String(i) + "}", config->getMeterType() == i ? "selected"  : "");
 	}
-	html.replace("${config.mqtt}", config->mqttHost == 0 ? "" : "checked");
-	html.replace("${config.mqttHost}", config->mqttHost);
-	html.replace("${config.mqttPort}", String(config->mqttPort));
-	html.replace("${config.mqttClientID}", config->mqttClientID);
-	html.replace("${config.mqttPublishTopic}", config->mqttPublishTopic);
-	html.replace("${config.mqttSubscribeTopic}", config->mqttSubscribeTopic);
-	html.replace("${config.mqttUser}", config->mqttUser);
-	html.replace("${config.mqttPass}", config->mqttPass);
-	html.replace("${config.authUser}", config->authUser);
-	html.replace("${config.authSecurity}", String(config->authSecurity));
+	html.replace("${config.distributionSystem}", String(config->getDistributionSystem()));
 	for(int i = 0; i<3; i++) {
-		html.replace("${config.authSecurity" + String(i) + "}", config->authSecurity == i ? "selected"  : "");
+		html.replace("${config.distributionSystem" + String(i) + "}", config->getDistributionSystem() == i ? "selected"  : "");
 	}
-	html.replace("${config.authPass}", config->authPass);
-	html.replace("${config.fuseSize}", String(config->fuseSize));
+	html.replace("${config.mainFuse}", String(config->getMainFuse()));
 	for(int i = 0; i<64; i++) {
-		html.replace("${config.fuseSize" + String(i) + "}", config->fuseSize == i ? "selected"  : "");
+		html.replace("${config.mainFuse" + String(i) + "}", config->getMainFuse() == i ? "selected"  : "");
 	}
+	html.replace("${config.productionCapacity}", String(config->getProductionCapacity()));
+	server.send(200, "text/html", html);
+}
+
+void AmsWebServer::configWifiHtml() {
+	println("Serving /config/wifi.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	String html = String((const __FlashStringHelper*) CONFIGWIFI_HTML);
+	html.replace("${version}", VERSION);
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	html.replace("${config.wifiSsid}", config->getWifiSsid());
+	html.replace("${config.wifiPassword}", config->getWifiPassword());
+	html.replace("${config.wifiIpType1}", config->getWifiIp().isEmpty() ? "" : "selected");
+	html.replace("${config.wifiIp}", config->getWifiIp());
+	html.replace("${config.wifiGw}", config->getWifiGw());
+	html.replace("${config.wifiSubnet}", config->getWifiSubnet());
+
+	server.send(200, "text/html", html);
+}
+
+void AmsWebServer::configMqttHtml() {
+	println("Serving /config/mqtt.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	String html = String((const __FlashStringHelper*) CONFIGMQTT_HTML);
+	html.replace("${version}", VERSION);
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	html.replace("${config.mqtt}", config->getMqttHost() == 0 ? "" : "checked");
+	html.replace("${config.mqttHost}", config->getMqttHost());
+	html.replace("${config.mqttPort}", String(config->getMqttPort()));
+	html.replace("${config.mqttClientId}", config->getMqttClientId());
+	html.replace("${config.mqttPublishTopic}", config->getMqttPublishTopic());
+	html.replace("${config.mqttSubscribeTopic}", config->getMqttSubscribeTopic());
+	html.replace("${config.mqttUser}", config->getMqttUser());
+	html.replace("${config.mqttPassword}", config->getMqttPassword());
+
+	server.send(200, "text/html", html);
+}
+
+void AmsWebServer::configWebHtml() {
+	println("Serving /config/web.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	String html = String((const __FlashStringHelper*) CONFIGWEB_HTML);
+	html.replace("${version}", VERSION);
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	html.replace("${config.authSecurity}", String(config->getAuthSecurity()));
 	for(int i = 0; i<3; i++) {
-		html.replace("${config.distSys" + String(i) + "}", config->distSys == i ? "selected"  : "");
+		html.replace("${config.authSecurity" + String(i) + "}", config->getAuthSecurity() == i ? "selected"  : "");
 	}
+	html.replace("${config.authUser}", config->getAuthUser());
+	html.replace("${config.authPassword}", config->getAuthPassword());
+
 	server.send(200, "text/html", html);
 }
 
@@ -268,7 +319,7 @@ void AmsWebServer::dataJson() {
 	unsigned long now = millis();
 	json["id"] = WiFi.macAddress();
 	json["maxPower"] = maxPwr;
-	json["meterType"] = config->meterType;
+	json["meterType"] = config->getMeterType();
 	json["currentMillis"] = now;
 
 	double vcc = 0;
@@ -300,7 +351,7 @@ void AmsWebServer::dataJson() {
 
 	unsigned long lastHan = json.isNull() ? 0 : json["up"].as<unsigned long>();
 	String hanStatus;
-	if(config->meterType == 0) {
+	if(config->getMeterType() == 0) {
 		hanStatus = "secondary";
 	} else if(now - lastHan < 15000) {
 		hanStatus = "success";
@@ -312,7 +363,7 @@ void AmsWebServer::dataJson() {
 	json["status"]["han"] = hanStatus;
 
 	String wifiStatus;
-	if(!config->ssid) {
+	if(config->getWifiSsid().isEmpty()) {
 		wifiStatus = "secondary";
 	} else if(rssi > -75) {
 		wifiStatus = "success";
@@ -324,7 +375,7 @@ void AmsWebServer::dataJson() {
 	json["status"]["wifi"] = wifiStatus;
 
 	String mqttStatus;
-	if(!config->mqttHost) {
+	if(config->getMqttHost().isEmpty()) {
 		mqttStatus = "secondary";
 	} else if(mqtt->connected()) {
 		mqttStatus = "success";
@@ -349,84 +400,72 @@ void AmsWebServer::dataJson() {
 void AmsWebServer::handleSave() {
 	String temp;
 
-	temp = server.arg("ssid");
-	config->ssid = new char[temp.length() + 1];
-	temp.toCharArray(config->ssid, temp.length() + 1, 0);
-
-	temp = server.arg("ssidPassword");
-	config->ssidPassword = new char[temp.length() + 1];
-	temp.toCharArray(config->ssidPassword, temp.length() + 1, 0);
-
-	config->meterType = (byte)server.arg("meterType").toInt();
-
-	if(server.hasArg("mqtt") && server.arg("mqtt") == "true") {
-		println("MQTT enabled");
-		temp = server.arg("mqttHost");
-		config->mqttHost = new char[temp.length() + 1];
-		temp.toCharArray(config->mqttHost, temp.length() + 1, 0);
-
-		config->mqttPort = (int)server.arg("mqttPort").toInt();
-
-		temp = server.arg("mqttClientID");
-		config->mqttClientID = new char[temp.length() + 1];
-		temp.toCharArray(config->mqttClientID, temp.length() + 1, 0);
-
-		temp = server.arg("mqttPublishTopic");
-		config->mqttPublishTopic = new char[temp.length() + 1];
-		temp.toCharArray(config->mqttPublishTopic, temp.length() + 1, 0);
-
-		temp = server.arg("mqttSubscribeTopic");
-		config->mqttSubscribeTopic = new char[temp.length() + 1];
-		temp.toCharArray(config->mqttSubscribeTopic, temp.length() + 1, 0);
-
-		temp = server.arg("mqttUser");
-		config->mqttUser = new char[temp.length() + 1];
-		temp.toCharArray(config->mqttUser, temp.length() + 1, 0);
-
-		temp = server.arg("mqttPass");
-		config->mqttPass = new char[temp.length() + 1];
-		temp.toCharArray(config->mqttPass, temp.length() + 1, 0);
-	} else {
-		println("MQTT disabled");
-		config->mqttHost = NULL;
-		config->mqttUser = NULL;
-		config->mqttPass = NULL;
+	if(server.hasArg("meterConfig") && server.arg("meterConfig") == "true") {
+		config->setMeterType(server.arg("meterType").toInt());
+		config->setDistributionSystem(server.arg("distributionSystem").toInt());
+		config->setMainFuse(server.arg("mainFuse").toInt());
+		config->setProductionCapacity(server.arg("productionCapacity").toInt());
 	}
 
-	config->authSecurity = (byte)server.arg("authSecurity").toInt();
-
-	if(config->authSecurity > 0) {
-		temp = server.arg("authUser");
-		config->authUser = new char[temp.length() + 1];
-		temp.toCharArray(config->authUser, temp.length() + 1, 0);
-
-		temp = server.arg("authPass");
-		config->authPass = new char[temp.length() + 1];
-		temp.toCharArray(config->authPass, temp.length() + 1, 0);
+	if(server.hasArg("wifiConfig") && server.arg("wifiConfig") == "true") {
+		config->setWifiSsid(server.arg("wifiSsid"));
+		config->setWifiPassword(server.arg("wifiPassword"));
+		if(server.hasArg("wifiIpType") && server.arg("wifiIpType").toInt() == 1) {
+			config->setWifiIp(server.arg("wifiIp"));
+			config->setWifiGw(server.arg("wifiGw"));
+			config->setWifiSubnet(server.arg("wifiSubnet"));
+		} else {
+			config->clearWifiIp();
+		}
 	}
 
-	config->fuseSize = (int)server.arg("fuseSize").toInt();
+	if(server.hasArg("mqttConfig") && server.arg("mqttConfig") == "true") {
+		if(server.hasArg("mqtt") && server.arg("mqtt") == "true") {
+			config->setMqttHost(server.arg("mqttHost"));
+			config->setMqttPort(server.arg("mqttPort").toInt());
+			config->setMqttClientId(server.arg("mqttClientId"));
+			config->setMqttPublishTopic(server.arg("mqttPublishTopic"));
+			config->setMqttSubscribeTopic(server.arg("mqttSubscribeTopic"));
+			config->setMqttUser(server.arg("mqttUser"));
+			config->setMqttPassword(server.arg("mqttPassword"));
+			config->setAuthUser(server.arg("authUser"));
+			config->setAuthPassword(server.arg("authPassword"));
+		} else {
+			config->clearMqtt();
+		}
+	}
 
-	config->distSys = (byte)server.arg("distSys").toInt();
+	if(server.hasArg("authConfig") && server.arg("authConfig") == "true") {
+		config->setAuthSecurity((byte)server.arg("authSecurity").toInt());
+		if(config->getAuthSecurity() > 0) {
+			config->setAuthUser(server.arg("authUser"));
+			config->setAuthPassword(server.arg("authPassword"));
+		} else {
+			config->clearAuth();
+		}
+	}
 
 	println("Saving configuration now...");
 
 	if (debugger) config->print(debugger);
-	if (config->save())
-	{
-		println("Successfully saved. Will reboot now.");
-		String html = "<html><body><h1>Successfully Saved!</h1><h3>Device is restarting now...</h3><a href=\"/\">Go to index</a></form>";
-		server.send(200, "text/html", html);
-		yield();
-		delay(1000);
+	if (config->save()) {
+		println("Successfully saved.");
+		if(config->isWifiChanged()) {
+			String html = "<html><body><h1>Successfully Saved!</h1><a href=\"/\">Go to index</a></form>";
+			server.send(200, "text/html", html);
+			yield();
+			println("Wifi config changed, rebooting");
+			delay(1000);
 #if defined(ESP8266)
-		ESP.reset();
+			ESP.reset();
 #elif defined(ESP32)
-		ESP.restart();
+			ESP.restart();
 #endif
-	}
-	else
-	{
+		} else {
+			server.sendHeader("Location", String("/"), true);
+			server.send ( 302, "text/plain", "");
+		}
+	} else {
 		println("Error saving configuration");
 		String html = "<html><body><h1>Error saving configuration!</h1></form>";
 		server.send(500, "text/html", html);

@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - WiFi configuration</title>
+    <title>AMS reader - Meter configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" type="text/css" href="boot.css"/>
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"/>
@@ -27,16 +27,16 @@
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
                 <li class="nav-item">
-                    <a class="nav-link " href="/config/meter">Meter</a>
+                    <a class="nav-link" href="/config/meter">Meter</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" href="/config/wifi">WiFi</a>
+                    <a class="nav-link " href="/config/wifi">WiFi</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link " href="/config/mqtt">MQTT</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link " href="/config/web">Web</a>
+                    <a class="nav-link active" href="/config/web">Web</a>
                 </li>
             </ul>
         </div>
@@ -47,51 +47,34 @@
         </ul>
     </header>
     <form method="post" action="/save">
-        <input type="hidden" name="wifiConfig" value="true"/>
+        <input type="hidden" name="authConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
             <div class="row">
                 <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-3">SSID</label>
-                        <div class="col-9">
-                            <input type="text" class="form-control" name="wifiSsid" value="${config.wifiSsid}"/>
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <label class="col-3">Password</label>
-                        <div class="col-9">
-                            <input type="password" class="form-control" name="wifiPassword" value="${config.wifiPassword}"/>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="row form-group">
-                        <label class="col-6">IP configuration</label>
-                        <div class="col-6">
-                            <select id="wifiIpType" class="form-control" name="wifiIpType">
-                                <option value="0" ${config.wifiIpType0}>DHCP</option>
-                                <option value="1" ${config.wifiIpType1}>Static</option>
+                        <label class="col-4">Security</label>
+                        <div class="col-8">
+                            <select id="authSecurity" class="form-control" name="authSecurity">
+                                <option value="0" ${config.authSecurity0}>None</option>
+                                <option value="1" ${config.authSecurity1}>Only configuration</option>
+                                <option value="2" ${config.authSecurity2}>Everything</option>
                             </select>
                         </div>
                     </div>
+                </div>
+                <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-3">IP</label>
-                        <div class="col-9">
-                            <input type="text" class="form-control wifiip-config" name="wifiIp" value="${config.wifiIp}"/>
+                        <label class="col-4">Username</label>
+                        <div class="col-8">
+                            <input type="text" class="form-control auth-config" name="authUser" value="${config.authUser}"/>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-3">Subnet</label>
-                        <div class="col-9">
-                            <input type="text" class="form-control wifiip-config" name="wifiSubnet" value="${config.wifiSubnet}"/>
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <label class="col-3">Gateway</label>
-                        <div class="col-9">
-                            <input type="text" class="form-control wifiip-config" name="wifiGw" value="${config.wifiGw}"/>
+                        <label class="col-4">Password</label>
+                        <div class="col-8">
+                            <input type="password" class="form-control auth-config" name="authPassword" value="${config.authPassword}"/>
                         </div>
                     </div>
                 </div>
@@ -109,13 +92,13 @@
     </form>
 </main>
 <script>
-    $('#wifiIpType').on('change', function() {
-        var inputs = $('.wifiip-config');
-        inputs.prop('disabled', $(this).val() != 1);
+    $('#authSecurity').on('change', function() {
+        var inputs = $('.auth-config');
+        inputs.prop('disabled', $(this).val() == 0);
     });
     
     $(function() {
-        $('#wifiIpType').trigger('change');
+        $('#authSecurity').trigger('change');
     });
 </script>
 </body>

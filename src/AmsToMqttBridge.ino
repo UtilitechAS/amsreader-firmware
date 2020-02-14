@@ -27,7 +27,7 @@ WiFiClient *client;
 MQTTClient mqtt(512);
 
 // Object used for debugging
-HardwareSerial* debugger = NULL;
+Stream* debugger = NULL;
 
 // The HAN Port reader, used to read serial data and decode DLMS
 HanReader hanReader;
@@ -39,17 +39,15 @@ void setup() {
 	}
 
 #if DEBUG_MODE
-	debugger = &Serial;
-	#if SOFTWARE_SERIAL
-		debugger->begin(115200, SERIAL_8N1);
-	#else
-		if(config.meterType == 3) {
-			hanSerial->begin(2400, SERIAL_8N1);
-		} else {
-			hanSerial->begin(2400, SERIAL_8E1);
-		}
-	#endif
-	while (!&debugger);
+#if HW_ROARFRED
+	SoftwareSerial *ser = new SoftwareSerial(-1, 1);
+	ser->begin(115200, SWSERIAL_8N1);
+	debugger = ser;
+#else
+	HardwareSerial *ser = &Serial;
+	ser->begin(115200, SERIAL_8N1);
+#endif
+	debugger = ser;
 #endif
 
 	if (debugger) {

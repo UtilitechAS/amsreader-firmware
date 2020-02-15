@@ -141,6 +141,8 @@ bool buttonActive = false;
 unsigned long longPressTime = 5000;
 bool longPressActive = false;
 
+bool wifiConnected = false;
+
 void loop() {
 	if (digitalRead(AP_BUTTON_PIN) == LOW) {
 		if (buttonActive == false) {
@@ -170,8 +172,13 @@ void loop() {
 
 		// Reconnect to WiFi and MQTT as needed
 		if (WiFi.status() != WL_CONNECTED) {
+			wifiConnected = false;
 			WiFi_connect();
 		} else {
+			if(!wifiConnected) {
+				wifiConnected = true;
+				if(debugger) debugger->println("Successfully connected to WiFi!");
+			}
 			if (!config.getMqttHost().isEmpty()) {
 				mqtt.loop();
 				yield();

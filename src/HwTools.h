@@ -12,16 +12,24 @@
 #include <DallasTemperature.h>
 #include <OneWire.h>
 
+#if HW_ROARFRED
+#define TEMP_SENSOR_PIN 5
+#elif defined(ARDUINO_LOLIN_D32)
+#define TEMP_SENSOR_PIN 14
+#elif defined(ARDUINO_ESP8266_WEMOS_D1MINI)
+#define TEMP_SENSOR_PIN D5
+#endif
+
+
+
 class HwTools {
 public:
-    static double getVcc();
-    static double getTemperature();
+    double getVcc();
+    double getTemperature();
 
     HwTools() {
-#if defined TEMP_SENSOR_PIN
         oneWire = new OneWire(TEMP_SENSOR_PIN);
         tempSensor = new DallasTemperature(this->oneWire);
-#endif
     };
 private:
     bool tempSensorInit, hasTempSensor;

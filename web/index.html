@@ -7,6 +7,7 @@
     <link rel="stylesheet" type="text/css" href="boot.css"/>
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"/>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
     <script src="gaugemeter.js"></script>
     <style>
     .bg-purple {
@@ -148,7 +149,7 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div style="display: ${display.production};">
+                <div class="text-center" style="display: ${display.production};">
                     <div id="P" class="SimpleMeter" style="display: inline;">
                         ${data.PO} W
                     </div>
@@ -170,6 +171,15 @@
                     <div class="col-6">Vcc</div>
                     <div class="col-6 text-right"><span id="vcc">${vcc}</span> V</div>
                 </div>
+                <div class="row" style="display: ${display.temp};">
+                    <div class="col-6">Temperature</div>
+                    <div class="col-6 text-right"><span id="temp">${temp}</span> °C</div>
+                </div>
+                <div class="row" style="display: none;">
+                    <div class="col-6">Uptime</div>
+                    <div class="col-6 text-right"><span id="currentMillis">${currentMillis}</span></div>
+                </div>
+                <hr/>
                 <div class="row">
                     <div class="col-6">SSID</div>
                     <div class="col-6 text-right"><span id="ssid">${wifi.ssid}</span></div>
@@ -230,6 +240,11 @@ var fetch = function() {
                 var num = parseFloat(str);
                 $('#'+id).html(num.toFixed(num < 0 ? 0 : num < 10 ? 2  : 1));
             }
+        }
+
+        if(window.moment) {
+            $('#currentMillis').html(moment.duration(parseInt(json.currentMillis)).humanize());
+            $('#currentMillis').closest('.row').show();
         }
 
         if(json.status) {

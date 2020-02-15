@@ -159,6 +159,10 @@ void AmsWebServer::indexHtml() {
 	double vcc = hw.getVcc();
 	html.replace("${vcc}", vcc > 0 ? String(vcc, 2) : "");
 
+	double temp = hw.getTemperature();
+	html.replace("${temp}", temp > 0 ? String(temp, 1) : "");
+	html.replace("${display.temp}", temp != DEVICE_DISCONNECTED_C ? "" : "none");
+
 	float rssi = WiFi.RSSI();
 	rssi = isnan(rssi) ? -100.0 : rssi;
 	html.replace("${wifi.rssi}", vcc > 0 ? String(rssi, 0) : "");
@@ -326,6 +330,9 @@ void AmsWebServer::dataJson() {
 	json["currentMillis"] = now;
 	double vcc = hw.getVcc();
 	json["vcc"] = vcc > 0 ? vcc : 0;
+
+	double temp = hw.getTemperature();
+	json["temp"] = temp;
 
 	json.createNestedObject("wifi");
 	float rssi = WiFi.RSSI();

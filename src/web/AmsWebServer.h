@@ -35,7 +35,7 @@ private:
 	MQTTClient* mqtt;
     StaticJsonDocument<1024> json;
     int maxPwr;
-	int p;
+	int p, po;
 	double u1, u2, u3, i1, i2, i3, tpi, tpo, tqi, tqo;
 
 #if defined(ESP8266)

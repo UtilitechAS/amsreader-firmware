@@ -98,62 +98,72 @@
         <div class="row">
             <div class="col-md-3">
                 <div class="text-center">
-                    <div id="P" class="SimpleMeter">
+                    <div id="P" class="SimpleMeter" style="display: inline;">
                         ${data.P} W
                     </div>
-                    <div class="GaugeMeter rounded"
+                    <div id="consumptionMeter" class="GaugeMeter rounded"
                         style="display: none;"
-                         data-size="200px"
-                         data-text_size="0.11"
-                         data-width="25"
-                         data-style="Arch"
-                         data-theme="Green-Gold-Red"
-                         data-animationstep="0"
-                         data-animate_gauge_colors="1"
-
-                         data-percent="0"
-                         data-text="-"
-                         data-label="Consumption"
-                         data-append="W"
+                        data-size="200px"
+                        data-text_size="0.11"
+                        data-width="25"
+                        data-style="Arch"
+                        data-theme="Green-Gold-Red"
+                        data-animationstep="0"
+                        data-label="Consumption"
                     ></div>
                 </div>
             </div>
             <div class="col-md-3">
-                <div id="U1-row" class="row" style="display: ${display.P1}">
+                <div id="U1-row" class="row" style="display: ${display.P1};">
                     <div class="col-2">P1</div>
                     <div class="col-5 text-right"><span id="U1">${data.U1}</span> V</div>
                     <div class="col-5 text-right"><span id="I1">${data.I1}</span> A</div>
                 </div>
-                <div id="U2-row" class="row" style="display: ${display.P2}">
+                <div id="U2-row" class="row" style="display: ${display.P2};">
                     <div class="col-2">P2</div>
                     <div class="col-5 text-right"><span id="U2">${data.U2}</span> V</div>
                     <div class="col-5 text-right"><span id="I2">${data.I2}</span> A</div>
                 </div>
-                <div id="U3-row" class="row" style="display: ${display.P3}">
+                <div id="U3-row" class="row" style="display: ${display.P3};">
                     <div class="col-2">P3</div>
                     <div class="col-5 text-right"><span id="U3">${data.U3}</span> V</div>
                     <div class="col-5 text-right"><span id="I3">${data.I3}</span> A</div>
                 </div>
                 <hr/>
-                <div id="tPI-row" class="row" style="display: ${display.accumulative}">
+                <div id="tPI-row" class="row" style="display: ${display.accumulative};">
                     <div class="col-6">Active in</div>
                     <div class="col-6 text-right"><span id="tPI">${data.tPI}</span> kWh</div>
                 </div>
-                <div id="tPO-row" class="row" style="display: ${display.accumulative}">
+                <div id="tPO-row" class="row" style="display: ${display.accumulative};">
                     <div class="col-6">Active out</div>
                     <div class="col-6 text-right"><span id="tPO">${data.tPO}</span> kWh</div>
                 </div>
-                <div id="tQI-row" class="row" style="display: ${display.accumulative}">
+                <div id="tQI-row" class="row" style="display: ${display.accumulative};">
                     <div class="col-6">Reactive in</div>
                     <div class="col-6 text-right"><span id="tQI">${data.tQI}</span> kvarh</div>
                 </div>
-                <div id="tQO-row" class="row" style="display: ${display.accumulative}">
+                <div id="tQO-row" class="row" style="display: ${display.accumulative};">
                     <div class="col-6">Reactive out</div>
                     <div class="col-6 text-right"><span id="tQO">${data.tQO}</span> kvarh</div>
                 </div>
             </div>
             <div class="col-md-3">
-            </div>
+                <div style="display: ${display.production};">
+                    <div id="P" class="SimpleMeter" style="display: inline;">
+                        ${data.PO} W
+                    </div>
+                    <div id="productionMeter" class="GaugeMeter rounded"
+                        style="display: none;"
+                        data-size="200px"
+                        data-text_size="0.11"
+                        data-width="25"
+                        data-style="Arch"
+                        data-theme="DarkGreen-LightGreen"
+                        data-animationstep="0"
+                        data-label="Production"
+                    ></div>
+                </div>
+        </div>
             <div class="col-md-3">
                 <hr class="d-md-inline"/>
                 <div class="row">
@@ -184,7 +194,19 @@
     </div>
 </main>
 <script>
-$(".GaugeMeter").gaugeMeter();
+var cm = $("#consumptionMeter")
+cm.gaugeMeter({
+    percent: 0,
+    text: "-",
+    append: "W"
+});
+
+var pm = $("#productionMeter")
+pm.gaugeMeter({
+    percent: 0,
+    text: "-",
+    append: "W"
+});
 
 var interval = 2500;
 var fetch = function() {
@@ -194,8 +216,8 @@ var fetch = function() {
         dataType: 'json',
     }).done(function(json) {
         $(".SimpleMeter").hide();
-        var el = $(".GaugeMeter");
-        el.show();
+        cm.show();
+        pm.show();
         var rate = 2500;
 
         for(var id in json) {
@@ -243,19 +265,34 @@ var fetch = function() {
         }
 
         if(json.data) {
-            el.data('percent', json.pct);
+            var p = 0;
+            var p_pct = json.p_pct;
+            var p_append = "W";
+            var po = 0;
+            var po_pct = json.po_pct;
+            var po_append = "W";
             if(json.data.P) {
-                var num = parseFloat(json.data.P);
-                if(num > 1000) {
-                    num = num / 1000;
-                    el.data('text', num.toFixed(1));
-                    el.data('append','kW');
-                } else {
-                    el.data('text', num);
-                    el.data('append','W');
+                p = parseFloat(json.data.P);
+                if(p > 1000) {
+                    p = (p/1000).toFixed(1);
+                    p_append = "kW";
+                }
+                po = parseFloat(json.data.PO);
+                if(po > 1000) {
+                    po = (po/1000).toFixed(1);
+                    po_append = "kW";
                 }
             }
-            el.gaugeMeter();
+            cm.gaugeMeter({
+                percent: p_pct,
+                text: p,
+                append: p_append
+            });
+            cm.gaugeMeter({
+                percent: po_pct,
+                text: po,
+                append: po_append
+            });
 
             for(var id in json.data) {
                 var str = json.data[id];
@@ -268,15 +305,31 @@ var fetch = function() {
                 }
             }
         } else {
-            el.data('percent', 0);
-            el.data('text', '-');
-            el.gaugeMeter();
+            cm.gaugeMeter({
+                percent: 0,
+                text: "-",
+                append: "W"
+            });
+
+            pm.gaugeMeter({
+                percent: 0,
+                text: "-",
+                append: "W"
+            });
         }
         setTimeout(fetch, interval);
     }).fail(function() {
-        el.data('percent', 0);
-        el.data('text', '-');
-        el.gaugeMeter();
+        cm.gaugeMeter({
+            percent: 0,
+            text: "-",
+            append: "W"
+        });
+
+        pm.gaugeMeter({
+            percent: 0,
+            text: "-",
+            append: "W"
+        });
         setTimeout(fetch, interval*4);
     });
 }

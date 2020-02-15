@@ -43,6 +43,7 @@ void AmsWebServer::loop() {
 void AmsWebServer::setJson(StaticJsonDocument<1024> json) {
 	if(!json.isNull()) {
 		p = json["data"]["P"].as<int>();
+		po = json["data"]["PO"].as<int>();
 
 		if(json["data"].containsKey("U1")) {
 			u1 = json["data"]["U1"].as<double>();
@@ -134,6 +135,8 @@ void AmsWebServer::indexHtml() {
 	String html = String((const __FlashStringHelper*) INDEX_HTML);
 	html.replace("${version}", VERSION);
 	html.replace("${data.P}", String(p));
+	html.replace("${data.PO}", String(po));
+	html.replace("${display.production}", config->getProductionCapacity() > 0 ? "" : "none");
 
 	html.replace("${data.U1}", u1 > 0 ? String(u1, 1) : "");
 	html.replace("${data.I1}", u1 > 0 ? String(i1, 1) : "");
@@ -302,14 +305,17 @@ void AmsWebServer::dataJson() {
 				maxPwr = 10000;
 			}
 		}
+		int maxPrd = config->getProductionCapacity() * 1000;
 
 		json["up"] = this->json["up"];
 		json["t"] = this->json["t"];
 		json["data"] = this->json["data"];
 
-		json["pct"]     = min(p*100/maxPwr, 100);
+		json["p_pct"]     = min(p*100/maxPwr, 100);
+		json["po_pct"]    = min(po*100/maxPrd, 100);
 	} else {
-		json["pct"]     = -1;
+		json["p_pct"]     = -1;
+		json["po_pct"]     = -1;
 		println(" json is empty");
 	}
 

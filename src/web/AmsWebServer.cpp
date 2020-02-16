@@ -75,6 +75,9 @@ void AmsWebServer::setJson(StaticJsonDocument<1024> json) {
 				tqo = json["data"]["tQO"].as<double>();
 			}
 		} else {
+			if(po > 0) {
+				json["data"]["PO"] = po;
+			}
 			if(u1 > 0) {
 				json["data"]["U1"] = u1;
 				json["data"]["I1"] = i1;

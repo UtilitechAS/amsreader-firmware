@@ -228,7 +228,6 @@ var fetch = function() {
         $(".SimpleMeter").hide();
         cm.show();
         pm.show();
-        var rate = 2500;
 
         for(var id in json) {
             var str = json[id];
@@ -281,29 +280,32 @@ var fetch = function() {
 
         if(json.data) {
             var p = 0;
-            var p_pct = json.p_pct;
+            var p_pct = parseInt(json.p_pct);
             var p_append = "W";
-            var po = 0;
-            var po_pct = json.po_pct;
-            var po_append = "W";
             if(json.data.P) {
                 p = parseFloat(json.data.P);
                 if(p > 1000) {
                     p = (p/1000).toFixed(1);
                     p_append = "kW";
                 }
+            }
+            cm.gaugeMeter({
+                percent: 25,
+                text: p,
+                append: p_append
+            });
+
+            var po = 0;
+            var po_pct = parseInt(json.po_pct);
+            var po_append = "W";
+            if(json.data.PO) {
                 po = parseFloat(json.data.PO);
                 if(po > 1000) {
                     po = (po/1000).toFixed(1);
                     po_append = "kW";
                 }
             }
-            cm.gaugeMeter({
-                percent: p_pct,
-                text: p,
-                append: p_append
-            });
-            cm.gaugeMeter({
+            pm.gaugeMeter({
                 percent: po_pct,
                 text: po,
                 append: po_append

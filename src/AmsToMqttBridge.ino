@@ -189,7 +189,7 @@ void loop() {
 			}
 			if (!config.getMqttHost().isEmpty()) {
 				mqtt.loop();
-				delay(10);
+				delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
 				if(!mqtt.connected() || config.isMqttChanged()) {
 					MQTT_connect();
 				}
@@ -201,7 +201,7 @@ void loop() {
 		dnsServer.processNextRequest();
 		// Continously flash the LED when AP mode
 		if (now / 50 % 64 == 0)   led_on();
-		else							led_off();
+		else					  led_off();
 
 	}
 	readHanPort();
@@ -321,6 +321,7 @@ void readHanPort() {
 
 				mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
 				mqtt.loop();
+				delay(10); // Needed to preserve power
 			}
 			ws.setJson(json);
 

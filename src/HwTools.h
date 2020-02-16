@@ -18,6 +18,8 @@
 #define TEMP_SENSOR_PIN 14
 #elif defined(ARDUINO_ESP8266_WEMOS_D1MINI)
 #define TEMP_SENSOR_PIN D5
+#else
+#define TEMP_SENSOR_PIN 0xFFFFFFFF
 #endif
 
 

@@ -27,7 +27,7 @@ You can also use a ESP based development board and combine this with a M-Bus mod
 - Jump GPIO4 to GND to force AP mode during boot
 
 [Adafruit HUZZAH32](https://www.adafruit.com/product/3405) 
-- M-Bus connected to RX
+- M-Bus connected to GPIO16
 
 
 Combine one of above board with an M-Bus module. Connect 3.3v and GND together between the boards and connect the TX pin from the M-Bus board to the dedicated M-Bus pin on the ESP board.

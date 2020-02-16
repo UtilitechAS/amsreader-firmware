@@ -17,7 +17,13 @@
 #include <OneWire.h>
 #define TEMP_SENSOR_PIN 5 // Temperature sensor connected to GPIO5
 
+#if DEBUG_MODE
+#define SOFTWARE_SERIAL 1
+#include <SoftwareSerial.h>
+SoftwareSerial *hanSerial = new SoftwareSerial(3);
+#else
 HardwareSerial *hanSerial = &Serial;
+#endif
 
 // Build settings for Wemos Lolin D32
 #elif defined(ARDUINO_LOLIN_D32)
@@ -45,7 +51,7 @@ SoftwareSerial *hanSerial = new SoftwareSerial(D1);
 #define LED_ACTIVE_HIGH 1
 #define AP_BUTTON_PIN INVALID_BUTTON_PIN
 
-HardwareSerial *hanSerial = &Serial;
+HardwareSerial *hanSerial = &Serial2;
 
 // Default build settings
 #else

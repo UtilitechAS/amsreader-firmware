@@ -41,7 +41,7 @@ void AmsWebServer::loop() {
 	server.handleClient();
 }
 
-void AmsWebServer::setJson(StaticJsonDocument<500> json) {
+void AmsWebServer::setJson(StaticJsonDocument<1024> json) {
 	if(!json.isNull()) {
 		p = json["data"]["P"].as<int>();
 
@@ -87,7 +87,7 @@ void AmsWebServer::setJson(StaticJsonDocument<500> json) {
 }
 
 bool AmsWebServer::checkSecurity(byte level) {
-	bool access = !config->hasConfig() || config->authSecurity < level;
+	bool access = WiFi.getMode() == WIFI_AP || !config->hasConfig() || config->authSecurity < level;
 	if(!access && config->authSecurity >= level && server.hasHeader("Authorization")) {
 		println(" forcing web security");
 		String expectedAuth = String(config->authUser) + ":" + String(config->authPass);

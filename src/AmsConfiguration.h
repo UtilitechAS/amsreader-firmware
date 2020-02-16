@@ -88,8 +88,12 @@ private:
 	int meterType, distributionSystem, mainFuse, productionCapacity;
 
 	const int EEPROM_SIZE = 512;
-	const byte EEPROM_CHECK_SUM = 80; // Used to check if config is stored. Change if structure changes
+	const int EEPROM_CHECK_SUM = 80; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
+
+	bool loadConfig72(int address);
+	bool loadConfig75(int address);
+	bool loadConfig80(int address);
 
 	int saveString(int pAddress, const char* pString);
 	int readString(int pAddress, char* pString[]);

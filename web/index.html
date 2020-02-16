@@ -10,17 +10,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
     <script src="gaugemeter.js"></script>
     <style>
-    .bg-purple {
-        background-color: var(--purple);
-    }
-
-    .navbar .navbar-nav-svg {
-        display: inline-block;
-        width: 2rem;
-        height: 2rem;
-        vertical-align: text-top;
-    }
-
     .GaugeMeter {
         position: Relative;
         text-align: Center;
@@ -69,16 +58,16 @@
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
                 <li class="nav-item">
-                    <a class="nav-link " href="/config/meter">Meter</a>
+                    <a class="nav-link " href="/config-meter">Meter</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link " href="/config/wifi">WiFi</a>
+                    <a class="nav-link " href="/config-wifi">WiFi</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link " href="/config/mqtt">MQTT</a>
+                    <a class="nav-link " href="/config-mqtt">MQTT</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link " href="/config/web">Web</a>
+                    <a class="nav-link " href="/config-web">Web</a>
                 </li>
             </ul>
         </div>
@@ -218,7 +207,16 @@ pm.gaugeMeter({
     append: "W"
 });
 
-var interval = 2500;
+var setStatus = function(id, status) {
+    var item = $('#'+id);
+    item.removeClass('d-none');
+    item.removeClass (function (index, className) {
+        return (className.match (/(^|\s)badge-\S+/g) || []).join(' ');
+    });
+    item.addClass('badge badge-' + status);
+};
+
+var interval = 10000;
 var fetch = function() {
     $.ajax({
         url: '/data.json',
@@ -248,13 +246,7 @@ var fetch = function() {
 
         if(json.status) {
             for(var id in json.status) {
-                var badge = json.status[id];
-                var item = $('#'+id);
-                item.removeClass('d-none');
-                item.removeClass (function (index, className) {
-                    return (className.match (/(^|\s)badge-\S+/g) || []).join(' ');
-                });
-                item.addClass('badge badge-'+badge);
+                setStatus(id, json.status[id]);
             }
         }
 
@@ -336,6 +328,8 @@ var fetch = function() {
         }
         setTimeout(fetch, interval);
     }).fail(function() {
+        setTimeout(fetch, interval*4);
+
         cm.gaugeMeter({
             percent: 0,
             text: "-",
@@ -347,7 +341,11 @@ var fetch = function() {
             text: "-",
             append: "W"
         });
-        setTimeout(fetch, interval*4);
+
+        setStatus("mqtt", "secondary");
+        setStatus("wifi", "secondary");
+        setStatus("han", "secondary");
+        setStatus("esp", "danger");
     });
 }
 fetch();

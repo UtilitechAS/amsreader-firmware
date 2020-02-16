@@ -23,10 +23,10 @@ void AmsWebServer::setup(AmsConfiguration* config, Stream* debugger, MQTTClient*
 	this->mqtt = mqtt;
 
 	server.on("/", std::bind(&AmsWebServer::indexHtml, this));
-	server.on("/config/meter", std::bind(&AmsWebServer::configMeterHtml, this));
-	server.on("/config/wifi", std::bind(&AmsWebServer::configWifiHtml, this));
-	server.on("/config/mqtt", std::bind(&AmsWebServer::configMqttHtml, this));
-	server.on("/config/web", std::bind(&AmsWebServer::configWebHtml, this));
+	server.on("/config-meter", std::bind(&AmsWebServer::configMeterHtml, this));
+	server.on("/config-wifi", std::bind(&AmsWebServer::configWifiHtml, this));
+	server.on("/config-mqtt", std::bind(&AmsWebServer::configMqttHtml, this));
+	server.on("/config-web", std::bind(&AmsWebServer::configWebHtml, this));
 	server.on("/boot.css", std::bind(&AmsWebServer::bootCss, this));
 	server.on("/gaugemeter.js", std::bind(&AmsWebServer::gaugemeterJs, this)); 
 	server.on("/data.json", std::bind(&AmsWebServer::dataJson, this));
@@ -57,14 +57,15 @@ void AmsWebServer::setJson(StaticJsonDocument<1024> json) {
 					u3 = json["data"]["U3"].as<double>();
 					i3 = json["data"]["I3"].as<double>();
 				}
-			}
 
-			if(maxPwr == 0 && config->hasConfig() && config->getMainFuse() > 0 && config->getDistributionSystem() > 0) {
-				int volt = config->getDistributionSystem() == 2 ? 400 : 230;
-				if(u2 > 0) {
-					maxPwr = config->getMainFuse() * sqrt(3) * volt;
-				} else {
-					maxPwr = config->getMainFuse() * 230;
+				// Only way to determine if you have more than one phase is to run this code here
+				if(maxPwr == 0 && config->hasConfig() && config->getMainFuse() > 0 && config->getDistributionSystem() > 0) {
+					int volt = config->getDistributionSystem() == 2 ? 400 : 230;
+					if(u2 > 0) {
+						maxPwr = config->getMainFuse() * sqrt(3) * volt;
+					} else {
+						maxPwr = config->getMainFuse() * 230;
+					}
 				}
 			}
 
@@ -302,8 +303,6 @@ void AmsWebServer::dataJson() {
 
     String jsonStr;
 	if(!this->json.isNull() && this->json.containsKey("data")) {
-		println(" json has data");
-
 		int maxPwr = this->maxPwr;
 		if(maxPwr == 0) {
 			if(u2 > 0) {
@@ -312,18 +311,20 @@ void AmsWebServer::dataJson() {
 				maxPwr = 10000;
 			}
 		}
-		int maxPrd = config->getProductionCapacity() * 1000;
 
 		json["up"] = this->json["up"];
 		json["t"] = this->json["t"];
 		json["data"] = this->json["data"];
 
-		json["p_pct"]     = min(p*100/maxPwr, 100);
-		json["po_pct"]    = min(po*100/maxPrd, 100);
+		json["p_pct"] = min(p*100/maxPwr, 100);
+
+		if(config->getProductionCapacity() > 0) {
+			int maxPrd = config->getProductionCapacity() * 1000;
+			json["po_pct"] = min(po*100/maxPrd, 100);
+		}
 	} else {
-		json["p_pct"]     = -1;
-		json["po_pct"]     = -1;
-		println(" json is empty");
+		json["p_pct"] = -1;
+		json["po_pct"] = -1;
 	}
 
 	unsigned long now = millis();

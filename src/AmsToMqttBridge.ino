@@ -44,8 +44,6 @@ Stream* debugger = NULL;
 // The HAN Port reader, used to read serial data and decode DLMS
 HanReader hanReader;
 
-boolean hasTempSensor = false;
-
 // the setup function runs once when you press reset or power the board
 void setup() {
 	if(config.hasConfig()) {
@@ -54,9 +52,18 @@ void setup() {
 
 #if DEBUG_MODE
 #if HW_ROARFRED
+#if SOFTWARE_SERIAL
 	SoftwareSerial *ser = new SoftwareSerial(-1, 1);
 	ser->begin(115200, SWSERIAL_8N1);
 	debugger = ser;
+#else
+	HardwareSerial *ser = &Serial;
+	if(config.getMeterType() == 3) {
+		ser->begin(2400, SERIAL_8N1);
+	} else {
+		ser->begin(2400, SERIAL_8E1);
+	}
+#endif
 #else
 	HardwareSerial *ser = &Serial;
 	ser->begin(115200, SERIAL_8N1);
@@ -76,9 +83,7 @@ void setup() {
 
 	if (vcc > 0 && vcc < 3.1) {
 		if(debugger) {
-			debugger->print("Voltage is too low: ");
-			debugger->print(vcc);
-			debugger->println("mV");
+			debugger->println("Voltage is too low, sleeping");
 			debugger->flush();
 		}
 		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
@@ -88,20 +93,15 @@ void setup() {
 	pinMode(LED_PIN, OUTPUT);
 	pinMode(AP_BUTTON_PIN, INPUT_PULLUP);
 
+	led_off();
+
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
 
-	if(debugger) {
-		if(hasTempSensor) {
-			debugger->println("Has temp sensor");
-		} else {
-			debugger->println("No temp sensor found");
-		}
-	}
-
 	if(config.hasConfig()) {
 		if(debugger) config.print(debugger);
+		WiFi_connect();
 		client = new WiFiClient();
 	} else {
 		if(debugger) {
@@ -116,7 +116,6 @@ void setup() {
 	} else {
 		hanSerial->begin(2400, SWSERIAL_8E1);
 	}
-#elif defined DEBUG_MODE
 #else
 	if(config.getMeterType() == 3) {
 		hanSerial->begin(2400, SERIAL_8N1);
@@ -143,14 +142,18 @@ bool longPressActive = false;
 
 bool wifiConnected = false;
 
+unsigned long lastTemperatureRead = 0;
+double temperature = -127;
+
 void loop() {
+	unsigned long now = millis();
 	if (digitalRead(AP_BUTTON_PIN) == LOW) {
 		if (buttonActive == false) {
 			buttonActive = true;
-			buttonTimer = millis();
+			buttonTimer = now;
 		}
 
-		if ((millis() - buttonTimer > longPressTime) && (longPressActive == false)) {
+		if ((now - buttonTimer > longPressTime) && (longPressActive == false)) {
 			longPressActive = true;
 			swapWifiMode();
 		}
@@ -163,6 +166,11 @@ void loop() {
 			}
 			buttonActive = false;
 		}
+	}
+
+	if(now - lastTemperatureRead > 10000) {
+		temperature = hw.getTemperature();
+		lastTemperatureRead = now;
 	}
 
 	// Only do normal stuff if we're not booted as AP
@@ -181,28 +189,19 @@ void loop() {
 			}
 			if (!config.getMqttHost().isEmpty()) {
 				mqtt.loop();
-				yield();
+				delay(10);
 				if(!mqtt.connected() || config.isMqttChanged()) {
 					MQTT_connect();
 				}
 			} else if(mqtt.connected()) {
 				mqtt.disconnect();
-				yield();
 			}
 		}
 	} else {
 		dnsServer.processNextRequest();
 		// Continously flash the LED when AP mode
-		if (millis() / 50 % 64 == 0)   led_on();
+		if (now / 50 % 64 == 0)   led_on();
 		else							led_off();
-
-		// Make sure there is enough power to run
-		double vcc = hw.getVcc();
-		if(vcc > 0) {
-			delay(max(10, 3500-(int)(vcc*1000)));
-		} else {
-			delay(10);
-		}
 
 	}
 	readHanPort();
@@ -239,7 +238,7 @@ void swapWifiMode() {
 	WiFi.mode(WIFI_OFF);
 	yield();
 
-	if (mode != WIFI_AP) {
+	if (mode != WIFI_AP || !config.hasConfig()) {
 		if(debugger) debugger->println("Swapping to AP mode");
 		WiFi.softAP("AMS2MQTT");
 		WiFi.mode(WIFI_AP);
@@ -298,9 +297,8 @@ void readHanPort() {
 			float rssi = WiFi.RSSI();
 			rssi = isnan(rssi) ? -100.0 : rssi;
 			json["rssi"] = rssi;
-			double temp = hw.getTemperature();
-			if(temp != -127) {
-				json["temp"] = temp;
+			if(temperature != -127) {
+				json["temp"] = temperature;
 			}
 
 			// Add a sub-structure to the json object,
@@ -406,6 +404,7 @@ void WiFi_connect() {
 
 		WiFi.enableAP(false);
 		WiFi.mode(WIFI_STA);
+//		WiFi.setOutputPower(0);
 		if(!config.getWifiIp().isEmpty()) {
 			IPAddress ip, gw, sn(255,255,255,0);
 			ip.fromString(config.getWifiIp());

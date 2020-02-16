@@ -19,9 +19,12 @@
 #define AP_BUTTON_PIN 0
 
 #if DEBUG_MODE
-#define SOFTWARE_SERIAL 1
+#if SOFTWARE_SERIAL
 #include <SoftwareSerial.h>
 SoftwareSerial *hanSerial = new SoftwareSerial(3);
+#else
+HardwareSerial *hanSerial = &Serial;
+#endif
 #else
 HardwareSerial *hanSerial = &Serial;
 #endif

@@ -110,7 +110,7 @@ void setup() {
 		swapWifiMode();
 	}
 
-#if defined SOFTWARE_SERIAL
+#if SOFTWARE_SERIAL
 	if(config.getMeterType() == 3) {
 		hanSerial->begin(2400, SWSERIAL_8N1);
 	} else {

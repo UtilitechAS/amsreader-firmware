@@ -185,7 +185,10 @@ void loop() {
 		} else {
 			if(!wifiConnected) {
 				wifiConnected = true;
-				if(debugger) debugger->println("Successfully connected to WiFi!");
+				if(debugger) {
+					debugger->println("Successfully connected to WiFi!");
+					debugger->println(WiFi.localIP());
+				}
 			}
 			if (!config.getMqttHost().isEmpty()) {
 				mqtt.loop();

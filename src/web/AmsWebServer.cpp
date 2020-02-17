@@ -11,11 +11,6 @@
 
 #include "Base64.h"
 
-#if defined(ESP8266)
-ESP8266WebServer server(80);
-#elif defined(ESP32) // ARDUINO_ARCH_ESP32
-WebServer server(80);
-#endif
 
 void AmsWebServer::setup(AmsConfiguration* config, Stream* debugger, MQTTClient* mqtt) {
     this->config = config;
@@ -125,6 +120,7 @@ bool AmsWebServer::checkSecurity(byte level) {
 	if(!access) {
 		println(" no access, requesting user/pass");
 		server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure Area\"");
+		server.setContentLength(0);
 		server.send(401, "text/html", "");
 	}
 	return access;
@@ -176,6 +172,8 @@ void AmsWebServer::indexHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
+
+	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
 }
 
@@ -204,6 +202,8 @@ void AmsWebServer::configMeterHtml() {
 		html.replace("${config.mainFuse" + String(i) + "}", config->getMainFuse() == i ? "selected"  : "");
 	}
 	html.replace("${config.productionCapacity}", String(config->getProductionCapacity()));
+
+	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
 }
 
@@ -226,6 +226,7 @@ void AmsWebServer::configWifiHtml() {
 	html.replace("${config.wifiGw}", config->getWifiGw());
 	html.replace("${config.wifiSubnet}", config->getWifiSubnet());
 
+	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
 }
 
@@ -250,6 +251,7 @@ void AmsWebServer::configMqttHtml() {
 	html.replace("${config.mqttUser}", config->getMqttUser());
 	html.replace("${config.mqttPassword}", config->getMqttPassword());
 
+	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
 }
 
@@ -272,25 +274,30 @@ void AmsWebServer::configWebHtml() {
 	html.replace("${config.authUser}", config->getAuthUser());
 	html.replace("${config.authPassword}", config->getAuthPassword());
 
+	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
 }
 
 void AmsWebServer::bootCss() {
 	println("Serving /boot.css over http...");
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-	server.send(200, "text/css", BOOT_CSS);
+	String css = String((const __FlashStringHelper*) BOOT_CSS);
+
+	server.sendHeader("Cache-Control", "public, max-age=3600");
+
+	server.setContentLength(css.length());
+	server.send(200, "text/css", css);
 }
 
 void AmsWebServer::gaugemeterJs() {
 	println("Serving /gaugemeter.js over http...");
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-	server.send(200, "application/javascript", GAUGEMETER_JS);
+	String js = String((const __FlashStringHelper*) GAUGEMETER_JS);
+
+	server.sendHeader("Cache-Control", "public, max-age=3600");
+	
+	server.setContentLength(js.length());
+	server.send(200, "application/javascript", js);
 }
 
 void AmsWebServer::dataJson() {
@@ -404,6 +411,8 @@ void AmsWebServer::dataJson() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
+
+	server.setContentLength(jsonStr.length());
 	server.send(200, "application/json", jsonStr);
 }
 

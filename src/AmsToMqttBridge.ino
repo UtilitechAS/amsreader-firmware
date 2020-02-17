@@ -122,7 +122,7 @@ void setup() {
 	} else {
 		hanSerial->begin(2400, SERIAL_8E1);
 	}
-#if defined UART2
+#if UART2
 	hanSerial->swap();
 #endif
 #endif
@@ -365,7 +365,7 @@ void readHanPort() {
 	if(config.getMeterType() == 0 && millis() - lastSuccessfulRead > 10000) {
 		lastSuccessfulRead = millis();
 		if(debugger) debugger->println("No data for current setting, switching parity");
-#if defined SOFTWARE_SERIAL
+#if SOFTWARE_SERIAL
 			if(even) {
 				hanSerial->begin(2400, SWSERIAL_8N1);
 			} else {

@@ -147,7 +147,7 @@ static void hanToJsonAidon3phaseIT(int listSize, JsonObject& data, HanReader& ha
         data["PO"]      = hanReader.getInt(             (int)Aidon_List3PhaseIT::ActiveExportPower);
         data["QO"]      = hanReader.getInt(             (int)Aidon_List3PhaseIT::ReactiveExportPower);
         data["I1"]      = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CurrentL1)) / 10;
-        data["I1"]      = 0;
+        data["I2"]      = 0;
         data["I3"]      = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CurrentL3)) / 10;
         data["U1"]      = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL1)) / 10;
         data["U2"]      = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL2)) / 10;

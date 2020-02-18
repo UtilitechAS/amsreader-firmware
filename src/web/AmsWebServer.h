@@ -1,6 +1,8 @@
 #ifndef _AMSWEBSERVER_h
 #define _AMSWEBSERVER_h
 
+#define BOOTSTRAP_URL "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"
+
 #include <ArduinoJson.h>
 #include <MQTT.h>
 #include "AmsConfiguration.h"

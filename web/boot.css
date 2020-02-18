@@ -1,15 +1,3 @@
-/* Common custom style */
-.bg-purple {
-    background-color: var(--purple);
-}
-
-.navbar .navbar-nav-svg {
-    display: inline-block;
-    width: 2rem;
-    height: 2rem;
-    vertical-align: text-top;
-}
-
 /* Ripped necessary style from bootstrap 4.4.1 to make the page look good without internet access. Meant to be overridden by CSS from CDN */
 :root {
     --blue: #007bff;

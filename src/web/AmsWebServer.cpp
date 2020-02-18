@@ -134,6 +134,11 @@ void AmsWebServer::indexHtml() {
 
 	String html = String((const __FlashStringHelper*) INDEX_HTML);
 	html.replace("${version}", VERSION);
+
+	if(WiFi.getMode() != WIFI_AP) {
+		html.replace("boot.css", BOOTSTRAP_URL);
+	}
+
 	html.replace("${data.P}", String(p));
 	html.replace("${data.PO}", String(po));
 	html.replace("${display.production}", config->getProductionCapacity() > 0 ? "" : "none");
@@ -186,6 +191,10 @@ void AmsWebServer::configMeterHtml() {
 	String html = String((const __FlashStringHelper*) CONFIGMETER_HTML);
 	html.replace("${version}", VERSION);
 
+	if(WiFi.getMode() != WIFI_AP) {
+		html.replace("boot.css", BOOTSTRAP_URL);
+	}
+
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
@@ -216,6 +225,10 @@ void AmsWebServer::configWifiHtml() {
 	String html = String((const __FlashStringHelper*) CONFIGWIFI_HTML);
 	html.replace("${version}", VERSION);
 
+	if(WiFi.getMode() != WIFI_AP) {
+		html.replace("boot.css", BOOTSTRAP_URL);
+	}
+
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
@@ -238,6 +251,10 @@ void AmsWebServer::configMqttHtml() {
 
 	String html = String((const __FlashStringHelper*) CONFIGMQTT_HTML);
 	html.replace("${version}", VERSION);
+
+	if(WiFi.getMode() != WIFI_AP) {
+		html.replace("boot.css", BOOTSTRAP_URL);
+	}
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -263,6 +280,10 @@ void AmsWebServer::configWebHtml() {
 
 	String html = String((const __FlashStringHelper*) CONFIGWEB_HTML);
 	html.replace("${version}", VERSION);
+
+	if(WiFi.getMode() != WIFI_AP) {
+		html.replace("boot.css", BOOTSTRAP_URL);
+	}
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");

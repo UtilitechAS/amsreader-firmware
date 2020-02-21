@@ -3,7 +3,6 @@
 #ifndef _AIDON_h
 #define _AIDON_h
 
-
 enum class Aidon
 {
 	List1			= 0x01,

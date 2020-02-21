@@ -89,6 +89,12 @@ void setup() {
 		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
 	}  
 
+	#if HAS_RGB_LED
+		// Initialize RGB LED pins
+		pinMode(LEDPIN_RGB_GREEN, OUTPUT);	
+		pinMode(LEDPIN_RGB_RED, OUTPUT);
+	#endif
+
 	// Flash the LED, to indicate we can boot as AP now
 	pinMode(LED_PIN, OUTPUT);
 	pinMode(AP_BUTTON_PIN, INPUT_PULLUP);

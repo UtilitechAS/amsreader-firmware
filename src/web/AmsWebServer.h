@@ -3,10 +3,11 @@
 
 #define BOOTSTRAP_URL "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"
 
-#include <ArduinoJson.h>
 #include <MQTT.h>
+#include <ArduinoJson.h>
 #include "AmsConfiguration.h"
 #include "HwTools.h"
+#include "AmsData.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -28,17 +29,15 @@ class AmsWebServer {
 public:
     void setup(AmsConfiguration* config, Stream* debugger, MQTTClient* mqtt);
     void loop();
-	void setJson(StaticJsonDocument<1024> json);
+	void setData(AmsData& data);
 
 private:
+	int maxPwr;
 	HwTools hw;
     AmsConfiguration* config;
+	AmsData data;
 	Stream* debugger;
 	MQTTClient* mqtt;
-    StaticJsonDocument<1024> json;
-    int maxPwr;
-	int p, po;
-	double u1, u2, u3, i1, i2, i3, tpi, tpo, tqi, tqo;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;

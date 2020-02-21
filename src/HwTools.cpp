@@ -30,3 +30,7 @@ double HwTools::getTemperature() {
     return DEVICE_DISCONNECTED_C;
 }
 
+int HwTools::getWifiRssi() {
+    int rssi = WiFi.RSSI();
+    return isnan(rssi) ? -100.0 : rssi;
+}

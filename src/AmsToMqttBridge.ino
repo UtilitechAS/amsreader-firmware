@@ -28,23 +28,17 @@ HwTools hw;
 
 DNSServer dnsServer;
 
-// Configuration
 AmsConfiguration config;
 
-// Web server
 AmsWebServer ws;
 
-// WiFi client and MQTT client
 WiFiClient *client;
 MQTTClient mqtt(512);
 
-// Object used for debugging
 Stream* debugger = NULL;
 
-// The HAN Port reader, used to read serial data and decode DLMS
 HanReader hanReader;
 
-// the setup function runs once when you press reset or power the board
 void setup() {
 	if(config.hasConfig()) {
 		config.load();
@@ -127,7 +121,7 @@ void setup() {
 #endif
 #endif
 
-	hanReader.setup(hanSerial, 0);
+	hanReader.setup(hanSerial, debugger);
 
 	// Compensate for the known Kaifa bug
 	hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
@@ -175,10 +169,8 @@ void loop() {
 
 	// Only do normal stuff if we're not booted as AP
 	if (WiFi.getMode() != WIFI_AP) {
-		// Turn off the LED
 		led_off();
 
-		// Reconnect to WiFi and MQTT as needed
 		if (WiFi.status() != WL_CONNECTED) {
 			wifiConnected = false;
 			WiFi_connect();
@@ -278,59 +270,27 @@ void readHanPort() {
 		lastSuccessfulRead = millis();
 
 		if(config.getMeterType() > 0) {
-			// Flash LED on, this shows us that data is received
 			led_on();
 
-			// Get the timestamp (as unix time) from the package
-			time_t time = hanReader.getPackageTime();
-			if (debugger) debugger->print("Time of the package is: ");
-			if (debugger) debugger->println(time);
-
-			// Define a json object to keep the data
-			StaticJsonDocument<1024> json;
-
-			// Any generic useful info here
-			json["id"] = WiFi.macAddress();
-			json["up"] = millis();
-			json["t"] = time;
-			double vcc = hw.getVcc();
-			if(vcc > 0) {
-				json["vcc"] = vcc;
-			}
-			float rssi = WiFi.RSSI();
-			rssi = isnan(rssi) ? -100.0 : rssi;
-			json["rssi"] = rssi;
-			if(temperature != -127) {
-				json["temp"] = temperature;
-			}
-
-			// Add a sub-structure to the json object,
-			// to keep the data from the meter itself
-			JsonObject data = json.createNestedObject("data");
-
-			hanToJson(data, config.getMeterType(), hanReader);
+			AmsData data(config.getMeterType(), hanReader);
+			ws.setData(data);
 
 			if(!config.getMqttHost().isEmpty() && !config.getMqttPublishTopic().isEmpty()) {
-				// Write the json to the debug port
+			    StaticJsonDocument<512> json;
+				hanToJson(json, data, hw, temperature);
 				if (debugger) {
 					debugger->print("Sending data to MQTT: ");
 					serializeJsonPretty(json, *debugger);
 					debugger->println();
 				}
 
-				// Publish the json to the MQTT server
 				String msg;
 				serializeJson(json, msg);
-
 				mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
-				mqtt.loop();
-				delay(10); // Needed to preserve power
 			}
-			ws.setJson(json);
-
-			// Flash LED off
 			led_off();
 		} else {
+			// Auto detect meter if not set
 			for(int i = 1; i <= 3; i++) {
 				String list;
 				switch(i) {
@@ -365,6 +325,7 @@ void readHanPort() {
 		}
 	}
 
+	// Switch parity if meter is still not detected
 	if(config.getMeterType() == 0 && millis() - lastSuccessfulRead > 10000) {
 		lastSuccessfulRead = millis();
 		if(debugger) debugger->println("No data for current setting, switching parity");
@@ -394,8 +355,7 @@ void WiFi_connect() {
 	}
 	lastWifiRetry = millis();
 
-	if (debugger)
-	{
+	if (debugger) {
 		debugger->println();
 		debugger->println();
 		debugger->print("Connecting to WiFi network ");
@@ -408,7 +368,6 @@ void WiFi_connect() {
 
 		WiFi.enableAP(false);
 		WiFi.mode(WIFI_STA);
-//		WiFi.setOutputPower(0);
 		if(!config.getWifiIp().isEmpty()) {
 			IPAddress ip, gw, sn(255,255,255,0);
 			ip.fromString(config.getWifiIp());
@@ -475,7 +434,7 @@ void sendMqttData(String data)
 		return;
 
 	// Build a json with the message in a "data" attribute
-	StaticJsonDocument<500> json;
+	StaticJsonDocument<128> json;
 	json["id"] = WiFi.macAddress();
 	json["up"] = millis();
 	json["data"] = data;

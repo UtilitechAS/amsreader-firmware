@@ -28,7 +28,7 @@ class AmsWebServer {
 public:
     void setup(AmsConfiguration* config, Stream* debugger, MQTTClient* mqtt);
     void loop();
-	void setJson(StaticJsonDocument<1024> json);
+	void setJson(StaticJsonDocument<512> json);
 
 private:
 	HwTools hw;

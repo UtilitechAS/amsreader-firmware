@@ -36,7 +36,7 @@ AmsWebServer ws;
 
 // WiFi client and MQTT client
 WiFiClient *client;
-MQTTClient mqtt(512);
+MQTTClient mqtt(384);
 
 // Object used for debugging
 Stream* debugger = NULL;
@@ -306,7 +306,7 @@ void readHanPort() {
 			if (debugger) debugger->println(time);
 
 			// Define a json object to keep the data
-			StaticJsonDocument<1024> json;
+			StaticJsonDocument<512> json;
 
 			// Any generic useful info here
 			json["id"] = WiFi.macAddress();

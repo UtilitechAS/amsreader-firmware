@@ -44,6 +44,16 @@ Stream* debugger = NULL;
 // The HAN Port reader, used to read serial data and decode DLMS
 HanReader hanReader;
 
+#if HAS_RGB_LED
+	//void rgb_led(int color, int mode);
+	#define RGB_RED 1
+	#define RGB_GREEN 2
+	#define RGB_YELLOW 3
+	#define RGB_OFF 0
+	#define RGB_ON 1
+	#define RGB_BLINK 2
+#endif
+
 // the setup function runs once when you press reset or power the board
 void setup() {
 	if(config.hasConfig()) {
@@ -133,6 +143,21 @@ void setup() {
 	hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
 
 	ws.setup(&config, debugger, &mqtt);
+
+#if HAS_RGB_LED
+	//Test Red and Green LED blink
+	rgb_led(RGB_RED, RGB_BLINK);
+	delay(500);
+	rgb_led(RGB_RED, RGB_BLINK);
+	delay(500);
+	rgb_led(RGB_GREEN, RGB_BLINK);
+	delay(500);
+	rgb_led(RGB_GREEN, RGB_BLINK);
+	delay(500);
+	rgb_led(RGB_YELLOW, RGB_BLINK);
+	delay(500);
+	rgb_led(RGB_YELLOW, RGB_BLINK);
+#endif
 }
 
 int buttonTimer = 0;
@@ -279,7 +304,11 @@ void readHanPort() {
 
 		if(config.getMeterType() > 0) {
 			// Flash LED on, this shows us that data is received
-			led_on();
+			#if HAS_RGB_LED
+				rgb_led(RGB_GREEN, RGB_ON);
+			#else
+				led_on();
+			#endif
 
 			// Get the timestamp (as unix time) from the package
 			time_t time = hanReader.getPackageTime();
@@ -329,7 +358,13 @@ void readHanPort() {
 			ws.setJson(json);
 
 			// Flash LED off
-			led_off();
+			// Flash LED off
+			#if HAS_RGB_LED
+				rgb_led(RGB_GREEN, RGB_OFF);
+			#else
+				led_off();
+			#endif
+
 		} else {
 			for(int i = 1; i <= 3; i++) {
 				String list;
@@ -498,4 +533,37 @@ void sendMqttData(String data)
 	if (debugger) debugger->println(data);
 }
 
-
+void rgb_led(int color, int mode) {
+// Activate red and green LEDs
+// color: 1=red, 2=green, 3=yellow
+// mode: 0=OFF, 1=ON, 2=Short blink
+#if 
+	int blinkduration = 50;	// milliseconds
+	switch (mode) {
+		case 0:	//OFF
+			digitalWrite(LED_RGB_RED, HIGH);
+			digitalWrite(LED_RGB_GREEN, HIGH);
+			break;
+		case 1: //ON
+			switch (color) {
+				case 1:	//Red
+					digitalWrite(LED_RGB_RED, LOW);
+					digitalWrite(LED_RGB_GREEN, HIGH);
+					break;
+				case 2:	//Green
+					digitalWrite(LED_RGB_RED, HIGH);
+					digitalWrite(LED_RGB_GREEN, LOW);
+					break;
+				case 3:	//Yellow
+					digitalWrite(LED_RGB_RED, LOW);
+					digitalWrite(LED_RGB_GREEN, LOW);
+					break;
+				}
+			break;
+		case 2: //Blink
+			rgb_led(color, 1);
+			delay(blinkduration);
+			rgb_led(color, 0);
+			break;
+	}
+}

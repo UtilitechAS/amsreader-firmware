@@ -35,65 +35,17 @@ void AmsWebServer::loop() {
 	server.handleClient();
 }
 
-void AmsWebServer::setJson(StaticJsonDocument<512> json) {
-	if(!json.isNull()) {
-		p = json["data"]["P"].as<int>();
-		po = json["data"]["PO"].as<int>();
 
-		if(json["data"].containsKey("U1")) {
-			u1 = json["data"]["U1"].as<double>();
-			i1 = json["data"]["I1"].as<double>();
-	
-			if(json["data"].containsKey("U2")) {
-				u2 = json["data"]["U2"].as<double>();
-				i2 = json["data"]["I2"].as<double>();
+void AmsWebServer::setData(AmsData& data) {
+	this->data.apply(data);
 
-				if(json["data"].containsKey("U3")) {
-					u3 = json["data"]["U3"].as<double>();
-					i3 = json["data"]["I3"].as<double>();
-				}
-
-				// Only way to determine if you have more than one phase is to run this code here
-				if(maxPwr == 0 && config->hasConfig() && config->getMainFuse() > 0 && config->getDistributionSystem() > 0) {
-					int volt = config->getDistributionSystem() == 2 ? 400 : 230;
-					if(u2 > 0) {
-						maxPwr = config->getMainFuse() * sqrt(3) * volt;
-					} else {
-						maxPwr = config->getMainFuse() * 230;
-					}
-				}
-			}
-
-			if(json["data"].containsKey("tPI")) {
-				tpi = json["data"]["tPI"].as<double>();
-				tpo = json["data"]["tPO"].as<double>();
-				tqi = json["data"]["tQI"].as<double>();
-				tqo = json["data"]["tQO"].as<double>();
-			}
+	if(maxPwr == 0 && data.getListType() > 1 && config->hasConfig() && config->getMainFuse() > 0 && config->getDistributionSystem() > 0) {
+		int volt = config->getDistributionSystem() == 2 ? 400 : 230;
+		if(data.isThreePhase()) {
+			maxPwr = config->getMainFuse() * sqrt(3) * volt;
 		} else {
-			if(po > 0) {
-				json["data"]["PO"] = po;
-			}
-			if(u1 > 0) {
-				json["data"]["U1"] = u1;
-				json["data"]["I1"] = i1;
-			}
-			if(u2 > 0) {
-				json["data"]["U2"] = u2;
-				json["data"]["I2"] = i2;
-			}
-			if(u3 > 0) {
-				json["data"]["U3"] = u3;
-				json["data"]["I3"] = i3;
-			}
-			if(tpi > 0) {
-				json["data"]["tPI"] = tpi;
-				json["data"]["tPO"] = tpo;
-				json["data"]["tQI"] = tqi;
-				json["data"]["tQO"] = tqo;
-			}
+			maxPwr = config->getMainFuse() * 230;
 		}
-	    this->json = json;
 	}
 }
 
@@ -139,8 +91,19 @@ void AmsWebServer::indexHtml() {
 		html.replace("boot.css", BOOTSTRAP_URL);
 	}
 
-	html.replace("${data.P}", String(p));
-	html.replace("${data.PO}", String(po));
+	double u1 = data.getL1Voltage();
+	double u2 = data.getL2Voltage();
+	double u3 = data.getL3Voltage();
+	double i1 = data.getL1Current();
+	double i2 = data.getL2Current();
+	double i3 = data.getL3Current();
+	double tpi = data.getActiveImportCounter();
+	double tpo = data.getActiveExportCounter();
+	double tqi = data.getReactiveImportCounter();
+	double tqo = data.getReactiveExportCounter();
+
+	html.replace("${data.P}", String(data.getActiveImportPower()));
+	html.replace("${data.PO}", String(data.getActiveExportPower()));
 	html.replace("${display.production}", config->getProductionCapacity() > 0 ? "" : "none");
 
 	html.replace("${data.U1}", u1 > 0 ? String(u1, 1) : "");
@@ -168,9 +131,8 @@ void AmsWebServer::indexHtml() {
 	html.replace("${temp}", temp > 0 ? String(temp, 1) : "");
 	html.replace("${display.temp}", temp != DEVICE_DISCONNECTED_C ? "" : "none");
 
-	float rssi = WiFi.RSSI();
-	rssi = isnan(rssi) ? -100.0 : rssi;
-	html.replace("${wifi.rssi}", vcc > 0 ? String(rssi, 0) : "");
+	int rssi = hw.getWifiRssi();
+	html.replace("${wifi.rssi}", vcc > 0 ? String(rssi) : "");
 	html.replace("${wifi.channel}", WiFi.channel() > 0 ? String(WiFi.channel()) : "");
 	html.replace("${wifi.ssid}", !WiFi.SSID().isEmpty() ? String(WiFi.SSID()) : "");
 
@@ -330,25 +292,58 @@ void AmsWebServer::dataJson() {
 	StaticJsonDocument<768> json;
 
     String jsonStr;
-	if(!this->json.isNull() && this->json.containsKey("data")) {
+	if(data.getActiveImportPower() > 0) {
 		int maxPwr = this->maxPwr;
 		if(maxPwr == 0) {
-			if(u2 > 0) {
+			if(data.isThreePhase()) {
 				maxPwr = 20000;
 			} else {
 				maxPwr = 10000;
 			}
 		}
 
-		json["up"] = this->json["up"];
-		json["t"] = this->json["t"];
-		json["data"] = this->json["data"];
+		json["up"] = data.getLastUpdateMillis();
+		json["t"] = data.getPackageTimestamp();
+		json.createNestedObject("data");
+		json["data"]["P"] = data.getActiveImportPower();
+		json["data"]["PO"] = data.getActiveExportPower();
 
-		json["p_pct"] = min(p*100/maxPwr, 100);
+		double u1 = data.getL1Voltage();
+		double u2 = data.getL2Voltage();
+		double u3 = data.getL3Voltage();
+		double i1 = data.getL1Current();
+		double i2 = data.getL2Current();
+		double i3 = data.getL3Current();
+		double tpi = data.getActiveImportCounter();
+		double tpo = data.getActiveExportCounter();
+		double tqi = data.getReactiveImportCounter();
+		double tqo = data.getReactiveExportCounter();
+
+		if(u1 > 0) {
+			json["data"]["U1"] = u1;
+			json["data"]["I1"] = i1;
+		}
+		if(u2 > 0) {
+			json["data"]["U2"] = u2;
+			json["data"]["I2"] = i2;
+		}
+		if(u3 > 0) {
+			json["data"]["U3"] = u3;
+			json["data"]["I3"] = i3;
+		}
+
+		if(tpi > 0) {
+			json["data"]["tPI"] = tpi;
+			json["data"]["tPO"] = tpo;
+			json["data"]["tQI"] = tqi;
+			json["data"]["tQO"] = tqo;
+		}
+
+		json["p_pct"] = min(data.getActiveImportPower()*100/maxPwr, 100);
 
 		if(config->getProductionCapacity() > 0) {
 			int maxPrd = config->getProductionCapacity() * 1000;
-			json["po_pct"] = min(po*100/maxPrd, 100);
+			json["po_pct"] = min(data.getActiveExportPower()*100/maxPrd, 100);
 		}
 	} else {
 		json["p_pct"] = -1;

@@ -105,12 +105,17 @@ void setup() {
 	}
 
 #if SOFTWARE_SERIAL
+	if(debugger) debugger->println("HAN has software serial");
 	if(config.getMeterType() == 3) {
 		hanSerial->begin(2400, SWSERIAL_8N1);
 	} else {
 		hanSerial->begin(2400, SWSERIAL_8E1);
 	}
 #else
+	if(debugger) { 
+		debugger->println("HAN has hardware serial");
+		debugger->flush();
+	}
 	if(config.getMeterType() == 3) {
 		hanSerial->begin(2400, SERIAL_8N1);
 	} else {
@@ -121,10 +126,15 @@ void setup() {
 #endif
 #endif
 
-	hanReader.setup(hanSerial, debugger);
+	hanReader.setup(hanSerial, 0);
 
 	// Compensate for the known Kaifa bug
 	hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
+
+	// Empty buffer before starting
+	while (hanSerial->available() > 0) {
+    	hanSerial->read();
+	}
 
 	ws.setup(&config, debugger, &mqtt);
 }
@@ -138,6 +148,10 @@ bool wifiConnected = false;
 
 unsigned long lastTemperatureRead = 0;
 double temperature = -127;
+
+bool even = true;
+unsigned long lastRead = 0;
+unsigned long lastSuccessfulRead = 0;
 
 void loop() {
 	unsigned long now = millis();
@@ -161,8 +175,8 @@ void loop() {
 			buttonActive = false;
 		}
 	}
-
-	if(now - lastTemperatureRead > 10000) {
+	
+	if(now - lastTemperatureRead > 5000) {
 		temperature = hw.getTemperature();
 		lastTemperatureRead = now;
 	}
@@ -199,7 +213,11 @@ void loop() {
 		else					  led_off();
 
 	}
-	readHanPort();
+	if(lastRead-now > 100) {
+		yield();
+		readHanPort();
+		lastRead = now;
+	}
 	ws.loop();
 	delay(1); // Needed for auto modem sleep
 }
@@ -263,8 +281,6 @@ void mqttMessageReceived(String &topic, String &payload)
 	// Ideas could be to query for values or to initiate OTA firmware update
 }
 
-bool even = true;
-unsigned long lastSuccessfulRead = 0;
 void readHanPort() {
 	if (hanReader.read()) {
 		lastSuccessfulRead = millis();
@@ -287,6 +303,8 @@ void readHanPort() {
 				String msg;
 				serializeJson(json, msg);
 				mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
+				mqtt.loop();
+				delay(10);
 			}
 			led_off();
 		} else {

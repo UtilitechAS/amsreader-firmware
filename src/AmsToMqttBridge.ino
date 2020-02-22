@@ -89,7 +89,6 @@ void setup() {
 		pinMode(LEDPIN_RGB_RED, OUTPUT);
 	#endif
 
-	// Flash the LED, to indicate we can boot as AP now
 	pinMode(LED_PIN, OUTPUT);
 	pinMode(AP_BUTTON_PIN, INPUT_PULLUP);
 
@@ -168,6 +167,9 @@ bool even = true;
 unsigned long lastRead = 0;
 unsigned long lastSuccessfulRead = 0;
 
+unsigned long lastErrorBlink = 0; 
+int lastError = 0;
+
 void loop() {
 	unsigned long now = millis();
 	if (digitalRead(AP_BUTTON_PIN) == LOW) {
@@ -194,6 +196,10 @@ void loop() {
 	if(now - lastTemperatureRead > 5000) {
 		temperature = hw.getTemperature();
 		lastTemperatureRead = now;
+	}
+
+	if(now > 10000 && now - lastErrorBlink > 3000) {
+		errorBlink();
 	}
 
 	// Only do normal stuff if we're not booted as AP
@@ -228,7 +234,7 @@ void loop() {
 		else					  led_off();
 
 	}
-	if(lastRead-now > 100) {
+	if(now - lastRead > 150) {
 		yield();
 		readHanPort();
 		lastRead = now;
@@ -255,6 +261,34 @@ void led_off()
 #else
 	digitalWrite(LED_PIN, HIGH);
 #endif
+}
+
+void errorBlink() {
+	if(lastError == 3)
+		lastError = 0;
+	lastErrorBlink = millis();
+	for(;lastError < 3;lastError++) {
+		switch(lastError) {
+			case 0:
+				if(lastErrorBlink - lastSuccessfulRead > 30000) {
+					rgb_led(RGB_RED, 2); // If no message received from AMS in 30 sec, blink once
+					return;
+				}
+				break;
+			case 1:
+				if(!config.getMqttHost().isEmpty() && mqtt.lastError() != 0) {
+					rgb_led(RGB_RED, 3); // If MQTT error, blink twice
+					return;
+				}
+				break;
+			case 2:
+				if(WiFi.getMode() != WIFI_AP && WiFi.status() != WL_CONNECTED) {
+					rgb_led(RGB_RED, 4); // If WiFi not connected, blink three times
+					return;
+				}
+				break;
+		}
+	}
 }
 
 void swapWifiMode() {
@@ -529,10 +563,14 @@ void rgb_led(int color, int mode) {
 					break;
 				}
 			break;
-		case 2: //Blink
-			rgb_led(color, 1);
-			delay(blinkduration);
-			rgb_led(color, 0);
+		default: // Blink
+			for(int i = 1; i < mode; i++) {
+				rgb_led(color, 1);
+				delay(blinkduration);
+				rgb_led(color, 0);
+				if(i != mode)
+					delay(blinkduration);
+			}
 			break;
 	}
 }

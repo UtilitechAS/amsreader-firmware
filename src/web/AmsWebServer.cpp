@@ -35,6 +35,7 @@ void AmsWebServer::loop() {
 	server.handleClient();
 }
 
+
 void AmsWebServer::setData(AmsData& data) {
 	this->data.apply(data);
 

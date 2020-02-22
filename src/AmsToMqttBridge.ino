@@ -33,7 +33,7 @@ AmsConfiguration config;
 AmsWebServer ws;
 
 WiFiClient *client;
-MQTTClient mqtt(512);
+MQTTClient mqtt(384);
 
 Stream* debugger = NULL;
 
@@ -82,6 +82,12 @@ void setup() {
 		}
 		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
 	}  
+
+	#if HAS_RGB_LED
+		// Initialize RGB LED pins
+		pinMode(LEDPIN_RGB_GREEN, OUTPUT);	
+		pinMode(LEDPIN_RGB_RED, OUTPUT);
+	#endif
 
 	// Flash the LED, to indicate we can boot as AP now
 	pinMode(LED_PIN, OUTPUT);
@@ -137,6 +143,15 @@ void setup() {
 	}
 
 	ws.setup(&config, debugger, &mqtt);
+
+#if HAS_RGB_LED
+	//Signal startup by blinking red / green / yellow
+	rgb_led(RGB_RED, 2);
+	delay(250);
+	rgb_led(RGB_GREEN, 2);
+	delay(250);
+	rgb_led(RGB_YELLOW, 2);
+#endif
 }
 
 int buttonTimer = 0;
@@ -286,7 +301,11 @@ void readHanPort() {
 		lastSuccessfulRead = millis();
 
 		if(config.getMeterType() > 0) {
-			led_on();
+			#if HAS_RGB_LED
+				rgb_led(RGB_GREEN, 1);
+			#else
+				led_on();
+			#endif
 
 			AmsData data(config.getMeterType(), hanReader);
 			ws.setData(data);
@@ -306,7 +325,12 @@ void readHanPort() {
 				mqtt.loop();
 				delay(10);
 			}
-			led_off();
+
+			#if HAS_RGB_LED
+				rgb_led(RGB_GREEN, 0);
+			#else
+				led_off();
+			#endif
 		} else {
 			// Auto detect meter if not set
 			for(int i = 1; i <= 3; i++) {
@@ -475,4 +499,40 @@ void sendMqttData(String data)
 	if (debugger) debugger->println(data);
 }
 
-
+void rgb_led(int color, int mode) {
+// Activate red and green LEDs
+// color: 1=red, 2=green, 3=yellow
+// mode: 0=OFF, 1=ON, 2=Short blink
+#ifndef  HAS_RGB_LED
+#define LEDPIN_RGB_RED LED_PIN
+#define LEDPIN_RGB_GREEN LED_PIN
+#endif
+	int blinkduration = 50;	// milliseconds
+	switch (mode) {
+		case 0:	//OFF
+			digitalWrite(LEDPIN_RGB_RED, HIGH);
+			digitalWrite(LEDPIN_RGB_GREEN, HIGH);
+			break;
+		case 1: //ON
+			switch (color) {
+				case 1:	//Red
+					digitalWrite(LEDPIN_RGB_RED, LOW);
+					digitalWrite(LEDPIN_RGB_GREEN, HIGH);
+					break;
+				case 2:	//Green
+					digitalWrite(LEDPIN_RGB_RED, HIGH);
+					digitalWrite(LEDPIN_RGB_GREEN, LOW);
+					break;
+				case 3:	//Yellow
+					digitalWrite(LEDPIN_RGB_RED, LOW);
+					digitalWrite(LEDPIN_RGB_GREEN, LOW);
+					break;
+				}
+			break;
+		case 2: //Blink
+			rgb_led(color, 1);
+			delay(blinkduration);
+			rgb_led(color, 0);
+			break;
+	}
+}

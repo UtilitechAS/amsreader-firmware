@@ -29,6 +29,7 @@ class AmsWebServer {
 public:
     void setup(AmsConfiguration* config, Stream* debugger, MQTTClient* mqtt);
     void loop();
+
 	void setData(AmsData& data);
 
 private:

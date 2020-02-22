@@ -28,6 +28,7 @@ class HwTools {
 public:
     double getVcc();
     double getTemperature();
+    int getWifiRssi();
 
     HwTools() {
         oneWire = new OneWire(TEMP_SENSOR_PIN);

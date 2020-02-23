@@ -271,19 +271,19 @@ void errorBlink() {
 		switch(lastError) {
 			case 0:
 				if(lastErrorBlink - lastSuccessfulRead > 30000) {
-					rgb_led(RGB_RED, 2); // If no message received from AMS in 30 sec, blink once
+					rgb_led(1, 2); // If no message received from AMS in 30 sec, blink once
 					return;
 				}
 				break;
 			case 1:
 				if(!config.getMqttHost().isEmpty() && mqtt.lastError() != 0) {
-					rgb_led(RGB_RED, 3); // If MQTT error, blink twice
+					rgb_led(1, 3); // If MQTT error, blink twice
 					return;
 				}
 				break;
 			case 2:
 				if(WiFi.getMode() != WIFI_AP && WiFi.status() != WL_CONNECTED) {
-					rgb_led(RGB_RED, 4); // If WiFi not connected, blink three times
+					rgb_led(1, 4); // If WiFi not connected, blink three times
 					return;
 				}
 				break;
@@ -534,10 +534,11 @@ void sendMqttData(String data)
 }
 
 void rgb_led(int color, int mode) {
-// Activate red and green LEDs
+// Activate red and green LEDs if RGB LED is present (HAS_RGB_LED=1)
+// If no RGB LED present (HAS_RGB_LED=0 or not defined), all output goes to ESP onboard LED
 // color: 1=red, 2=green, 3=yellow
-// mode: 0=OFF, 1=ON, 2=Short blink
-#ifndef  HAS_RGB_LED
+// mode: 0=OFF, 1=ON, >=2 -> Short blink(s), number of blinks: (mode - 1)
+#ifndef HAS_RGB_LED
 #define LEDPIN_RGB_RED LED_PIN
 #define LEDPIN_RGB_GREEN LED_PIN
 #endif

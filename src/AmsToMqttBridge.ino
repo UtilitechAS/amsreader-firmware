@@ -234,7 +234,7 @@ void loop() {
 		else					  led_off();
 
 	}
-	if(now - lastRead > 150) {
+	if(now - lastRead > 100) {
 		yield();
 		readHanPort();
 		lastRead = now;
@@ -332,6 +332,11 @@ void mqttMessageReceived(String &topic, String &payload)
 
 void readHanPort() {
 	if (hanReader.read()) {
+		// Empty serial buffer. For some reason this seems to make a difference. Some garbage on the wire after package?
+		while(hanSerial->available()) {
+			hanSerial->read();
+		}
+
 		lastSuccessfulRead = millis();
 
 		if(config.getMeterType() > 0) {
@@ -534,9 +539,10 @@ void sendMqttData(String data)
 }
 
 void rgb_led(int color, int mode) {
-// Activate red and green LEDs
+// Activate red and green LEDs if RGB LED is present (HAS_RGB_LED=1)
+// If no RGB LED present (HAS_RGB_LED=0 or not defined), all output goes to ESP onboard LED
 // color: 1=red, 2=green, 3=yellow
-// mode: 0=OFF, 1=ON, 2=Short blink
+// mode: 0=OFF, 1=ON, >=2 -> Short blink(s), number of blinks: (mode - 1)
 #ifndef  HAS_RGB_LED
 #define LEDPIN_RGB_RED LED_PIN
 #define LEDPIN_RGB_GREEN LED_PIN

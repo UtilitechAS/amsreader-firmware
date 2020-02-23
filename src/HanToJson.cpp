@@ -7,13 +7,13 @@ void hanToJson(JsonDocument& json, AmsData& data, HwTools& hw, double temperatur
 
     double vcc = hw.getVcc();
     if(vcc > 0) {
-        json["vcc"] = vcc;
+        json["vcc"] = serialized(String(vcc, 3));
     }
 
     json["rssi"] = hw.getWifiRssi();
 
     if(temperature != DEVICE_DISCONNECTED_C) {
-        json["temp"] = temperature;
+        json["temp"] = serialized(String(temperature, 2));
     }
 
     // Add a sub-structure to the json object,

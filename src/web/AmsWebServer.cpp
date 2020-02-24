@@ -293,7 +293,7 @@ void AmsWebServer::dataJson() {
 	StaticJsonDocument<768> json;
 
     String jsonStr;
-	if(data.getActiveImportPower() > 0) {
+	if(data.getLastUpdateMillis() > 0) {
 		int maxPwr = this->maxPwr;
 		if(maxPwr == 0) {
 			if(data.isThreePhase()) {
@@ -357,10 +357,10 @@ void AmsWebServer::dataJson() {
 	json["meterType"] = config->getMeterType();
 	json["currentMillis"] = now;
 	double vcc = hw.getVcc();
-	json["vcc"] = vcc > 0 ? vcc : 0;
+	json["vcc"] = serialized(String(vcc, 3));
 
 	double temp = hw.getTemperature();
-	json["temp"] = temp;
+	json["temp"] = serialized(String(temp, 2));
 
 	json.createNestedObject("wifi");
 	float rssi = WiFi.RSSI();
@@ -383,13 +383,12 @@ void AmsWebServer::dataJson() {
 	}
 	json["status"]["esp"] = espStatus;
 
-	unsigned long lastHan = json.isNull() ? 0 : json["up"].as<unsigned long>();
 	String hanStatus;
 	if(config->getMeterType() == 0) {
 		hanStatus = "secondary";
-	} else if(now - lastHan < 15000) {
+	} else if(now - data.getLastUpdateMillis() < 15000) {
 		hanStatus = "success";
-	} else if(now - lastHan < 30000) {
+	} else if(now - data.getLastUpdateMillis() < 30000) {
 		hanStatus = "warning";
 	} else {
 		hanStatus = "danger";

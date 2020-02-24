@@ -543,11 +543,7 @@ void rgb_led(int color, int mode) {
 // If no RGB LED present (HAS_RGB_LED=0 or not defined), all output goes to ESP onboard LED
 // color: 1=red, 2=green, 3=yellow
 // mode: 0=OFF, 1=ON, >=2 -> Short blink(s), number of blinks: (mode - 1)
-<<<<<<< HEAD
 #ifndef  HAS_RGB_LED
-=======
-#ifndef  HAS_RGB_LED
->>>>>>> upstream/dev-v1.1.0
 #define LEDPIN_RGB_RED LED_PIN
 #define LEDPIN_RGB_GREEN LED_PIN
 #endif

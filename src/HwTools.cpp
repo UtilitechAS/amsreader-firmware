@@ -4,7 +4,11 @@ double HwTools::getVcc() {
 #if defined(ARDUINO_ESP8266_WEMOS_D1MINI)
 	return (((double) ESP.getVcc()) / 900); // This board has a voltage divider on VCC. Yes, 900 is correct
 #elif defined(ESP8266)
-	return ((double) ESP.getVcc()) / 1024;
+    #if defined(ESP_VCC_CALIB_FACTOR)
+        return ((double) ESP.getVcc()) / 1024 * ESP_VCC_CALIB_FACTOR;
+    #else
+	    return ((double) ESP.getVcc()) / 1024;
+    #endif
 #endif
 	return -1;
 }

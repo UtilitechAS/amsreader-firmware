@@ -104,7 +104,8 @@ void AmsWebServer::indexHtml() {
 
 	html.replace("${data.P}", String(data.getActiveImportPower()));
 	html.replace("${data.PO}", String(data.getActiveExportPower()));
-	html.replace("${display.production}", config->getProductionCapacity() > 0 ? "" : "none");
+	html.replace("${display.export}", config->getProductionCapacity() > 0 ? "" : "none");
+	html.replace("${text.import}", config->getProductionCapacity() > 0 ? "Import" : "Consumption");
 
 	html.replace("${data.U1}", u1 > 0 ? String(u1, 1) : "");
 	html.replace("${data.I1}", u1 > 0 ? String(i1, 1) : "");

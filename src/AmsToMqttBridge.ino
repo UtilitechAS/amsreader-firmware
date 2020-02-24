@@ -271,19 +271,19 @@ void errorBlink() {
 		switch(lastError) {
 			case 0:
 				if(lastErrorBlink - lastSuccessfulRead > 30000) {
-					rgb_led(RGB_RED, 2); // If no message received from AMS in 30 sec, blink once
+					rgb_led(1, 2); // If no message received from AMS in 30 sec, blink once
 					return;
 				}
 				break;
 			case 1:
 				if(!config.getMqttHost().isEmpty() && mqtt.lastError() != 0) {
-					rgb_led(RGB_RED, 3); // If MQTT error, blink twice
+					rgb_led(1, 3); // If MQTT error, blink twice
 					return;
 				}
 				break;
 			case 2:
 				if(WiFi.getMode() != WIFI_AP && WiFi.status() != WL_CONNECTED) {
-					rgb_led(RGB_RED, 4); // If WiFi not connected, blink three times
+					rgb_led(1, 4); // If WiFi not connected, blink three times
 					return;
 				}
 				break;

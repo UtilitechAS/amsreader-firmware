@@ -92,7 +92,7 @@
                     <div id="P" class="SimpleMeter" style="display: inline;">
                         ${data.P} W
                     </div>
-                    <div id="consumptionMeter" class="GaugeMeter rounded"
+                    <div id="importMeter" class="GaugeMeter rounded"
                         style="display: none;"
                         data-size="200px"
                         data-text_size="0.11"
@@ -100,7 +100,7 @@
                         data-style="Arch"
                         data-theme="Green-Gold-Red"
                         data-animationstep="0"
-                        data-label="Consumption"
+                        data-label="${text.import}"
                     ></div>
                 </div>
             </div>
@@ -139,11 +139,11 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="text-center" style="display: ${display.production};">
+                <div class="text-center" style="display: ${display.export};">
                     <div id="P" class="SimpleMeter" style="display: inline;">
                         ${data.PO} W
                     </div>
-                    <div id="productionMeter" class="GaugeMeter rounded"
+                    <div id="exportMeter" class="GaugeMeter rounded"
                         style="display: none;"
                         data-size="200px"
                         data-text_size="0.11"
@@ -151,7 +151,7 @@
                         data-style="Arch"
                         data-theme="DarkGreen-LightGreen"
                         data-animationstep="0"
-                        data-label="Production"
+                        data-label="Export"
                     ></div>
                 </div>
         </div>
@@ -194,15 +194,15 @@
     </div>
 </main>
 <script>
-var cm = $("#consumptionMeter")
-cm.gaugeMeter({
+var im = $("#importMeter")
+im.gaugeMeter({
     percent: 0,
     text: "-",
     append: "W"
 });
 
-var pm = $("#productionMeter")
-pm.gaugeMeter({
+var em = $("#exportMeter")
+em.gaugeMeter({
     percent: 0,
     text: "-",
     append: "W"
@@ -225,8 +225,8 @@ var fetch = function() {
         dataType: 'json',
     }).done(function(json) {
         $(".SimpleMeter").hide();
-        cm.show();
-        pm.show();
+        im.show();
+        em.show();
 
         for(var id in json) {
             var str = json[id];
@@ -282,7 +282,7 @@ var fetch = function() {
                     p_append = "kW";
                 }
             }
-            cm.gaugeMeter({
+            im.gaugeMeter({
                 percent: p_pct,
                 text: p,
                 append: p_append
@@ -298,7 +298,7 @@ var fetch = function() {
                     po_append = "kW";
                 }
             }
-            pm.gaugeMeter({
+            em.gaugeMeter({
                 percent: po_pct,
                 text: po,
                 append: po_append
@@ -315,13 +315,13 @@ var fetch = function() {
                 }
             }
         } else {
-            cm.gaugeMeter({
+            im.gaugeMeter({
                 percent: 0,
                 text: "-",
                 append: "W"
             });
 
-            pm.gaugeMeter({
+            em.gaugeMeter({
                 percent: 0,
                 text: "-",
                 append: "W"
@@ -331,13 +331,13 @@ var fetch = function() {
     }).fail(function() {
         setTimeout(fetch, interval*4);
 
-        cm.gaugeMeter({
+        im.gaugeMeter({
             percent: 0,
             text: "-",
             append: "W"
         });
 
-        pm.gaugeMeter({
+        em.gaugeMeter({
             percent: 0,
             text: "-",
             append: "W"

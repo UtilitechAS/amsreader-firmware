@@ -163,11 +163,12 @@ void AmsData::extractFromAidon(HanReader& hanReader, int listSize) {
                 activeExportPower     = hanReader.getInt(             (int)Aidon_List3PhaseIT::ActiveExportPower);
                 reactiveExportPower   = hanReader.getInt(             (int)Aidon_List3PhaseIT::ReactiveExportPower);
                 l1current             = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CurrentL1)) / 10;
+                l2current             = 0;
                 l3current             = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::CurrentL3)) / 10;
                 l1voltage             = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL1)) / 10;
                 l2voltage             = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL2)) / 10;
                 l3voltage             = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL3)) / 10;
-                l2current             = ((activeImportPower * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                //l2current             = ((activeImportPower * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
                 threePhase = true;
                 break;
         }

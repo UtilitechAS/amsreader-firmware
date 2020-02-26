@@ -48,15 +48,15 @@ public:
     bool isThreePhase();
 
 private:
-    unsigned long lastUpdateMillis;
-    int listType;
-    unsigned long packageTimestamp;
+    unsigned long lastUpdateMillis = 0;
+    int listType = 0;
+    unsigned long packageTimestamp = 0;
     String listId, meterId, meterType;
-    unsigned long meterTimestamp;
-    int activeImportPower, reactiveImportPower, activeExportPower, reactiveExportPower;
-    double l1voltage, l2voltage, l3voltage, l1current, l2current, l3current;
-    double activeImportCounter, reactiveImportCounter, activeExportCounter, reactiveExportCounter;
-    bool threePhase;
+    unsigned long meterTimestamp = 0;
+    int activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
+    double l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
+    double activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
+    bool threePhase = false;
 
     void extractFromKaifa(HanReader& hanReader, int listSize);
     void extractFromAidon(HanReader& hanReader, int listSize);

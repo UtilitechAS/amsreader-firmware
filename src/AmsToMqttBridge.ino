@@ -172,24 +172,26 @@ int lastError = 0;
 
 void loop() {
 	unsigned long now = millis();
-	if (digitalRead(AP_BUTTON_PIN) == LOW) {
-		if (buttonActive == false) {
-			buttonActive = true;
-			buttonTimer = now;
-		}
-
-		if ((now - buttonTimer > longPressTime) && (longPressActive == false)) {
-			longPressActive = true;
-			swapWifiMode();
-		}
-	} else {
-		if (buttonActive == true) {
-			if (longPressActive == true) {
-				longPressActive = false;
-			} else {
-				// Single press action
+	if(AP_BUTTON_PIN != INVALID_BUTTON_PIN) {
+		if (digitalRead(AP_BUTTON_PIN) == LOW) {
+			if (buttonActive == false) {
+				buttonActive = true;
+				buttonTimer = now;
 			}
-			buttonActive = false;
+
+			if ((now - buttonTimer > longPressTime) && (longPressActive == false)) {
+				longPressActive = true;
+				swapWifiMode();
+			}
+		} else {
+			if (buttonActive == true) {
+				if (longPressActive == true) {
+					longPressActive = false;
+				} else {
+					// Single press action
+				}
+				buttonActive = false;
+			}
 		}
 	}
 	

@@ -1,4 +1,9 @@
+#ifndef _AMSTOMQTTBRIDGE_H
+#define _AMSTOMQTTBRIDGE_H
+
 #define WIFI_CONNECTION_TIMEOUT 30000;
+
+#define INVALID_BUTTON_PIN  0xFFFFFFFF
 
 
 #if defined(ESP8266)
@@ -13,14 +18,13 @@
 #define LED_ACTIVE_HIGH 0
 #define AP_BUTTON_PIN 0
 
-#include <DallasTemperature.h>
-#include <OneWire.h>
-#define TEMP_SENSOR_PIN 5 // Temperature sensor connected to GPIO5
-
 #if DEBUG_MODE
-#define SOFTWARE_SERIAL 1
+#if SOFTWARE_SERIAL
 #include <SoftwareSerial.h>
 SoftwareSerial *hanSerial = new SoftwareSerial(3);
+#else
+HardwareSerial *hanSerial = &Serial;
+#endif
 #else
 HardwareSerial *hanSerial = &Serial;
 #endif
@@ -31,9 +35,7 @@ HardwareSerial *hanSerial = &Serial;
 #define LED_ACTIVE_HIGH 0
 #define AP_BUTTON_PIN 4
 
-#define SOFTWARE_SERIAL 1
-#include <SoftwareSerial.h>
-SoftwareSerial *hanSerial = new SoftwareSerial(GPIO_NUM_21);
+HardwareSerial *hanSerial = &Serial2;
 
 // Build settings for Wemos D1 mini
 #elif defined(ARDUINO_ESP8266_WEMOS_D1MINI)
@@ -63,8 +65,4 @@ HardwareSerial *hanSerial = &Serial2;
 SoftwareSerial *hanSerial = new SoftwareSerial(5);
 #endif
 
-
-#if defined TEMP_SENSOR_PIN
-OneWire oneWire(TEMP_SENSOR_PIN);
-DallasTemperature tempSensor(&oneWire);
 #endif

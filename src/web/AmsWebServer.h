@@ -1,8 +1,13 @@
 #ifndef _AMSWEBSERVER_h
 #define _AMSWEBSERVER_h
 
+#define BOOTSTRAP_URL "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"
+
+#include <MQTT.h>
 #include <ArduinoJson.h>
-#include "configuration.h"
+#include "AmsConfiguration.h"
+#include "HwTools.h"
+#include "AmsData.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -22,17 +27,18 @@
 
 class AmsWebServer {
 public:
-    void setup(configuration* config, Stream* debugger);
+    void setup(AmsConfiguration* config, Stream* debugger, MQTTClient* mqtt);
     void loop();
-	void setJson(StaticJsonDocument<1024> json);
+
+	void setData(AmsData& data);
 
 private:
-    configuration* config;
+	int maxPwr;
+	HwTools hw;
+    AmsConfiguration* config;
+	AmsData data;
 	Stream* debugger;
-    StaticJsonDocument<1024> json;
-    int maxPwr;
-	int p;
-	double u1, u2, u3, i1, i2, i3;
+	MQTTClient* mqtt;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;
@@ -43,7 +49,10 @@ private:
 	bool checkSecurity(byte level);
 
 	void indexHtml();
-	void configurationHtml();
+	void configMeterHtml();
+	void configWifiHtml();
+	void configMqttHtml();
+	void configWebHtml();
 	void bootCss();
 	void gaugemeterJs();
     void dataJson();

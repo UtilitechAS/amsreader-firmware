@@ -5,14 +5,10 @@
     <title>AMS reader</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" type="text/css" href="boot.css"/>
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"/>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
     <script src="gaugemeter.js"></script>
     <style>
-    .bg-purple {
-        background-color: var(--purple);
-    }
-
     .GaugeMeter {
         position: Relative;
         text-align: Center;
@@ -56,94 +52,257 @@
 </head>
 <body class="bg-light">
 <main role="main" class="container">
-    <div class="d-flex align-items-center p-3 my-2 text-white-50 bg-purple rounded shadow">
-        <div class="lh-100">
-            <h6 class="mb-0 text-white lh-100">AMS reader</h6>
-            <small>${version}</small>
+    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row rounded mt-2 mb-4" style="background-color: var(--purple);">
+        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
+        <div class="navbar-nav-scroll">
+            <ul class="navbar-nav bd-navbar-nav flex-row">
+                <li class="nav-item">
+                    <a class="nav-link " href="/config-meter">Meter</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link " href="/config-wifi">WiFi</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link " href="/config-mqtt">MQTT</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link " href="/config-web">Web</a>
+                </li>
+            </ul>
         </div>
-    </div>
+      
+        <div class="flex-row ml-md-auto d-md-flex">
+            <div id="esp" class="d-none m-2">ESP</div>
+            <div id="han" class="d-none m-2">HAN</div>
+            <div id="wifi" class="d-none m-2">WiFi</div>
+            <div id="mqtt" class="d-none m-2">MQTT</div>
+        </div>
+        <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
+            <li class="nav-item">
+                <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
+                    <svg class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 499.36" focusable="false"><title>GitHub</title><path d="M256 0C114.64 0 0 114.61 0 256c0 113.09 73.34 209 175.08 242.9 12.8 2.35 17.47-5.56 17.47-12.34 0-6.08-.22-22.18-.35-43.54-71.2 15.49-86.2-34.34-86.2-34.34-11.64-29.57-28.42-37.45-28.42-37.45-23.27-15.84 1.73-15.55 1.73-15.55 25.69 1.81 39.21 26.38 39.21 26.38 22.84 39.12 59.92 27.82 74.5 21.27 2.33-16.54 8.94-27.82 16.25-34.22-56.84-6.43-116.6-28.43-116.6-126.49 0-27.95 10-50.8 26.35-68.69-2.63-6.48-11.42-32.5 2.51-67.75 0 0 21.49-6.88 70.4 26.24a242.65 242.65 0 0 1 128.18 0c48.87-33.13 70.33-26.24 70.33-26.24 14 35.25 5.18 61.27 2.55 67.75 16.41 17.9 26.31 40.75 26.31 68.69 0 98.35-59.85 120-116.88 126.32 9.19 7.9 17.38 23.53 17.38 47.41 0 34.22-.31 61.83-.31 70.23 0 6.85 4.61 14.81 17.6 12.31C438.72 464.97 512 369.08 512 256.02 512 114.62 397.37 0 256 0z" fill="currentColor" fill-rule="evenodd"></path></svg>
+                </a>
+            </li>
+        </ul>
+    </header>
     <div class="my-3 p-3 bg-white rounded shadow">
-        <h6 class="border-bottom border-gray pb-2 mb-4">Current meter values</h6>
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="text-center">
-                    <div id="P" class="SimpleMeter">
+                    <div id="P" class="SimpleMeter" style="display: inline;">
                         ${data.P} W
                     </div>
-                    <div class="GaugeMeter rounded"
+                    <div id="importMeter" class="GaugeMeter rounded"
                         style="display: none;"
-                         data-size="200px"
-                         data-text_size="0.11"
-                         data-width="25"
-                         data-style="Arch"
-                         data-theme="Green-Gold-Red"
-                         data-animationstep="0"
-                         data-animate_gauge_colors="1"
-
-                         data-percent="0"
-                         data-text="-"
-                         data-label="Consumption"
-                         data-append="W"
+                        data-size="200px"
+                        data-text_size="0.11"
+                        data-width="25"
+                        data-style="Arch"
+                        data-theme="Green-Gold-Red"
+                        data-animationstep="0"
+                        data-label="${text.import}"
                     ></div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div id="P1" class="row" style="display: ${display.P1}">
+            <div class="col-md-3">
+                <div id="U1-row" class="row" style="display: ${display.P1};">
                     <div class="col-2">P1</div>
                     <div class="col-5 text-right"><span id="U1">${data.U1}</span> V</div>
                     <div class="col-5 text-right"><span id="I1">${data.I1}</span> A</div>
                 </div>
-                <div id="P2" class="row" style="display: ${display.P2}">
+                <div id="U2-row" class="row" style="display: ${display.P2};">
                     <div class="col-2">P2</div>
                     <div class="col-5 text-right"><span id="U2">${data.U2}</span> V</div>
                     <div class="col-5 text-right"><span id="I2">${data.I2}</span> A</div>
                 </div>
-                <div id="P3" class="row" style="display: ${display.P3}">
+                <div id="U3-row" class="row" style="display: ${display.P3};">
                     <div class="col-2">P3</div>
                     <div class="col-5 text-right"><span id="U3">${data.U3}</span> V</div>
                     <div class="col-5 text-right"><span id="I3">${data.I3}</span> A</div>
                 </div>
+                <hr/>
+                <div id="tPI-row" class="row" style="display: ${display.accumulative};">
+                    <div class="col-6">Active in</div>
+                    <div class="col-6 text-right"><span id="tPI">${data.tPI}</span> kWh</div>
+                </div>
+                <div id="tPO-row" class="row" style="display: ${display.accumulative};">
+                    <div class="col-6">Active out</div>
+                    <div class="col-6 text-right"><span id="tPO">${data.tPO}</span> kWh</div>
+                </div>
+                <div id="tQI-row" class="row" style="display: ${display.accumulative};">
+                    <div class="col-6">Reactive in</div>
+                    <div class="col-6 text-right"><span id="tQI">${data.tQI}</span> kvarh</div>
+                </div>
+                <div id="tQO-row" class="row" style="display: ${display.accumulative};">
+                    <div class="col-6">Reactive out</div>
+                    <div class="col-6 text-right"><span id="tQO">${data.tQO}</span> kvarh</div>
+                </div>
             </div>
+            <div class="col-md-3">
+                <div class="text-center" style="display: ${display.export};">
+                    <div id="P" class="SimpleMeter" style="display: inline;">
+                        ${data.PO} W
+                    </div>
+                    <div id="exportMeter" class="GaugeMeter rounded"
+                        style="display: none;"
+                        data-size="200px"
+                        data-text_size="0.11"
+                        data-width="25"
+                        data-style="Arch"
+                        data-theme="DarkGreen-LightGreen"
+                        data-animationstep="0"
+                        data-label="Export"
+                    ></div>
+                </div>
         </div>
-    </div>
-    <hr/>
-    <div class="row form-group">
-        <div class="col-6">
-            <a href="https://github.com/gskjold/AmsToMqttBridge/releases" class="btn btn-outline-secondary">Release notes</a>
-        </div>
-        <div class="col-6 text-right">
-            <a href="configuration" class="btn btn-primary">Configuration</a>
+            <div class="col-md-3">
+                <hr class="d-md-inline"/>
+                <div class="row">
+                    <div class="col-6">Vcc</div>
+                    <div class="col-6 text-right"><span id="vcc">${vcc}</span> V</div>
+                </div>
+                <div class="row" style="display: ${display.temp};">
+                    <div class="col-6">Temperature</div>
+                    <div class="col-6 text-right"><span id="temp">${temp}</span> °C</div>
+                </div>
+                <div class="row" style="display: none;">
+                    <div class="col-6">Uptime</div>
+                    <div class="col-6 text-right"><span id="currentMillis">${currentMillis}</span></div>
+                </div>
+                <hr/>
+                <div class="row">
+                    <div class="col-6">SSID</div>
+                    <div class="col-6 text-right"><span id="ssid">${wifi.ssid}</span></div>
+                </div>
+                <div class="row">
+                    <div class="col-6">Channel</div>
+                    <div class="col-6 text-right"><span id="channel">${wifi.channel}</span></div>
+                </div>
+                <div class="row">
+                    <div class="col-6">RSSI</div>
+                    <div class="col-6 text-right"><span id="rssi">${wifi.rssi}</span> dBm</div>
+                </div>
+                <hr class="d-none mqtt-error mqtt-error-1 mqtt-error-2 mqtt-error-3 mqtt-error-4 mqtt-error-5 mqtt-error-6 mqtt-error-7 mqtt-error-8 mqtt-error-9 mqtt-error-10 mqtt-error-11 mqtt-error-12 mqtt-error-13"/>
+                <div class="d-none badge badge-danger mqtt-error mqtt-error-1 mqtt-error-2 mqtt-error-5 mqtt-error-6 mqtt-error-7 mqtt-error-8 mqtt-error-9 mqtt-error-12">MQTT communication error (<span id="mqtt-lastError">-</span>)</div>
+                <div class="d-none badge badge-danger mqtt-error mqtt-error-3">MQTT failed to connect</div>
+                <div class="d-none badge badge-danger mqtt-error mqtt-error-4">MQTT network timeout</div>
+                <div class="d-none badge badge-danger mqtt-error mqtt-error-10">MQTT connection denied</div>
+                <div class="d-none badge badge-danger mqtt-error mqtt-error-11">MQTT failed to subscribe</div>
+                <div class="d-none badge badge-danger mqtt-error mqtt-error-13">MQTT lost connection</div>
+            </div>
         </div>
     </div>
 </main>
 <script>
-$(".GaugeMeter").gaugeMeter();
+var im = $("#importMeter")
+im.gaugeMeter({
+    percent: 0,
+    text: "-",
+    append: "W"
+});
 
-var wait = 500;
-var nextrefresh = wait;
+var em = $("#exportMeter")
+em.gaugeMeter({
+    percent: 0,
+    text: "-",
+    append: "W"
+});
+
+var setStatus = function(id, status) {
+    var item = $('#'+id);
+    item.removeClass('d-none');
+    item.removeClass (function (index, className) {
+        return (className.match (/(^|\s)badge-\S+/g) || []).join(' ');
+    });
+    item.addClass('badge badge-' + status);
+};
+
+var interval = 5000;
 var fetch = function() {
     $.ajax({
         url: '/data.json',
+        timeout: 10000,
         dataType: 'json',
     }).done(function(json) {
         $(".SimpleMeter").hide();
-        var el = $(".GaugeMeter");
-        el.show();
-        var rate = 2500;
-        if(json.data) {
-            el.data('percent', json.pct);
-            if(json.data.P) {
-                var num = parseFloat(json.data.P);
-                if(num > 1000) {
-                    num = num / 1000;
-                    el.data('text', num.toFixed(1));
-                    el.data('append','kW');
+        im.show();
+        em.show();
+
+        for(var id in json) {
+            var str = json[id];
+            if(typeof str === "object")
+                continue;
+            if(isNaN(str)) {
+                $('#'+id).html(str);
+            } else {
+                var num = parseFloat(str);
+                $('#'+id).html(num.toFixed(num < 0 ? 0 : num < 10 ? 2  : 1));
+            }
+        }
+
+        if(window.moment) {
+            $('#currentMillis').html(moment.duration(parseInt(json.currentMillis)).humanize());
+            $('#currentMillis').closest('.row').show();
+        }
+
+        if(json.status) {
+            for(var id in json.status) {
+                setStatus(id, json.status[id]);
+            }
+        }
+
+        if(json.mqtt) {
+            $('.mqtt-error').addClass('d-none');
+            $('.mqtt-error'+json.mqtt.lastError).removeClass('d-none');
+            $('#mqtt-lastError').html(json.mqtt.lastError);
+        }
+
+        if(json.wifi) {
+            for(var id in json.wifi) {
+                var str = json.wifi[id];
+                dst = $('#'+id);
+                if(isNaN(str)) {
+                    dst.html(str);
                 } else {
-                    el.data('text', num);
-                    el.data('append','W');
+                    var num = parseFloat(str);
+                    dst.html(num.toFixed(0));
+                    $('#'+id+'-row').show();
                 }
             }
-            el.gaugeMeter();
+        }
+
+        if(json.data) {
+            var p = 0;
+            var p_pct = parseInt(json.p_pct);
+            var p_append = "W";
+            if(json.data.P) {
+                p = parseFloat(json.data.P);
+                if(p > 1000) {
+                    p = (p/1000).toFixed(1);
+                    p_append = "kW";
+                }
+            }
+            im.gaugeMeter({
+                percent: p_pct,
+                text: p,
+                append: p_append
+            });
+
+            var po = 0;
+            var po_pct = parseInt(json.po_pct);
+            var po_append = "W";
+            if(json.data.PO) {
+                po = parseFloat(json.data.PO);
+                if(po > 1000) {
+                    po = (po/1000).toFixed(1);
+                    po_append = "kW";
+                }
+            }
+            em.gaugeMeter({
+                percent: po_pct,
+                text: po,
+                append: po_append
+            });
 
             for(var id in json.data) {
                 var str = json.data[id];
@@ -152,48 +311,45 @@ var fetch = function() {
                 } else {
                     var num = parseFloat(str);
                     $('#'+id).html(num.toFixed(1));
+                    $('#'+id+'-row').show();
                 }
             }
-
-            if(json.data.U1 > 0) {
-                $('#P1').show();
-            }
-
-            if(json.data.U2 > 0) {
-                $('#P2').show();
-            }
-
-            if(json.data.U3 > 0) {
-                $('#P3').show();
-            }
-
-            if(json.meterType == 3) {
-                rate = 10000;
-            }
-            if(json.currentMillis && json.up) {
-                nextrefresh = rate - ((json.currentMillis - json.up) % rate) + wait;
-            } else {
-                nextrefresh = 2500;
-            }
         } else {
-            el.data('percent', 0);
-            el.data('text', '-');
-            el.gaugeMeter();
-            nextrefresh = 2500;
+            im.gaugeMeter({
+                percent: 0,
+                text: "-",
+                append: "W"
+            });
+
+            em.gaugeMeter({
+                percent: 0,
+                text: "-",
+                append: "W"
+            });
         }
-        if(!nextrefresh || nextrefresh < 500) {
-            nextrefresh = 2500;
-        }
-        setTimeout(fetch, nextrefresh);
+        setTimeout(fetch, interval);
     }).fail(function() {
-        el.data('percent', 0);
-        el.data('text', '-');
-        el.gaugeMeter();
-        nextrefresh = 10000;
-        setTimeout(fetch, nextrefresh);
+        setTimeout(fetch, interval*4);
+
+        im.gaugeMeter({
+            percent: 0,
+            text: "-",
+            append: "W"
+        });
+
+        em.gaugeMeter({
+            percent: 0,
+            text: "-",
+            append: "W"
+        });
+
+        setStatus("mqtt", "secondary");
+        setStatus("wifi", "secondary");
+        setStatus("han", "secondary");
+        setStatus("esp", "danger");
     });
 }
-setTimeout(fetch, nextrefresh);
+fetch();
 </script>
 </body>
 </html>

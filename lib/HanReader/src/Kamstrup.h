@@ -3,7 +3,6 @@
 #ifndef _KAMSTRUP_h
 #define _KAMSTRUP_h
 
-
 enum class Kamstrup
 {
 	List3PhaseShort = 0x19,

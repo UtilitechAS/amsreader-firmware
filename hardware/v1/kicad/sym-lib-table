@@ -1,2 +1,3 @@
 (sym_lib_table
+  (lib (name HAN_ESP_TSS721-rescue)(type Legacy)(uri ${KIPRJMOD}/HAN_ESP_TSS721-rescue.lib)(options "")(descr ""))
 )

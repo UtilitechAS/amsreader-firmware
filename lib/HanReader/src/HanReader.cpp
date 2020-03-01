@@ -80,10 +80,10 @@ void HanReader::debugPrint(byte *buffer, int start, int length)
 
 bool HanReader::read()
 {
-	if (han->available())
-	{
-		byte newByte = han->read();
-		return read(newByte);
+	while(han->available()) {
+		if(read(han->read())) {
+			return true;
+		}
 	}
 	return false;
 }

@@ -19,12 +19,14 @@ You can also use a ESP based development board and combine this with a M-Bus mod
 [Wemos D1 mini](https://docs.wemos.cc/en/latest/d1/d1_mini.html)
 - M-Bus connected to GPIO5 (D1)
 - Jump GPIO4 (D2) to GND to force AP mode during boot
+- Dallas temp sensor connected to GPIO14 (D5)
 
 ### ESP32 based boards
 
 [Wemos D32](https://docs.wemos.cc/en/latest/d32/d32.html) 
-- M-Bus connected to GPIO21
+- M-Bus connected to GPIO16
 - Jump GPIO4 to GND to force AP mode during boot
+- Dallas temp sensor connected to GPIO14
 
 [Adafruit HUZZAH32](https://www.adafruit.com/product/3405) 
 - M-Bus connected to GPIO16

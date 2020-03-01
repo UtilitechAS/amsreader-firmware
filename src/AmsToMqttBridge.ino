@@ -1,8 +1,20 @@
-/*
- Name:		AmsToMqttBridge.ino
- Created:	3/13/2018 7:40:28 PM
- Author:	roarf
-*/
+/**
+ * @brief ESP8266 based program to receive data from AMS electric meters and send to MQTT
+ * 
+ * @details Originally developed by Roar Fredriksen, this program was created to receive data from
+ * AMS electric meters via M-Bus, decode and send to a MQTT broker. The data packet structure 
+ * supported by this software is specific to Norwegian meters, but may also support data from
+ * electricity providers in other countries. It was originally based on ESP8266, but have also been 
+ * adapted to work with ESP32.
+ * 
+ * @author Roar Fredriksen (@roarfred)
+ * The original developer for this project
+ * https://github.com/roarfred/AmsToMqttBridge
+ * 
+ * @author Gunnar Skjold (@gskjold)
+ * Maintainer of current code
+ * https://github.com/gskjold/AmsToMqttBridge
+ */
 
 #include "AmsToMqttBridge.h"
 #include <ArduinoJson.h>

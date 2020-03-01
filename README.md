@@ -7,6 +7,9 @@ There is also a web interface available on runtime, showing meter data in real t
 
 <img src="webui.jpg" width="480">
 
+## Hardware options
+Look in [hardware section](/hardware) for more details about supported hardware
+
 ## Release binaries
 
 In the [Release section](https://github.com/gskjold/AmsToMqttBridge/releases) of this repository, you will find precompiled binaries for some common boards.

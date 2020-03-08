@@ -37,6 +37,8 @@ void AmsWebServer::loop() {
 
 
 void AmsWebServer::setData(AmsData& data) {
+	millis64(); // Make sure it catch all those rollovers
+
 	this->data.apply(data);
 
 	if(maxPwr == 0 && data.getListType() > 1 && config->hasConfig() && config->getMainFuse() > 0 && config->getDistributionSystem() > 0) {
@@ -351,11 +353,10 @@ void AmsWebServer::dataJson() {
 		json["po_pct"] = -1;
 	}
 
-	unsigned long now = millis();
 	json["id"] = WiFi.macAddress();
 	json["maxPower"] = maxPwr;
 	json["meterType"] = config->getMeterType();
-	json["currentMillis"] = now;
+	json["uptime_seconds"] = millis64() / 1000;
 	double vcc = hw.getVcc();
 	json["vcc"] = serialized(String(vcc, 3));
 
@@ -383,6 +384,7 @@ void AmsWebServer::dataJson() {
 	}
 	json["status"]["esp"] = espStatus;
 
+	unsigned long now = millis();
 	String hanStatus;
 	if(config->getMeterType() == 0) {
 		hanStatus = "secondary";

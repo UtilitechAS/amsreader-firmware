@@ -8,6 +8,7 @@
 #include "AmsConfiguration.h"
 #include "HwTools.h"
 #include "AmsData.h"
+#include "Uptime.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -33,7 +34,7 @@ public:
 	void setData(AmsData& data);
 
 private:
-	int maxPwr;
+	int maxPwr = 0;
 	HwTools hw;
     AmsConfiguration* config;
 	AmsData data;

@@ -9,7 +9,7 @@
 
 
 #include "DlmsReader.h"
-
+#include <Timezone.h>
 
 class HanReader
 {
@@ -35,6 +35,7 @@ private:
 	int bytesRead;
 	DlmsReader reader;
 	int listSize;
+	Timezone *localZone;
 
 	int findValuePosition(int dataPosition, byte *buffer, int start, int length);
 

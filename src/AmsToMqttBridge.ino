@@ -143,7 +143,7 @@ void setup() {
 #endif
 #endif
 
-	hanReader.setup(hanSerial, 0);
+	hanReader.setup(hanSerial, debugger);
 
 	// Compensate for the known Kaifa bug
 	hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);

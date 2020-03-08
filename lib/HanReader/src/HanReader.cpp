@@ -2,7 +2,6 @@
 
 HanReader::HanReader()
 {
-  
 }
 
 void HanReader::setup(Stream *hanPort, Stream *debugPort)
@@ -10,6 +9,12 @@ void HanReader::setup(Stream *hanPort, Stream *debugPort)
 	han = hanPort;
 	bytesRead = 0;
 	debug = debugPort;
+
+	// Central European Time (Frankfurt, Paris)
+	TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};     // Central European Summer Time
+	TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};       // Central European Standard Time
+	localZone = new Timezone(CEST, CET);
+
 	if (debug) debug->println("MBUS serial setup complete");
 }
 
@@ -182,8 +187,7 @@ time_t HanReader::getTime(byte *buffer, int start, int length)
 	int pos = start;
 	int dataLength = buffer[pos++];
 
-	if (dataLength == 0x0C)
-	{
+	if (dataLength == 0x0C) {
 		int year = buffer[pos] << 8 |
 			buffer[pos + 1];
 
@@ -193,10 +197,21 @@ time_t HanReader::getTime(byte *buffer, int start, int length)
 		int minute = buffer[pos + 6];
 		int second = buffer[pos + 7];
 
-		return toUnixTime(year, month, day, hour, minute, second);
-	}
-	else
-	{
+		tmElements_t tm;
+		tm.Year = year - 1970;
+		tm.Month = month;
+		tm.Day = day;
+		tm.Hour = hour;
+		tm.Minute = minute;
+		tm.Second = second;
+		return localZone->toUTC(makeTime(tm));
+	} else if(dataLength == 0) {
+		return (time_t)0L;
+	} else {
+		if(debug) {
+			debug->print("Unknown time length: ");
+			debug->println(dataLength);
+		}
 		// Date format not supported
 		return (time_t)0L;
 	}
@@ -258,31 +273,4 @@ String HanReader::getString(int dataPosition, byte *buffer, int start, int lengt
 		return value;
 	}
 	return String("");
-}
-
-time_t HanReader::toUnixTime(int year, int month, int day, int hour, int minute, int second)
-{
-	byte daysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-	long secondsPerMinute = 60;
-	long secondsPerHour = secondsPerMinute * 60;
-	long secondsPerDay = secondsPerHour * 24;
-
-	long time = (year - 1970) * secondsPerDay * 365L;
-
-	for (int yearCounter = 1970; yearCounter<year; yearCounter++)
-		if ((yearCounter % 4 == 0) && ((yearCounter % 100 != 0) || (yearCounter % 400 == 0)))
-			time += secondsPerDay;
-
-	if (month > 2 && (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0)))
-		time += secondsPerDay;
-
-	for (int monthCounter = 1; monthCounter<month; monthCounter++)
-		time += daysInMonth[monthCounter - 1] * secondsPerDay;
-
-	time += (day - 1) * secondsPerDay;
-	time += hour * secondsPerHour;
-	time += minute * secondsPerMinute;
-	time += second;
-
-	return (time_t)time;
 }

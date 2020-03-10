@@ -123,6 +123,14 @@ void AmsConfiguration::setMqttPassword(String mqttPassword) {
 	this->mqttPassword = String(mqttPassword);
 }
 
+int AmsConfiguration::getMqttPayloadFormat() {
+	return this->mqttPayloadFormat;
+}
+
+void AmsConfiguration::setMqttPayloadFormat(int mqttPayloadFormat) {
+	this->mqttPayloadFormat = mqttPayloadFormat;
+}
+
 void AmsConfiguration::clearMqtt() {
 	setMqttHost("");
 	setMqttPort(1883);
@@ -214,6 +222,7 @@ bool AmsConfiguration::hasConfig() {
 		case 72:
 		case 75:
 		case 80:
+		case 81:
 			return true;
 		default:
 			return false;
@@ -237,6 +246,9 @@ bool AmsConfiguration::load() {
 			break;
 		case 80:
 			success = loadConfig80(address);
+			break;
+		case 81:
+			success = loadConfig81(address);
 			break;
 	}
 	EEPROM.end();
@@ -278,6 +290,7 @@ bool AmsConfiguration::loadConfig72(int address) {
 		setMqttUser("");
 		setMqttPassword("");
 	}
+	setMqttPayloadFormat(0);
 
 	clearAuth();
 
@@ -332,6 +345,7 @@ bool AmsConfiguration::loadConfig75(int address) {
 		setMqttUser("");
 		setMqttPassword("");
 	}
+	setMqttPayloadFormat(0);
 
 	address += readByte(address, &authSecurity);
 	if (authSecurity > 0) {
@@ -403,6 +417,80 @@ bool AmsConfiguration::loadConfig80(int address) {
 	} else {
 		clearMqtt();
 	}
+	setMqttPayloadFormat(0);
+
+	address += readByte(address, &authSecurity);
+	if (authSecurity > 0) {
+		address += readString(address, &temp);
+		setAuthUser(temp);
+		address += readString(address, &temp);
+		setAuthPassword(temp);
+	} else {
+		clearAuth();
+	}
+
+	int i;
+	address += readInt(address, &i);
+	setMeterType(i);
+	address += readInt(address, &i);
+	setDistributionSystem(i);
+	address += readInt(address, &i);
+	setMainFuse(i);
+	address += readInt(address, &i);
+	setProductionCapacity(i);
+
+	ackWifiChange();
+
+	return true;
+}
+
+bool AmsConfiguration::loadConfig81(int address) {
+	char* temp;
+
+	address += readString(address, &temp);
+	setWifiSsid(temp);
+	address += readString(address, &temp);
+	setWifiPassword(temp);
+	address += readString(address, &temp);
+	setWifiIp(temp);
+	address += readString(address, &temp);
+	setWifiGw(temp);
+	address += readString(address, &temp);
+	setWifiSubnet(temp);
+
+	bool mqtt = false;
+	address += readBool(address, &mqtt);
+	if(mqtt) {
+		address += readString(address, &temp);
+		setMqttHost(temp);
+		int port;
+		address += readInt(address, &port);
+		setMqttPort(port);
+		address += readString(address, &temp);
+		setMqttClientId(temp);
+		address += readString(address, &temp);
+		setMqttPublishTopic(temp);
+		address += readString(address, &temp);
+		setMqttSubscribeTopic(temp);
+
+		bool secure = false;
+		address += readBool(address, &secure);
+		if (secure)
+		{
+			address += readString(address, &temp);
+			setMqttUser(temp);
+			address += readString(address, &temp);
+			setMqttPassword(temp);
+		} else {
+			setMqttUser("");
+			setMqttPassword("");
+		}
+		int payloadFormat;
+		address += readInt(address, &payloadFormat);
+		setMqttPayloadFormat(payloadFormat);
+	} else {
+		clearMqtt();
+	}
 
 	address += readByte(address, &authSecurity);
 	if (authSecurity > 0) {
@@ -455,6 +543,7 @@ bool AmsConfiguration::save() {
 		} else {
 			address += saveBool(address, false);
 		}
+		address += saveInt(address, mqttPayloadFormat);
 	} else {
 		address += saveBool(address, false);
 	}

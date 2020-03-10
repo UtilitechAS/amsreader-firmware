@@ -226,12 +226,17 @@ void AmsWebServer::configMqttHtml() {
 
 	html.replace("${config.mqtt}", config->getMqttHost() == 0 ? "" : "checked");
 	html.replace("${config.mqttHost}", config->getMqttHost());
-	html.replace("${config.mqttPort}", String(config->getMqttPort()));
+	if(config->getMqttPort() > 0) {
+		html.replace("${config.mqttPort}", String(config->getMqttPort()));
+	} else {
+		html.replace("${config.mqttPort}", String(1883));
+	}
 	html.replace("${config.mqttClientId}", config->getMqttClientId());
 	html.replace("${config.mqttPublishTopic}", config->getMqttPublishTopic());
 	html.replace("${config.mqttSubscribeTopic}", config->getMqttSubscribeTopic());
 	html.replace("${config.mqttUser}", config->getMqttUser());
 	html.replace("${config.mqttPassword}", config->getMqttPassword());
+	html.replace("${config.mqttPayloadFormat}", String(config->getMqttPayloadFormat()));
 
 	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
@@ -459,14 +464,14 @@ void AmsWebServer::handleSave() {
 	if(server.hasArg("mqttConfig") && server.arg("mqttConfig") == "true") {
 		if(server.hasArg("mqtt") && server.arg("mqtt") == "true") {
 			config->setMqttHost(server.arg("mqttHost"));
-			config->setMqttPort(server.arg("mqttPort").toInt());
+			int port = server.arg("mqttPort").toInt();
+			config->setMqttPort(port == 0 ? 1883 : port);
 			config->setMqttClientId(server.arg("mqttClientId"));
 			config->setMqttPublishTopic(server.arg("mqttPublishTopic"));
 			config->setMqttSubscribeTopic(server.arg("mqttSubscribeTopic"));
 			config->setMqttUser(server.arg("mqttUser"));
 			config->setMqttPassword(server.arg("mqttPassword"));
-			config->setAuthUser(server.arg("authUser"));
-			config->setAuthPassword(server.arg("authPassword"));
+			config->setMqttPayloadFormat(server.arg("mqttPayloadFormat").toInt());
 		} else {
 			config->clearMqtt();
 		}

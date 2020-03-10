@@ -38,6 +38,8 @@ public:
 	void setMqttUser(String mqttUser);
 	String getMqttPassword();
 	void setMqttPassword(String mqttPassword);
+	int getMqttPayloadFormat();
+	void setMqttPayloadFormat(int mqttPayloadFormat);
 	void clearMqtt();
 
 	bool isMqttChanged();
@@ -79,6 +81,7 @@ private:
 	String mqttSubscribeTopic;
 	String mqttUser;
 	String mqttPassword;
+	int mqttPayloadFormat;
 	bool mqttChanged;
 
 	byte authSecurity;
@@ -88,12 +91,13 @@ private:
 	int meterType, distributionSystem, mainFuse, productionCapacity;
 
 	const int EEPROM_SIZE = 512;
-	const int EEPROM_CHECK_SUM = 80; // Used to check if config is stored. Change if structure changes
+	const int EEPROM_CHECK_SUM = 81; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 
 	bool loadConfig72(int address);
 	bool loadConfig75(int address);
 	bool loadConfig80(int address);
+	bool loadConfig81(int address);
 
 	int saveString(int pAddress, const char* pString);
 	int readString(int pAddress, char* pString[]);

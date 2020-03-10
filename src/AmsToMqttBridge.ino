@@ -239,6 +239,9 @@ void loop() {
 				if(!mqtt.connected() || config.isMqttChanged()) {
 					MQTT_connect();
 				}
+				if(config.getMqttPayloadFormat() == 1) {
+					sendSystemStatusToMqtt();
+				}
 			} else if(mqtt.connected()) {
 				mqtt.disconnect();
 			}
@@ -366,17 +369,43 @@ void readHanPort() {
 			ws.setData(data);
 
 			if(!config.getMqttHost().isEmpty() && !config.getMqttPublishTopic().isEmpty()) {
-			    StaticJsonDocument<512> json;
-				hanToJson(json, data, hw, temperature);
-				if (debugger) {
-					debugger->print("Sending data to MQTT: ");
-					serializeJsonPretty(json, *debugger);
-					debugger->println();
-				}
+				if(config.getMqttPayloadFormat() == 0) {
+					StaticJsonDocument<512> json;
+					hanToJson(json, data, hw, temperature);
+					if (debugger) {
+						debugger->print("Sending data to MQTT: ");
+						serializeJsonPretty(json, *debugger);
+						debugger->println();
+					}
 
-				String msg;
-				serializeJson(json, msg);
-				mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
+					String msg;
+					serializeJson(json, msg);
+					mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
+				} else if(config.getMqttPayloadFormat() == 1) {
+					mqtt.publish(config.getMqttPublishTopic() + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
+					switch(data.getListType()) {
+						case 3:
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/clock", String(data.getMeterTimestamp()));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/import/reactive/accumulated", String(data.getReactiveImportCounter(), 2));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/import/active/accumulated", String(data.getActiveImportCounter(), 2));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/export/reactive/accumulated", String(data.getReactiveExportCounter(), 2));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
+						case 2:
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/id", data.getMeterId());
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/type", data.getMeterType());
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/current", String(data.getL1Current(), 2));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/voltage", String(data.getL1Voltage(), 2));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/current", String(data.getL2Current(), 2));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/voltage", String(data.getL2Voltage(), 2));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/current", String(data.getL3Current(), 2));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/voltage", String(data.getL3Voltage(), 2));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/export/reactive", String(data.getReactiveExportPower()));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active", String(data.getActiveExportPower()));
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/import/reactive", String(data.getReactiveImportPower()));
+						case 1:
+							mqtt.publish(config.getMqttPublishTopic() + "/meter/import/active", String(data.getActiveImportPower()));
+					}
+				}
 				mqtt.loop();
 				delay(10);
 			}
@@ -512,8 +541,12 @@ void MQTT_connect() {
 			mqtt.subscribe(config.getMqttSubscribeTopic());
 			if (debugger) debugger->printf("  Subscribing to [%s]\r\n", config.getMqttSubscribeTopic().c_str());
 		}
-
-		sendMqttData("Connected!");
+		
+		if(config.getMqttPayloadFormat() == 0) {
+			sendMqttData("Connected!");
+		} else if(config.getMqttPayloadFormat() == 1) {
+			sendSystemStatusToMqtt();
+		}
 	} else {
 		if (debugger) {
 			debugger->print(" failed, ");
@@ -539,9 +572,7 @@ void sendMqttData(String data)
 	if(vcc > 0) {
 		json["vcc"] = vcc;
 	}
-	float rssi = WiFi.RSSI();
-	rssi = isnan(rssi) ? -100.0 : rssi;
-	json["rssi"] = rssi;
+	json["rssi"] = hw.getWifiRssi();
 
 	// Stringify the json
 	String msg;
@@ -552,6 +583,26 @@ void sendMqttData(String data)
 
 	if (debugger) debugger->print("sendMqttData: ");
 	if (debugger) debugger->println(data);
+}
+
+unsigned long lastSystemDataSent = -10000;
+void sendSystemStatusToMqtt() {
+	if (config.getMqttPublishTopic().isEmpty())
+		return;
+	if(millis() - lastSystemDataSent < 10000)
+		return;
+	lastSystemDataSent = millis();
+
+	mqtt.publish(config.getMqttPublishTopic() + "/id", WiFi.macAddress());
+	mqtt.publish(config.getMqttPublishTopic() + "/uptime", String((unsigned long) millis64()/1000));
+	double vcc = hw.getVcc();
+	if(vcc > 0) {
+		mqtt.publish(config.getMqttPublishTopic() + "/vcc", String(vcc, 2));
+	}
+	mqtt.publish(config.getMqttPublishTopic() + "/rssi", String(hw.getWifiRssi()));
+    if(temperature != DEVICE_DISCONNECTED_C) {
+		mqtt.publish(config.getMqttPublishTopic() + "/vcc", String(temperature, 2));
+    }
 }
 
 void rgb_led(int color, int mode) {

@@ -36,6 +36,8 @@ ADC_MODE(ADC_VCC);
 #include "Kaifa.h"
 #include "Kamstrup.h"
 
+#include "Uptime.h"
+
 HwTools hw;
 
 DNSServer dnsServer;
@@ -531,7 +533,7 @@ void sendMqttData(String data)
 	// Build a json with the message in a "data" attribute
 	StaticJsonDocument<128> json;
 	json["id"] = WiFi.macAddress();
-	json["up"] = millis();
+	json["up"] = millis64()/1000;
 	json["data"] = data;
 	double vcc = hw.getVcc();
 	if(vcc > 0) {

@@ -86,7 +86,7 @@ void setup() {
 		debugger->println("Started...");
 		debugger->print("Voltage: ");
 		debugger->print(vcc);
-		debugger->println("mV");
+		debugger->println("V");
 	}
 
 	if (vcc > 0 && vcc < 3.1) {
@@ -111,6 +111,60 @@ void setup() {
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
+
+	if(SPIFFS.begin()) {
+		bool flashed = false;
+		if(SPIFFS.exists("/firmware.bin")) {
+			if(debugger) debugger->println("Found firmware");
+#if defined(ESP8266)
+			WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
+			WiFi.forceSleepBegin();
+#endif
+			int i = 0;
+			while(hw.getVcc() < 3.3 && i < 3) {
+				if(debugger) debugger->println(" vcc not optimal, light sleep 10s");
+#if defined(ESP8266)
+				delay(10000);
+#elif defined(ESP32)
+			    esp_sleep_enable_timer_wakeup(10000000);
+			    esp_light_sleep_start();
+#endif
+				i++;
+			}
+
+			if(debugger) debugger->println(" flashing");
+			File firmwareFile = SPIFFS.open("/firmware.bin", "r");
+			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+			if (!Update.begin(maxSketchSpace, U_FLASH)) {
+				if(debugger) {
+					debugger->println("Unable to start firmware update");
+					Update.printError(*debugger);
+				}
+			} else {
+				while (firmwareFile.available()) {
+					uint8_t ibuffer[128];
+					firmwareFile.read((uint8_t *)ibuffer, 128);
+					Update.write(ibuffer, sizeof(ibuffer));
+				}
+				flashed = Update.end(true);
+			}
+			firmwareFile.close();
+			SPIFFS.remove("/firmware.bin");
+		}
+		SPIFFS.end();
+		if(flashed) {
+			if(debugger) {
+				debugger->println("Firmware update complete, restarting");
+				debugger->flush();
+			}
+#if defined(ESP8266)
+			ESP.reset();
+#elif defined(ESP32)
+			ESP.restart();
+#endif
+			return;
+		}
+	}
 
 	if(config.hasConfig()) {
 		if(debugger) config.print(debugger);

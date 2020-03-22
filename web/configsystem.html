@@ -2,10 +2,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - WiFi configuration</title>
+    <title>AMS reader - System configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" type="text/css" href="boot.css"/>
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
@@ -17,16 +16,16 @@
                     <a class="nav-link" href="/config-meter">Meter</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" href="/config-wifi">WiFi</a>
+                    <a class="nav-link " href="/config-wifi">WiFi</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-mqtt">MQTT</a>
+                    <a class="nav-link " href="/config-mqtt">MQTT</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="/config-web">Web</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-system">System</a>
+                    <a class="nav-link active" href="/config-system">System</a>
                 </li>
             </ul>
         </div>
@@ -38,52 +37,16 @@
             </li>
         </ul>
     </header>
-    <form method="post" action="/save">
-        <input type="hidden" name="wifiConfig" value="true"/>
+    <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="authConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
+            <div class="alert alert-warning">!!WARNING!!<br/>Do not use this unless you know what you are doing. Uploading the wrong image could cause your device to stop working. Use with extreme caution!</div>
             <div class="row">
                 <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-3">SSID</label>
-                        <div class="col-9">
-                            <input type="text" class="form-control" name="wifiSsid" value="${config.wifiSsid}"/>
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <label class="col-3">Password</label>
-                        <div class="col-9">
-                            <input type="password" class="form-control" name="wifiPassword" value="${config.wifiPassword}"/>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="row form-group">
-                        <label class="col-6">IP configuration</label>
-                        <div class="col-6">
-                            <select id="wifiIpType" class="form-control" name="wifiIpType">
-                                <option value="0" ${config.wifiIpType0}>DHCP</option>
-                                <option value="1" ${config.wifiIpType1}>Static</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <label class="col-3">IP</label>
-                        <div class="col-9">
-                            <input type="text" class="form-control wifiip-config" name="wifiIp" value="${config.wifiIp}"/>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="row form-group">
-                        <label class="col-3">Subnet</label>
-                        <div class="col-9">
-                            <input type="text" class="form-control wifiip-config" name="wifiSubnet" value="${config.wifiSubnet}"/>
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <label class="col-3">Gateway</label>
-                        <div class="col-9">
-                            <input type="text" class="form-control wifiip-config" name="wifiGw" value="${config.wifiGw}"/>
+                        <label class="col-4">Firmware</label>
+                        <div class="col-8">
+                            <input type="file" name="file"/>
                         </div>
                     </div>
                 </div>
@@ -95,20 +58,10 @@
                 <a href="/" class="btn btn-outline-secondary">Back</a>
             </div>
             <div class="col-6 text-right">
-                <button class="btn btn-primary">Save</button>
+                <button class="btn btn-primary">Upload</button>
             </div>
         </div>
     </form>
 </main>
-<script>
-    $('#wifiIpType').on('change', function() {
-        var inputs = $('.wifiip-config');
-        inputs.prop('disabled', $(this).val() != 1);
-    });
-    
-    $(function() {
-        $('#wifiIpType').trigger('change');
-    });
-</script>
 </body>
 </html>

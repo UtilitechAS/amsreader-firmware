@@ -6,6 +6,8 @@
 #include "root/configwifi_html.h"
 #include "root/configmqtt_html.h"
 #include "root/configweb_html.h"
+#include "root/configsystem_html.h"
+#include "root/firmwarewait_html.h"
 #include "root/boot_css.h"
 #include "root/gaugemeter_js.h"
 
@@ -18,15 +20,19 @@ void AmsWebServer::setup(AmsConfiguration* config, Stream* debugger, MQTTClient*
 	this->mqtt = mqtt;
 
 	server.on("/", std::bind(&AmsWebServer::indexHtml, this));
-	server.on("/config-meter", std::bind(&AmsWebServer::configMeterHtml, this));
-	server.on("/config-wifi", std::bind(&AmsWebServer::configWifiHtml, this));
-	server.on("/config-mqtt", std::bind(&AmsWebServer::configMqttHtml, this));
-	server.on("/config-web", std::bind(&AmsWebServer::configWebHtml, this));
-	server.on("/boot.css", std::bind(&AmsWebServer::bootCss, this));
-	server.on("/gaugemeter.js", std::bind(&AmsWebServer::gaugemeterJs, this)); 
-	server.on("/data.json", std::bind(&AmsWebServer::dataJson, this));
+	server.on("/config-meter", HTTP_GET, std::bind(&AmsWebServer::configMeterHtml, this));
+	server.on("/config-wifi", HTTP_GET, std::bind(&AmsWebServer::configWifiHtml, this));
+	server.on("/config-mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
+	server.on("/config-web", HTTP_GET, std::bind(&AmsWebServer::configWebHtml, this));
+	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
+	server.on("/gaugemeter.js", HTTP_GET, std::bind(&AmsWebServer::gaugemeterJs, this)); 
+	server.on("/data.json", HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
 
 	server.on("/save", std::bind(&AmsWebServer::handleSave, this));
+
+	server.on("/config-system", HTTP_GET, std::bind(&AmsWebServer::configSystemHtml, this));
+	server.on("/config-system", HTTP_POST, std::bind(&AmsWebServer::configSystemPost, this), std::bind(&AmsWebServer::configSystemUpload, this));
+	server.on("/firmware-wait", HTTP_GET, std::bind(&AmsWebServer::firmwareWaitHtml, this));
 
 	server.begin(); // Web server start
 }
@@ -148,7 +154,7 @@ void AmsWebServer::indexHtml() {
 }
 
 void AmsWebServer::configMeterHtml() {
-	println("Serving /config/meter.html over http...");
+	println("Serving /config-meter.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -182,7 +188,7 @@ void AmsWebServer::configMeterHtml() {
 }
 
 void AmsWebServer::configWifiHtml() {
-	println("Serving /config/wifi.html over http...");
+	println("Serving /config-wifi.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -209,7 +215,7 @@ void AmsWebServer::configWifiHtml() {
 }
 
 void AmsWebServer::configMqttHtml() {
-	println("Serving /config/mqtt.html over http...");
+	println("Serving /config-mqtt.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -243,7 +249,7 @@ void AmsWebServer::configMqttHtml() {
 }
 
 void AmsWebServer::configWebHtml() {
-	println("Serving /config/web.html over http...");
+	println("Serving /config-web.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -514,6 +520,92 @@ void AmsWebServer::handleSave() {
 	}
 }
 
+void AmsWebServer::configSystemHtml() {
+	println("Serving /config-system.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	String html = String((const __FlashStringHelper*) CONFIGSYSTEM_HTML);
+	html.replace("${version}", VERSION);
+
+	if(WiFi.getMode() != WIFI_AP) {
+		html.replace("boot.css", BOOTSTRAP_URL);
+	}
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	server.setContentLength(html.length());
+	server.send(200, "text/html", html);
+}
+
+void AmsWebServer::configSystemPost() {
+	server.send(200);
+}
+
+void AmsWebServer::configSystemUpload() {
+    HTTPUpload& upload = server.upload();
+    if(upload.status == UPLOAD_FILE_START){
+        String filename = upload.filename;
+        if(!filename.endsWith(".bin")) {
+            server.send(500, "text/plain", "500: couldn't create file");
+		} else if (!SPIFFS.begin()) {
+			println("An Error has occurred while mounting SPIFFS");
+			String html = "<html><body><h1>Error uploading!</h1></form>";
+			server.send(500, "text/html", html);
+		} else {
+		    print("handleFileUpload Name: "); println(filename.c_str());
+		    firmwareFile = SPIFFS.open("/firmware.bin", "w");
+	  	    filename = String();
+	    } 
+    } else if(upload.status == UPLOAD_FILE_WRITE) {
+        if(firmwareFile)
+            firmwareFile.write(upload.buf, upload.currentSize);
+    } else if(upload.status == UPLOAD_FILE_END) {
+        if(firmwareFile) {
+            firmwareFile.close();
+			SPIFFS.end();
+            print("handleFileUpload Size: "); println(String(upload.totalSize).c_str());
+            server.sendHeader("Location","/firmware-wait");
+            server.send(303);
+        } else {
+            server.send(500, "text/plain", "500: couldn't create file");
+        }
+    }
+}
+
+void AmsWebServer::firmwareWaitHtml() {
+	println("Serving /firmware-wait.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	String html = String((const __FlashStringHelper*) FIRMWAREWAIT_HTML);
+	html.replace("${version}", VERSION);
+
+	if(WiFi.getMode() != WIFI_AP) {
+		html.replace("boot.css", BOOTSTRAP_URL);
+	}
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	server.setContentLength(html.length());
+	server.send(200, "text/html", html);
+
+	yield();
+	if(SPIFFS.begin() && SPIFFS.exists("/firmware.bin")) {
+		SPIFFS.end();
+		println("Firmware uploaded, rebooting");
+		delay(1000);
+#if defined(ESP8266)
+		ESP.reset();
+#elif defined(ESP32)
+		ESP.restart();
+#endif
+	}
+}
 
 size_t AmsWebServer::print(const char* text)
 {

@@ -10,6 +10,8 @@
 #include <ESP8266WiFi.h>
 #elif defined(ESP32)
 #include <WiFi.h>
+#include "SPIFFS.h"
+#include "Update.h"
 #endif
 
 // Build settings for custom hardware by Roar Fredriksen

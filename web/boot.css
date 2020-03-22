@@ -292,6 +292,9 @@ a {
     display: block;
     padding: .5rem 1rem;
 }
+.navbar-dark .navbar-nav .active>.nav-link, .navbar-dark .navbar-nav .nav-link.active, .navbar-dark .navbar-nav .nav-link.show, .navbar-dark .navbar-nav .show>.nav-link {
+    color: #fff;
+}
 .badge {
     display: inline-block;
     padding: .25em .4em;
@@ -319,6 +322,18 @@ a {
 .badge-danger {
     color: #fff;
     background-color: #dc3545;
+}
+.alert {
+    position: relative;
+    padding: .75rem 1.25rem;
+    margin-bottom: 1rem;
+    border: 1px solid transparent;
+    border-radius: .25rem;
+}
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
 }
 .form-group {
     margin-bottom: 1rem;

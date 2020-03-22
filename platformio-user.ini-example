@@ -9,6 +9,9 @@ lib_deps = ${common.lib_deps}
 build_flags =
     -D HW_ROARFRED=1
     -D DEBUG_MODE=1
+extra_scripts =
+    pre:scripts/addversion.py
+    scripts/makeweb.py
 monitor_speed = 2400
 monitor_flags = 
     --parity

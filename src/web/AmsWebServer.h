@@ -22,6 +22,8 @@
 #elif defined(ESP32) // ARDUINO_ARCH_ESP32
 	#include <WiFi.h>
 	#include <WebServer.h>
+	#include "SPIFFS.h"
+	#include "Update.h"
 #else
 	#warning "Unsupported board type"
 #endif
@@ -40,6 +42,7 @@ private:
 	AmsData data;
 	Stream* debugger;
 	MQTTClient* mqtt;
+	File firmwareFile;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;
@@ -59,6 +62,11 @@ private:
     void dataJson();
 
 	void handleSave();
+
+	void configSystemHtml();
+	void configSystemPost();
+	void configSystemUpload();
+	void firmwareWaitHtml();
 
    	size_t print(const char* text);
 	size_t println(const char* text);

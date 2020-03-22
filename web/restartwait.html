@@ -26,7 +26,7 @@
                     <a class="nav-link" href="/config-web">Web</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" href="/config-system">System</a>
+                    <a class="nav-link" href="/config-system">System</a>
                 </li>
             </ul>
         </div>
@@ -39,23 +39,38 @@
         </ul>
     </header>
     <div class="my-3 p-3 bg-white rounded shadow">
-        Firmware upload complete, you will be redirected to the main page when the device is finished flashing.
+        Device is rebooting. You will be redirected to the main page when it is available again.
     </div>
 </main>
 <script>
-    interval = 5000;
+    var tries = 0;
+
+    var ip = "${ip}";
+    var hostname = "${hostname}";
+    var url;
     var fetch = function() {
+        tries++;
+
+        if(ip && tries%3 == 0) {
+            url = "http://" + ip;
+        } else if(hostname && tries%3 == 1) {
+            url = "http://" + hostname;
+        } else if(hostname && tries%3 == 2) {
+            url = "http://" + hostname + ".local";
+        } else {
+            url = "";
+        }
+        if(console) console.log("Trying url " + url)
         $.ajax({
-            url: '/data.json',
-            timeout: interval,
-            dataType: 'json',
+            url: url + '/is-alive',
+            timeout: 5000
         }).done(function(json) {
-            window.location.href="/";
+            window.location.href = url ? url : "/";
         }).fail(function() {
-            setTimeout(fetch, interval);
+            setTimeout(fetch, 1000);
         });
     };
-    setTimeout(fetch, interval);
+    setTimeout(fetch, 10000);
 </script>
 </body>
 </html>

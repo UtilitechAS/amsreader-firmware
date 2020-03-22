@@ -7,7 +7,7 @@
 #include "root/configmqtt_html.h"
 #include "root/configweb_html.h"
 #include "root/configsystem_html.h"
-#include "root/firmwarewait_html.h"
+#include "root/restartwait_html.h"
 #include "root/boot_css.h"
 #include "root/gaugemeter_js.h"
 
@@ -32,7 +32,8 @@ void AmsWebServer::setup(AmsConfiguration* config, Stream* debugger, MQTTClient*
 
 	server.on("/config-system", HTTP_GET, std::bind(&AmsWebServer::configSystemHtml, this));
 	server.on("/config-system", HTTP_POST, std::bind(&AmsWebServer::configSystemPost, this), std::bind(&AmsWebServer::configSystemUpload, this));
-	server.on("/firmware-wait", HTTP_GET, std::bind(&AmsWebServer::firmwareWaitHtml, this));
+	server.on("/restart-wait", HTTP_GET, std::bind(&AmsWebServer::restartWaitHtml, this));
+	server.on("/is-alive", HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
 
 	server.begin(); // Web server start
 }
@@ -209,6 +210,9 @@ void AmsWebServer::configWifiHtml() {
 	html.replace("${config.wifiIp}", config->getWifiIp());
 	html.replace("${config.wifiGw}", config->getWifiGw());
 	html.replace("${config.wifiSubnet}", config->getWifiSubnet());
+	html.replace("${config.wifiDns1}", config->getWifiDns1());
+	html.replace("${config.wifiDns2}", config->getWifiDns2());
+	html.replace("${config.wifiHostname}", config->getWifiHostname());
 
 	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
@@ -462,9 +466,12 @@ void AmsWebServer::handleSave() {
 			config->setWifiIp(server.arg("wifiIp"));
 			config->setWifiGw(server.arg("wifiGw"));
 			config->setWifiSubnet(server.arg("wifiSubnet"));
+			config->setWifiDns1(server.arg("wifiDns1"));
+			config->setWifiDns2(server.arg("wifiDns2"));
 		} else {
 			config->clearWifiIp();
 		}
+		config->setWifiHostname(server.arg("wifiHostname"));
 	}
 
 	if(server.hasArg("mqttConfig") && server.arg("mqttConfig") == "true") {
@@ -499,19 +506,12 @@ void AmsWebServer::handleSave() {
 	if (config->save()) {
 		println("Successfully saved.");
 		if(config->isWifiChanged()) {
-			String html = "<html><body><h1>Successfully Saved!</h1><a href=\"/\">Go to index</a></form>";
-			server.send(200, "text/html", html);
-			yield();
-			println("Wifi config changed, rebooting");
-			delay(1000);
-#if defined(ESP8266)
-			ESP.reset();
-#elif defined(ESP32)
-			ESP.restart();
-#endif
+			performRestart = true;
+            server.sendHeader("Location","/restart-wait");
+            server.send(303);
 		} else {
 			server.sendHeader("Location", String("/"), true);
-			server.send ( 302, "text/plain", "");
+			server.send (302, "text/plain", "");
 		}
 	} else {
 		println("Error saving configuration");
@@ -567,7 +567,8 @@ void AmsWebServer::configSystemUpload() {
             firmwareFile.close();
 			SPIFFS.end();
             print("handleFileUpload Size: "); println(String(upload.totalSize).c_str());
-            server.sendHeader("Location","/firmware-wait");
+			performRestart = true;
+            server.sendHeader("Location","/restart-wait");
             server.send(303);
         } else {
             server.send(500, "text/plain", "500: couldn't create file");
@@ -575,18 +576,24 @@ void AmsWebServer::configSystemUpload() {
     }
 }
 
-void AmsWebServer::firmwareWaitHtml() {
-	println("Serving /firmware-wait.html over http...");
+void AmsWebServer::restartWaitHtml() {
+	println("Serving /restart-wait.html over http...");
 
 	if(!checkSecurity(1))
 		return;
 
-	String html = String((const __FlashStringHelper*) FIRMWAREWAIT_HTML);
+	String html = String((const __FlashStringHelper*) RESTARTWAIT_HTML);
 	html.replace("${version}", VERSION);
 
 	if(WiFi.getMode() != WIFI_AP) {
 		html.replace("boot.css", BOOTSTRAP_URL);
 	}
+	if(config->getWifiIp().isEmpty() && WiFi.getMode() != WIFI_AP) {
+		html.replace("${ip}", WiFi.localIP().toString());
+	} else {
+		html.replace("${ip}", config->getWifiIp());
+	}
+	html.replace("${hostname}", config->getWifiHostname());
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -595,7 +602,7 @@ void AmsWebServer::firmwareWaitHtml() {
 	server.send(200, "text/html", html);
 
 	yield();
-	if(SPIFFS.begin() && SPIFFS.exists("/firmware.bin")) {
+	if(performRestart) {
 		SPIFFS.end();
 		println("Firmware uploaded, rebooting");
 		delay(1000);
@@ -604,7 +611,13 @@ void AmsWebServer::firmwareWaitHtml() {
 #elif defined(ESP32)
 		ESP.restart();
 #endif
+		performRestart = false;
 	}
+}
+
+void AmsWebServer::isAliveCheck() {
+	server.sendHeader("Access-Control-Allow-Origin", "*");
+	server.send(200);
 }
 
 size_t AmsWebServer::print(const char* text)

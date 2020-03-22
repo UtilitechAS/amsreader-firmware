@@ -43,6 +43,7 @@ private:
 	Stream* debugger;
 	MQTTClient* mqtt;
 	File firmwareFile;
+	bool performRestart = false;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;
@@ -66,7 +67,8 @@ private:
 	void configSystemHtml();
 	void configSystemPost();
 	void configSystemUpload();
-	void firmwareWaitHtml();
+	void restartWaitHtml();
+	void isAliveCheck();
 
    	size_t print(const char* text);
 	size_t println(const char* text);

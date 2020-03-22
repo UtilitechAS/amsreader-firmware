@@ -55,6 +55,12 @@
                             <input type="password" class="form-control" name="wifiPassword" value="${config.wifiPassword}"/>
                         </div>
                     </div>
+                    <div class="row form-group">
+                        <label class="col-3">Hostname</label>
+                        <div class="col-9">
+                            <input type="text" class="form-control" name="wifiHostname" value="${config.wifiHostname}"/>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-4">
                     <div class="row form-group">
@@ -67,23 +73,35 @@
                         </div>
                     </div>
                     <div class="row form-group">
-                        <label class="col-3">IP</label>
-                        <div class="col-9">
+                        <label class="col-6">IP</label>
+                        <div class="col-6">
                             <input type="text" class="form-control wifiip-config" name="wifiIp" value="${config.wifiIp}"/>
+                        </div>
+                    </div>
+                    <div class="row form-group">
+                        <label class="col-6">Subnet</label>
+                        <div class="col-6">
+                            <input type="text" class="form-control wifiip-config" name="wifiSubnet" value="${config.wifiSubnet}"/>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-3">Subnet</label>
-                        <div class="col-9">
-                            <input type="text" class="form-control wifiip-config" name="wifiSubnet" value="${config.wifiSubnet}"/>
+                        <label class="col-6">Gateway</label>
+                        <div class="col-6">
+                            <input type="text" class="form-control wifiip-config" name="wifiGw" value="${config.wifiGw}"/>
                         </div>
                     </div>
                     <div class="row form-group">
-                        <label class="col-3">Gateway</label>
-                        <div class="col-9">
-                            <input type="text" class="form-control wifiip-config" name="wifiGw" value="${config.wifiGw}"/>
+                        <label class="col-6">Primary DNS</label>
+                        <div class="col-6">
+                            <input type="text" class="form-control wifiip-config" name="wifiDns1" value="${config.wifiDns1}"/>
+                        </div>
+                    </div>
+                    <div class="row form-group">
+                        <label class="col-6">Secondary DNS</label>
+                        <div class="col-6">
+                            <input type="text" class="form-control wifiip-config" name="wifiDns2" value="${config.wifiDns2}"/>
                         </div>
                     </div>
                 </div>

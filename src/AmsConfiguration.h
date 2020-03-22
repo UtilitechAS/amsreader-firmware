@@ -6,6 +6,8 @@
 class AmsConfiguration {
 public:
 	bool hasConfig();
+	int getConfigVersion();
+
 	bool load();
 	bool save();
 	
@@ -19,6 +21,12 @@ public:
 	void setWifiGw(String wifiGw);
 	String getWifiSubnet();
 	void setWifiSubnet(String wifiSubnet);
+	String getWifiDns1();
+	void setWifiDns1(String wifiDns1);
+	String getWifiDns2();
+	void setWifiDns2(String wifiDns1);
+	String getWifiHostname();
+	void setWifiHostname(String wifiHostname);
 	void clearWifiIp();
 
 	bool isWifiChanged();
@@ -67,11 +75,16 @@ public:
 protected:
 
 private:
+	int configVersion;
+
 	String wifiSsid;
 	String wifiPassword;
     String wifiIp;
     String wifiGw;
     String wifiSubnet;
+	String wifiDns1;
+	String wifiDns2;
+	String wifiHostname;
 	bool wifiChanged;
 	
 	String mqttHost;

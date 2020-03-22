@@ -166,6 +166,16 @@ void setup() {
 		}
 	}
 
+	if(config.getConfigVersion() < 81) {
+		uint16_t chipId;
+#if defined(ARDUINO_ARCH_ESP32)
+		chipId = ESP.getEfuseMac();
+#else
+		chipId = ESP.getChipId();
+#endif
+		config.setWifiHostname(String("ams-") + String(chipId, HEX));
+	}
+
 	if(config.hasConfig()) {
 		if(debugger) config.print(debugger);
 		WiFi_connect();
@@ -285,6 +295,10 @@ void loop() {
 				if(debugger) {
 					debugger->println("Successfully connected to WiFi!");
 					debugger->println(WiFi.localIP());
+					if(!config.getWifiHostname().isEmpty()) {
+						MDNS.begin(config.getWifiHostname().c_str());
+						MDNS.addService("http", "tcp", 80);
+					}
 				}
 			}
 			if (!config.getMqttHost().isEmpty()) {
@@ -573,17 +587,27 @@ void WiFi_connect() {
 	}
 
 	if (WiFi.status() != WL_CONNECTED) {
+		MDNS.end();
 		WiFi.disconnect();
 		yield();
 
 		WiFi.enableAP(false);
 		WiFi.mode(WIFI_STA);
 		if(!config.getWifiIp().isEmpty()) {
-			IPAddress ip, gw, sn(255,255,255,0);
+			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
 			ip.fromString(config.getWifiIp());
 			gw.fromString(config.getWifiGw());
 			sn.fromString(config.getWifiSubnet());
-			WiFi.config(ip, gw, sn);
+			dns1.fromString(config.getWifiDns1());
+			dns2.fromString(config.getWifiDns2());
+			WiFi.config(ip, gw, sn, dns1, dns2);
+		}
+		if(!config.getWifiHostname().isEmpty()) {
+#if defined(ESP8266)
+			WiFi.hostname(config.getWifiHostname());
+#elif defined(ESP32)
+			WiFi.setHostname(config.getWifiHostname().c_str());
+#endif
 		}
 		WiFi.begin(config.getWifiSsid().c_str(), config.getWifiPassword().c_str());
 		yield();

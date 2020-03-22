@@ -45,10 +45,39 @@ void AmsConfiguration::setWifiSubnet(String wifiSubnet) {
 	this->wifiSubnet = String(wifiSubnet);
 }
 
+String AmsConfiguration::getWifiDns1() {
+	return wifiDns1;
+}
+
+void AmsConfiguration::setWifiDns1(String wifiDns1) {
+	wifiChanged |= this->wifiDns1 != wifiDns1;
+	this->wifiDns1 = wifiDns1;
+}
+
+String AmsConfiguration::getWifiDns2() {
+	return wifiDns2;
+}
+
+void AmsConfiguration::setWifiDns2(String wifiDns2) {
+	wifiChanged |= this->wifiDns2 != wifiDns2;
+	this->wifiDns2 = wifiDns2;
+}
+
+String AmsConfiguration::getWifiHostname() {
+	return wifiHostname;
+}
+
+void AmsConfiguration::setWifiHostname(String wifiHostname) {
+	wifiChanged |= this->wifiHostname != wifiHostname;
+	this->wifiHostname = wifiHostname;
+}
+
 void AmsConfiguration::clearWifiIp() {
 	setWifiIp("");
 	setWifiGw("");
 	setWifiSubnet("");
+	setWifiDns1("");
+	setWifiDns2("");
 }
 
 bool AmsConfiguration::isWifiChanged() {
@@ -214,9 +243,11 @@ void AmsConfiguration::setProductionCapacity(int productionCapacity) {
 
 
 bool AmsConfiguration::hasConfig() {
-	EEPROM.begin(EEPROM_SIZE);
-	int configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
-	EEPROM.end();
+	if(configVersion == 0) {
+		EEPROM.begin(EEPROM_SIZE);
+		configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
+		EEPROM.end();
+	}
 	switch(configVersion) {
 		case 71:
 		case 72:
@@ -227,6 +258,10 @@ bool AmsConfiguration::hasConfig() {
 		default:
 			return false;
 	}
+}
+
+int AmsConfiguration::getConfigVersion() {
+	return configVersion;
 }
 
 bool AmsConfiguration::load() {
@@ -451,13 +486,23 @@ bool AmsConfiguration::loadConfig81(int address) {
 	setWifiSsid(temp);
 	address += readString(address, &temp);
 	setWifiPassword(temp);
-	address += readString(address, &temp);
-	setWifiIp(temp);
-	address += readString(address, &temp);
-	setWifiGw(temp);
-	address += readString(address, &temp);
-	setWifiSubnet(temp);
 
+	bool staticIp = false;
+	address += readBool(address, &staticIp);
+	if(staticIp) {
+		address += readString(address, &temp);
+		setWifiIp(temp);
+		address += readString(address, &temp);
+		setWifiGw(temp);
+		address += readString(address, &temp);
+		setWifiSubnet(temp);
+		address += readString(address, &temp);
+		setWifiDns1(temp);
+		address += readString(address, &temp);
+		setWifiDns2(temp);
+	}
+	address += readString(address, &temp);
+	setWifiHostname(temp);
 	bool mqtt = false;
 	address += readBool(address, &mqtt);
 	if(mqtt) {
@@ -526,17 +571,25 @@ bool AmsConfiguration::save() {
 
 	address += saveString(address, wifiSsid.c_str());
 	address += saveString(address, wifiPassword.c_str());
-	address += saveString(address, wifiIp.c_str());
-	address += saveString(address, wifiGw.c_str());
-	address += saveString(address, wifiSubnet.c_str());
-	if(mqttHost) {
+	if(!wifiIp.isEmpty()) {
+		address += saveBool(address, true);
+		address += saveString(address, wifiIp.c_str());
+		address += saveString(address, wifiGw.c_str());
+		address += saveString(address, wifiSubnet.c_str());
+		address += saveString(address, wifiDns1.c_str());
+		address += saveString(address, wifiDns2.c_str());
+	} else {
+		address += saveBool(address, false);
+	}
+	address += saveString(address, wifiHostname.c_str());
+	if(!mqttHost.isEmpty()) {
 		address += saveBool(address, true);
 		address += saveString(address, mqttHost.c_str());
 		address += saveInt(address, mqttPort);
 		address += saveString(address, mqttClientId.c_str());
 		address += saveString(address, mqttPublishTopic.c_str());
 		address += saveString(address, mqttSubscribeTopic.c_str());
-		if (mqttUser) {
+		if (!mqttUser.isEmpty()) {
 			address += saveBool(address, true);
 			address += saveString(address, mqttUser.c_str());
 			address += saveString(address, mqttPassword.c_str());
@@ -561,6 +614,8 @@ bool AmsConfiguration::save() {
 
 	bool success = EEPROM.commit();
 	EEPROM.end();
+
+	configVersion = EEPROM_CHECK_SUM;
 
 	return success;
 }
@@ -656,13 +711,15 @@ void AmsConfiguration::print(Stream* debugger)
 	debugger->printf("WiFi SSID:            %s\r\n", this->getWifiSsid().c_str());
 	debugger->printf("WiFi Psk:             %s\r\n", this->getWifiPassword().c_str());
 	
-	if(getWifiIp()) {
+	if(!getWifiIp().isEmpty()) {
 		debugger->printf("IP:                   %s\r\n", this->getWifiIp().c_str());
 		debugger->printf("Gateway:              %s\r\n", this->getWifiGw().c_str());
-		debugger->printf("Subnet:              %s\r\n", this->getWifiSubnet().c_str());
+		debugger->printf("Subnet:               %s\r\n", this->getWifiSubnet().c_str());
+		debugger->printf("Primary DNS:          %s\r\n", this->getWifiDns1().c_str());
+		debugger->printf("Secondary DNS:        %s\r\n", this->getWifiDns2().c_str());
 	}
 
-	if(getMqttHost()) {
+	if(!getMqttHost().isEmpty()) {
 		debugger->printf("mqttHost:             %s\r\n", this->getMqttHost().c_str());
 		debugger->printf("mqttPort:             %i\r\n", this->getMqttPort());
 		debugger->printf("mqttClientID:         %s\r\n", this->getMqttClientId().c_str());
@@ -673,6 +730,7 @@ void AmsConfiguration::print(Stream* debugger)
 			debugger->printf("mqttUser:             %s\r\n", this->getMqttUser().c_str());
 			debugger->printf("mqttPass:             %s\r\n", this->getMqttPassword().c_str());
 		}
+		debugger->printf("payload format:       %i\r\n", this->getMqttPayloadFormat());
 	}
 
 	if (this->getAuthSecurity()) {

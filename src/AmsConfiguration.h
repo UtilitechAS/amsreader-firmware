@@ -70,7 +70,14 @@ public:
 	int getProductionCapacity();
 	void setProductionCapacity(int productionCapacity);
 
-	void print(Stream* debugger);
+	bool isDebugTelnet();
+	void setDebugTelnet(bool debugTelnet);
+	bool isDebugSerial();
+	void setDebugSerial(bool debugSerial);
+	int getDebugLevel();
+	void setDebugLevel(int debugLevel);
+
+	void print(Print* debugger);
 	
 protected:
 
@@ -102,6 +109,9 @@ private:
 	String authPassword;
 
 	int meterType, distributionSystem, mainFuse, productionCapacity;
+
+	bool debugTelnet, debugSerial;
+	int debugLevel;
 
 	const int EEPROM_SIZE = 512;
 	const int EEPROM_CHECK_SUM = 81; // Used to check if config is stored. Change if structure changes

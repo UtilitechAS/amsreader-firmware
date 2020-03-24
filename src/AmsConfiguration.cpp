@@ -241,6 +241,30 @@ void AmsConfiguration::setProductionCapacity(int productionCapacity) {
 	this->productionCapacity = productionCapacity;
 }
 
+bool AmsConfiguration::isDebugTelnet() {
+	return this->debugTelnet;
+}
+
+void AmsConfiguration::setDebugTelnet(bool debugTelnet) {
+	this->debugTelnet = debugTelnet;
+}
+
+bool AmsConfiguration::isDebugSerial() {
+	return this->debugSerial;
+}
+
+void AmsConfiguration::setDebugSerial(bool debugSerial) {
+	this->debugSerial = debugSerial;
+}
+
+int AmsConfiguration::getDebugLevel() {
+	return this->debugLevel;
+}
+
+void AmsConfiguration::setDebugLevel(int debugLevel) {
+	this->debugLevel = debugLevel;
+}
+
 
 bool AmsConfiguration::hasConfig() {
 	if(configVersion == 0) {
@@ -338,6 +362,10 @@ bool AmsConfiguration::loadConfig72(int address) {
 
 	ackWifiChange();
 
+	setDebugLevel(5); // 5=Error
+	setDebugTelnet(false);
+	setDebugSerial(false);
+
 	return true;
 }
 
@@ -404,6 +432,10 @@ bool AmsConfiguration::loadConfig75(int address) {
 	setProductionCapacity(0);
 
 	ackWifiChange();
+
+	setDebugLevel(5); // 5=Error
+	setDebugTelnet(false);
+	setDebugSerial(false);
 
 	return true;
 }
@@ -475,6 +507,10 @@ bool AmsConfiguration::loadConfig80(int address) {
 	setProductionCapacity(i);
 
 	ackWifiChange();
+
+	setDebugLevel(5); // 5=Error
+	setDebugTelnet(false);
+	setDebugSerial(false);
 
 	return true;
 }
@@ -557,6 +593,15 @@ bool AmsConfiguration::loadConfig81(int address) {
 	address += readInt(address, &i);
 	setProductionCapacity(i);
 
+	bool debugTelnet = false;
+	address += readBool(address, &debugTelnet);
+	setDebugTelnet(debugTelnet);
+	bool debugSerial = false;
+	address += readBool(address, &debugSerial);
+	setDebugSerial(debugSerial);
+	address += readInt(address, &i);
+	setDebugLevel(i);
+
 	ackWifiChange();
 
 	return true;
@@ -611,6 +656,10 @@ bool AmsConfiguration::save() {
 	address += saveInt(address, distributionSystem);
 	address += saveInt(address, mainFuse);
 	address += saveInt(address, productionCapacity);
+
+	address += saveBool(address, debugTelnet);
+	address += saveBool(address, debugSerial);
+	address += saveInt(address, debugLevel);
 
 	bool success = EEPROM.commit();
 	EEPROM.end();
@@ -704,7 +753,7 @@ template <class T> int AmsConfiguration::readAnything(int ee, T& value) {
 	return i;
 }
 
-void AmsConfiguration::print(Stream* debugger)
+void AmsConfiguration::print(Print* debugger)
 {
 	debugger->println("Configuration:");
 	debugger->println("-----------------------------------------------");

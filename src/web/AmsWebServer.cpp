@@ -13,10 +13,12 @@
 
 #include "Base64.h"
 
+AmsWebServer::AmsWebServer(RemoteDebug* Debug) {
+	this->debugger = Debug;
+}
 
-void AmsWebServer::setup(AmsConfiguration* config, Stream* debugger, MQTTClient* mqtt) {
+void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
     this->config = config;
-    this->debugger = debugger;
 	this->mqtt = mqtt;
 
 	server.on("/", std::bind(&AmsWebServer::indexHtml, this));
@@ -61,7 +63,7 @@ void AmsWebServer::setData(AmsData& data) {
 bool AmsWebServer::checkSecurity(byte level) {
 	bool access = WiFi.getMode() == WIFI_AP || !config->hasConfig() || config->getAuthSecurity() < level;
 	if(!access && config->getAuthSecurity() >= level && server.hasHeader("Authorization")) {
-		println(" forcing web security");
+		printD(" forcing web security");
 		String expectedAuth = String(config->getAuthUser()) + ":" + String(config->getAuthPassword());
 
 		String providedPwd = server.header("Authorization");
@@ -73,13 +75,12 @@ bool AmsWebServer::checkSecurity(byte level) {
 		int decodedLength = Base64.decodedLength(inputString, inputStringLength);
 		char decodedString[decodedLength];
 		Base64.decode(decodedString, inputString, inputStringLength);
-		print("Received auth: ");
-		println(decodedString);
+		printD("Received auth: %s", decodedString);
 		access = String(decodedString).equals(expectedAuth);
 	}
 
 	if(!access) {
-		println(" no access, requesting user/pass");
+		printD(" no access, requesting user/pass");
 		server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure Area\"");
 		server.setContentLength(0);
 		server.send(401, "text/html", "");
@@ -88,7 +89,7 @@ bool AmsWebServer::checkSecurity(byte level) {
 }
 
 void AmsWebServer::indexHtml() {
-	println("Serving /index.html over http...");
+	printD("Serving /index.html over http...");
 
 	if(!checkSecurity(2))
 		return;
@@ -155,7 +156,7 @@ void AmsWebServer::indexHtml() {
 }
 
 void AmsWebServer::configMeterHtml() {
-	println("Serving /config-meter.html over http...");
+	printD("Serving /config-meter.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -189,7 +190,7 @@ void AmsWebServer::configMeterHtml() {
 }
 
 void AmsWebServer::configWifiHtml() {
-	println("Serving /config-wifi.html over http...");
+	printD("Serving /config-wifi.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -219,7 +220,7 @@ void AmsWebServer::configWifiHtml() {
 }
 
 void AmsWebServer::configMqttHtml() {
-	println("Serving /config-mqtt.html over http...");
+	printD("Serving /config-mqtt.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -253,7 +254,7 @@ void AmsWebServer::configMqttHtml() {
 }
 
 void AmsWebServer::configWebHtml() {
-	println("Serving /config-web.html over http...");
+	printD("Serving /config-web.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -280,7 +281,7 @@ void AmsWebServer::configWebHtml() {
 }
 
 void AmsWebServer::bootCss() {
-	println("Serving /boot.css over http...");
+	printD("Serving /boot.css over http...");
 
 	String css = String((const __FlashStringHelper*) BOOT_CSS);
 
@@ -291,7 +292,7 @@ void AmsWebServer::bootCss() {
 }
 
 void AmsWebServer::gaugemeterJs() {
-	println("Serving /gaugemeter.js over http...");
+	printD("Serving /gaugemeter.js over http...");
 
 	String js = String((const __FlashStringHelper*) GAUGEMETER_JS);
 
@@ -302,7 +303,7 @@ void AmsWebServer::gaugemeterJs() {
 }
 
 void AmsWebServer::dataJson() {
-	println("Serving /data.json over http...");
+	printD("Serving /data.json over http...");
 
 	if(!checkSecurity(2))
 		return;
@@ -500,11 +501,26 @@ void AmsWebServer::handleSave() {
 		}
 	}
 
-	println("Saving configuration now...");
+	if(server.hasArg("sysConfig") && server.arg("sysConfig") == "true") {
+		config->setDebugTelnet(server.hasArg("debugTelnet") && server.arg("debugTelnet") == "true");
+		config->setDebugSerial(server.hasArg("debugSerial") && server.arg("debugSerial") == "true");
+		config->setDebugLevel(server.arg("debugLevel").toInt());
+		debugger->stop();
+		debugger->begin(config->getWifiHostname(), (uint8_t) config->getDebugLevel());
+		if(config->getAuthSecurity() > 0) {
+			debugger->setPassword(config->getAuthPassword());
+		}
+		debugger->setSerialEnabled(config->isDebugSerial());
+		if(!config->isDebugTelnet()) {
+			debugger->stop();
+		}
+	}
 
-	if (debugger) config->print(debugger);
+	printI("Saving configuration now...");
+
+	if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
 	if (config->save()) {
-		println("Successfully saved.");
+		printI("Successfully saved.");
 		if(config->isWifiChanged()) {
 			performRestart = true;
             server.sendHeader("Location","/restart-wait");
@@ -514,14 +530,14 @@ void AmsWebServer::handleSave() {
 			server.send (302, "text/plain", "");
 		}
 	} else {
-		println("Error saving configuration");
+		printE("Error saving configuration");
 		String html = "<html><body><h1>Error saving configuration!</h1></form>";
 		server.send(500, "text/html", html);
 	}
 }
 
 void AmsWebServer::configSystemHtml() {
-	println("Serving /config-system.html over http...");
+	printD("Serving /config-system.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -531,6 +547,13 @@ void AmsWebServer::configSystemHtml() {
 
 	if(WiFi.getMode() != WIFI_AP) {
 		html.replace("boot.css", BOOTSTRAP_URL);
+	}
+
+	html.replace("${config.debugTelnet}", config->isDebugTelnet() ? "checked" : "");
+	html.replace("${config.debugSerial}", config->isDebugSerial() ? "checked" : "");
+	html.replace("${config.debugLevel}", String(config->getDebugLevel()));
+	for(int i = 0; i<=RemoteDebug::ANY; i++) {
+		html.replace("${config.debugLevel" + String(i) + "}", config->getDebugLevel() == i ? "selected"  : "");
 	}
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -551,11 +574,11 @@ void AmsWebServer::configSystemUpload() {
         if(!filename.endsWith(".bin")) {
             server.send(500, "text/plain", "500: couldn't create file");
 		} else if (!SPIFFS.begin()) {
-			println("An Error has occurred while mounting SPIFFS");
+			printE("An Error has occurred while mounting SPIFFS");
 			String html = "<html><body><h1>Error uploading!</h1></form>";
 			server.send(500, "text/html", html);
 		} else {
-		    print("handleFileUpload Name: "); println(filename.c_str());
+		    printD("handleFileUpload Name: %s", filename.c_str());
 		    firmwareFile = SPIFFS.open("/firmware.bin", "w");
 	  	    filename = String();
 	    } 
@@ -566,7 +589,7 @@ void AmsWebServer::configSystemUpload() {
         if(firmwareFile) {
             firmwareFile.close();
 			SPIFFS.end();
-            print("handleFileUpload Size: "); println(String(upload.totalSize).c_str());
+            printD("handleFileUpload Size: %d", upload.totalSize);
 			performRestart = true;
             server.sendHeader("Location","/restart-wait");
             server.send(303);
@@ -577,7 +600,7 @@ void AmsWebServer::configSystemUpload() {
 }
 
 void AmsWebServer::restartWaitHtml() {
-	println("Serving /restart-wait.html over http...");
+	printD("Serving /restart-wait.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -604,7 +627,7 @@ void AmsWebServer::restartWaitHtml() {
 	yield();
 	if(performRestart) {
 		SPIFFS.end();
-		println("Firmware uploaded, rebooting");
+		printI("Firmware uploaded, rebooting");
 		delay(1000);
 #if defined(ESP8266)
 		ESP.reset();
@@ -620,19 +643,30 @@ void AmsWebServer::isAliveCheck() {
 	server.send(200);
 }
 
-size_t AmsWebServer::print(const char* text)
-{
-	if (debugger) debugger->print(text);
+void AmsWebServer::printD(String fmt, ...) {
+	va_list args;
+ 	va_start(args, fmt);
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(String("(AmsWebServer)" + fmt + "\n").c_str(), args);
+	va_end(args);
 }
-size_t AmsWebServer::println(const char* text)
-{
-	if (debugger) debugger->println(text);
+
+void AmsWebServer::printI(String fmt, ...) {
+	va_list args;
+ 	va_start(args, fmt);
+	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(String("(AmsWebServer)" + fmt + "\n").c_str(), args);
+	va_end(args);
 }
-size_t AmsWebServer::print(const Printable& data)
-{
-	if (debugger) debugger->print(data);
+
+void AmsWebServer::printW(String fmt, ...) {
+	va_list args;
+ 	va_start(args, fmt);
+	if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf(String("(AmsWebServer)" + fmt + "\n").c_str(), args);
+	va_end(args);
 }
-size_t AmsWebServer::println(const Printable& data)
-{
-	if (debugger) debugger->println(data);
+
+void AmsWebServer::printE(String fmt, ...) {
+	va_list args;
+ 	va_start(args, fmt);
+	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(String("(AmsWebServer)" + fmt + "\n").c_str(), args);
+	va_end(args);
 }

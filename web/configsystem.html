@@ -5,6 +5,7 @@
     <title>AMS reader - System configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" type="text/css" href="boot.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"/>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
@@ -37,8 +38,37 @@
             </li>
         </ul>
     </header>
+    <form method="post" action="/save">
+        <input type="hidden" name="sysConfig" value="true"/>
+        <div class="my-3 p-3 bg-white rounded shadow">
+            <div class="row">
+                <div class="col-md-3">
+                    <label><input type="checkbox" name="debugTelnet" value="true" ${config.debugTelnet}/> Telnet debugger</label>
+                </div>
+                <div class="col-md-3">
+                    <label><input type="checkbox" name="debugSerial" value="true" ${config.debugSerial}/> Serial debugger</label>
+                </div>
+                <div class="col-md-5">
+                    <div class="row form-group">
+                        <label class="col-6">Debug level</label>
+                        <div class="col-6">
+                            <select class="form-control" name="debugLevel">
+                                <option value="2" ${config.debugLevel2}>Debug</option>
+                                <option value="3" ${config.debugLevel3}>Info</option>
+                                <option value="4" ${config.debugLevel4}>Warning</option>
+                                <option value="5" ${config.debugLevel5}>Error</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-1 text-right">
+                    <button class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
     <form method="post" enctype="multipart/form-data">
-        <input type="hidden" name="authConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
             <div class="alert alert-warning">!!WARNING!!<br/>Do not use this unless you know what you are doing. Uploading the wrong image could cause your device to stop working. Use with extreme caution!</div>
             <div class="row">
@@ -50,6 +80,9 @@
                         </div>
                     </div>
                 </div>
+                <div class="col-md-8 text-right">
+                    <button class="btn btn-primary">Upload</button>
+                </div>
             </div>
         </div>
         <hr/>
@@ -58,7 +91,6 @@
                 <a href="/" class="btn btn-outline-secondary">Back</a>
             </div>
             <div class="col-6 text-right">
-                <button class="btn btn-primary">Upload</button>
             </div>
         </div>
     </form>

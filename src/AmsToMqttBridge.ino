@@ -38,18 +38,21 @@ ADC_MODE(ADC_VCC);
 
 #include "Uptime.h"
 
+#define WEBSOCKET_DISABLED true
+#include "RemoteDebug.h"
+
 HwTools hw;
 
 DNSServer dnsServer;
 
 AmsConfiguration config;
 
-AmsWebServer ws;
+RemoteDebug Debug;
+
+AmsWebServer ws(&Debug);
 
 WiFiClient *client;
-MQTTClient mqtt(384);
-
-Stream* debugger = NULL;
+MQTTClient mqtt(512);
 
 HanReader hanReader;
 
@@ -58,41 +61,43 @@ void setup() {
 		config.load();
 	}
 
-#if DEBUG_MODE
 #if HW_ROARFRED
-#if SOFTWARE_SERIAL
-	SoftwareSerial *ser = new SoftwareSerial(-1, 1);
-	ser->begin(115200, SWSERIAL_8N1);
-	debugger = ser;
-#else
-	HardwareSerial *ser = &Serial;
 	if(config.getMeterType() == 3) {
-		ser->begin(2400, SERIAL_8N1);
+		Serial.begin(2400, SERIAL_8N1);
 	} else {
-		ser->begin(2400, SERIAL_8E1);
+		Serial.begin(2400, SERIAL_8E1);
 	}
-#endif
 #else
-	HardwareSerial *ser = &Serial;
-	ser->begin(115200, SERIAL_8N1);
+	Serial.begin(115200);
 #endif
-	debugger = ser;
+
+	if(config.hasConfig()) {
+		Debug.begin(config.getWifiHostname(), (uint8_t) config.getDebugLevel());
+		if(config.getAuthSecurity() > 0) {
+			Debug.setPassword(config.getAuthPassword());
+		}
+		Debug.setSerialEnabled(config.isDebugSerial());
+		if(!config.isDebugTelnet()) {
+			Debug.stop();
+		}
+	} else {
+#if DEBUG_MODE
+		Debug.begin("localhost", RemoteDebug::DEBUG);
+		Debug.setSerialEnabled(true);
 #endif
+	}
 
 	double vcc = hw.getVcc();
 
-	if (debugger) {
-		debugger->println("");
-		debugger->println("Started...");
-		debugger->print("Voltage: ");
-		debugger->print(vcc);
-		debugger->println("V");
+	if (Debug.isActive(RemoteDebug::INFO)) {
+		debugI("AMS bridge started");
+		debugI("Voltage: %dV", vcc);
 	}
 
 	if (vcc > 0 && vcc < 3.1) {
-		if(debugger) {
-			debugger->println("Voltage is too low, sleeping");
-			debugger->flush();
+		if(Debug.isActive(RemoteDebug::INFO)) {
+			debugI("Votltage is too low, sleeping");
+			Debug.flush();
 		}
 		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
 	}  
@@ -115,14 +120,14 @@ void setup() {
 	if(SPIFFS.begin()) {
 		bool flashed = false;
 		if(SPIFFS.exists("/firmware.bin")) {
-			if(debugger) debugger->println("Found firmware");
+			if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
 #if defined(ESP8266)
 			WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
 			WiFi.forceSleepBegin();
 #endif
 			int i = 0;
 			while(hw.getVcc() < 3.3 && i < 3) {
-				if(debugger) debugger->println(" vcc not optimal, light sleep 10s");
+				if(Debug.isActive(RemoteDebug::INFO)) debugI(" vcc not optimal, light sleep 10s");
 #if defined(ESP8266)
 				delay(10000);
 #elif defined(ESP32)
@@ -132,13 +137,13 @@ void setup() {
 				i++;
 			}
 
-			if(debugger) debugger->println(" flashing");
+			if(Debug.isActive(RemoteDebug::INFO)) debugI(" flashing");
 			File firmwareFile = SPIFFS.open("/firmware.bin", "r");
 			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 			if (!Update.begin(maxSketchSpace, U_FLASH)) {
-				if(debugger) {
-					debugger->println("Unable to start firmware update");
-					Update.printError(*debugger);
+				if(Debug.isActive(RemoteDebug::ERROR)) {
+					debugE("Unable to start firmware update");
+					Update.printError(Serial);
 				}
 			} else {
 				while (firmwareFile.available()) {
@@ -153,9 +158,9 @@ void setup() {
 		}
 		SPIFFS.end();
 		if(flashed) {
-			if(debugger) {
-				debugger->println("Firmware update complete, restarting");
-				debugger->flush();
+			if(Debug.isActive(RemoteDebug::INFO)) {
+				debugI("Firmware update complete, restarting");
+				Debug.flush();
 			}
 #if defined(ESP8266)
 			ESP.reset();
@@ -177,27 +182,27 @@ void setup() {
 	}
 
 	if(config.hasConfig()) {
-		if(debugger) config.print(debugger);
+		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
 		WiFi_connect();
 		client = new WiFiClient();
 	} else {
-		if(debugger) {
-			debugger->println("No configuration, booting AP");
+		if(Debug.isActive(RemoteDebug::INFO)) {
+			debugI("No configuration, booting AP");
 		}
 		swapWifiMode();
 	}
 
 #if SOFTWARE_SERIAL
-	if(debugger) debugger->println("HAN has software serial");
+	if(Debug.isActive(RemoteDebug::DEBUG)) debugD("HAN has software serial");
 	if(config.getMeterType() == 3) {
 		hanSerial->begin(2400, SWSERIAL_8N1);
 	} else {
 		hanSerial->begin(2400, SWSERIAL_8E1);
 	}
 #else
-	if(debugger) { 
-		debugger->println("HAN has hardware serial");
-		debugger->flush();
+	if(Debug.isActive(RemoteDebug::DEBUG)) { 
+		debugD("HAN has hardware serial");
+		Debug.flush();
 	}
 	if(config.getMeterType() == 3) {
 		hanSerial->begin(2400, SERIAL_8N1);
@@ -209,7 +214,7 @@ void setup() {
 #endif
 #endif
 
-	hanReader.setup(hanSerial, debugger);
+	hanReader.setup(hanSerial, &Debug);
 
 	// Compensate for the known Kaifa bug
 	hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
@@ -219,7 +224,7 @@ void setup() {
     	hanSerial->read();
 	}
 
-	ws.setup(&config, debugger, &mqtt);
+	ws.setup(&config, &mqtt);
 
 #if HAS_RGB_LED
 	//Signal startup by blinking red / green / yellow
@@ -249,6 +254,7 @@ unsigned long lastErrorBlink = 0;
 int lastError = 0;
 
 void loop() {
+	Debug.handle();
 	unsigned long now = millis();
 	if(AP_BUTTON_PIN != INVALID_BUTTON_PIN) {
 		if (digitalRead(AP_BUTTON_PIN) == LOW) {
@@ -292,13 +298,13 @@ void loop() {
 		} else {
 			if(!wifiConnected) {
 				wifiConnected = true;
-				if(debugger) {
-					debugger->println("Successfully connected to WiFi!");
-					debugger->println(WiFi.localIP());
-					if(!config.getWifiHostname().isEmpty()) {
-						MDNS.begin(config.getWifiHostname().c_str());
-						MDNS.addService("http", "tcp", 80);
-					}
+				if(Debug.isActive(RemoteDebug::INFO)) {
+					debugI("Successfully connected to WiFi!");
+					debugI("IP: %s", WiFi.localIP().toString().c_str());
+				}
+				if(!config.getWifiHostname().isEmpty()) {
+					MDNS.begin(config.getWifiHostname().c_str());
+					MDNS.addService("http", "tcp", 80);
 				}
 			}
 			if (!config.getMqttHost().isEmpty()) {
@@ -388,14 +394,14 @@ void swapWifiMode() {
 	yield();
 
 	if (mode != WIFI_AP || !config.hasConfig()) {
-		if(debugger) debugger->println("Swapping to AP mode");
+		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to AP mode");
 		WiFi.softAP("AMS2MQTT");
 		WiFi.mode(WIFI_AP);
 
 		dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
 		dnsServer.start(53, "*", WiFi.softAPIP());
 	} else {
-		if(debugger) debugger->println("Swapping to STA mode");
+		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to STA mode");
 		WiFi_connect();
 	}
 	delay(500);
@@ -405,12 +411,8 @@ void swapWifiMode() {
 void mqttMessageReceived(String &topic, String &payload)
 {
 
-	if (debugger) {
-		debugger->println("Incoming MQTT message:");
-		debugger->print("[");
-		debugger->print(topic);
-		debugger->print("] ");
-		debugger->println(payload);
+	if (Debug.isActive(RemoteDebug::DEBUG)) {
+		debugD("Incoming MQTT message: [%s] %s", topic.c_str(), payload.c_str());
 	}
 
 	// Do whatever needed here...
@@ -428,11 +430,7 @@ void readHanPort() {
 		lastSuccessfulRead = millis();
 
 		if(config.getMeterType() > 0) {
-			#if HAS_RGB_LED
-				rgb_led(RGB_GREEN, 1);
-			#else
-				led_on();
-			#endif
+			rgb_led(RGB_GREEN, 2);
 
 			AmsData data(config.getMeterType(), hanReader);
 			ws.setData(data);
@@ -441,10 +439,11 @@ void readHanPort() {
 				if(config.getMqttPayloadFormat() == 0) {
 					StaticJsonDocument<512> json;
 					hanToJson(json, data, hw, temperature);
-					if (debugger) {
-						debugger->print("Sending data to MQTT: ");
-						serializeJsonPretty(json, *debugger);
-						debugger->println();
+					if (Debug.isActive(RemoteDebug::INFO)) {
+						debugI("Sending data to MQTT");
+						if (Debug.isActive(RemoteDebug::DEBUG)) {
+							serializeJsonPretty(json, Debug);
+						}
 					}
 
 					String msg;
@@ -507,12 +506,6 @@ void readHanPort() {
 				mqtt.loop();
 				delay(10);
 			}
-
-			#if HAS_RGB_LED
-				rgb_led(RGB_GREEN, 0);
-			#else
-				led_off();
-			#endif
 		} else {
 			// Auto detect meter if not set
 			for(int i = 1; i <= 3; i++) {
@@ -532,15 +525,15 @@ void readHanPort() {
 					list.toLowerCase();
 					if(list.startsWith("kfm")) {
 						config.setMeterType(1);
-						if(debugger) debugger->println("Detected Kaifa meter");
+						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kaifa meter");
 						break;
 					} else if(list.startsWith("aidon")) {
 						config.setMeterType(2);
-						if(debugger) debugger->println("Detected Aidon meter");
+						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Aidon meter");
 						break;
 					} else if(list.startsWith("kamstrup")) {
 						config.setMeterType(3);
-						if(debugger) debugger->println("Detected Kamstrup meter");
+						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kamstrup meter");
 						break;
 					}
 				}
@@ -552,7 +545,7 @@ void readHanPort() {
 	// Switch parity if meter is still not detected
 	if(config.getMeterType() == 0 && millis() - lastSuccessfulRead > 10000) {
 		lastSuccessfulRead = millis();
-		if(debugger) debugger->println("No data for current setting, switching parity");
+		if(Debug.isActive(RemoteDebug::DEBUG)) debugD("No data for current setting, switching parity");
 #if SOFTWARE_SERIAL
 			if(even) {
 				hanSerial->begin(2400, SWSERIAL_8N1);
@@ -579,12 +572,7 @@ void WiFi_connect() {
 	}
 	lastWifiRetry = millis();
 
-	if (debugger) {
-		debugger->println();
-		debugger->println();
-		debugger->print("Connecting to WiFi network ");
-		debugger->println(config.getWifiSsid());
-	}
+	if (Debug.isActive(RemoteDebug::INFO)) debugI("Connecting to WiFi network: %s", config.getWifiSsid().c_str());
 
 	if (WiFi.status() != WL_CONNECTED) {
 		MDNS.end();
@@ -617,7 +605,7 @@ void WiFi_connect() {
 unsigned long lastMqttRetry = -10000;
 void MQTT_connect() {
 	if(config.getMqttHost().isEmpty()) {
-		if(debugger) debugger->println("No MQTT config");
+		if(Debug.isActive(RemoteDebug::WARNING)) debugW("No MQTT config");
 		return;
 	}
 	if(millis() - lastMqttRetry < 5000) {
@@ -625,12 +613,8 @@ void MQTT_connect() {
 		return;
 	}
 	lastMqttRetry = millis();
-	if(debugger) {
-		debugger->print("Connecting to MQTT: ");
-		debugger->print(config.getMqttHost());
-		debugger->print(", port: ");
-		debugger->print(config.getMqttPort());
-		debugger->println();
+	if(Debug.isActive(RemoteDebug::INFO)) {
+		debugI("Connecting to MQTT %s:%d", config.getMqttHost().c_str(), config.getMqttPort());
 	}
 
 	mqtt.disconnect();
@@ -641,13 +625,13 @@ void MQTT_connect() {
 	// Connect to a unsecure or secure MQTT server
 	if ((config.getMqttUser().isEmpty() && mqtt.connect(config.getMqttClientId().c_str())) ||
 		(!config.getMqttUser().isEmpty() && mqtt.connect(config.getMqttClientId().c_str(), config.getMqttUser().c_str(), config.getMqttPassword().c_str()))) {
-		if (debugger) debugger->println("\nSuccessfully connected to MQTT!");
+		if (Debug.isActive(RemoteDebug::INFO)) debugI("Successfully connected to MQTT!");
 		config.ackMqttChange();
 
 		// Subscribe to the chosen MQTT topic, if set in configuration
 		if (!config.getMqttSubscribeTopic().isEmpty()) {
 			mqtt.subscribe(config.getMqttSubscribeTopic());
-			if (debugger) debugger->printf("  Subscribing to [%s]\r\n", config.getMqttSubscribeTopic().c_str());
+			if (Debug.isActive(RemoteDebug::INFO)) debugI("  Subscribing to [%s]\r\n", config.getMqttSubscribeTopic().c_str());
 		}
 		
 		if(config.getMqttPayloadFormat() == 0) {
@@ -656,9 +640,8 @@ void MQTT_connect() {
 			sendSystemStatusToMqtt();
 		}
 	} else {
-		if (debugger) {
-			debugger->print(" failed, ");
-			debugger->println(" trying again in 5 seconds");
+		if (Debug.isActive(RemoteDebug::ERROR)) {
+			debugI("Failed to connect to MQTT");
 		}
 	}
 	yield();
@@ -689,8 +672,8 @@ void sendMqttData(String data)
 	// Send the json over MQTT
 	mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
 
-	if (debugger) debugger->print("sendMqttData: ");
-	if (debugger) debugger->println(data);
+	if (Debug.isActive(RemoteDebug::INFO)) debugI("Sending MQTT data");
+	if (Debug.isActive(RemoteDebug::DEBUG)) debugD("[%s]", data.c_str());
 }
 
 unsigned long lastSystemDataSent = -10000;
@@ -724,21 +707,21 @@ void rgb_led(int color, int mode) {
 #endif
 	int blinkduration = 50;	// milliseconds
 	switch (mode) {
-		case 0:	//OFF
+		case RGB_OFF:	//OFF
 			digitalWrite(LEDPIN_RGB_RED, HIGH);
 			digitalWrite(LEDPIN_RGB_GREEN, HIGH);
 			break;
-		case 1: //ON
+		case RGB_ON: //ON
 			switch (color) {
-				case 1:	//Red
+				case RGB_RED:	//Red
 					digitalWrite(LEDPIN_RGB_RED, LOW);
 					digitalWrite(LEDPIN_RGB_GREEN, HIGH);
 					break;
-				case 2:	//Green
+				case RGB_GREEN:	//Green
 					digitalWrite(LEDPIN_RGB_RED, HIGH);
 					digitalWrite(LEDPIN_RGB_GREEN, LOW);
 					break;
-				case 3:	//Yellow
+				case RGB_YELLOW:	//Yellow
 					digitalWrite(LEDPIN_RGB_RED, LOW);
 					digitalWrite(LEDPIN_RGB_GREEN, LOW);
 					break;
@@ -746,9 +729,9 @@ void rgb_led(int color, int mode) {
 			break;
 		default: // Blink
 			for(int i = 1; i < mode; i++) {
-				rgb_led(color, 1);
+				rgb_led(color, RGB_ON);
 				delay(blinkduration);
-				rgb_led(color, 0);
+				rgb_led(color, RGB_OFF);
 				if(i != mode)
 					delay(blinkduration);
 			}

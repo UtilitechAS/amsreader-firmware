@@ -10,6 +10,7 @@
 
 #include "DlmsReader.h"
 #include <Timezone.h>
+#include "RemoteDebug.h"
 
 class HanReader
 {
@@ -19,7 +20,7 @@ public:
 
 	HanReader();
 	void setup(Stream *hanPort);
-	void setup(Stream *hanPort, Stream *debugPort);
+	void setup(Stream *hanPort, RemoteDebug *debug);
 	bool read();
 	bool read(byte data);
 	int getListSize();
@@ -29,7 +30,7 @@ public:
 	time_t getTime(int objectId);
 
 private:
-	Stream *debug;
+	RemoteDebug* debugger;
 	Stream *han;
 	byte buffer[512];
 	int bytesRead;
@@ -47,6 +48,11 @@ private:
 	time_t toUnixTime(int year, int month, int day, int hour, int minute, int second);
 
 	void debugPrint(byte *buffer, int start, int length);
+
+	void printD(String fmt, ...);
+	void printI(String fmt, ...);
+	void printW(String fmt, ...);
+	void printE(String fmt, ...);
 };
 
 

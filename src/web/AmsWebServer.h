@@ -9,6 +9,7 @@
 #include "HwTools.h"
 #include "AmsData.h"
 #include "Uptime.h"
+#include "RemoteDebug.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -30,17 +31,18 @@
 
 class AmsWebServer {
 public:
-    void setup(AmsConfiguration* config, Stream* debugger, MQTTClient* mqtt);
+	AmsWebServer(RemoteDebug* Debug);
+    void setup(AmsConfiguration* config, MQTTClient* mqtt);
     void loop();
 
 	void setData(AmsData& data);
 
 private:
+	RemoteDebug* debugger;
 	int maxPwr = 0;
 	HwTools hw;
     AmsConfiguration* config;
 	AmsData data;
-	Stream* debugger;
 	MQTTClient* mqtt;
 	File firmwareFile;
 	bool performRestart = false;
@@ -70,11 +72,10 @@ private:
 	void restartWaitHtml();
 	void isAliveCheck();
 
-   	size_t print(const char* text);
-	size_t println(const char* text);
-	size_t print(const Printable& data);
-	size_t println(const Printable& data);
-
+	void printD(String fmt, ...);
+	void printI(String fmt, ...);
+	void printW(String fmt, ...);
+	void printE(String fmt, ...);
 };
 
 #endif

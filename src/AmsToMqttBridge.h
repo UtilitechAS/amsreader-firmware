@@ -56,6 +56,14 @@ SoftwareSerial *hanSerial = new SoftwareSerial(D1);
 
 HardwareSerial *hanSerial = &Serial2;
 
+// Default build for ESP32
+#elif defined(ESP32)
+#define LED_PIN INVALID_BUTTON_PIN
+#define LED_ACTIVE_HIGH 1
+#define AP_BUTTON_PIN INVALID_BUTTON_PIN
+
+HardwareSerial *hanSerial = &Serial2;
+
 // Default build settings
 #else
 #define LED_PIN 2

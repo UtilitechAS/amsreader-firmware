@@ -97,7 +97,7 @@ void setup() {
 	if (vcc > 0 && vcc < 3.1) {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("Votltage is too low, sleeping");
-			Debug.flush();
+			Serial.flush();
 		}
 		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
 	}  
@@ -160,7 +160,7 @@ void setup() {
 		if(flashed) {
 			if(Debug.isActive(RemoteDebug::INFO)) {
 				debugI("Firmware update complete, restarting");
-				Debug.flush();
+				Serial.flush();
 			}
 #if defined(ESP8266)
 			ESP.reset();
@@ -202,7 +202,7 @@ void setup() {
 #else
 	if(Debug.isActive(RemoteDebug::DEBUG)) { 
 		debugD("HAN has hardware serial");
-		Debug.flush();
+		Serial.flush();
 	}
 	if(config.getMeterType() == 3) {
 		hanSerial->begin(2400, SERIAL_8N1);

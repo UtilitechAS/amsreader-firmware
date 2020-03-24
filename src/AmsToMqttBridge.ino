@@ -433,78 +433,80 @@ void readHanPort() {
 			rgb_led(RGB_GREEN, 2);
 
 			AmsData data(config.getMeterType(), hanReader);
-			ws.setData(data);
+			if(data.getListType() > 0) {
+				ws.setData(data);
 
-			if(!config.getMqttHost().isEmpty() && !config.getMqttPublishTopic().isEmpty()) {
-				if(config.getMqttPayloadFormat() == 0) {
-					StaticJsonDocument<512> json;
-					hanToJson(json, data, hw, temperature);
-					if (Debug.isActive(RemoteDebug::INFO)) {
-						debugI("Sending data to MQTT");
-						if (Debug.isActive(RemoteDebug::DEBUG)) {
-							serializeJsonPretty(json, Debug);
+				if(!config.getMqttHost().isEmpty() && !config.getMqttPublishTopic().isEmpty()) {
+					if(config.getMqttPayloadFormat() == 0) {
+						StaticJsonDocument<512> json;
+						hanToJson(json, data, hw, temperature);
+						if (Debug.isActive(RemoteDebug::INFO)) {
+							debugI("Sending data to MQTT");
+							if (Debug.isActive(RemoteDebug::DEBUG)) {
+								serializeJsonPretty(json, Debug);
+							}
+						}
+
+						String msg;
+						serializeJson(json, msg);
+						mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
+					} else if(config.getMqttPayloadFormat() == 1) {
+						mqtt.publish(config.getMqttPublishTopic() + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
+						switch(data.getListType()) {
+							case 3:
+								// ID and type belongs to List 2, but I see no need to send that every 10s
+								mqtt.publish(config.getMqttPublishTopic() + "/meter/id", data.getMeterId());
+								mqtt.publish(config.getMqttPublishTopic() + "/meter/type", data.getMeterType());
+								mqtt.publish(config.getMqttPublishTopic() + "/meter/clock", String(data.getMeterTimestamp()));
+								mqtt.publish(config.getMqttPublishTopic() + "/meter/import/reactive/accumulated", String(data.getReactiveImportCounter(), 2));
+								mqtt.publish(config.getMqttPublishTopic() + "/meter/import/active/accumulated", String(data.getActiveImportCounter(), 2));
+								mqtt.publish(config.getMqttPublishTopic() + "/meter/export/reactive/accumulated", String(data.getReactiveExportCounter(), 2));
+								mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
+							case 2:
+								// Only send data if changed. ID and Type is sent on the 10s interval only if changed
+								if(lastMqttData.getMeterId() != data.getMeterId()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/id", data.getMeterId());
+								}
+								if(lastMqttData.getMeterType() != data.getMeterType()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/type", data.getMeterType());
+								}
+								if(lastMqttData.getL1Current() != data.getL1Current()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/current", String(data.getL1Current(), 2));
+								}
+								if(lastMqttData.getL1Voltage() != data.getL1Voltage()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/voltage", String(data.getL1Voltage(), 2));
+								}
+								if(lastMqttData.getL2Current() != data.getL2Current()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/current", String(data.getL2Current(), 2));
+								}
+								if(lastMqttData.getL2Voltage() != data.getL2Voltage()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/voltage", String(data.getL2Voltage(), 2));
+								}
+								if(lastMqttData.getL3Current() != data.getL3Current()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/current", String(data.getL3Current(), 2));
+								}
+								if(lastMqttData.getL3Voltage() != data.getL3Voltage()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/voltage", String(data.getL3Voltage(), 2));
+								}
+								if(lastMqttData.getReactiveExportPower() != data.getReactiveExportPower()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/export/reactive", String(data.getReactiveExportPower()));
+								}
+								if(lastMqttData.getActiveExportPower() != data.getActiveExportPower()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active", String(data.getActiveExportPower()));
+								}
+								if(lastMqttData.getReactiveImportPower() != data.getReactiveImportPower()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/import/reactive", String(data.getReactiveImportPower()));
+								}
+							case 1:
+								if(lastMqttData.getActiveImportPower() != data.getActiveImportPower()) {
+									mqtt.publish(config.getMqttPublishTopic() + "/meter/import/active", String(data.getActiveImportPower()));
+								}
 						}
 					}
-
-					String msg;
-					serializeJson(json, msg);
-					mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
-				} else if(config.getMqttPayloadFormat() == 1) {
-					mqtt.publish(config.getMqttPublishTopic() + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
-					switch(data.getListType()) {
-						case 3:
-							// ID and type belongs to List 2, but I see no need to send that every 10s
-							mqtt.publish(config.getMqttPublishTopic() + "/meter/id", data.getMeterId());
-							mqtt.publish(config.getMqttPublishTopic() + "/meter/type", data.getMeterType());
-							mqtt.publish(config.getMqttPublishTopic() + "/meter/clock", String(data.getMeterTimestamp()));
-							mqtt.publish(config.getMqttPublishTopic() + "/meter/import/reactive/accumulated", String(data.getReactiveImportCounter(), 2));
-							mqtt.publish(config.getMqttPublishTopic() + "/meter/import/active/accumulated", String(data.getActiveImportCounter(), 2));
-							mqtt.publish(config.getMqttPublishTopic() + "/meter/export/reactive/accumulated", String(data.getReactiveExportCounter(), 2));
-							mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
-						case 2:
-							// Only send data if changed. ID and Type is sent on the 10s interval only if changed
-							if(lastMqttData.getMeterId() != data.getMeterId()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/id", data.getMeterId());
-							}
-							if(lastMqttData.getMeterType() != data.getMeterType()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/type", data.getMeterType());
-							}
-							if(lastMqttData.getL1Current() != data.getL1Current()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/current", String(data.getL1Current(), 2));
-							}
-							if(lastMqttData.getL1Voltage() != data.getL1Voltage()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/voltage", String(data.getL1Voltage(), 2));
-							}
-							if(lastMqttData.getL2Current() != data.getL2Current()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/current", String(data.getL2Current(), 2));
-							}
-							if(lastMqttData.getL2Voltage() != data.getL2Voltage()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/voltage", String(data.getL2Voltage(), 2));
-							}
-							if(lastMqttData.getL3Current() != data.getL3Current()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/current", String(data.getL3Current(), 2));
-							}
-							if(lastMqttData.getL3Voltage() != data.getL3Voltage()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/voltage", String(data.getL3Voltage(), 2));
-							}
-							if(lastMqttData.getReactiveExportPower() != data.getReactiveExportPower()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/export/reactive", String(data.getReactiveExportPower()));
-							}
-							if(lastMqttData.getActiveExportPower() != data.getActiveExportPower()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active", String(data.getActiveExportPower()));
-							}
-							if(lastMqttData.getReactiveImportPower() != data.getReactiveImportPower()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/import/reactive", String(data.getReactiveImportPower()));
-							}
-						case 1:
-							if(lastMqttData.getActiveImportPower() != data.getActiveImportPower()) {
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/import/active", String(data.getActiveImportPower()));
-							}
-					}
+					lastMqttData.apply(data);
+					mqtt.loop();
+					delay(10);
 				}
-				lastMqttData.apply(data);
-				mqtt.loop();
-				delay(10);
 			}
 		} else {
 			// Auto detect meter if not set

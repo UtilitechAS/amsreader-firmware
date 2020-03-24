@@ -789,7 +789,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf("authPass:             %s\r\n", this->getAuthPassword().c_str());
 	}
 
-	debugger->printf("meterType:             %i\r\n", this->getMeterType());
+	debugger->printf("meterType:            %i\r\n", this->getMeterType());
 	debugger->printf("distSys:              %i\r\n", this->getDistributionSystem());
 	debugger->printf("fuseSize:             %i\r\n", this->getMainFuse());
 	debugger->printf("productionCapacity:   %i\r\n", this->getProductionCapacity());

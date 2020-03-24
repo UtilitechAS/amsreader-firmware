@@ -49,10 +49,11 @@ private:
 
 	void debugPrint(byte *buffer, int start, int length);
 
-	void printD(String fmt, ...);
-	void printI(String fmt, ...);
-	void printW(String fmt, ...);
-	void printE(String fmt, ...);
+	void printD(String fmt, int arg=0);
+	void printI(String fmt, int arg=0);
+	void printW(String fmt, int arg=0);
+	void printW(String fmt, const char* arg);
+	void printE(String fmt, int arg=0);
 };
 
 

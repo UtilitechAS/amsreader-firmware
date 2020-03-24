@@ -239,30 +239,22 @@ String HanReader::getString(int dataPosition, byte *buffer, int start, int lengt
 	return String("");
 }
 
-void HanReader::printD(String fmt, ...) {
-	va_list args;
- 	va_start(args, fmt);
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(String("(HanReader)" + fmt + "\n").c_str(), args);
-	va_end(args);
+void HanReader::printD(String fmt, int arg) {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(String("(HanReader)" + fmt + "\n").c_str(), arg);
 }
 
-void HanReader::printI(String fmt, ...) {
-	va_list args;
- 	va_start(args, fmt);
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(String("(HanReader)" + fmt + "\n").c_str(), args);
-	va_end(args);
+void HanReader::printI(String fmt, int arg) {
+	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(String("(HanReader)" + fmt + "\n").c_str(), arg);
 }
 
-void HanReader::printW(String fmt, ...) {
-	va_list args;
- 	va_start(args, fmt);
-	if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf(String("(HanReader)" + fmt + "\n").c_str(), args);
-	va_end(args);
+void HanReader::printW(String fmt, int arg) {
+	if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf(String("(HanReader)" + fmt + "\n").c_str(), arg);
 }
 
-void HanReader::printE(String fmt, ...) {
-	va_list args;
- 	va_start(args, fmt);
-	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(String("(HanReader)" + fmt + "\n").c_str(), args);
-	va_end(args);
+void HanReader::printW(String fmt, const char* arg) {
+	if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf(String("(HanReader)" + fmt + "\n").c_str(), arg);
+}
+
+void HanReader::printE(String fmt, int arg) {
+	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(String("(HanReader)" + fmt + "\n").c_str(), arg);
 }

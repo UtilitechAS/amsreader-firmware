@@ -45,7 +45,7 @@ AmsConfiguration config;
 AmsWebServer ws;
 
 WiFiClient *client;
-MQTTClient mqtt(384);
+MQTTClient mqtt(512);
 
 Stream* debugger = NULL;
 

@@ -1,7 +1,7 @@
 import os
 
 FILENAME_VERSION_H = 'src/version.h'
-version = os.environ.get('GITHUB_REF')
+version = os.environ.get('GITHUB_TAG')
 if version == None:
     version = "SNAPSHOT"
 

@@ -52,7 +52,7 @@ jobs:
         draft: false
         prerelease: false
     - name: Upload hw1esp12e binary to release
-      uses: actions/upload-release-asset@v1.0.1
+      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -61,7 +61,7 @@ jobs:
         asset_name: ams2mqtt-hw1esp12e-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream
     - name: Upload esp12e binary to release
-      uses: actions/upload-release-asset@v1.0.1
+      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -70,7 +70,7 @@ jobs:
         asset_name: ams2mqtt-esp12e-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream
     - name: Upload d1mini binary to release
-      uses: actions/upload-release-asset@v1.0.1
+      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -79,7 +79,7 @@ jobs:
         asset_name: ams2mqtt-d1mini-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream
     - name: Upload esp32 binary to release
-      uses: actions/upload-release-asset@v1.0.1
+      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -88,7 +88,7 @@ jobs:
         asset_name: ams2mqtt-esp32-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream
     - name: Upload lolind32 binary to release
-      uses: actions/upload-release-asset@v1.0.1
+      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
@@ -97,7 +97,7 @@ jobs:
         asset_name: ams2mqtt-lolind32-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream
     - name: Upload featheresp32 binary to release
-      uses: actions/upload-release-asset@v1.0.1
+      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:

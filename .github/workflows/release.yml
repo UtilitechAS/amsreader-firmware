@@ -18,7 +18,8 @@ jobs:
       id: release_tag
       env:
         GITHUB_REF: ${{ github.ref }}
-      run: echo ::set-env name=GITHUB_TAG::$(echo ${GITHUB_REF:11})
+      run: echo ::set-output name=tag::$(echo ${GITHUB_REF:11})
+      run: echo ::set-env name=GITHUB_TAG::$(echo ${GITHUB_REF##*/})
     - name: Cache Python dependencies
       uses: actions/cache@v1
       with:

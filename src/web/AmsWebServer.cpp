@@ -463,8 +463,6 @@ void AmsWebServer::handleSave() {
 			config->setMqttSubscribeTopic(server.arg("mqttSubscribeTopic"));
 			config->setMqttUser(server.arg("mqttUser"));
 			config->setMqttPassword(server.arg("mqttPassword"));
-			config->setAuthUser(server.arg("authUser"));
-			config->setAuthPassword(server.arg("authPassword"));
 		} else {
 			config->clearMqtt();
 		}

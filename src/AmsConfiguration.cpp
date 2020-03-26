@@ -280,6 +280,7 @@ bool AmsConfiguration::hasConfig() {
 		case 81:
 			return true;
 		default:
+			configVersion = 0;
 			return false;
 	}
 }
@@ -362,7 +363,7 @@ bool AmsConfiguration::loadConfig72(int address) {
 
 	ackWifiChange();
 
-	setDebugLevel(5); // 5=Error
+	setDebugLevel(3); // 3=Info
 	setDebugTelnet(false);
 	setDebugSerial(false);
 
@@ -433,7 +434,7 @@ bool AmsConfiguration::loadConfig75(int address) {
 
 	ackWifiChange();
 
-	setDebugLevel(5); // 5=Error
+	setDebugLevel(3); // 3=Info
 	setDebugTelnet(false);
 	setDebugSerial(false);
 
@@ -508,7 +509,7 @@ bool AmsConfiguration::loadConfig80(int address) {
 
 	ackWifiChange();
 
-	setDebugLevel(5); // 5=Error
+	setDebugLevel(3); // 3=Info
 	setDebugTelnet(false);
 	setDebugSerial(false);
 

@@ -60,7 +60,7 @@ void setup() {
 	if(config.hasConfig()) {
 		config.load();
 	}
-
+#if DEBUG_MODE
 #if HW_ROARFRED
 	if(config.getMeterType() == 3) {
 		Serial.begin(2400, SERIAL_8N1);
@@ -69,6 +69,7 @@ void setup() {
 	}
 #else
 	Serial.begin(115200);
+#endif
 #endif
 
 	if(config.hasConfig()) {
@@ -91,7 +92,7 @@ void setup() {
 
 	if (Debug.isActive(RemoteDebug::INFO)) {
 		debugI("AMS bridge started");
-		debugI("Voltage: %dV", vcc);
+		debugI("Voltage: %.2fV", vcc);
 	}
 
 	if (vcc > 0 && vcc < 3.1) {
@@ -171,7 +172,8 @@ void setup() {
 		}
 	}
 
-	if(config.getConfigVersion() < 81) {
+	if(!config.hasConfig() || config.getConfigVersion() < 81) {
+		debugI("Setting default hostname");
 		uint16_t chipId;
 #if defined(ARDUINO_ARCH_ESP32)
 		chipId = ESP.getEfuseMac();
@@ -548,6 +550,7 @@ void readHanPort() {
 	if(config.getMeterType() == 0 && millis() - lastSuccessfulRead > 10000) {
 		lastSuccessfulRead = millis();
 		if(Debug.isActive(RemoteDebug::DEBUG)) debugD("No data for current setting, switching parity");
+		Serial.flush();
 #if SOFTWARE_SERIAL
 			if(even) {
 				hanSerial->begin(2400, SWSERIAL_8N1);

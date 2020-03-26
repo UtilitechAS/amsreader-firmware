@@ -82,7 +82,7 @@ public:
 protected:
 
 private:
-	int configVersion;
+	int configVersion = 0;
 
 	String wifiSsid;
 	String wifiPassword;
@@ -92,26 +92,26 @@ private:
 	String wifiDns1;
 	String wifiDns2;
 	String wifiHostname;
-	bool wifiChanged;
+	bool wifiChanged = false;
 	
 	String mqttHost;
-	int mqttPort;
+	int mqttPort = 1883;
 	String mqttClientId;
 	String mqttPublishTopic;
 	String mqttSubscribeTopic;
 	String mqttUser;
 	String mqttPassword;
-	int mqttPayloadFormat;
-	bool mqttChanged;
+	int mqttPayloadFormat = 0;
+	bool mqttChanged = false;
 
 	byte authSecurity;
 	String authUser;
 	String authPassword;
 
-	int meterType, distributionSystem, mainFuse, productionCapacity;
+	int meterType = 0, distributionSystem = 0, mainFuse = 0, productionCapacity = 0;
 
-	bool debugTelnet, debugSerial;
-	int debugLevel;
+	bool debugTelnet = false, debugSerial = false;
+	int debugLevel = 3;
 
 	const int EEPROM_SIZE = 512;
 	const int EEPROM_CHECK_SUM = 81; // Used to check if config is stored. Change if structure changes

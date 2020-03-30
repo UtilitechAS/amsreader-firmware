@@ -17,6 +17,7 @@
  */
 
 #include "AmsToMqttBridge.h"
+#define ARDUINOJSON_POSITIVE_EXPONENTIATION_THRESHOLD 1e9
 #include <ArduinoJson.h>
 #include <MQTT.h>
 #include <DNSServer.h>

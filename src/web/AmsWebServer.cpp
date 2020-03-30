@@ -248,6 +248,9 @@ void AmsWebServer::configMqttHtml() {
 	html.replace("${config.mqttUser}", config->getMqttUser());
 	html.replace("${config.mqttPassword}", config->getMqttPassword());
 	html.replace("${config.mqttPayloadFormat}", String(config->getMqttPayloadFormat()));
+	for(int i = 0; i<2; i++) {
+		html.replace("${config.mqttPayloadFormat" + String(i) + "}", config->getMqttPayloadFormat() == i ? "selected"  : "");
+	}
 
 	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
@@ -496,7 +499,9 @@ void AmsWebServer::handleSave() {
 		if(config->getAuthSecurity() > 0) {
 			config->setAuthUser(server.arg("authUser"));
 			config->setAuthPassword(server.arg("authPassword"));
+			debugger->setPassword(config->getAuthPassword());
 		} else {
+			debugger->setPassword("");
 			config->clearAuth();
 		}
 	}
@@ -505,12 +510,15 @@ void AmsWebServer::handleSave() {
 		config->setDebugTelnet(server.hasArg("debugTelnet") && server.arg("debugTelnet") == "true");
 		config->setDebugSerial(server.hasArg("debugSerial") && server.arg("debugSerial") == "true");
 		config->setDebugLevel(server.arg("debugLevel").toInt());
+
 		debugger->stop();
-		debugger->begin(config->getWifiHostname(), (uint8_t) config->getDebugLevel());
 		if(config->getAuthSecurity() > 0) {
 			debugger->setPassword(config->getAuthPassword());
+		} else {
+			debugger->setPassword("");
 		}
 		debugger->setSerialEnabled(config->isDebugSerial());
+		debugger->begin(config->getWifiHostname(), (uint8_t) config->getDebugLevel());
 		if(!config->isDebugTelnet()) {
 			debugger->stop();
 		}

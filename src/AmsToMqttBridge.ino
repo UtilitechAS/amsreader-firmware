@@ -61,7 +61,6 @@ void setup() {
 	if(config.hasConfig()) {
 		config.load();
 	}
-#if DEBUG_MODE
 #if HW_ROARFRED
 	if(config.getMeterType() == 3) {
 		Serial.begin(2400, SERIAL_8N1);
@@ -71,14 +70,13 @@ void setup() {
 #else
 	Serial.begin(115200);
 #endif
-#endif
 
 	if(config.hasConfig()) {
-		Debug.begin(config.getWifiHostname(), (uint8_t) config.getDebugLevel());
 		if(config.getAuthSecurity() > 0) {
 			Debug.setPassword(config.getAuthPassword());
 		}
 		Debug.setSerialEnabled(config.isDebugSerial());
+		Debug.begin(config.getWifiHostname(), (uint8_t) config.getDebugLevel());
 		if(!config.isDebugTelnet()) {
 			Debug.stop();
 		}
@@ -96,7 +94,7 @@ void setup() {
 		debugI("Voltage: %.2fV", vcc);
 	}
 
-	if (vcc > 0 && vcc < 3.1) {
+	if (vcc > 0 && vcc < 3.25) {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("Votltage is too low, sleeping");
 			Serial.flush();

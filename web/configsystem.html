@@ -41,6 +41,7 @@
     <form method="post" action="/save">
         <input type="hidden" name="sysConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
+            <div class="alert alert-warning">!!WARNING!!<br/>Remote debugging is considered insecure and should not be left enabled when not debugging</div>
             <div class="row">
                 <div class="col-md-3">
                     <label><input type="checkbox" name="debugTelnet" value="true" ${config.debugTelnet}/> Telnet debugger</label>

@@ -47,10 +47,10 @@ void AmsData::extractFromKaifa(HanReader& hanReader, int listSize) {
         switch(listSize) {
             case (int)Kaifa::List3PhaseLong:
                 meterTimestamp        = hanReader.getTime(         (int)Kaifa_List3Phase::MeterClock);
-                activeImportCounter   = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeActiveImportEnergy);
-                activeExportCounter   = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeActiveExportEnergy);
-                reactiveImportCounter = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeReactiveImportEnergy);
-                reactiveExportCounter = hanReader.getInt(          (int)Kaifa_List3Phase::CumulativeReactiveExportEnergy);
+                activeImportCounter   = ((double) hanReader.getInt((int)Kaifa_List3Phase::CumulativeActiveImportEnergy)) / 1000;
+                activeExportCounter   = ((double) hanReader.getInt((int)Kaifa_List3Phase::CumulativeActiveExportEnergy)) / 1000;
+                reactiveImportCounter = ((double) hanReader.getInt((int)Kaifa_List3Phase::CumulativeReactiveImportEnergy)) / 1000;
+                reactiveExportCounter = ((double) hanReader.getInt((int)Kaifa_List3Phase::CumulativeReactiveExportEnergy)) / 1000;
             case (int)Kaifa::List3PhaseShort:
                 listId                = hanReader.getString(       (int)Kaifa_List3Phase::ListVersionIdentifier);
                 meterId               = hanReader.getString(       (int)Kaifa_List3Phase::MeterID);
@@ -68,10 +68,10 @@ void AmsData::extractFromKaifa(HanReader& hanReader, int listSize) {
                 break;
             case (int)Kaifa::List1PhaseLong:
                 meterTimestamp        = hanReader.getTime(         (int)Kaifa_List1Phase::MeterClock);
-                activeImportCounter   = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeActiveImportEnergy);
-                activeExportCounter   = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeActiveExportEnergy);
-                reactiveImportCounter = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeReactiveImportEnergy);
-                reactiveExportCounter = hanReader.getInt(          (int)Kaifa_List1Phase::CumulativeReactiveExportEnergy);
+                activeImportCounter   = ((double) hanReader.getInt((int)Kaifa_List1Phase::CumulativeActiveImportEnergy));
+                activeExportCounter   = ((double) hanReader.getInt((int)Kaifa_List1Phase::CumulativeActiveExportEnergy));
+                reactiveImportCounter = ((double) hanReader.getInt((int)Kaifa_List1Phase::CumulativeReactiveImportEnergy));
+                reactiveExportCounter = ((double) hanReader.getInt((int)Kaifa_List1Phase::CumulativeReactiveExportEnergy));
             case (int)Kaifa::List1PhaseShort:
                 listId                = hanReader.getString(       (int)Kaifa_List1Phase::ListVersionIdentifier);
                 meterId               = hanReader.getString(       (int)Kaifa_List1Phase::MeterID);

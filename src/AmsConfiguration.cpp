@@ -45,10 +45,39 @@ void AmsConfiguration::setWifiSubnet(String wifiSubnet) {
 	this->wifiSubnet = String(wifiSubnet);
 }
 
+String AmsConfiguration::getWifiDns1() {
+	return wifiDns1;
+}
+
+void AmsConfiguration::setWifiDns1(String wifiDns1) {
+	wifiChanged |= this->wifiDns1 != wifiDns1;
+	this->wifiDns1 = wifiDns1;
+}
+
+String AmsConfiguration::getWifiDns2() {
+	return wifiDns2;
+}
+
+void AmsConfiguration::setWifiDns2(String wifiDns2) {
+	wifiChanged |= this->wifiDns2 != wifiDns2;
+	this->wifiDns2 = wifiDns2;
+}
+
+String AmsConfiguration::getWifiHostname() {
+	return wifiHostname;
+}
+
+void AmsConfiguration::setWifiHostname(String wifiHostname) {
+	wifiChanged |= this->wifiHostname != wifiHostname;
+	this->wifiHostname = wifiHostname;
+}
+
 void AmsConfiguration::clearWifiIp() {
 	setWifiIp("");
 	setWifiGw("");
 	setWifiSubnet("");
+	setWifiDns1("");
+	setWifiDns2("");
 }
 
 bool AmsConfiguration::isWifiChanged() {
@@ -121,6 +150,14 @@ String AmsConfiguration::getMqttPassword() {
 void AmsConfiguration::setMqttPassword(String mqttPassword) {
 	mqttChanged |= this->mqttPassword != mqttPassword;
 	this->mqttPassword = String(mqttPassword);
+}
+
+int AmsConfiguration::getMqttPayloadFormat() {
+	return this->mqttPayloadFormat;
+}
+
+void AmsConfiguration::setMqttPayloadFormat(int mqttPayloadFormat) {
+	this->mqttPayloadFormat = mqttPayloadFormat;
 }
 
 void AmsConfiguration::clearMqtt() {
@@ -204,20 +241,52 @@ void AmsConfiguration::setProductionCapacity(int productionCapacity) {
 	this->productionCapacity = productionCapacity;
 }
 
+bool AmsConfiguration::isDebugTelnet() {
+	return this->debugTelnet;
+}
+
+void AmsConfiguration::setDebugTelnet(bool debugTelnet) {
+	this->debugTelnet = debugTelnet;
+}
+
+bool AmsConfiguration::isDebugSerial() {
+	return this->debugSerial;
+}
+
+void AmsConfiguration::setDebugSerial(bool debugSerial) {
+	this->debugSerial = debugSerial;
+}
+
+int AmsConfiguration::getDebugLevel() {
+	return this->debugLevel;
+}
+
+void AmsConfiguration::setDebugLevel(int debugLevel) {
+	this->debugLevel = debugLevel;
+}
+
 
 bool AmsConfiguration::hasConfig() {
-	EEPROM.begin(EEPROM_SIZE);
-	int configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
-	EEPROM.end();
+	if(configVersion == 0) {
+		EEPROM.begin(EEPROM_SIZE);
+		configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
+		EEPROM.end();
+	}
 	switch(configVersion) {
 		case 71:
 		case 72:
 		case 75:
 		case 80:
+		case 81:
 			return true;
 		default:
+			configVersion = 0;
 			return false;
 	}
+}
+
+int AmsConfiguration::getConfigVersion() {
+	return configVersion;
 }
 
 bool AmsConfiguration::load() {
@@ -237,6 +306,9 @@ bool AmsConfiguration::load() {
 			break;
 		case 80:
 			success = loadConfig80(address);
+			break;
+		case 81:
+			success = loadConfig81(address);
 			break;
 	}
 	EEPROM.end();
@@ -278,6 +350,7 @@ bool AmsConfiguration::loadConfig72(int address) {
 		setMqttUser("");
 		setMqttPassword("");
 	}
+	setMqttPayloadFormat(0);
 
 	clearAuth();
 
@@ -289,6 +362,10 @@ bool AmsConfiguration::loadConfig72(int address) {
 	setDistributionSystem(0);
 
 	ackWifiChange();
+
+	setDebugLevel(3); // 3=Info
+	setDebugTelnet(false);
+	setDebugSerial(false);
 
 	return true;
 }
@@ -332,6 +409,7 @@ bool AmsConfiguration::loadConfig75(int address) {
 		setMqttUser("");
 		setMqttPassword("");
 	}
+	setMqttPayloadFormat(0);
 
 	address += readByte(address, &authSecurity);
 	if (authSecurity > 0) {
@@ -355,6 +433,10 @@ bool AmsConfiguration::loadConfig75(int address) {
 	setProductionCapacity(0);
 
 	ackWifiChange();
+
+	setDebugLevel(3); // 3=Info
+	setDebugTelnet(false);
+	setDebugSerial(false);
 
 	return true;
 }
@@ -403,6 +485,7 @@ bool AmsConfiguration::loadConfig80(int address) {
 	} else {
 		clearMqtt();
 	}
+	setMqttPayloadFormat(0);
 
 	address += readByte(address, &authSecurity);
 	if (authSecurity > 0) {
@@ -426,6 +509,102 @@ bool AmsConfiguration::loadConfig80(int address) {
 
 	ackWifiChange();
 
+	setDebugLevel(3); // 3=Info
+	setDebugTelnet(false);
+	setDebugSerial(false);
+
+	return true;
+}
+
+bool AmsConfiguration::loadConfig81(int address) {
+	char* temp;
+
+	address += readString(address, &temp);
+	setWifiSsid(temp);
+	address += readString(address, &temp);
+	setWifiPassword(temp);
+
+	bool staticIp = false;
+	address += readBool(address, &staticIp);
+	if(staticIp) {
+		address += readString(address, &temp);
+		setWifiIp(temp);
+		address += readString(address, &temp);
+		setWifiGw(temp);
+		address += readString(address, &temp);
+		setWifiSubnet(temp);
+		address += readString(address, &temp);
+		setWifiDns1(temp);
+		address += readString(address, &temp);
+		setWifiDns2(temp);
+	}
+	address += readString(address, &temp);
+	setWifiHostname(temp);
+	bool mqtt = false;
+	address += readBool(address, &mqtt);
+	if(mqtt) {
+		address += readString(address, &temp);
+		setMqttHost(temp);
+		int port;
+		address += readInt(address, &port);
+		setMqttPort(port);
+		address += readString(address, &temp);
+		setMqttClientId(temp);
+		address += readString(address, &temp);
+		setMqttPublishTopic(temp);
+		address += readString(address, &temp);
+		setMqttSubscribeTopic(temp);
+
+		bool secure = false;
+		address += readBool(address, &secure);
+		if (secure)
+		{
+			address += readString(address, &temp);
+			setMqttUser(temp);
+			address += readString(address, &temp);
+			setMqttPassword(temp);
+		} else {
+			setMqttUser("");
+			setMqttPassword("");
+		}
+		int payloadFormat;
+		address += readInt(address, &payloadFormat);
+		setMqttPayloadFormat(payloadFormat);
+	} else {
+		clearMqtt();
+	}
+
+	address += readByte(address, &authSecurity);
+	if (authSecurity > 0) {
+		address += readString(address, &temp);
+		setAuthUser(temp);
+		address += readString(address, &temp);
+		setAuthPassword(temp);
+	} else {
+		clearAuth();
+	}
+
+	int i;
+	address += readInt(address, &i);
+	setMeterType(i);
+	address += readInt(address, &i);
+	setDistributionSystem(i);
+	address += readInt(address, &i);
+	setMainFuse(i);
+	address += readInt(address, &i);
+	setProductionCapacity(i);
+
+	bool debugTelnet = false;
+	address += readBool(address, &debugTelnet);
+	setDebugTelnet(debugTelnet);
+	bool debugSerial = false;
+	address += readBool(address, &debugSerial);
+	setDebugSerial(debugSerial);
+	address += readInt(address, &i);
+	setDebugLevel(i);
+
+	ackWifiChange();
+
 	return true;
 }
 
@@ -438,23 +617,32 @@ bool AmsConfiguration::save() {
 
 	address += saveString(address, wifiSsid.c_str());
 	address += saveString(address, wifiPassword.c_str());
-	address += saveString(address, wifiIp.c_str());
-	address += saveString(address, wifiGw.c_str());
-	address += saveString(address, wifiSubnet.c_str());
-	if(mqttHost) {
+	if(!wifiIp.isEmpty()) {
+		address += saveBool(address, true);
+		address += saveString(address, wifiIp.c_str());
+		address += saveString(address, wifiGw.c_str());
+		address += saveString(address, wifiSubnet.c_str());
+		address += saveString(address, wifiDns1.c_str());
+		address += saveString(address, wifiDns2.c_str());
+	} else {
+		address += saveBool(address, false);
+	}
+	address += saveString(address, wifiHostname.c_str());
+	if(!mqttHost.isEmpty()) {
 		address += saveBool(address, true);
 		address += saveString(address, mqttHost.c_str());
 		address += saveInt(address, mqttPort);
 		address += saveString(address, mqttClientId.c_str());
 		address += saveString(address, mqttPublishTopic.c_str());
 		address += saveString(address, mqttSubscribeTopic.c_str());
-		if (mqttUser) {
+		if (!mqttUser.isEmpty()) {
 			address += saveBool(address, true);
 			address += saveString(address, mqttUser.c_str());
 			address += saveString(address, mqttPassword.c_str());
 		} else {
 			address += saveBool(address, false);
 		}
+		address += saveInt(address, mqttPayloadFormat);
 	} else {
 		address += saveBool(address, false);
 	}
@@ -470,8 +658,14 @@ bool AmsConfiguration::save() {
 	address += saveInt(address, mainFuse);
 	address += saveInt(address, productionCapacity);
 
+	address += saveBool(address, debugTelnet);
+	address += saveBool(address, debugSerial);
+	address += saveInt(address, debugLevel);
+
 	bool success = EEPROM.commit();
 	EEPROM.end();
+
+	configVersion = EEPROM_CHECK_SUM;
 
 	return success;
 }
@@ -560,20 +754,22 @@ template <class T> int AmsConfiguration::readAnything(int ee, T& value) {
 	return i;
 }
 
-void AmsConfiguration::print(Stream* debugger)
+void AmsConfiguration::print(Print* debugger)
 {
 	debugger->println("Configuration:");
 	debugger->println("-----------------------------------------------");
 	debugger->printf("WiFi SSID:            %s\r\n", this->getWifiSsid().c_str());
 	debugger->printf("WiFi Psk:             %s\r\n", this->getWifiPassword().c_str());
 	
-	if(getWifiIp()) {
+	if(!getWifiIp().isEmpty()) {
 		debugger->printf("IP:                   %s\r\n", this->getWifiIp().c_str());
 		debugger->printf("Gateway:              %s\r\n", this->getWifiGw().c_str());
-		debugger->printf("Subnet:              %s\r\n", this->getWifiSubnet().c_str());
+		debugger->printf("Subnet:               %s\r\n", this->getWifiSubnet().c_str());
+		debugger->printf("Primary DNS:          %s\r\n", this->getWifiDns1().c_str());
+		debugger->printf("Secondary DNS:        %s\r\n", this->getWifiDns2().c_str());
 	}
 
-	if(getMqttHost()) {
+	if(!getMqttHost().isEmpty()) {
 		debugger->printf("mqttHost:             %s\r\n", this->getMqttHost().c_str());
 		debugger->printf("mqttPort:             %i\r\n", this->getMqttPort());
 		debugger->printf("mqttClientID:         %s\r\n", this->getMqttClientId().c_str());
@@ -584,6 +780,7 @@ void AmsConfiguration::print(Stream* debugger)
 			debugger->printf("mqttUser:             %s\r\n", this->getMqttUser().c_str());
 			debugger->printf("mqttPass:             %s\r\n", this->getMqttPassword().c_str());
 		}
+		debugger->printf("payload format:       %i\r\n", this->getMqttPayloadFormat());
 	}
 
 	if (this->getAuthSecurity()) {
@@ -593,7 +790,7 @@ void AmsConfiguration::print(Stream* debugger)
 		debugger->printf("authPass:             %s\r\n", this->getAuthPassword().c_str());
 	}
 
-	debugger->printf("meterType:             %i\r\n", this->getMeterType());
+	debugger->printf("meterType:            %i\r\n", this->getMeterType());
 	debugger->printf("distSys:              %i\r\n", this->getDistributionSystem());
 	debugger->printf("fuseSize:             %i\r\n", this->getMainFuse());
 	debugger->printf("productionCapacity:   %i\r\n", this->getProductionCapacity());

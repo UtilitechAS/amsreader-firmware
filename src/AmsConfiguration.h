@@ -6,6 +6,8 @@
 class AmsConfiguration {
 public:
 	bool hasConfig();
+	int getConfigVersion();
+
 	bool load();
 	bool save();
 	
@@ -19,6 +21,12 @@ public:
 	void setWifiGw(String wifiGw);
 	String getWifiSubnet();
 	void setWifiSubnet(String wifiSubnet);
+	String getWifiDns1();
+	void setWifiDns1(String wifiDns1);
+	String getWifiDns2();
+	void setWifiDns2(String wifiDns1);
+	String getWifiHostname();
+	void setWifiHostname(String wifiHostname);
 	void clearWifiIp();
 
 	bool isWifiChanged();
@@ -38,6 +46,8 @@ public:
 	void setMqttUser(String mqttUser);
 	String getMqttPassword();
 	void setMqttPassword(String mqttPassword);
+	int getMqttPayloadFormat();
+	void setMqttPayloadFormat(int mqttPayloadFormat);
 	void clearMqtt();
 
 	bool isMqttChanged();
@@ -60,40 +70,57 @@ public:
 	int getProductionCapacity();
 	void setProductionCapacity(int productionCapacity);
 
-	void print(Stream* debugger);
+	bool isDebugTelnet();
+	void setDebugTelnet(bool debugTelnet);
+	bool isDebugSerial();
+	void setDebugSerial(bool debugSerial);
+	int getDebugLevel();
+	void setDebugLevel(int debugLevel);
+
+	void print(Print* debugger);
 	
 protected:
 
 private:
+	int configVersion = 0;
+
 	String wifiSsid;
 	String wifiPassword;
     String wifiIp;
     String wifiGw;
     String wifiSubnet;
-	bool wifiChanged;
+	String wifiDns1;
+	String wifiDns2;
+	String wifiHostname;
+	bool wifiChanged = false;
 	
 	String mqttHost;
-	int mqttPort;
+	int mqttPort = 1883;
 	String mqttClientId;
 	String mqttPublishTopic;
 	String mqttSubscribeTopic;
 	String mqttUser;
 	String mqttPassword;
-	bool mqttChanged;
+	int mqttPayloadFormat = 0;
+	bool mqttChanged = false;
 
 	byte authSecurity;
 	String authUser;
 	String authPassword;
 
-	int meterType, distributionSystem, mainFuse, productionCapacity;
+	int meterType = 0, distributionSystem = 0, mainFuse = 0, productionCapacity = 0;
+
+	bool debugTelnet = false, debugSerial = false;
+	int debugLevel = 3;
 
 	const int EEPROM_SIZE = 512;
-	const int EEPROM_CHECK_SUM = 80; // Used to check if config is stored. Change if structure changes
+	const int EEPROM_CHECK_SUM = 81; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 
 	bool loadConfig72(int address);
 	bool loadConfig75(int address);
 	bool loadConfig80(int address);
+	bool loadConfig81(int address);
 
 	int saveString(int pAddress, const char* pString);
 	int readString(int pAddress, char* pString[]);

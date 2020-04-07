@@ -8,6 +8,8 @@
 #include "AmsConfiguration.h"
 #include "HwTools.h"
 #include "AmsData.h"
+#include "Uptime.h"
+#include "RemoteDebug.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -21,24 +23,29 @@
 #elif defined(ESP32) // ARDUINO_ARCH_ESP32
 	#include <WiFi.h>
 	#include <WebServer.h>
+	#include "SPIFFS.h"
+	#include "Update.h"
 #else
 	#warning "Unsupported board type"
 #endif
 
 class AmsWebServer {
 public:
-    void setup(AmsConfiguration* config, Stream* debugger, MQTTClient* mqtt);
+	AmsWebServer(RemoteDebug* Debug);
+    void setup(AmsConfiguration* config, MQTTClient* mqtt);
     void loop();
 
 	void setData(AmsData& data);
 
 private:
-	int maxPwr;
+	RemoteDebug* debugger;
+	int maxPwr = 0;
 	HwTools hw;
     AmsConfiguration* config;
 	AmsData data;
-	Stream* debugger;
 	MQTTClient* mqtt;
+	File firmwareFile;
+	bool performRestart = false;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;
@@ -59,11 +66,16 @@ private:
 
 	void handleSave();
 
-   	size_t print(const char* text);
-	size_t println(const char* text);
-	size_t print(const Printable& data);
-	size_t println(const Printable& data);
+	void configSystemHtml();
+	void configSystemPost();
+	void configSystemUpload();
+	void restartWaitHtml();
+	void isAliveCheck();
 
+	void printD(String fmt, ...);
+	void printI(String fmt, ...);
+	void printW(String fmt, ...);
+	void printE(String fmt, ...);
 };
 
 #endif

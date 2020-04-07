@@ -2,9 +2,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - Meter configuration</title>
+    <title>AMS reader - System configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" type="text/css" href="boot.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"/>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
@@ -13,19 +14,19 @@
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
                 <li class="nav-item">
-                    <a class="nav-link active" href="/config-meter">Meter</a>
+                    <a class="nav-link" href="/config-meter">Meter</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-wifi">WiFi</a>
+                    <a class="nav-link " href="/config-wifi">WiFi</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-mqtt">MQTT</a>
+                    <a class="nav-link " href="/config-mqtt">MQTT</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="/config-web">Web</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-system">System</a>
+                    <a class="nav-link active" href="/config-system">System</a>
                 </li>
             </ul>
         </div>
@@ -38,56 +39,50 @@
         </ul>
     </header>
     <form method="post" action="/save">
-        <input type="hidden" name="meterConfig" value="true"/>
+        <input type="hidden" name="sysConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
+            <div class="alert alert-warning">!!WARNING!!<br/>Remote debugging is considered insecure and should not be left enabled when not debugging</div>
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label><input type="checkbox" name="debugTelnet" value="true" ${config.debugTelnet}/> Telnet debugger</label>
+                </div>
+                <div class="col-md-3">
+                    <label><input type="checkbox" name="debugSerial" value="true" ${config.debugSerial}/> Serial debugger</label>
+                </div>
+                <div class="col-md-5">
                     <div class="row form-group">
-                        <label class="col-6">Meter type</label>
+                        <label class="col-6">Debug level</label>
                         <div class="col-6">
-                            <select class="form-control" name="meterType">
-                                <option value="0" ${config.meterType0}>Autodetect</option>
-                                <option value="1" ${config.meterType1}>Kaifa</option>
-                                <option value="2" ${config.meterType2}>Aidon</option>
-                                <option value="3" ${config.meterType3}>Kamstrup</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row form-group">
-                        <label class="col-6">Distribution system</label>
-                        <div class="col-6">
-                            <select class="form-control" name="distributionSystem">
-                                <option value="0" ${config.distributionSystem0}></option>
-                                <option value="1" ${config.distributionSystem1}>IT (230V)</option>
-                                <option value="2" ${config.distributionSystem2}>TN (400V)</option>
+                            <select class="form-control" name="debugLevel">
+                                <option value="2" ${config.debugLevel2}>Debug</option>
+                                <option value="3" ${config.debugLevel3}>Info</option>
+                                <option value="4" ${config.debugLevel4}>Warning</option>
+                                <option value="5" ${config.debugLevel5}>Error</option>
                             </select>
                         </div>
                     </div>
                 </div>
+                <div class="col-md-1 text-right">
+                    <button class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <form method="post" enctype="multipart/form-data">
+        <div class="my-3 p-3 bg-white rounded shadow">
+            <div class="alert alert-warning">!!WARNING!!<br/>Do not use this unless you know what you are doing. Uploading the wrong image could cause your device to stop working. Use with extreme caution!</div>
+            <div class="row">
                 <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-6">Main fuse</label>
-                        <div class="col-6">
-                            <select class="form-control" name="mainFuse">
-                                <option value="0" ${config.mainFuse0}></option>
-                                <option value="25" ${config.mainFuse25}>25A</option>
-                                <option value="32" ${config.mainFuse32}>32A</option>
-                                <option value="35" ${config.mainFuse32}>35A</option>
-                                <option value="40" ${config.mainFuse40}>40A</option>
-                                <option value="50" ${config.mainFuse50}>50A</option>
-                                <option value="63" ${config.mainFuse63}>63A</option>
-                            </select>
+                        <label class="col-4">Firmware</label>
+                        <div class="col-8">
+                            <input type="file" name="file"/>
                         </div>
                     </div>
-                    <div class="row form-group">
-                        <label class="col-6">Production capacity</label>
-                        <div class="col-6">
-                            <div class="input-group">
-                                <input class="form-control" name="productionCapacity" type="number" min="0" max="50" value="${config.productionCapacity}"/>
-                                <div class="input-group-append"><span class="input-group-text">kWp</span></div>
-                            </div>
-                        </div>
-                    </div>
+                </div>
+                <div class="col-md-8 text-right">
+                    <button class="btn btn-primary">Upload</button>
                 </div>
             </div>
         </div>
@@ -97,7 +92,6 @@
                 <a href="/" class="btn btn-outline-secondary">Back</a>
             </div>
             <div class="col-6 text-right">
-                <button class="btn btn-primary">Save</button>
             </div>
         </div>
     </form>

@@ -2,6 +2,7 @@
 #define _AMSDATA_H
 
 #include "Arduino.h"
+#include <Timezone.h>
 #include "HanReader.h"
 
 #define METER_TYPE_KAIFA 1

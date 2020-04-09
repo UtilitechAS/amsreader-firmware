@@ -31,6 +31,9 @@ public:
     int getWifiRssi();
 
     HwTools() {
+#if defined(ARDUINO_LOLIN_D32)
+        pinMode(GPIO_NUM_35, INPUT);
+#endif
         oneWire = new OneWire(TEMP_SENSOR_PIN);
         tempSensor = new DallasTemperature(this->oneWire);
     };

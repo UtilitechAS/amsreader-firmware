@@ -71,18 +71,10 @@ void setup() {
 	Serial.begin(115200);
 #endif
 
-	if(config.hasConfig()) {
-		if(config.getAuthSecurity() > 0) {
-			Debug.setPassword(config.getAuthPassword());
-		}
+	if(config.hasConfig() && config.isDebugSerial()) {
 		Debug.setSerialEnabled(config.isDebugSerial());
-		Debug.begin(config.getWifiHostname(), (uint8_t) config.getDebugLevel());
-		if(!config.isDebugTelnet()) {
-			Debug.stop();
-		}
 	} else {
 #if DEBUG_MODE
-		Debug.begin("localhost", RemoteDebug::DEBUG);
 		Debug.setSerialEnabled(true);
 #endif
 	}
@@ -94,7 +86,7 @@ void setup() {
 		debugI("Voltage: %.2fV", vcc);
 	}
 
-	if (vcc > 0 && vcc < 3.25) {
+	if (vcc > 2.5 && vcc < 3.25) { // Only sleep if voltage is realistic and too low
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("Votltage is too low, sleeping");
 			Serial.flush();
@@ -117,7 +109,16 @@ void setup() {
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
 
-	if(SPIFFS.begin()) {
+	bool spiffs = false;
+#if defined(ESP32)
+	debugD("ESP32 SPIFFS");
+	spiffs = SPIFFS.begin(true);
+#else
+	debugD("ESP8266 SPIFFS");
+	spiffs = SPIFFS.begin();
+#endif
+
+	if(spiffs) {
 		bool flashed = false;
 		if(SPIFFS.exists("/firmware.bin")) {
 			if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
@@ -295,10 +296,18 @@ void loop() {
 
 		if (WiFi.status() != WL_CONNECTED) {
 			wifiConnected = false;
+			Debug.stop();
 			WiFi_connect();
 		} else {
 			if(!wifiConnected) {
 				wifiConnected = true;
+				if(config.getAuthSecurity() > 0) {
+					Debug.setPassword(config.getAuthPassword());
+				}
+				Debug.begin(config.getWifiHostname(), (uint8_t) config.getDebugLevel());
+				if(!config.isDebugTelnet()) {
+					Debug.stop();
+				}
 				if(Debug.isActive(RemoteDebug::INFO)) {
 					debugI("Successfully connected to WiFi!");
 					debugI("IP: %s", WiFi.localIP().toString().c_str());

@@ -1,16 +1,20 @@
 #include "HwTools.h"
 
 double HwTools::getVcc() {
+    double volts = 0.0;
 #if defined(ARDUINO_ESP8266_WEMOS_D1MINI)
-	return (((double) ESP.getVcc()) / 900); // This board has a voltage divider on VCC. Yes, 900 is correct
+	volts = (((double) ESP.getVcc()) / 900.0); // This board has a voltage divider on VCC.
+#elif defined(ARDUINO_LOLIN_D32)
+    volts = (analogRead(GPIO_NUM_35) / 4095.0) * 3.3 * 2.25; // We are actually reading battery voltage here
 #elif defined(ESP8266)
-    #if defined(ESP_VCC_CALIB_FACTOR)
-        return ((double) ESP.getVcc()) / 1024 * ESP_VCC_CALIB_FACTOR;
-    #else
-	    return ((double) ESP.getVcc()) / 1024;
-    #endif
+    volts = ((double) ESP.getVcc()) / 1024.0;
 #endif
-	return -1;
+
+#if defined(ESP_VCC_CALIB_FACTOR)
+    return volts * ESP_VCC_CALIB_FACTOR;
+#else
+    return volts;
+#endif
 }
 
 double HwTools::getTemperature() {

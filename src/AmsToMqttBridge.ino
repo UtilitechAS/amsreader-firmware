@@ -86,6 +86,7 @@ void setup() {
 		debugI("Voltage: %.2fV", vcc);
 	}
 
+#if SELF_POWERED
 	if (vcc > 2.5 && vcc < 3.25) { // Only sleep if voltage is realistic and too low
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("Votltage is too low, sleeping");
@@ -93,6 +94,7 @@ void setup() {
 		}
 		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
 	}  
+#endif
 
 	#if HAS_RGB_LED
 		// Initialize RGB LED pins
@@ -705,7 +707,7 @@ void sendSystemStatusToMqtt() {
 	}
 	mqtt.publish(config.getMqttPublishTopic() + "/rssi", String(hw.getWifiRssi()));
     if(temperature != DEVICE_DISCONNECTED_C) {
-		mqtt.publish(config.getMqttPublishTopic() + "/vcc", String(temperature, 2));
+		mqtt.publish(config.getMqttPublishTopic() + "/temperature", String(temperature, 2));
     }
 }
 

@@ -194,9 +194,11 @@ int HanReader::getInt(int dataPosition, byte *buffer, int start, int length) {
 	if (valuePosition > 0) {
 		int value = 0;
 		int bytes = 0;
+		bool signedInt = false;
 		switch (buffer[valuePosition++]) {
 			case 0x10: 
 				bytes = 2;
+				signedInt = true;
 				break;
 			case 0x12: 
 				bytes = 2;
@@ -222,6 +224,12 @@ int HanReader::getInt(int dataPosition, byte *buffer, int start, int length) {
 			value = value << 8 | buffer[i];
 		}
 
+		if (signedInt) {
+			if (bytes == 2 && value > 0x7FFF) {
+				value = value - 0x10000;
+			}
+		}
+		
 		return value;
 	}
 	return 0;

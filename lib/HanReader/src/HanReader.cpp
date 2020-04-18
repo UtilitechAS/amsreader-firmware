@@ -100,8 +100,12 @@ time_t HanReader::getTime(int objectId) {
 	return getTime(objectId, buffer, 0, bytesRead);
 }
 
-int HanReader::getInt(int objectId) {
+int32_t HanReader::getInt(int objectId) {
 	return getInt(objectId, buffer, 0, bytesRead);
+}
+
+uint32_t HanReader::getUint(int objectId) {
+	return getUint32(objectId, buffer, 0, bytesRead);
 }
 
 String HanReader::getString(int objectId) {
@@ -192,36 +196,70 @@ int HanReader::getInt(int dataPosition, byte *buffer, int start, int length) {
 	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
 
 	if (valuePosition > 0) {
-		int value = 0;
-		int bytes = 0;
 		switch (buffer[valuePosition++]) {
-			case 0x10: 
-				bytes = 2;
-				break;
-			case 0x12: 
-				bytes = 2;
-				break;
-			case 0x06:
-				bytes = 4;
-				break;
-			case 0x02:
-				bytes = 1;
-				break;
 			case 0x01:
-				bytes = 1;
-				break;
-			case 0x0F:
-				bytes = 1;
-				break;
+			case 0x02:
 			case 0x16:
-				bytes = 1;
-				break;
+				return getUint8(dataPosition, buffer, start, length);
+			case 0x0F:
+				return getInt8(dataPosition, buffer, start, length);
+			case 0x12: 
+				return getUint16(dataPosition, buffer, start, length);
+			case 0x10: 
+				return getInt16(dataPosition, buffer, start, length);
+			case 0x06:
+				return getUint32(dataPosition, buffer, start, length);
 		}
+	}
+	return 0;
+}
 
-		for (int i = valuePosition; i < valuePosition + bytes; i++) {
+int8_t HanReader::getInt8(int dataPosition, byte *buffer, int start, int length) {
+	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
+	if (valuePosition > 0 && buffer[valuePosition++] == 0x0F) {
+		return buffer[valuePosition];
+	}
+	return 0;
+}
+
+int16_t HanReader::getInt16(int dataPosition, byte *buffer, int start, int length) {
+	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
+	if (valuePosition > 0 && buffer[valuePosition++] == 0x10) {
+		return buffer[valuePosition] << 8 | buffer[valuePosition+1];
+	}
+	return 0;
+}
+
+uint8_t HanReader::getUint8(int dataPosition, byte *buffer, int start, int length) {
+	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
+	if (valuePosition > 0) {
+		switch(buffer[valuePosition++]) {
+			case 0x01:
+			case 0x02:
+			case 0x16:
+				return buffer[valuePosition];
+		}
+	}
+	return 0;
+}
+
+uint16_t HanReader::getUint16(int dataPosition, byte *buffer, int start, int length) {
+	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
+	if (valuePosition > 0 && buffer[valuePosition++] == 0x12) {
+		return buffer[valuePosition] << 8 | buffer[valuePosition+1];
+	}
+	return 0;
+}
+
+uint32_t HanReader::getUint32(int dataPosition, byte *buffer, int start, int length) {
+	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
+	if (valuePosition > 0) {
+		if(buffer[valuePosition++] != 0x06)
+			return 0;
+		uint32_t value = 0;
+		for (int i = valuePosition; i < valuePosition + 4; i++) {
 			value = value << 8 | buffer[i];
 		}
-
 		return value;
 	}
 	return 0;

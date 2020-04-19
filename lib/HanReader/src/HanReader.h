@@ -25,7 +25,8 @@ public:
 	bool read(byte data);
 	int getListSize();
 	time_t getPackageTime();
-	int getInt(int objectId);
+	int32_t getInt(int objectId); // Use this for uint8, int8, uint16, int16
+	uint32_t getUint(int objectId); // Only for uint32
 	String getString(int objectId);
 	time_t getTime(int objectId);
 
@@ -43,6 +44,11 @@ private:
 	time_t getTime(int dataPosition, byte *buffer, int start, int length);
 	time_t getTime(byte *buffer, int start, int length);
 	int getInt(int dataPosition, byte *buffer, int start, int length);
+	int8_t getInt8(int dataPosition, byte *buffer, int start, int length);
+	uint8_t getUint8(int dataPosition, byte *buffer, int start, int length);
+	int16_t getInt16(int dataPosition, byte *buffer, int start, int length);
+	uint16_t getUint16(int dataPosition, byte *buffer, int start, int length);
+	uint32_t getUint32(int dataPosition, byte *buffer, int start, int length);
 	String getString(int dataPosition, byte *buffer, int start, int length);
 
 	time_t toUnixTime(int year, int month, int day, int hour, int minute, int second);

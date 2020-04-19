@@ -89,7 +89,7 @@ void setup() {
 #if SELF_POWERED
 	if (vcc > 2.5 && vcc < 3.25) { // Only sleep if voltage is realistic and too low
 		if(Debug.isActive(RemoteDebug::INFO)) {
-			debugI("Votltage is too low, sleeping");
+			debugI("Voltage is too low, sleeping");
 			Serial.flush();
 		}
 		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up

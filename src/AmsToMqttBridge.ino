@@ -462,7 +462,7 @@ void readHanPort() {
 						String msg;
 						serializeJson(json, msg);
 						mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
-					} else if(config.getMqttPayloadFormat() == 1) {
+					} else if(config.getMqttPayloadFormat() == 1 || config.getMqttPayloadFormat() == 2) {
 						mqtt.publish(config.getMqttPublishTopic() + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
 						switch(data.getListType()) {
 							case 3:
@@ -476,41 +476,41 @@ void readHanPort() {
 								mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
 							case 2:
 								// Only send data if changed. ID and Type is sent on the 10s interval only if changed
-								if(lastMqttData.getMeterId() != data.getMeterId()) {
+								if(lastMqttData.getMeterId() != data.getMeterId() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/id", data.getMeterId());
 								}
-								if(lastMqttData.getMeterType() != data.getMeterType()) {
+								if(lastMqttData.getMeterType() != data.getMeterType() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/type", data.getMeterType());
 								}
-								if(lastMqttData.getL1Current() != data.getL1Current()) {
+								if(lastMqttData.getL1Current() != data.getL1Current() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/current", String(data.getL1Current(), 2));
 								}
-								if(lastMqttData.getL1Voltage() != data.getL1Voltage()) {
+								if(lastMqttData.getL1Voltage() != data.getL1Voltage() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/voltage", String(data.getL1Voltage(), 2));
 								}
-								if(lastMqttData.getL2Current() != data.getL2Current()) {
+								if(lastMqttData.getL2Current() != data.getL2Current() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/current", String(data.getL2Current(), 2));
 								}
-								if(lastMqttData.getL2Voltage() != data.getL2Voltage()) {
+								if(lastMqttData.getL2Voltage() != data.getL2Voltage() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/voltage", String(data.getL2Voltage(), 2));
 								}
-								if(lastMqttData.getL3Current() != data.getL3Current()) {
+								if(lastMqttData.getL3Current() != data.getL3Current() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/current", String(data.getL3Current(), 2));
 								}
-								if(lastMqttData.getL3Voltage() != data.getL3Voltage()) {
+								if(lastMqttData.getL3Voltage() != data.getL3Voltage() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/voltage", String(data.getL3Voltage(), 2));
 								}
-								if(lastMqttData.getReactiveExportPower() != data.getReactiveExportPower()) {
+								if(lastMqttData.getReactiveExportPower() != data.getReactiveExportPower() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/export/reactive", String(data.getReactiveExportPower()));
 								}
-								if(lastMqttData.getActiveExportPower() != data.getActiveExportPower()) {
+								if(lastMqttData.getActiveExportPower() != data.getActiveExportPower() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active", String(data.getActiveExportPower()));
 								}
-								if(lastMqttData.getReactiveImportPower() != data.getReactiveImportPower()) {
+								if(lastMqttData.getReactiveImportPower() != data.getReactiveImportPower() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/import/reactive", String(data.getReactiveImportPower()));
 								}
 							case 1:
-								if(lastMqttData.getActiveImportPower() != data.getActiveImportPower()) {
+								if(lastMqttData.getActiveImportPower() != data.getActiveImportPower() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/import/active", String(data.getActiveImportPower()));
 								}
 						}

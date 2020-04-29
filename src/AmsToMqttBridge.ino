@@ -52,7 +52,6 @@ RemoteDebug Debug;
 
 AmsWebServer ws(&Debug);
 
-WiFiClient *client;
 MQTTClient mqtt(512);
 
 HanReader hanReader;
@@ -188,7 +187,6 @@ void setup() {
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
 		WiFi_connect();
-		client = new WiFiClient();
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("No configuration, booting AP");
@@ -635,6 +633,85 @@ void MQTT_connect() {
 	mqtt.disconnect();
 	yield();
 
+	Client *client;
+	if(config.isMqttSsl()) {
+		debugI("MQTT SSL is configured");
+		WiFiClientSecure *secureClient = new WiFiClientSecure();
+
+		bool spiffs = false;
+#if defined(ESP32)
+		debugD("ESP32 SPIFFS");
+		spiffs = SPIFFS.begin(true);
+#else
+		debugD("ESP8266 SPIFFS");
+		spiffs = SPIFFS.begin();
+#endif
+
+		bool caExists = false;
+		if(spiffs) {
+			char *ca = NULL;
+			char *cert = NULL;
+			char *key = NULL;
+			if(SPIFFS.exists("/mqtt-ca.cer")) {
+				debugI("Found MQTT CA file");
+				File file = SPIFFS.open("/mqtt-ca.cer", "r");
+				ca = new char[file.size()];
+				if (file.size() != file.readBytes(ca, file.size())) {
+					delete ca;
+					ca = NULL;
+				}
+			}
+			if(SPIFFS.exists("/mqtt-cert.cer")) {
+				debugI("Found MQTT certificate file");
+				File file = SPIFFS.open("/mqtt-cert.cer", "r");
+				cert = new char[file.size()];
+				if (file.size() != file.readBytes(cert, file.size())) {
+					delete cert;
+					cert = NULL;
+				}
+			}
+			if(SPIFFS.exists("/mqtt-key.cer")) {
+				debugI("Found MQTT key file");
+				File file = SPIFFS.open("/mqtt-key.cer", "r");
+				key = new char[file.size()];
+				if (file.size() != file.readBytes(key, file.size())) {
+					delete key;
+					key = NULL;
+				}
+			}
+			SPIFFS.end();
+			
+			if(ca) {
+#ifdef ESP32
+				secureClient->setCACert(ca);
+#else
+				secureClient->setTrustAnchors(new X509List(ca));
+				secureClient->allowSelfSignedCerts();
+#endif
+				caExists = true;
+			}
+			if(cert && key) {
+#ifdef ESP32
+				secureClient->setCertificate(cert);
+				secureClient->setPrivateKey(key);
+#else
+				secureClient->setClientRSACert(new X509List(cert), new PrivateKey(key));
+#endif
+			}
+		}
+		if(!caExists) {
+			debugW("No CA found, using insecure");
+#ifdef ESP32
+			// TODO
+#else
+			secureClient->setInsecure();
+#endif
+		}
+		client = secureClient;
+	} else {
+		client = new WiFiClient();
+	}
+
 	mqtt.begin(config.getMqttHost().c_str(), config.getMqttPort(), *client);
 
 	// Connect to a unsecure or secure MQTT server
@@ -655,6 +732,7 @@ void MQTT_connect() {
 			sendSystemStatusToMqtt();
 		}
 	} else {
+		lastMqttRetry = millis() + 30000;
 		if (Debug.isActive(RemoteDebug::ERROR)) {
 			debugI("Failed to connect to MQTT");
 		}

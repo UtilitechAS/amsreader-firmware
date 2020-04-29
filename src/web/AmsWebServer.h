@@ -45,6 +45,9 @@ private:
 	AmsData data;
 	MQTTClient* mqtt;
 	File firmwareFile;
+	File mqttCaFile;
+	File mqttCertFile;
+	File mqttKeyFile;
 	bool performRestart = false;
 
 #if defined(ESP8266)
@@ -67,10 +70,20 @@ private:
 	void handleSave();
 
 	void configSystemHtml();
-	void configSystemPost();
 	void configSystemUpload();
 	void restartWaitHtml();
 	void isAliveCheck();
+
+	void uploadPost();
+	void mqttCa();
+	void mqttCaUpload();
+	void mqttCaDelete();
+	void mqttCert();
+	void mqttCertUpload();
+	void mqttCertDelete();
+	void mqttKey();
+	void mqttKeyUpload();
+	void mqttKeyDelete();
 
 	void printD(String fmt, ...);
 	void printI(String fmt, ...);

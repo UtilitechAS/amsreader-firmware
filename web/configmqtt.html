@@ -102,6 +102,49 @@
                     </div>
                 </div>
             </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="row form-group">
+                        <label class="col-4">SSL</label>
+                        <div class="col-8">
+                            <input id="mqttSsl" type="checkbox" name="mqttSsl" value="true" ${config.mqttSsl}/>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mqtt-ssl-config">
+                    <div class="row form-group">
+                        <label class="col-4">CA</label>
+                        <div class="col-8">
+                            <span style="display: ${display.ca.upload};"><a href="/mqtt-ca">Upload</a></span>
+                            <span style="display: ${display.ca.file};">
+                                <a href="#">Delete</a>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mqtt-ssl-config">
+                    <div class="row form-group">
+                        <label class="col-4">Certificate</label>
+                        <div class="col-8">
+                            <span style="display: ${display.cert.upload};"><a href="/mqtt-ca">Upload</a></span>
+                            <span style="display: ${display.cert.file};">
+                                <a href="#">Delete</a>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mqtt-ssl-config">
+                    <div class="row form-group">
+                        <label class="col-6">Private key</label>
+                        <div class="col-6">
+                            <span style="display: ${display.key.upload};"><a href="/mqtt-ca">Upload</a></span>
+                            <span style="display: ${display.key.file};">
+                                <a href="#">Delete</a>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         <hr/>
         <div class="row form-group">

@@ -11,6 +11,7 @@
 #include <ESP8266mDNS.h>
 #elif defined(ESP32)
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <ESPmDNS.h>
 #include "SPIFFS.h"
 #include "Update.h"

@@ -86,7 +86,7 @@ void setup() {
 		debugI("Voltage: %.2fV", vcc);
 	}
 
-#if SELF_POWERED
+	#if SELF_POWERED
 	if (vcc > 2.5 && vcc < 3.25) { // Only sleep if voltage is realistic and too low
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("Voltage is too low, sleeping");
@@ -94,7 +94,7 @@ void setup() {
 		}
 		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
 	}  
-#endif
+	#endif
 
 	#if HAS_RGB_LED
 		// Initialize RGB LED pins
@@ -256,6 +256,9 @@ unsigned long lastSuccessfulRead = 0;
 
 unsigned long lastErrorBlink = 0; 
 int lastError = 0;
+
+// domoticz energy init
+double energy = -1.0;
 
 void loop() {
 	Debug.handle();
@@ -462,6 +465,154 @@ void readHanPort() {
 						String msg;
 						serializeJson(json, msg);
 						mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
+					// 
+					// Start DOMOTICZ
+					//
+					} else if(config.getMqttPayloadFormat() == 2) {
+						StaticJsonDocument<512> json;
+						hanToJson(json, data, hw, temperature);
+						if (Debug.isActive(RemoteDebug::INFO)) {
+							debugI("Sending data to MQTT");
+							if (Debug.isActive(RemoteDebug::DEBUG)) {
+								serializeJsonPretty(json, Debug);
+							}
+						}
+						String msg;
+						serializeJson(json, msg);
+						mqtt.publish(config.getMqttPublishTopic(), msg.c_str());     // keep for now...
+						//
+						// Special MQTT messages for DOMOTIZ (https://www.domoticz.com/wiki/MQTT)
+						// -All messages should be published to topic "domoticz/in"
+						//
+						//  message msg_PE : send active power and and cumulative energy consuption to  virtual meter "Electricity (instant and counter)"
+						//
+						//      /json.htm?type=command&param=udevice&idx=IDX&nvalue=0&svalue=POWER;ENERGY
+						//
+						//       MQTT sample message:    {"command": "udevice",  "idx" : IDX , "nvalue" : 0, "svalue" : "POWER;ENERGY"}   
+						//         IDX = id of your device (This number can be found in the devices tab in the column "IDX")
+						//         POWER = current power (Watt)
+						//         ENERGY = cumulative energy in Watt-hours (Wh) This is an incrementing counter.
+						//               (if you choose as type "Energy read : Computed", this is just a "dummy" counter, not updatable because it's the result of DomoticZ calculs from POWER)
+						//
+						//  message msg_V1 : send Voltage of L1 to virtual Voltage meter
+						//
+						//	      /json.htm?type=command&param=udevice&idx=IDX&nvalue=0&svalue=VOLTAGE
+						//
+						//       MQTT sample message:    {"command": "udevice",  "idx" : IDX , "nvalue" : 0, "svalue" : "VOLTAGE"}   
+						//         IDX = id of your device (This number can be found in the devices tab in the column "IDX")
+						//         VOLTAGE = Voltage (V)
+						//  
+			
+						int idx1 = config.getDomoELIDX();
+						// TODO, this should be configurable....  
+						if (idx1 > 0) {
+							String PowerEnergy;
+							int p;
+							// double energy = config.getDomoEnergy();
+							double tmp_energy;
+							StaticJsonDocument<200> json_PE;
+							p = json["data"]["P"].as<int>();
+							// cumulative energy is given only once pr hour. check if value is different from 0 and store last valid value on global variable.
+							tmp_energy = json["data"]["tPI"].as<double>();
+							if (tmp_energy > 1.0) energy = tmp_energy;		
+							//  power_unit: watt, energy_unit: watt*h. Stored as kwh, need watth
+							PowerEnergy = String((double) p/1.0) + ";" + String((double) energy*1000.0) ;
+							json_PE["command"] = "udevice";
+							json_PE["idx"] = idx1;
+							json_PE["nvalue"] = 0;
+							json_PE["svalue"] = PowerEnergy;
+							// Stringify the json
+							String msg_PE;
+							serializeJson(json_PE, msg_PE);
+							// publish power data directly to domoticz/in, but only after first reading of total power, once an hour... . (otherwise total consumtion will be wrong.)
+							if (energy > 0.0 ) mqtt.publish("domoticz/in", msg_PE.c_str());
+						}
+						int idxu1 =config.getDomoVL1IDX();
+						if (idxu1 > 0){				
+							StaticJsonDocument<200> json_u1;
+							double u1;
+							//
+							// prepare message msg_u1 for virtual Voltage meter"
+							//
+							u1 = json["data"]["U1"].as<double>();
+							if (u1 > 0.1){ 
+								json_u1["command"] = "udevice";
+								json_u1["idx"] = idxu1;
+								json_u1["nvalue"] = 0;
+								json_u1["svalue"] =  String(u1);
+								// Stringify the json
+								String msg_u1;
+								serializeJson(json_u1, msg_u1);
+								// publish power data directly to domoticz/in
+								mqtt.publish("domoticz/in", msg_u1.c_str());
+							}
+						}
+						int idxu2 =config.getDomoVL2IDX();
+						if (idxu2 > 0){				
+							StaticJsonDocument<200> json_u2;
+							double u2;
+							//
+							// prepare message msg_u2 for virtual Voltage meter"
+							//
+							u2 = json["data"]["U2"].as<double>();
+							if (u2 > 0.1){ 
+								json_u2["command"] = "udevice";
+								json_u2["idx"] = idxu2;
+								json_u2["nvalue"] = 0;
+								json_u2["svalue"] =  String(u2);
+								// Stringify the json
+								String msg_u2;
+								serializeJson(json_u2, msg_u2);
+								// publish power data directly to domoticz/in
+								mqtt.publish("domoticz/in", msg_u2.c_str());
+							}
+						}
+						int idxu3 =config.getDomoVL3IDX();
+						if (idxu3 > 0){				
+							StaticJsonDocument<200> json_u3;
+							double u3;
+							//
+							// prepare message msg_u3 for virtual Voltage meter"
+							//
+							u3 = json["data"]["U3"].as<double>();
+							if (u3 > 0.1){ 
+								json_u3["command"] = "udevice";
+								json_u3["idx"] = idxu3;
+								json_u3["nvalue"] = 0;
+								json_u3["svalue"] =  String(u3);
+								// Stringify the json
+								String msg_u3;
+								serializeJson(json_u3, msg_u3);
+								// publish power data directly to domoticz/in
+								mqtt.publish("domoticz/in", msg_u3.c_str());
+							}
+						}
+				
+						int idxi1 =config.getDomoCL1IDX();
+						if (idxi1 > 0){				
+							StaticJsonDocument<200> json_i1;
+							double i1, i2, i3;
+							String Ampere3;
+							//
+							// prepare message msg_i1 for virtual Current/Ampere 3phase mater"
+							//
+							i1 = json["data"]["I1"].as<double>();
+							i2 = json["data"]["I2"].as<double>();
+							i3 = json["data"]["I3"].as<double>();
+							Ampere3 = String(i1) + ";" + String(i2) + ";" + String(i3) ;
+							json_i1["command"] = "udevice";
+							json_i1["idx"] = idxi1;
+							json_i1["nvalue"] = 0;
+							json_i1["svalue"] =  Ampere3;
+							// Stringify the json
+							String msg_i1;
+							serializeJson(json_i1, msg_i1);
+							// publish power data directly to domoticz/in
+							if (i1 > 0.0) mqtt.publish("domoticz/in", msg_i1.c_str());
+						}			
+						//
+						// End DOMOTICZ
+						//
 					} else if(config.getMqttPayloadFormat() == 1) {
 						mqtt.publish(config.getMqttPublishTopic() + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
 						switch(data.getListType()) {

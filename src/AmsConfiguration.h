@@ -78,7 +78,26 @@ public:
 	void setDebugLevel(int debugLevel);
 
 	void print(Print* debugger);
-	
+//
+// Domoticz
+//
+	int getDomoELIDX();
+	int getDomoVL1IDX();
+	int getDomoVL2IDX();
+	int getDomoVL3IDX();
+	int getDomoCL1IDX();
+	double getDomoEnergy();
+	void setDomoELIDX(int domoELIDX);
+	void setDomoVL1IDX(int domoVL1IDX);
+	void setDomoVL2IDX(int domoVL2IDX);
+	void setDomoVL3IDX(int domoVL3IDX);
+	void setDomoCL1IDX(int domoCL1IDX);
+	void setDomoEnergy(double domoEnergy);
+	void clearDomo();
+
+	bool isDomoChanged();
+	void ackDomoChange();
+
 protected:
 
 private:
@@ -113,14 +132,27 @@ private:
 	bool debugTelnet = false, debugSerial = false;
 	int debugLevel = 3;
 
+//
+// Domoticz
+//
+	int domoELIDX;
+	int domoVL1IDX;
+	int domoVL2IDX;
+	int domoVL3IDX;
+	int domoCL1IDX;
+	double domoEnergy = -1.0;
+	bool domoChanged;
+
 	const int EEPROM_SIZE = 512;
-	const int EEPROM_CHECK_SUM = 81; // Used to check if config is stored. Change if structure changes
+	const int EEPROM_CHECK_SUM = 91; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 
 	bool loadConfig72(int address);
 	bool loadConfig75(int address);
 	bool loadConfig80(int address);
 	bool loadConfig81(int address);
+ 	bool loadConfig91(int address);    // domoticz
+
 
 	int saveString(int pAddress, const char* pString);
 	int readString(int pAddress, char* pString[]);

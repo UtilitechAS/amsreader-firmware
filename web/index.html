@@ -52,7 +52,7 @@
 </head>
 <body class="bg-light">
 <main role="main" class="container">
-    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row rounded mt-2 mb-4" style="background-color: var(--purple);">
+    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row rounded mt-2 mb-4" style="background-color: var(--purple);"> 
         <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
@@ -69,6 +69,9 @@
                     <a class="nav-link" href="/config-web">Web</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link " href="/config-domoticz">Domoticz</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" href="/config-system">System</a>
                 </li>
             </ul>
@@ -79,6 +82,7 @@
             <div id="han" class="d-none m-2">HAN</div>
             <div id="wifi" class="d-none m-2">WiFi</div>
             <div id="mqtt" class="d-none m-2">MQTT</div>
+            <div id="domo" class="d-none m-2">DOMO</div>
         </div>
         <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
             <li class="nav-item">
@@ -346,6 +350,7 @@ var fetch = function() {
             append: "W"
         });
 
+        setStatus("domo", "secondary");
         setStatus("mqtt", "secondary");
         setStatus("wifi", "secondary");
         setStatus("han", "secondary");

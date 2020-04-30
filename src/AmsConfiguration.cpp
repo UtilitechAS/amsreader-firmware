@@ -178,7 +178,6 @@ void AmsConfiguration::ackMqttChange() {
 	mqttChanged = false;
 }
 
-
 byte AmsConfiguration::getAuthSecurity() {
 	return authSecurity;
 }
@@ -264,7 +263,71 @@ int AmsConfiguration::getDebugLevel() {
 void AmsConfiguration::setDebugLevel(int debugLevel) {
 	this->debugLevel = debugLevel;
 }
+//
+// Domoticz start
+//
+int AmsConfiguration::getDomoELIDX() {
+	return domoELIDX;
+}
+int AmsConfiguration::getDomoVL1IDX() {
+	return domoVL1IDX;
+}
+int AmsConfiguration::getDomoVL2IDX() {
+	return domoVL2IDX;
+}
+int AmsConfiguration::getDomoVL3IDX() {
+	return domoVL3IDX;
+}
+int AmsConfiguration::getDomoCL1IDX() {
+	return domoCL1IDX;
+}
+double AmsConfiguration::getDomoEnergy() {
+	return domoEnergy;
+}
 
+void AmsConfiguration::setDomoELIDX(int domoELIDX) {
+	domoChanged |= this->domoELIDX != domoELIDX;
+	this->domoELIDX = domoELIDX;
+}
+void AmsConfiguration::setDomoVL1IDX(int domoVL1IDX) {
+	domoChanged |= this->domoVL1IDX != domoVL1IDX;
+	this->domoVL1IDX = domoVL1IDX;
+}
+void AmsConfiguration::setDomoVL2IDX(int domoVL2IDX) {
+	domoChanged |= this->domoVL2IDX != domoVL2IDX;
+	this->domoVL2IDX = domoVL2IDX;
+}
+void AmsConfiguration::setDomoVL3IDX(int domoVL3IDX) {
+	domoChanged |= this->domoVL3IDX != domoVL3IDX;
+	this->domoVL3IDX = domoVL3IDX;
+}
+void AmsConfiguration::setDomoCL1IDX(int domoCL1IDX) {
+	domoChanged |= this->domoCL1IDX != domoCL1IDX;
+	this->domoCL1IDX = domoCL1IDX;
+}
+void AmsConfiguration::setDomoEnergy(double domoEnergy) {
+	domoChanged |= this->domoEnergy != domoEnergy;
+	this->domoEnergy = domoEnergy;
+}
+void AmsConfiguration::clearDomo() {
+	setDomoELIDX(0);
+	setDomoVL1IDX(0);	
+	setDomoVL2IDX(0);	
+	setDomoVL3IDX(0);
+	setDomoCL1IDX(0);
+	setDomoEnergy(-1.0);	
+}
+
+bool AmsConfiguration::isDomoChanged() {
+	return domoChanged;
+}
+
+void AmsConfiguration::ackDomoChange() {
+	domoChanged = false;
+}
+//
+// Domoticz end
+//
 
 bool AmsConfiguration::hasConfig() {
 	if(configVersion == 0) {
@@ -278,6 +341,7 @@ bool AmsConfiguration::hasConfig() {
 		case 75:
 		case 80:
 		case 81:
+		case 91:     // domoticz (based on 81) 		  
 			return true;
 		default:
 			configVersion = 0;
@@ -309,6 +373,9 @@ bool AmsConfiguration::load() {
 			break;
 		case 81:
 			success = loadConfig81(address);
+			break;
+		case 91:
+			success = loadConfig91(address);
 			break;
 	}
 	EEPROM.end();
@@ -603,6 +670,128 @@ bool AmsConfiguration::loadConfig81(int address) {
 	address += readInt(address, &i);
 	setDebugLevel(i);
 
+	bool domo = false;
+	address += readBool(address, &domo);
+
+	ackWifiChange();
+
+	return true;
+}
+//
+// domoticz (based on 81)
+//
+bool AmsConfiguration::loadConfig91(int address) {
+	char* temp;
+
+	address += readString(address, &temp);
+	setWifiSsid(temp);
+	address += readString(address, &temp);
+	setWifiPassword(temp);
+
+	bool staticIp = false;
+	address += readBool(address, &staticIp);
+	if(staticIp) {
+		address += readString(address, &temp);
+		setWifiIp(temp);
+		address += readString(address, &temp);
+		setWifiGw(temp);
+		address += readString(address, &temp);
+		setWifiSubnet(temp);
+		address += readString(address, &temp);
+		setWifiDns1(temp);
+		address += readString(address, &temp);
+		setWifiDns2(temp);
+	}
+	address += readString(address, &temp);
+	setWifiHostname(temp);
+	bool mqtt = false;
+	address += readBool(address, &mqtt);
+	if(mqtt) {
+		address += readString(address, &temp);
+		setMqttHost(temp);
+		int port;
+		address += readInt(address, &port);
+		setMqttPort(port);
+		address += readString(address, &temp);
+		setMqttClientId(temp);
+		address += readString(address, &temp);
+		setMqttPublishTopic(temp);
+		address += readString(address, &temp);
+		setMqttSubscribeTopic(temp);
+
+		bool secure = false;
+		address += readBool(address, &secure);
+		if (secure)
+		{
+			address += readString(address, &temp);
+			setMqttUser(temp);
+			address += readString(address, &temp);
+			setMqttPassword(temp);
+		} else {
+			setMqttUser("");
+			setMqttPassword("");
+		}
+		int payloadFormat;
+		address += readInt(address, &payloadFormat);
+		setMqttPayloadFormat(payloadFormat);
+	} else {
+		clearMqtt();
+	}
+
+	address += readByte(address, &authSecurity);
+	if (authSecurity > 0) {
+		address += readString(address, &temp);
+		setAuthUser(temp);
+		address += readString(address, &temp);
+		setAuthPassword(temp);
+	} else {
+		clearAuth();
+	}
+
+	int i;
+	address += readInt(address, &i);
+	setMeterType(i);
+	address += readInt(address, &i);
+	setDistributionSystem(i);
+	address += readInt(address, &i);
+	setMainFuse(i);
+	address += readInt(address, &i);
+	setProductionCapacity(i);
+
+	bool debugTelnet = false;
+	address += readBool(address, &debugTelnet);
+	setDebugTelnet(debugTelnet);
+	bool debugSerial = false;
+	address += readBool(address, &debugSerial);
+	setDebugSerial(debugSerial);
+	address += readInt(address, &i);
+	setDebugLevel(i);
+
+	bool domo = false;
+	address += readBool(address, &domo);
+	if(domo) {
+		int domoELIDX;
+		address += readInt(address, &domoELIDX);
+		setDomoELIDX(domoELIDX);
+		int domoVL1IDX;
+		address += readInt(address, &domoVL1IDX);
+		setDomoVL1IDX(domoVL1IDX);
+		int domoVL2IDX;
+		address += readInt(address, &domoVL2IDX);
+		setDomoVL2IDX(domoVL2IDX);
+		int domoVL3IDX;
+		address += readInt(address, &domoVL3IDX);
+		setDomoVL3IDX(domoVL3IDX);
+		int domoCL1IDX;
+		address += readInt(address, &domoCL1IDX);
+		setDomoCL1IDX(domoCL1IDX);
+		// address += readString(address, &temp);
+		// domoEnergy = String(temp).toDouble();
+		// setDomoEnergy(domoEnergy);
+	} else {
+		clearDomo();
+	}
+
 	ackWifiChange();
 
 	return true;
@@ -661,7 +850,20 @@ bool AmsConfiguration::save() {
 	address += saveBool(address, debugTelnet);
 	address += saveBool(address, debugSerial);
 	address += saveInt(address, debugLevel);
-
+//
+//  Domoticz 
+//
+	if(domoELIDX) {
+		address += saveBool(address, true);
+		address += saveInt(address, domoELIDX);	
+		address += saveInt(address, domoVL1IDX);	
+		address += saveInt(address, domoVL2IDX);
+		address += saveInt(address, domoVL3IDX);
+		address += saveInt(address, domoCL1IDX);
+		//address += saveString(address, String(domoEnergy).c_str());	
+	} else {
+		address += saveBool(address, false);
+	}
 	bool success = EEPROM.commit();
 	EEPROM.end();
 

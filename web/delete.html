@@ -37,18 +37,9 @@
             </li>
         </ul>
     </header>
-    <form method="post" enctype="multipart/form-data">
+    <form method="post" action="${form.action}">
         <div class="my-3 p-3 bg-white rounded shadow">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="row form-group">
-                        <label class="col-4">${file.label}</label>
-                        <div class="col-8">
-                            <input type="file" name="file"/>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div class="alert alert-warning">Are you sure you want to delete this file?</div>
         </div>
         <hr/>
         <div class="row form-group">
@@ -56,7 +47,7 @@
                 <a href="javascript:history.back();" class="btn btn-outline-secondary">Back</a>
             </div>
             <div class="col-6 text-right">
-                <button class="btn btn-primary">Upload</button>
+                <button class="btn btn-danger">Delete</button>
             </div>
         </div>
     </form>

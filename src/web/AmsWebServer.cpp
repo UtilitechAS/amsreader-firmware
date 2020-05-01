@@ -1,7 +1,9 @@
 #include "AmsWebServer.h"
 #include "version.h"
+#include "AmsStorage.h"
 
 #include "root/index_html.h"
+#include "root/index_js.h"
 #include "root/configmeter_html.h"
 #include "root/configwifi_html.h"
 #include "root/configmqtt_html.h"
@@ -11,6 +13,7 @@
 #include "root/boot_css.h"
 #include "root/gaugemeter_js.h"
 #include "root/upload_html.h"
+#include "root/delete_html.h"
 
 #include "Base64.h"
 
@@ -22,7 +25,8 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
     this->config = config;
 	this->mqtt = mqtt;
 
-	server.on("/", std::bind(&AmsWebServer::indexHtml, this));
+	server.on("/", HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on("/index.js", HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
 	server.on("/config-meter", HTTP_GET, std::bind(&AmsWebServer::configMeterHtml, this));
 	server.on("/config-wifi", HTTP_GET, std::bind(&AmsWebServer::configWifiHtml, this));
 	server.on("/config-mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
@@ -40,10 +44,13 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 
 	server.on("/mqtt-ca", HTTP_GET, std::bind(&AmsWebServer::mqttCa, this));
 	server.on("/mqtt-ca", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::mqttCaUpload, this));
+	server.on("/mqtt-ca/delete", HTTP_POST, std::bind(&AmsWebServer::mqttCaDelete, this));
 	server.on("/mqtt-cert", HTTP_GET, std::bind(&AmsWebServer::mqttCert, this));
 	server.on("/mqtt-cert", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::mqttCertUpload, this));
+	server.on("/mqtt-cert/delete", HTTP_POST, std::bind(&AmsWebServer::mqttCertDelete, this));
 	server.on("/mqtt-key", HTTP_GET, std::bind(&AmsWebServer::mqttKey, this));
 	server.on("/mqtt-key", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
+	server.on("/mqtt-key/delete", HTTP_POST, std::bind(&AmsWebServer::mqttKeyDelete, this));
 
 	server.begin(); // Web server start
 }
@@ -93,6 +100,10 @@ bool AmsWebServer::checkSecurity(byte level) {
 		server.setContentLength(0);
 		server.send(401, "text/html", "");
 	}
+	if(access)
+		printD(" access granted");
+	else
+		printD(" access denied");
 	return access;
 }
 
@@ -161,6 +172,13 @@ void AmsWebServer::indexHtml() {
 
 	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
+}
+
+void AmsWebServer::indexJs() {
+	printD("Serving /index.js over http...");
+
+	server.sendHeader("Cache-Control", "public, max-age=3600");
+	server.send_P(200, "application/javascript", INDEX_JS);
 }
 
 void AmsWebServer::configMeterHtml() {
@@ -264,12 +282,12 @@ void AmsWebServer::configMqttHtml() {
 	html.replace("${display.ssl}", config->isMqttSsl() ? "" : "none");
 
 	if(SPIFFS.begin()) {
-		html.replace("${display.ca.upload}", SPIFFS.exists("/mqtt-ca.pem") ? "none" : "");
-		html.replace("${display.ca.file}", SPIFFS.exists("/mqtt-ca.pem") ? "" : "none");
-		html.replace("${display.cert.upload}", SPIFFS.exists("/mqtt-cert.pem") ? "none" : "");
-		html.replace("${display.cert.file}", SPIFFS.exists("/mqtt-cert.pem") ? "" : "none");
-		html.replace("${display.key.upload}", SPIFFS.exists("/mqtt-key.pem") ? "none" : "");
-		html.replace("${display.key.file}", SPIFFS.exists("/mqtt-key.pem") ? "" : "none");
+		html.replace("${display.ca.upload}", SPIFFS.exists(FILE_MQTT_CA) ? "none" : "");
+		html.replace("${display.ca.file}", SPIFFS.exists(FILE_MQTT_CA) ? "" : "none");
+		html.replace("${display.cert.upload}", SPIFFS.exists(FILE_MQTT_CERT) ? "none" : "");
+		html.replace("${display.cert.file}", SPIFFS.exists(FILE_MQTT_CERT) ? "" : "none");
+		html.replace("${display.key.upload}", SPIFFS.exists(FILE_MQTT_KEY) ? "none" : "");
+		html.replace("${display.key.file}", SPIFFS.exists(FILE_MQTT_KEY) ? "" : "none");
 		SPIFFS.end();
 	} else {
 		html.replace("${display.ca.upload}", "");
@@ -314,23 +332,15 @@ void AmsWebServer::configWebHtml() {
 void AmsWebServer::bootCss() {
 	printD("Serving /boot.css over http...");
 
-	String css = String((const __FlashStringHelper*) BOOT_CSS);
-
 	server.sendHeader("Cache-Control", "public, max-age=3600");
-
-	server.setContentLength(css.length());
-	server.send(200, "text/css", css);
+	server.send_P(200, "text/css", BOOT_CSS);
 }
 
 void AmsWebServer::gaugemeterJs() {
 	printD("Serving /gaugemeter.js over http...");
 
-	String js = String((const __FlashStringHelper*) GAUGEMETER_JS);
-
 	server.sendHeader("Cache-Control", "public, max-age=3600");
-	
-	server.setContentLength(js.length());
-	server.send(200, "application/javascript", js);
+	server.send_P(200, "application/javascript", GAUGEMETER_JS);
 }
 
 void AmsWebServer::dataJson() {
@@ -604,36 +614,54 @@ void AmsWebServer::uploadPost() {
 	server.send(200);
 }
 
-void AmsWebServer::configSystemUpload() {
+void AmsWebServer::uploadFile(const char* path) {
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START){
         String filename = upload.filename;
-        if(!filename.endsWith(".bin")) {
-            server.send(500, "text/plain", "500: couldn't create file");
-		} else if (!SPIFFS.begin()) {
+		if (!SPIFFS.begin()) {
 			printE("An Error has occurred while mounting SPIFFS");
 			String html = "<html><body><h1>Error uploading!</h1></form>";
 			server.send(500, "text/html", html);
 		} else {
 		    printD("handleFileUpload Name: %s", filename.c_str());
-		    firmwareFile = SPIFFS.open("/firmware.bin", "w");
+		    file = SPIFFS.open(path, "w");
 	  	    filename = String();
 	    } 
     } else if(upload.status == UPLOAD_FILE_WRITE) {
-        if(firmwareFile)
-            firmwareFile.write(upload.buf, upload.currentSize);
+        if(file)
+            file.write(upload.buf, upload.currentSize);
     } else if(upload.status == UPLOAD_FILE_END) {
-        if(firmwareFile) {
-            firmwareFile.close();
+        if(file) {
+            file.close();
 			SPIFFS.end();
             printD("handleFileUpload Size: %d", upload.totalSize);
-			performRestart = true;
-            server.sendHeader("Location","/restart-wait");
-            server.send(303);
         } else {
             server.send(500, "text/plain", "500: couldn't create file");
         }
     }
+}
+
+void AmsWebServer::deleteFile(const char* path) {
+	if(SPIFFS.begin()) {
+		SPIFFS.remove(path);
+		SPIFFS.end();
+	}
+}
+
+void AmsWebServer::configSystemUpload() {
+	HTTPUpload& upload = server.upload();
+    if(upload.status == UPLOAD_FILE_START) {
+        String filename = upload.filename;
+        if(!filename.endsWith(".bin")) {
+            server.send(500, "text/plain", "500: couldn't create file");
+		}
+	}
+	uploadFile(FILE_FIRMWARE);
+	if(upload.status == UPLOAD_FILE_END) {
+		performRestart = true;
+		server.sendHeader("Location","/restart-wait");
+		server.send(303);
+	}
 }
 
 void AmsWebServer::restartWaitHtml() {
@@ -680,154 +708,166 @@ void AmsWebServer::isAliveCheck() {
 	server.send(200);
 }
 
-void AmsWebServer::mqttCa() {
-	printD("Serving /mqtt-ca.html over http...");
-
+void AmsWebServer::uploadHtml(const char* label, const char* action, const char* menu) {
 	String html = String((const __FlashStringHelper*) UPLOAD_HTML);
+	html.replace("${form.action}", action);
+	html.replace("${version}", VERSION);
+
+	if(WiFi.getMode() != WIFI_AP) {
+		html.replace("boot.css", BOOTSTRAP_URL);
+	}
+
+	html.replace("${menu." + String(menu) + ".class}", "active");
 	html.replace("${menu.meter.class}", "");
 	html.replace("${menu.wifi.class}", "");
-	html.replace("${menu.mqtt.class}", "active");
+	html.replace("${menu.mqtt.class}", "");
 	html.replace("${menu.web.class}", "");
 	html.replace("${menu.system.class}", "");
-	html.replace("${file.label}", "CA file");
+	html.replace("${file.label}", label);
 
-	server.sendHeader("Cache-Control", "public, max-age=3600");
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
 	
 	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
 }
 
-void AmsWebServer::mqttCaUpload() {
-    HTTPUpload& upload = server.upload();
-    if(upload.status == UPLOAD_FILE_START){
-        String filename = upload.filename;
-		if (!SPIFFS.begin()) {
-			printE("An Error has occurred while mounting SPIFFS");
-			String html = "<html><body><h1>Error uploading!</h1></form>";
-			server.send(500, "text/html", html);
+void AmsWebServer::deleteHtml(const char* label, const char* action, const char* menu) {
+	String html = String((const __FlashStringHelper*) DELETE_HTML);
+	html.replace("${form.action}", action);
+	html.replace("${version}", VERSION);
+
+	if(WiFi.getMode() != WIFI_AP) {
+		html.replace("boot.css", BOOTSTRAP_URL);
+	}
+
+	html.replace("${menu." + String(menu) + ".class}", "active");
+	html.replace("${menu.meter.class}", "");
+	html.replace("${menu.wifi.class}", "");
+	html.replace("${menu.mqtt.class}", "");
+	html.replace("${menu.web.class}", "");
+	html.replace("${menu.system.class}", "");
+	html.replace("${file.label}", label);
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	
+	server.setContentLength(html.length());
+	server.send(200, "text/html", html);
+}
+
+void AmsWebServer::mqttCa() {
+	printD("Serving /mqtt-ca.html over http...");
+
+	String html;
+	if(SPIFFS.begin()) {
+		if(SPIFFS.exists(FILE_MQTT_CA)) {
+			deleteHtml("CA file", "/mqtt-ca/delete", "mqtt");
 		} else {
-		    printD("handleFileUpload Name: %s", filename.c_str());
-		    mqttCaFile = SPIFFS.open("/mqtt-ca.pem", "w");
-	  	    filename = String();
-	    } 
-    } else if(upload.status == UPLOAD_FILE_WRITE) {
-        if(mqttCaFile)
-            mqttCaFile.write(upload.buf, upload.currentSize);
-    } else if(upload.status == UPLOAD_FILE_END) {
-        if(mqttCaFile) {
-            mqttCaFile.close();
-			SPIFFS.end();
-            printD("handleFileUpload Size: %d", upload.totalSize);
-            server.sendHeader("Location","/config-mqtt");
-            server.send(303);
-        } else {
-            server.send(500, "text/plain", "500: couldn't create file");
-        }
-    }
+			uploadHtml("CA file", "/mqtt-ca", "mqtt");
+		}
+		SPIFFS.end();
+	} else {
+		server.sendHeader("Location","/config-mqtt");
+		server.send(303);
+	}
+}
+
+void AmsWebServer::mqttCaUpload() {
+	uploadFile(FILE_MQTT_CA);
+    HTTPUpload& upload = server.upload();
+    if(upload.status == UPLOAD_FILE_END) {
+		server.sendHeader("Location","/config-mqtt");
+		server.send(303);
+		if(config->isMqttSsl()) {
+			config->setMqttChanged();
+		}
+	}
 }
 
 void AmsWebServer::mqttCaDelete() {
-
+	deleteFile(FILE_MQTT_CA);
+	server.sendHeader("Location","/config-mqtt");
+	server.send(303);
+	if(config->isMqttSsl()) {
+		config->setMqttChanged();
+	}
 }
 
 void AmsWebServer::mqttCert() {
 	printD("Serving /mqtt-cert.html over http...");
 
-	String html = String((const __FlashStringHelper*) UPLOAD_HTML);
-	html.replace("${menu.meter.class}", "");
-	html.replace("${menu.wifi.class}", "");
-	html.replace("${menu.mqtt.class}", "active");
-	html.replace("${menu.web.class}", "");
-	html.replace("${menu.system.class}", "");
-	html.replace("${file.label}", "Certificate");
-
-	server.sendHeader("Cache-Control", "public, max-age=3600");
-	
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+	String html;
+	if(SPIFFS.begin()) {
+		if(SPIFFS.exists(FILE_MQTT_CERT)) {
+			deleteHtml("Certificate", "/mqtt-cert/delete", "mqtt");
+		} else {
+			uploadHtml("Certificate", "/mqtt-cert", "mqtt");
+		}
+		SPIFFS.end();
+	} else {
+		server.sendHeader("Location","/config-mqtt");
+		server.send(303);
+	}
 }
 
 void AmsWebServer::mqttCertUpload() {
+	uploadFile(FILE_MQTT_CERT);
     HTTPUpload& upload = server.upload();
-    if(upload.status == UPLOAD_FILE_START){
-        String filename = upload.filename;
-		if (!SPIFFS.begin()) {
-			printE("An Error has occurred while mounting SPIFFS");
-			String html = "<html><body><h1>Error uploading!</h1></form>";
-			server.send(500, "text/html", html);
-		} else {
-		    printD("handleFileUpload Name: %s", filename.c_str());
-		    mqttCertFile = SPIFFS.open("/mqtt-cert.pem", "w");
-	  	    filename = String();
-	    } 
-    } else if(upload.status == UPLOAD_FILE_WRITE) {
-        if(mqttCertFile)
-            mqttCertFile.write(upload.buf, upload.currentSize);
-    } else if(upload.status == UPLOAD_FILE_END) {
-        if(mqttCertFile) {
-            mqttCertFile.close();
-			SPIFFS.end();
-            printD("handleFileUpload Size: %d", upload.totalSize);
-            server.sendHeader("Location","/config-mqtt");
-            server.send(303);
-        } else {
-            server.send(500, "text/plain", "500: couldn't create file");
-        }
-    }
+    if(upload.status == UPLOAD_FILE_END) {
+		server.sendHeader("Location","/config-mqtt");
+		server.send(303);
+		if(config->isMqttSsl()) {
+			config->setMqttChanged();
+		}
+	}
 }
 
 void AmsWebServer::mqttCertDelete() {
-
+	deleteFile(FILE_MQTT_CERT);
+	server.sendHeader("Location","/config-mqtt");
+	server.send(303);
+	if(config->isMqttSsl()) {
+		config->setMqttChanged();
+	}
 }
 
 void AmsWebServer::mqttKey() {
 	printD("Serving /mqtt-key.html over http...");
 
-	String html = String((const __FlashStringHelper*) UPLOAD_HTML);
-	html.replace("${menu.meter.class}", "");
-	html.replace("${menu.wifi.class}", "");
-	html.replace("${menu.mqtt.class}", "active");
-	html.replace("${menu.web.class}", "");
-	html.replace("${menu.system.class}", "");
-	html.replace("${file.label}", "Private key");
-
-	server.sendHeader("Cache-Control", "public, max-age=3600");
-	
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+	String html;
+	if(SPIFFS.begin()) {
+		if(SPIFFS.exists(FILE_MQTT_KEY)) {
+			deleteHtml("Private key", "/mqtt-key/delete", "mqtt");
+		} else {
+			uploadHtml("Private key", "/mqtt-key", "mqtt");
+		}
+		SPIFFS.end();
+	} else {
+		server.sendHeader("Location","/config-mqtt");
+		server.send(303);
+	}
 }
 
 void AmsWebServer::mqttKeyUpload() {
+	uploadFile(FILE_MQTT_KEY);
     HTTPUpload& upload = server.upload();
-    if(upload.status == UPLOAD_FILE_START){
-        String filename = upload.filename;
-		if (!SPIFFS.begin()) {
-			printE("An Error has occurred while mounting SPIFFS");
-			String html = "<html><body><h1>Error uploading!</h1></form>";
-			server.send(500, "text/html", html);
-		} else {
-		    printD("handleFileUpload Name: %s", filename.c_str());
-		    mqttKeyFile = SPIFFS.open("/mqtt-key.pem", "w");
-	  	    filename = String();
-	    } 
-    } else if(upload.status == UPLOAD_FILE_WRITE) {
-        if(mqttKeyFile)
-            mqttKeyFile.write(upload.buf, upload.currentSize);
-    } else if(upload.status == UPLOAD_FILE_END) {
-        if(mqttKeyFile) {
-            mqttKeyFile.close();
-			SPIFFS.end();
-            printD("handleFileUpload Size: %d", upload.totalSize);
-            server.sendHeader("Location","/config-mqtt");
-            server.send(303);
-        } else {
-            server.send(500, "text/plain", "500: couldn't create file");
-        }
-    }
+    if(upload.status == UPLOAD_FILE_END) {
+		server.sendHeader("Location","/config-mqtt");
+		server.send(303);
+		if(config->isMqttSsl()) {
+			config->setMqttChanged();
+		}
+	}
 }
 
 void AmsWebServer::mqttKeyDelete() {
-
+	deleteFile(FILE_MQTT_KEY);
+	server.sendHeader("Location","/config-mqtt");
+	server.send(303);
+	if(config->isMqttSsl()) {
+		config->setMqttChanged();
+	}
 }
 
 

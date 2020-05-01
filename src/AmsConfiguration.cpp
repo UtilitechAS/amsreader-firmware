@@ -179,6 +179,10 @@ void AmsConfiguration::clearMqtt() {
 	setMqttPassword("");
 }
 
+void AmsConfiguration::setMqttChanged() {
+	mqttChanged = true;
+}
+
 bool AmsConfiguration::isMqttChanged() {
 	return mqttChanged;
 }

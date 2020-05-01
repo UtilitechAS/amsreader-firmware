@@ -44,10 +44,7 @@ private:
     AmsConfiguration* config;
 	AmsData data;
 	MQTTClient* mqtt;
-	File firmwareFile;
-	File mqttCaFile;
-	File mqttCertFile;
-	File mqttKeyFile;
+	File file;
 	bool performRestart = false;
 
 #if defined(ESP8266)
@@ -59,6 +56,7 @@ private:
 	bool checkSecurity(byte level);
 
 	void indexHtml();
+	void indexJs();
 	void configMeterHtml();
 	void configWifiHtml();
 	void configMqttHtml();
@@ -74,6 +72,10 @@ private:
 	void restartWaitHtml();
 	void isAliveCheck();
 
+	void uploadHtml(const char* label, const char* action, const char* menu);
+	void deleteHtml(const char* label, const char* action, const char* menu);
+	void uploadFile(const char* path);
+	void deleteFile(const char* path);
 	void uploadPost();
 	void mqttCa();
 	void mqttCaUpload();

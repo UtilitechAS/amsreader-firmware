@@ -115,20 +115,24 @@
                     <div class="row form-group">
                         <label class="col-4">CA</label>
                         <div class="col-8">
-                            <span style="display: ${display.ca.upload};"><a href="/mqtt-ca">Upload</a></span>
+                            <span style="display: ${display.ca.upload};">
+                                <a href="/mqtt-ca" class="btn btn-sm btn-outline-secondary">Upload</a>
+                            </span>
                             <span style="display: ${display.ca.file};">
-                                <a href="#">Delete</a>
+                                <a href="/mqtt-ca" class="btn btn-sm btn-danger">Delete</a>
                             </span>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-3 mqtt-ssl-config">
                     <div class="row form-group">
-                        <label class="col-4">Certificate</label>
-                        <div class="col-8">
-                            <span style="display: ${display.cert.upload};"><a href="/mqtt-ca">Upload</a></span>
+                        <label class="col-6">Certificate</label>
+                        <div class="col-6">
+                            <span style="display: ${display.cert.upload};">
+                                <a href="/mqtt-cert" class="btn btn-sm btn-outline-secondary">Upload</a>
+                            </span>
                             <span style="display: ${display.cert.file};">
-                                <a href="#">Delete</a>
+                                <a href="/mqtt-cert" class="btn btn-sm btn-danger">Delete</a>
                             </span>
                         </div>
                     </div>
@@ -137,9 +141,11 @@
                     <div class="row form-group">
                         <label class="col-6">Private key</label>
                         <div class="col-6">
-                            <span style="display: ${display.key.upload};"><a href="/mqtt-ca">Upload</a></span>
+                            <span style="display: ${display.key.upload};">
+                                <a href="/mqtt-key" class="btn btn-sm btn-outline-secondary">Upload</a>
+                            </span>
                             <span style="display: ${display.key.file};">
-                                <a href="#">Delete</a>
+                                <a href="/mqtt-key" class="btn btn-sm btn-danger">Delete</a>
                             </span>
                         </div>
                     </div>

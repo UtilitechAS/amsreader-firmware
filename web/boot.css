@@ -225,6 +225,12 @@ a {
     border-radius: .25rem;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
+.btn-group-sm>.btn, .btn-sm {
+    padding: .25rem .5rem;
+    font-size: .875rem;
+    line-height: 1.5;
+    border-radius: .2rem;
+}
 .btn-outline-secondary {
     color: #6c757d;
     border-color: #6c757d;
@@ -233,6 +239,11 @@ a {
     color: #fff;
     background-color: #007bff;
     border-color: #007bff;
+}
+.btn-danger {
+    color: #fff;
+    background-color: #dc3545;
+    border-color: #dc3545;
 }
 .navbar {
     position: relative;

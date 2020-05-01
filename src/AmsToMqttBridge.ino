@@ -17,10 +17,12 @@
  */
 
 #include "AmsToMqttBridge.h"
+#include "AmsStorage.h"
 #define ARDUINOJSON_POSITIVE_EXPONENTIATION_THRESHOLD 1e9
 #include <ArduinoJson.h>
 #include <MQTT.h>
 #include <DNSServer.h>
+#include <NTPClient.h>
 
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);  
@@ -45,6 +47,9 @@ ADC_MODE(ADC_VCC);
 HwTools hw;
 
 DNSServer dnsServer;
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 3600, 60000);
 
 AmsConfiguration config;
 
@@ -121,7 +126,7 @@ void setup() {
 
 	if(spiffs) {
 		bool flashed = false;
-		if(SPIFFS.exists("/firmware.bin")) {
+		if(SPIFFS.exists(FILE_FIRMWARE)) {
 			if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
 #if defined(ESP8266)
 			WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
@@ -140,7 +145,7 @@ void setup() {
 			}
 
 			if(Debug.isActive(RemoteDebug::INFO)) debugI(" flashing");
-			File firmwareFile = SPIFFS.open("/firmware.bin", "r");
+			File firmwareFile = SPIFFS.open(FILE_FIRMWARE, "r");
 			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 			if (!Update.begin(maxSketchSpace, U_FLASH)) {
 				if(Debug.isActive(RemoteDebug::ERROR)) {
@@ -156,7 +161,7 @@ void setup() {
 				flashed = Update.end(true);
 			}
 			firmwareFile.close();
-			SPIFFS.remove("/firmware.bin");
+			SPIFFS.remove(FILE_FIRMWARE);
 		}
 		SPIFFS.end();
 		if(flashed) {
@@ -227,6 +232,7 @@ void setup() {
 	}
 
 	ws.setup(&config, &mqtt);
+	timeClient.begin();
 
 #if HAS_RGB_LED
 	//Signal startup by blinking red / green / yellow
@@ -289,6 +295,8 @@ void loop() {
 	if(now > 10000 && now - lastErrorBlink > 3000) {
 		errorBlink();
 	}
+
+	timeClient.update();
 
 	// Only do normal stuff if we're not booted as AP
 	if (WiFi.getMode() != WIFI_AP) {
@@ -621,7 +629,7 @@ void MQTT_connect() {
 		if(Debug.isActive(RemoteDebug::WARNING)) debugW("No MQTT config");
 		return;
 	}
-	if(millis() - lastMqttRetry < 5000) {
+	if(millis() - lastMqttRetry < (mqtt.lastError() == 0 ? 5000 : 60000)) {
 		yield();
 		return;
 	}
@@ -633,79 +641,39 @@ void MQTT_connect() {
 	mqtt.disconnect();
 	yield();
 
+	WiFiClientSecure *secureClient;
 	Client *client;
 	if(config.isMqttSsl()) {
 		debugI("MQTT SSL is configured");
-		WiFiClientSecure *secureClient = new WiFiClientSecure();
 
-		bool spiffs = false;
-#if defined(ESP32)
-		debugD("ESP32 SPIFFS");
-		spiffs = SPIFFS.begin(true);
-#else
-		debugD("ESP8266 SPIFFS");
-		spiffs = SPIFFS.begin();
+		if(!timeClient.update()) debugW("NTP time is not ready");
+
+		secureClient = new WiFiClientSecure();
+#if defined(ESP8266)
+		secureClient->setBufferSizes(512, 512);
 #endif
 
-		bool caExists = false;
-		if(spiffs) {
+		if(SPIFFS.begin()) {
 			char *ca = NULL;
 			char *cert = NULL;
 			char *key = NULL;
-			if(SPIFFS.exists("/mqtt-ca.cer")) {
+
+			if(SPIFFS.exists(FILE_MQTT_CA)) {
 				debugI("Found MQTT CA file");
-				File file = SPIFFS.open("/mqtt-ca.cer", "r");
-				ca = new char[file.size()];
-				if (file.size() != file.readBytes(ca, file.size())) {
-					delete ca;
-					ca = NULL;
-				}
+				File file = SPIFFS.open(FILE_MQTT_CA, "r");
+				secureClient->loadCACert(file, file.size());
 			}
-			if(SPIFFS.exists("/mqtt-cert.cer")) {
+			if(SPIFFS.exists(FILE_MQTT_CERT)) {
 				debugI("Found MQTT certificate file");
-				File file = SPIFFS.open("/mqtt-cert.cer", "r");
-				cert = new char[file.size()];
-				if (file.size() != file.readBytes(cert, file.size())) {
-					delete cert;
-					cert = NULL;
-				}
+				File file = SPIFFS.open(FILE_MQTT_CERT, "r");
+				secureClient->loadCertificate(file, file.size());
 			}
-			if(SPIFFS.exists("/mqtt-key.cer")) {
+			if(SPIFFS.exists(FILE_MQTT_KEY)) {
 				debugI("Found MQTT key file");
-				File file = SPIFFS.open("/mqtt-key.cer", "r");
-				key = new char[file.size()];
-				if (file.size() != file.readBytes(key, file.size())) {
-					delete key;
-					key = NULL;
-				}
+				File file = SPIFFS.open(FILE_MQTT_KEY, "r");
+				secureClient->loadPrivateKey(file, file.size());
 			}
 			SPIFFS.end();
-			
-			if(ca) {
-#ifdef ESP32
-				secureClient->setCACert(ca);
-#else
-				secureClient->setTrustAnchors(new X509List(ca));
-				secureClient->allowSelfSignedCerts();
-#endif
-				caExists = true;
-			}
-			if(cert && key) {
-#ifdef ESP32
-				secureClient->setCertificate(cert);
-				secureClient->setPrivateKey(key);
-#else
-				secureClient->setClientRSACert(new X509List(cert), new PrivateKey(key));
-#endif
-			}
-		}
-		if(!caExists) {
-			debugW("No CA found, using insecure");
-#ifdef ESP32
-			// TODO
-#else
-			secureClient->setInsecure();
-#endif
 		}
 		client = secureClient;
 	} else {
@@ -713,6 +681,10 @@ void MQTT_connect() {
 	}
 
 	mqtt.begin(config.getMqttHost().c_str(), config.getMqttPort(), *client);
+
+#if defined(ESP8266)
+	if(secureClient) secureClient->setX509Time(timeClient.getEpochTime());
+#endif
 
 	// Connect to a unsecure or secure MQTT server
 	if ((config.getMqttUser().isEmpty() && mqtt.connect(config.getMqttClientId().c_str())) ||
@@ -732,9 +704,15 @@ void MQTT_connect() {
 			sendSystemStatusToMqtt();
 		}
 	} else {
-		lastMqttRetry = millis() + 30000;
 		if (Debug.isActive(RemoteDebug::ERROR)) {
-			debugI("Failed to connect to MQTT");
+			debugE("Failed to connect to MQTT");
+#if defined(ESP8266)
+			if(secureClient) {
+				char buf[256];
+  				secureClient->getLastSSLError(buf,256);
+				Debug.println(buf);
+			}
+#endif
 		}
 	}
 	yield();

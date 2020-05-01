@@ -52,6 +52,7 @@ public:
 	void setMqttSsl(bool mqttSsl);
 	void clearMqtt();
 
+	void setMqttChanged();
 	bool isMqttChanged();
 	void ackMqttChange();
 

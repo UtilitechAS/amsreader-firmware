@@ -203,7 +203,7 @@ int HanReader::getInt(int dataPosition, byte *buffer, int start, int length) {
 				return getUint8(dataPosition, buffer, start, length);
 			case 0x0F:
 				return getInt8(dataPosition, buffer, start, length);
-			case 0x12: 
+			case 0x12:
 				return getUint16(dataPosition, buffer, start, length);
 			case 0x10: 
 				return getInt16(dataPosition, buffer, start, length);

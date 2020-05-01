@@ -274,7 +274,7 @@ void AmsWebServer::configMqttHtml() {
 	html.replace("${config.mqttUser}", config->getMqttUser());
 	html.replace("${config.mqttPassword}", config->getMqttPassword());
 	html.replace("${config.mqttPayloadFormat}", String(config->getMqttPayloadFormat()));
-	for(int i = 0; i<2; i++) {
+	for(int i = 0; i<3; i++) {
 		html.replace("${config.mqttPayloadFormat" + String(i) + "}", config->getMqttPayloadFormat() == i ? "selected"  : "");
 	}
 

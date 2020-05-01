@@ -606,7 +606,7 @@ void readHanPort() {
 							//
 							i1 = data.getL1Current();
 							i2 = data.getL2Current();
-							i3 = data.getL2Current();
+							i3 = data.getL3Current();
 							Ampere3 = String(i1) + ";" + String(i2) + ";" + String(i3) ;
 							json_i1["command"] = "udevice";
 							json_i1["idx"] = idxi1;

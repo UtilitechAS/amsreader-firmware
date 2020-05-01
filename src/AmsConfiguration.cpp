@@ -160,6 +160,15 @@ void AmsConfiguration::setMqttPayloadFormat(int mqttPayloadFormat) {
 	this->mqttPayloadFormat = mqttPayloadFormat;
 }
 
+bool AmsConfiguration::isMqttSsl() {
+	return this->mqttSsl;
+}
+
+void AmsConfiguration::setMqttSsl(bool mqttSsl) {
+	mqttChanged |= this->mqttSsl != mqttSsl;
+	this->mqttSsl = mqttSsl;
+}
+
 void AmsConfiguration::clearMqtt() {
 	setMqttHost("");
 	setMqttPort(1883);
@@ -168,6 +177,10 @@ void AmsConfiguration::clearMqtt() {
 	setMqttSubscribeTopic("");
 	setMqttUser("");
 	setMqttPassword("");
+}
+
+void AmsConfiguration::setMqttChanged() {
+	mqttChanged = true;
 }
 
 bool AmsConfiguration::isMqttChanged() {
@@ -341,7 +354,7 @@ bool AmsConfiguration::hasConfig() {
 		case 75:
 		case 80:
 		case 81:
-		case 91:     // domoticz (based on 81) 		  
+		case 82:
 			return true;
 		default:
 			configVersion = 0;
@@ -374,8 +387,8 @@ bool AmsConfiguration::load() {
 		case 81:
 			success = loadConfig81(address);
 			break;
-		case 91:
-			success = loadConfig91(address);
+		case 82:
+			success = loadConfig82(address);
 			break;
 	}
 	EEPROM.end();
@@ -678,9 +691,9 @@ bool AmsConfiguration::loadConfig81(int address) {
 	return true;
 }
 //
-// domoticz (based on 81)
 //
-bool AmsConfiguration::loadConfig91(int address) {
+//
+bool AmsConfiguration::loadConfig82(int address) {
 	char* temp;
 
 	address += readString(address, &temp);
@@ -785,12 +798,105 @@ bool AmsConfiguration::loadConfig91(int address) {
 		int domoCL1IDX;
 		address += readInt(address, &domoCL1IDX);
 		setDomoCL1IDX(domoCL1IDX);
-		// address += readString(address, &temp);
-		// domoEnergy = String(temp).toDouble();
-		// setDomoEnergy(domoEnergy);
+		
 	} else {
 		clearDomo();
 	}
+
+	ackWifiChange();
+
+	return true;
+}
+
+bool AmsConfiguration::loadConfig82(int address) {
+	char* temp;
+
+	address += readString(address, &temp);
+	setWifiSsid(temp);
+	address += readString(address, &temp);
+	setWifiPassword(temp);
+
+	bool staticIp = false;
+	address += readBool(address, &staticIp);
+	if(staticIp) {
+		address += readString(address, &temp);
+		setWifiIp(temp);
+		address += readString(address, &temp);
+		setWifiGw(temp);
+		address += readString(address, &temp);
+		setWifiSubnet(temp);
+		address += readString(address, &temp);
+		setWifiDns1(temp);
+		address += readString(address, &temp);
+		setWifiDns2(temp);
+	}
+	address += readString(address, &temp);
+	setWifiHostname(temp);
+	bool mqtt = false;
+	address += readBool(address, &mqtt);
+	if(mqtt) {
+		address += readString(address, &temp);
+		setMqttHost(temp);
+		int port;
+		address += readInt(address, &port);
+		setMqttPort(port);
+		address += readString(address, &temp);
+		setMqttClientId(temp);
+		address += readString(address, &temp);
+		setMqttPublishTopic(temp);
+		address += readString(address, &temp);
+		setMqttSubscribeTopic(temp);
+
+		bool secure = false;
+		address += readBool(address, &secure);
+		if (secure)
+		{
+			address += readString(address, &temp);
+			setMqttUser(temp);
+			address += readString(address, &temp);
+			setMqttPassword(temp);
+		} else {
+			setMqttUser("");
+			setMqttPassword("");
+		}
+		int payloadFormat;
+		address += readInt(address, &payloadFormat);
+		setMqttPayloadFormat(payloadFormat);
+		bool ssl = false;
+		address += readBool(address, &ssl);
+		setMqttSsl(ssl);
+	} else {
+		clearMqtt();
+	}
+
+	address += readByte(address, &authSecurity);
+	if (authSecurity > 0) {
+		address += readString(address, &temp);
+		setAuthUser(temp);
+		address += readString(address, &temp);
+		setAuthPassword(temp);
+	} else {
+		clearAuth();
+	}
+
+	int i;
+	address += readInt(address, &i);
+	setMeterType(i);
+	address += readInt(address, &i);
+	setDistributionSystem(i);
+	address += readInt(address, &i);
+	setMainFuse(i);
+	address += readInt(address, &i);
+	setProductionCapacity(i);
+
+	bool debugTelnet = false;
+	address += readBool(address, &debugTelnet);
+	setDebugTelnet(debugTelnet);
+	bool debugSerial = false;
+	address += readBool(address, &debugSerial);
+	setDebugSerial(debugSerial);
+	address += readInt(address, &i);
+	setDebugLevel(i);
 
 	ackWifiChange();
 
@@ -832,6 +938,7 @@ bool AmsConfiguration::save() {
 			address += saveBool(address, false);
 		}
 		address += saveInt(address, mqttPayloadFormat);
+		address += saveBool(address, mqttSsl);
 	} else {
 		address += saveBool(address, false);
 	}
@@ -860,7 +967,6 @@ bool AmsConfiguration::save() {
 		address += saveInt(address, domoVL2IDX);
 		address += saveInt(address, domoVL3IDX);
 		address += saveInt(address, domoCL1IDX);
-		//address += saveString(address, String(domoEnergy).c_str());	
 	} else {
 		address += saveBool(address, false);
 	}

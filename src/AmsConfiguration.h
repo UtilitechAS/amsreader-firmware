@@ -48,8 +48,11 @@ public:
 	void setMqttPassword(String mqttPassword);
 	int getMqttPayloadFormat();
 	void setMqttPayloadFormat(int mqttPayloadFormat);
+	bool isMqttSsl();
+	void setMqttSsl(bool mqttSsl);
 	void clearMqtt();
 
+	void setMqttChanged();
 	bool isMqttChanged();
 	void ackMqttChange();
 
@@ -121,6 +124,7 @@ private:
 	String mqttUser;
 	String mqttPassword;
 	int mqttPayloadFormat = 0;
+	bool mqttSsl;
 	bool mqttChanged = false;
 
 	byte authSecurity;
@@ -144,15 +148,14 @@ private:
 	bool domoChanged;
 
 	const int EEPROM_SIZE = 512;
-	const int EEPROM_CHECK_SUM = 91; // Used to check if config is stored. Change if structure changes
+	const int EEPROM_CHECK_SUM = 82; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 
 	bool loadConfig72(int address);
 	bool loadConfig75(int address);
 	bool loadConfig80(int address);
 	bool loadConfig81(int address);
- 	bool loadConfig91(int address);    // domoticz
-
+	bool loadConfig82(int address);
 
 	int saveString(int pAddress, const char* pString);
 	int readString(int pAddress, char* pString[]);

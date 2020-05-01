@@ -57,8 +57,9 @@
                         <div class="col-8">
                             <select class="form-control mqtt-config" name="mqttPayloadFormat">
                                 <option value="0" ${config.mqttPayloadFormat0}>JSON</option>
-                                <option value="1" ${config.mqttPayloadFormat1}>Raw</option>
-                                <option value="2" ${config.mqttPayloadFormat2}>Domoticz</option>
+                                <option value="1" ${config.mqttPayloadFormat1}>Raw (minimal)</option>
+                                <option value="2" ${config.mqttPayloadFormat2}>Raw (full)</option>
+                                <option value="3" ${config.mqttPayloadFormat3}>Domoticz</option>
                             </select>
                         </div>
                     </div>
@@ -102,6 +103,55 @@
                         <label class="col-4">Password</label>
                         <div class="col-8">
                             <input type="password" class="form-control mqtt-config" name="mqttPassword" value="${config.mqttPassword}"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="row form-group">
+                        <label class="col-4">SSL</label>
+                        <div class="col-8">
+                            <input id="mqttSsl" type="checkbox" name="mqttSsl" value="true" ${config.mqttSsl}/>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mqtt-ssl-config">
+                    <div class="row form-group">
+                        <label class="col-4">CA</label>
+                        <div class="col-8">
+                            <span style="display: ${display.ca.upload};">
+                                <a href="/mqtt-ca" class="btn btn-sm btn-outline-secondary">Upload</a>
+                            </span>
+                            <span style="display: ${display.ca.file};">
+                                <a href="/mqtt-ca" class="btn btn-sm btn-danger">Delete</a>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mqtt-ssl-config">
+                    <div class="row form-group">
+                        <label class="col-6">Certificate</label>
+                        <div class="col-6">
+                            <span style="display: ${display.cert.upload};">
+                                <a href="/mqtt-cert" class="btn btn-sm btn-outline-secondary">Upload</a>
+                            </span>
+                            <span style="display: ${display.cert.file};">
+                                <a href="/mqtt-cert" class="btn btn-sm btn-danger">Delete</a>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3 mqtt-ssl-config">
+                    <div class="row form-group">
+                        <label class="col-6">Private key</label>
+                        <div class="col-6">
+                            <span style="display: ${display.key.upload};">
+                                <a href="/mqtt-key" class="btn btn-sm btn-outline-secondary">Upload</a>
+                            </span>
+                            <span style="display: ${display.key.file};">
+                                <a href="/mqtt-key" class="btn btn-sm btn-danger">Delete</a>
+                            </span>
                         </div>
                     </div>
                 </div>

@@ -17,10 +17,12 @@
  */
 
 #include "AmsToMqttBridge.h"
+#include "AmsStorage.h"
 #define ARDUINOJSON_POSITIVE_EXPONENTIATION_THRESHOLD 1e9
 #include <ArduinoJson.h>
 #include <MQTT.h>
 #include <DNSServer.h>
+#include <NTPClient.h>
 
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);  
@@ -46,13 +48,15 @@ HwTools hw;
 
 DNSServer dnsServer;
 
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 3600, 60000);
+
 AmsConfiguration config;
 
 RemoteDebug Debug;
 
 AmsWebServer ws(&Debug);
 
-WiFiClient *client;
 MQTTClient mqtt(512);
 
 HanReader hanReader;
@@ -122,7 +126,7 @@ void setup() {
 
 	if(spiffs) {
 		bool flashed = false;
-		if(SPIFFS.exists("/firmware.bin")) {
+		if(SPIFFS.exists(FILE_FIRMWARE)) {
 			if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
 #if defined(ESP8266)
 			WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
@@ -141,7 +145,7 @@ void setup() {
 			}
 
 			if(Debug.isActive(RemoteDebug::INFO)) debugI(" flashing");
-			File firmwareFile = SPIFFS.open("/firmware.bin", "r");
+			File firmwareFile = SPIFFS.open(FILE_FIRMWARE, "r");
 			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 			if (!Update.begin(maxSketchSpace, U_FLASH)) {
 				if(Debug.isActive(RemoteDebug::ERROR)) {
@@ -157,7 +161,7 @@ void setup() {
 				flashed = Update.end(true);
 			}
 			firmwareFile.close();
-			SPIFFS.remove("/firmware.bin");
+			SPIFFS.remove(FILE_FIRMWARE);
 		}
 		SPIFFS.end();
 		if(flashed) {
@@ -188,7 +192,6 @@ void setup() {
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
 		WiFi_connect();
-		client = new WiFiClient();
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("No configuration, booting AP");
@@ -229,6 +232,7 @@ void setup() {
 	}
 
 	ws.setup(&config, &mqtt);
+	timeClient.begin();
 
 #if HAS_RGB_LED
 	//Signal startup by blinking red / green / yellow
@@ -294,6 +298,8 @@ void loop() {
 	if(now > 10000 && now - lastErrorBlink > 3000) {
 		errorBlink();
 	}
+
+	timeClient.update();
 
 	// Only do normal stuff if we're not booted as AP
 	if (WiFi.getMode() != WIFI_AP) {
@@ -468,7 +474,7 @@ void readHanPort() {
 					// 
 					// Start DOMOTICZ
 					//
-					} else if(config.getMqttPayloadFormat() == 2) {
+					} else if(config.getMqttPayloadFormat() == 3) {
 						StaticJsonDocument<512> json;
 						hanToJson(json, data, hw, temperature);
 						if (Debug.isActive(RemoteDebug::INFO)) {
@@ -613,7 +619,7 @@ void readHanPort() {
 						//
 						// End DOMOTICZ
 						//
-					} else if(config.getMqttPayloadFormat() == 1) {
+						} else if(config.getMqttPayloadFormat() == 1 || config.getMqttPayloadFormat() == 2) {
 						mqtt.publish(config.getMqttPublishTopic() + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
 						switch(data.getListType()) {
 							case 3:
@@ -627,41 +633,41 @@ void readHanPort() {
 								mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
 							case 2:
 								// Only send data if changed. ID and Type is sent on the 10s interval only if changed
-								if(lastMqttData.getMeterId() != data.getMeterId()) {
+								if(lastMqttData.getMeterId() != data.getMeterId() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/id", data.getMeterId());
 								}
-								if(lastMqttData.getMeterType() != data.getMeterType()) {
+								if(lastMqttData.getMeterType() != data.getMeterType() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/type", data.getMeterType());
 								}
-								if(lastMqttData.getL1Current() != data.getL1Current()) {
+								if(lastMqttData.getL1Current() != data.getL1Current() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/current", String(data.getL1Current(), 2));
 								}
-								if(lastMqttData.getL1Voltage() != data.getL1Voltage()) {
+								if(lastMqttData.getL1Voltage() != data.getL1Voltage() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/voltage", String(data.getL1Voltage(), 2));
 								}
-								if(lastMqttData.getL2Current() != data.getL2Current()) {
+								if(lastMqttData.getL2Current() != data.getL2Current() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/current", String(data.getL2Current(), 2));
 								}
-								if(lastMqttData.getL2Voltage() != data.getL2Voltage()) {
+								if(lastMqttData.getL2Voltage() != data.getL2Voltage() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/voltage", String(data.getL2Voltage(), 2));
 								}
-								if(lastMqttData.getL3Current() != data.getL3Current()) {
+								if(lastMqttData.getL3Current() != data.getL3Current() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/current", String(data.getL3Current(), 2));
 								}
-								if(lastMqttData.getL3Voltage() != data.getL3Voltage()) {
+								if(lastMqttData.getL3Voltage() != data.getL3Voltage() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/voltage", String(data.getL3Voltage(), 2));
 								}
-								if(lastMqttData.getReactiveExportPower() != data.getReactiveExportPower()) {
+								if(lastMqttData.getReactiveExportPower() != data.getReactiveExportPower() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/export/reactive", String(data.getReactiveExportPower()));
 								}
-								if(lastMqttData.getActiveExportPower() != data.getActiveExportPower()) {
+								if(lastMqttData.getActiveExportPower() != data.getActiveExportPower() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active", String(data.getActiveExportPower()));
 								}
-								if(lastMqttData.getReactiveImportPower() != data.getReactiveImportPower()) {
+								if(lastMqttData.getReactiveImportPower() != data.getReactiveImportPower() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/import/reactive", String(data.getReactiveImportPower()));
 								}
 							case 1:
-								if(lastMqttData.getActiveImportPower() != data.getActiveImportPower()) {
+								if(lastMqttData.getActiveImportPower() != data.getActiveImportPower() || config.getMqttPayloadFormat() == 2) {
 									mqtt.publish(config.getMqttPublishTopic() + "/meter/import/active", String(data.getActiveImportPower()));
 								}
 						}
@@ -774,7 +780,7 @@ void MQTT_connect() {
 		if(Debug.isActive(RemoteDebug::WARNING)) debugW("No MQTT config");
 		return;
 	}
-	if(millis() - lastMqttRetry < 5000) {
+	if(millis() - lastMqttRetry < (mqtt.lastError() == 0 ? 5000 : 60000)) {
 		yield();
 		return;
 	}
@@ -786,7 +792,50 @@ void MQTT_connect() {
 	mqtt.disconnect();
 	yield();
 
+	WiFiClientSecure *secureClient;
+	Client *client;
+	if(config.isMqttSsl()) {
+		debugI("MQTT SSL is configured");
+
+		if(!timeClient.update()) debugW("NTP time is not ready");
+
+		secureClient = new WiFiClientSecure();
+#if defined(ESP8266)
+		secureClient->setBufferSizes(512, 512);
+#endif
+
+		if(SPIFFS.begin()) {
+			char *ca = NULL;
+			char *cert = NULL;
+			char *key = NULL;
+
+			if(SPIFFS.exists(FILE_MQTT_CA)) {
+				debugI("Found MQTT CA file");
+				File file = SPIFFS.open(FILE_MQTT_CA, "r");
+				secureClient->loadCACert(file, file.size());
+			}
+			if(SPIFFS.exists(FILE_MQTT_CERT)) {
+				debugI("Found MQTT certificate file");
+				File file = SPIFFS.open(FILE_MQTT_CERT, "r");
+				secureClient->loadCertificate(file, file.size());
+			}
+			if(SPIFFS.exists(FILE_MQTT_KEY)) {
+				debugI("Found MQTT key file");
+				File file = SPIFFS.open(FILE_MQTT_KEY, "r");
+				secureClient->loadPrivateKey(file, file.size());
+			}
+			SPIFFS.end();
+		}
+		client = secureClient;
+	} else {
+		client = new WiFiClient();
+	}
+
 	mqtt.begin(config.getMqttHost().c_str(), config.getMqttPort(), *client);
+
+#if defined(ESP8266)
+	if(secureClient) secureClient->setX509Time(timeClient.getEpochTime());
+#endif
 
 	// Connect to a unsecure or secure MQTT server
 	if ((config.getMqttUser().isEmpty() && mqtt.connect(config.getMqttClientId().c_str())) ||
@@ -807,7 +856,14 @@ void MQTT_connect() {
 		}
 	} else {
 		if (Debug.isActive(RemoteDebug::ERROR)) {
-			debugI("Failed to connect to MQTT");
+			debugE("Failed to connect to MQTT");
+#if defined(ESP8266)
+			if(secureClient) {
+				char buf[256];
+  				secureClient->getLastSSLError(buf,256);
+				Debug.println(buf);
+			}
+#endif
 		}
 	}
 	yield();

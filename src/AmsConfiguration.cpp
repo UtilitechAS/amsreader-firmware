@@ -683,126 +683,6 @@ bool AmsConfiguration::loadConfig81(int address) {
 	address += readInt(address, &i);
 	setDebugLevel(i);
 
-	bool domo = false;
-	address += readBool(address, &domo);
-
-	ackWifiChange();
-
-	return true;
-}
-//
-//
-//
-bool AmsConfiguration::loadConfig82(int address) {
-	char* temp;
-
-	address += readString(address, &temp);
-	setWifiSsid(temp);
-	address += readString(address, &temp);
-	setWifiPassword(temp);
-
-	bool staticIp = false;
-	address += readBool(address, &staticIp);
-	if(staticIp) {
-		address += readString(address, &temp);
-		setWifiIp(temp);
-		address += readString(address, &temp);
-		setWifiGw(temp);
-		address += readString(address, &temp);
-		setWifiSubnet(temp);
-		address += readString(address, &temp);
-		setWifiDns1(temp);
-		address += readString(address, &temp);
-		setWifiDns2(temp);
-	}
-	address += readString(address, &temp);
-	setWifiHostname(temp);
-	bool mqtt = false;
-	address += readBool(address, &mqtt);
-	if(mqtt) {
-		address += readString(address, &temp);
-		setMqttHost(temp);
-		int port;
-		address += readInt(address, &port);
-		setMqttPort(port);
-		address += readString(address, &temp);
-		setMqttClientId(temp);
-		address += readString(address, &temp);
-		setMqttPublishTopic(temp);
-		address += readString(address, &temp);
-		setMqttSubscribeTopic(temp);
-
-		bool secure = false;
-		address += readBool(address, &secure);
-		if (secure)
-		{
-			address += readString(address, &temp);
-			setMqttUser(temp);
-			address += readString(address, &temp);
-			setMqttPassword(temp);
-		} else {
-			setMqttUser("");
-			setMqttPassword("");
-		}
-		int payloadFormat;
-		address += readInt(address, &payloadFormat);
-		setMqttPayloadFormat(payloadFormat);
-	} else {
-		clearMqtt();
-	}
-
-	address += readByte(address, &authSecurity);
-	if (authSecurity > 0) {
-		address += readString(address, &temp);
-		setAuthUser(temp);
-		address += readString(address, &temp);
-		setAuthPassword(temp);
-	} else {
-		clearAuth();
-	}
-
-	int i;
-	address += readInt(address, &i);
-	setMeterType(i);
-	address += readInt(address, &i);
-	setDistributionSystem(i);
-	address += readInt(address, &i);
-	setMainFuse(i);
-	address += readInt(address, &i);
-	setProductionCapacity(i);
-
-	bool debugTelnet = false;
-	address += readBool(address, &debugTelnet);
-	setDebugTelnet(debugTelnet);
-	bool debugSerial = false;
-	address += readBool(address, &debugSerial);
-	setDebugSerial(debugSerial);
-	address += readInt(address, &i);
-	setDebugLevel(i);
-
-	bool domo = false;
-	address += readBool(address, &domo);
-	if(domo) {
-		int domoELIDX;
-		address += readInt(address, &domoELIDX);
-		setDomoELIDX(domoELIDX);
-		int domoVL1IDX;
-		address += readInt(address, &domoVL1IDX);
-		setDomoVL1IDX(domoVL1IDX);
-		int domoVL2IDX;
-		address += readInt(address, &domoVL2IDX);
-		setDomoVL2IDX(domoVL2IDX);
-		int domoVL3IDX;
-		address += readInt(address, &domoVL3IDX);
-		setDomoVL3IDX(domoVL3IDX);
-		int domoCL1IDX;
-		address += readInt(address, &domoCL1IDX);
-		setDomoCL1IDX(domoCL1IDX);
-		
-	} else {
-		clearDomo();
-	}
-
 	ackWifiChange();
 
 	return true;
@@ -898,6 +778,29 @@ bool AmsConfiguration::loadConfig82(int address) {
 	address += readInt(address, &i);
 	setDebugLevel(i);
 
+	bool domo = false;
+	address += readBool(address, &domo);
+	if(domo) {
+		int domoELIDX;
+		address += readInt(address, &domoELIDX);
+		setDomoELIDX(domoELIDX);
+		int domoVL1IDX;
+		address += readInt(address, &domoVL1IDX);
+		setDomoVL1IDX(domoVL1IDX);
+		int domoVL2IDX;
+		address += readInt(address, &domoVL2IDX);
+		setDomoVL2IDX(domoVL2IDX);
+		int domoVL3IDX;
+		address += readInt(address, &domoVL3IDX);
+		setDomoVL3IDX(domoVL3IDX);
+		int domoCL1IDX;
+		address += readInt(address, &domoCL1IDX);
+		setDomoCL1IDX(domoCL1IDX);
+		
+	} else {
+		clearDomo();
+	}
+	
 	ackWifiChange();
 
 	return true;

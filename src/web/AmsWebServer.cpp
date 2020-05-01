@@ -276,7 +276,7 @@ void AmsWebServer::configMqttHtml() {
 	html.replace("${config.mqttUser}", config->getMqttUser());
 	html.replace("${config.mqttPassword}", config->getMqttPassword());
 	html.replace("${config.mqttPayloadFormat}", String(config->getMqttPayloadFormat()));
-	for(int i = 0; i<3; i++) {
+	for(int i = 0; i<4; i++) {
 		html.replace("${config.mqttPayloadFormat" + String(i) + "}", config->getMqttPayloadFormat() == i ? "selected"  : "");
 	}
 
@@ -520,7 +520,7 @@ void AmsWebServer::dataJson() {
 	String domoStatus;
 	if(String(config->getDomoELIDX()).isEmpty()) {
 		domoStatus = "secondary";
-	} else if(mqtt->connected() && config->getMqttPayloadFormat() == 2 && config->getDomoELIDX() > 0) {
+	} else if(mqtt->connected() && config->getMqttPayloadFormat() == 3 && config->getDomoELIDX() > 0) {
 		domoStatus = "success";
 	} else if(mqtt->lastError() == 0) {
 		domoStatus = "warning";

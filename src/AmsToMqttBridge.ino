@@ -475,6 +475,9 @@ void readHanPort() {
 					// Start DOMOTICZ
 					//
 					} else if(config.getMqttPayloadFormat() == 3) {
+						//
+						// This part is also publishing standard json message for now. May be removed. 
+						//
 						StaticJsonDocument<512> json;
 						hanToJson(json, data, hw, temperature);
 						if (Debug.isActive(RemoteDebug::INFO)) {
@@ -485,7 +488,7 @@ void readHanPort() {
 						}
 						String msg;
 						serializeJson(json, msg);
-						mqtt.publish(config.getMqttPublishTopic(), msg.c_str());     // keep for now...
+						mqtt.publish(config.getMqttPublishTopic(), msg.c_str());     // keep for now, this is identical to option 0.
 						//
 						// Special MQTT messages for DOMOTIZ (https://www.domoticz.com/wiki/MQTT)
 						// -All messages should be published to topic "domoticz/in"
@@ -510,16 +513,15 @@ void readHanPort() {
 						//  
 			
 						int idx1 = config.getDomoELIDX();
-						// TODO, this should be configurable....  
 						if (idx1 > 0) {
 							String PowerEnergy;
 							int p;
 							// double energy = config.getDomoEnergy();
 							double tmp_energy;
 							StaticJsonDocument<200> json_PE;
-							p = json["data"]["P"].as<int>();
+							p = data.getActiveImportPower();
 							// cumulative energy is given only once pr hour. check if value is different from 0 and store last valid value on global variable.
-							tmp_energy = json["data"]["tPI"].as<double>();
+							tmp_energy = data.getActiveImportCounter();
 							if (tmp_energy > 1.0) energy = tmp_energy;		
 							//  power_unit: watt, energy_unit: watt*h. Stored as kwh, need watth
 							PowerEnergy = String((double) p/1.0) + ";" + String((double) energy*1000.0) ;
@@ -540,7 +542,7 @@ void readHanPort() {
 							//
 							// prepare message msg_u1 for virtual Voltage meter"
 							//
-							u1 = json["data"]["U1"].as<double>();
+							u1 = data.getL1Voltage();
 							if (u1 > 0.1){ 
 								json_u1["command"] = "udevice";
 								json_u1["idx"] = idxu1;
@@ -560,7 +562,7 @@ void readHanPort() {
 							//
 							// prepare message msg_u2 for virtual Voltage meter"
 							//
-							u2 = json["data"]["U2"].as<double>();
+							u2 = data.getL2Voltage();
 							if (u2 > 0.1){ 
 								json_u2["command"] = "udevice";
 								json_u2["idx"] = idxu2;
@@ -580,7 +582,7 @@ void readHanPort() {
 							//
 							// prepare message msg_u3 for virtual Voltage meter"
 							//
-							u3 = json["data"]["U3"].as<double>();
+							u3 = data.getL3Voltage();
 							if (u3 > 0.1){ 
 								json_u3["command"] = "udevice";
 								json_u3["idx"] = idxu3;
@@ -602,9 +604,9 @@ void readHanPort() {
 							//
 							// prepare message msg_i1 for virtual Current/Ampere 3phase mater"
 							//
-							i1 = json["data"]["I1"].as<double>();
-							i2 = json["data"]["I2"].as<double>();
-							i3 = json["data"]["I3"].as<double>();
+							i1 = data.getL1Current();
+							i2 = data.getL2Current();
+							i3 = data.getL2Current();
 							Ampere3 = String(i1) + ";" + String(i2) + ";" + String(i3) ;
 							json_i1["command"] = "udevice";
 							json_i1["idx"] = idxi1;

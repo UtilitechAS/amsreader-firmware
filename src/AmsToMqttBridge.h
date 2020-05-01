@@ -59,7 +59,7 @@ HardwareSerial *hanSerial = &Serial2;
 
 // Build settings for AZ-Delivery ESP-32 DevKitC V4 and DOIT DevKit V1
 #elif defined(ARDUINO_ESP32_DEV)
-#define LED_PIN 4                        // external 2 for V4 , 2 for doit v1   
+#define LED_PIN 2                        // external 2 for V4 , 2 for doit v1   
 #define LED_ACTIVE_HIGH 1
 #define AP_BUTTON_PIN 0
 

@@ -442,11 +442,11 @@ void AmsConfiguration::setVccPin(uint8_t vccPin) {
 }
 
 double AmsConfiguration::getVccMultiplier() {
-	return config.vccMultiplier / 100.0;
+	return config.vccMultiplier / 1000.0;
 }
 
 void AmsConfiguration::setVccMultiplier(double vccMultiplier) {
-	config.vccMultiplier = max(0.01, min(vccMultiplier, 655.5)) * 100;
+	config.vccMultiplier = max(1, min((int) (vccMultiplier * 1000), 65535));
 }
 
 double AmsConfiguration::getVccBootLimit() {
@@ -803,9 +803,11 @@ void AmsConfiguration::print(Print* debugger)
 
 	debugger->printf("HAN pin:              %i\r\n", this->getHanPin());
 	debugger->printf("LED pin:              %i\r\n", this->getLedPin());
+	debugger->printf("LED inverted:         %s\r\n", this->isLedInverted() ? "Yes" : "No");
 	debugger->printf("LED red pin:          %i\r\n", this->getLedPinRed());
 	debugger->printf("LED green pin:        %i\r\n", this->getLedPinGreen());
 	debugger->printf("LED blue pin:         %i\r\n", this->getLedPinBlue());
+	debugger->printf("LED inverted:         %s\r\n", this->isLedRgbInverted() ? "Yes" : "No");
 	debugger->printf("AP pin:               %i\r\n", this->getApPin());
 	debugger->printf("Temperature pin:      %i\r\n", this->getTempSensorPin());
 

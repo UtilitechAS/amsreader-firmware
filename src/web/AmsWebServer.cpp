@@ -701,17 +701,17 @@ void AmsWebServer::handleSave() {
 
 	if(server.hasArg("sysConfig") && server.arg("sysConfig") == "true") {
 		config->setHanPin(server.arg("hanPin").toInt());
-		config->setLedPin(server.arg("ledPin").toInt());
+		config->setLedPin(server.hasArg("ledPin") && !server.arg("ledPin").isEmpty() ? server.arg("ledPin").toInt() : 0xFF);
 		config->setLedInverted(server.hasArg("ledInverted") && server.arg("ledInverted") == "true");
-		config->setLedPinRed(server.arg("ledPinRed").toInt());
-		config->setLedPinGreen(server.arg("ledPinGreen").toInt());
-		config->setLedPinBlue(server.arg("ledPinBlue").toInt());
+		config->setLedPinRed(server.hasArg("ledPinRed") && !server.arg("ledPinRed").isEmpty() ? server.arg("ledPinRed").toInt() : 0xFF);
+		config->setLedPinGreen(server.hasArg("ledPinGreen") && !server.arg("ledPinGreen").isEmpty() ? server.arg("ledPinGreen").toInt() : 0xFF);
+		config->setLedPinBlue(server.hasArg("ledPinBlue") && !server.arg("ledPinBlue").isEmpty() ? server.arg("ledPinBlue").toInt() : 0xFF);
 		config->setLedRgbInverted(server.hasArg("ledRgbInverted") && server.arg("ledRgbInverted") == "true");
-		config->setApPin(server.arg("apPin").toInt());
-		config->setTempSensorPin(server.arg("tempSensorPin").toInt());
-		config->setVccPin(server.arg("vccPin").toInt());
-		config->setVccMultiplier(server.arg("vccMultiplier").toDouble());
-		config->setVccBootLimit(server.arg("vccBootLimit").toDouble());
+		config->setApPin(server.hasArg("apPin") && !server.arg("apPin").isEmpty() ? server.arg("apPin").toInt() : 0xFF);
+		config->setTempSensorPin(server.hasArg("tempSensorPin") && !server.arg("tempSensorPin").isEmpty() ?server.arg("tempSensorPin").toInt() : 0xFF);
+		config->setVccPin(server.hasArg("vccPin") && !server.arg("vccPin").isEmpty() ? server.arg("vccPin").toInt() : 0xFF);
+		config->setVccMultiplier(server.hasArg("vccMultiplier") && !server.arg("vccMultiplier").isEmpty() ? server.arg("vccMultiplier").toDouble() : 1.0);
+		config->setVccBootLimit(server.hasArg("vccBootLimit") && !server.arg("vccBootLimit").isEmpty() ? server.arg("vccBootLimit").toDouble() : 0.0);
 
 		config->setDebugTelnet(server.hasArg("debugTelnet") && server.arg("debugTelnet") == "true");
 		config->setDebugSerial(server.hasArg("debugSerial") && server.arg("debugSerial") == "true");
@@ -774,17 +774,17 @@ void AmsWebServer::configSystemHtml() {
 	html.replace("${options.han}", getSerialSelectOptions(config->getHanPin()));
 
 	html.replace("${config.ledPin}", config->getLedPin() == 0xFF ? "" : String(config->getLedPin()));
-	html.replace("${config.ledInverted}", String(config->isLedInverted()) ? "checked" : "");
+	html.replace("${config.ledInverted}", config->isLedInverted() ? "checked" : "");
 	html.replace("${config.ledPinRed}", config->getLedPinRed() == 0xFF ? "" : String(config->getLedPinRed()));
 	html.replace("${config.ledPinGreen}", config->getLedPinGreen() == 0xFF ? "" : String(config->getLedPinGreen()));
 	html.replace("${config.ledPinBlue}", config->getLedPinBlue() == 0xFF ? "" : String(config->getLedPinBlue()));
-	html.replace("${config.ledRgbInverted}", String(config->isLedRgbInverted() ? "checked" : ""));
+	html.replace("${config.ledRgbInverted}", config->isLedRgbInverted() ? "checked" : "");
 	html.replace("${config.apPin}", config->getApPin() == 0xFF ? "" : String(config->getApPin()));
 	html.replace("${config.tempSensorPin}", config->getTempSensorPin() == 0xFF ? "" : String(config->getTempSensorPin()));
 	html.replace("${config.vccPin}", config->getVccPin() == 0xFF ? "" : String(config->getVccPin()));
 
-	html.replace("${config.vccMultiplier}", config->getVccMultiplier() > 0 ? String(config->getVccMultiplier()) : "");
-	html.replace("${config.vccBootLimit}", config->getVccBootLimit() > 0.0 ? String(config->getVccBootLimit()) : "");
+	html.replace("${config.vccMultiplier}", config->getVccMultiplier() > 0 ? String(config->getVccMultiplier(), 2) : "");
+	html.replace("${config.vccBootLimit}", config->getVccBootLimit() > 0.0 ? String(config->getVccBootLimit(), 1) : "");
 
 	html.replace("${config.debugTelnet}", config->isDebugTelnet() ? "checked" : "");
 	html.replace("${config.debugSerial}", config->isDebugSerial() ? "checked" : "");

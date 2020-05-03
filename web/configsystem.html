@@ -61,7 +61,7 @@
                         <input name="ledPin" type="number" min="2" max="${gpio.max}" class="form-control" value="${config.ledPin}"/>
                         <div class="input-group-append" title="Inverted">
                             <label class="input-group-text">
-                                <input type="checkbox" name="ledInverted" ${config.ledInverted}/> inv
+                                <input type="checkbox" name="ledInverted" value="true" ${config.ledInverted}/> inv
                             </label>
                         </div>
                     </div>
@@ -76,7 +76,7 @@
                         <input name="ledPinBlue" type="number" min="2" max="${gpio.max}" class="form-control" value="${config.ledPinBlue}"/>
                         <div class="input-group-append" title="Inverted">
                             <label class="input-group-text">
-                                <input type="checkbox" name="ledRgbInverted" ${config.ledRgbInverted}/> inv
+                                <input type="checkbox" name="ledRgbInverted" value="true" ${config.ledRgbInverted}/> inv
                             </label>
                         </div>
                     </div>

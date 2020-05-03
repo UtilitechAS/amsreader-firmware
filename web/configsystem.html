@@ -4,7 +4,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AMS reader - System configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" type="text/css" href="boot.css"/>
     <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"/>
 </head>
 <body class="bg-light">
@@ -38,10 +37,97 @@
             </li>
         </ul>
     </header>
+    <div class="alert alert-warning">!!WARNING!!<br/>Do not change anything here unless you know exactly what you are doing! Changing things here coulds cause the device to stop responding</div>
     <form method="post" action="/save">
         <input type="hidden" name="sysConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
-            <div class="alert alert-warning">!!WARNING!!<br/>Remote debugging is considered insecure and should not be left enabled when not debugging</div>
+            <h6>GPIO settings</h6>
+            <div class="row">
+                <div class="col-xl-2 col-md-3 col-sm-6 col-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">HAN</span>
+                        </div>
+                        <select name="hanPin" class="form-control">
+                            ${options.han}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-5 col-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">LED</span>
+                        </div>
+                        <input name="ledPin" type="number" min="2" max="${gpio.max}" class="form-control" value="${config.ledPin}"/>
+                        <div class="input-group-append" title="Inverted">
+                            <label class="input-group-text">
+                                <input type="checkbox" name="ledInverted" ${config.ledInverted}/> inv
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">RGB</span>
+                        </div>
+                        <input name="ledPinRed" type="number" min="2" max="${gpio.max}" class="form-control" value="${config.ledPinRed}"/>
+                        <input name="ledPinGreen" type="number" min="2" max="${gpio.max}" class="form-control" value="${config.ledPinGreen}"/>
+                        <input name="ledPinBlue" type="number" min="2" max="${gpio.max}" class="form-control" value="${config.ledPinBlue}"/>
+                        <div class="input-group-append" title="Inverted">
+                            <label class="input-group-text">
+                                <input type="checkbox" name="ledRgbInverted" ${config.ledRgbInverted}/> inv
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2 col-md-3 col-sm-6 col-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">AP button</span>
+                        </div>
+                        <input name="apPin" type="number" min="0" max="${gpio.max}" class="form-control" value="${config.apPin}"/>
+                    </div>
+                </div>
+                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Temperature</span>
+                        </div>
+                        <input name="tempSensorPin" type="number" min="0" max="${gpio.max}" class="form-control" value="${config.tempSensorPin}"/>
+                    </div>
+                </div>
+                <div class="col-xl-6 col-lg-8">
+                    <div class="row p-2">
+                        <div class="col-sm-3 col-5">
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Vcc</span>
+                                </div>
+                                <input name="vccPin" type="number" min="0" max="${gpio.max}" class="form-control" value="${config.vccPin}"/>
+                            </div>
+                        </div>
+                        <div class="col-sm-4 col-7">
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Multiplier</span>
+                                </div>
+                                <input type="number" min="0.1" max="10" step="0.01" class="form-control" name="vccMultiplier" value="${config.vccMultiplier}" />
+                            </div>
+                        </div>
+                        <div class="col-sm-4 col-7">
+                            <div class="input-group input-group-sm">
+                                <div class="input-group-prepend">
+                                    <span class="input-group-text">Boot limit</span>
+                                </div>
+                                <input type="number" min="2.5" max="3.5" step="0.1" class="form-control" name="vccBootLimit" value="${config.vccBootLimit}" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="my-3 p-3 bg-white rounded shadow">
             <div class="row">
                 <div class="col-md-3">
                     <label><input type="checkbox" name="debugTelnet" value="true" ${config.debugTelnet}/> Telnet debugger</label>
@@ -62,29 +148,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-1 text-right">
-                    <button class="btn btn-primary">Save</button>
-                </div>
             </div>
         </div>
-    </form>
-
-    <form method="post" enctype="multipart/form-data">
         <div class="my-3 p-3 bg-white rounded shadow">
-            <div class="alert alert-warning">!!WARNING!!<br/>Do not use this unless you know what you are doing. Uploading the wrong image could cause your device to stop working. Use with extreme caution!</div>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="row form-group">
-                        <label class="col-4">Firmware</label>
-                        <div class="col-8">
-                            <input type="file" name="file"/>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-8 text-right">
-                    <button class="btn btn-primary">Upload</button>
-                </div>
-            </div>
+            <a href="/firmware" class="btn btn-sm btn-outline-secondary">Upload firmware</a>
         </div>
         <hr/>
         <div class="row form-group">
@@ -92,6 +159,7 @@
                 <a href="/" class="btn btn-outline-secondary">Back</a>
             </div>
             <div class="col-6 text-right">
+                <button class="btn btn-primary">Save</button>
             </div>
         </div>
     </form>

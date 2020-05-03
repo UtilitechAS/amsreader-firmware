@@ -31,7 +31,7 @@
 
 class AmsWebServer {
 public:
-	AmsWebServer(RemoteDebug* Debug);
+	AmsWebServer(RemoteDebug* Debug, HwTools* hw);
     void setup(AmsConfiguration* config, MQTTClient* mqtt);
     void loop();
 
@@ -40,7 +40,7 @@ public:
 private:
 	RemoteDebug* debugger;
 	int maxPwr = 0;
-	HwTools hw;
+	HwTools* hw;
     AmsConfiguration* config;
 	AmsData data;
 	MQTTClient* mqtt;
@@ -65,10 +65,13 @@ private:
 	void gaugemeterJs();
     void dataJson();
 
+	void handleSetup();
 	void handleSave();
 
 	void configSystemHtml();
-	void configSystemUpload();
+	String getSerialSelectOptions(int selected);
+	void firmwareHtml();
+	void firmwareUpload();
 	void restartWaitHtml();
 	void isAliveCheck();
 

@@ -4,7 +4,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AMS reader - WiFi configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" type="text/css" href="boot.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"/>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 </head>
 <body class="bg-light">
@@ -46,19 +46,19 @@
                     <div class="row form-group">
                         <label class="col-3">SSID</label>
                         <div class="col-9">
-                            <input type="text" class="form-control" name="wifiSsid" value="${config.wifiSsid}"/>
+                            <input type="text" class="form-control" name="wifiSsid" value="${config.wifiSsid}" maxlength="32" placeholder="Name of your WiFi" required/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-3">Password</label>
                         <div class="col-9">
-                            <input type="password" class="form-control" name="wifiPassword" value="${config.wifiPassword}"/>
+                            <input type="password" class="form-control" name="wifiPassword" value="${config.wifiPassword}" maxlength="63" placeholder="Password for WiFi" required/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-3">Hostname</label>
                         <div class="col-9">
-                            <input type="text" class="form-control" name="wifiHostname" value="${config.wifiHostname}"/>
+                            <input type="text" class="form-control" name="wifiHostname" value="${config.wifiHostname}" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Ex.: ams-reader" required/>
                         </div>
                     </div>
                 </div>
@@ -75,13 +75,13 @@
                     <div class="row form-group">
                         <label class="col-6">IP</label>
                         <div class="col-6">
-                            <input type="text" class="form-control wifiip-config" name="wifiIp" value="${config.wifiIp}"/>
+                            <input type="text" class="form-control wifiip-config" name="wifiIp" value="${config.wifiIp}" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex: 192.168.1.200"/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-6">Subnet</label>
                         <div class="col-6">
-                            <input type="text" class="form-control wifiip-config" name="wifiSubnet" value="${config.wifiSubnet}"/>
+                            <input type="text" class="form-control wifiip-config" name="wifiSubnet" value="${config.wifiSubnet}" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex: 255.255.255.0"/>
                         </div>
                     </div>
                 </div>
@@ -89,19 +89,19 @@
                     <div class="row form-group">
                         <label class="col-6">Gateway</label>
                         <div class="col-6">
-                            <input type="text" class="form-control wifiip-config" name="wifiGw" value="${config.wifiGw}"/>
+                            <input type="text" class="form-control wifiip-config" name="wifiGw" value="${config.wifiGw}" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex: 192.168.1.1"/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-6">Primary DNS</label>
                         <div class="col-6">
-                            <input type="text" class="form-control wifiip-config" name="wifiDns1" value="${config.wifiDns1}"/>
+                            <input type="text" class="form-control wifiip-config" name="wifiDns1" value="${config.wifiDns1}" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex: 192.168.1.1"/>
                         </div>
                     </div>
                     <div class="row form-group">
                         <label class="col-6">Secondary DNS</label>
                         <div class="col-6">
-                            <input type="text" class="form-control wifiip-config" name="wifiDns2" value="${config.wifiDns2}"/>
+                            <input type="text" class="form-control wifiip-config" name="wifiDns2" value="${config.wifiDns2}" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex: 8.8.8.8"/>
                         </div>
                     </div>
                 </div>

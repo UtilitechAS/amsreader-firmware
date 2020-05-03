@@ -56,23 +56,8 @@ body {
 .bg-purple {
     background-color: var(--purple);
 }
-.text-white-50 {
-    color: rgba(255,255,255,.5)!important;
-}
-.mb-0, .my-0 {
-    margin-bottom: 0!important;
-}
-.m-2 {
-    margin: .5rem!important;
-}
-.mb-2, .my-2 {
-    margin-bottom: .5rem!important;
-}
 .mt-2, .my-2 {
     margin-top: .5rem!important;
-}
-.pb-2, .py-2 {
-    padding-bottom: .5rem!important;
 }
 .p-3 {
     padding: 1rem!important;
@@ -89,18 +74,8 @@ body {
 .shadow {
     box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
 }
-.align-items-center {
-    -ms-flex-align: center!important;
-    align-items: center!important;
-}
-.border-bottom {
-    border-bottom: 1px solid #dee2e6!important;
-}
 .rounded {
     border-radius: .25rem!important;
-}
-div {
-    display: block;
 }
 .container {
     width: 100%;
@@ -115,14 +90,8 @@ article, aside, figcaption, figure, footer, header, hgroup, main, nav, section {
 main {
     display: block;
 }
-.text-white {
-    color: #fff!important;
-}
 .text-right {
     text-align: right!important;
-}
-.text-center {
-    text-align: center!important;
 }
 .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
     margin-bottom: .5rem;
@@ -132,6 +101,9 @@ main {
 h1, h2, h3, h4, h5, h6 {
     margin-top: 0;
     margin-bottom: .5rem;
+}
+.h5, h5 {
+    font-size: 1.25rem;
 }
 .h6, h6 {
     font-size: 1rem;
@@ -150,47 +122,13 @@ h1, h2, h3, h4, h5, h6 {
     padding-right: 15px;
     padding-left: 15px;
 }
-.col-2 {
-    -ms-flex: 0 0 16.666667%;
-    flex: 0 0 16.666667%;
-    max-width: 16.666667%;
-}
-.col-3 {
-    -ms-flex: 0 0 25%;
-    flex: 0 0 25%;
-    max-width: 25%;
-}
-.col-4 {
-    -ms-flex: 0 0 33.333333%;
-    flex: 0 0 33.333333%;
-    max-width: 33.333333%;
-}
-.col-5 {
-    -ms-flex: 0 0 41.666667%;
-    flex: 0 0 41.666667%;
-    max-width: 41.666667%;
-}
 .col-6 {
     -ms-flex: 0 0 50%;
     flex: 0 0 50%;
     max-width: 50%;
 }
-.col-8 {
-    -ms-flex: 0 0 66.666667%;
-    flex: 0 0 66.666667%;
-    max-width: 66.666667%;
-}
-.col-9 {
-    -ms-flex: 0 0 75%;
-    flex: 0 0 75%;
-    max-width: 75%;
-}
 .d-none {
     display: none!important;
-}
-.d-flex {
-    display: -ms-flexbox!important;
-    display: flex!important;
 }
 .flex-row {
     -ms-flex-direction: row!important;
@@ -231,19 +169,10 @@ a {
     line-height: 1.5;
     border-radius: .2rem;
 }
-.btn-outline-secondary {
-    color: #6c757d;
-    border-color: #6c757d;
-}
 .btn-primary {
     color: #fff;
     background-color: #007bff;
     border-color: #007bff;
-}
-.btn-danger {
-    color: #fff;
-    background-color: #dc3545;
-    border-color: #dc3545;
 }
 .navbar {
     position: relative;
@@ -306,46 +235,6 @@ a {
 .navbar-dark .navbar-nav .active>.nav-link, .navbar-dark .navbar-nav .nav-link.active, .navbar-dark .navbar-nav .nav-link.show, .navbar-dark .navbar-nav .show>.nav-link {
     color: #fff;
 }
-.badge {
-    display: inline-block;
-    padding: .25em .4em;
-    font-size: 75%;
-    font-weight: 700;
-    line-height: 1;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: baseline;
-    border-radius: .25rem;
-    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-}
-.badge-secondary {
-    color: #fff;
-    background-color: #6c757d;
-}
-.badge-success {
-    color: #fff;
-    background-color: #28a745;
-}
-.badge-warning {
-    color: #212529;
-    background-color: #ffc107;
-}
-.badge-danger {
-    color: #fff;
-    background-color: #dc3545;
-}
-.alert {
-    position: relative;
-    padding: .75rem 1.25rem;
-    margin-bottom: 1rem;
-    border: 1px solid transparent;
-    border-radius: .25rem;
-}
-.alert-warning {
-    color: #856404;
-    background-color: #fff3cd;
-    border-color: #ffeeba;
-}
 .form-group {
     margin-bottom: 1rem;
 }
@@ -397,11 +286,22 @@ input[type="radio"], input[type="checkbox"] {
 .input-group-append {
     margin-left: -1px;
 }
+.input-group-prepend {
+    margin-right: -1px;
+}
 .input-group-append, .input-group-prepend {
     display: -ms-flexbox;
     display: flex;
 }
 .input-group>.input-group-append>.btn, .input-group>.input-group-append>.input-group-text, .input-group>.input-group-prepend:first-child>.btn:not(:first-child), .input-group>.input-group-prepend:first-child>.input-group-text:not(:first-child), .input-group>.input-group-prepend:not(:first-child)>.btn, .input-group>.input-group-prepend:not(:first-child)>.input-group-text {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+.input-group>.input-group-append:last-child>.btn:not(:last-child):not(.dropdown-toggle), .input-group>.input-group-append:last-child>.input-group-text:not(:last-child), .input-group>.input-group-append:not(:last-child)>.btn, .input-group>.input-group-append:not(:last-child)>.input-group-text, .input-group>.input-group-prepend>.btn, .input-group>.input-group-prepend>.input-group-text {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.input-group>.custom-select:not(:first-child), .input-group>.form-control:not(:first-child) {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
@@ -464,6 +364,11 @@ dl, ol, ul {
     .container, .container-sm {
         max-width: 540px;
     }
+    .col-sm-6 {
+        -ms-flex: 0 0 50%;
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
 }
 @media (min-width: 768px) {
     .container, .container-md, .container-sm {
@@ -473,11 +378,6 @@ dl, ol, ul {
         -ms-flex: 0 0 25%;
         flex: 0 0 25%;
         max-width: 25%;
-    }
-    .col-md-4 {
-        -ms-flex: 0 0 33.333333%;
-        flex: 0 0 33.333333%;
-        max-width: 33.333333%;
     }
     .col-md-6 {
         -ms-flex: 0 0 50%;
@@ -509,6 +409,21 @@ dl, ol, ul {
 @media (min-width: 1200px) {
     .container, .container-lg, .container-md, .container-sm, .container-xl {
         max-width: 1140px;
+    }
+    .col-xl-2 {
+        -ms-flex: 0 0 16.666667%;
+        flex: 0 0 16.666667%;
+        max-width: 16.666667%;
+    }
+    .col-xl-3 {
+        -ms-flex: 0 0 25%;
+        flex: 0 0 25%;
+        max-width: 25%;
+    }
+    .col-xl-4 {
+        -ms-flex: 0 0 33.333333%;
+        flex: 0 0 33.333333%;
+        max-width: 33.333333%;
     }
 }
 

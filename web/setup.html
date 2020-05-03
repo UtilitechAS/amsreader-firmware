@@ -1,0 +1,136 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AMS reader - Setup</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" type="text/css" href="boot.css"/>
+</head>
+<body class="bg-light">
+<main role="main" class="container">
+    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bg-purple rounded mt-2 mb-4">
+        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
+        <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
+            <li class="nav-item">
+                <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
+                    <svg class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 499.36" focusable="false"><title>GitHub</title><path d="M256 0C114.64 0 0 114.61 0 256c0 113.09 73.34 209 175.08 242.9 12.8 2.35 17.47-5.56 17.47-12.34 0-6.08-.22-22.18-.35-43.54-71.2 15.49-86.2-34.34-86.2-34.34-11.64-29.57-28.42-37.45-28.42-37.45-23.27-15.84 1.73-15.55 1.73-15.55 25.69 1.81 39.21 26.38 39.21 26.38 22.84 39.12 59.92 27.82 74.5 21.27 2.33-16.54 8.94-27.82 16.25-34.22-56.84-6.43-116.6-28.43-116.6-126.49 0-27.95 10-50.8 26.35-68.69-2.63-6.48-11.42-32.5 2.51-67.75 0 0 21.49-6.88 70.4 26.24a242.65 242.65 0 0 1 128.18 0c48.87-33.13 70.33-26.24 70.33-26.24 14 35.25 5.18 61.27 2.55 67.75 16.41 17.9 26.31 40.75 26.31 68.69 0 98.35-59.85 120-116.88 126.32 9.19 7.9 17.38 23.53 17.38 47.41 0 34.22-.31 61.83-.31 70.23 0 6.85 4.61 14.81 17.6 12.31C438.72 464.97 512 369.08 512 256.02 512 114.62 397.37 0 256 0z" fill="currentColor" fill-rule="evenodd"></path></svg>
+                </a>
+            </li>
+        </ul>
+    </header>
+    <form method="post">
+        <div class="my-3 p-3 bg-white rounded shadow">
+            <div class="row">
+                <div class="col-xl-4 col-md-6">
+                    <h5>Hardware</h5>
+                    <select name="board" class="form-control">
+                        <optgroup label="Custom hardware">
+                            <option value="0">Custom hardware by Roar Fredriksen</option>
+                            <option value="1">Kamstrup module by Egil Opsahl</option>
+                            <option value="2">Self powered 2.0 by Max Spencer</option>
+                        </optgroup>
+                        <optgroup label="ESP8266">
+                            <option value="101">Wemos D1</option>
+                            <option value="199">Generic ESP8266</option>
+                        </optgroup>
+                        <optgroup label="ESP32">
+                            <option value="201">Wemos LOLIN D32</option>
+                            <option value="202">Adafruit HUZZAH32</option>
+                            <option value="299">Generic ESP32</option>
+                            </optgroup>
+                    </select>
+                </div>
+                <div class="col-xl-2 col-md-3">
+                    <h5>Meter</h5>
+                    <select name="meterType" class="form-control">
+                        <option value="0">Autodetect</option>
+                        <option value="1">Kaifa</option>
+                        <option value="2">Aidon</option>
+                        <option value="3">Kamstrup</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="my-3 p-3 bg-white rounded shadow">
+            <h5>WiFi</h5>
+            <div class="row">
+                <div class="col-xl-3 col-md-6 form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">SSID</span>
+                        </div>
+                        <input type="text" name="wifiSsid" class="form-control" maxlength="32" placeholder="Name of your WiFi" required/>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-md-6 form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">PSK</span>
+                        </div>
+                        <input type="password" name="wifiPassword" class="form-control" maxlength="63" placeholder="Password for WiFi" required/>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-6 form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Hostname</span>
+                        </div>
+                        <input type="text" name="wifiHostname" class="form-control" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader"/>
+                    </div>
+                </div>
+                <div class="col-xl-2 col-md-6 form-group">
+                    <label><input type="checkbox" name="wifiIpType" value="1" onchange="staticChecked(this);"/> Static IP</label>
+                </div>
+            </div>
+            <div class="row" id="staticIp">
+                <div class="col-xl-3 col-lg-4 col-sm-6 form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">IP</span>
+                        </div>
+                        <input type="text" name="wifiIp" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex: 192.168.1.200"/>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-sm-6 form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Subnet</span>
+                        </div>
+                        <input type="text" name="wifiSubnet" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 255.255.255.0"/>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-sm-6 form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Gateway</span>
+                        </div>
+                        <input type="text" name="wifiGw" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 192.168.1.1"/>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-sm-6 form-group">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">DNS</span>
+                        </div>
+                        <input type="text" name="wifiDns1" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 192.168.1.1"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr/>
+        <div class="row">
+            <div class="col-6"></div>
+            <div class="col-6 text-right">
+                <button type="submit" class="btn btn-primary">Save & reboot</button>
+            </div>
+        </div>
+    </form>
+</main>
+<script>
+    document.getElementById('staticIp').style.display = "none";
+    var staticChecked = function(el) {
+        document.getElementById('staticIp').style.display = el.checked ? "" : "none";
+    }
+</script>
+</body>
+</html>

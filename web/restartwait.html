@@ -5,31 +5,11 @@
     <title>AMS reader - Restarting, please wait</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" type="text/css" href="boot.css"/>
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
     <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bg-purple rounded mt-2 mb-4" style="background-color: var(--purple);">
         <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
-        <div class="navbar-nav-scroll">
-            <ul class="navbar-nav bd-navbar-nav flex-row">
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-meter">Meter</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-wifi">WiFi</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-mqtt">MQTT</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-web">Web</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-system">System</a>
-                </li>
-            </ul>
-        </div>
         <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
             <li class="nav-item">
                 <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
@@ -44,7 +24,6 @@
 </main>
 <script>
     var tries = 0;
-
     var ip = "${ip}";
     var hostname = "${hostname}";
     var url;
@@ -60,15 +39,22 @@
         } else {
             url = "";
         }
-        if(console) console.log("Trying url " + url)
-        $.ajax({
-            url: url + '/is-alive',
-            timeout: 5000
-        }).done(function(json) {
-            window.location.href = url ? url : "/";
-        }).fail(function() {
+        if(console) console.log("Trying url " + url);
+
+        var retry = function() {
             setTimeout(fetch, 1000);
+        };
+        
+        var xhr = new XMLHttpRequest();
+        xhr.timeout = 5000;
+        xhr.addEventListener('abort', retry);
+        xhr.addEventListener('error', retry);
+        xhr.addEventListener('timeout', retry);
+        xhr.addEventListener('load', function(e) {
+            window.location.href = url ? url : "/";
         });
+        xhr.open("GET", "/is-alive", true);
+        xhr.send();
     };
     setTimeout(fetch, 10000);
 </script>

@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+from css_html_js_minify import html_minify, js_minify, css_minify
 
 webroot = "web"
 srcroot = "src/web/root"
@@ -20,11 +21,19 @@ for filename in os.listdir(webroot):
 
     varname = basename.upper()
 
+    with open(srcfile, encoding="utf-8") as f:
+        content = f.read()
+    
+    if filename.endswith(".html"):
+        content = html_minify(content)
+    elif filename.endswith(".css"):
+        content = css_minify(content)
+    elif filename.endswith(".js") and filename != 'gaugemeter.js':
+        content = js_minify(content)
+
     with open(dstfile, "w") as dst:
         dst.write("const char ")
         dst.write(varname)
         dst.write("[] PROGMEM = R\"==\"==(\n")
-        with open(srcfile, "r") as src:
-            for line in src.readlines():
-                dst.write(line)
+        dst.write(content)
         dst.write("\n)==\"==\";\n")

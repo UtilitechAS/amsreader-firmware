@@ -1,18 +1,22 @@
+var im, em;
 $(function() {
-
-});
-var im = $("#importMeter")
-im.gaugeMeter({
-    percent: 0,
-    text: "-",
-    append: "W"
-});
-
-var em = $("#exportMeter")
-em.gaugeMeter({
-    percent: 0,
-    text: "-",
-    append: "W"
+    im = $("#importMeter");
+    if(im && im.gaugeMeter) {
+        im.gaugeMeter({
+            percent: 0,
+            text: "-",
+            append: "W"
+        });
+    }
+    
+    em = $("#exportMeter");
+    if(em && em.gaugeMeter) {
+        em.gaugeMeter({
+            percent: 0,
+            text: "-",
+            append: "W"
+        });
+    }
 });
 
 var setStatus = function(id, status) {
@@ -31,9 +35,11 @@ var fetch = function() {
         timeout: 10000,
         dataType: 'json',
     }).done(function(json) {
-        $(".SimpleMeter").hide();
-        im.show();
-        em.show();
+        if(im && em) {
+            $(".SimpleMeter").hide();
+            im.show();
+            em.show();
+        }
 
         for(var id in json) {
             var str = json[id];
@@ -89,11 +95,13 @@ var fetch = function() {
                     p_append = "kW";
                 }
             }
-            im.gaugeMeter({
-                percent: p_pct,
-                text: p,
-                append: p_append
-            });
+            if(im && im.gaugeMeter) {
+                im.gaugeMeter({
+                    percent: p_pct,
+                    text: p,
+                    append: p_append
+                });
+            }
 
             var po = 0;
             var po_pct = parseInt(json.po_pct);
@@ -105,11 +113,13 @@ var fetch = function() {
                     po_append = "kW";
                 }
             }
-            em.gaugeMeter({
-                percent: po_pct,
-                text: po,
-                append: po_append
-            });
+            if(em && em.gaugeMeter) {
+                em.gaugeMeter({
+                    percent: po_pct,
+                    text: po,
+                    append: po_append
+                });
+            }
 
             for(var id in json.data) {
                 var str = json.data[id];
@@ -122,33 +132,41 @@ var fetch = function() {
                 }
             }
         } else {
+            if(im && im.gaugeMeter) {
+                im.gaugeMeter({
+                    percent: 0,
+                    text: "-",
+                    append: "W"
+                });
+            }
+
+            if(em && em.gaugeMeter) {
+                em.gaugeMeter({
+                    percent: 0,
+                    text: "-",
+                    append: "W"
+                });
+            }
+        }
+        setTimeout(fetch, interval);
+    }).fail(function() {
+        setTimeout(fetch, interval*4);
+
+        if(im && im.gaugeMeter) {
             im.gaugeMeter({
                 percent: 0,
                 text: "-",
                 append: "W"
             });
+        }
 
+        if(em && em.gaugeMeter) {
             em.gaugeMeter({
                 percent: 0,
                 text: "-",
                 append: "W"
             });
         }
-        setTimeout(fetch, interval);
-    }).fail(function() {
-        setTimeout(fetch, interval*4);
-
-        im.gaugeMeter({
-            percent: 0,
-            text: "-",
-            append: "W"
-        });
-
-        em.gaugeMeter({
-            percent: 0,
-            text: "-",
-            append: "W"
-        });
 
         setStatus("mqtt", "secondary");
         setStatus("wifi", "secondary");

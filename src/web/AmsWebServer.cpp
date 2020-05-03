@@ -8,6 +8,7 @@
 #include "root/configwifi_html.h"
 #include "root/configmqtt_html.h"
 #include "root/configweb_html.h"
+#include "root/configdomoticz_html.h"
 #include "root/configsystem_html.h"
 #include "root/restartwait_html.h"
 #include "root/boot_css.h"
@@ -31,6 +32,7 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/config-wifi", HTTP_GET, std::bind(&AmsWebServer::configWifiHtml, this));
 	server.on("/config-mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
 	server.on("/config-web", HTTP_GET, std::bind(&AmsWebServer::configWebHtml, this));
+	server.on("/config-domoticz",HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
 	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
 	server.on("/gaugemeter.js", HTTP_GET, std::bind(&AmsWebServer::gaugemeterJs, this)); 
 	server.on("/data.json", HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
@@ -274,7 +276,7 @@ void AmsWebServer::configMqttHtml() {
 	html.replace("${config.mqttUser}", config->getMqttUser());
 	html.replace("${config.mqttPassword}", config->getMqttPassword());
 	html.replace("${config.mqttPayloadFormat}", String(config->getMqttPayloadFormat()));
-	for(int i = 0; i<3; i++) {
+	for(int i = 0; i<4; i++) {
 		html.replace("${config.mqttPayloadFormat" + String(i) + "}", config->getMqttPayloadFormat() == i ? "selected"  : "");
 	}
 
@@ -301,6 +303,40 @@ void AmsWebServer::configMqttHtml() {
 	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
 }
+
+void AmsWebServer::configDomoticzHtml() {
+	printD("Serving /config/domoticz.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	String html = String((const __FlashStringHelper*) CONFIGDOMOTICZ_HTML);
+	html.replace("${version}", VERSION);
+
+	if(WiFi.getMode() != WIFI_AP) {
+		html.replace("boot.css", BOOTSTRAP_URL);
+	}
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	html.replace("${config.domo}", config->getDomoELIDX() == 0 ? "" : "checked");
+	if(config->getDomoELIDX() > 0){ html.replace("${config.domoELIDX}", String(config->getDomoELIDX()));
+	} else { html.replace("${config.domoELIDX}", ""); }
+	if(config->getDomoVL1IDX() > 0){ html.replace("${config.domoVL1IDX}", String(config->getDomoVL1IDX()));
+	} else { html.replace("${config.domoVL1IDX}", ""); }
+	if(config->getDomoVL2IDX() > 0){ html.replace("${config.domoVL2IDX}", String(config->getDomoVL2IDX()));
+	} else { html.replace("${config.domoVL2IDX}", ""); }
+	if(config->getDomoVL3IDX() > 0){ html.replace("${config.domoVL3IDX}", String(config->getDomoVL3IDX()));
+	} else { html.replace("${config.domoVL3IDX}", ""); }
+	if(config->getDomoCL1IDX() > 0){ html.replace("${config.domoCL1IDX}", String(config->getDomoCL1IDX()));
+	} else { html.replace("${config.domoCL1IDX}", ""); }
+	if(config->getDomoEnergy() > 0.0){ html.replace("${config.domoEnergy}", String(config->getDomoEnergy()));
+	} else { html.replace("${config.domoEnergy}", ""); }
+	server.setContentLength(html.length());
+	server.send(200, "text/html", html);
+}
+
 
 void AmsWebServer::configWebHtml() {
 	printD("Serving /config-web.html over http...");
@@ -481,6 +517,18 @@ void AmsWebServer::dataJson() {
 	json.createNestedObject("mqtt");
 	json["mqtt"]["lastError"] = (int) mqtt->lastError();
 
+	String domoStatus;
+	if(String(config->getDomoELIDX()).isEmpty()) {
+		domoStatus = "secondary";
+	} else if(mqtt->connected() && config->getMqttPayloadFormat() == 3 && config->getDomoELIDX() > 0) {
+		domoStatus = "success";
+	} else if(mqtt->lastError() == 0) {
+		domoStatus = "warning";
+	} else {
+		domoStatus = "danger";
+	}
+	json["status"]["domo"] = domoStatus;
+
 	serializeJson(json, jsonStr);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -532,6 +580,21 @@ void AmsWebServer::handleSave() {
 			config->clearMqtt();
 		}
 	}
+
+	if(server.hasArg("domoConfig") && server.arg("domoConfig") == "true") {
+		if(server.hasArg("domo") && server.arg("domo") == "true") {
+			config->setDomoELIDX(server.arg("domoELIDX").toInt());
+			config->setDomoVL1IDX(server.arg("domoVL1IDX").toInt());
+			config->setDomoVL2IDX(server.arg("domoVL2IDX").toInt());
+			config->setDomoVL3IDX(server.arg("domoVL3IDX").toInt());
+			config->setDomoCL1IDX(server.arg("domoCL1IDX").toInt());
+			config->setDomoEnergy(server.arg("domoEnergy").toDouble());
+		} else {
+			config->clearDomo();
+		}
+	}
+
+
 
 	if(server.hasArg("authConfig") && server.arg("authConfig") == "true") {
 		config->setAuthSecurity((byte)server.arg("authSecurity").toInt());

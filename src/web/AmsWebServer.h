@@ -61,6 +61,7 @@ private:
 	void configWifiHtml();
 	void configMqttHtml();
 	void configWebHtml();
+	void configDomoticzHtml();
 	void bootCss();
 	void gaugemeterJs();
     void dataJson();

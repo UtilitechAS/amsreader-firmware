@@ -2,9 +2,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - Meter configuration</title>
+    <title>AMS reader - WiFi configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" type="text/css" href="boot.css"/>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
@@ -13,24 +14,24 @@
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
                 <li class="nav-item">
-                    <a class="nav-link active" href="/config-meter">Meter</a>
+                    <a class="nav-link " href="/config-meter">Meter</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-wifi">WiFi</a>
+                    <a class="nav-link " href="/config-wifi">WiFi</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-mqtt">MQTT</a>
+                    <a class="nav-link " href="/config-mqtt">MQTT</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-web">Web</a>
+                    <a class="nav-link " href="/config-web">Web</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link " href="/config-domoticz">Domoticz</a>
+                    <a class="nav-link active " href="/config-domoticz">Domoticz</a>
                 </li>
-               <li class="nav-item">
+                <li class="nav-item">
                     <a class="nav-link" href="/config-system">System</a>
                 </li>
-            </ul>
+             </ul>
         </div>
         <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
             <li class="nav-item">
@@ -41,57 +42,57 @@
         </ul>
     </header>
     <form method="post" action="/save">
-        <input type="hidden" name="meterConfig" value="true"/>
+        <input type="hidden" name="domoConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
+            <div class="text"></div>Domoticz Configuration. Requires that a Domoticz MQTT-message-broker is setup. HOWTO: https://www.domoticz.com/wiki/MQTT. <br/>(This implementation assumes that the host defined on the MQTT tab is used.) <br/><br/>The following virtual sensors can currently be used: <br/>
+            "Electricity (instant and counter)", "Electricity Current/Ampere 3 Phase" and "Voltage", see https://www.domoticz.com/wiki/Domoticz_API/JSON_URL's  <br/><br/>
+            Create the sensors in Domoticz under Hardware > Dummy > Create virtual sensor, and use the IDX assigned to the sensor as input here. <br/><br/>
+            "Electricity (instant and counter)" relies on Total energy import "tPI" and will not start before the first value is read (once an hour). </div>
+        </div>
             <div class="row">
                 <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-6">Meter type</label>
+                        <label class="col-4">Enable</label>
+                        <div class="col-4">
+                            <input id="domoEnable" type="checkbox" name="domo" value="true" ${config.domo}/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="row form-group">
+                        <label class="col-6">Electricity IDX</label>
                         <div class="col-6">
-                            <select class="form-control" name="meterType">
-                                <option value="0" ${config.meterType0}>Autodetect</option>
-                                <option value="1" ${config.meterType1}>Kaifa</option>
-                                <option value="2" ${config.meterType2}>Aidon</option>
-                                <option value="3" ${config.meterType3}>Kamstrup</option>
-                            </select>
+                            <input type="text" class="form-control domo-config" name="domoELIDX" value="${config.domoELIDX}"/> 
                         </div>
                     </div>
                     <div class="row form-group">
-                        <label class="col-6">Distribution system</label>
+                        <label class="col-6">Current (3 Phase) IDX</label>
                         <div class="col-6">
-                            <select class="form-control" name="distributionSystem">
-                                <option value="0" ${config.distributionSystem0}></option>
-                                <option value="1" ${config.distributionSystem1}>IT (230V)</option>
-                                <option value="2" ${config.distributionSystem2}>TN (400V)</option>
-                            </select>
+                            <input type="text" class="form-control domo-config" name="domoCL1IDX" value="${config.domoCL1IDX}"/>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-6">Main fuse</label>
+                        <label class="col-6">Voltage L1 IDX</label>
                         <div class="col-6">
-                            <select class="form-control" name="mainFuse">
-                                <option value="0" ${config.mainFuse0}></option>
-                                <option value="25" ${config.mainFuse25}>25A</option>
-                                <option value="32" ${config.mainFuse32}>32A</option>
-                                <option value="35" ${config.mainFuse32}>35A</option>
-                                <option value="40" ${config.mainFuse40}>40A</option>
-                                <option value="50" ${config.mainFuse50}>50A</option>
-                                <option value="63" ${config.mainFuse63}>63A</option>
-                            </select>
+                            <input type="text" class="form-control domo-config" name="domoVL1IDX" value="${config.domoVL1IDX}"/>
                         </div>
                     </div>
                     <div class="row form-group">
-                        <label class="col-6">Production capacity</label>
+                        <label class="col-6">Voltage L2 IDX</label>
                         <div class="col-6">
-                            <div class="input-group">
-                                <input class="form-control" name="productionCapacity" type="number" min="0" max="50" value="${config.productionCapacity}"/>
-                                <div class="input-group-append"><span class="input-group-text">kWp</span></div>
-                            </div>
+                            <input type="text" class="form-control domo-config" name="domoVL2IDX" value="${config.domoVL2IDX}"/>
+                        </div>
+                    </div><div class="row form-group">
+                        <label class="col-6">Voltage L3 IDX</label>
+                        <div class="col-6">
+                            <input type="text" class="form-control domo-config" name="domoVL3IDX" value="${config.domoVL3IDX}"/>
                         </div>
                     </div>
-                </div>
+                </div>         
             </div>
         </div>
         <hr/>
@@ -105,5 +106,15 @@
         </div>
     </form>
 </main>
+<script>
+    $('#domoEnable').on('change', function() {
+        var inputs = $('.domo-config');
+        inputs.prop('disabled', !$(this).is(':checked'));
+    });
+    
+    $(function() {
+        $('#domoEnable').trigger('change');
+    });
+</script>
 </body>
 </html>

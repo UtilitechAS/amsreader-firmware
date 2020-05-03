@@ -149,7 +149,7 @@ var fetch = function() {
             text: "-",
             append: "W"
         });
-
+        setStatus("domo", "secondary");
         setStatus("mqtt", "secondary");
         setStatus("wifi", "secondary");
         setStatus("han", "secondary");

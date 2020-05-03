@@ -191,7 +191,6 @@ void AmsConfiguration::ackMqttChange() {
 	mqttChanged = false;
 }
 
-
 byte AmsConfiguration::getAuthSecurity() {
 	return authSecurity;
 }
@@ -277,7 +276,71 @@ int AmsConfiguration::getDebugLevel() {
 void AmsConfiguration::setDebugLevel(int debugLevel) {
 	this->debugLevel = debugLevel;
 }
+//
+// Domoticz start
+//
+int AmsConfiguration::getDomoELIDX() {
+	return domoELIDX;
+}
+int AmsConfiguration::getDomoVL1IDX() {
+	return domoVL1IDX;
+}
+int AmsConfiguration::getDomoVL2IDX() {
+	return domoVL2IDX;
+}
+int AmsConfiguration::getDomoVL3IDX() {
+	return domoVL3IDX;
+}
+int AmsConfiguration::getDomoCL1IDX() {
+	return domoCL1IDX;
+}
+double AmsConfiguration::getDomoEnergy() {
+	return domoEnergy;
+}
 
+void AmsConfiguration::setDomoELIDX(int domoELIDX) {
+	domoChanged |= this->domoELIDX != domoELIDX;
+	this->domoELIDX = domoELIDX;
+}
+void AmsConfiguration::setDomoVL1IDX(int domoVL1IDX) {
+	domoChanged |= this->domoVL1IDX != domoVL1IDX;
+	this->domoVL1IDX = domoVL1IDX;
+}
+void AmsConfiguration::setDomoVL2IDX(int domoVL2IDX) {
+	domoChanged |= this->domoVL2IDX != domoVL2IDX;
+	this->domoVL2IDX = domoVL2IDX;
+}
+void AmsConfiguration::setDomoVL3IDX(int domoVL3IDX) {
+	domoChanged |= this->domoVL3IDX != domoVL3IDX;
+	this->domoVL3IDX = domoVL3IDX;
+}
+void AmsConfiguration::setDomoCL1IDX(int domoCL1IDX) {
+	domoChanged |= this->domoCL1IDX != domoCL1IDX;
+	this->domoCL1IDX = domoCL1IDX;
+}
+void AmsConfiguration::setDomoEnergy(double domoEnergy) {
+	domoChanged |= this->domoEnergy != domoEnergy;
+	this->domoEnergy = domoEnergy;
+}
+void AmsConfiguration::clearDomo() {
+	setDomoELIDX(0);
+	setDomoVL1IDX(0);	
+	setDomoVL2IDX(0);	
+	setDomoVL3IDX(0);
+	setDomoCL1IDX(0);
+	setDomoEnergy(-1.0);	
+}
+
+bool AmsConfiguration::isDomoChanged() {
+	return domoChanged;
+}
+
+void AmsConfiguration::ackDomoChange() {
+	domoChanged = false;
+}
+//
+// Domoticz end
+//
 
 bool AmsConfiguration::hasConfig() {
 	if(configVersion == 0) {
@@ -715,6 +778,29 @@ bool AmsConfiguration::loadConfig82(int address) {
 	address += readInt(address, &i);
 	setDebugLevel(i);
 
+	bool domo = false;
+	address += readBool(address, &domo);
+	if(domo) {
+		int domoELIDX;
+		address += readInt(address, &domoELIDX);
+		setDomoELIDX(domoELIDX);
+		int domoVL1IDX;
+		address += readInt(address, &domoVL1IDX);
+		setDomoVL1IDX(domoVL1IDX);
+		int domoVL2IDX;
+		address += readInt(address, &domoVL2IDX);
+		setDomoVL2IDX(domoVL2IDX);
+		int domoVL3IDX;
+		address += readInt(address, &domoVL3IDX);
+		setDomoVL3IDX(domoVL3IDX);
+		int domoCL1IDX;
+		address += readInt(address, &domoCL1IDX);
+		setDomoCL1IDX(domoCL1IDX);
+		
+	} else {
+		clearDomo();
+	}
+	
 	ackWifiChange();
 
 	return true;
@@ -774,7 +860,19 @@ bool AmsConfiguration::save() {
 	address += saveBool(address, debugTelnet);
 	address += saveBool(address, debugSerial);
 	address += saveInt(address, debugLevel);
-
+//
+//  Domoticz 
+//
+	if(domoELIDX) {
+		address += saveBool(address, true);
+		address += saveInt(address, domoELIDX);	
+		address += saveInt(address, domoVL1IDX);	
+		address += saveInt(address, domoVL2IDX);
+		address += saveInt(address, domoVL3IDX);
+		address += saveInt(address, domoCL1IDX);
+	} else {
+		address += saveBool(address, false);
+	}
 	bool success = EEPROM.commit();
 	EEPROM.end();
 

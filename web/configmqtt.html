@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AMS reader - MQTT configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"/>
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
@@ -26,9 +26,6 @@
                     <a class="nav-link" href="/config-web">Web</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link " href="/config-domoticz">Domoticz</a>
-                </li>
-                <li class="nav-item">
                     <a class="nav-link" href="/config-system">System</a>
                 </li>
             </ul>
@@ -36,7 +33,7 @@
         <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
             <li class="nav-item">
                 <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
-                    <svg class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 499.36" focusable="false"><title>GitHub</title><path d="M256 0C114.64 0 0 114.61 0 256c0 113.09 73.34 209 175.08 242.9 12.8 2.35 17.47-5.56 17.47-12.34 0-6.08-.22-22.18-.35-43.54-71.2 15.49-86.2-34.34-86.2-34.34-11.64-29.57-28.42-37.45-28.42-37.45-23.27-15.84 1.73-15.55 1.73-15.55 25.69 1.81 39.21 26.38 39.21 26.38 22.84 39.12 59.92 27.82 74.5 21.27 2.33-16.54 8.94-27.82 16.25-34.22-56.84-6.43-116.6-28.43-116.6-126.49 0-27.95 10-50.8 26.35-68.69-2.63-6.48-11.42-32.5 2.51-67.75 0 0 21.49-6.88 70.4 26.24a242.65 242.65 0 0 1 128.18 0c48.87-33.13 70.33-26.24 70.33-26.24 14 35.25 5.18 61.27 2.55 67.75 16.41 17.9 26.31 40.75 26.31 68.69 0 98.35-59.85 120-116.88 126.32 9.19 7.9 17.38 23.53 17.38 47.41 0 34.22-.31 61.83-.31 70.23 0 6.85 4.61 14.81 17.6 12.31C438.72 464.97 512 369.08 512 256.02 512 114.62 397.37 0 256 0z" fill="currentColor" fill-rule="evenodd"></path></svg>
+                    <img class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" src="github.svg"/>
                 </a>
             </li>
         </ul>
@@ -44,82 +41,87 @@
     <form method="post" action="/save">
         <input type="hidden" name="mqttConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
+            <label class="m-2"><input id="mqttEnable" type="checkbox" name="mqtt" value="true" ${config.mqtt}/> Enable</label>
             <div class="row">
-                <div class="col-md-3">
-                    <div class="row form-group">
-                        <label class="col-4">Enable</label>
-                        <div class="col-8">
-                            <input id="mqttEnable" type="checkbox" name="mqtt" value="true" ${config.mqtt}/>
+                <div class="col-xl-4 col-lg-5 col-md-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Host</span>
                         </div>
-                    </div>
-                    <div class="row form-group">
-                        <label class="col-4">Payload</label>
-                        <div class="col-8">
-                            <select class="form-control mqtt-config" name="mqttPayloadFormat">
-                                <option value="0" ${config.mqttPayloadFormat0}>JSON</option>
-                                <option value="1" ${config.mqttPayloadFormat1}>Raw (minimal)</option>
-                                <option value="2" ${config.mqttPayloadFormat2}>Raw (full)</option>
-                                <option value="3" ${config.mqttPayloadFormat3}>Domoticz</option>
-                            </select>
-                        </div>
+                        <input type="text" class="form-control mqtt-config" name="mqttHost" value="${config.mqttHost}" maxlength="128"/>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="row form-group">
-                        <label class="col-4">Hostname</label>
-                        <div class="col-8">
-                            <input type="text" class="form-control mqtt-config" name="mqttHost" value="${config.mqttHost}"/>
+                <div class="col-xl-2 col-lg-3 col-md-3 col-sm-4">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Port</span>
                         </div>
-                    </div>
-                    <div class="row form-group">
-                        <label class="col-4">Port</label>
-                        <div class="col-8">
-                            <input type="text" class="form-control mqtt-config" name="mqttPort" value="${config.mqttPort}"/>
-                        </div>
+                        <input type="number" class="form-control mqtt-config" name="mqttPort" value="${config.mqttPort}" min="1024" max="65535" placeholder="1883"/>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="row form-group">
-                        <label class="col-4">Client ID</label>
-                        <div class="col-8">
-                            <input type="text" class="form-control mqtt-config" name="mqttClientId" value="${config.mqttClientId}"/>
+                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-8">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Client ID</span>
                         </div>
-                    </div>
-                    <div class="row form-group">
-                        <label class="col-4">Topic</label>
-                        <div class="col-8">
-                            <input type="text" class="form-control mqtt-config" name="mqttPublishTopic" value="${config.mqttPublishTopic}"/>
-                        </div>
+                        <input type="text" class="form-control mqtt-config" name="mqttClientId" value="${config.mqttClientId}" maxlength="32"/>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="row form-group">
-                        <label class="col-4">Username</label>
-                        <div class="col-8">
-                            <input type="text" class="form-control mqtt-config" name="mqttUser" value="${config.mqttUser}"/>
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Topic</span>
                         </div>
+                        <input type="text" class="form-control mqtt-config" name="mqttPublishTopic" value="${config.mqttPublishTopic}" maxlength="64"/>
                     </div>
-                    <div class="row form-group">
-                        <label class="col-4">Password</label>
-                        <div class="col-8">
-                            <input type="password" class="form-control mqtt-config" name="mqttPassword" value="${config.mqttPassword}"/>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Username</span>
                         </div>
+                        <input type="text" class="form-control mqtt-config" name="mqttUser" value="${config.mqttUser}" maxlength="64"/>
+                    </div>
+                </div>
+                <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Password</span>
+                        </div>
+                        <input type="password" class="form-control mqtt-config" name="mqttPassword" value="${config.mqttPassword}" maxlength="64"/>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-4 col-sm-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Payload</span>
+                        </div>
+                        <select id="mqttPayloadFormat" class="form-control mqtt-config" name="mqttPayloadFormat">
+                            <option value="0" ${config.mqttPayloadFormat0}>JSON</option>
+                            <option value="1" ${config.mqttPayloadFormat1}>Raw (minimal)</option>
+                            <option value="2" ${config.mqttPayloadFormat2}>Raw (full)</option>
+                            <option value="3" ${config.mqttPayloadFormat3}>Domoticz</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 format-type-domoticz">
+                    <div class="m-2">
+                        <a href="/config-domoticz" class="btn btn-sm btn-outline-secondary">Configuration</a>
                     </div>
                 </div>
             </div>
+        </div>
+        <div class="my-3 p-3 bg-white rounded shadow">
             <div class="row">
-                <div class="col-md-3">
-                    <div class="row form-group">
-                        <label class="col-4">SSL</label>
-                        <div class="col-8">
-                            <input id="mqttSsl" type="checkbox" name="mqttSsl" value="true" ${config.mqttSsl}/>
-                        </div>
-                    </div>
+                <div class="col-md-2">
+                    <label class="m-2"><input id="mqttSsl" type="checkbox" name="mqttSsl" value="true" ${config.mqttSsl}/> SSL</label>
                 </div>
-                <div class="col-md-3 mqtt-ssl-config">
-                    <div class="row form-group">
-                        <label class="col-4">CA</label>
-                        <div class="col-8">
+                <div class="col-lg-2 col-md-3">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">CA</span>
+                        </div>
+                        <div class="input-group-append">
                             <span style="display: ${display.ca.upload};">
                                 <a href="/mqtt-ca" class="btn btn-sm btn-outline-secondary">Upload</a>
                             </span>
@@ -129,10 +131,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 mqtt-ssl-config">
-                    <div class="row form-group">
-                        <label class="col-6">Certificate</label>
-                        <div class="col-6">
+                <div class="col-xl-2 col-md-3">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Certificate</span>
+                        </div>
+                        <div class="input-group-append">
                             <span style="display: ${display.cert.upload};">
                                 <a href="/mqtt-cert" class="btn btn-sm btn-outline-secondary">Upload</a>
                             </span>
@@ -142,10 +146,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 mqtt-ssl-config">
-                    <div class="row form-group">
-                        <label class="col-6">Private key</label>
-                        <div class="col-6">
+                <div class="col-xl-2 col-md-4">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Private key</span>
+                        </div>
+                        <div class="input-group-append">
                             <span style="display: ${display.key.upload};">
                                 <a href="/mqtt-key" class="btn btn-sm btn-outline-secondary">Upload</a>
                             </span>
@@ -174,8 +180,16 @@
         inputs.prop('disabled', !$(this).is(':checked'));
     });
     
+    $('#mqttPayloadFormat').on('change', function() {
+        var val = parseInt($(this).val());
+        if(val == 3)
+            $('.format-type-domoticz').show();
+        else
+            $('.format-type-domoticz').hide();
+    });
     $(function() {
         $('#mqttEnable').trigger('change');
+        $('#mqttPayloadFormat').trigger('change');
     });
 </script>
 </body>

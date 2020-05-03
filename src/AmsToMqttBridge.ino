@@ -107,6 +107,10 @@ void setup() {
 			config.setHanPin(16);
 			config.setLedPin(2);
 			config.setTempSensorPin(14);
+		#elif defined(ARDUINO_ESP32_DEV)
+			config.setHanPin(16);
+			config.setLedPin(2);
+			config.setLedInverted(false);
 		#elif defined(ESP8266)
 			config.setHanPin(3);
 			config.setLedPin(2);
@@ -183,7 +187,7 @@ void setup() {
 			WiFi.forceSleepBegin();
 #endif
 			int i = 0;
-			while(hw.getVcc() < 3.3 && i < 3) {
+			while(hw.getVcc() < 3.2 && i < 3) {
 				if(Debug.isActive(RemoteDebug::INFO)) debugI(" vcc not optimal, light sleep 10s");
 #if defined(ESP8266)
 				delay(10000);

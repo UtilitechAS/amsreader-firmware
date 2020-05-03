@@ -14,6 +14,7 @@
 #include "root/restartwait_html.h"
 #include "root/boot_css.h"
 #include "root/gaugemeter_js.h"
+#include "root/github_svg.h"
 #include "root/upload_html.h"
 #include "root/delete_html.h"
 
@@ -38,6 +39,7 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/config-domoticz",HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
 	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
 	server.on("/gaugemeter.js", HTTP_GET, std::bind(&AmsWebServer::gaugemeterJs, this)); 
+	server.on("/github.svg", HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
 	server.on("/data.json", HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
 
 	server.on("/save", HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
@@ -49,14 +51,11 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/is-alive", HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
 
 	server.on("/mqtt-ca", HTTP_GET, std::bind(&AmsWebServer::mqttCa, this));
-	server.on("/mqtt-ca", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::mqttCaUpload, this));
-	server.on("/mqtt-ca/delete", HTTP_POST, std::bind(&AmsWebServer::mqttCaDelete, this));
+	server.on("/mqtt-ca", HTTP_POST, std::bind(&AmsWebServer::mqttCaDelete, this), std::bind(&AmsWebServer::mqttCaUpload, this));
 	server.on("/mqtt-cert", HTTP_GET, std::bind(&AmsWebServer::mqttCert, this));
-	server.on("/mqtt-cert", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::mqttCertUpload, this));
-	server.on("/mqtt-cert/delete", HTTP_POST, std::bind(&AmsWebServer::mqttCertDelete, this));
+	server.on("/mqtt-cert", HTTP_POST, std::bind(&AmsWebServer::mqttCertDelete, this), std::bind(&AmsWebServer::mqttCertUpload, this));
 	server.on("/mqtt-key", HTTP_GET, std::bind(&AmsWebServer::mqttKey, this));
-	server.on("/mqtt-key", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
-	server.on("/mqtt-key/delete", HTTP_POST, std::bind(&AmsWebServer::mqttKeyDelete, this));
+	server.on("/mqtt-key", HTTP_POST, std::bind(&AmsWebServer::mqttKeyDelete, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
 
 	server.begin(); // Web server start
 }
@@ -116,15 +115,17 @@ bool AmsWebServer::checkSecurity(byte level) {
 void AmsWebServer::indexHtml() {
 	printD("Serving /index.html over http...");
 
-	String html;
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+
 	if(WiFi.getMode() == WIFI_AP) {
-		html = String((const __FlashStringHelper*) SETUP_HTML);
-		html.replace("${version}", VERSION);
+		server.send_P(200, "text/html", SETUP_HTML);
 	} else {
 		if(!checkSecurity(2))
 			return;
 
-		html = String((const __FlashStringHelper*) INDEX_HTML);
+		String html = String((const __FlashStringHelper*) INDEX_HTML);
 		html.replace("${version}", VERSION);
 
 		double u1 = data.getL1Voltage();
@@ -172,14 +173,10 @@ void AmsWebServer::indexHtml() {
 		html.replace("${wifi.rssi}", vcc > 0 ? String(rssi) : "");
 		html.replace("${wifi.channel}", WiFi.channel() > 0 ? String(WiFi.channel()) : "");
 		html.replace("${wifi.ssid}", !WiFi.SSID().isEmpty() ? String(WiFi.SSID()) : "");
+
+		server.setContentLength(html.length());
+		server.send(200, "text/html", html);
 	}
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
 }
 
 void AmsWebServer::indexJs() {
@@ -365,6 +362,13 @@ void AmsWebServer::gaugemeterJs() {
 
 	server.sendHeader("Cache-Control", "public, max-age=3600");
 	server.send_P(200, "application/javascript", GAUGEMETER_JS);
+}
+
+void AmsWebServer::githubSvg() {
+	printD("Serving /github.svg over http...");
+
+	server.sendHeader("Cache-Control", "public, max-age=3600");
+	server.send_P(200, "image/svg+xml", GITHUB_SVG);
 }
 
 void AmsWebServer::dataJson() {
@@ -582,16 +586,22 @@ void AmsWebServer::handleSetup() {
 				config->setVccPin(35);
 				config->setVccMultiplier(2.25);
 				break;
-			case 202: // Feather ESP32
+			case 202: // Feather
 				config->setHanPin(16);
 				config->setLedPin(2);
 				config->setLedInverted(false);
 				config->setTempSensorPin(14);
 				break;
-			case 299: // ESP32
+			case 203: // DevKitC
 				config->setHanPin(16);
 				config->setLedPin(2);
-				config->setLedInverted(true);
+				config->setLedInverted(false);
+				break;
+			case 299: // ESP32
+				config->setHanPin(16);
+				config->setApPin(0);
+				config->setLedPin(2);
+				config->setLedInverted(false);
 				config->setTempSensorPin(14);
 				break;
 		}
@@ -773,8 +783,8 @@ void AmsWebServer::configSystemHtml() {
 	html.replace("${config.tempSensorPin}", config->getTempSensorPin() == 0xFF ? "" : String(config->getTempSensorPin()));
 	html.replace("${config.vccPin}", config->getVccPin() == 0xFF ? "" : String(config->getVccPin()));
 
-	html.replace("${config.vccMultiplier}", String(config->getVccMultiplier()));
-	html.replace("${config.vccBootLimit}", String(config->getVccBootLimit()));
+	html.replace("${config.vccMultiplier}", config->getVccMultiplier() > 0 ? String(config->getVccMultiplier()) : "");
+	html.replace("${config.vccBootLimit}", config->getVccBootLimit() > 0.0 ? String(config->getVccBootLimit()) : "");
 
 	html.replace("${config.debugTelnet}", config->isDebugTelnet() ? "checked" : "");
 	html.replace("${config.debugSerial}", config->isDebugSerial() ? "checked" : "");
@@ -793,22 +803,22 @@ void AmsWebServer::configSystemHtml() {
 String AmsWebServer::getSerialSelectOptions(int selected) {
 	String gpioOptions;
 	if(selected == 3) {
-		gpioOptions += "<option value=\"3\" selected>UART0</option>\n";
+		gpioOptions += "<option value=\"3\" selected>UART0</option>";
 	} else {
-		gpioOptions += "<option value=\"3\">UART0</option>\n";
+		gpioOptions += "<option value=\"3\">UART0</option>";
 	}
 	#if defined(ESP32)
 		int numGpio = 24;
 		int gpios[] = {4,5,6,7,8,10,11,12,13,14,15,17,18,19,21,22,23,25,32,33,34,35,36,39};
 		if(selected == 9) {
-			gpioOptions += "<option value=\"9\" selected>UART1</option>\n";
+			gpioOptions += "<option value=\"9\" selected>UART1</option>";
 		} else {
-			gpioOptions += "<option value=\"9\">UART1</option>\n";
+			gpioOptions += "<option value=\"9\">UART1</option>";
 		}
 		if(selected == 16) {
-			gpioOptions += "<option value=\"16\" selected>UART2</option>\n";
+			gpioOptions += "<option value=\"16\" selected>UART2</option>";
 		} else {
-			gpioOptions += "<option value=\"16\">UART2</option>\n";
+			gpioOptions += "<option value=\"16\">UART2</option>";
 		}
 	#elif defined(ESP8266)
 		int numGpio = 9;
@@ -820,9 +830,9 @@ String AmsWebServer::getSerialSelectOptions(int selected) {
 		char buffer [16];
 		sprintf(buffer, "%02u", gpio);
 		if(gpio == selected) {
-			gpioOptions += "<option value=\"" + String(gpio) + "\" selected>GPIO" + buffer + "</option>\n";
+			gpioOptions += "<option value=\"" + String(gpio) + "\" selected>GPIO" + buffer + "</option>";
 		} else {
-			gpioOptions += "<option value=\"" + String(gpio) + "\">GPIO" + buffer + "</option>\n";
+			gpioOptions += "<option value=\"" + String(gpio) + "\">GPIO" + buffer + "</option>";
 		}
 	}
 	return gpioOptions;
@@ -836,11 +846,16 @@ void AmsWebServer::uploadFile(const char* path) {
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START){
         String filename = upload.filename;
-		if (!SPIFFS.begin()) {
+		if(uploading) {
+			printE("Upload already in progress");
+			String html = "<html><body><h1>Upload already in progress!</h1></form>";
+			server.send(500, "text/html", html);
+		} else if (!SPIFFS.begin()) {
 			printE("An Error has occurred while mounting SPIFFS");
-			String html = "<html><body><h1>Error uploading!</h1></form>";
+			String html = "<html><body><h1>Unable to mount SPIFFS!</h1></form>";
 			server.send(500, "text/html", html);
 		} else {
+			uploading = true;
 		    printD("handleFileUpload Name: %s", filename.c_str());
 		    file = SPIFFS.open(path, "w");
 	  	    filename = String();
@@ -933,43 +948,17 @@ void AmsWebServer::isAliveCheck() {
 }
 
 void AmsWebServer::uploadHtml(const char* label, const char* action, const char* menu) {
-	String html = String((const __FlashStringHelper*) UPLOAD_HTML);
-	html.replace("${form.action}", action);
-	html.replace("${version}", VERSION);
-
-	html.replace("${menu." + String(menu) + ".class}", "active");
-	html.replace("${menu.meter.class}", "");
-	html.replace("${menu.wifi.class}", "");
-	html.replace("${menu.mqtt.class}", "");
-	html.replace("${menu.web.class}", "");
-	html.replace("${menu.system.class}", "");
-	html.replace("${file.label}", label);
-
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+	server.send_P(200, "text/html", UPLOAD_HTML);
 }
 
 void AmsWebServer::deleteHtml(const char* label, const char* action, const char* menu) {
-	String html = String((const __FlashStringHelper*) DELETE_HTML);
-	html.replace("${form.action}", action);
-	html.replace("${version}", VERSION);
-
-	html.replace("${menu." + String(menu) + ".class}", "active");
-	html.replace("${menu.meter.class}", "");
-	html.replace("${menu.wifi.class}", "");
-	html.replace("${menu.mqtt.class}", "");
-	html.replace("${menu.web.class}", "");
-	html.replace("${menu.system.class}", "");
-	html.replace("${file.label}", label);
-
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+	server.send_P(200, "text/html", DELETE_HTML);
 }
 
 void AmsWebServer::mqttCa() {
@@ -1001,11 +990,16 @@ void AmsWebServer::mqttCaUpload() {
 }
 
 void AmsWebServer::mqttCaDelete() {
-	deleteFile(FILE_MQTT_CA);
-	server.sendHeader("Location","/config-mqtt");
-	server.send(303);
-	if(config->isMqttSsl()) {
-		config->setMqttChanged();
+	if(!uploading) { // Not an upload
+		deleteFile(FILE_MQTT_CA);
+		server.sendHeader("Location","/config-mqtt");
+		server.send(303);
+		if(config->isMqttSsl()) {
+			config->setMqttChanged();
+		}
+	} else {
+		uploading = false;
+		server.send(200);
 	}
 }
 
@@ -1038,11 +1032,16 @@ void AmsWebServer::mqttCertUpload() {
 }
 
 void AmsWebServer::mqttCertDelete() {
-	deleteFile(FILE_MQTT_CERT);
-	server.sendHeader("Location","/config-mqtt");
-	server.send(303);
-	if(config->isMqttSsl()) {
-		config->setMqttChanged();
+	if(!uploading) { // Not an upload
+		deleteFile(FILE_MQTT_CERT);
+		server.sendHeader("Location","/config-mqtt");
+		server.send(303);
+		if(config->isMqttSsl()) {
+			config->setMqttChanged();
+		}
+	} else {
+		uploading = false;
+		server.send(200);
 	}
 }
 
@@ -1075,11 +1074,16 @@ void AmsWebServer::mqttKeyUpload() {
 }
 
 void AmsWebServer::mqttKeyDelete() {
-	deleteFile(FILE_MQTT_KEY);
-	server.sendHeader("Location","/config-mqtt");
-	server.send(303);
-	if(config->isMqttSsl()) {
-		config->setMqttChanged();
+	if(!uploading) { // Not an upload
+		deleteFile(FILE_MQTT_KEY);
+		server.sendHeader("Location","/config-mqtt");
+		server.send(303);
+		if(config->isMqttSsl()) {
+			config->setMqttChanged();
+		}
+	} else {
+		uploading = false;
+		server.send(200);
 	}
 }
 

@@ -17,6 +17,8 @@ $(function() {
             append: "W"
         });
     }
+
+    fetch();
 });
 
 var setStatus = function(id, status) {
@@ -173,4 +175,3 @@ var fetch = function() {
         setStatus("esp", "danger");
     });
 }
-fetch();

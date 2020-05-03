@@ -44,6 +44,7 @@ private:
     AmsConfiguration* config;
 	AmsData data;
 	MQTTClient* mqtt;
+	bool uploading = false;
 	File file;
 	bool performRestart = false;
 
@@ -64,6 +65,7 @@ private:
 	void configDomoticzHtml();
 	void bootCss();
 	void gaugemeterJs();
+	void githubSvg();
     void dataJson();
 
 	void handleSetup();

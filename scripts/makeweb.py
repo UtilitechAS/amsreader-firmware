@@ -6,6 +6,9 @@ from css_html_js_minify import html_minify, js_minify, css_minify
 webroot = "web"
 srcroot = "src/web/root"
 
+version = os.environ.get('GITHUB_TAG')
+if version == None:
+    version = "SNAPSHOT"
 
 if os.path.exists(srcroot):
     shutil.rmtree(srcroot)
@@ -22,7 +25,7 @@ for filename in os.listdir(webroot):
     varname = basename.upper()
 
     with open(srcfile, encoding="utf-8") as f:
-        content = f.read()
+        content = f.read().replace("${version}", version)
     
     if filename.endswith(".html"):
         content = html_minify(content)
@@ -34,6 +37,6 @@ for filename in os.listdir(webroot):
     with open(dstfile, "w") as dst:
         dst.write("const char ")
         dst.write(varname)
-        dst.write("[] PROGMEM = R\"==\"==(\n")
+        dst.write("[] PROGMEM = R\"==\"==(")
         dst.write(content)
-        dst.write("\n)==\"==\";\n")
+        dst.write(")==\"==\";\n")

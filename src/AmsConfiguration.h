@@ -45,6 +45,12 @@ struct ConfigObject {
 	uint8_t vccPin;
 	uint16_t vccMultiplier;
 	uint8_t vccBootLimit;
+
+	int domoELIDX;
+	int domoVL1IDX;
+	int domoVL2IDX;
+	int domoVL3IDX;
+	int domoCL1IDX;
 };
 
 class AmsConfiguration {
@@ -154,7 +160,23 @@ public:
 	void setVccBootLimit(double vccBootLimit);
 
 	void print(Print* debugger);
-	
+
+	int getDomoELIDX();
+	int getDomoVL1IDX();
+	int getDomoVL2IDX();
+	int getDomoVL3IDX();
+	int getDomoCL1IDX();
+	double getDomoEnergy();
+	void setDomoELIDX(int domoELIDX);
+	void setDomoVL1IDX(int domoVL1IDX);
+	void setDomoVL2IDX(int domoVL2IDX);
+	void setDomoVL3IDX(int domoVL3IDX);
+	void setDomoCL1IDX(int domoCL1IDX);
+	void clearDomo();
+
+	bool isDomoChanged();
+	void ackDomoChange();
+
 protected:
 
 private:
@@ -198,9 +220,15 @@ private:
 		0xFF, // Temp sensor
 		0xFF, // Vcc
 		100, // Multiplier
-		0 // Boot limit
+		0, // Boot limit
+		//Domoticz
+		0, // ELIDX
+		0, // VL1IDX
+		0, // VL2IDX
+		0, // VL3IDX
+		0 // CL1IDX
 	};
-	bool wifiChanged, mqttChanged;
+	bool wifiChanged, mqttChanged, domoChanged;
 
 	const int EEPROM_SIZE = 2048;
 	const int EEPROM_CHECK_SUM = 82; // Used to check if config is stored. Change if structure changes

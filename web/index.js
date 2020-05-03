@@ -167,7 +167,6 @@ var fetch = function() {
                 append: "W"
             });
         }
-
         setStatus("mqtt", "secondary");
         setStatus("wifi", "secondary");
         setStatus("han", "secondary");

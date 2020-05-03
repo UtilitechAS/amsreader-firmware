@@ -177,6 +177,7 @@ void AmsConfiguration::clearMqtt() {
 	setMqttSubscribeTopic("");
 	setMqttUser("");
 	setMqttPassword("");
+	setMqttSsl(false);
 }
 
 void AmsConfiguration::setMqttChanged() {
@@ -190,7 +191,6 @@ bool AmsConfiguration::isMqttChanged() {
 void AmsConfiguration::ackMqttChange() {
 	mqttChanged = false;
 }
-
 
 byte AmsConfiguration::getAuthSecurity() {
 	return config.authSecurity;
@@ -276,6 +276,55 @@ uint8_t AmsConfiguration::getDebugLevel() {
 
 void AmsConfiguration::setDebugLevel(uint8_t debugLevel) {
 	config.debugLevel = debugLevel;
+}
+
+int AmsConfiguration::getDomoELIDX() {
+	return config.domoELIDX;
+}
+int AmsConfiguration::getDomoVL1IDX() {
+	return config.domoVL1IDX;
+}
+int AmsConfiguration::getDomoVL2IDX() {
+	return config.domoVL2IDX;
+}
+int AmsConfiguration::getDomoVL3IDX() {
+	return config.domoVL3IDX;
+}
+int AmsConfiguration::getDomoCL1IDX() {
+	return config.domoCL1IDX;
+}
+
+void AmsConfiguration::setDomoELIDX(int domoELIDX) {
+	domoChanged |= config.domoELIDX != domoELIDX;
+	config.domoELIDX = domoELIDX;
+}
+
+void AmsConfiguration::setDomoVL1IDX(int domoVL1IDX) {
+	domoChanged |= config.domoVL1IDX != domoVL1IDX;
+	config.domoVL1IDX = domoVL1IDX;
+}
+
+void AmsConfiguration::setDomoVL2IDX(int domoVL2IDX) {
+	domoChanged |= config.domoVL2IDX != domoVL2IDX;
+	config.domoVL2IDX = domoVL2IDX;
+}
+
+void AmsConfiguration::setDomoVL3IDX(int domoVL3IDX) {
+	domoChanged |= config.domoVL3IDX != domoVL3IDX;
+	config.domoVL3IDX = domoVL3IDX;
+}
+
+void AmsConfiguration::setDomoCL1IDX(int domoCL1IDX) {
+	domoChanged |= config.domoCL1IDX != domoCL1IDX;
+	config.domoCL1IDX = domoCL1IDX;
+}
+
+void AmsConfiguration::clearDomo() {
+	setDomoELIDX(0);
+	setDomoVL1IDX(0);	
+	setDomoVL2IDX(0);	
+	setDomoVL3IDX(0);
+	setDomoCL1IDX(0);
 }
 
 bool AmsConfiguration::pinUsed(uint8_t pin) {
@@ -409,6 +458,13 @@ void AmsConfiguration::setVccBootLimit(double vccBootLimit) {
 		config.vccBootLimit = 0;
 	else
 		config.vccBootLimit = max(2.5, min(vccBootLimit, 3.5)) * 10;
+}
+bool AmsConfiguration::isDomoChanged() {
+	return domoChanged;
+}
+
+void AmsConfiguration::ackDomoChange() {
+	domoChanged = false;
 }
 
 bool AmsConfiguration::hasConfig() {
@@ -628,6 +684,29 @@ bool AmsConfiguration::loadConfig81(int address) {
 	address += readInt(address, &i);
 	setDebugLevel(i);
 
+	bool domo = false;
+	address += readBool(address, &domo);
+	if(domo) {
+		int domoELIDX;
+		address += readInt(address, &domoELIDX);
+		setDomoELIDX(domoELIDX);
+		int domoVL1IDX;
+		address += readInt(address, &domoVL1IDX);
+		setDomoVL1IDX(domoVL1IDX);
+		int domoVL2IDX;
+		address += readInt(address, &domoVL2IDX);
+		setDomoVL2IDX(domoVL2IDX);
+		int domoVL3IDX;
+		address += readInt(address, &domoVL3IDX);
+		setDomoVL3IDX(domoVL3IDX);
+		int domoCL1IDX;
+		address += readInt(address, &domoCL1IDX);
+		setDomoCL1IDX(domoCL1IDX);
+		
+	} else {
+		clearDomo();
+	}
+	
 	ackWifiChange();
 
 	return true;
@@ -729,6 +808,14 @@ void AmsConfiguration::print(Print* debugger)
 	debugger->printf("LED blue pin:         %i\r\n", this->getLedPinBlue());
 	debugger->printf("AP pin:               %i\r\n", this->getApPin());
 	debugger->printf("Temperature pin:      %i\r\n", this->getTempSensorPin());
+
+	if(this->getDomoELIDX() > 0) {
+		debugger->printf("Domoticz ELIDX:       %i\r\n", this->getDomoELIDX());
+		debugger->printf("Domoticz VL1IDX:      %i\r\n", this->getDomoVL1IDX());
+		debugger->printf("Domoticz VL2IDX:      %i\r\n", this->getDomoVL2IDX());
+		debugger->printf("Domoticz VL3IDX:      %i\r\n", this->getDomoVL3IDX());
+		debugger->printf("Domoticz CL1IDX:      %i\r\n", this->getDomoCL1IDX());
+	}
 
 	debugger->println("-----------------------------------------------");
 }

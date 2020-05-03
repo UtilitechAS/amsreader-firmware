@@ -2,9 +2,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - Web configuration</title>
+    <title>AMS reader - WiFi configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"/>
+    <link rel="stylesheet" type="text/css" href="boot.css"/>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 </head>
 <body class="bg-light">
@@ -14,24 +14,24 @@
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-meter">Meter</a>
+                    <a class="nav-link " href="/config-meter">Meter</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-wifi">WiFi</a>
+                    <a class="nav-link " href="/config-wifi">WiFi</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-mqtt">MQTT</a>
+                    <a class="nav-link " href="/config-mqtt">MQTT</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" href="/config-web">Web</a>
+                    <a class="nav-link " href="/config-web">Web</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link " href="/config-domoticz">Domoticz</a>
+                    <a class="nav-link active " href="/config-domoticz">Domoticz</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="/config-system">System</a>
                 </li>
-            </ul>
+             </ul>
         </div>
         <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
             <li class="nav-item">
@@ -42,37 +42,57 @@
         </ul>
     </header>
     <form method="post" action="/save">
-        <input type="hidden" name="authConfig" value="true"/>
+        <input type="hidden" name="domoConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
+            <div class="text"></div>Domoticz Configuration. Requires that a Domoticz MQTT-message-broker is setup. HOWTO: https://www.domoticz.com/wiki/MQTT. <br/>(This implementation assumes that the host defined on the MQTT tab is used.) <br/><br/>The following virtual sensors can currently be used: <br/>
+            "Electricity (instant and counter)", "Electricity Current/Ampere 3 Phase" and "Voltage", see https://www.domoticz.com/wiki/Domoticz_API/JSON_URL's  <br/><br/>
+            Create the sensors in Domoticz under Hardware > Dummy > Create virtual sensor, and use the IDX assigned to the sensor as input here. <br/><br/>
+            "Electricity (instant and counter)" relies on Total energy import "tPI" and will not start before the first value is read (once an hour). </div>
+        </div>
             <div class="row">
                 <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-4">Security</label>
-                        <div class="col-8">
-                            <select id="authSecurity" class="form-control" name="authSecurity">
-                                <option value="0" ${config.authSecurity0}>None</option>
-                                <option value="1" ${config.authSecurity1}>Only configuration</option>
-                                <option value="2" ${config.authSecurity2}>Everything</option>
-                            </select>
+                        <label class="col-4">Enable</label>
+                        <div class="col-4">
+                            <input id="domoEnable" type="checkbox" name="domo" value="true" ${config.domo}/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="row form-group">
+                        <label class="col-6">Electricity IDX</label>
+                        <div class="col-6">
+                            <input type="text" class="form-control domo-config" name="domoELIDX" value="${config.domoELIDX}"/> 
+                        </div>
+                    </div>
+                    <div class="row form-group">
+                        <label class="col-6">Current (3 Phase) IDX</label>
+                        <div class="col-6">
+                            <input type="text" class="form-control domo-config" name="domoCL1IDX" value="${config.domoCL1IDX}"/>
                         </div>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-4">Username</label>
-                        <div class="col-8">
-                            <input type="text" class="form-control auth-config" name="authUser" value="${config.authUser}"/>
+                        <label class="col-6">Voltage L1 IDX</label>
+                        <div class="col-6">
+                            <input type="text" class="form-control domo-config" name="domoVL1IDX" value="${config.domoVL1IDX}"/>
                         </div>
                     </div>
-                </div>
-                <div class="col-md-4">
                     <div class="row form-group">
-                        <label class="col-4">Password</label>
-                        <div class="col-8">
-                            <input type="password" class="form-control auth-config" name="authPassword" value="${config.authPassword}"/>
+                        <label class="col-6">Voltage L2 IDX</label>
+                        <div class="col-6">
+                            <input type="text" class="form-control domo-config" name="domoVL2IDX" value="${config.domoVL2IDX}"/>
+                        </div>
+                    </div><div class="row form-group">
+                        <label class="col-6">Voltage L3 IDX</label>
+                        <div class="col-6">
+                            <input type="text" class="form-control domo-config" name="domoVL3IDX" value="${config.domoVL3IDX}"/>
                         </div>
                     </div>
-                </div>
+                </div>         
             </div>
         </div>
         <hr/>
@@ -87,13 +107,13 @@
     </form>
 </main>
 <script>
-    $('#authSecurity').on('change', function() {
-        var inputs = $('.auth-config');
-        inputs.prop('disabled', $(this).val() == 0);
+    $('#domoEnable').on('change', function() {
+        var inputs = $('.domo-config');
+        inputs.prop('disabled', !$(this).is(':checked'));
     });
     
     $(function() {
-        $('#authSecurity').trigger('change');
+        $('#domoEnable').trigger('change');
     });
 </script>
 </body>

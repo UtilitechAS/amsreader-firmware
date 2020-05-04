@@ -254,6 +254,14 @@ void AmsConfiguration::setProductionCapacity(uint8_t productionCapacity) {
 	config.productionCapacity = productionCapacity;
 }
 
+bool AmsConfiguration::isSubstituteMissing() {
+	return config.substituteMissing;
+}
+
+void AmsConfiguration::setSubstituteMissing(bool substituteMissing) {
+	config.substituteMissing = substituteMissing;
+}
+
 bool AmsConfiguration::isDebugTelnet() {
 	return config.debugTelnet;
 }
@@ -278,43 +286,43 @@ void AmsConfiguration::setDebugLevel(uint8_t debugLevel) {
 	config.debugLevel = debugLevel;
 }
 
-int AmsConfiguration::getDomoELIDX() {
+uint16_t AmsConfiguration::getDomoELIDX() {
 	return config.domoELIDX;
 }
-int AmsConfiguration::getDomoVL1IDX() {
+uint16_t AmsConfiguration::getDomoVL1IDX() {
 	return config.domoVL1IDX;
 }
-int AmsConfiguration::getDomoVL2IDX() {
+uint16_t AmsConfiguration::getDomoVL2IDX() {
 	return config.domoVL2IDX;
 }
-int AmsConfiguration::getDomoVL3IDX() {
+uint16_t AmsConfiguration::getDomoVL3IDX() {
 	return config.domoVL3IDX;
 }
-int AmsConfiguration::getDomoCL1IDX() {
+uint16_t AmsConfiguration::getDomoCL1IDX() {
 	return config.domoCL1IDX;
 }
 
-void AmsConfiguration::setDomoELIDX(int domoELIDX) {
+void AmsConfiguration::setDomoELIDX(uint16_t domoELIDX) {
 	domoChanged |= config.domoELIDX != domoELIDX;
 	config.domoELIDX = domoELIDX;
 }
 
-void AmsConfiguration::setDomoVL1IDX(int domoVL1IDX) {
+void AmsConfiguration::setDomoVL1IDX(uint16_t domoVL1IDX) {
 	domoChanged |= config.domoVL1IDX != domoVL1IDX;
 	config.domoVL1IDX = domoVL1IDX;
 }
 
-void AmsConfiguration::setDomoVL2IDX(int domoVL2IDX) {
+void AmsConfiguration::setDomoVL2IDX(uint16_t domoVL2IDX) {
 	domoChanged |= config.domoVL2IDX != domoVL2IDX;
 	config.domoVL2IDX = domoVL2IDX;
 }
 
-void AmsConfiguration::setDomoVL3IDX(int domoVL3IDX) {
+void AmsConfiguration::setDomoVL3IDX(uint16_t domoVL3IDX) {
 	domoChanged |= config.domoVL3IDX != domoVL3IDX;
 	config.domoVL3IDX = domoVL3IDX;
 }
 
-void AmsConfiguration::setDomoCL1IDX(int domoCL1IDX) {
+void AmsConfiguration::setDomoCL1IDX(uint16_t domoCL1IDX) {
 	domoChanged |= config.domoCL1IDX != domoCL1IDX;
 	config.domoCL1IDX = domoCL1IDX;
 }
@@ -450,14 +458,14 @@ void AmsConfiguration::setVccMultiplier(double vccMultiplier) {
 }
 
 double AmsConfiguration::getVccBootLimit() {
-	return config.vccBootLimit / 10;
+	return config.vccBootLimit / 10.0;
 }
 
 void AmsConfiguration::setVccBootLimit(double vccBootLimit) {
 	if(vccBootLimit == 0.0)
 		config.vccBootLimit = 0;
 	else
-		config.vccBootLimit = max(2.5, min(vccBootLimit, 3.5)) * 10;
+		config.vccBootLimit = max(25, min((int)(vccBootLimit * 10), 35));
 }
 bool AmsConfiguration::isDomoChanged() {
 	return domoChanged;
@@ -800,6 +808,7 @@ void AmsConfiguration::print(Print* debugger)
 	debugger->printf("distSys:              %i\r\n", this->getDistributionSystem());
 	debugger->printf("fuseSize:             %i\r\n", this->getMainFuse());
 	debugger->printf("productionCapacity:   %i\r\n", this->getProductionCapacity());
+	debugger->printf("Substitute missing:   %s\r\n", this->isSubstituteMissing() ? "Yes" : "No");
 
 	debugger->printf("HAN pin:              %i\r\n", this->getHanPin());
 	debugger->printf("LED pin:              %i\r\n", this->getLedPin());
@@ -810,6 +819,10 @@ void AmsConfiguration::print(Print* debugger)
 	debugger->printf("LED inverted:         %s\r\n", this->isLedRgbInverted() ? "Yes" : "No");
 	debugger->printf("AP pin:               %i\r\n", this->getApPin());
 	debugger->printf("Temperature pin:      %i\r\n", this->getTempSensorPin());
+
+	debugger->printf("Vcc pin:              %i\r\n", this->getVccPin());
+	debugger->printf("Vcc multiplier:       %f\r\n", this->getVccMultiplier());
+	debugger->printf("Vcc boot limit:       %f\r\n", this->getVccBootLimit());
 
 	if(this->getDomoELIDX() > 0) {
 		debugger->printf("Domoticz ELIDX:       %i\r\n", this->getDomoELIDX());

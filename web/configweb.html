@@ -4,8 +4,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>AMS reader - Web configuration</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
@@ -42,32 +42,32 @@
         <input type="hidden" name="authConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
             <div class="row">
-                <div class="col-md-4">
-                    <div class="row form-group">
-                        <label class="col-4">Security</label>
-                        <div class="col-8">
-                            <select id="authSecurity" class="form-control" name="authSecurity">
-                                <option value="0" ${config.authSecurity0}>None</option>
-                                <option value="1" ${config.authSecurity1}>Only configuration</option>
-                                <option value="2" ${config.authSecurity2}>Everything</option>
-                            </select>
+                <div class="col-xl-3 col-lg-4 col-md-7">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Security</span>
                         </div>
+                        <select id="authSecurity" class="form-control" name="authSecurity">
+                            <option value="0" ${config.authSecurity0}>None</option>
+                            <option value="1" ${config.authSecurity1}>Only configuration</option>
+                            <option value="2" ${config.authSecurity2}>Everything</option>
+                        </select>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="row form-group">
-                        <label class="col-4">Username</label>
-                        <div class="col-8">
-                            <input type="text" class="form-control auth-config" name="authUser" value="${config.authUser}"/>
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Username</span>
                         </div>
+                        <input type="text" class="form-control auth-config" name="authUser" value="${config.authUser}" maxlength="64"/>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <div class="row form-group">
-                        <label class="col-4">Password</label>
-                        <div class="col-8">
-                            <input type="password" class="form-control auth-config" name="authPassword" value="${config.authPassword}"/>
+                <div class="col-xl-3 col-lg-4 col-md-6">
+                    <div class="m-2 input-group input-group-sm">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text">Password</span>
                         </div>
+                        <input type="password" class="form-control auth-config" name="authPassword" value="${config.authPassword}" maxlength="64"/>
                     </div>
                 </div>
             </div>

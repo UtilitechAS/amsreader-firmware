@@ -28,6 +28,7 @@ struct ConfigObject {
 	uint8_t distributionSystem;
 	uint8_t mainFuse;
 	uint8_t productionCapacity;
+	bool substituteMissing;
 
 	bool debugTelnet;
 	bool debugSerial;
@@ -46,11 +47,11 @@ struct ConfigObject {
 	uint16_t vccMultiplier;
 	uint8_t vccBootLimit;
 
-	int domoELIDX;
-	int domoVL1IDX;
-	int domoVL2IDX;
-	int domoVL3IDX;
-	int domoCL1IDX;
+	uint16_t domoELIDX;
+	uint16_t domoVL1IDX;
+	uint16_t domoVL2IDX;
+	uint16_t domoVL3IDX;
+	uint16_t domoCL1IDX;
 };
 
 class AmsConfiguration {
@@ -122,6 +123,8 @@ public:
 	void setMainFuse(uint8_t mainFuse);
 	uint8_t getProductionCapacity();
 	void setProductionCapacity(uint8_t productionCapacity);
+	bool isSubstituteMissing();
+	void setSubstituteMissing(bool substituteMissing);
 
 	bool isDebugTelnet();
 	void setDebugTelnet(bool debugTelnet);
@@ -161,17 +164,16 @@ public:
 
 	void print(Print* debugger);
 
-	int getDomoELIDX();
-	int getDomoVL1IDX();
-	int getDomoVL2IDX();
-	int getDomoVL3IDX();
-	int getDomoCL1IDX();
-	double getDomoEnergy();
-	void setDomoELIDX(int domoELIDX);
-	void setDomoVL1IDX(int domoVL1IDX);
-	void setDomoVL2IDX(int domoVL2IDX);
-	void setDomoVL3IDX(int domoVL3IDX);
-	void setDomoCL1IDX(int domoCL1IDX);
+	uint16_t getDomoELIDX();
+	uint16_t getDomoVL1IDX();
+	uint16_t getDomoVL2IDX();
+	uint16_t getDomoVL3IDX();
+	uint16_t getDomoCL1IDX();
+	void setDomoELIDX(uint16_t domoELIDX);
+	void setDomoVL1IDX(uint16_t domoVL1IDX);
+	void setDomoVL2IDX(uint16_t domoVL2IDX);
+	void setDomoVL3IDX(uint16_t domoVL3IDX);
+	void setDomoCL1IDX(uint16_t domoCL1IDX);
 	void clearDomo();
 
 	bool isDomoChanged();
@@ -206,6 +208,7 @@ private:
 		0, // Distribution system
 		0, // Main fuse
 		0, // Production capacity
+		false, // Substitute
 		false, // Debug telnet
 		false, // Debug serial
 		5, // Debug level

@@ -12,7 +12,7 @@
 class AmsData {
 public:
     AmsData();
-    AmsData(int meterType, HanReader& hanReader);
+    AmsData(int meterType, bool substituteMissing, HanReader& hanReader);
 
     void apply(AmsData& other);
 
@@ -60,7 +60,7 @@ private:
     bool threePhase = false;
 
     void extractFromKaifa(HanReader& hanReader, int listSize);
-    void extractFromAidon(HanReader& hanReader, int listSize);
+    void extractFromAidon(HanReader& hanReader, int listSize, bool substituteMissing);
     void extractFromKamstrup(HanReader& hanReader, int listSize);
 };
 

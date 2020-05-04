@@ -211,6 +211,7 @@ void AmsWebServer::configMeterHtml() {
 		html.replace("${config.mainFuse" + String(i) + "}", config->getMainFuse() == i ? "selected"  : "");
 	}
 	html.replace("${config.productionCapacity}", String(config->getProductionCapacity()));
+	html.replace("${config.substituteMissing}", config->isSubstituteMissing() ? "checked" : "");
 
 	server.setContentLength(html.length());
 	server.send(200, "text/html", html);
@@ -230,7 +231,7 @@ void AmsWebServer::configWifiHtml() {
 
 	html.replace("${config.wifiSsid}", config->getWifiSsid());
 	html.replace("${config.wifiPassword}", config->getWifiPassword());
-	html.replace("${config.wifiIpType1}", strlen(config->getWifiIp()) > 0 ? "selected" : "");
+	html.replace("${config.wifiStaticIp}", strlen(config->getWifiIp()) > 0 ? "checked" : "");
 	html.replace("${config.wifiIp}", config->getWifiIp());
 	html.replace("${config.wifiGw}", config->getWifiGw());
 	html.replace("${config.wifiSubnet}", config->getWifiSubnet());
@@ -639,6 +640,7 @@ void AmsWebServer::handleSave() {
 		config->setDistributionSystem(server.arg("distributionSystem").toInt());
 		config->setMainFuse(server.arg("mainFuse").toInt());
 		config->setProductionCapacity(server.arg("productionCapacity").toInt());
+		config->setSubstituteMissing(server.hasArg("substituteMissing") && server.arg("substituteMissing") == "true");
 	}
 
 	if(server.hasArg("wifiConfig") && server.arg("wifiConfig") == "true") {

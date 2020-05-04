@@ -503,7 +503,7 @@ void readHanPort() {
 			else
 				hw.ledBlink(LED_INTERNAL, 1);
 
-			AmsData data(config.getMeterType(), hanReader);
+			AmsData data(config.getMeterType(), config.isSubstituteMissing(), hanReader);
 			if(data.getListType() > 0) {
 				ws.setData(data);
 
@@ -525,20 +525,7 @@ void readHanPort() {
 					// Start DOMOTICZ
 					//
 					} else if(config.getMqttPayloadFormat() == 3) {
-						//
-						// This part is also publishing standard json message for now. May be removed. 
-						//
-						StaticJsonDocument<512> json;
-						hanToJson(json, data, hw, temperature);
-						if (Debug.isActive(RemoteDebug::INFO)) {
-							debugI("Sending data to MQTT");
-							if (Debug.isActive(RemoteDebug::DEBUG)) {
-								serializeJsonPretty(json, Debug);
-							}
-						}
-						String msg;
-						serializeJson(json, msg);
-						mqtt.publish(config.getMqttPublishTopic(), msg.c_str());     // keep for now, this is identical to option 0.
+						debugI("Sending data to MQTT");
 						//
 						// Special MQTT messages for DOMOTIZ (https://www.domoticz.com/wiki/MQTT)
 						// -All messages should be published to topic "domoticz/in"

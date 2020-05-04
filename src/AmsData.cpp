@@ -5,7 +5,7 @@
 
 AmsData::AmsData() {}
 
-AmsData::AmsData(int meterType, HanReader& hanReader) {
+AmsData::AmsData(int meterType, bool substituteMissing, HanReader& hanReader) {
     lastUpdateMillis = millis();
     packageTimestamp = hanReader.getPackageTime();
 
@@ -15,7 +15,7 @@ AmsData::AmsData(int meterType, HanReader& hanReader) {
 			extractFromKaifa(hanReader, listSize);
             break;
 		case METER_TYPE_AIDON:
-			extractFromAidon(hanReader, listSize);
+			extractFromAidon(hanReader, listSize, substituteMissing);
             break;
 		case METER_TYPE_KAMSTRUP:
 			extractFromKamstrup(hanReader, listSize);
@@ -87,7 +87,7 @@ void AmsData::extractFromKaifa(HanReader& hanReader, int listSize) {
     }
 }
 
-void AmsData::extractFromAidon(HanReader& hanReader, int listSize) {
+void AmsData::extractFromAidon(HanReader& hanReader, int listSize, bool substituteMissing) {
     switch(listSize) {
         case (int)Aidon::List1:
             listType = 1;
@@ -168,7 +168,9 @@ void AmsData::extractFromAidon(HanReader& hanReader, int listSize) {
                 l1voltage             = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL1)) / 10;
                 l2voltage             = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL2)) / 10;
                 l3voltage             = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL3)) / 10;
-                //l2current             = ((activeImportPower * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                if(substituteMissing) {
+                    l2current             = ((activeImportPower * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                }
                 break;
         }
     }

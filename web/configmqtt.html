@@ -1,43 +1,3 @@
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - MQTT configuration</title>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
-</head>
-<body class="bg-light">
-<main role="main" class="container">
-    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bg-purple rounded mt-2 mb-4" style="background-color: var(--purple);">
-        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
-        <div class="navbar-nav-scroll">
-            <ul class="navbar-nav bd-navbar-nav flex-row">
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-meter">Meter</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-wifi">WiFi</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" href="/config-mqtt">MQTT</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-web">Web</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-system">System</a>
-                </li>
-            </ul>
-        </div>
-        <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
-            <li class="nav-item">
-                <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
-                    <img class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" src="github.svg"/>
-                </a>
-            </li>
-        </ul>
-    </header>
     <form method="post" action="/save">
         <input type="hidden" name="mqttConfig" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
@@ -173,7 +133,6 @@
             </div>
         </div>
     </form>
-</main>
 <script>
     $('#mqttEnable').on('change', function() {
         var inputs = $('.mqtt-config');
@@ -192,5 +151,3 @@
         $('#mqttPayloadFormat').trigger('change');
     });
 </script>
-</body>
-</html>

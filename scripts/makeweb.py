@@ -40,3 +40,11 @@ for filename in os.listdir(webroot):
         dst.write("[] PROGMEM = R\"==\"==(")
         dst.write(content)
         dst.write(")==\"==\";\n")
+        dst.write("const int ");
+        dst.write(varname)
+        dst.write("_LEN = sizeof(");
+        dst.write(varname)
+        dst.write(")/sizeof(");
+        dst.write(varname)
+        dst.write("[0]);");
+        

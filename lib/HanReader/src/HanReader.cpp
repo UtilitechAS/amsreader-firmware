@@ -110,6 +110,12 @@ String HanReader::getString(int objectId) {
 	return getString(objectId, buffer, 0, bytesRead);
 }
 
+int HanReader::getBuffer(byte* buf) {
+	for (int i = 0; i < bytesRead; i++) {
+		buf[i] = buffer[i];
+	}
+	return bytesRead;
+}
 
 int HanReader::findValuePosition(int dataPosition, byte *buffer, int start, int length) {
 	// The first byte after the header gives the length 

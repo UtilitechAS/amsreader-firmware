@@ -2,6 +2,8 @@
 #include "version.h"
 #include "AmsStorage.h"
 
+#include "root/head_html.h"
+#include "root/foot_html.h"
 #include "root/index_html.h"
 #include "root/index_js.h"
 #include "root/setup_html.h"
@@ -126,7 +128,6 @@ void AmsWebServer::indexHtml() {
 			return;
 
 		String html = String((const __FlashStringHelper*) INDEX_HTML);
-		html.replace("${version}", VERSION);
 
 		double u1 = data.getL1Voltage();
 		double u2 = data.getL2Voltage();
@@ -193,7 +194,6 @@ void AmsWebServer::configMeterHtml() {
 		return;
 
 	String html = String((const __FlashStringHelper*) CONFIGMETER_HTML);
-	html.replace("${version}", VERSION);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -224,7 +224,6 @@ void AmsWebServer::configWifiHtml() {
 		return;
 
 	String html = String((const __FlashStringHelper*) CONFIGWIFI_HTML);
-	html.replace("${version}", VERSION);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -250,7 +249,6 @@ void AmsWebServer::configMqttHtml() {
 		return;
 
 	String html = String((const __FlashStringHelper*) CONFIGMQTT_HTML);
-	html.replace("${version}", VERSION);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -292,8 +290,10 @@ void AmsWebServer::configMqttHtml() {
 		html.replace("${display.key.file}", "none");
 	}
 
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::configDomoticzHtml() {
@@ -303,7 +303,6 @@ void AmsWebServer::configDomoticzHtml() {
 		return;
 
 	String html = String((const __FlashStringHelper*) CONFIGDOMOTICZ_HTML);
-	html.replace("${version}", VERSION);
 
 	if(WiFi.getMode() != WIFI_AP) {
 		html.replace("boot.css", BOOTSTRAP_URL);
@@ -335,7 +334,6 @@ void AmsWebServer::configWebHtml() {
 		return;
 
 	String html = String((const __FlashStringHelper*) CONFIGWEB_HTML);
-	html.replace("${version}", VERSION);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -765,7 +763,6 @@ void AmsWebServer::configSystemHtml() {
 		return;
 
 	String html = String((const __FlashStringHelper*) CONFIGSYSTEM_HTML);
-	html.replace("${version}", VERSION);
 
 	#if defined(ESP32)
 		html.replace("${gpio.max}", "39");
@@ -912,7 +909,6 @@ void AmsWebServer::restartWaitHtml() {
 		return;
 
 	String html = String((const __FlashStringHelper*) RESTARTWAIT_HTML);
-	html.replace("${version}", VERSION);
 
 	if(WiFi.getMode() != WIFI_AP) {
 		html.replace("boot.css", BOOTSTRAP_URL);

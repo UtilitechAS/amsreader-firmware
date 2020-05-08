@@ -29,6 +29,7 @@ public:
 	uint32_t getUint(int objectId); // Only for uint32
 	String getString(int objectId);
 	time_t getTime(int objectId);
+	int getBuffer(byte* buf);
 
 private:
 	RemoteDebug* debugger;

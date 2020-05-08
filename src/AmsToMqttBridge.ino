@@ -155,7 +155,7 @@ void setup() {
 	}
 
 	double vccBootLimit = config.getVccBootLimit();
-	if(vccBootLimit > 0 && (config.getApPin() == -1 || digitalRead(config.getApPin()) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
+	if(vccBootLimit > 0 && (config.getApPin() == 0xFF || digitalRead(config.getApPin()) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
 		if (vcc < vccBootLimit) {
 			if(Debug.isActive(RemoteDebug::INFO)) {
 				debugI("Voltage is too low, sleeping");
@@ -268,7 +268,7 @@ double energy = -1.0;
 void loop() {
 	Debug.handle();
 	unsigned long now = millis();
-	if(config.getApPin() != INVALID_BUTTON_PIN) {
+	if(config.getApPin() != 0xFF) {
 		if (digitalRead(config.getApPin()) == LOW) {
 			if (buttonActive == false) {
 				buttonActive = true;
@@ -715,6 +715,21 @@ void readHanPort() {
 					mqtt.loop();
 					delay(10);
 				}
+			} else {
+				if(strlen(config.getMqttHost()) > 0 && strlen(config.getMqttPublishTopic()) > 0) {
+					byte buf[512];
+					int length = hanReader.getBuffer(buf);
+					String hexstring = "";
+
+					for(int i = 0; i < length; i++) {
+						if(buf[i] < 0x10) {
+						hexstring += '0';
+						}
+
+						hexstring += String(buf[i], HEX);
+					}
+					mqtt.publish(String(config.getMqttPublishTopic()), hexstring);
+				}
 			}
 		} else {
 			// Auto detect meter if not set
@@ -813,14 +828,14 @@ void MQTT_connect() {
 	}
 	lastMqttRetry = millis();
 	if(Debug.isActive(RemoteDebug::INFO)) {
-		debugI("Connecting to MQTT %s:%d", config.getMqttHost(), config.getMqttPort());
+		debugD("Disconnecting MQTT before connecting");
 	}
 
 	mqtt.disconnect();
 	yield();
 
-	WiFiClientSecure *secureClient;
-	Client *client;
+	WiFiClientSecure *secureClient = NULL;
+	Client *client = NULL;
 	if(config.isMqttSsl()) {
 		debugI("MQTT SSL is configured");
 
@@ -858,10 +873,16 @@ void MQTT_connect() {
 		client = new WiFiClient();
 	}
 
+	if(Debug.isActive(RemoteDebug::INFO)) {
+		debugI("Connecting to MQTT %s:%d", config.getMqttHost(), config.getMqttPort());
+	}
 	mqtt.begin(config.getMqttHost(), config.getMqttPort(), *client);
 
 #if defined(ESP8266)
-	if(secureClient) secureClient->setX509Time(timeClient.getEpochTime());
+	if(secureClient) {
+		debugD("Setting NTP time for secure MQTT connection");
+ 		secureClient->setX509Time(timeClient.getEpochTime());
+	}
 #endif
 
 	// Connect to a unsecure or secure MQTT server

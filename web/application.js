@@ -69,6 +69,12 @@ $(function() {
     
     $('#authSecurity').trigger('change');
 
+    // For file upload
+    $('#fileUploadField').on('change',function(){
+        var fileName = $(this).val();
+        $(this).next('.custom-file-label').html(fileName);
+    })
+
     switch(window.location.pathname) {
         case '/config-meter':
             $('#config-meter-link').addClass('active');

@@ -7,16 +7,10 @@
                         <span class="input-group-text">Upload</span>
                     </div>
                     <div class="custom-file">
-                        <input name="file" type="file" class="custom-file-input" id="inputGroupFile01">
-                        <label class="custom-file-label" for="inputGroupFile01">Choose file</label>
+                        <input name="file" type="file" class="custom-file-input" id="fileUploadField">
+                        <label class="custom-file-label" for="fileUploadField">Choose file</label>
                     </div>
                 </div>
-                <script>
-                    $('#inputGroupFile01').on('change',function(){
-                        var fileName = $(this).val();
-                        $(this).next('.custom-file-label').html(fileName);
-                    })
-                </script>
             </div>
         </div>
     </div>

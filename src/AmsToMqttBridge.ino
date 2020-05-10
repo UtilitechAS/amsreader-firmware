@@ -22,7 +22,7 @@
 #include <ArduinoJson.h>
 #include <MQTT.h>
 #include <DNSServer.h>
-#include <NTPClient.h>
+#include <TZ.h>
 
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);  
@@ -47,9 +47,6 @@ ADC_MODE(ADC_VCC);
 HwTools hw;
 
 DNSServer dnsServer;
-
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", 3600, 60000);
 
 AmsConfiguration config;
 
@@ -235,7 +232,8 @@ void setup() {
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
 		WiFi_connect();
-		timeClient.begin();
+		configTime(TZ_Europe_Oslo, "pool.ntp.org");
+		//sntp_servermode_dhcp(0); // 0: disable obtaining SNTP servers from DHCP (enabled by default)
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("No configuration, booting AP");
@@ -326,8 +324,6 @@ void loop() {
 			if(now > 10000 && now - lastErrorBlink > 3000) {
 				errorBlink();
 			}
-
-			timeClient.update();
 
 			if (strlen(config.getMqttHost()) > 0) {
 				mqtt.loop();
@@ -840,8 +836,6 @@ void MQTT_connect() {
 	if(config.isMqttSsl()) {
 		debugI("MQTT SSL is configured");
 
-		if(!timeClient.update()) debugW("NTP time is not ready");
-
 		secureClient = new WiFiClientSecure();
 #if defined(ESP8266)
 		secureClient->setBufferSizes(512, 512);
@@ -881,8 +875,9 @@ void MQTT_connect() {
 
 #if defined(ESP8266)
 	if(secureClient) {
-		debugD("Setting NTP time for secure MQTT connection");
- 		secureClient->setX509Time(timeClient.getEpochTime());
+		time_t epoch = time(nullptr);
+		debugD("Setting NTP time %i for secure MQTT connection", epoch);
+ 		secureClient->setX509Time(epoch);
 	}
 #endif
 

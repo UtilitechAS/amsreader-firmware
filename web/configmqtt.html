@@ -133,21 +133,3 @@
             </div>
         </div>
     </form>
-<script>
-    $('#mqttEnable').on('change', function() {
-        var inputs = $('.mqtt-config');
-        inputs.prop('disabled', !$(this).is(':checked'));
-    });
-    
-    $('#mqttPayloadFormat').on('change', function() {
-        var val = parseInt($(this).val());
-        if(val == 3)
-            $('.format-type-domoticz').show();
-        else
-            $('.format-type-domoticz').hide();
-    });
-    $(function() {
-        $('#mqttEnable').trigger('change');
-        $('#mqttPayloadFormat').trigger('change');
-    });
-</script>

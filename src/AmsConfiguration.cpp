@@ -72,6 +72,13 @@ void AmsConfiguration::setWifiHostname(const char* wifiHostname) {
 	strcpy(config.wifiHostname, wifiHostname);
 }
 
+void AmsConfiguration::clearWifi() {
+	setWifiSsid("");
+	setWifiPassword("");
+	setWifiHostname("");
+	clearWifiIp();
+}
+
 void AmsConfiguration::clearWifiIp() {
 	setWifiIp("");
 	setWifiGw("");
@@ -261,6 +268,24 @@ bool AmsConfiguration::isSubstituteMissing() {
 void AmsConfiguration::setSubstituteMissing(bool substituteMissing) {
 	config.substituteMissing = substituteMissing;
 }
+
+bool AmsConfiguration::isSendUnknown() {
+	return config.sendUnknown;
+}
+
+void AmsConfiguration::setSendUnknown(bool sendUnknown) {
+	config.sendUnknown = sendUnknown;
+}
+
+void AmsConfiguration::clearMeter() {
+	setMeterType(0);
+	setDistributionSystem(0);
+	setMainFuse(0);
+	setProductionCapacity(0);
+	setSubstituteMissing(false);
+	setSendUnknown(false);
+}
+
 
 bool AmsConfiguration::isDebugTelnet() {
 	return config.debugTelnet;
@@ -473,6 +498,23 @@ bool AmsConfiguration::isDomoChanged() {
 
 void AmsConfiguration::ackDomoChange() {
 	domoChanged = false;
+}
+
+void AmsConfiguration::clear() {
+	clearMeter();
+	clearWifi();
+	clearMqtt();
+	clearAuth();
+	clearDomo();
+
+	int address = EEPROM_CONFIG_ADDRESS;
+
+	EEPROM.begin(EEPROM_SIZE);
+	while(address < EEPROM_CONFIG_ADDRESS+EEPROM_SIZE) {
+		EEPROM.put(address++, 0);
+	}
+	EEPROM.commit();
+	EEPROM.end();
 }
 
 bool AmsConfiguration::hasConfig() {
@@ -768,7 +810,8 @@ int AmsConfiguration::readByte(int address, byte *value) {
 
 void AmsConfiguration::print(Print* debugger)
 {
-	debugger->println("Configuration:");
+	debugger->print("Configuration size: ");
+	debugger->println(sizeof(config));
 	debugger->println("-----------------------------------------------");
 	debugger->printf("WiFi SSID:            '%s'\r\n", this->getWifiSsid());
 	debugger->printf("WiFi Psk:             '%s'\r\n", this->getWifiPassword());

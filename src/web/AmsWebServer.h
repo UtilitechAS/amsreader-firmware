@@ -57,7 +57,7 @@ private:
 	bool checkSecurity(byte level);
 
 	void indexHtml();
-	void indexJs();
+	void applicationJs();
 	void configMeterHtml();
 	void configWifiHtml();
 	void configMqttHtml();
@@ -92,6 +92,11 @@ private:
 	void mqttKey();
 	void mqttKeyUpload();
 	void mqttKeyDelete();
+
+	void factoryResetHtml();
+	void factoryResetPost();
+
+	void notFound();
 
 	void printD(String fmt, ...);
 	void printI(String fmt, ...);

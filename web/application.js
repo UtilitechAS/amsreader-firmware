@@ -18,7 +18,80 @@ $(function() {
         });
     }
 
-    fetch();
+    if($('.SimpleMeter').length > 0) {
+        fetch();
+    }
+
+    // For config-mqtt
+    $('#mqttEnable').on('change', function() {
+        var inputs = $('.mqtt-config');
+        inputs.prop('disabled', !$(this).is(':checked'));
+    });
+    
+    $('#mqttPayloadFormat').on('change', function() {
+        var val = parseInt($(this).val());
+        if(val == 3) {
+            $('.format-type-domoticz').show();
+        } else {
+            $('.format-type-domoticz').hide();
+        }
+    });
+
+    $('#mqttEnable').trigger('change');
+    $('#mqttPayloadFormat').trigger('change');
+
+    // For config-meter
+    $('.subtitute-dependent').on('change', function() {
+        console.log("test");
+        if($('#meterType').val() == 2 && $('#distributionSystem').val() == 1) {
+            $('#substitute').show();
+        } else {
+            $('#substitute').hide();
+        }
+    });
+    $('#meterType').trigger('change');
+
+    // For config-wifi
+    $('#wifiIpType').on('change', function() {
+        if($(this).is(':checked')) {
+            $('#staticIp').show();
+        } else {
+            $('#staticIp').hide();
+        }
+    });
+    $('#wifiIpType').trigger('change');
+
+    // For config-web
+    $('#authSecurity').on('change', function() {
+        var inputs = $('.auth-config');
+        inputs.prop('disabled', $(this).val() == 0);
+    });
+    
+    $('#authSecurity').trigger('change');
+
+    switch(window.location.pathname) {
+        case '/config-meter':
+            $('#config-meter-link').addClass('active');
+            break;
+        case '/config-wifi':
+            $('#config-wifi-link').addClass('active');
+            break;
+        case '/config-mqtt':
+        case '/mqtt-ca':
+        case '/mqtt-cert':
+        case '/mqtt-key':
+        case '/config-domoticz':
+            $('#config-mqtt-link').addClass('active');
+            break;
+        case '/config-web':
+            $('#config-web-link').addClass('active');
+            break;
+        case '/config-system':
+        case '/firmware':
+        case '/reset':
+            $('#config-system-link').addClass('active');
+            break;
+    }
 });
 
 var setStatus = function(id, status) {

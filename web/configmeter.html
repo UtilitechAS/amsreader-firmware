@@ -1,127 +1,78 @@
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - Meter configuration</title>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
-</head>
-<body class="bg-light">
-<main role="main" class="container">
-    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bg-purple rounded mt-2 mb-4" style="background-color: var(--purple);">
-        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
-        <div class="navbar-nav-scroll">
-            <ul class="navbar-nav bd-navbar-nav flex-row">
-                <li class="nav-item">
-                    <a class="nav-link active" href="/config-meter">Meter</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-wifi">WiFi</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-mqtt">MQTT</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-web">Web</a>
-                </li>
-               <li class="nav-item">
-                    <a class="nav-link" href="/config-system">System</a>
-                </li>
-            </ul>
-        </div>
-        <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
-            <li class="nav-item">
-                <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
-                    <img class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" src="github.svg"/>
-                </a>
-            </li>
-        </ul>
-    </header>
-    <form method="post" action="/save">
-        <input type="hidden" name="meterConfig" value="true"/>
-        <div class="my-3 p-3 bg-white rounded shadow">
-            <div class="row">
-                <div class="col-lg-3 col-md-4 col-sm-6">
-                    <div class="m-2 input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Meter type</span>
-                        </div>
-                        <select id="meterType" class="form-control subtitute-dependent" name="meterType">
-                            <option value="0" ${config.meterType0}>Autodetect</option>
-                            <option value="1" ${config.meterType1}>Kaifa</option>
-                            <option value="2" ${config.meterType2}>Aidon</option>
-                            <option value="3" ${config.meterType3}>Kamstrup</option>
-                        </select>
+<form method="post" action="/save">
+    <input type="hidden" name="meterConfig" value="true"/>
+    <div class="my-3 p-3 bg-white rounded shadow">
+        <div class="row">
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Meter type</span>
                     </div>
+                    <select id="meterType" class="form-control subtitute-dependent" name="meterType">
+                        <option value="0" ${config.meterType0}>Autodetect</option>
+                        <option value="1" ${config.meterType1}>Kaifa</option>
+                        <option value="2" ${config.meterType2}>Aidon</option>
+                        <option value="3" ${config.meterType3}>Kamstrup</option>
+                    </select>
                 </div>
-                <div class="col-xl-3 col-lg-4 col-md-5 col-sm-6">
-                    <div class="m-2 input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Distribution system</span>
-                        </div>
-                        <select id="distributionSystem" class="form-control subtitute-dependent" name="distributionSystem">
-                            <option value="0" ${config.distributionSystem0}></option>
-                            <option value="1" ${config.distributionSystem1}>IT (230V)</option>
-                            <option value="2" ${config.distributionSystem2}>TN (400V)</option>
-                        </select>
+            </div>
+            <div class="col-xl-3 col-lg-4 col-md-5 col-sm-6">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Distribution system</span>
                     </div>
+                    <select id="distributionSystem" class="form-control subtitute-dependent" name="distributionSystem">
+                        <option value="0" ${config.distributionSystem0}></option>
+                        <option value="1" ${config.distributionSystem1}>IT (230V)</option>
+                        <option value="2" ${config.distributionSystem2}>TN (400V)</option>
+                    </select>
                 </div>
-                <div class="col-xl-2 col-md-3 col-sm-5">
-                    <div class="m-2 input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Main fuse</span>
-                        </div>
-                        <select class="form-control" name="mainFuse">
-                            <option value="0" ${config.mainFuse0}></option>
-                            <option value="25" ${config.mainFuse25}>25A</option>
-                            <option value="32" ${config.mainFuse32}>32A</option>
-                            <option value="35" ${config.mainFuse32}>35A</option>
-                            <option value="40" ${config.mainFuse40}>40A</option>
-                            <option value="50" ${config.mainFuse50}>50A</option>
-                            <option value="63" ${config.mainFuse63}>63A</option>
-                        </select>
+            </div>
+            <div class="col-xl-2 col-md-3 col-sm-5">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Main fuse</span>
                     </div>
+                    <select class="form-control" name="mainFuse">
+                        <option value="0" ${config.mainFuse0}></option>
+                        <option value="25" ${config.mainFuse25}>25A</option>
+                        <option value="32" ${config.mainFuse32}>32A</option>
+                        <option value="35" ${config.mainFuse32}>35A</option>
+                        <option value="40" ${config.mainFuse40}>40A</option>
+                        <option value="50" ${config.mainFuse50}>50A</option>
+                        <option value="63" ${config.mainFuse63}>63A</option>
+                    </select>
                 </div>
-                <div class="col-xl-3 col-lg-4 col-md-5 col-sm-7">
-                    <div class="m-2 input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Production capacity</span>
-                        </div>
-                        <input class="form-control" name="productionCapacity" type="number" min="0" max="50" value="${config.productionCapacity}"/>
-                        <div class="input-group-append">
-                            <span class="input-group-text">kWp</span>
-                        </div>
+            </div>
+            <div class="col-xl-3 col-lg-4 col-md-5 col-sm-7">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Production capacity</span>
                     </div>
-                </div>
-                <div id="substitute" class="col-lg-3 col-md-4 col-sm-5">
-                    <div class="m-2">
-                        <label class="small"><input id="substituteMissing" type="checkbox" name="substituteMissing" value="true" ${config.substituteMissing}/> Substitute missing values</label>
+                    <input class="form-control" name="productionCapacity" type="number" min="0" max="50" value="${config.productionCapacity}"/>
+                    <div class="input-group-append">
+                        <span class="input-group-text">kWp</span>
                     </div>
                 </div>
             </div>
-        </div>
-        <hr/>
-        <div class="row form-group">
-            <div class="col-6">
-                <a href="/" class="btn btn-outline-secondary">Back</a>
+            <div id="substitute" class="col-lg-3 col-md-4 col-sm-5">
+                <div class="m-2">
+                    <label class="small"><input id="substituteMissing" type="checkbox" name="substituteMissing" value="true" ${config.substituteMissing}/> Substitute missing values</label>
+                </div>
             </div>
-            <div class="col-6 text-right">
-                <button class="btn btn-primary">Save</button>
+            <div class="col-lg-3 col-md-4 col-sm-5">
+                <div class="m-2">
+                    <label class="small"><input type="checkbox" name="sendUnknown" value="true" ${config.sendUnknown}/> Send unknown packets to MQTT</label>
+                </div>
             </div>
         </div>
-    </form>
-</main>
-<script>
-    $('.subtitute-dependent').on('change', function() {
-        console.log("test");
-        if($('#meterType').val() == 2 && $('#distributionSystem').val() == 1) {
-            $('#substitute').show();
-        } else {
-            $('#substitute').hide();
-        }
-    });
-    $('#meterType').trigger('change');
-</script>
-</body>
-</html>
+    </div>
+    <hr/>
+    <div class="row form-group">
+        <div class="col-6">
+            <a href="/" class="btn btn-outline-secondary">Back</a>
+        </div>
+        <div class="col-6 text-right">
+            <button class="btn btn-primary">Save</button>
+        </div>
+    </div>
+</form>

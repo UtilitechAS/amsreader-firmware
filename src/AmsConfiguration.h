@@ -29,6 +29,7 @@ struct ConfigObject {
 	uint8_t mainFuse;
 	uint8_t productionCapacity;
 	bool substituteMissing;
+	bool sendUnknown;
 
 	bool debugTelnet;
 	bool debugSerial;
@@ -78,6 +79,7 @@ public:
 	void setWifiDns2(const char* wifiDns1);
 	char* getWifiHostname();
 	void setWifiHostname(const char* wifiHostname);
+	void clearWifi();
 	void clearWifiIp();
 
 	bool isWifiChanged();
@@ -125,6 +127,9 @@ public:
 	void setProductionCapacity(uint8_t productionCapacity);
 	bool isSubstituteMissing();
 	void setSubstituteMissing(bool substituteMissing);
+	bool isSendUnknown();
+	void setSendUnknown(bool sendUnknown);
+	void clearMeter();
 
 	bool isDebugTelnet();
 	void setDebugTelnet(bool debugTelnet);
@@ -179,6 +184,8 @@ public:
 	bool isDomoChanged();
 	void ackDomoChange();
 
+	void clear();
+
 protected:
 
 private:
@@ -209,6 +216,7 @@ private:
 		0, // Main fuse
 		0, // Production capacity
 		false, // Substitute
+		false, // Send unknown
 		false, // Debug telnet
 		false, // Debug serial
 		5, // Debug level
@@ -230,10 +238,11 @@ private:
 		0, // VL2IDX
 		0, // VL3IDX
 		0 // CL1IDX
+		// 786 bytes
 	};
 	bool wifiChanged, mqttChanged, domoChanged;
 
-	const int EEPROM_SIZE = 2048;
+	const int EEPROM_SIZE = 790; // Config size + 4 bytes for config version
 	const int EEPROM_CHECK_SUM = 82; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 

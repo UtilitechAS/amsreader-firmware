@@ -235,6 +235,7 @@ void setup() {
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
 		WiFi_connect();
+		timeClient.begin();
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("No configuration, booting AP");
@@ -243,7 +244,6 @@ void setup() {
 	}
 
 	ws.setup(&config, &mqtt);
-	timeClient.begin();
 }
 
 int buttonTimer = 0;
@@ -296,12 +296,6 @@ void loop() {
 		lastTemperatureRead = now;
 	}
 
-	if(now > 10000 && now - lastErrorBlink > 3000) {
-		errorBlink();
-	}
-
-	timeClient.update();
-
 	// Only do normal stuff if we're not booted as AP
 	if (WiFi.getMode() != WIFI_AP) {
 		if (WiFi.status() != WL_CONNECTED) {
@@ -328,6 +322,13 @@ void loop() {
 					MDNS.addService("http", "tcp", 80);
 				}
 			}
+
+			if(now > 10000 && now - lastErrorBlink > 3000) {
+				errorBlink();
+			}
+
+			timeClient.update();
+
 			if (strlen(config.getMqttHost()) > 0) {
 				mqtt.loop();
 				delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
@@ -344,7 +345,7 @@ void loop() {
 	} else {
 		dnsServer.processNextRequest();
 		// Continously flash the LED when AP mode
-		hw.ledBlink(LED_INTERNAL, 1);
+		if (now / 50 % 64 == 0) hw.ledBlink(LED_INTERNAL, 1);
 	}
 
 	if(hanSerialPin != config.getHanPin()) {
@@ -716,7 +717,7 @@ void readHanPort() {
 					delay(10);
 				}
 			} else {
-				if(strlen(config.getMqttHost()) > 0 && strlen(config.getMqttPublishTopic()) > 0) {
+				if(config.isSendUnknown() && strlen(config.getMqttHost()) > 0 && strlen(config.getMqttPublishTopic()) > 0) {
 					byte buf[512];
 					int length = hanReader.getBuffer(buf);
 					String hexstring = "";

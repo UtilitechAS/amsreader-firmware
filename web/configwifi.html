@@ -1,133 +1,85 @@
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - WiFi configuration</title>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-</head>
-<body class="bg-light">
-<main role="main" class="container">
-    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bg-purple rounded mt-2 mb-4" style="background-color: var(--purple);">
-        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
-        <div class="navbar-nav-scroll">
-            <ul class="navbar-nav bd-navbar-nav flex-row">
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-meter">Meter</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" href="/config-wifi">WiFi</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-mqtt">MQTT</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-web">Web</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-system">System</a>
-                </li>
-            </ul>
-        </div>
-        <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
-            <li class="nav-item">
-                <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
-                    <img class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" src="github.svg"/>
-                </a>
-            </li>
-        </ul>
-    </header>
-    <form method="post" action="/save">
-        <input type="hidden" name="wifiConfig" value="true"/>
-        <div class="my-3 p-3 bg-white rounded shadow">
-            <div class="row">
-                <div class="col-xl-3 col-md-6 form-group">
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">SSID</span>
-                        </div>
-                        <input type="text" name="wifiSsid" class="form-control" maxlength="32" placeholder="Name of your WiFi"  value="${config.wifiSsid}" required/>
+<form method="post" action="/save">
+    <input type="hidden" name="wifiConfig" value="true"/>
+    <div class="my-3 p-3 bg-white rounded shadow">
+        <div class="row">
+            <div class="col-xl-3 col-md-6 form-group">
+                <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">SSID</span>
                     </div>
-                </div>
-                <div class="col-xl-3 col-md-6 form-group">
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">PSK</span>
-                        </div>
-                        <input type="password" name="wifiPassword" class="form-control" maxlength="63" placeholder="Password for WiFi" value="${config.wifiPassword}" required/>
-                    </div>
-                </div>
-                <div class="col-xl-4 col-md-6 form-group">
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Hostname</span>
-                        </div>
-                        <input type="text" name="wifiHostname" class="form-control" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader" value="${config.wifiHostname}"/>
-                    </div>
-                </div>
-                <div class="col-xl-2 col-md-6 form-group">
-                    <label><input type="checkbox" name="wifiIpType" value="1" onchange="staticChecked(this);" ${config.wifiStaticIp}/> Static IP</label>
+                    <input type="text" name="wifiSsid" class="form-control" maxlength="32" placeholder="Name of your WiFi"  value="${config.wifiSsid}" required/>
                 </div>
             </div>
-            <div class="row" id="staticIp">
-                <div class="col-xl-3 col-lg-4 form-group">
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">IP</span>
-                        </div>
-                        <input type="text" name="wifiIp" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex: 192.168.1.200" value="${config.wifiIp}"/>
+            <div class="col-xl-3 col-md-6 form-group">
+                <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">PSK</span>
                     </div>
+                    <input type="password" name="wifiPassword" class="form-control" maxlength="63" placeholder="Password for WiFi" value="${config.wifiPassword}" required/>
                 </div>
-                <div class="col-xl-3 col-lg-4 form-group">
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Subnet</span>
-                        </div>
-                        <input type="text" name="wifiSubnet" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 255.255.255.0" value="${config.wifiSubnet}"/>
+            </div>
+            <div class="col-xl-4 col-md-6 form-group">
+                <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Hostname</span>
                     </div>
+                    <input type="text" name="wifiHostname" class="form-control" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader" value="${config.wifiHostname}"/>
                 </div>
-                <div class="col-xl-3 col-lg-4 form-group">
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Gateway</span>
-                        </div>
-                        <input type="text" name="wifiGw" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 192.168.1.1" value="${config.wifiGw}"/>
+            </div>
+            <div class="col-xl-2 col-md-6 form-group">
+                <label><input id="wifiIpType" type="checkbox" name="wifiIpType" value="1" ${config.wifiStaticIp}/> Static IP</label>
+            </div>
+        </div>
+        <div class="row" id="staticIp">
+            <div class="col-xl-3 col-lg-4 form-group">
+                <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">IP</span>
                     </div>
+                    <input type="text" name="wifiIp" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex: 192.168.1.200" value="${config.wifiIp}"/>
                 </div>
-                <div class="col-xl-4 col-lg-5 form-group">
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Primary DNS</span>
-                        </div>
-                        <input type="text" name="wifiDns1" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 192.168.1.1" value="${config.wifiDns1}"/>
+            </div>
+            <div class="col-xl-3 col-lg-4 form-group">
+                <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Subnet</span>
                     </div>
+                    <input type="text" name="wifiSubnet" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 255.255.255.0" value="${config.wifiSubnet}"/>
                 </div>
-                <div class="col-xl-4 col-lg-5 form-group">
-                    <div class="input-group input-group-sm">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Secondary DNS</span>
-                        </div>
-                        <input type="text" name="wifiDns2" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 8.8.8.8" value="${config.wifiDns2}"/>
+            </div>
+            <div class="col-xl-3 col-lg-4 form-group">
+                <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Gateway</span>
                     </div>
+                    <input type="text" name="wifiGw" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 192.168.1.1" value="${config.wifiGw}"/>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-5 form-group">
+                <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Primary DNS</span>
+                    </div>
+                    <input type="text" name="wifiDns1" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 192.168.1.1" value="${config.wifiDns1}"/>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-5 form-group">
+                <div class="input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Secondary DNS</span>
+                    </div>
+                    <input type="text" name="wifiDns2" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 8.8.8.8" value="${config.wifiDns2}"/>
                 </div>
             </div>
         </div>
-        <hr/>
-        <div class="row form-group">
-            <div class="col-6">
-                <a href="/" class="btn btn-outline-secondary">Back</a>
-            </div>
-            <div class="col-6 text-right">
-                <button class="btn btn-primary">Save</button>
-            </div>
+    </div>
+    <hr/>
+    <div class="row form-group">
+        <div class="col-6">
+            <a href="/" class="btn btn-outline-secondary">Back</a>
         </div>
-    </form>
-</main>
-<script>
-    document.getElementById('staticIp').style.display = "none";
-    var staticChecked = function(el) {
-        document.getElementById('staticIp').style.display = el.checked ? "" : "none";
-    }
-</script>
-</body>
-</html>
+        <div class="col-6 text-right">
+            <button class="btn btn-primary">Save</button>
+        </div>
+    </div>
+</form>

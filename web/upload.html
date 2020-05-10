@@ -1,77 +1,32 @@
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - Upload</title>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
-</head>
-<body class="bg-light">
-<main role="main" class="container">
-    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bg-purple rounded mt-2 mb-4" style="background-color: var(--purple);">
-        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
-        <div class="navbar-nav-scroll">
-            <ul class="navbar-nav bd-navbar-nav flex-row">
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-meter">Meter</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-wifi">WiFi</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-mqtt">MQTT</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-web">Web</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-system">System</a>
-                </li>
-            </ul>
-        </div>
-        <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
-            <li class="nav-item">
-                <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
-                    <img class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" src="github.svg"/>
-                </a>
-            </li>
-        </ul>
-    </header>
-    <form method="post" enctype="multipart/form-data">
-        <div class="my-3 p-3 bg-white rounded shadow">
-            <div class="row">
-                <div class="col-lg-6">
-                    <div class="input-group mb-3">
-                        <div class="input-group-prepend">
-                            <span class="input-group-text">Upload</span>
-                        </div>
-                        <div class="custom-file">
-                            <input name="file" type="file" class="custom-file-input" id="inputGroupFile01">
-                            <label class="custom-file-label" for="inputGroupFile01">Choose file</label>
-                        </div>
+<form method="post" enctype="multipart/form-data">
+    <div class="my-3 p-3 bg-white rounded shadow">
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Upload</span>
                     </div>
-                    <script>
-                        $('#inputGroupFile01').on('change',function(){
-                            var fileName = $(this).val();
-                            $(this).next('.custom-file-label').html(fileName);
-                        })
-                    </script>
+                    <div class="custom-file">
+                        <input name="file" type="file" class="custom-file-input" id="inputGroupFile01">
+                        <label class="custom-file-label" for="inputGroupFile01">Choose file</label>
+                    </div>
                 </div>
+                <script>
+                    $('#inputGroupFile01').on('change',function(){
+                        var fileName = $(this).val();
+                        $(this).next('.custom-file-label').html(fileName);
+                    })
+                </script>
             </div>
         </div>
-        <hr/>
-        <div class="row form-group">
-            <div class="col-6">
-                <a href="javascript:history.back();" class="btn btn-outline-secondary">Back</a>
-            </div>
-            <div class="col-6 text-right">
-                <button class="btn btn-primary">Upload</button>
-            </div>
+    </div>
+    <hr/>
+    <div class="row form-group">
+        <div class="col-6">
+            <a href="javascript:history.back();" class="btn btn-outline-secondary">Back</a>
         </div>
-    </form>
-</main>
-</body>
-</html>
+        <div class="col-6 text-right">
+            <button class="btn btn-primary">Upload</button>
+        </div>
+    </div>
+</form>

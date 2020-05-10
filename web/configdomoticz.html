@@ -1,102 +1,60 @@
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - WiFi configuration</title>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
-</head>
-<body class="bg-light">
-<main role="main" class="container">
-    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bg-purple rounded mt-2 mb-4" style="background-color: var(--purple);">
-        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
-        <div class="navbar-nav-scroll">
-            <ul class="navbar-nav bd-navbar-nav flex-row">
-                <li class="nav-item">
-                    <a class="nav-link " href="/config-meter">Meter</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link " href="/config-wifi">WiFi</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" href="/config-mqtt">MQTT</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link " href="/config-web">Web</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="/config-system">System</a>
-                </li>
-             </ul>
-        </div>
-        <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
-            <li class="nav-item">
-                <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
-                    <img class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" src="github.svg"/>
-                </a>
-            </li>
+<form method="post" action="/save">
+    <input type="hidden" name="domoConfig" value="true"/>
+    <div class="my-3 p-3 bg-white rounded shadow">
+        <p>Domoticz Configuration. Requires that a Domoticz MQTT-message-broker is setup. HOWTO: https://www.domoticz.com/wiki/MQTT.</p>
+        <p>The following virtual sensors can currently be used:</p>
+        <ul>
+            <li>Electricity (instant and counter)</li>
+            <li>Electricity Current/Ampere 3 Phase</li>
+            <li>Voltage</li>
         </ul>
-    </header>
-    <form method="post" action="/save">
-        <input type="hidden" name="domoConfig" value="true"/>
-        <div class="my-3 p-3 bg-white rounded shadow">
-            <p>Domoticz Configuration. Requires that a Domoticz MQTT-message-broker is setup. HOWTO: https://www.domoticz.com/wiki/MQTT.</p>
-            <p>The following virtual sensors can currently be used:</p>
-            <ul>
-                <li>Electricity (instant and counter)</li>
-                <li>Electricity Current/Ampere 3 Phase</li>
-                <li>Voltage</li>
-            </ul>
-            <p>see: <a href="https://www.domoticz.com/wiki/Domoticz_API/JSON_URL's">https://www.domoticz.com/wiki/Domoticz_API/JSON_URL's</a></p>
-            <p>Create the sensors in Domoticz under Hardware > Dummy > Create virtual sensor, and use the IDX assigned to the sensor as input here.</p>
-            <p>"Electricity (instant and counter)" relies on Total energy import "tPI" and will not start before the first value is read (once an hour).</p>
-        </div>
-        <div class="my-3 p-3 bg-white rounded shadow">
-            <div class="d-flex flex-row flex-wrap">
-                <div class="m-2 input-group input-group-sm" style="width: 200px;">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">Electricity IDX</span>
-                    </div>
-                    <input type="number" class="form-control" name="domoELIDX" value="${config.domoELIDX}" min="0" max="65535"/> 
+        <p>see: <a href="https://www.domoticz.com/wiki/Domoticz_API/JSON_URL's">https://www.domoticz.com/wiki/Domoticz_API/JSON_URL's</a></p>
+        <p>Create the sensors in Domoticz under Hardware > Dummy > Create virtual sensor, and use the IDX assigned to the sensor as input here.</p>
+        <p>"Electricity (instant and counter)" relies on Total energy import "tPI" and will not start before the first value is read (once an hour).</p>
+    </div>
+    <div class="my-3 p-3 bg-white rounded shadow">
+        <div class="d-flex flex-row flex-wrap">
+            <div class="m-2 input-group input-group-sm" style="width: 200px;">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Electricity IDX</span>
                 </div>
-                <div class="m-2 input-group input-group-sm" style="width: 240px;">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">Current (3 Phase) IDX</span>
-                    </div>
-                    <input type="number" class="form-control" name="domoCL1IDX" value="${config.domoCL1IDX}" min="0" max="65535"/>
-                </div>
+                <input type="number" class="form-control" name="domoELIDX" value="${config.domoELIDX}" min="0" max="65535"/> 
             </div>
-            <div class="d-flex flex-row flex-wrap">
-                <div class="m-2 input-group input-group-sm" style="width: 200px;">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">Voltage L1 IDX</span>
-                    </div>
-                    <input type="number" class="form-control" name="domoVL1IDX" value="${config.domoVL1IDX}" min="0" max="65535"/>
+            <div class="m-2 input-group input-group-sm" style="width: 240px;">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Current (3 Phase) IDX</span>
                 </div>
-                <div class="m-2 input-group input-group-sm" style="width: 200px;">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">Voltage L1 IDX</span>
-                    </div>
-                    <input type="number" class="form-control" name="domoVL2IDX" value="${config.domoVL2IDX}" min="0" max="65535"/>
-                </div>
-                <div class="m-2 input-group input-group-sm" style="width: 200px;">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">Voltage L1 IDX</span>
-                    </div>
-                    <input type="number" class="form-control" name="domoVL3IDX" value="${config.domoVL3IDX}" min="0" max="65535"/>
-                </div>
+                <input type="number" class="form-control" name="domoCL1IDX" value="${config.domoCL1IDX}" min="0" max="65535"/>
             </div>
         </div>
-        <hr/>
-        <div class="row form-group">
-            <div class="col-6">
-                <a href="/" class="btn btn-outline-secondary">Back</a>
+        <div class="d-flex flex-row flex-wrap">
+            <div class="m-2 input-group input-group-sm" style="width: 200px;">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Voltage L1 IDX</span>
+                </div>
+                <input type="number" class="form-control" name="domoVL1IDX" value="${config.domoVL1IDX}" min="0" max="65535"/>
             </div>
-            <div class="col-6 text-right">
-                <button class="btn btn-primary">Save</button>
+            <div class="m-2 input-group input-group-sm" style="width: 200px;">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Voltage L1 IDX</span>
+                </div>
+                <input type="number" class="form-control" name="domoVL2IDX" value="${config.domoVL2IDX}" min="0" max="65535"/>
+            </div>
+            <div class="m-2 input-group input-group-sm" style="width: 200px;">
+                <div class="input-group-prepend">
+                    <span class="input-group-text">Voltage L1 IDX</span>
+                </div>
+                <input type="number" class="form-control" name="domoVL3IDX" value="${config.domoVL3IDX}" min="0" max="65535"/>
             </div>
         </div>
-    </form>
-</main>
-</body>
-</html>
+    </div>
+    <hr/>
+    <div class="row form-group">
+        <div class="col-6">
+            <a href="/" class="btn btn-outline-secondary">Back</a>
+        </div>
+        <div class="col-6 text-right">
+            <button class="btn btn-primary">Save</button>
+        </div>
+    </div>
+</form>

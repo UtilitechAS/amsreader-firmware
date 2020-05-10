@@ -2,9 +2,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>AMS reader - WiFi configuration</title>
+    <title>AMS reader</title>
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <style>
+        .GaugeMeter {
+            position: Relative;
+            text-align: Center;
+            overflow: Hidden;
+            cursor: Default;
+            display: inline-block;
+        }
+        
+        .GaugeMeter SPAN, .GaugeMeter B {
+            width: 54%;
+            position: Absolute;
+            text-align: Center;
+            display: Inline-Block;
+            color: RGBa(0,0,0,.8);
+            font-weight: 100;
+            font-family: "Open Sans", Arial;
+            overflow: Hidden;
+            white-space: NoWrap;
+            text-overflow: Ellipsis;
+            margin: 0 23%;
+        }
+        
+        .GaugeMeter[data-style="Semi"] B {
+            width: 80%;
+            margin: 0 10%;
+        }
+        
+        .GaugeMeter S, .GaugeMeter U {
+            text-decoration: None;
+            font-size: .60em;
+            font-weight: 200;
+            opacity: .6;
+        }
+        
+        .GaugeMeter B {
+            color: #000;
+            font-weight: 200;
+            opacity: .8;
+        }
+    </style>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
@@ -13,21 +54,27 @@
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-meter">Meter</a>
+                    <a id="config-meter-link" class="nav-link" href="/config-meter">Meter</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-wifi">WiFi</a>
+                    <a id="config-wifi-link" class="nav-link" href="/config-wifi">WiFi</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-mqtt">MQTT</a>
+                    <a id="config-mqtt-link" class="nav-link" href="/config-mqtt">MQTT</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-web">Web</a>
+                    <a id="config-web-link" class="nav-link" href="/config-web">Web</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/config-system">System</a>
+                    <a id="config-system-link" class="nav-link" href="/config-system">System</a>
                 </li>
             </ul>
+        </div>
+        <div class="flex-row ml-md-auto d-md-flex">
+            <div id="esp" class="d-none m-2">ESP</div>
+            <div id="han" class="d-none m-2">HAN</div>
+            <div id="wifi" class="d-none m-2">WiFi</div>
+            <div id="mqtt" class="d-none m-2">MQTT</div>
         </div>
         <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
             <li class="nav-item">

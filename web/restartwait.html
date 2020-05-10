@@ -53,7 +53,7 @@
         xhr.addEventListener('load', function(e) {
             window.location.href = url ? url : "/";
         });
-        xhr.open("GET", "/is-alive", true);
+        xhr.open("GET", url + "/is-alive", true);
         xhr.send();
     };
     setTimeout(fetch, 10000);

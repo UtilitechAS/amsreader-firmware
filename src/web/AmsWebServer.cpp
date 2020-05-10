@@ -5,7 +5,7 @@
 #include "root/head_html.h"
 #include "root/foot_html.h"
 #include "root/index_html.h"
-#include "root/index_js.h"
+#include "root/application_js.h"
 #include "root/setup_html.h"
 #include "root/configmeter_html.h"
 #include "root/configwifi_html.h"
@@ -19,6 +19,7 @@
 #include "root/github_svg.h"
 #include "root/upload_html.h"
 #include "root/delete_html.h"
+#include "root/reset_html.h"
 
 #include "Base64.h"
 
@@ -33,7 +34,7 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 
 	server.on("/", HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on("/", HTTP_POST, std::bind(&AmsWebServer::handleSetup, this));
-	server.on("/index.js", HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
+	server.on("/application.js", HTTP_GET, std::bind(&AmsWebServer::applicationJs, this));
 	server.on("/config-meter", HTTP_GET, std::bind(&AmsWebServer::configMeterHtml, this));
 	server.on("/config-wifi", HTTP_GET, std::bind(&AmsWebServer::configWifiHtml, this));
 	server.on("/config-mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
@@ -59,6 +60,11 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/mqtt-key", HTTP_GET, std::bind(&AmsWebServer::mqttKey, this));
 	server.on("/mqtt-key", HTTP_POST, std::bind(&AmsWebServer::mqttKeyDelete, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
 
+	server.on("/reset", HTTP_GET, std::bind(&AmsWebServer::factoryResetHtml, this));
+	server.on("/reset", HTTP_POST, std::bind(&AmsWebServer::factoryResetPost, this));
+	
+	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
+	
 	server.begin(); // Web server start
 }
 
@@ -175,16 +181,18 @@ void AmsWebServer::indexHtml() {
 		html.replace("${wifi.channel}", WiFi.channel() > 0 ? String(WiFi.channel()) : "");
 		html.replace("${wifi.ssid}", !WiFi.SSID().isEmpty() ? String(WiFi.SSID()) : "");
 
-		server.setContentLength(html.length());
-		server.send(200, "text/html", html);
+		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+		server.send_P(200, "text/html", HEAD_HTML);
+		server.sendContent(html);
+		server.sendContent_P(FOOT_HTML);
 	}
 }
 
-void AmsWebServer::indexJs() {
-	printD("Serving /index.js over http...");
+void AmsWebServer::applicationJs() {
+	printD("Serving /application.js over http...");
 
 	server.sendHeader("Cache-Control", "public, max-age=3600");
-	server.send_P(200, "application/javascript", INDEX_JS);
+	server.send_P(200, "application/javascript", APPLICATION_JS);
 }
 
 void AmsWebServer::configMeterHtml() {
@@ -212,9 +220,12 @@ void AmsWebServer::configMeterHtml() {
 	}
 	html.replace("${config.productionCapacity}", String(config->getProductionCapacity()));
 	html.replace("${config.substituteMissing}", config->isSubstituteMissing() ? "checked" : "");
+	html.replace("${config.sendUnknown}", config->isSendUnknown() ? "checked" : "");
 
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::configWifiHtml() {
@@ -238,8 +249,10 @@ void AmsWebServer::configWifiHtml() {
 	html.replace("${config.wifiDns2}", config->getWifiDns2());
 	html.replace("${config.wifiHostname}", config->getWifiHostname());
 
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::configMqttHtml() {
@@ -322,8 +335,11 @@ void AmsWebServer::configDomoticzHtml() {
 	} else { html.replace("${config.domoVL3IDX}", ""); }
 	if(config->getDomoCL1IDX() > 0){ html.replace("${config.domoCL1IDX}", String(config->getDomoCL1IDX()));
 	} else { html.replace("${config.domoCL1IDX}", ""); }
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 
@@ -345,8 +361,10 @@ void AmsWebServer::configWebHtml() {
 	html.replace("${config.authUser}", config->getAuthUser());
 	html.replace("${config.authPassword}", config->getAuthPassword());
 
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::bootCss() {
@@ -639,6 +657,7 @@ void AmsWebServer::handleSave() {
 		config->setMainFuse(server.arg("mainFuse").toInt());
 		config->setProductionCapacity(server.arg("productionCapacity").toInt());
 		config->setSubstituteMissing(server.hasArg("substituteMissing") && server.arg("substituteMissing") == "true");
+		config->setSendUnknown(server.hasArg("sendUnknown") && server.arg("sendUnknown") == "true");
 	}
 
 	if(server.hasArg("wifiConfig") && server.arg("wifiConfig") == "true") {
@@ -795,8 +814,10 @@ void AmsWebServer::configSystemHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
-	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 String AmsWebServer::getSerialSelectOptions(int selected) {
@@ -949,14 +970,20 @@ void AmsWebServer::uploadHtml(const char* label, const char* action, const char*
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	
-	server.send_P(200, "text/html", UPLOAD_HTML);
+	server.setContentLength(UPLOAD_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent_P(UPLOAD_HTML);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::deleteHtml(const char* label, const char* action, const char* menu) {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	
-	server.send_P(200, "text/html", DELETE_HTML);
+	server.setContentLength(DELETE_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent_P(DELETE_HTML);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::mqttCa() {
@@ -1083,6 +1110,34 @@ void AmsWebServer::mqttKeyDelete() {
 		uploading = false;
 		server.send(200);
 	}
+}
+
+void AmsWebServer::factoryResetHtml() {
+	server.sendHeader("Cache-Control", "public, max-age=3600");
+	
+	server.setContentLength(RESET_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent_P(RESET_HTML);
+	server.sendContent_P(FOOT_HTML);
+}
+
+void AmsWebServer::factoryResetPost() {
+	if(server.hasArg("perform") && server.arg("perform") == "true") {
+		SPIFFS.format();
+		config->clear();
+		performRestart = true;
+		server.sendHeader("Location","/restart-wait");
+		server.send(303);
+	} else {
+		server.sendHeader("Location","/");
+		server.send(303);
+	}
+}
+
+
+void AmsWebServer::notFound() {
+	server.sendHeader("Location","/");
+	server.send(303);
 }
 
 

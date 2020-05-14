@@ -49,8 +49,8 @@
 </head>
 <body class="bg-light">
 <main role="main" class="container">
-    <header class="navbar navbar-expand navbar-dark flex-column flex-md-row bg-purple rounded mt-2 mb-4" style="background-color: var(--purple);">
-        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small>${version}</small></h6></a>
+    <header class="navbar navbar-expand navbar-dark flex-column flex-lg-row rounded mt-2 mb-4" style="background-color: var(--purple);">
+        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small id="swVersion" data-url="https://api.github.com/repos/gskjold/AmsToMqttBridge/releases">${version}</small></h6></a>
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
                 <li class="nav-item">
@@ -70,13 +70,13 @@
                 </li>
             </ul>
         </div>
-        <div class="flex-row ml-md-auto d-md-flex">
+        <div class="flex-row">
             <div id="esp" class="d-none m-2">ESP</div>
             <div id="han" class="d-none m-2">HAN</div>
             <div id="wifi" class="d-none m-2">WiFi</div>
             <div id="mqtt" class="d-none m-2">MQTT</div>
         </div>
-        <ul class="navbar-nav flex-row ml-md-auto d-none d-md-flex">
+        <ul class="navbar-nav flex-row ml-md-auto d-none d-lg-flex">
             <li class="nav-item">
                 <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
                     <img class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" src="github.svg"/>

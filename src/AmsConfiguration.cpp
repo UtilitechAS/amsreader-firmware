@@ -734,33 +734,10 @@ bool AmsConfiguration::loadConfig81(int address) {
 	address += readInt(address, &i);
 	setDebugLevel(i);
 
-	bool domo = false;
-	address += readBool(address, &domo);
-	if(domo) {
-		int domoELIDX;
-		address += readInt(address, &domoELIDX);
-		setDomoELIDX(domoELIDX);
-		int domoVL1IDX;
-		address += readInt(address, &domoVL1IDX);
-		setDomoVL1IDX(domoVL1IDX);
-		int domoVL2IDX;
-		address += readInt(address, &domoVL2IDX);
-		setDomoVL2IDX(domoVL2IDX);
-		int domoVL3IDX;
-		address += readInt(address, &domoVL3IDX);
-		setDomoVL3IDX(domoVL3IDX);
-		int domoCL1IDX;
-		address += readInt(address, &domoCL1IDX);
-		setDomoCL1IDX(domoCL1IDX);
-		
-	} else {
-		clearDomo();
-	}
-	
 	ackWifiChange();
 
 	return true;
-}
+} 
 
 bool AmsConfiguration::save() {
 	int address = EEPROM_CONFIG_ADDRESS;
@@ -867,13 +844,13 @@ void AmsConfiguration::print(Print* debugger)
 	debugger->printf("Vcc multiplier:       %f\r\n", this->getVccMultiplier());
 	debugger->printf("Vcc boot limit:       %f\r\n", this->getVccBootLimit());
 
-	if(this->getDomoELIDX() > 0) {
-		debugger->printf("Domoticz ELIDX:       %i\r\n", this->getDomoELIDX());
-		debugger->printf("Domoticz VL1IDX:      %i\r\n", this->getDomoVL1IDX());
-		debugger->printf("Domoticz VL2IDX:      %i\r\n", this->getDomoVL2IDX());
-		debugger->printf("Domoticz VL3IDX:      %i\r\n", this->getDomoVL3IDX());
-		debugger->printf("Domoticz CL1IDX:      %i\r\n", this->getDomoCL1IDX());
-	}
+	//if(this->getDomoELIDX() > 0) {
+	debugger->printf("Domoticz ELIDX:       %i\r\n", this->getDomoELIDX());
+	debugger->printf("Domoticz VL1IDX:      %i\r\n", this->getDomoVL1IDX());
+	debugger->printf("Domoticz VL2IDX:      %i\r\n", this->getDomoVL2IDX());
+	debugger->printf("Domoticz VL3IDX:      %i\r\n", this->getDomoVL3IDX());
+	debugger->printf("Domoticz CL1IDX:      %i\r\n", this->getDomoCL1IDX());
+	//}
 
 	debugger->println("-----------------------------------------------");
 }

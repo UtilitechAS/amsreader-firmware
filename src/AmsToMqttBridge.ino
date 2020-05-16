@@ -341,7 +341,11 @@ void loop() {
 	} else {
 		dnsServer.processNextRequest();
 		// Continously flash the LED when AP mode
-		if (now / 50 % 64 == 0) hw.ledBlink(LED_INTERNAL, 1);
+		if (now / 50 % 64 == 0) {
+			if(!hw.ledBlink(LED_YELLOW, 1)) {
+				hw.ledBlink(LED_INTERNAL, 1);
+			}
+		}
 	}
 
 	if(hanSerialPin != config.getHanPin()) {
@@ -495,9 +499,7 @@ void readHanPort() {
 		lastSuccessfulRead = millis();
 
 		if(config.getMeterType() > 0) {
-			if(config.getLedPinGreen() != 0xFF)
-				hw.ledBlink(LED_GREEN, 1);
-			else
+			if(!hw.ledBlink(LED_GREEN, 1))
 				hw.ledBlink(LED_INTERNAL, 1);
 
 			AmsData data(config.getMeterType(), config.isSubstituteMissing(), hanReader);

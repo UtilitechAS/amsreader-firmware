@@ -110,25 +110,25 @@ void HwTools::setLedRgb(uint8_t ledPinRed, uint8_t ledPinGreen, uint8_t ledPinBl
     }
 }
 
-void HwTools::ledOn(uint8_t color) {
+bool HwTools::ledOn(uint8_t color) {
     if(color == LED_INTERNAL) {
-        writeLedPin(color, ledInverted ? LOW : HIGH);
+        return writeLedPin(color, ledInverted ? LOW : HIGH);
     } else {
-        writeLedPin(color, ledRgbInverted ? LOW : HIGH);
+        return writeLedPin(color, ledRgbInverted ? LOW : HIGH);
     }
 }
 
-void HwTools::ledOff(uint8_t color) {
+bool HwTools::ledOff(uint8_t color) {
     if(color == LED_INTERNAL) {
-        writeLedPin(color, ledInverted ? HIGH : LOW);
+        return writeLedPin(color, ledInverted ? HIGH : LOW);
     } else {
-        writeLedPin(color, ledRgbInverted ? HIGH : LOW);
+        return writeLedPin(color, ledRgbInverted ? HIGH : LOW);
     }
 }
 
-void HwTools::ledBlink(uint8_t color, uint8_t blink) {
+bool HwTools::ledBlink(uint8_t color, uint8_t blink) {
     for(int i = 0; i < blink; i++) {
-        ledOn(color);
+        if(!ledOn(color)) return false;
         delay(50);
         ledOff(color);
         if(i != blink)
@@ -136,29 +136,49 @@ void HwTools::ledBlink(uint8_t color, uint8_t blink) {
     }
 }
 
-void HwTools::writeLedPin(uint8_t color, uint8_t state) {
+bool HwTools::writeLedPin(uint8_t color, uint8_t state) {
     switch(color) {
         case LED_INTERNAL:
-            if(ledPin != 0xFF)
+            if(ledPin != 0xFF) {
                 digitalWrite(ledPin, state);
+                return true;
+            } else {
+                return false;
+            }
             break;
         case LED_RED:
-            if(ledPinRed != 0xFF)
+            if(ledPinRed != 0xFF) {
                 digitalWrite(ledPinRed, state);
+                return true;
+            } else {
+                return false;
+            }
             break;
         case LED_GREEN:
-            if(ledPinGreen != 0xFF)
+            if(ledPinGreen != 0xFF) {
                 digitalWrite(ledPinGreen, state);
+                return true;
+            } else {
+                return false;
+            }
             break;
         case LED_BLUE:
-            if(ledPinBlue != 0xFF)
+            if(ledPinBlue != 0xFF) {
                 digitalWrite(ledPinBlue, state);
+                return true;
+            } else {
+                return false;
+            }
             break;
         case LED_YELLOW:
             if(ledPinRed != 0xFF && ledPinGreen != 0xFF) {
                 digitalWrite(ledPinRed, state);
                 digitalWrite(ledPinGreen, state);
+                return true;
+            } else {
+                return false;
             }
             break;
     }
+    return false;
 }

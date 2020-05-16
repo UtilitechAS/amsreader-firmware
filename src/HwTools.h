@@ -28,9 +28,9 @@ public:
     int getWifiRssi();
     void setLed(uint8_t ledPin, bool ledInverted);
     void setLedRgb(uint8_t ledPinRed, uint8_t ledPinGreen, uint8_t ledPinBlue, bool ledRgbInverted);
-    void ledOn(uint8_t color);
-    void ledOff(uint8_t color);
-    void ledBlink(uint8_t color, uint8_t blink);
+    bool ledOn(uint8_t color);
+    bool ledOff(uint8_t color);
+    bool ledBlink(uint8_t color, uint8_t blink);
 
     HwTools() {};
 private:
@@ -43,7 +43,7 @@ private:
     OneWire *oneWire;
     DallasTemperature *tempSensor;
 
-    void writeLedPin(uint8_t color, uint8_t state);
+    bool writeLedPin(uint8_t color, uint8_t state);
 };
 
 #endif

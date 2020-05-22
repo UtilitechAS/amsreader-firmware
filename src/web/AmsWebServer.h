@@ -20,9 +20,11 @@
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>
 	#include <ESP8266WebServer.h>
+	#include <ESP8266HTTPClient.h>
 #elif defined(ESP32) // ARDUINO_ARCH_ESP32
 	#include <WiFi.h>
 	#include <WebServer.h>
+	#include <HTTPClient.h>
 	#include "SPIFFS.h"
 	#include "Update.h"
 #else
@@ -75,6 +77,7 @@ private:
 	String getSerialSelectOptions(int selected);
 	void firmwareHtml();
 	void firmwareUpload();
+	void firmwareDownload();
 	void restartWaitHtml();
 	void isAliveCheck();
 

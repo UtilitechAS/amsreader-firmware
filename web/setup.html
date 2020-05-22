@@ -25,29 +25,29 @@
                     <h5>Hardware</h5>
                     <select name="board" class="form-control">
                         <optgroup label="Custom hardware">
-                            <option value="0">Custom hardware by Roar Fredriksen</option>
-                            <option value="1">Kamstrup module by Egil Opsahl</option>
-                            <option value="2">Self powered 2.0 by Max Spencer</option>
+                            <option value="0" ${config.boardType0}>Custom hardware by Roar Fredriksen</option>
+                            <option value="1" ${config.boardType1}>Kamstrup module by Egil Opsahl</option>
+                            <option value="2" ${config.boardType2}>HAN Reader 2.0 by Max Spencer</option>
                         </optgroup>
                         <optgroup label="ESP8266">
-                            <option value="101">Wemos D1</option>
-                            <option value="199">Generic ESP8266</option>
+                            <option value="101" ${config.boardType101}>Wemos D1</option>
+                            <option value="100" ${config.boardType100}>Generic ESP8266</option>
                         </optgroup>
                         <optgroup label="ESP32">
-                            <option value="201">Wemos LOLIN D32</option>
-                            <option value="202">Adafruit HUZZAH32</option>
-                            <option value="203">DevKitC</option>
-                            <option value="299">Generic ESP32</option>
+                            <option value="201" ${config.boardType201}>Wemos LOLIN D32</option>
+                            <option value="202" ${config.boardType202}>Adafruit HUZZAH32</option>
+                            <option value="203" ${config.boardType203}>DevKitC</option>
+                            <option value="200" ${config.boardType200}>Generic ESP32</option>
                             </optgroup>
                     </select>
                 </div>
                 <div class="col-xl-2 col-md-3">
                     <h5>Meter</h5>
                     <select name="meterType" class="form-control">
-                        <option value="0">Autodetect</option>
-                        <option value="1">Kaifa</option>
-                        <option value="2">Aidon</option>
-                        <option value="3">Kamstrup</option>
+                        <option value="0" ${config.meterType0}>Autodetect</option>
+                        <option value="1" ${config.meterType1}>Kaifa</option>
+                        <option value="2" ${config.meterType2}>Aidon</option>
+                        <option value="3" ${config.meterType3}>Kamstrup</option>
                     </select>
                 </div>
             </div>
@@ -60,7 +60,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">SSID</span>
                         </div>
-                        <input type="text" name="wifiSsid" class="form-control" maxlength="32" placeholder="Name of your WiFi" required/>
+                        <input type="text" name="wifiSsid" class="form-control" maxlength="32" placeholder="Name of your WiFi" required value="${config.wifiSsid}"/>
                     </div>
                 </div>
                 <div class="col-xl-3 col-md-6 form-group">
@@ -68,7 +68,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">PSK</span>
                         </div>
-                        <input type="password" name="wifiPassword" class="form-control" maxlength="63" placeholder="Password for WiFi" required/>
+                        <input type="password" name="wifiPassword" class="form-control" maxlength="63" placeholder="Password for WiFi" required value="${config.wifiPassword}"/>
                     </div>
                 </div>
                 <div class="col-xl-4 col-md-6 form-group">
@@ -76,11 +76,11 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Hostname</span>
                         </div>
-                        <input type="text" name="wifiHostname" class="form-control" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader"/>
+                        <input type="text" name="wifiHostname" class="form-control" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader" value="${config.wifiHostname}"/>
                     </div>
                 </div>
                 <div class="col-xl-2 col-md-6 form-group">
-                    <label><input type="checkbox" name="wifiIpType" value="1" onchange="staticChecked(this);"/> Static IP</label>
+                    <label><input type="checkbox" name="wifiIpType" value="1" onchange="staticChecked(this);" ${config.wifiStaticIp}/> Static IP</label>
                 </div>
             </div>
             <div class="row" id="staticIp">
@@ -89,7 +89,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">IP</span>
                         </div>
-                        <input type="text" name="wifiIp" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex: 192.168.1.200"/>
+                        <input type="text" name="wifiIp" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex: 192.168.1.200" value="${config.wifiIp}"/>
                     </div>
                 </div>
                 <div class="col-xl-3 col-lg-4 col-sm-6 form-group">
@@ -97,7 +97,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Subnet</span>
                         </div>
-                        <input type="text" name="wifiSubnet" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 255.255.255.0"/>
+                        <input type="text" name="wifiSubnet" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 255.255.255.0" value="${config.wifiSubnet}"/>
                     </div>
                 </div>
                 <div class="col-xl-3 col-lg-4 col-sm-6 form-group">
@@ -105,7 +105,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Gateway</span>
                         </div>
-                        <input type="text" name="wifiGw" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 192.168.1.1"/>
+                        <input type="text" name="wifiGw" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 192.168.1.1" value="${config.wifiGw}"/>
                     </div>
                 </div>
                 <div class="col-xl-3 col-lg-4 col-sm-6 form-group">
@@ -113,7 +113,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">DNS</span>
                         </div>
-                        <input type="text" name="wifiDns1" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 192.168.1.1"/>
+                        <input type="text" name="wifiDns1" class="form-control" pattern="\d?\d?\d.\d?\d?\d.\d?\d?\d.\d?\d?\d" placeholder="Ex.: 192.168.1.1" value="${config.wifiDns1}"/>
                     </div>
                 </div>
             </div>

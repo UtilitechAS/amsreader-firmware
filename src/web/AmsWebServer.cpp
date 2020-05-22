@@ -50,6 +50,7 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/config-system", HTTP_GET, std::bind(&AmsWebServer::configSystemHtml, this));
 	server.on("/firmware", HTTP_GET, std::bind(&AmsWebServer::firmwareHtml, this));
 	server.on("/firmware", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::firmwareUpload, this));
+	server.on("/upgrade", HTTP_GET, std::bind(&AmsWebServer::firmwareDownload, this));
 	server.on("/restart-wait", HTTP_GET, std::bind(&AmsWebServer::restartWaitHtml, this));
 	server.on("/is-alive", HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
 
@@ -128,7 +129,23 @@ void AmsWebServer::indexHtml() {
 	server.sendHeader("Expires", "-1");
 
 	if(WiFi.getMode() == WIFI_AP) {
-		server.send_P(200, "text/html", SETUP_HTML);
+		String html = String((const __FlashStringHelper*) SETUP_HTML);
+		for(int i = 0; i<255; i++) {
+			html.replace("${config.boardType" + String(i) + "}", config->getBoardType() == i ? "selected"  : "");
+		}
+		for(int i = 0; i<4; i++) {
+			html.replace("${config.meterType" + String(i) + "}", config->getMeterType() == i ? "selected"  : "");
+		}
+		html.replace("${config.wifiSsid}", config->getWifiSsid());
+		html.replace("${config.wifiPassword}", config->getWifiPassword());
+		html.replace("${config.wifiStaticIp}", strlen(config->getWifiIp()) > 0 ? "checked" : "");
+		html.replace("${config.wifiIp}", config->getWifiIp());
+		html.replace("${config.wifiGw}", config->getWifiGw());
+		html.replace("${config.wifiSubnet}", config->getWifiSubnet());
+		html.replace("${config.wifiDns1}", config->getWifiDns1());
+		html.replace("${config.wifiDns2}", config->getWifiDns2());
+		html.replace("${config.wifiHostname}", config->getWifiHostname());
+		server.send(200, "text/html", html);
 	} else {
 		if(!checkSecurity(2))
 			return;
@@ -553,9 +570,10 @@ void AmsWebServer::handleSetup() {
 		server.sendHeader("Location", String("/"), true);
 		server.send (302, "text/plain", "");
 	} else {
+		config->setBoardType(server.arg("board").toInt());
 		config->setVccMultiplier(1.0);
 		config->setVccBootLimit(0);
-		switch(server.arg("board").toInt()) {
+		switch(config->getBoardType()) {
 			case 0: // roarfred
 				config->setHanPin(3);
 				config->setApPin(0);
@@ -719,7 +737,16 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg("sysConfig") && server.arg("sysConfig") == "true") {
-		config->setHanPin(server.arg("hanPin").toInt());
+		// Unset all pins to avoid conflicts if GPIO have been swapped between pins
+		config->setLedPin(0xFF);
+		config->setLedPinRed(0xFF);
+		config->setLedPinGreen(0xFF);
+		config->setLedPinBlue(0xFF);
+		config->setApPin(0xFF);
+		config->setTempSensorPin(0xFF);
+		config->setVccPin(0xFF);
+
+		config->setHanPin(server.hasArg("hanPin") && !server.arg("hanPin").isEmpty() ? server.arg("hanPin").toInt() : 3);
 		config->setLedPin(server.hasArg("ledPin") && !server.arg("ledPin").isEmpty() ? server.arg("ledPin").toInt() : 0xFF);
 		config->setLedInverted(server.hasArg("ledInverted") && server.arg("ledInverted") == "true");
 		config->setLedPinRed(server.hasArg("ledPinRed") && !server.arg("ledPinRed").isEmpty() ? server.arg("ledPinRed").toInt() : 0xFF);
@@ -747,6 +774,12 @@ void AmsWebServer::handleSave() {
 		if(!config->isDebugTelnet()) {
 			debugger->stop();
 		}
+
+		hw->setLed(config->getLedPin(), config->isLedInverted());
+		hw->setLedRgb(config->getLedPinRed(), config->getLedPinGreen(), config->getLedPinBlue(), config->isLedRgbInverted());
+		hw->setTempSensorPin(config->getTempSensorPin());
+		hw->setVccPin(config->getVccPin());
+		hw->setVccMultiplier(config->getVccMultiplier());
 	}
 
 	printI("Saving configuration now...");
@@ -919,6 +952,68 @@ void AmsWebServer::firmwareUpload() {
 	if(upload.status == UPLOAD_FILE_END) {
 		performRestart = true;
 		server.sendHeader("Location","/restart-wait");
+		server.send(303);
+	}
+}
+
+const uint8_t githubFingerprint[] = {0x59, 0x74, 0x61, 0x88, 0x13, 0xCA, 0x12, 0x34, 0x15, 0x4D, 0x11, 0x0A, 0xC1, 0x7F, 0xE6, 0x67, 0x07, 0x69, 0x42, 0xF5};
+
+void AmsWebServer::firmwareDownload() {
+	printD("Firmware download URL triggered");
+	if(server.hasArg("version")) {
+		String version = server.arg("version");
+		String versionStripped = version.substring(1);
+		printI("Downloading firmware...");
+		WiFiClientSecure client;
+		//client.setFingerprint(githubFingerprint);
+#if defined(ESP8266)
+		client.setInsecure();
+		client.setBufferSizes(512, 512);
+#endif
+		HTTPClient https;
+		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-d1mini-" + versionStripped + ".bin";
+/* The following does not work... Maybe someone will make it work in the future?
+		https.setFollowRedirects(true);
+
+		if(https.begin(client, url)) {
+			printD("HTTP client setup successful");
+			int status = https.GET();
+			if(status == HTTP_CODE_OK) {
+				printD("Received OK from server");
+				if(SPIFFS.begin()) {
+					printI("Downloading firmware to SPIFFS");
+					file = SPIFFS.open(FILE_FIRMWARE, "w");
+					https.writeToStream(&file);
+					file.close();
+					SPIFFS.end();
+					performRestart = true;
+					server.sendHeader("Location","/restart-wait");
+					server.send(303);
+				} else {
+					printE("Unable to open SPIFFS for writing");
+					server.sendHeader("Location","/");
+					server.send(303);
+				}
+			} else {
+				printE("Communication error: ");
+				printE(https.errorToString(status));
+				printI(url);
+				printD(https.getString());
+				server.sendHeader("Location","/");
+				server.send(303);
+			}
+		} else {
+			printE("Unable to configure HTTP client");
+			char buf[256];
+			client.getLastSSLError(buf,256);
+			printE(buf);
+			server.sendHeader("Location","/");
+			server.send(303);
+		}
+		*/
+	} else {
+		printI("No firmware version specified...");
+		server.sendHeader("Location","/");
 		server.send(303);
 	}
 }

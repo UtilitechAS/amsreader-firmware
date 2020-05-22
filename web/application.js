@@ -320,7 +320,7 @@ var fetch = function() {
 var upgrade = function() {
     if(nextVersion) {
         if(confirm("Are you sure you want to perform upgrade to " + nextVersion.tag_name + "?")) {
-            window.location.href="/upgrade?version=" + nextVersion.id;
+            window.location.href="/upgrade?version=" + nextVersion.tag_name;
         }
     }
 }

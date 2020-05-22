@@ -1,5 +1,13 @@
 #include "AmsConfiguration.h"
 
+uint8_t AmsConfiguration::getBoardType() {
+	return config.boardType;
+}
+
+void AmsConfiguration::setBoardType(uint8_t boardType) {
+	config.boardType = boardType;
+}
+
 char* AmsConfiguration::getWifiSsid() {
 	return config.wifiSsid;
 }

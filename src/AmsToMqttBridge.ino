@@ -44,6 +44,9 @@ ADC_MODE(ADC_VCC);
 #define WEBSOCKET_DISABLED true
 #include "RemoteDebug.h"
 
+#define DEBUG_ESP_HTTP_CLIENT 1
+#define DEBUG_ESP_PORT Serial
+
 HwTools hw;
 
 DNSServer dnsServer;
@@ -125,6 +128,10 @@ void setup() {
 	hw.setTempSensorPin(config.getTempSensorPin());
 	hw.setVccPin(config.getVccPin());
 	hw.setVccMultiplier(config.getVccMultiplier());
+	hw.ledBlink(LED_INTERNAL, 1);
+	hw.ledBlink(LED_RED, 1);
+	hw.ledBlink(LED_GREEN, 1);
+	hw.ledBlink(LED_YELLOW, 1);
 
 	if(config.getHanPin() == 3) {
 		if(config.getMeterType() == 3) {
@@ -377,6 +384,11 @@ void setupHanPort(int pin, int meterType) {
 		}
 	#endif
 
+	if(pin == 0) {
+		debugE("Invalid GPIO configured for HAN");
+		return;
+	}
+
 	if(hwSerial != NULL) {
 		debugD("Hardware serial");
 		Serial.flush();
@@ -453,7 +465,9 @@ void errorBlink() {
 }
 
 void swapWifiMode() {
-	hw.ledOn(LED_INTERNAL);
+	if(!hw.ledOn(LED_YELLOW)) {
+		hw.ledOn(LED_INTERNAL);
+	}
 	WiFiMode_t mode = WiFi.getMode();
 	dnsServer.stop();
 	WiFi.disconnect(true);
@@ -473,7 +487,9 @@ void swapWifiMode() {
 		WiFi_connect();
 	}
 	delay(500);
-	hw.ledOff(LED_INTERNAL);
+	if(!hw.ledOff(LED_YELLOW)) {
+		hw.ledOff(LED_INTERNAL);
+	}
 }
 
 void mqttMessageReceived(String &topic, String &payload)

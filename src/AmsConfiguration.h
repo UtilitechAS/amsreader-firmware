@@ -4,6 +4,7 @@
 #include "Arduino.h"
 
 struct ConfigObject {
+	uint8_t boardType;
 	char wifiSsid[32];
 	char wifiPassword[64];
     char wifiIp[15];
@@ -62,6 +63,9 @@ public:
 
 	bool load();
 	bool save();
+
+	uint8_t getBoardType();
+	void setBoardType(uint8_t boardType);
 	
 	char* getWifiSsid();
 	void setWifiSsid(const char* wifiSsid);
@@ -191,6 +195,7 @@ protected:
 private:
 	int configVersion = 0;
 	ConfigObject config {
+		0, // Board type
 		"", // SSID
 		"", // PSK
 		"", // IP

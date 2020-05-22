@@ -324,7 +324,6 @@ void AmsWebServer::configDomoticzHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
-	html.replace("${config.domo}", config->getDomoELIDX() <= 0 ? "" : "checked");
 	if(config->getDomoELIDX() > 0){ html.replace("${config.domoELIDX}", String(config->getDomoELIDX()));
 	} else { html.replace("${config.domoELIDX}", ""); }
 	if(config->getDomoVL1IDX() > 0){ html.replace("${config.domoVL1IDX}", String(config->getDomoVL1IDX()));
@@ -526,6 +525,7 @@ void AmsWebServer::dataJson() {
 	json.createNestedObject("mqtt");
 	json["mqtt"]["lastError"] = (int) mqtt->lastError();
 
+	// not in use anymore and  assumes that if configured ELIDX is alsway given.....   Remove??
 	String domoStatus;
 	if(String(config->getDomoELIDX()).isEmpty()) {
 		domoStatus = "secondary";
@@ -693,15 +693,11 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg("domoConfig") && server.arg("domoConfig") == "true") {
-		if(server.hasArg("domo") && server.arg("domo") == "true") {
-			config->setDomoELIDX(server.arg("domoELIDX").toInt());
-			config->setDomoVL1IDX(server.arg("domoVL1IDX").toInt());
-			config->setDomoVL2IDX(server.arg("domoVL2IDX").toInt());
-			config->setDomoVL3IDX(server.arg("domoVL3IDX").toInt());
-			config->setDomoCL1IDX(server.arg("domoCL1IDX").toInt());
-		} else {
-			config->clearDomo();
-		}
+		config->setDomoELIDX(server.arg("domoELIDX").toInt());
+		config->setDomoVL1IDX(server.arg("domoVL1IDX").toInt());
+		config->setDomoVL2IDX(server.arg("domoVL2IDX").toInt());
+		config->setDomoVL3IDX(server.arg("domoVL3IDX").toInt());
+		config->setDomoCL1IDX(server.arg("domoCL1IDX").toInt());
 	}
 
 

@@ -542,19 +542,6 @@ void AmsWebServer::dataJson() {
 	json.createNestedObject("mqtt");
 	json["mqtt"]["lastError"] = (int) mqtt->lastError();
 
-	// not in use anymore and  assumes that if configured ELIDX is alsway given.....   Remove??
-	String domoStatus;
-	if(String(config->getDomoELIDX()).isEmpty()) {
-		domoStatus = "secondary";
-	} else if(mqtt->connected() && config->getMqttPayloadFormat() == 3 && config->getDomoELIDX() > 0) {
-		domoStatus = "success";
-	} else if(mqtt->lastError() == 0) {
-		domoStatus = "warning";
-	} else {
-		domoStatus = "danger";
-	}
-	json["status"]["domo"] = domoStatus;
-
 	serializeJson(json, jsonStr);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");

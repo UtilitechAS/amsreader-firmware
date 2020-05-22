@@ -22,7 +22,19 @@
 #include <ArduinoJson.h>
 #include <MQTT.h>
 #include <DNSServer.h>
+// Tz.h does not exist for esp32, need to include time.h, timezone offsets to be given given in sec.
+#define NTP_SERVER "pool.ntp.org"  // put your local NTP server here
+#if defined(ESP8266)
 #include <TZ.h>
+#define MYTZ TZ_Europe_Oslo
+#elif defined(ESP32)
+#include <time.h>
+#define TZ            1               // (utc+) TZ in hours
+#define DST_MN        60              // use 60mn for summer time in some countries
+#define GMT_OFFSET_SEC 3600 * TZ      // Do not change here...
+#define DAYLIGHT_OFFSET_SEC 60 * DST_MN // Do not change here...
+#endif   
+
 
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);  
@@ -239,7 +251,11 @@ void setup() {
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
 		WiFi_connect();
-		configTime(TZ_Europe_Oslo, "pool.ntp.org");
+#if defined(ESP8266)
+  		configTime(MYTZ, NTP_SERVER);
+#elif defined(ESP32)
+  		configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
+#endif
 		//sntp_servermode_dhcp(0); // 0: disable obtaining SNTP servers from DHCP (enabled by default)
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {

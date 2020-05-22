@@ -142,8 +142,9 @@ void setup() {
 	hw.setVccMultiplier(config.getVccMultiplier());
 	hw.ledBlink(LED_INTERNAL, 1);
 	hw.ledBlink(LED_RED, 1);
-	hw.ledBlink(LED_GREEN, 1);
 	hw.ledBlink(LED_YELLOW, 1);
+	hw.ledBlink(LED_GREEN, 1);
+	hw.ledBlink(LED_BLUE, 1);
 
 	if(config.getHanPin() == 3) {
 		if(config.getMeterType() == 3) {
@@ -214,8 +215,9 @@ void setup() {
 				i++;
 			}
 
-			if(Debug.isActive(RemoteDebug::INFO)) debugI(" flashing");
+			debugI(" flashing");
 			File firmwareFile = SPIFFS.open(FILE_FIRMWARE, "r");
+			debugD(" firmware size: %d", firmwareFile.size());
 			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 			if (!Update.begin(maxSketchSpace, U_FLASH)) {
 				if(Debug.isActive(RemoteDebug::ERROR)) {
@@ -239,6 +241,7 @@ void setup() {
 				debugI("Firmware update complete, restarting");
 				Serial.flush();
 			}
+			delay(250);
 #if defined(ESP8266)
 			ESP.reset();
 #elif defined(ESP32)

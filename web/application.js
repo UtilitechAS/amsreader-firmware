@@ -40,6 +40,19 @@ $(function() {
         }
     });
 
+    $('#mqttSsl').on('change', function() {
+        var port = $('#mqttPort');
+        if($(this).is(':checked')) {
+            if(port.val() == 1883) {
+                port.val(8883);
+            }
+        } else {
+            if(port.val() == 8883) {
+                port.val(1883);
+            }
+        }
+    });
+
     $('#mqttEnable').trigger('change');
     $('#mqttPayloadFormat').trigger('change');
 

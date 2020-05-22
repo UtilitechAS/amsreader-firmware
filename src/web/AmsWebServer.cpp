@@ -757,12 +757,6 @@ void AmsWebServer::handleSave() {
 		if(!config->isDebugTelnet()) {
 			debugger->stop();
 		}
-
-		hw->setLed(config->getLedPin(), config->isLedInverted());
-		hw->setLedRgb(config->getLedPinRed(), config->getLedPinGreen(), config->getLedPinBlue(), config->isLedRgbInverted());
-		hw->setTempSensorPin(config->getTempSensorPin());
-		hw->setVccPin(config->getVccPin());
-		hw->setVccMultiplier(config->getVccMultiplier());
 	}
 
 	printI("Saving configuration now...");
@@ -948,17 +942,18 @@ void AmsWebServer::firmwareDownload() {
 		String versionStripped = version.substring(1);
 		printI("Downloading firmware...");
 		WiFiClientSecure client;
-		//client.setFingerprint(githubFingerprint);
 #if defined(ESP8266)
-		client.setInsecure();
 		client.setBufferSizes(512, 512);
+		client.setInsecure();
 #endif
+		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp12e-" + versionStripped + ".bin";
 		HTTPClient https;
-		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-d1mini-" + versionStripped + ".bin";
-/* The following does not work... Maybe someone will make it work in the future?
+#if defined(ESP8266)
 		https.setFollowRedirects(true);
+#endif
 
 		if(https.begin(client, url)) {
+			https.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 			printD("HTTP client setup successful");
 			int status = https.GET();
 			if(status == HTTP_CODE_OK) {
@@ -966,7 +961,8 @@ void AmsWebServer::firmwareDownload() {
 				if(SPIFFS.begin()) {
 					printI("Downloading firmware to SPIFFS");
 					file = SPIFFS.open(FILE_FIRMWARE, "w");
-					https.writeToStream(&file);
+					// The following does not work... Maybe someone will make it work in the future? It seems to be disconnected at this point.
+					int len = https.writeToStream(&file);
 					file.close();
 					SPIFFS.end();
 					performRestart = true;
@@ -987,13 +983,15 @@ void AmsWebServer::firmwareDownload() {
 			}
 		} else {
 			printE("Unable to configure HTTP client");
+#if defined(ESP8266)
 			char buf[256];
 			client.getLastSSLError(buf,256);
 			printE(buf);
+#endif
 			server.sendHeader("Location","/");
 			server.send(303);
 		}
-		*/
+		https.end();
 	} else {
 		printI("No firmware version specified...");
 		server.sendHeader("Location","/");

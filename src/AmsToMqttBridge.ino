@@ -346,6 +346,7 @@ void loop() {
 					MDNS.addService("http", "tcp", 80);
 				}
 			}
+			MDNS.update();
 
 			if(now > 10000 && now - lastErrorBlink > 3000) {
 				errorBlink();

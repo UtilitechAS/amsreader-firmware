@@ -346,7 +346,9 @@ void loop() {
 					MDNS.addService("http", "tcp", 80);
 				}
 			}
+			#if defined ESP8266
 			MDNS.update();
+			#endif
 
 			if(now > 10000 && now - lastErrorBlink > 3000) {
 				errorBlink();
@@ -545,7 +547,7 @@ void readHanPort() {
 				if(strlen(config.getMqttHost()) > 0 && strlen(config.getMqttPublishTopic()) > 0) {
 					if(config.getMqttPayloadFormat() == 0) {
 						StaticJsonDocument<512> json;
-						hanToJson(json, data, hw, temperature);
+						hanToJson(json, data, hw, temperature, config.getMqttClientId());
 						if (Debug.isActive(RemoteDebug::INFO)) {
 							debugI("Sending data to MQTT");
 							if (Debug.isActive(RemoteDebug::DEBUG)) {

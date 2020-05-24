@@ -594,7 +594,7 @@ void AmsWebServer::handleSetup() {
 				config->setTempSensorPin(14);
 				config->setVccMultiplier(1.1);
 				break;
-			case 199: // ESP8266
+			case 100: // ESP8266
 				config->setHanPin(3);
 				config->setLedPin(2);
 				config->setLedInverted(true);
@@ -619,7 +619,7 @@ void AmsWebServer::handleSetup() {
 				config->setLedPin(2);
 				config->setLedInverted(false);
 				break;
-			case 299: // ESP32
+			case 200: // ESP32
 				config->setHanPin(16);
 				config->setApPin(0);
 				config->setLedPin(2);

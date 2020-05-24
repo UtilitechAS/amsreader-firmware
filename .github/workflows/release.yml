@@ -109,3 +109,21 @@ jobs:
         asset_path: .pio/build/featheresp32/firmware.bin
         asset_name: ams2mqtt-featheresp32-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream
+    - name: Upload azdevkit4 binary to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: .pio/build/az-delivery-devkit-v4/firmware.bin
+        asset_name: ams2mqtt-azdevkit4-${{ steps.release_tag.outputs.tag }}.bin
+        asset_content_type: application/octet-stream
+    - name: Upload doitdevkit1 binary to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: .pio/build/esp32doit-devkit-v1/firmware.bin
+        asset_name: ams2mqtt-doitdevkit1-${{ steps.release_tag.outputs.tag }}.bin
+        asset_content_type: application/octet-stream

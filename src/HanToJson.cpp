@@ -1,7 +1,8 @@
 #include "HanToJson.h"
 
-void hanToJson(JsonDocument& json, AmsData& data, HwTools& hw, double temperature) {
+void hanToJson(JsonDocument& json, AmsData& data, HwTools& hw, double temperature, String name) {
     json["id"] = WiFi.macAddress();
+    json["name"] = name;
     json["up"] = millis();
     json["t"] = data.getPackageTimestamp();
 

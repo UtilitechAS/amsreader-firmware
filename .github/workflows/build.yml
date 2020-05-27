@@ -9,7 +9,7 @@ on:
       - web/**
       - platformio.ini
     branches:
-      - master
+      - '*'
     tags:
       - '*'
       - '!v*.*.*'

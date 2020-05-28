@@ -61,7 +61,7 @@ private:
 
     void extractFromKaifa(HanReader& hanReader, int listSize);
     void extractFromAidon(HanReader& hanReader, int listSize, bool substituteMissing);
-    void extractFromKamstrup(HanReader& hanReader, int listSize);
+    void extractFromKamstrup(HanReader& hanReader, int listSize, bool substituteMissing);
 };
 
 #endif

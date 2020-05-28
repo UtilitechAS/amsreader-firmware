@@ -18,7 +18,7 @@ AmsData::AmsData(int meterType, bool substituteMissing, HanReader& hanReader) {
 			extractFromAidon(hanReader, listSize, substituteMissing);
             break;
 		case METER_TYPE_KAMSTRUP:
-			extractFromKamstrup(hanReader, listSize);
+			extractFromKamstrup(hanReader, listSize, substituteMissing);
             break;
 
     }
@@ -176,13 +176,15 @@ void AmsData::extractFromAidon(HanReader& hanReader, int listSize, bool substitu
     }
 }
 
-void AmsData::extractFromKamstrup(HanReader& hanReader, int listSize) {
+void AmsData::extractFromKamstrup(HanReader& hanReader, int listSize, bool substituteMissing) {
     switch(listSize) {
+        case (int)Kamstrup::List3PhaseITShort:
         case (int)Kamstrup::List3PhaseShort:
             threePhase = true;
         case (int)Kamstrup::List1PhaseShort:
             listType = 2;
             break;
+        case (int)Kamstrup::List3PhaseITLong:
         case (int)Kamstrup::List3PhaseLong:
             threePhase = true;
         case (int)Kamstrup::List1PhaseLong:
@@ -191,6 +193,23 @@ void AmsData::extractFromKamstrup(HanReader& hanReader, int listSize) {
     }
 
     switch(listSize) {
+        case (int)Kamstrup::List1PhaseLong:
+            meterTimestamp        = hanReader.getTime(         (int)Kamstrup_List1Phase::MeterClock);
+            activeImportCounter   = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeActiveImportEnergy)) / 100;
+            activeExportCounter   = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeActiveExportEnergy)) / 100;
+            reactiveImportCounter = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeReactiveImportEnergy)) / 100;
+            reactiveExportCounter = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeReactiveExportEnergy)) / 100;
+        case (int)Kamstrup::List1PhaseShort:
+            listId                = hanReader.getString(       (int)Kamstrup_List1Phase::ListVersionIdentifier);
+            meterId               = hanReader.getString(       (int)Kamstrup_List1Phase::MeterID);
+            meterType             = hanReader.getString(       (int)Kamstrup_List1Phase::MeterType);
+            activeImportPower     = hanReader.getInt(          (int)Kamstrup_List1Phase::ActiveImportPower);
+            reactiveImportPower   = hanReader.getInt(          (int)Kamstrup_List1Phase::ReactiveImportPower);
+            activeExportPower     = hanReader.getInt(          (int)Kamstrup_List1Phase::ActiveExportPower);
+            reactiveExportPower   = hanReader.getInt(          (int)Kamstrup_List1Phase::ReactiveExportPower);
+            l1current             = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CurrentL1)) / 100;
+            l1voltage             = hanReader.getInt(          (int)Kamstrup_List1Phase::VoltageL1);
+            break;
         case (int)Kamstrup::List3PhaseLong:
             meterTimestamp        = hanReader.getTime(         (int)Kamstrup_List3Phase::MeterClock);
             activeImportCounter   = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CumulativeActiveImportEnergy)) / 100;
@@ -212,22 +231,29 @@ void AmsData::extractFromKamstrup(HanReader& hanReader, int listSize) {
             l2voltage             = hanReader.getInt(          (int)Kamstrup_List3Phase::VoltageL2);
             l3voltage             = hanReader.getInt(          (int)Kamstrup_List3Phase::VoltageL3);
             break;
-        case (int)Kamstrup::List1PhaseLong:
-            meterTimestamp        = hanReader.getTime(         (int)Kamstrup_List1Phase::MeterClock);
-            activeImportCounter   = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeActiveImportEnergy)) / 100;
-            activeExportCounter   = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeActiveExportEnergy)) / 100;
-            reactiveImportCounter = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeReactiveImportEnergy)) / 100;
-            reactiveExportCounter = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CumulativeReactiveExportEnergy)) / 100;
-        case (int)Kamstrup::List1PhaseShort:
-            listId                = hanReader.getString(       (int)Kamstrup_List1Phase::ListVersionIdentifier);
-            meterId               = hanReader.getString(       (int)Kamstrup_List1Phase::MeterID);
-            meterType             = hanReader.getString(       (int)Kamstrup_List1Phase::MeterType);
-            activeImportPower     = hanReader.getInt(          (int)Kamstrup_List1Phase::ActiveImportPower);
-            reactiveImportPower   = hanReader.getInt(          (int)Kamstrup_List1Phase::ReactiveImportPower);
-            activeExportPower     = hanReader.getInt(          (int)Kamstrup_List1Phase::ActiveExportPower);
-            reactiveExportPower   = hanReader.getInt(          (int)Kamstrup_List1Phase::ReactiveExportPower);
-            l1current             = ((double) hanReader.getInt((int)Kamstrup_List1Phase::CurrentL1)) / 100;
-            l1voltage             = hanReader.getInt(          (int)Kamstrup_List1Phase::VoltageL1);
+        case (int)Kamstrup::List3PhaseITLong:
+            meterTimestamp        = hanReader.getTime(         (int)Kamstrup_List3Phase::MeterClock);
+            activeImportCounter   = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CumulativeActiveImportEnergy)) / 100;
+            activeExportCounter   = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CumulativeActiveExportEnergy)) / 100;
+            reactiveImportCounter = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CumulativeReactiveImportEnergy)) / 100;
+            reactiveExportCounter = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CumulativeReactiveExportEnergy)) / 100;
+        case (int)Kamstrup::List3PhaseITShort:
+            listId                = hanReader.getString(       (int)Kamstrup_List3Phase::ListVersionIdentifier);
+            meterId               = hanReader.getString(       (int)Kamstrup_List3Phase::MeterID);
+            meterType             = hanReader.getString(       (int)Kamstrup_List3Phase::MeterType);
+            activeImportPower     = hanReader.getInt(          (int)Kamstrup_List3Phase::ActiveImportPower);
+            reactiveImportPower   = hanReader.getInt(          (int)Kamstrup_List3Phase::ReactiveImportPower);
+            activeExportPower     = hanReader.getInt(          (int)Kamstrup_List3Phase::ActiveExportPower);
+            reactiveExportPower   = hanReader.getInt(          (int)Kamstrup_List3Phase::ReactiveExportPower);
+            l1current             = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CurrentL1)) / 100;
+            l2current             = 0;
+            l3current             = ((double) hanReader.getInt((int)Kamstrup_List3Phase::CurrentL3)) / 100;
+            l1voltage             = hanReader.getInt(          (int)Kamstrup_List3Phase::VoltageL1);
+            l2voltage             = hanReader.getInt(          (int)Kamstrup_List3Phase::VoltageL2);
+            l3voltage             = hanReader.getInt(          (int)Kamstrup_List3Phase::VoltageL3);
+            if(substituteMissing) {
+                l2current         = ((activeImportPower * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+            }
             break;
     }
 }

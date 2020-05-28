@@ -59,7 +59,7 @@ $(function() {
     // For config-meter
     $('.subtitute-dependent').on('change', function() {
         console.log("test");
-        if($('#meterType').val() == 2 && $('#distributionSystem').val() == 1) {
+        if(($('#meterType').val() == 2 || $('#meterType').val() == 3) && $('#distributionSystem').val() == 1) {
             $('#substitute').show();
         } else {
             $('#substitute').hide();

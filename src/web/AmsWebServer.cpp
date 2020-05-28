@@ -557,6 +557,14 @@ void AmsWebServer::handleSetup() {
 		server.sendHeader("Location", String("/"), true);
 		server.send (302, "text/plain", "");
 	} else {
+		config->setLedPin(0xFF);
+		config->setLedPinRed(0xFF);
+		config->setLedPinGreen(0xFF);
+		config->setLedPinBlue(0xFF);
+		config->setApPin(0xFF);
+		config->setTempSensorPin(0xFF);
+		config->setVccPin(0xFF);
+
 		config->setBoardType(server.arg("board").toInt());
 		config->setVccMultiplier(1.0);
 		config->setVccBootLimit(0);

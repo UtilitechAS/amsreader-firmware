@@ -1,7 +1,10 @@
 #include "HanReader.h"
 
-HanReader::HanReader()
-{
+HanReader::HanReader() {
+	// Central European Time (Frankfurt, Paris)
+	TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};     // Central European Summer Time
+	TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};       // Central European Standard Time
+	localZone = new Timezone(CEST, CET);
 }
 
 void HanReader::setup(Stream *hanPort, RemoteDebug *debug)
@@ -9,11 +12,6 @@ void HanReader::setup(Stream *hanPort, RemoteDebug *debug)
 	han = hanPort;
 	bytesRead = 0;
 	debugger = debug;
-
-	// Central European Time (Frankfurt, Paris)
-	TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};     // Central European Summer Time
-	TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};       // Central European Standard Time
-	localZone = new Timezone(CEST, CET);
 
 	if (debug) debug->println("MBUS serial setup complete");
 }
@@ -112,6 +110,12 @@ String HanReader::getString(int objectId) {
 	return getString(objectId, buffer, 0, bytesRead);
 }
 
+int HanReader::getBuffer(byte* buf) {
+	for (int i = 0; i < bytesRead; i++) {
+		buf[i] = buffer[i];
+	}
+	return bytesRead;
+}
 
 int HanReader::findValuePosition(int dataPosition, byte *buffer, int start, int length) {
 	// The first byte after the header gives the length 

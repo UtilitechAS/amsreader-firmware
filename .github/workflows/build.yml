@@ -9,7 +9,7 @@ on:
       - web/**
       - platformio.ini
     branches:
-      - master
+      - '*'
     tags:
       - '*'
       - '!v*.*.*'
@@ -39,7 +39,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -U platformio
+        pip install -U platformio css_html_js_minify
     - name: Configure build targets
       run: echo "[platformio]\ndefault_envs = hw1esp12e, esp12e, esp32" > platformio-user.ini
     - name: PlatformIO lib install

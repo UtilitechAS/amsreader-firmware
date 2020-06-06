@@ -17,10 +17,24 @@
  */
 
 #include "AmsToMqttBridge.h"
+#include "AmsStorage.h"
 #define ARDUINOJSON_POSITIVE_EXPONENTIATION_THRESHOLD 1e9
 #include <ArduinoJson.h>
 #include <MQTT.h>
 #include <DNSServer.h>
+// Tz.h does not exist for esp32, need to include time.h, timezone offsets to be given given in sec.
+#define NTP_SERVER "pool.ntp.org"  // put your local NTP server here
+#if defined(ESP8266)
+#include <TZ.h>
+#define MYTZ TZ_Europe_Oslo
+#elif defined(ESP32)
+#include <time.h>
+#define TZ            1               // (utc+) TZ in hours
+#define DST_MN        60              // use 60mn for summer time in some countries
+#define GMT_OFFSET_SEC 3600 * TZ      // Do not change here...
+#define DAYLIGHT_OFFSET_SEC 60 * DST_MN // Do not change here...
+#endif   
+
 
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);  
@@ -42,6 +56,9 @@ ADC_MODE(ADC_VCC);
 #define WEBSOCKET_DISABLED true
 #include "RemoteDebug.h"
 
+#define DEBUG_ESP_HTTP_CLIENT 1
+#define DEBUG_ESP_PORT Serial
+
 HwTools hw;
 
 DNSServer dnsServer;
@@ -50,33 +67,101 @@ AmsConfiguration config;
 
 RemoteDebug Debug;
 
-AmsWebServer ws(&Debug);
+AmsWebServer ws(&Debug, &hw);
 
-WiFiClient *client;
 MQTTClient mqtt(512);
 
 HanReader hanReader;
+
+Stream *hanSerial;
+int hanSerialPin = 0;
 
 void setup() {
 	if(config.hasConfig()) {
 		config.load();
 	}
-#if HW_ROARFRED
-	if(config.getMeterType() == 3) {
-		Serial.begin(2400, SERIAL_8N1);
-	} else {
-		Serial.begin(2400, SERIAL_8E1);
+
+	if(!config.hasConfig() || config.getConfigVersion() < 81) {
+		debugI("Setting default hostname");
+		uint16_t chipId;
+		#if defined(ESP32)
+			chipId = ESP.getEfuseMac();
+		#else
+			chipId = ESP.getChipId();
+		#endif
+		config.setWifiHostname((String("ams-") + String(chipId, HEX)).c_str());
 	}
-#else
-	Serial.begin(115200);
-#endif
+
+	if(!config.hasConfig() || config.getConfigVersion() < 82) {
+		config.setVccMultiplier(1.0);
+		config.setVccBootLimit(0);
+		#if HW_ROARFRED
+			config.setHanPin(3);
+			config.setApPin(0);
+			config.setLedPin(2);
+			config.setLedInverted(true);
+			config.setTempSensorPin(5);
+		#elif defined(ARDUINO_ESP8266_WEMOS_D1MINI)
+			config.setHanPin(5);
+			config.setApPin(4);
+			config.setLedPin(2);
+			config.setLedInverted(true);
+			config.setTempSensorPin(14);
+			config.setVccMultiplier(1.1);
+		#elif defined(ARDUINO_LOLIN_D32)
+			config.setHanPin(16);
+			config.setLedPin(5);
+			config.setLedInverted(true);
+			config.setTempSensorPin(14);
+			config.setVccPin(35);
+			config.setVccMultiplier(2.25);
+		#elif defined(ARDUINO_FEATHER_ESP32)
+			config.setHanPin(16);
+			config.setLedPin(2);
+			config.setTempSensorPin(14);
+		#elif defined(ARDUINO_ESP32_DEV)
+			config.setHanPin(16);
+			config.setLedPin(2);
+			config.setLedInverted(false);
+		#elif defined(ESP8266)
+			config.setHanPin(3);
+			config.setLedPin(2);
+			config.setLedInverted(true);
+		#elif defined(ESP32)
+			config.setHanPin(16);
+			config.setLedPin(2);
+			config.setLedInverted(true);
+			config.setTempSensorPin(14);
+		#endif
+	}
+
+	hw.setLed(config.getLedPin(), config.isLedInverted());
+	hw.setLedRgb(config.getLedPinRed(), config.getLedPinGreen(), config.getLedPinBlue(), config.isLedRgbInverted());
+	hw.setTempSensorPin(config.getTempSensorPin());
+	hw.setVccPin(config.getVccPin());
+	hw.setVccMultiplier(config.getVccMultiplier());
+	hw.ledBlink(LED_INTERNAL, 1);
+	hw.ledBlink(LED_RED, 1);
+	hw.ledBlink(LED_YELLOW, 1);
+	hw.ledBlink(LED_GREEN, 1);
+	hw.ledBlink(LED_BLUE, 1);
+
+	if(config.getHanPin() == 3) {
+		if(config.getMeterType() == 3) {
+			Serial.begin(2400, SERIAL_8N1);
+		} else {
+			Serial.begin(2400, SERIAL_8E1);
+		}
+	} else {
+		Serial.begin(115200);
+	}
 
 	if(config.hasConfig() && config.isDebugSerial()) {
 		Debug.setSerialEnabled(config.isDebugSerial());
 	} else {
-#if DEBUG_MODE
-		Debug.setSerialEnabled(true);
-#endif
+		#if DEBUG_MODE
+			Debug.setSerialEnabled(true);
+		#endif
 	}
 
 	double vcc = hw.getVcc();
@@ -86,26 +171,16 @@ void setup() {
 		debugI("Voltage: %.2fV", vcc);
 	}
 
-#if SELF_POWERED
-	if (vcc > 2.5 && vcc < 3.25) { // Only sleep if voltage is realistic and too low
-		if(Debug.isActive(RemoteDebug::INFO)) {
-			debugI("Voltage is too low, sleeping");
-			Serial.flush();
-		}
-		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
-	}  
-#endif
-
-	#if HAS_RGB_LED
-		// Initialize RGB LED pins
-		pinMode(LEDPIN_RGB_GREEN, OUTPUT);	
-		pinMode(LEDPIN_RGB_RED, OUTPUT);
-	#endif
-
-	pinMode(LED_PIN, OUTPUT);
-	pinMode(AP_BUTTON_PIN, INPUT_PULLUP);
-
-	led_off();
+	double vccBootLimit = config.getVccBootLimit();
+	if(vccBootLimit > 0 && (config.getApPin() == 0xFF || digitalRead(config.getApPin()) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
+		if (vcc < vccBootLimit) {
+			if(Debug.isActive(RemoteDebug::INFO)) {
+				debugI("Voltage is too low, sleeping");
+				Serial.flush();
+			}
+			ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
+		}  
+	}
 
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
@@ -122,14 +197,14 @@ void setup() {
 
 	if(spiffs) {
 		bool flashed = false;
-		if(SPIFFS.exists("/firmware.bin")) {
+		if(SPIFFS.exists(FILE_FIRMWARE)) {
 			if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
 #if defined(ESP8266)
 			WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
 			WiFi.forceSleepBegin();
 #endif
 			int i = 0;
-			while(hw.getVcc() < 3.3 && i < 3) {
+			while(hw.getVcc() < 3.2 && i < 3) {
 				if(Debug.isActive(RemoteDebug::INFO)) debugI(" vcc not optimal, light sleep 10s");
 #if defined(ESP8266)
 				delay(10000);
@@ -140,8 +215,9 @@ void setup() {
 				i++;
 			}
 
-			if(Debug.isActive(RemoteDebug::INFO)) debugI(" flashing");
-			File firmwareFile = SPIFFS.open("/firmware.bin", "r");
+			debugI(" flashing");
+			File firmwareFile = SPIFFS.open(FILE_FIRMWARE, "r");
+			debugD(" firmware size: %d", firmwareFile.size());
 			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 			if (!Update.begin(maxSketchSpace, U_FLASH)) {
 				if(Debug.isActive(RemoteDebug::ERROR)) {
@@ -157,7 +233,7 @@ void setup() {
 				flashed = Update.end(true);
 			}
 			firmwareFile.close();
-			SPIFFS.remove("/firmware.bin");
+			SPIFFS.remove(FILE_FIRMWARE);
 		}
 		SPIFFS.end();
 		if(flashed) {
@@ -165,6 +241,7 @@ void setup() {
 				debugI("Firmware update complete, restarting");
 				Serial.flush();
 			}
+			delay(250);
 #if defined(ESP8266)
 			ESP.reset();
 #elif defined(ESP32)
@@ -174,21 +251,15 @@ void setup() {
 		}
 	}
 
-	if(!config.hasConfig() || config.getConfigVersion() < 81) {
-		debugI("Setting default hostname");
-		uint16_t chipId;
-#if defined(ARDUINO_ARCH_ESP32)
-		chipId = ESP.getEfuseMac();
-#else
-		chipId = ESP.getChipId();
-#endif
-		config.setWifiHostname(String("ams-") + String(chipId, HEX));
-	}
-
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
 		WiFi_connect();
-		client = new WiFiClient();
+#if defined(ESP8266)
+  		configTime(MYTZ, NTP_SERVER);
+#elif defined(ESP32)
+  		configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
+#endif
+		//sntp_servermode_dhcp(0); // 0: disable obtaining SNTP servers from DHCP (enabled by default)
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("No configuration, booting AP");
@@ -196,48 +267,7 @@ void setup() {
 		swapWifiMode();
 	}
 
-#if SOFTWARE_SERIAL
-	if(Debug.isActive(RemoteDebug::DEBUG)) debugD("HAN has software serial");
-	if(config.getMeterType() == 3) {
-		hanSerial->begin(2400, SWSERIAL_8N1);
-	} else {
-		hanSerial->begin(2400, SWSERIAL_8E1);
-	}
-#else
-	if(Debug.isActive(RemoteDebug::DEBUG)) { 
-		debugD("HAN has hardware serial");
-		Serial.flush();
-	}
-	if(config.getMeterType() == 3) {
-		hanSerial->begin(2400, SERIAL_8N1);
-	} else {
-		hanSerial->begin(2400, SERIAL_8E1);
-	}
-#if UART2
-	hanSerial->swap();
-#endif
-#endif
-
-	hanReader.setup(hanSerial, &Debug);
-
-	// Compensate for the known Kaifa bug
-	hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
-
-	// Empty buffer before starting
-	while (hanSerial->available() > 0) {
-    	hanSerial->read();
-	}
-
 	ws.setup(&config, &mqtt);
-
-#if HAS_RGB_LED
-	//Signal startup by blinking red / green / yellow
-	rgb_led(RGB_RED, 2);
-	delay(250);
-	rgb_led(RGB_GREEN, 2);
-	delay(250);
-	rgb_led(RGB_YELLOW, 2);
-#endif
 }
 
 int buttonTimer = 0;
@@ -250,18 +280,20 @@ bool wifiConnected = false;
 unsigned long lastTemperatureRead = 0;
 double temperature = -127;
 
-bool even = true;
 unsigned long lastRead = 0;
 unsigned long lastSuccessfulRead = 0;
 
 unsigned long lastErrorBlink = 0; 
 int lastError = 0;
 
+// domoticz energy init
+double energy = -1.0;
+
 void loop() {
 	Debug.handle();
 	unsigned long now = millis();
-	if(AP_BUTTON_PIN != INVALID_BUTTON_PIN) {
-		if (digitalRead(AP_BUTTON_PIN) == LOW) {
+	if(config.getApPin() != 0xFF) {
+		if (digitalRead(config.getApPin()) == LOW) {
 			if (buttonActive == false) {
 				buttonActive = true;
 				buttonTimer = now;
@@ -288,14 +320,8 @@ void loop() {
 		lastTemperatureRead = now;
 	}
 
-	if(now > 10000 && now - lastErrorBlink > 3000) {
-		errorBlink();
-	}
-
 	// Only do normal stuff if we're not booted as AP
 	if (WiFi.getMode() != WIFI_AP) {
-		led_off();
-
 		if (WiFi.status() != WL_CONNECTED) {
 			wifiConnected = false;
 			Debug.stop();
@@ -307,6 +333,7 @@ void loop() {
 					Debug.setPassword(config.getAuthPassword());
 				}
 				Debug.begin(config.getWifiHostname(), (uint8_t) config.getDebugLevel());
+				Debug.setSerialEnabled(config.isDebugSerial());
 				if(!config.isDebugTelnet()) {
 					Debug.stop();
 				}
@@ -314,12 +341,20 @@ void loop() {
 					debugI("Successfully connected to WiFi!");
 					debugI("IP: %s", WiFi.localIP().toString().c_str());
 				}
-				if(!config.getWifiHostname().isEmpty()) {
-					MDNS.begin(config.getWifiHostname().c_str());
+				if(strlen(config.getWifiHostname()) > 0) {
+					MDNS.begin(config.getWifiHostname());
 					MDNS.addService("http", "tcp", 80);
 				}
 			}
-			if (!config.getMqttHost().isEmpty()) {
+			#if defined ESP8266
+			MDNS.update();
+			#endif
+
+			if(now > 10000 && now - lastErrorBlink > 3000) {
+				errorBlink();
+			}
+
+			if (strlen(config.getMqttHost()) > 0) {
 				mqtt.loop();
 				delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
 				if(!mqtt.connected() || config.isMqttChanged()) {
@@ -335,10 +370,17 @@ void loop() {
 	} else {
 		dnsServer.processNextRequest();
 		// Continously flash the LED when AP mode
-		if (now / 50 % 64 == 0)   led_on();
-		else					  led_off();
-
+		if (now / 50 % 64 == 0) {
+			if(!hw.ledBlink(LED_YELLOW, 1)) {
+				hw.ledBlink(LED_INTERNAL, 1);
+			}
+		}
 	}
+
+	if(hanSerialPin != config.getHanPin()) {
+		setupHanPort(config.getHanPin(), config.getMeterType());
+	}
+
 	if(now - lastRead > 100) {
 		yield();
 		readHanPort();
@@ -348,24 +390,72 @@ void loop() {
 	delay(1); // Needed for auto modem sleep
 }
 
+void setupHanPort(int pin, int meterType) {
+	debugI("Setting up HAN on pin %d for meter type %d", pin, meterType);
 
-void led_on()
-{
-#if LED_ACTIVE_HIGH
-	digitalWrite(LED_PIN, HIGH);
-#else
-	digitalWrite(LED_PIN, LOW);
-#endif
-}
+	HardwareSerial *hwSerial = NULL;
+	if(pin == 3) {
+		hwSerial = &Serial;
+	}
+	#if defined(ESP32)
+		if(pin == 9) {
+			hwSerial = &Serial1;
+		}
+		if(pin == 16) {
+			hwSerial = &Serial2;
+		}
+	#endif
 
+	if(pin == 0) {
+		debugE("Invalid GPIO configured for HAN");
+		return;
+	}
 
-void led_off()
-{
-#if LED_ACTIVE_HIGH
-	digitalWrite(LED_PIN, LOW);
-#else
-	digitalWrite(LED_PIN, HIGH);
-#endif
+	if(hwSerial != NULL) {
+		debugD("Hardware serial");
+		Serial.flush();
+		if(meterType == 3) {
+			hwSerial->begin(2400, SERIAL_8N1);
+		} else {
+			hwSerial->begin(2400, SERIAL_8E1);
+		}
+		hanSerialPin = pin;
+		hanSerial = hwSerial;
+	} else {
+		debugD("Software serial");
+		Serial.flush();
+		SoftwareSerial *swSerial = new SoftwareSerial(pin);
+
+		if(meterType == 3) {
+			swSerial->begin(2400, SWSERIAL_8N1);
+		} else {
+			swSerial->begin(2400, SWSERIAL_8E1);
+		}
+		hanSerialPin = pin;
+		hanSerial = swSerial;
+
+		Serial.begin(115200);
+	}
+
+	hanReader.setup(hanSerial, &Debug);
+
+	// Compensate for the known Kaifa bug
+	hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
+
+	// Empty buffer before starting
+	while (hanSerial->available() > 0) {
+		hanSerial->read();
+	}
+
+	if(config.hasConfig() && config.isDebugSerial()) {
+		if(WiFi.status() == WL_CONNECTED) {
+			Debug.begin(config.getWifiHostname(), (uint8_t) config.getDebugLevel());
+		}
+		Debug.setSerialEnabled(config.isDebugSerial());
+		if(!config.isDebugTelnet()) {
+			Debug.stop();
+		}
+	}
 }
 
 void errorBlink() {
@@ -376,19 +466,19 @@ void errorBlink() {
 		switch(lastError) {
 			case 0:
 				if(lastErrorBlink - lastSuccessfulRead > 30000) {
-					rgb_led(1, 2); // If no message received from AMS in 30 sec, blink once
+					hw.ledBlink(LED_RED, 1); // If no message received from AMS in 30 sec, blink once
 					return;
 				}
 				break;
 			case 1:
-				if(!config.getMqttHost().isEmpty() && mqtt.lastError() != 0) {
-					rgb_led(1, 3); // If MQTT error, blink twice
+				if(strlen(config.getMqttHost()) > 0 && mqtt.lastError() != 0) {
+					hw.ledBlink(LED_RED, 2); // If MQTT error, blink twice
 					return;
 				}
 				break;
 			case 2:
 				if(WiFi.getMode() != WIFI_AP && WiFi.status() != WL_CONNECTED) {
-					rgb_led(1, 4); // If WiFi not connected, blink three times
+					hw.ledBlink(LED_RED, 3); // If WiFi not connected, blink three times
 					return;
 				}
 				break;
@@ -397,7 +487,9 @@ void errorBlink() {
 }
 
 void swapWifiMode() {
-	led_on();
+	if(!hw.ledOn(LED_YELLOW)) {
+		hw.ledOn(LED_INTERNAL);
+	}
 	WiFiMode_t mode = WiFi.getMode();
 	dnsServer.stop();
 	WiFi.disconnect(true);
@@ -417,7 +509,9 @@ void swapWifiMode() {
 		WiFi_connect();
 	}
 	delay(500);
-	led_off();
+	if(!hw.ledOff(LED_YELLOW)) {
+		hw.ledOff(LED_INTERNAL);
+	}
 }
 
 void mqttMessageReceived(String &topic, String &payload)
@@ -431,6 +525,7 @@ void mqttMessageReceived(String &topic, String &payload)
 	// Ideas could be to query for values or to initiate OTA firmware update
 }
 
+int currentMeterType = 0;
 AmsData lastMqttData;
 void readHanPort() {
 	if (hanReader.read()) {
@@ -442,16 +537,17 @@ void readHanPort() {
 		lastSuccessfulRead = millis();
 
 		if(config.getMeterType() > 0) {
-			rgb_led(RGB_GREEN, 2);
+			if(!hw.ledBlink(LED_GREEN, 1))
+				hw.ledBlink(LED_INTERNAL, 1);
 
-			AmsData data(config.getMeterType(), hanReader);
+			AmsData data(config.getMeterType(), config.isSubstituteMissing(), hanReader);
 			if(data.getListType() > 0) {
 				ws.setData(data);
 
-				if(!config.getMqttHost().isEmpty() && !config.getMqttPublishTopic().isEmpty()) {
+				if(strlen(config.getMqttHost()) > 0 && strlen(config.getMqttPublishTopic()) > 0) {
 					if(config.getMqttPayloadFormat() == 0) {
 						StaticJsonDocument<512> json;
-						hanToJson(json, data, hw, temperature);
+						hanToJson(json, data, hw, temperature, config.getMqttClientId());
 						if (Debug.isActive(RemoteDebug::INFO)) {
 							debugI("Sending data to MQTT");
 							if (Debug.isActive(RemoteDebug::DEBUG)) {
@@ -462,62 +558,214 @@ void readHanPort() {
 						String msg;
 						serializeJson(json, msg);
 						mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
-					} else if(config.getMqttPayloadFormat() == 1) {
-						mqtt.publish(config.getMqttPublishTopic() + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
+					// 
+					// Start DOMOTICZ
+					//
+					} else if(config.getMqttPayloadFormat() == 3) {
+						debugI("Sending data to MQTT");
+						//
+						// Special MQTT messages for DOMOTIZ (https://www.domoticz.com/wiki/MQTT)
+						// -All messages should be published to topic "domoticz/in"
+						//
+						//  message msg_PE : send active power and and cumulative energy consuption to  virtual meter "Electricity (instant and counter)"
+						//
+						//      /json.htm?type=command&param=udevice&idx=IDX&nvalue=0&svalue=POWER;ENERGY
+						//
+						//       MQTT sample message:    {"command": "udevice",  "idx" : IDX , "nvalue" : 0, "svalue" : "POWER;ENERGY"}   
+						//         IDX = id of your device (This number can be found in the devices tab in the column "IDX")
+						//         POWER = current power (Watt)
+						//         ENERGY = cumulative energy in Watt-hours (Wh) This is an incrementing counter.
+						//               (if you choose as type "Energy read : Computed", this is just a "dummy" counter, not updatable because it's the result of DomoticZ calculs from POWER)
+						//
+						//  message msg_V1 : send Voltage of L1 to virtual Voltage meter
+						//
+						//	      /json.htm?type=command&param=udevice&idx=IDX&nvalue=0&svalue=VOLTAGE
+						//
+						//       MQTT sample message:    {"command": "udevice",  "idx" : IDX , "nvalue" : 0, "svalue" : "VOLTAGE"}   
+						//         IDX = id of your device (This number can be found in the devices tab in the column "IDX")
+						//         VOLTAGE = Voltage (V)
+						//  
+			
+						int idx1 = config.getDomoELIDX();
+						if (idx1 > 0) {
+							String PowerEnergy;
+							int p;
+							// double energy = config.getDomoEnergy();
+							double tmp_energy;
+							StaticJsonDocument<200> json_PE;
+							p = data.getActiveImportPower();
+							// cumulative energy is given only once pr hour. check if value is different from 0 and store last valid value on global variable.
+							tmp_energy = data.getActiveImportCounter();
+							if (tmp_energy > 1.0) energy = tmp_energy;		
+							//  power_unit: watt, energy_unit: watt*h. Stored as kwh, need watth
+							PowerEnergy = String((double) p/1.0) + ";" + String((double) energy*1000.0) ;
+							json_PE["command"] = "udevice";
+							json_PE["idx"] = idx1;
+							json_PE["nvalue"] = 0;
+							json_PE["svalue"] = PowerEnergy;
+							// Stringify the json
+							String msg_PE;
+							serializeJson(json_PE, msg_PE);
+							// publish power data directly to domoticz/in, but only after first reading of total power, once an hour... . (otherwise total consumtion will be wrong.)
+							if (energy > 0.0 ) mqtt.publish("domoticz/in", msg_PE.c_str());
+						}
+						int idxu1 =config.getDomoVL1IDX();
+						if (idxu1 > 0){				
+							StaticJsonDocument<200> json_u1;
+							double u1;
+							//
+							// prepare message msg_u1 for virtual Voltage meter"
+							//
+							u1 = data.getL1Voltage();
+							if (u1 > 0.1){ 
+								json_u1["command"] = "udevice";
+								json_u1["idx"] = idxu1;
+								json_u1["nvalue"] = 0;
+								json_u1["svalue"] =  String(u1);
+								// Stringify the json
+								String msg_u1;
+								serializeJson(json_u1, msg_u1);
+								// publish power data directly to domoticz/in
+								mqtt.publish("domoticz/in", msg_u1.c_str());
+							}
+						}
+						int idxu2 =config.getDomoVL2IDX();
+						if (idxu2 > 0){				
+							StaticJsonDocument<200> json_u2;
+							double u2;
+							//
+							// prepare message msg_u2 for virtual Voltage meter"
+							//
+							u2 = data.getL2Voltage();
+							if (u2 > 0.1){ 
+								json_u2["command"] = "udevice";
+								json_u2["idx"] = idxu2;
+								json_u2["nvalue"] = 0;
+								json_u2["svalue"] =  String(u2);
+								// Stringify the json
+								String msg_u2;
+								serializeJson(json_u2, msg_u2);
+								// publish power data directly to domoticz/in
+								mqtt.publish("domoticz/in", msg_u2.c_str());
+							}
+						}
+						int idxu3 =config.getDomoVL3IDX();
+						if (idxu3 > 0){				
+							StaticJsonDocument<200> json_u3;
+							double u3;
+							//
+							// prepare message msg_u3 for virtual Voltage meter"
+							//
+							u3 = data.getL3Voltage();
+							if (u3 > 0.1){ 
+								json_u3["command"] = "udevice";
+								json_u3["idx"] = idxu3;
+								json_u3["nvalue"] = 0;
+								json_u3["svalue"] =  String(u3);
+								// Stringify the json
+								String msg_u3;
+								serializeJson(json_u3, msg_u3);
+								// publish power data directly to domoticz/in
+								mqtt.publish("domoticz/in", msg_u3.c_str());
+							}
+						}
+				
+						int idxi1 =config.getDomoCL1IDX();
+						if (idxi1 > 0){				
+							StaticJsonDocument<200> json_i1;
+							double i1, i2, i3;
+							String Ampere3;
+							//
+							// prepare message msg_i1 for virtual Current/Ampere 3phase mater"
+							//
+							i1 = data.getL1Current();
+							i2 = data.getL2Current();
+							i3 = data.getL3Current();
+							Ampere3 = String(i1) + ";" + String(i2) + ";" + String(i3) ;
+							json_i1["command"] = "udevice";
+							json_i1["idx"] = idxi1;
+							json_i1["nvalue"] = 0;
+							json_i1["svalue"] =  Ampere3;
+							// Stringify the json
+							String msg_i1;
+							serializeJson(json_i1, msg_i1);
+							// publish power data directly to domoticz/in
+							if (i1 > 0.0) mqtt.publish("domoticz/in", msg_i1.c_str());
+						}			
+						//
+						// End DOMOTICZ
+						//
+					} else if(config.getMqttPayloadFormat() == 1 || config.getMqttPayloadFormat() == 2) {
+						mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
 						switch(data.getListType()) {
 							case 3:
 								// ID and type belongs to List 2, but I see no need to send that every 10s
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/id", data.getMeterId());
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/type", data.getMeterType());
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/clock", String(data.getMeterTimestamp()));
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/import/reactive/accumulated", String(data.getReactiveImportCounter(), 2));
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/import/active/accumulated", String(data.getActiveImportCounter(), 2));
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/export/reactive/accumulated", String(data.getReactiveExportCounter(), 2));
-								mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
+								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/id", data.getMeterId());
+								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/type", data.getMeterType());
+								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/clock", String(data.getMeterTimestamp()));
+								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/import/reactive/accumulated", String(data.getReactiveImportCounter(), 2));
+								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/import/active/accumulated", String(data.getActiveImportCounter(), 2));
+								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/reactive/accumulated", String(data.getReactiveExportCounter(), 2));
+								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
 							case 2:
 								// Only send data if changed. ID and Type is sent on the 10s interval only if changed
-								if(lastMqttData.getMeterId() != data.getMeterId()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/id", data.getMeterId());
+								if(lastMqttData.getMeterId() != data.getMeterId() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/id", data.getMeterId());
 								}
-								if(lastMqttData.getMeterType() != data.getMeterType()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/type", data.getMeterType());
+								if(lastMqttData.getMeterType() != data.getMeterType() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/type", data.getMeterType());
 								}
-								if(lastMqttData.getL1Current() != data.getL1Current()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/current", String(data.getL1Current(), 2));
+								if(lastMqttData.getL1Current() != data.getL1Current() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l1/current", String(data.getL1Current(), 2));
 								}
-								if(lastMqttData.getL1Voltage() != data.getL1Voltage()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/l1/voltage", String(data.getL1Voltage(), 2));
+								if(lastMqttData.getL1Voltage() != data.getL1Voltage() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l1/voltage", String(data.getL1Voltage(), 2));
 								}
-								if(lastMqttData.getL2Current() != data.getL2Current()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/current", String(data.getL2Current(), 2));
+								if(lastMqttData.getL2Current() != data.getL2Current() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l2/current", String(data.getL2Current(), 2));
 								}
-								if(lastMqttData.getL2Voltage() != data.getL2Voltage()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/l2/voltage", String(data.getL2Voltage(), 2));
+								if(lastMqttData.getL2Voltage() != data.getL2Voltage() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l2/voltage", String(data.getL2Voltage(), 2));
 								}
-								if(lastMqttData.getL3Current() != data.getL3Current()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/current", String(data.getL3Current(), 2));
+								if(lastMqttData.getL3Current() != data.getL3Current() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l3/current", String(data.getL3Current(), 2));
 								}
-								if(lastMqttData.getL3Voltage() != data.getL3Voltage()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/l3/voltage", String(data.getL3Voltage(), 2));
+								if(lastMqttData.getL3Voltage() != data.getL3Voltage() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l3/voltage", String(data.getL3Voltage(), 2));
 								}
-								if(lastMqttData.getReactiveExportPower() != data.getReactiveExportPower()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/export/reactive", String(data.getReactiveExportPower()));
+								if(lastMqttData.getReactiveExportPower() != data.getReactiveExportPower() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/reactive", String(data.getReactiveExportPower()));
 								}
-								if(lastMqttData.getActiveExportPower() != data.getActiveExportPower()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/export/active", String(data.getActiveExportPower()));
+								if(lastMqttData.getActiveExportPower() != data.getActiveExportPower() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/active", String(data.getActiveExportPower()));
 								}
-								if(lastMqttData.getReactiveImportPower() != data.getReactiveImportPower()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/import/reactive", String(data.getReactiveImportPower()));
+								if(lastMqttData.getReactiveImportPower() != data.getReactiveImportPower() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/import/reactive", String(data.getReactiveImportPower()));
 								}
 							case 1:
-								if(lastMqttData.getActiveImportPower() != data.getActiveImportPower()) {
-									mqtt.publish(config.getMqttPublishTopic() + "/meter/import/active", String(data.getActiveImportPower()));
+								if(lastMqttData.getActiveImportPower() != data.getActiveImportPower() || config.getMqttPayloadFormat() == 2) {
+									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/import/active", String(data.getActiveImportPower()));
 								}
 						}
 					}
 					lastMqttData.apply(data);
 					mqtt.loop();
 					delay(10);
+				}
+			} else {
+				if(config.isSendUnknown() && strlen(config.getMqttHost()) > 0 && strlen(config.getMqttPublishTopic()) > 0) {
+					byte buf[512];
+					int length = hanReader.getBuffer(buf);
+					String hexstring = "";
+
+					for(int i = 0; i < length; i++) {
+						if(buf[i] < 0x10) {
+						hexstring += '0';
+						}
+
+						hexstring += String(buf[i], HEX);
+					}
+					mqtt.publish(String(config.getMqttPublishTopic()), hexstring);
 				}
 			}
 		} else {
@@ -559,22 +807,10 @@ void readHanPort() {
 	// Switch parity if meter is still not detected
 	if(config.getMeterType() == 0 && millis() - lastSuccessfulRead > 10000) {
 		lastSuccessfulRead = millis();
-		if(Debug.isActive(RemoteDebug::DEBUG)) debugD("No data for current setting, switching parity");
+		debugD("No data for current setting, switching parity");
 		Serial.flush();
-#if SOFTWARE_SERIAL
-			if(even) {
-				hanSerial->begin(2400, SWSERIAL_8N1);
-			} else {
-				hanSerial->begin(2400, SWSERIAL_8E1);
-			}
-#else
-			if(even) {
-				hanSerial->begin(2400, SERIAL_8N1);
-			} else {
-				hanSerial->begin(2400, SERIAL_8E1);
-			}
-#endif
-		even = !even;
+		if(++currentMeterType == 4) currentMeterType = 1;
+		setupHanPort(config.getHanPin(), currentMeterType);
 	}
 }
 
@@ -587,7 +823,7 @@ void WiFi_connect() {
 	}
 	lastWifiRetry = millis();
 
-	if (Debug.isActive(RemoteDebug::INFO)) debugI("Connecting to WiFi network: %s", config.getWifiSsid().c_str());
+	if (Debug.isActive(RemoteDebug::INFO)) debugI("Connecting to WiFi network: %s", config.getWifiSsid());
 
 	if (WiFi.status() != WL_CONNECTED) {
 		MDNS.end();
@@ -596,7 +832,7 @@ void WiFi_connect() {
 
 		WiFi.enableAP(false);
 		WiFi.mode(WIFI_STA);
-		if(!config.getWifiIp().isEmpty()) {
+		if(strlen(config.getWifiIp()) > 0) {
 			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
 			ip.fromString(config.getWifiIp());
 			gw.fromString(config.getWifiGw());
@@ -605,48 +841,96 @@ void WiFi_connect() {
 			dns2.fromString(config.getWifiDns2());
 			WiFi.config(ip, gw, sn, dns1, dns2);
 		}
-		if(!config.getWifiHostname().isEmpty()) {
+		if(strlen(config.getWifiHostname()) > 0) {
 #if defined(ESP8266)
 			WiFi.hostname(config.getWifiHostname());
 #elif defined(ESP32)
-			WiFi.setHostname(config.getWifiHostname().c_str());
+			WiFi.setHostname(config.getWifiHostname());
 #endif
 		}
-		WiFi.begin(config.getWifiSsid().c_str(), config.getWifiPassword().c_str());
+		WiFi.begin(config.getWifiSsid(), config.getWifiPassword());
 		yield();
 	}
 }
 
 unsigned long lastMqttRetry = -10000;
 void MQTT_connect() {
-	if(config.getMqttHost().isEmpty()) {
+	if(strlen(config.getMqttHost()) == 0) {
 		if(Debug.isActive(RemoteDebug::WARNING)) debugW("No MQTT config");
 		return;
 	}
-	if(millis() - lastMqttRetry < 5000) {
+	if(millis() - lastMqttRetry < (mqtt.lastError() == 0 ? 5000 : 60000)) {
 		yield();
 		return;
 	}
 	lastMqttRetry = millis();
 	if(Debug.isActive(RemoteDebug::INFO)) {
-		debugI("Connecting to MQTT %s:%d", config.getMqttHost().c_str(), config.getMqttPort());
+		debugD("Disconnecting MQTT before connecting");
 	}
 
 	mqtt.disconnect();
 	yield();
 
-	mqtt.begin(config.getMqttHost().c_str(), config.getMqttPort(), *client);
+	WiFiClientSecure *secureClient = NULL;
+	Client *client = NULL;
+	if(config.isMqttSsl()) {
+		debugI("MQTT SSL is configured");
+
+		secureClient = new WiFiClientSecure();
+#if defined(ESP8266)
+		secureClient->setBufferSizes(512, 512);
+#endif
+
+		if(SPIFFS.begin()) {
+			char *ca = NULL;
+			char *cert = NULL;
+			char *key = NULL;
+
+			if(SPIFFS.exists(FILE_MQTT_CA)) {
+				debugI("Found MQTT CA file");
+				File file = SPIFFS.open(FILE_MQTT_CA, "r");
+				secureClient->loadCACert(file, file.size());
+			}
+			if(SPIFFS.exists(FILE_MQTT_CERT)) {
+				debugI("Found MQTT certificate file");
+				File file = SPIFFS.open(FILE_MQTT_CERT, "r");
+				secureClient->loadCertificate(file, file.size());
+			}
+			if(SPIFFS.exists(FILE_MQTT_KEY)) {
+				debugI("Found MQTT key file");
+				File file = SPIFFS.open(FILE_MQTT_KEY, "r");
+				secureClient->loadPrivateKey(file, file.size());
+			}
+			SPIFFS.end();
+		}
+		client = secureClient;
+	} else {
+		client = new WiFiClient();
+	}
+
+	if(Debug.isActive(RemoteDebug::INFO)) {
+		debugI("Connecting to MQTT %s:%d", config.getMqttHost(), config.getMqttPort());
+	}
+	mqtt.begin(config.getMqttHost(), config.getMqttPort(), *client);
+
+#if defined(ESP8266)
+	if(secureClient) {
+		time_t epoch = time(nullptr);
+		debugD("Setting NTP time %i for secure MQTT connection", epoch);
+ 		secureClient->setX509Time(epoch);
+	}
+#endif
 
 	// Connect to a unsecure or secure MQTT server
-	if ((config.getMqttUser().isEmpty() && mqtt.connect(config.getMqttClientId().c_str())) ||
-		(!config.getMqttUser().isEmpty() && mqtt.connect(config.getMqttClientId().c_str(), config.getMqttUser().c_str(), config.getMqttPassword().c_str()))) {
+	if ((strlen(config.getMqttUser()) == 0 && mqtt.connect(config.getMqttClientId())) ||
+		(strlen(config.getMqttUser()) > 0 && mqtt.connect(config.getMqttClientId(), config.getMqttUser(), config.getMqttPassword()))) {
 		if (Debug.isActive(RemoteDebug::INFO)) debugI("Successfully connected to MQTT!");
 		config.ackMqttChange();
 
 		// Subscribe to the chosen MQTT topic, if set in configuration
-		if (!config.getMqttSubscribeTopic().isEmpty()) {
+		if (strlen(config.getMqttSubscribeTopic()) > 0) {
 			mqtt.subscribe(config.getMqttSubscribeTopic());
-			if (Debug.isActive(RemoteDebug::INFO)) debugI("  Subscribing to [%s]\r\n", config.getMqttSubscribeTopic().c_str());
+			if (Debug.isActive(RemoteDebug::INFO)) debugI("  Subscribing to [%s]\r\n", config.getMqttSubscribeTopic());
 		}
 		
 		if(config.getMqttPayloadFormat() == 0) {
@@ -656,7 +940,14 @@ void MQTT_connect() {
 		}
 	} else {
 		if (Debug.isActive(RemoteDebug::ERROR)) {
-			debugI("Failed to connect to MQTT");
+			debugE("Failed to connect to MQTT");
+#if defined(ESP8266)
+			if(secureClient) {
+				char buf[256];
+  				secureClient->getLastSSLError(buf,256);
+				Debug.println(buf);
+			}
+#endif
 		}
 	}
 	yield();
@@ -666,7 +957,7 @@ void MQTT_connect() {
 void sendMqttData(String data)
 {
 	// Make sure we have configured a publish topic
-	if (config.getMqttPublishTopic().isEmpty())
+	if (strlen(config.getMqttPublishTopic()) == 0)
 		return;
 
 	// Build a json with the message in a "data" attribute
@@ -693,63 +984,20 @@ void sendMqttData(String data)
 
 unsigned long lastSystemDataSent = -10000;
 void sendSystemStatusToMqtt() {
-	if (config.getMqttPublishTopic().isEmpty())
+	if (strlen(config.getMqttPublishTopic()) == 0)
 		return;
 	if(millis() - lastSystemDataSent < 10000)
 		return;
 	lastSystemDataSent = millis();
 
-	mqtt.publish(config.getMqttPublishTopic() + "/id", WiFi.macAddress());
-	mqtt.publish(config.getMqttPublishTopic() + "/uptime", String((unsigned long) millis64()/1000));
+	mqtt.publish(String(config.getMqttPublishTopic()) + "/id", WiFi.macAddress());
+	mqtt.publish(String(config.getMqttPublishTopic()) + "/uptime", String((unsigned long) millis64()/1000));
 	double vcc = hw.getVcc();
 	if(vcc > 0) {
-		mqtt.publish(config.getMqttPublishTopic() + "/vcc", String(vcc, 2));
+		mqtt.publish(String(config.getMqttPublishTopic()) + "/vcc", String(vcc, 2));
 	}
-	mqtt.publish(config.getMqttPublishTopic() + "/rssi", String(hw.getWifiRssi()));
+	mqtt.publish(String(config.getMqttPublishTopic()) + "/rssi", String(hw.getWifiRssi()));
     if(temperature != DEVICE_DISCONNECTED_C) {
-		mqtt.publish(config.getMqttPublishTopic() + "/temperature", String(temperature, 2));
+		mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature", String(temperature, 2));
     }
-}
-
-void rgb_led(int color, int mode) {
-// Activate red and green LEDs if RGB LED is present (HAS_RGB_LED=1)
-// If no RGB LED present (HAS_RGB_LED=0 or not defined), all output goes to ESP onboard LED
-// color: 1=red, 2=green, 3=yellow
-// mode: 0=OFF, 1=ON, >=2 -> Short blink(s), number of blinks: (mode - 1)
-#ifndef  HAS_RGB_LED
-#define LEDPIN_RGB_RED LED_PIN
-#define LEDPIN_RGB_GREEN LED_PIN
-#endif
-	int blinkduration = 50;	// milliseconds
-	switch (mode) {
-		case RGB_OFF:	//OFF
-			digitalWrite(LEDPIN_RGB_RED, HIGH);
-			digitalWrite(LEDPIN_RGB_GREEN, HIGH);
-			break;
-		case RGB_ON: //ON
-			switch (color) {
-				case RGB_RED:	//Red
-					digitalWrite(LEDPIN_RGB_RED, LOW);
-					digitalWrite(LEDPIN_RGB_GREEN, HIGH);
-					break;
-				case RGB_GREEN:	//Green
-					digitalWrite(LEDPIN_RGB_RED, HIGH);
-					digitalWrite(LEDPIN_RGB_GREEN, LOW);
-					break;
-				case RGB_YELLOW:	//Yellow
-					digitalWrite(LEDPIN_RGB_RED, LOW);
-					digitalWrite(LEDPIN_RGB_GREEN, LOW);
-					break;
-				}
-			break;
-		default: // Blink
-			for(int i = 1; i < mode; i++) {
-				rgb_led(color, RGB_ON);
-				delay(blinkduration);
-				rgb_led(color, RGB_OFF);
-				if(i != mode)
-					delay(blinkduration);
-			}
-			break;
-	}
 }

@@ -1,75 +1,90 @@
 #include "AmsConfiguration.h"
 
-String AmsConfiguration::getWifiSsid() {
-	return wifiSsid;
+uint8_t AmsConfiguration::getBoardType() {
+	return config.boardType;
 }
 
-void AmsConfiguration::setWifiSsid(String wifiSsid) {
-	wifiChanged |= this->wifiSsid != wifiSsid;
-	this->wifiSsid = String(wifiSsid);
+void AmsConfiguration::setBoardType(uint8_t boardType) {
+	config.boardType = boardType;
 }
 
-String AmsConfiguration::getWifiPassword() {
-	return wifiPassword;
+char* AmsConfiguration::getWifiSsid() {
+	return config.wifiSsid;
 }
 
-void AmsConfiguration::setWifiPassword(String wifiPassword) {
-	wifiChanged |= this->wifiPassword != wifiPassword;
-	this->wifiPassword = String(wifiPassword);
+void AmsConfiguration::setWifiSsid(const char* wifiSsid) {
+	wifiChanged |= strcmp(config.wifiSsid, wifiSsid) != 0;
+	strcpy(config.wifiSsid, wifiSsid);
 }
 
-String AmsConfiguration::getWifiIp() {
-	return wifiIp;
+char* AmsConfiguration::getWifiPassword() {
+	return config.wifiPassword;
 }
 
-void AmsConfiguration::setWifiIp(String wifiIp) {
-	wifiChanged |= this->wifiIp != wifiIp;
-	this->wifiIp = String(wifiIp);
+void AmsConfiguration::setWifiPassword(const char* wifiPassword) {
+	wifiChanged |= strcmp(config.wifiPassword, wifiPassword) != 0;
+	strcpy(config.wifiPassword, wifiPassword);
 }
 
-String AmsConfiguration::getWifiGw() {
-	return wifiGw;
+char* AmsConfiguration::getWifiIp() {
+	return config.wifiIp;
 }
 
-void AmsConfiguration::setWifiGw(String wifiGw) {
-	wifiChanged |= this->wifiGw != wifiGw;
-	this->wifiGw = String(wifiGw);
+void AmsConfiguration::setWifiIp(const char* wifiIp) {
+	wifiChanged |= strcmp(config.wifiIp, wifiIp) != 0;
+	strcpy(config.wifiIp, wifiIp);
 }
 
-String AmsConfiguration::getWifiSubnet() {
-	return wifiSubnet;
+char* AmsConfiguration::getWifiGw() {
+	return config.wifiGw;
 }
 
-void AmsConfiguration::setWifiSubnet(String wifiSubnet) {
-	wifiChanged |= this->wifiSubnet != wifiSubnet;
-	this->wifiSubnet = String(wifiSubnet);
+void AmsConfiguration::setWifiGw(const char* wifiGw) {
+	wifiChanged |= strcmp(config.wifiGw, wifiGw) != 0;
+	strcpy(config.wifiGw, wifiGw);
 }
 
-String AmsConfiguration::getWifiDns1() {
-	return wifiDns1;
+char* AmsConfiguration::getWifiSubnet() {
+	return config.wifiSubnet;
 }
 
-void AmsConfiguration::setWifiDns1(String wifiDns1) {
-	wifiChanged |= this->wifiDns1 != wifiDns1;
-	this->wifiDns1 = wifiDns1;
+void AmsConfiguration::setWifiSubnet(const char* wifiSubnet) {
+	wifiChanged |= strcmp(config.wifiSubnet, wifiSubnet) != 0;
+	strcpy(config.wifiSubnet, wifiSubnet);
 }
 
-String AmsConfiguration::getWifiDns2() {
-	return wifiDns2;
+char* AmsConfiguration::getWifiDns1() {
+	return config.wifiDns1;
 }
 
-void AmsConfiguration::setWifiDns2(String wifiDns2) {
-	wifiChanged |= this->wifiDns2 != wifiDns2;
-	this->wifiDns2 = wifiDns2;
+void AmsConfiguration::setWifiDns1(const char* wifiDns1) {
+	wifiChanged |= strcmp(config.wifiDns1, wifiDns1) != 0;
+	strcpy(config.wifiDns1, wifiDns1);
 }
 
-String AmsConfiguration::getWifiHostname() {
-	return wifiHostname;
+char* AmsConfiguration::getWifiDns2() {
+	return config.wifiDns2;
 }
 
-void AmsConfiguration::setWifiHostname(String wifiHostname) {
-	wifiChanged |= this->wifiHostname != wifiHostname;
-	this->wifiHostname = wifiHostname;
+void AmsConfiguration::setWifiDns2(const char* wifiDns2) {
+	wifiChanged |= strcmp(config.wifiDns2, wifiDns2) != 0;
+	strcpy(config.wifiDns2, wifiDns2);
+}
+
+char* AmsConfiguration::getWifiHostname() {
+	return config.wifiHostname;
+}
+
+void AmsConfiguration::setWifiHostname(const char* wifiHostname) {
+	wifiChanged |= strcmp(config.wifiHostname, wifiHostname) != 0;
+	strcpy(config.wifiHostname, wifiHostname);
+}
+
+void AmsConfiguration::clearWifi() {
+	setWifiSsid("");
+	setWifiPassword("");
+	setWifiHostname("");
+	clearWifiIp();
 }
 
 void AmsConfiguration::clearWifiIp() {
@@ -89,75 +104,84 @@ void AmsConfiguration::ackWifiChange() {
 }
 
 
-String AmsConfiguration::getMqttHost() {
-	return mqttHost;
+char* AmsConfiguration::getMqttHost() {
+	return config.mqttHost;
 }
 
-void AmsConfiguration::setMqttHost(String mqttHost) {
-	mqttChanged |= this->mqttHost != mqttHost;
-	this->mqttHost = String(mqttHost);
+void AmsConfiguration::setMqttHost(const char* mqttHost) {
+	mqttChanged |= strcmp(config.mqttHost, mqttHost) != 0;
+	strcpy(config.mqttHost, mqttHost);
 }
 
-int AmsConfiguration::getMqttPort() {
-	return mqttPort;
+uint16_t AmsConfiguration::getMqttPort() {
+	return config.mqttPort;
 }
 
-void AmsConfiguration::setMqttPort(int mqttPort) {
-	mqttChanged |= this->mqttPort != mqttPort;
-	this->mqttPort = mqttPort;
+void AmsConfiguration::setMqttPort(uint16_t mqttPort) {
+	mqttChanged |= config.mqttPort != mqttPort;
+	config.mqttPort = mqttPort;
 }
 
-String AmsConfiguration::getMqttClientId() {
-	return mqttClientId;
+char* AmsConfiguration::getMqttClientId() {
+	return config.mqttClientId;
 }
 
-void AmsConfiguration::setMqttClientId(String mqttClientId) {
-	mqttChanged |= this->mqttClientId != mqttClientId;
-	this->mqttClientId = String(mqttClientId);
+void AmsConfiguration::setMqttClientId(const char* mqttClientId) {
+	mqttChanged |= strcmp(config.mqttClientId, mqttClientId) != 0;
+	strcpy(config.mqttClientId, mqttClientId);
 }
 
-String AmsConfiguration::getMqttPublishTopic() {
-	return mqttPublishTopic;
+char* AmsConfiguration::getMqttPublishTopic() {
+	return config.mqttPublishTopic;
 }
 
-void AmsConfiguration::setMqttPublishTopic(String mqttPublishTopic) {
-	mqttChanged |= this->mqttPublishTopic != mqttPublishTopic;
-	this->mqttPublishTopic = String(mqttPublishTopic);
+void AmsConfiguration::setMqttPublishTopic(const char* mqttPublishTopic) {
+	mqttChanged |= strcmp(config.mqttPublishTopic, mqttPublishTopic) != 0;
+	strcpy(config.mqttPublishTopic, mqttPublishTopic);
 }
 
-String AmsConfiguration::getMqttSubscribeTopic() {
-	return mqttSubscribeTopic;
+char* AmsConfiguration::getMqttSubscribeTopic() {
+	return config.mqttSubscribeTopic;
 }
 
-void AmsConfiguration::setMqttSubscribeTopic(String mqttSubscribeTopic) {
-	mqttChanged |= this->mqttSubscribeTopic != mqttSubscribeTopic;
-	this->mqttSubscribeTopic = String(mqttSubscribeTopic);
+void AmsConfiguration::setMqttSubscribeTopic(const char* mqttSubscribeTopic) {
+	mqttChanged |= strcmp(config.mqttSubscribeTopic, mqttSubscribeTopic) != 0;
+	strcpy(config.mqttSubscribeTopic, mqttSubscribeTopic);
 }
 
-String AmsConfiguration::getMqttUser() {
-	return mqttUser;
+char* AmsConfiguration::getMqttUser() {
+	return config.mqttUser;
 }
 
-void AmsConfiguration::setMqttUser(String mqttUser) {
-	mqttChanged |= this->mqttUser != mqttUser;
-	this->mqttUser = String(mqttUser);
+void AmsConfiguration::setMqttUser(const char* mqttUser) {
+	mqttChanged |= strcmp(config.mqttUser, mqttUser) != 0;
+	strcpy(config.mqttUser, mqttUser);
 }
 
-String AmsConfiguration::getMqttPassword() {
-	return mqttPassword;
+char* AmsConfiguration::getMqttPassword() {
+	return config.mqttPassword;
 }
 
-void AmsConfiguration::setMqttPassword(String mqttPassword) {
-	mqttChanged |= this->mqttPassword != mqttPassword;
-	this->mqttPassword = String(mqttPassword);
+void AmsConfiguration::setMqttPassword(const char* mqttPassword) {
+	mqttChanged |= strcmp(config.mqttPassword, mqttPassword) != 0;
+	strcpy(config.mqttPassword, mqttPassword);
 }
 
-int AmsConfiguration::getMqttPayloadFormat() {
-	return this->mqttPayloadFormat;
+uint8_t AmsConfiguration::getMqttPayloadFormat() {
+	return config.mqttPayloadFormat;
 }
 
-void AmsConfiguration::setMqttPayloadFormat(int mqttPayloadFormat) {
-	this->mqttPayloadFormat = mqttPayloadFormat;
+void AmsConfiguration::setMqttPayloadFormat(uint8_t mqttPayloadFormat) {
+	config.mqttPayloadFormat = mqttPayloadFormat;
+}
+
+bool AmsConfiguration::isMqttSsl() {
+	return config.mqttSsl;
+}
+
+void AmsConfiguration::setMqttSsl(bool mqttSsl) {
+	mqttChanged |= config.mqttSsl != mqttSsl;
+	config.mqttSsl = mqttSsl;
 }
 
 void AmsConfiguration::clearMqtt() {
@@ -168,6 +192,11 @@ void AmsConfiguration::clearMqtt() {
 	setMqttSubscribeTopic("");
 	setMqttUser("");
 	setMqttPassword("");
+	setMqttSsl(false);
+}
+
+void AmsConfiguration::setMqttChanged() {
+	mqttChanged = true;
 }
 
 bool AmsConfiguration::isMqttChanged() {
@@ -178,29 +207,28 @@ void AmsConfiguration::ackMqttChange() {
 	mqttChanged = false;
 }
 
-
 byte AmsConfiguration::getAuthSecurity() {
-	return authSecurity;
+	return config.authSecurity;
 }
 
 void AmsConfiguration::setAuthSecurity(byte authSecurity) {
-	this->authSecurity = authSecurity;
+	config.authSecurity = authSecurity;
 }
 
-String AmsConfiguration::getAuthUser() {
-	return authUser;
+char* AmsConfiguration::getAuthUser() {
+	return config.authUser;
 }
 
-void AmsConfiguration::setAuthUser(String authUser) {
-	this->authUser = String(authUser);
+void AmsConfiguration::setAuthUser(const char* authUser) {
+	strcpy(config.authUser, authUser);
 }
 
-String AmsConfiguration::getAuthPassword() {
-	return authPassword;
+char* AmsConfiguration::getAuthPassword() {
+	return config.authPassword;
 }
 
-void AmsConfiguration::setAuthPassword(String authPassword) {
-	this->authPassword = String(authPassword);
+void AmsConfiguration::setAuthPassword(const char* authPassword) {
+	strcpy(config.authPassword, authPassword);
 }
 
 void AmsConfiguration::clearAuth() {
@@ -209,62 +237,293 @@ void AmsConfiguration::clearAuth() {
 	setAuthPassword("");
 }
 
-int AmsConfiguration::getMeterType() {
-	return this->meterType;
+uint8_t AmsConfiguration::getMeterType() {
+	return config.meterType;
 }
 
-void AmsConfiguration::setMeterType(int meterType) {
-	this->meterType = meterType;
+void AmsConfiguration::setMeterType(uint8_t meterType) {
+	config.meterType = meterType;
 }
 
-int AmsConfiguration::getDistributionSystem() {
-	return this->distributionSystem;
+uint8_t AmsConfiguration::getDistributionSystem() {
+	return config.distributionSystem;
 }
 
-void AmsConfiguration::setDistributionSystem(int distributionSystem) {
-	this->distributionSystem = distributionSystem;
+void AmsConfiguration::setDistributionSystem(uint8_t distributionSystem) {
+	config.distributionSystem = distributionSystem;
 }
 
-int AmsConfiguration::getMainFuse() {
-	return this->mainFuse;
+uint8_t AmsConfiguration::getMainFuse() {
+	return config.mainFuse;
 }
 
-void AmsConfiguration::setMainFuse(int mainFuse) {
-	this->mainFuse = mainFuse;
+void AmsConfiguration::setMainFuse(uint8_t mainFuse) {
+	config.mainFuse = mainFuse;
 }
 
-int AmsConfiguration::getProductionCapacity() {
-	return this->productionCapacity;
+uint8_t AmsConfiguration::getProductionCapacity() {
+	return config.productionCapacity;
 }
 
-void AmsConfiguration::setProductionCapacity(int productionCapacity) {
-	this->productionCapacity = productionCapacity;
+void AmsConfiguration::setProductionCapacity(uint8_t productionCapacity) {
+	config.productionCapacity = productionCapacity;
 }
+
+bool AmsConfiguration::isSubstituteMissing() {
+	return config.substituteMissing;
+}
+
+void AmsConfiguration::setSubstituteMissing(bool substituteMissing) {
+	config.substituteMissing = substituteMissing;
+}
+
+bool AmsConfiguration::isSendUnknown() {
+	return config.sendUnknown;
+}
+
+void AmsConfiguration::setSendUnknown(bool sendUnknown) {
+	config.sendUnknown = sendUnknown;
+}
+
+void AmsConfiguration::clearMeter() {
+	setMeterType(0);
+	setDistributionSystem(0);
+	setMainFuse(0);
+	setProductionCapacity(0);
+	setSubstituteMissing(false);
+	setSendUnknown(false);
+}
+
 
 bool AmsConfiguration::isDebugTelnet() {
-	return this->debugTelnet;
+	return config.debugTelnet;
 }
 
 void AmsConfiguration::setDebugTelnet(bool debugTelnet) {
-	this->debugTelnet = debugTelnet;
+	config.debugTelnet = debugTelnet;
 }
 
 bool AmsConfiguration::isDebugSerial() {
-	return this->debugSerial;
+	return config.debugSerial;
 }
 
 void AmsConfiguration::setDebugSerial(bool debugSerial) {
-	this->debugSerial = debugSerial;
+	config.debugSerial = debugSerial;
 }
 
-int AmsConfiguration::getDebugLevel() {
-	return this->debugLevel;
+uint8_t AmsConfiguration::getDebugLevel() {
+	return config.debugLevel;
 }
 
-void AmsConfiguration::setDebugLevel(int debugLevel) {
-	this->debugLevel = debugLevel;
+void AmsConfiguration::setDebugLevel(uint8_t debugLevel) {
+	config.debugLevel = debugLevel;
 }
 
+uint16_t AmsConfiguration::getDomoELIDX() {
+	return config.domoELIDX;
+}
+uint16_t AmsConfiguration::getDomoVL1IDX() {
+	return config.domoVL1IDX;
+}
+uint16_t AmsConfiguration::getDomoVL2IDX() {
+	return config.domoVL2IDX;
+}
+uint16_t AmsConfiguration::getDomoVL3IDX() {
+	return config.domoVL3IDX;
+}
+uint16_t AmsConfiguration::getDomoCL1IDX() {
+	return config.domoCL1IDX;
+}
+
+void AmsConfiguration::setDomoELIDX(uint16_t domoELIDX) {
+	domoChanged |= config.domoELIDX != domoELIDX;
+	config.domoELIDX = domoELIDX;
+}
+
+void AmsConfiguration::setDomoVL1IDX(uint16_t domoVL1IDX) {
+	domoChanged |= config.domoVL1IDX != domoVL1IDX;
+	config.domoVL1IDX = domoVL1IDX;
+}
+
+void AmsConfiguration::setDomoVL2IDX(uint16_t domoVL2IDX) {
+	domoChanged |= config.domoVL2IDX != domoVL2IDX;
+	config.domoVL2IDX = domoVL2IDX;
+}
+
+void AmsConfiguration::setDomoVL3IDX(uint16_t domoVL3IDX) {
+	domoChanged |= config.domoVL3IDX != domoVL3IDX;
+	config.domoVL3IDX = domoVL3IDX;
+}
+
+void AmsConfiguration::setDomoCL1IDX(uint16_t domoCL1IDX) {
+	domoChanged |= config.domoCL1IDX != domoCL1IDX;
+	config.domoCL1IDX = domoCL1IDX;
+}
+
+void AmsConfiguration::clearDomo() {
+	setDomoELIDX(0);
+	setDomoVL1IDX(0);	
+	setDomoVL2IDX(0);	
+	setDomoVL3IDX(0);
+	setDomoCL1IDX(0);
+}
+
+bool AmsConfiguration::pinUsed(uint8_t pin) {
+	if(pin == 0xFF)
+		return false;
+	return 
+		pin == config.hanPin ||
+		pin == config.apPin ||
+		pin == config.ledPinRed ||
+		pin == config.ledPinGreen ||
+		pin == config.ledPinBlue ||
+		pin == config.tempSensorPin ||
+		pin == config.vccPin
+	;
+}
+
+uint8_t AmsConfiguration::getHanPin() {
+	return config.hanPin;
+}
+
+void AmsConfiguration::setHanPin(uint8_t hanPin) {
+	if(!pinUsed(hanPin)) {
+		config.hanPin = hanPin;
+	}
+}
+
+uint8_t AmsConfiguration::getApPin() {
+	return config.apPin;
+}
+
+void AmsConfiguration::setApPin(uint8_t apPin) {
+	if(!pinUsed(apPin)) {
+		config.apPin = apPin;
+		if(apPin >= 0)
+			pinMode(apPin, INPUT_PULLUP);
+	}
+}
+
+uint8_t AmsConfiguration::getLedPin() {
+	return config.ledPin;
+}
+
+void AmsConfiguration::setLedPin(uint8_t ledPin) {
+	if(!pinUsed(ledPin)) {
+		config.ledPin = ledPin;
+	}
+}
+
+bool AmsConfiguration::isLedInverted() {
+	return config.ledInverted;
+}
+
+void AmsConfiguration::setLedInverted(bool ledInverted) {
+	config.ledInverted = ledInverted;
+}
+
+
+uint8_t AmsConfiguration::getLedPinRed() {
+	return config.ledPinRed;
+}
+
+void AmsConfiguration::setLedPinRed(uint8_t ledPinRed) {
+	if(!pinUsed(ledPinRed)) {
+		config.ledPinRed = ledPinRed;
+	}
+}
+
+uint8_t AmsConfiguration::getLedPinGreen() {
+	return config.ledPinGreen;
+}
+
+void AmsConfiguration::setLedPinGreen(uint8_t ledPinGreen) {
+	if(!pinUsed(ledPinGreen)) {
+		config.ledPinGreen = ledPinGreen;
+	}
+}
+
+uint8_t AmsConfiguration::getLedPinBlue() {
+	return config.ledPinBlue;
+}
+
+void AmsConfiguration::setLedPinBlue(uint8_t ledPinBlue) {
+	if(!pinUsed(ledPinBlue)) {
+		config.ledPinBlue = ledPinBlue;
+	}
+}
+
+bool AmsConfiguration::isLedRgbInverted() {
+	return config.ledRgbInverted;
+}
+
+void AmsConfiguration::setLedRgbInverted(bool ledRgbInverted) {
+	config.ledRgbInverted = ledRgbInverted;
+}
+
+
+uint8_t AmsConfiguration::getTempSensorPin() {
+	return config.tempSensorPin;
+}
+
+void AmsConfiguration::setTempSensorPin(uint8_t tempSensorPin) {
+	if(!pinUsed(tempSensorPin)) {
+		config.tempSensorPin = tempSensorPin;
+	}
+}
+
+uint8_t AmsConfiguration::getVccPin() {
+	return config.vccPin;
+}
+
+void AmsConfiguration::setVccPin(uint8_t vccPin) {
+	if(!pinUsed(vccPin)) {
+		config.vccPin = vccPin;
+	}
+}
+
+double AmsConfiguration::getVccMultiplier() {
+	return config.vccMultiplier / 1000.0;
+}
+
+void AmsConfiguration::setVccMultiplier(double vccMultiplier) {
+	config.vccMultiplier = max(1, min((int) (vccMultiplier * 1000), 65535));
+}
+
+double AmsConfiguration::getVccBootLimit() {
+	return config.vccBootLimit / 10.0;
+}
+
+void AmsConfiguration::setVccBootLimit(double vccBootLimit) {
+	if(vccBootLimit == 0.0)
+		config.vccBootLimit = 0;
+	else
+		config.vccBootLimit = max(25, min((int)(vccBootLimit * 10), 35));
+}
+bool AmsConfiguration::isDomoChanged() {
+	return domoChanged;
+}
+
+void AmsConfiguration::ackDomoChange() {
+	domoChanged = false;
+}
+
+void AmsConfiguration::clear() {
+	clearMeter();
+	clearWifi();
+	clearMqtt();
+	clearAuth();
+	clearDomo();
+
+	int address = EEPROM_CONFIG_ADDRESS;
+
+	EEPROM.begin(EEPROM_SIZE);
+	while(address < EEPROM_CONFIG_ADDRESS+EEPROM_SIZE) {
+		EEPROM.put(address++, 0);
+	}
+	EEPROM.commit();
+	EEPROM.end();
+}
 
 bool AmsConfiguration::hasConfig() {
 	if(configVersion == 0) {
@@ -278,6 +537,7 @@ bool AmsConfiguration::hasConfig() {
 		case 75:
 		case 80:
 		case 81:
+		case 82:
 			return true;
 		default:
 			configVersion = 0;
@@ -297,148 +557,23 @@ bool AmsConfiguration::load() {
 	int cs = EEPROM.read(address);
 	address++;
 	switch(cs) {
-		case 71: // Same as 72
-		case 72:
-			success = loadConfig72(address);
-			break;
-		case 75:
-			success = loadConfig75(address);
-			break;
-		case 80:
+		case 80: // v1.1
 			success = loadConfig80(address);
 			break;
-		case 81:
+		case 81: // v1.2
 			success = loadConfig81(address);
+			break;
+		case 82: // v1.3
+			EEPROM.get(address, config);
+			success = true;
 			break;
 	}
 	EEPROM.end();
+
+	if(config.apPin >= 0)
+		pinMode(config.apPin, INPUT_PULLUP);
+
 	return success;
-}
-
-bool AmsConfiguration::loadConfig72(int address) {
-	char* temp;
-
-	address += readString(address, &temp);
-	setWifiSsid(temp);
-	address += readString(address, &temp);
-	setWifiPassword(temp);
-
-	byte b;
-	address += readByte(address, &b);
-	setMeterType(b);
-
-	address += readString(address, &temp);
-	setMqttHost(temp);
-	int port;
-	address += readInt(address, &port);
-	setMqttPort(port);
-	address += readString(address, &temp);
-	setMqttClientId(temp);
-	address += readString(address, &temp);
-	setMqttPublishTopic(temp);
-	address += readString(address, &temp);
-	setMqttSubscribeTopic(temp);
-
-	bool secure = false;
-	address += readBool(address, &secure);
-	if (secure) {
-		address += readString(address, &temp);
-		setMqttUser(temp);
-		address += readString(address, &temp);
-		setMqttPassword(temp);
-	} else {
-		setMqttUser("");
-		setMqttPassword("");
-	}
-	setMqttPayloadFormat(0);
-
-	clearAuth();
-
-	setWifiIp("");
-	setWifiGw("");
-	setWifiSubnet("");
-	setMainFuse(0);
-	setProductionCapacity(0);
-	setDistributionSystem(0);
-
-	ackWifiChange();
-
-	setDebugLevel(3); // 3=Info
-	setDebugTelnet(false);
-	setDebugSerial(false);
-
-	return true;
-}
-
-bool AmsConfiguration::loadConfig75(int address) {
-	char* temp;
-
-	address += readString(address, &temp);
-	setWifiSsid(temp);
-	address += readString(address, &temp);
-	setWifiPassword(temp);
-
-	byte b;
-	address += readByte(address, &b);
-	setMeterType(b);
-
-	bool mqtt = false;
-	address += readBool(address, &mqtt);
-	if(mqtt) {
-		address += readString(address, &temp);
-		setMqttHost(temp);
-		int port;
-		address += readInt(address, &port);
-		setMqttPort(port);
-		address += readString(address, &temp);
-		setMqttClientId(temp);
-		address += readString(address, &temp);
-		setMqttPublishTopic(temp);
-		address += readString(address, &temp);
-		setMqttSubscribeTopic(temp);
-	}
-
-	bool secure = false;
-	address += readBool(address, &secure);
-	if (secure) {
-		address += readString(address, &temp);
-		setMqttUser(temp);
-		address += readString(address, &temp);
-		setMqttPassword(temp);
-	} else {
-		setMqttUser("");
-		setMqttPassword("");
-	}
-	setMqttPayloadFormat(0);
-
-	address += readByte(address, &authSecurity);
-	if (authSecurity > 0) {
-		address += readString(address, &temp);
-		setAuthUser(temp);
-		address += readString(address, &temp);
-		setAuthPassword(temp);
-	} else {
-		clearAuth();
-	}
-
-	int i;
-	address += readInt(address, &i);
-	setMainFuse(i);
-	address += readByte(address, &b);
-	setDistributionSystem(b);
-
-	setWifiIp("");
-	setWifiGw("");
-	setWifiSubnet("");
-	setProductionCapacity(0);
-
-	ackWifiChange();
-
-	setDebugLevel(3); // 3=Info
-	setDebugTelnet(false);
-	setDebugSerial(false);
-
-	return true;
 }
 
 bool AmsConfiguration::loadConfig80(int address) {
@@ -487,8 +622,10 @@ bool AmsConfiguration::loadConfig80(int address) {
 	}
 	setMqttPayloadFormat(0);
 
-	address += readByte(address, &authSecurity);
-	if (authSecurity > 0) {
+	byte b;
+	address += readByte(address, &b);
+	setAuthSecurity(b);
+	if (b > 0) {
 		address += readString(address, &temp);
 		setAuthUser(temp);
 		address += readString(address, &temp);
@@ -574,8 +711,10 @@ bool AmsConfiguration::loadConfig81(int address) {
 		clearMqtt();
 	}
 
-	address += readByte(address, &authSecurity);
-	if (authSecurity > 0) {
+	byte b;
+	address += readByte(address, &b);
+	setAuthSecurity(b);
+	if (b > 0) {
 		address += readString(address, &temp);
 		setAuthUser(temp);
 		address += readString(address, &temp);
@@ -606,7 +745,7 @@ bool AmsConfiguration::loadConfig81(int address) {
 	ackWifiChange();
 
 	return true;
-}
+} 
 
 bool AmsConfiguration::save() {
 	int address = EEPROM_CONFIG_ADDRESS;
@@ -614,59 +753,11 @@ bool AmsConfiguration::save() {
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(address, EEPROM_CHECK_SUM);
 	address++;
-
-	address += saveString(address, wifiSsid.c_str());
-	address += saveString(address, wifiPassword.c_str());
-	if(!wifiIp.isEmpty()) {
-		address += saveBool(address, true);
-		address += saveString(address, wifiIp.c_str());
-		address += saveString(address, wifiGw.c_str());
-		address += saveString(address, wifiSubnet.c_str());
-		address += saveString(address, wifiDns1.c_str());
-		address += saveString(address, wifiDns2.c_str());
-	} else {
-		address += saveBool(address, false);
-	}
-	address += saveString(address, wifiHostname.c_str());
-	if(!mqttHost.isEmpty()) {
-		address += saveBool(address, true);
-		address += saveString(address, mqttHost.c_str());
-		address += saveInt(address, mqttPort);
-		address += saveString(address, mqttClientId.c_str());
-		address += saveString(address, mqttPublishTopic.c_str());
-		address += saveString(address, mqttSubscribeTopic.c_str());
-		if (!mqttUser.isEmpty()) {
-			address += saveBool(address, true);
-			address += saveString(address, mqttUser.c_str());
-			address += saveString(address, mqttPassword.c_str());
-		} else {
-			address += saveBool(address, false);
-		}
-		address += saveInt(address, mqttPayloadFormat);
-	} else {
-		address += saveBool(address, false);
-	}
-
-	address += saveByte(address, authSecurity);
-	if (authSecurity > 0) {
-		address += saveString(address, authUser.c_str());
-		address += saveString(address, authPassword.c_str());
-	}
-
-	address += saveInt(address, meterType);
-	address += saveInt(address, distributionSystem);
-	address += saveInt(address, mainFuse);
-	address += saveInt(address, productionCapacity);
-
-	address += saveBool(address, debugTelnet);
-	address += saveBool(address, debugSerial);
-	address += saveInt(address, debugLevel);
-
+	EEPROM.put(address, config);
 	bool success = EEPROM.commit();
 	EEPROM.end();
 
 	configVersion = EEPROM_CHECK_SUM;
-
 	return success;
 }
 
@@ -684,35 +775,10 @@ int AmsConfiguration::readString(int pAddress, char* pString[]) {
 	return address;
 }
 
-int AmsConfiguration::saveString(int pAddress, const char* pString) {
-	int address = 0;
-	int length = pString ? strlen(pString) + 1 : 0;
-	EEPROM.put(pAddress + address, length);
-	address++;
-
-	for (int i = 0; i < length; i++)
-	{
-		EEPROM.put(pAddress + address, pString[i]);
-		address++;
-	}
-
-	return address;
-}
-
 int AmsConfiguration::readInt(int address, int *value) {
 	int lower = EEPROM.read(address);
 	int higher = EEPROM.read(address + 1);
 	*value = lower + (higher << 8);
-	return 2;
-}
-
-int AmsConfiguration::saveInt(int address, int value) {
-	byte lowByte = value & 0xFF;
-	byte highByte = ((value >> 8) & 0xFF);
-
-	EEPROM.write(address, lowByte);
-	EEPROM.write(address + 1, highByte);
-
 	return 2;
 }
 
@@ -722,63 +788,39 @@ int AmsConfiguration::readBool(int address, bool *value) {
 	return 1;
 }
 
-int AmsConfiguration::saveBool(int address, bool value) {
-	byte y = (byte)value;
-	EEPROM.write(address, y);
-	return 1;
-}
-
 int AmsConfiguration::readByte(int address, byte *value) {
 	*value = EEPROM.read(address);
 	return 1;
 }
 
-int AmsConfiguration::saveByte(int address, byte value) {
-	EEPROM.write(address, value);
-	return 1;
-}
-
-template <class T> int AmsConfiguration::writeAnything(int ee, const T& value) {
-	const byte* p = (const byte*)(const void*)&value;
-	unsigned int i;
-	for (i = 0; i < sizeof(value); i++)
-		EEPROM.write(ee++, *p++);
-	return i;
-}
-
-template <class T> int AmsConfiguration::readAnything(int ee, T& value) {
-	byte* p = (byte*)(void*)&value;
-	unsigned int i;
-	for (i = 0; i < sizeof(value); i++)
-		*p++ = EEPROM.read(ee++);
-	return i;
-}
-
 void AmsConfiguration::print(Print* debugger)
 {
-	debugger->println("Configuration:");
+	debugger->print("Configuration size: ");
+	debugger->println(sizeof(config));
 	debugger->println("-----------------------------------------------");
-	debugger->printf("WiFi SSID:            %s\r\n", this->getWifiSsid().c_str());
-	debugger->printf("WiFi Psk:             %s\r\n", this->getWifiPassword().c_str());
+	debugger->printf("WiFi SSID:            '%s'\r\n", this->getWifiSsid());
+	debugger->printf("WiFi Psk:             '%s'\r\n", this->getWifiPassword());
 	
-	if(!getWifiIp().isEmpty()) {
-		debugger->printf("IP:                   %s\r\n", this->getWifiIp().c_str());
-		debugger->printf("Gateway:              %s\r\n", this->getWifiGw().c_str());
-		debugger->printf("Subnet:               %s\r\n", this->getWifiSubnet().c_str());
-		debugger->printf("Primary DNS:          %s\r\n", this->getWifiDns1().c_str());
-		debugger->printf("Secondary DNS:        %s\r\n", this->getWifiDns2().c_str());
+	if(strlen(getWifiIp()) > 0) {
+		debugger->printf("IP:                   '%s'\r\n", this->getWifiIp());
+		debugger->printf("Gateway:              '%s'\r\n", this->getWifiGw());
+		debugger->printf("Subnet:               '%s'\r\n", this->getWifiSubnet());
+		debugger->printf("Primary DNS:          '%s'\r\n", this->getWifiDns1());
+		debugger->printf("Secondary DNS:        '%s'\r\n", this->getWifiDns2());
 	}
+	
+	debugger->printf("WiFi Host:            '%s'\r\n", this->getWifiHostname());
 
-	if(!getMqttHost().isEmpty()) {
-		debugger->printf("mqttHost:             %s\r\n", this->getMqttHost().c_str());
+	if(strlen(getMqttHost()) > 0) {
+		debugger->printf("mqttHost:             '%s'\r\n", this->getMqttHost());
 		debugger->printf("mqttPort:             %i\r\n", this->getMqttPort());
-		debugger->printf("mqttClientID:         %s\r\n", this->getMqttClientId().c_str());
-		debugger->printf("mqttPublishTopic:     %s\r\n", this->getMqttPublishTopic().c_str());
-		debugger->printf("mqttSubscribeTopic:   %s\r\n", this->getMqttSubscribeTopic().c_str());
+		debugger->printf("mqttClientID:         '%s'\r\n", this->getMqttClientId());
+		debugger->printf("mqttPublishTopic:     '%s'\r\n", this->getMqttPublishTopic());
+		debugger->printf("mqttSubscribeTopic:   '%s'\r\n", this->getMqttSubscribeTopic());
 		if (this->getMqttUser()) {
 			debugger->printf("SECURE MQTT CONNECTION:\r\n");
-			debugger->printf("mqttUser:             %s\r\n", this->getMqttUser().c_str());
-			debugger->printf("mqttPass:             %s\r\n", this->getMqttPassword().c_str());
+			debugger->printf("mqttUser:             '%s'\r\n", this->getMqttUser());
+			debugger->printf("mqttPass:             '%s'\r\n", this->getMqttPassword());
 		}
 		debugger->printf("payload format:       %i\r\n", this->getMqttPayloadFormat());
 	}
@@ -786,14 +828,37 @@ void AmsConfiguration::print(Print* debugger)
 	if (this->getAuthSecurity()) {
 		debugger->printf("WEB AUTH:\r\n");
 		debugger->printf("authSecurity:         %i\r\n", this->getAuthSecurity());
-		debugger->printf("authUser:             %s\r\n", this->getAuthUser().c_str());
-		debugger->printf("authPass:             %s\r\n", this->getAuthPassword().c_str());
+		debugger->printf("authUser:             '%s'\r\n", this->getAuthUser());
+		debugger->printf("authPass:             '%s'\r\n", this->getAuthPassword());
 	}
 
 	debugger->printf("meterType:            %i\r\n", this->getMeterType());
 	debugger->printf("distSys:              %i\r\n", this->getDistributionSystem());
 	debugger->printf("fuseSize:             %i\r\n", this->getMainFuse());
 	debugger->printf("productionCapacity:   %i\r\n", this->getProductionCapacity());
+	debugger->printf("Substitute missing:   %s\r\n", this->isSubstituteMissing() ? "Yes" : "No");
+
+	debugger->printf("HAN pin:              %i\r\n", this->getHanPin());
+	debugger->printf("LED pin:              %i\r\n", this->getLedPin());
+	debugger->printf("LED inverted:         %s\r\n", this->isLedInverted() ? "Yes" : "No");
+	debugger->printf("LED red pin:          %i\r\n", this->getLedPinRed());
+	debugger->printf("LED green pin:        %i\r\n", this->getLedPinGreen());
+	debugger->printf("LED blue pin:         %i\r\n", this->getLedPinBlue());
+	debugger->printf("LED inverted:         %s\r\n", this->isLedRgbInverted() ? "Yes" : "No");
+	debugger->printf("AP pin:               %i\r\n", this->getApPin());
+	debugger->printf("Temperature pin:      %i\r\n", this->getTempSensorPin());
+
+	debugger->printf("Vcc pin:              %i\r\n", this->getVccPin());
+	debugger->printf("Vcc multiplier:       %f\r\n", this->getVccMultiplier());
+	debugger->printf("Vcc boot limit:       %f\r\n", this->getVccBootLimit());
+
+	//if(this->getDomoELIDX() > 0) {
+	debugger->printf("Domoticz ELIDX:       %i\r\n", this->getDomoELIDX());
+	debugger->printf("Domoticz VL1IDX:      %i\r\n", this->getDomoVL1IDX());
+	debugger->printf("Domoticz VL2IDX:      %i\r\n", this->getDomoVL2IDX());
+	debugger->printf("Domoticz VL3IDX:      %i\r\n", this->getDomoVL3IDX());
+	debugger->printf("Domoticz CL1IDX:      %i\r\n", this->getDomoCL1IDX());
+	//}
 
 	debugger->println("-----------------------------------------------");
 }

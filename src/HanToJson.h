@@ -11,6 +11,6 @@
 #include "AmsData.h"
 #include "HwTools.h"
 
-void hanToJson(JsonDocument& json, AmsData& data, HwTools& hw, double temperature);
+void hanToJson(JsonDocument& json, AmsData& data, HwTools& hw, double temperature, String name);
 
 #endif

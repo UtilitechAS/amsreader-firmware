@@ -58,7 +58,7 @@
                     "White" === option.theme && (t = "#fff"),
                     "Black" === option.theme && (t = "#000"),
                     t;
-            }
+            };
             /* The label below gauge. */
             function createLabel(t, a) {
                 if(t.children("b").length === 0){
@@ -67,7 +67,7 @@
                         color: option.label_color
                     });
                 }
-            }
+            };
             /* Prepend and append text, the gauge text or percentage value. */
             function createSpanTag(t) {
                 var fgcolor = "";
@@ -90,7 +90,7 @@
                     "font-size": option.text_size * option.size + "px",
                     color: fgcolor
                 });
-            }
+            };
             /* Get data attributes as options from div tag. Fall back to defaults when not exists. */
             function getDataAttr(t) {
                 $.each(dataAttr, function (index, element) {
@@ -116,10 +116,10 @@
                         option[element] = parseFloat(option[element]);
                     }
                 });
-            }
+            };
             /* Draws the gauge. */
             function drawGauge(a) {
-		if(M < 0) M = 0;
+		        if(M < 0) M = 0;
                 if(M > 100) M = 100;
                 var lw = option.width < 1 || isNaN(option.width) ? option.size / 20 : option.width;
                 g.clearRect(0, 0, b.width, b.height);
@@ -141,7 +141,7 @@
                 c > M && (M += z, requestAnimationFrame(function(){
                     drawGauge(Math.min(M, c) / 100);
                 }, p));
-            }
+            };
 
             $(this).attr("data-id", $(this).attr("id"));
             var r,

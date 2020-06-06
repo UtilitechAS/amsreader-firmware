@@ -3,6 +3,59 @@
 #include <EEPROM.h>
 #include "Arduino.h"
 
+struct ConfigObject {
+	uint8_t boardType;
+	char wifiSsid[32];
+	char wifiPassword[64];
+    char wifiIp[15];
+    char wifiGw[15];
+    char wifiSubnet[15];
+	char wifiDns1[15];
+	char wifiDns2[15];
+	char wifiHostname[32];
+	char mqttHost[128];
+	uint16_t mqttPort;
+	char mqttClientId[32];
+	char mqttPublishTopic[64];
+	char mqttSubscribeTopic[64];
+	char mqttUser[64];
+	char mqttPassword[64];
+	uint8_t mqttPayloadFormat;
+	bool mqttSsl;
+	uint8_t authSecurity;
+	char authUser[64];
+	char authPassword[64];
+	uint8_t meterType;
+	uint8_t distributionSystem;
+	uint8_t mainFuse;
+	uint8_t productionCapacity;
+	bool substituteMissing;
+	bool sendUnknown;
+
+	bool debugTelnet;
+	bool debugSerial;
+	uint8_t debugLevel;
+
+	uint8_t hanPin;
+	uint8_t apPin;
+	uint8_t ledPin;
+	bool ledInverted;
+	uint8_t ledPinRed;
+	uint8_t ledPinGreen;
+	uint8_t ledPinBlue;
+	bool ledRgbInverted;
+	uint8_t tempSensorPin;
+	uint8_t vccPin;
+	uint16_t vccMultiplier;
+	uint8_t vccBootLimit;
+
+	uint16_t domoELIDX;
+	uint16_t domoVL1IDX;
+	uint16_t domoVL2IDX;
+	uint16_t domoVL3IDX;
+	uint16_t domoCL1IDX;
+};
+
 class AmsConfiguration {
 public:
 	bool hasConfig();
@@ -10,128 +63,200 @@ public:
 
 	bool load();
 	bool save();
+
+	uint8_t getBoardType();
+	void setBoardType(uint8_t boardType);
 	
-	String getWifiSsid();
-	void setWifiSsid(String wifiSsid);
-	String getWifiPassword();
-	void setWifiPassword(String wifiPassword);
-	String getWifiIp();
-	void setWifiIp(String wifiIp);
-	String getWifiGw();
-	void setWifiGw(String wifiGw);
-	String getWifiSubnet();
-	void setWifiSubnet(String wifiSubnet);
-	String getWifiDns1();
-	void setWifiDns1(String wifiDns1);
-	String getWifiDns2();
-	void setWifiDns2(String wifiDns1);
-	String getWifiHostname();
-	void setWifiHostname(String wifiHostname);
+	char* getWifiSsid();
+	void setWifiSsid(const char* wifiSsid);
+	char* getWifiPassword();
+	void setWifiPassword(const char* wifiPassword);
+	char* getWifiIp();
+	void setWifiIp(const char* wifiIp);
+	char* getWifiGw();
+	void setWifiGw(const char* wifiGw);
+	char* getWifiSubnet();
+	void setWifiSubnet(const char* wifiSubnet);
+	char* getWifiDns1();
+	void setWifiDns1(const char* wifiDns1);
+	char* getWifiDns2();
+	void setWifiDns2(const char* wifiDns1);
+	char* getWifiHostname();
+	void setWifiHostname(const char* wifiHostname);
+	void clearWifi();
 	void clearWifiIp();
 
 	bool isWifiChanged();
 	void ackWifiChange();
 
-	String getMqttHost();
-	void setMqttHost(String mqttHost);
-	int getMqttPort();
-	void setMqttPort(int mqttPort);
-	String getMqttClientId();
-	void setMqttClientId(String mqttClientId);
-	String getMqttPublishTopic();
-	void setMqttPublishTopic(String mqttPublishTopic);
-	String getMqttSubscribeTopic();
-	void setMqttSubscribeTopic(String mqttSubscribeTopic);
-	String getMqttUser();
-	void setMqttUser(String mqttUser);
-	String getMqttPassword();
-	void setMqttPassword(String mqttPassword);
-	int getMqttPayloadFormat();
-	void setMqttPayloadFormat(int mqttPayloadFormat);
+	char* getMqttHost();
+	void setMqttHost(const char* mqttHost);
+	uint16_t getMqttPort();
+	void setMqttPort(uint16_t mqttPort);
+	char* getMqttClientId();
+	void setMqttClientId(const char* mqttClientId);
+	char* getMqttPublishTopic();
+	void setMqttPublishTopic(const char* mqttPublishTopic);
+	char* getMqttSubscribeTopic();
+	void setMqttSubscribeTopic(const char* mqttSubscribeTopic);
+	char* getMqttUser();
+	void setMqttUser(const char* mqttUser);
+	char* getMqttPassword();
+	void setMqttPassword(const char* mqttPassword);
+	uint8_t getMqttPayloadFormat();
+	void setMqttPayloadFormat(uint8_t mqttPayloadFormat);
+	bool isMqttSsl();
+	void setMqttSsl(bool mqttSsl);
 	void clearMqtt();
 
+	void setMqttChanged();
 	bool isMqttChanged();
 	void ackMqttChange();
 
 	byte getAuthSecurity();
 	void setAuthSecurity(byte authSecurity);
-	String getAuthUser();
-	void setAuthUser(String authUser);
-	String getAuthPassword();
-	void setAuthPassword(String authPassword);
+	char* getAuthUser();
+	void setAuthUser(const char* authUser);
+	char* getAuthPassword();
+	void setAuthPassword(const char* authPassword);
 	void clearAuth();
 
-	int getMeterType();
-	void setMeterType(int meterType);
-	int getDistributionSystem();
-	void setDistributionSystem(int distributionSystem);
-	int getMainFuse();
-	void setMainFuse(int mainFuse);
-	int getProductionCapacity();
-	void setProductionCapacity(int productionCapacity);
+	uint8_t getMeterType();
+	void setMeterType(uint8_t meterType);
+	uint8_t getDistributionSystem();
+	void setDistributionSystem(uint8_t distributionSystem);
+	uint8_t getMainFuse();
+	void setMainFuse(uint8_t mainFuse);
+	uint8_t getProductionCapacity();
+	void setProductionCapacity(uint8_t productionCapacity);
+	bool isSubstituteMissing();
+	void setSubstituteMissing(bool substituteMissing);
+	bool isSendUnknown();
+	void setSendUnknown(bool sendUnknown);
+	void clearMeter();
 
 	bool isDebugTelnet();
 	void setDebugTelnet(bool debugTelnet);
 	bool isDebugSerial();
 	void setDebugSerial(bool debugSerial);
-	int getDebugLevel();
-	void setDebugLevel(int debugLevel);
+	uint8_t getDebugLevel();
+	void setDebugLevel(uint8_t debugLevel);
+
+	bool pinUsed(uint8_t pin);
+
+	uint8_t getHanPin();
+	void setHanPin(uint8_t hanPin);
+	uint8_t getApPin();
+	void setApPin(uint8_t apPin);
+	uint8_t getLedPin();
+	void setLedPin(uint8_t ledPin);
+	bool isLedInverted();
+	void setLedInverted(bool ledInverted);
+	
+	uint8_t getLedPinRed();
+	void setLedPinRed(uint8_t ledPinRed);
+	uint8_t getLedPinGreen();
+	void setLedPinGreen(uint8_t ledPinGreen);
+	uint8_t getLedPinBlue();
+	void setLedPinBlue(uint8_t ledPinBlue);
+	bool isLedRgbInverted();
+	void setLedRgbInverted(bool ledRgbInverted);
+
+	uint8_t getTempSensorPin();
+	void setTempSensorPin(uint8_t tempSensorPin);
+	uint8_t getVccPin();
+	void setVccPin(uint8_t vccPin);
+	double getVccMultiplier();
+	void setVccMultiplier(double vccMultiplier);
+	double getVccBootLimit();
+	void setVccBootLimit(double vccBootLimit);
 
 	void print(Print* debugger);
-	
+
+	uint16_t getDomoELIDX();
+	uint16_t getDomoVL1IDX();
+	uint16_t getDomoVL2IDX();
+	uint16_t getDomoVL3IDX();
+	uint16_t getDomoCL1IDX();
+	void setDomoELIDX(uint16_t domoELIDX);
+	void setDomoVL1IDX(uint16_t domoVL1IDX);
+	void setDomoVL2IDX(uint16_t domoVL2IDX);
+	void setDomoVL3IDX(uint16_t domoVL3IDX);
+	void setDomoCL1IDX(uint16_t domoCL1IDX);
+	void clearDomo();
+
+	bool isDomoChanged();
+	void ackDomoChange();
+
+	void clear();
+
 protected:
 
 private:
 	int configVersion = 0;
+	ConfigObject config {
+		0, // Board type
+		"", // SSID
+		"", // PSK
+		"", // IP
+		"", // GW
+		"", // Subnet
+		"", // DNS 1
+		"", // DNS 2
+		"", // Hostname
+		"", // MQTT host
+		1883, // Port
+		"", // Client ID
+		"", // Publish topic
+		"", // Subscribe topic
+		"", // Username
+		"", // Password
+		0, // Format
+		false, // SSL
+		0, // Web security
+		"", // Username
+		"", // Password
+		0, // Meter type
+		0, // Distribution system
+		0, // Main fuse
+		0, // Production capacity
+		false, // Substitute
+		false, // Send unknown
+		false, // Debug telnet
+		false, // Debug serial
+		5, // Debug level
+		0x03, // HAN pin
+		0xFF, // AP pin
+		0x02, // LED pin
+		true, // Inverted
+		0xFF, // Red
+		0xFF, // Green
+		0xFF, // Blue
+		true, // Inverted
+		0xFF, // Temp sensor
+		0xFF, // Vcc
+		100, // Multiplier
+		0, // Boot limit
+		//Domoticz
+		0, // ELIDX
+		0, // VL1IDX
+		0, // VL2IDX
+		0, // VL3IDX
+		0 // CL1IDX
+		// 786 bytes
+	};
+	bool wifiChanged, mqttChanged, domoChanged;
 
-	String wifiSsid;
-	String wifiPassword;
-    String wifiIp;
-    String wifiGw;
-    String wifiSubnet;
-	String wifiDns1;
-	String wifiDns2;
-	String wifiHostname;
-	bool wifiChanged = false;
-	
-	String mqttHost;
-	int mqttPort = 1883;
-	String mqttClientId;
-	String mqttPublishTopic;
-	String mqttSubscribeTopic;
-	String mqttUser;
-	String mqttPassword;
-	int mqttPayloadFormat = 0;
-	bool mqttChanged = false;
-
-	byte authSecurity;
-	String authUser;
-	String authPassword;
-
-	int meterType = 0, distributionSystem = 0, mainFuse = 0, productionCapacity = 0;
-
-	bool debugTelnet = false, debugSerial = false;
-	int debugLevel = 3;
-
-	const int EEPROM_SIZE = 512;
-	const int EEPROM_CHECK_SUM = 81; // Used to check if config is stored. Change if structure changes
+	const int EEPROM_SIZE = 790; // Config size + 4 bytes for config version
+	const int EEPROM_CHECK_SUM = 82; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 
-	bool loadConfig72(int address);
-	bool loadConfig75(int address);
 	bool loadConfig80(int address);
 	bool loadConfig81(int address);
 
-	int saveString(int pAddress, const char* pString);
 	int readString(int pAddress, char* pString[]);
-	int saveInt(int pAddress, int pValue);
 	int readInt(int pAddress, int *pValue);
-	int saveBool(int pAddress, bool pValue);
 	int readBool(int pAddress, bool *pValue);
-	int saveByte(int pAddress, byte pValue);
 	int readByte(int pAddress, byte *pValue);
-
-	template <class T> int writeAnything(int ee, const T& value);
-	template <class T> int readAnything(int ee, T& value);
 };
 #endif

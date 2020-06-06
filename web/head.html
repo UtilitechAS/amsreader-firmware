@@ -1,0 +1,86 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AMS reader</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+    <style>
+        .GaugeMeter {
+            position: Relative;
+            text-align: Center;
+            overflow: Hidden;
+            cursor: Default;
+            display: inline-block;
+        }
+        
+        .GaugeMeter SPAN, .GaugeMeter B {
+            width: 54%;
+            position: Absolute;
+            text-align: Center;
+            display: Inline-Block;
+            color: RGBa(0,0,0,.8);
+            font-weight: 100;
+            font-family: "Open Sans", Arial;
+            overflow: Hidden;
+            white-space: NoWrap;
+            text-overflow: Ellipsis;
+            margin: 0 23%;
+        }
+        
+        .GaugeMeter[data-style="Semi"] B {
+            width: 80%;
+            margin: 0 10%;
+        }
+        
+        .GaugeMeter S, .GaugeMeter U {
+            text-decoration: None;
+            font-size: .60em;
+            font-weight: 200;
+            opacity: .6;
+        }
+        
+        .GaugeMeter B {
+            color: #000;
+            font-weight: 200;
+            opacity: .8;
+        }
+    </style>
+</head>
+<body class="bg-light">
+<main role="main" class="container">
+    <header class="navbar navbar-expand navbar-dark flex-column flex-lg-row rounded mt-2 mb-4" style="background-color: var(--purple);">
+        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small id="swVersion" data-url="https://api.github.com/repos/gskjold/AmsToMqttBridge/releases">${version}</small></h6></a>
+        <div class="navbar-nav-scroll">
+            <ul class="navbar-nav bd-navbar-nav flex-row">
+                <li class="nav-item">
+                    <a id="config-meter-link" class="nav-link" href="/config-meter">Meter</a>
+                </li>
+                <li class="nav-item">
+                    <a id="config-wifi-link" class="nav-link" href="/config-wifi">WiFi</a>
+                </li>
+                <li class="nav-item">
+                    <a id="config-mqtt-link" class="nav-link" href="/config-mqtt">MQTT</a>
+                </li>
+                <li class="nav-item">
+                    <a id="config-web-link" class="nav-link" href="/config-web">Web</a>
+                </li>
+                <li class="nav-item">
+                    <a id="config-system-link" class="nav-link" href="/config-system">System</a>
+                </li>
+            </ul>
+        </div>
+        <div class="flex-row">
+            <div id="esp" class="d-none m-2">ESP</div>
+            <div id="han" class="d-none m-2">HAN</div>
+            <div id="wifi" class="d-none m-2">WiFi</div>
+            <div id="mqtt" class="d-none m-2">MQTT</div>
+        </div>
+        <ul class="navbar-nav flex-row ml-md-auto d-none d-lg-flex">
+            <li class="nav-item">
+                <a class="nav-link p-2" href="https://github.com/gskjold/AmsToMqttBridge" target="_blank" rel="noopener" aria-label="GitHub">
+                    <img class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" src="github.svg"/>
+                </a>
+            </li>
+        </ul>
+    </header>

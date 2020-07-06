@@ -1,7 +1,12 @@
 import os
 import re
 import shutil
-from css_html_js_minify import html_minify, js_minify, css_minify
+
+try:
+    from css_html_js_minify import html_minify, js_minify, css_minify
+except:
+    print("WARN: Unable to load minifier")
+
 
 webroot = "web"
 srcroot = "src/web/root"
@@ -26,13 +31,16 @@ for filename in os.listdir(webroot):
 
     with open(srcfile, encoding="utf-8") as f:
         content = f.read().replace("${version}", version)
-    
-    if filename.endswith(".html"):
-        content = html_minify(content)
-    elif filename.endswith(".css"):
-        content = css_minify(content)
-    elif filename.endswith(".js") and filename != 'gaugemeter.js':
-        content = js_minify(content)
+
+    try:    
+        if filename.endswith(".html"):
+            content = html_minify(content)
+        elif filename.endswith(".css"):
+            content = css_minify(content)
+        elif filename.endswith(".js") and filename != 'gaugemeter.js':
+            content = js_minify(content)
+    except:
+        print("WARN: Unable to minify")
 
     with open(dstfile, "w") as dst:
         dst.write("const char ")

@@ -7,12 +7,11 @@ board = esp12e
 framework = ${common.framework}
 lib_deps = ${common.lib_deps}
 build_flags =
-    -D HW_ROARFRED=1
     -D DEBUG_MODE=1
 extra_scripts =
     pre:scripts/addversion.py
     scripts/makeweb.py
-monitor_speed = 2400
+monitor_speed = 115200 ; If serial port is shared with HAN, use 2400 and parity E (or N for Norwegian Kamstrup)
 monitor_flags = 
     --parity
-    E
+    N

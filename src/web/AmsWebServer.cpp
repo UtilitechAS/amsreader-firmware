@@ -21,7 +21,7 @@
 #include "root/delete_html.h"
 #include "root/reset_html.h"
 
-#include "Base64.h"
+#include "base64.h"
 
 AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw) {
 	this->debugger = Debug;
@@ -97,15 +97,9 @@ bool AmsWebServer::checkSecurity(byte level) {
 
 		String providedPwd = server.header("Authorization");
 		providedPwd.replace("Basic ", "");
-		char inputString[providedPwd.length()];
-		providedPwd.toCharArray(inputString, providedPwd.length()+1);
 
-		int inputStringLength = sizeof(inputString);
-		int decodedLength = Base64.decodedLength(inputString, inputStringLength);
-		char decodedString[decodedLength];
-		Base64.decode(decodedString, inputString, inputStringLength);
-		printD("Received auth: %s", decodedString);
-		access = String(decodedString).equals(expectedAuth);
+		String expectedBase64 = base64::encode(expectedAuth, expectedAuth.length());
+		access = providedPwd.equals(expectedBase64);
 	}
 
 	if(!access) {

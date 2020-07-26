@@ -169,7 +169,7 @@ void AmsData::extractFromAidon(HanReader& hanReader, int listSize, bool substitu
                 l2voltage             = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL2)) / 10;
                 l3voltage             = ((double) hanReader.getInt(   (int)Aidon_List3PhaseIT::VoltageL3)) / 10;
                 if(substituteMissing) {
-                    l2current             = ((activeImportPower * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                    l2current         = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
                 }
                 break;
         }
@@ -252,7 +252,7 @@ void AmsData::extractFromKamstrup(HanReader& hanReader, int listSize, bool subst
             l2voltage             = hanReader.getInt(          (int)Kamstrup_List3Phase::VoltageL2);
             l3voltage             = hanReader.getInt(          (int)Kamstrup_List3Phase::VoltageL3);
             if(substituteMissing) {
-                l2current         = ((activeImportPower * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                l2current         = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
             }
             break;
     }

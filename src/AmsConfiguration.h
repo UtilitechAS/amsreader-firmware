@@ -25,6 +25,63 @@ struct ConfigObject {
 	uint8_t authSecurity;
 	char authUser[64];
 	char authPassword[64];
+	
+	uint8_t meterType;
+	uint8_t distributionSystem;
+	uint8_t mainFuse;
+	uint8_t productionCapacity;
+	uint8_t meterEncryptionKey[16];
+	uint8_t meterAuthenticationKey[16];
+	bool substituteMissing;
+	bool sendUnknown;
+
+	bool debugTelnet;
+	bool debugSerial;
+	uint8_t debugLevel;
+
+	uint8_t hanPin;
+	uint8_t apPin;
+	uint8_t ledPin;
+	bool ledInverted;
+	uint8_t ledPinRed;
+	uint8_t ledPinGreen;
+	uint8_t ledPinBlue;
+	bool ledRgbInverted;
+	uint8_t tempSensorPin;
+	uint8_t vccPin;
+	int16_t vccOffset;
+	uint16_t vccMultiplier;
+	uint8_t vccBootLimit;
+
+	uint16_t domoELIDX;
+	uint16_t domoVL1IDX;
+	uint16_t domoVL2IDX;
+	uint16_t domoVL3IDX;
+	uint16_t domoCL1IDX;
+};
+
+struct ConfigObject82 {
+	uint8_t boardType;
+	char wifiSsid[32];
+	char wifiPassword[64];
+    char wifiIp[15];
+    char wifiGw[15];
+    char wifiSubnet[15];
+	char wifiDns1[15];
+	char wifiDns2[15];
+	char wifiHostname[32];
+	char mqttHost[128];
+	uint16_t mqttPort;
+	char mqttClientId[32];
+	char mqttPublishTopic[64];
+	char mqttSubscribeTopic[64];
+	char mqttUser[64];
+	char mqttPassword[64];
+	uint8_t mqttPayloadFormat;
+	bool mqttSsl;
+	uint8_t authSecurity;
+	char authUser[64];
+	char authPassword[64];
 	uint8_t meterType;
 	uint8_t distributionSystem;
 	uint8_t mainFuse;
@@ -129,11 +186,18 @@ public:
 	void setMainFuse(uint8_t mainFuse);
 	uint8_t getProductionCapacity();
 	void setProductionCapacity(uint8_t productionCapacity);
+	uint8_t* getMeterEncryptionKey();
+	void setMeterEncryptionKey(uint8_t* meterEncryptionKey);
+	uint8_t* getMeterAuthenticationKey();
+	void setMeterAuthenticationKey(uint8_t* meterAuthenticationKey);
 	bool isSubstituteMissing();
 	void setSubstituteMissing(bool substituteMissing);
 	bool isSendUnknown();
 	void setSendUnknown(bool sendUnknown);
 	void clearMeter();
+
+	bool isMeterChanged();
+	void ackMeterChanged();
 
 	bool isDebugTelnet();
 	void setDebugTelnet(bool debugTelnet);
@@ -166,6 +230,8 @@ public:
 	void setTempSensorPin(uint8_t tempSensorPin);
 	uint8_t getVccPin();
 	void setVccPin(uint8_t vccPin);
+	double getVccOffset();
+	void setVccOffset(double vccOffset);
 	double getVccMultiplier();
 	void setVccMultiplier(double vccMultiplier);
 	double getVccBootLimit();
@@ -220,6 +286,8 @@ private:
 		0, // Distribution system
 		0, // Main fuse
 		0, // Production capacity
+		{}, // Encryption key
+		{}, // Authentication key
 		false, // Substitute
 		false, // Send unknown
 		false, // Debug telnet
@@ -235,6 +303,7 @@ private:
 		true, // Inverted
 		0xFF, // Temp sensor
 		0xFF, // Vcc
+		0, // Offset
 		100, // Multiplier
 		0, // Boot limit
 		//Domoticz
@@ -243,16 +312,16 @@ private:
 		0, // VL2IDX
 		0, // VL3IDX
 		0 // CL1IDX
-		// 786 bytes
+		// 822 bytes
 	};
-	bool wifiChanged, mqttChanged, domoChanged;
+	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged;
 
-	const int EEPROM_SIZE = 790; // Config size + 4 bytes for config version
-	const int EEPROM_CHECK_SUM = 82; // Used to check if config is stored. Change if structure changes
+	const int EEPROM_SIZE = 1024; // Config size + 4 bytes for config version
+	const int EEPROM_CHECK_SUM = 83; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 
-	bool loadConfig80(int address);
 	bool loadConfig81(int address);
+	bool loadConfig82(int address);
 
 	int readString(int pAddress, char* pString[]);
 	int readInt(int pAddress, int *pValue);

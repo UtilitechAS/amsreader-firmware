@@ -22,6 +22,7 @@ class HwTools {
 public:
     void setTempSensorPin(int tempSensorPin);
     void setVccPin(int vccPin);
+    void setVccOffset(double vccOffset);
     void setVccMultiplier(double vccMultiplier);
     double getVcc();
     double getTemperature();
@@ -38,6 +39,7 @@ private:
     uint8_t vccPin = -1;
     uint8_t ledPin = -1, ledPinRed = -1, ledPinGreen = -1, ledPinBlue = -1;
     bool ledInverted, ledRgbInverted;
+    double vccOffset = 0.0;
     double vccMultiplier = 1.0;
     bool tempSensorInit, hasTempSensor;
     OneWire *oneWire;

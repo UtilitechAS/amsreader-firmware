@@ -58,13 +58,21 @@ $(function() {
 
     // For config-meter
     $('.subtitute-dependent').on('change', function() {
-        console.log("test");
         if(($('#meterType').val() == 2 || $('#meterType').val() == 3) && $('#distributionSystem').val() == 1) {
             $('#substitute').show();
         } else {
             $('#substitute').hide();
         }
     });
+
+    $('#meterType').on('change', function() {
+        if($('#meterType').val() == 4) {
+            $('.encryption').show();
+        } else {
+            $('.encryption').hide();
+        }
+    });
+
     $('#meterType').trigger('change');
 
     // For config-wifi

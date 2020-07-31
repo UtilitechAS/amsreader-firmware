@@ -127,7 +127,7 @@ void AmsWebServer::indexHtml() {
 		for(int i = 0; i<255; i++) {
 			html.replace("${config.boardType" + String(i) + "}", config->getBoardType() == i ? "selected"  : "");
 		}
-		for(int i = 0; i<4; i++) {
+		for(int i = 0; i<5; i++) {
 			html.replace("${config.meterType" + String(i) + "}", config->getMeterType() == i ? "selected"  : "");
 		}
 		html.replace("${config.wifiSsid}", config->getWifiSsid());
@@ -218,7 +218,7 @@ void AmsWebServer::configMeterHtml() {
 	server.sendHeader("Pragma", "no-cache");
 
 	html.replace("${config.meterType}", String(config->getMainFuse()));
-	for(int i = 0; i<4; i++) {
+	for(int i = 0; i<5; i++) {
 		html.replace("${config.meterType" + String(i) + "}", config->getMeterType() == i ? "selected"  : "");
 	}
 	html.replace("${config.distributionSystem}", String(config->getDistributionSystem()));
@@ -230,6 +230,31 @@ void AmsWebServer::configMeterHtml() {
 		html.replace("${config.mainFuse" + String(i) + "}", config->getMainFuse() == i ? "selected"  : "");
 	}
 	html.replace("${config.productionCapacity}", String(config->getProductionCapacity()));
+
+	byte encryptionKey[16];
+	memcpy(encryptionKey, config->getMeterEncryptionKey(), 16);
+	String encryptionKeyHex = "0x";
+	for(int i = 0; i < sizeof(encryptionKey); i++) {
+		if(encryptionKey[i] < 0x10) {
+			encryptionKeyHex += '0';
+		}
+		encryptionKeyHex += String(encryptionKey[i], HEX);
+	}
+	encryptionKeyHex.toUpperCase();
+	html.replace("${config.meterEncryptionKey}", encryptionKeyHex);
+
+	byte authenticationKey[16];
+	memcpy(authenticationKey, config->getMeterAuthenticationKey(), 16);
+	String authenticationKeyHex = "0x";
+	for(int i = 0; i < sizeof(authenticationKey); i++) {
+		if(authenticationKey[i] < 0x10) {
+			authenticationKeyHex += '0';
+		}
+		authenticationKeyHex += String(authenticationKey[i], HEX);
+	}
+	authenticationKeyHex.toUpperCase();
+	html.replace("${config.meterAuthenticationKey}", authenticationKeyHex);
+
 	html.replace("${config.substituteMissing}", config->isSubstituteMissing() ? "checked" : "");
 	html.replace("${config.sendUnknown}", config->isSendUnknown() ? "checked" : "");
 
@@ -560,6 +585,7 @@ void AmsWebServer::handleSetup() {
 		config->setVccPin(0xFF);
 
 		config->setBoardType(server.arg("board").toInt());
+		config->setVccOffset(0.0);
 		config->setVccMultiplier(1.0);
 		config->setVccBootLimit(0);
 		switch(config->getBoardType()) {
@@ -665,6 +691,26 @@ void AmsWebServer::handleSave() {
 		config->setProductionCapacity(server.arg("productionCapacity").toInt());
 		config->setSubstituteMissing(server.hasArg("substituteMissing") && server.arg("substituteMissing") == "true");
 		config->setSendUnknown(server.hasArg("sendUnknown") && server.arg("sendUnknown") == "true");
+
+		String encryptionKeyHex = server.arg("meterEncryptionKey");
+		if(!encryptionKeyHex.isEmpty()) {
+			encryptionKeyHex.replace("0x", "");
+			uint8_t encryptionKey[16];
+			for(int i = 0; i < 32; i += 2) {
+				encryptionKey[i/2] = strtol(encryptionKeyHex.substring(i, i+2).c_str(), 0, 16);
+			}
+			config->setMeterEncryptionKey(encryptionKey);
+		}
+
+		String authenticationKeyHex = server.arg("meterAuthenticationKey");
+		if(!authenticationKeyHex.isEmpty()) {
+			authenticationKeyHex.replace("0x", "");
+			uint8_t authenticationKey[16];
+			for(int i = 0; i < 32; i += 2) {
+				authenticationKey[i/2] = strtol(authenticationKeyHex.substring(i, i+2).c_str(), 0, 16);
+			}
+			config->setMeterAuthenticationKey(authenticationKey);
+		}
 	}
 
 	if(server.hasArg("wifiConfig") && server.arg("wifiConfig") == "true") {
@@ -741,6 +787,7 @@ void AmsWebServer::handleSave() {
 		config->setApPin(server.hasArg("apPin") && !server.arg("apPin").isEmpty() ? server.arg("apPin").toInt() : 0xFF);
 		config->setTempSensorPin(server.hasArg("tempSensorPin") && !server.arg("tempSensorPin").isEmpty() ?server.arg("tempSensorPin").toInt() : 0xFF);
 		config->setVccPin(server.hasArg("vccPin") && !server.arg("vccPin").isEmpty() ? server.arg("vccPin").toInt() : 0xFF);
+		config->setVccOffset(server.hasArg("vccOffset") && !server.arg("vccOffset").isEmpty() ? server.arg("vccOffset").toDouble() : 0.0);
 		config->setVccMultiplier(server.hasArg("vccMultiplier") && !server.arg("vccMultiplier").isEmpty() ? server.arg("vccMultiplier").toDouble() : 1.0);
 		config->setVccBootLimit(server.hasArg("vccBootLimit") && !server.arg("vccBootLimit").isEmpty() ? server.arg("vccBootLimit").toDouble() : 0.0);
 
@@ -778,6 +825,7 @@ void AmsWebServer::handleSave() {
 			hw->setLedRgb(config->getLedPinRed(), config->getLedPinGreen(), config->getLedPinBlue(), config->isLedRgbInverted());
 			hw->setTempSensorPin(config->getTempSensorPin());
 			hw->setVccPin(config->getVccPin());
+			hw->setVccOffset(config->getVccOffset());
 			hw->setVccMultiplier(config->getVccMultiplier());
 		}
 	} else {
@@ -813,6 +861,7 @@ void AmsWebServer::configSystemHtml() {
 	html.replace("${config.tempSensorPin}", config->getTempSensorPin() == 0xFF ? "" : String(config->getTempSensorPin()));
 	html.replace("${config.vccPin}", config->getVccPin() == 0xFF ? "" : String(config->getVccPin()));
 
+	html.replace("${config.vccOffset}", config->getVccOffset() > 0 ? String(config->getVccOffset(), 2) : "");
 	html.replace("${config.vccMultiplier}", config->getVccMultiplier() > 0 ? String(config->getVccMultiplier(), 2) : "");
 	html.replace("${config.vccBootLimit}", config->getVccBootLimit() > 0.0 ? String(config->getVccBootLimit(), 1) : "");
 

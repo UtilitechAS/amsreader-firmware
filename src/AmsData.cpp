@@ -2,6 +2,7 @@
 #include "Kaifa.h"
 #include "Aidon.h"
 #include "Kamstrup.h"
+#include "Omnipower.h"
 
 AmsData::AmsData() {}
 
@@ -20,7 +21,9 @@ AmsData::AmsData(int meterType, bool substituteMissing, HanReader& hanReader) {
 		case METER_TYPE_KAMSTRUP:
 			extractFromKamstrup(hanReader, listSize, substituteMissing);
             break;
-
+        case METER_TYPE_OMNIPOWER:
+            extractFromOmnipower(hanReader, listSize);
+            break;
     }
 }
 
@@ -256,6 +259,31 @@ void AmsData::extractFromKamstrup(HanReader& hanReader, int listSize, bool subst
             }
             break;
     }
+}
+
+void AmsData::extractFromOmnipower(HanReader& hanReader, int listSize) {
+    switch(listSize) {
+        case (int)Omnipower::DLMS:
+            meterTimestamp        = hanReader.getTime(         (int)Omnipower_DLMS::MeterClock);
+            activeImportCounter   = ((double) hanReader.getInt((int)Omnipower_DLMS::CumulativeActiveImportEnergy)) / 100;
+            activeExportCounter   = ((double) hanReader.getInt((int)Omnipower_DLMS::CumulativeActiveExportEnergy)) / 100;
+            reactiveImportCounter = ((double) hanReader.getInt((int)Omnipower_DLMS::CumulativeReactiveImportEnergy)) / 100;
+            reactiveExportCounter = ((double) hanReader.getInt((int)Omnipower_DLMS::CumulativeReactiveExportEnergy)) / 100;
+            listId                = hanReader.getString(       (int)Omnipower_DLMS::ListVersionIdentifier);
+            activeImportPower     = hanReader.getInt(          (int)Omnipower_DLMS::ActiveImportPower);
+            reactiveImportPower   = hanReader.getInt(          (int)Omnipower_DLMS::ReactiveImportPower);
+            activeExportPower     = hanReader.getInt(          (int)Omnipower_DLMS::ActiveExportPower);
+            reactiveExportPower   = hanReader.getInt(          (int)Omnipower_DLMS::ReactiveExportPower);
+            l1current             = ((double) hanReader.getInt((int)Omnipower_DLMS::CurrentL1)) / 100;
+            l2current             = ((double) hanReader.getInt((int)Omnipower_DLMS::CurrentL2)) / 100;
+            l3current             = ((double) hanReader.getInt((int)Omnipower_DLMS::CurrentL3)) / 100;
+            l1voltage             = hanReader.getInt(          (int)Omnipower_DLMS::VoltageL1);
+            l2voltage             = hanReader.getInt(          (int)Omnipower_DLMS::VoltageL2);
+            l3voltage             = hanReader.getInt(          (int)Omnipower_DLMS::VoltageL3);
+            listType = 3;
+            break;
+    }
+    threePhase = l3voltage != 0;
 }
 
 void AmsData::apply(AmsData& other) {

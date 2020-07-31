@@ -1,4 +1,5 @@
 #include "HanReader.h"
+#include "mbedtls/gcm.h"
 
 HanReader::HanReader() {
 	// Central European Time (Frankfurt, Paris)
@@ -16,10 +17,18 @@ void HanReader::setup(Stream *hanPort, RemoteDebug *debug)
 	if (debug) debug->println("MBUS serial setup complete");
 }
 
-void HanReader::setup(Stream *hanPort)
-{
+void HanReader::setup(Stream *hanPort){
 	setup(hanPort, NULL);
 }
+
+void HanReader::setEncryptionKey(uint8_t* encryption_key) {
+	memcpy(this->encryption_key, encryption_key, 16);
+}
+
+void HanReader::setAuthenticationKey(uint8_t* authentication_key) {
+	memcpy(this->authentication_key, authentication_key, 16);
+}
+
 
 bool HanReader::read(byte data) {
 	if (reader.Read(data)) {
@@ -40,14 +49,31 @@ bool HanReader::read(byte data) {
 			return false;
 		}
 		else if (
-			buffer[0] != 0xE6 || 
-			buffer[1] != 0xE7 ||
-			buffer[2] != 0x00 ||
-			buffer[3] != 0x0F
+			buffer[0] != 0xE6 
+			|| buffer[1] != 0xE7
+			|| buffer[2] != 0x00
+			//|| buffer[3] != 0x0F
 		)
 		{
-			printW("Invalid HAN data: Start should be E6 E7 00 0F");
+			printW("Invalid HAN data: Start should be E6 E7 00");
 			return false;
+		}
+
+		// Have not found any documentation supporting this, but 0x0F for all norwegian meters.
+		// Danish meters with encryption has 0xDB, so lets assume this has something to do with that.
+		switch(buffer[3]) {
+			case 0x0F:
+				dataHeader = 8;
+				break;
+			case 0xDB:
+				printI("Decrypting frame");
+				if(!decryptFrame()) return false;
+				if (debugger->isActive(RemoteDebug::DEBUG)) {
+					printD("Data after decryption:");
+					debugPrint(buffer, 0, bytesRead);
+				}
+				dataHeader = 26;
+				break;
 		}
 
 		listSize = getInt(0, buffer, 0, bytesRead);
@@ -56,6 +82,62 @@ bool HanReader::read(byte data) {
 	}
 
 	return false;
+}
+
+const size_t headersize = 3;
+const size_t footersize = 0;
+
+mbedtls_gcm_context m_ctx;
+
+bool HanReader::decryptFrame() {
+	uint8_t system_title[8];
+    memcpy(system_title, buffer + headersize + 2, 8);
+	if (debugger->isActive(RemoteDebug::DEBUG)) {
+		printD("System title:");
+		debugPrint(system_title, 0, 8);
+	}
+
+	uint8_t initialization_vector[12];
+    memcpy(initialization_vector, system_title, 8);
+    memcpy(initialization_vector + 8, buffer + headersize + 14, 4);
+	if (debugger->isActive(RemoteDebug::DEBUG)) {
+		printD("Initialization vector:");
+		debugPrint(initialization_vector, 0, 12);
+	}
+
+    uint8_t additional_authenticated_data[17];
+    memcpy(additional_authenticated_data, buffer + headersize + 13, 1);
+    memcpy(additional_authenticated_data + 1, authentication_key, 16);
+	if (debugger->isActive(RemoteDebug::DEBUG)) {
+		printD("Additional authenticated data:");
+		debugPrint(additional_authenticated_data, 0, 12);
+	}
+
+    uint8_t authentication_tag[12];
+    memcpy(authentication_tag, buffer + headersize + bytesRead - headersize - footersize - 12, 12);
+	if (debugger->isActive(RemoteDebug::DEBUG)) {
+		printD("Authentication tag:");
+		debugPrint(authentication_tag, 0, 12);
+	}
+
+    uint8_t cipher_text[bytesRead - headersize - footersize - 18 - 12];
+    memcpy(cipher_text, buffer + headersize + 18, bytesRead - headersize - footersize - 12 - 18);
+
+	mbedtls_gcm_init(&m_ctx);
+	int success = mbedtls_gcm_setkey(&m_ctx, MBEDTLS_CIPHER_ID_AES, encryption_key, sizeof(encryption_key)*8);
+	if (0 != success ) {
+		printE("Setkey failed: " + String(success));
+		return false;
+	}
+	success = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text), initialization_vector, sizeof(initialization_vector),
+        additional_authenticated_data, sizeof(additional_authenticated_data), authentication_tag, sizeof(authentication_tag),
+        cipher_text, buffer + headersize + 18);
+	if (0 != success) {
+		printE("authdecrypt failed: " + String(success));
+		return false;
+	}
+	mbedtls_gcm_free(&m_ctx);
+	return true;
 }
 
 void HanReader::debugPrint(byte *buffer, int start, int length) {

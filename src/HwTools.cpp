@@ -25,6 +25,10 @@ void HwTools::setVccPin(int vccPin) {
     }
 }
 
+void HwTools::setVccOffset(double vccOffset) {
+    this->vccOffset = vccOffset;
+}
+
 void HwTools::setVccMultiplier(double vccMultiplier) {
     this->vccMultiplier = vccMultiplier;
 }
@@ -43,7 +47,7 @@ double HwTools::getVcc() {
         #endif
     }
 
-    return volts > 0.0 ? volts * vccMultiplier : 0.0;
+    return vccOffset + (volts > 0.0 ? volts * vccMultiplier : 0.0);
 }
 
 double HwTools::getTemperature() {

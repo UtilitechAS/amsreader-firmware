@@ -50,6 +50,7 @@ ADC_MODE(ADC_VCC);
 #include "Aidon.h"
 #include "Kaifa.h"
 #include "Kamstrup.h"
+#include "Omnipower.h"
 
 #include "Uptime.h"
 
@@ -74,7 +75,6 @@ MQTTClient mqtt(512);
 HanReader hanReader;
 
 Stream *hanSerial;
-int hanSerialPin = 0;
 
 void setup() {
 	if(config.hasConfig()) {
@@ -147,10 +147,14 @@ void setup() {
 	hw.ledBlink(LED_BLUE, 1);
 
 	if(config.getHanPin() == 3) {
-		if(config.getMeterType() == 3) {
-			Serial.begin(2400, SERIAL_8N1);
-		} else {
-			Serial.begin(2400, SERIAL_8E1);
+		switch(config.getMeterType()) {
+			case METER_TYPE_KAMSTRUP:
+			case METER_TYPE_OMNIPOWER:
+				Serial.begin(2400, SERIAL_8N1);
+				break;
+			default:
+				Serial.begin(2400, SERIAL_8E1);
+				break;
 		}
 	} else {
 		Serial.begin(115200);
@@ -377,8 +381,9 @@ void loop() {
 		}
 	}
 
-	if(hanSerialPin != config.getHanPin()) {
+	if(config.isMeterChanged()) {
 		setupHanPort(config.getHanPin(), config.getMeterType());
+		config.ackMeterChanged();
 	}
 
 	if(now - lastRead > 100) {
@@ -390,8 +395,8 @@ void loop() {
 	delay(1); // Needed for auto modem sleep
 }
 
-void setupHanPort(int pin, int meterType) {
-	debugI("Setting up HAN on pin %d for meter type %d", pin, meterType);
+void setupHanPort(int pin, int newMeterType) {
+	debugI("Setting up HAN on pin %d for meter type %d", pin, newMeterType);
 
 	HardwareSerial *hwSerial = NULL;
 	if(pin == 3) {
@@ -414,33 +419,41 @@ void setupHanPort(int pin, int meterType) {
 	if(hwSerial != NULL) {
 		debugD("Hardware serial");
 		Serial.flush();
-		if(meterType == 3) {
-			hwSerial->begin(2400, SERIAL_8N1);
-		} else {
-			hwSerial->begin(2400, SERIAL_8E1);
+		switch(newMeterType) {
+			case METER_TYPE_KAMSTRUP:
+			case METER_TYPE_OMNIPOWER:
+				hwSerial->begin(2400, SERIAL_8N1);
+				break;
+			default:
+				hwSerial->begin(2400, SERIAL_8E1);
+				break;
 		}
-		hanSerialPin = pin;
 		hanSerial = hwSerial;
 	} else {
 		debugD("Software serial");
 		Serial.flush();
 		SoftwareSerial *swSerial = new SoftwareSerial(pin);
 
-		if(meterType == 3) {
-			swSerial->begin(2400, SWSERIAL_8N1);
-		} else {
-			swSerial->begin(2400, SWSERIAL_8E1);
+		switch(newMeterType) {
+			case METER_TYPE_KAMSTRUP:
+			case METER_TYPE_OMNIPOWER:
+				swSerial->begin(2400, SWSERIAL_8N1);
+				break;
+			default:
+				swSerial->begin(2400, SWSERIAL_8E1);
+				break;
 		}
-		hanSerialPin = pin;
 		hanSerial = swSerial;
 
 		Serial.begin(115200);
 	}
 
 	hanReader.setup(hanSerial, &Debug);
+	hanReader.setEncryptionKey(config.getMeterEncryptionKey());
+	hanReader.setAuthenticationKey(config.getMeterAuthenticationKey());
 
 	// Compensate for the known Kaifa bug
-	hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
+	hanReader.compensateFor09HeaderBug = (newMeterType == 1);
 
 	// Empty buffer before starting
 	while (hanSerial->available() > 0) {
@@ -770,33 +783,41 @@ void readHanPort() {
 			}
 		} else {
 			// Auto detect meter if not set
-			for(int i = 1; i <= 3; i++) {
+			for(int i = 1; i <= 4; i++) {
 				String list;
 				switch(i) {
-					case 1:
+					case METER_TYPE_KAIFA:
 						list = hanReader.getString((int) Kaifa_List1Phase::ListVersionIdentifier);
 						break;
-					case 2:
+					case METER_TYPE_AIDON:
 						list = hanReader.getString((int) Aidon_List1Phase::ListVersionIdentifier);
 						break;
-					case 3:
+					case METER_TYPE_KAMSTRUP:
 						list = hanReader.getString((int) Kamstrup_List1Phase::ListVersionIdentifier);
+						break;
+					case METER_TYPE_OMNIPOWER:
+						list = hanReader.getString((int) Omnipower_DLMS::ListVersionIdentifier);
 						break;
 				}
 				if(!list.isEmpty()) {
 					list.toLowerCase();
 					if(list.startsWith("kfm")) {
-						config.setMeterType(1);
+						config.setMeterType(METER_TYPE_KAIFA);
 						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kaifa meter");
-						break;
 					} else if(list.startsWith("aidon")) {
-						config.setMeterType(2);
+						config.setMeterType(METER_TYPE_AIDON);
 						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Aidon meter");
-						break;
 					} else if(list.startsWith("kamstrup")) {
-						config.setMeterType(3);
-						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kamstrup meter");
-						break;
+						switch(i) {
+							case METER_TYPE_KAMSTRUP:
+								config.setMeterType(METER_TYPE_KAMSTRUP);
+								if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kamstrup meter");
+								break;
+							case METER_TYPE_OMNIPOWER:
+								config.setMeterType(METER_TYPE_OMNIPOWER);
+								if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kamstrup meter");
+								break;
+						}
 					}
 				}
 			}

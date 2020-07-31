@@ -242,6 +242,7 @@ uint8_t AmsConfiguration::getMeterType() {
 }
 
 void AmsConfiguration::setMeterType(uint8_t meterType) {
+	meterChanged |= config.meterType != meterType;
 	config.meterType = meterType;
 }
 
@@ -269,6 +270,24 @@ void AmsConfiguration::setProductionCapacity(uint8_t productionCapacity) {
 	config.productionCapacity = productionCapacity;
 }
 
+uint8_t* AmsConfiguration::getMeterEncryptionKey() {
+	return config.meterEncryptionKey;
+}
+
+void AmsConfiguration::setMeterEncryptionKey(uint8_t* meterEncryptionKey) {
+	meterChanged |= strcmp((char*) config.meterEncryptionKey, (char*) meterEncryptionKey);
+	memcpy(config.meterEncryptionKey, meterEncryptionKey, 16);
+}
+
+uint8_t* AmsConfiguration::getMeterAuthenticationKey() {
+	return config.meterAuthenticationKey;
+}
+
+void AmsConfiguration::setMeterAuthenticationKey(uint8_t* meterAuthenticationKey) {
+	meterChanged |= strcmp((char*) config.meterAuthenticationKey, (char*) meterAuthenticationKey);
+	memcpy(config.meterAuthenticationKey, meterAuthenticationKey, 16);
+}
+
 bool AmsConfiguration::isSubstituteMissing() {
 	return config.substituteMissing;
 }
@@ -292,6 +311,14 @@ void AmsConfiguration::clearMeter() {
 	setProductionCapacity(0);
 	setSubstituteMissing(false);
 	setSendUnknown(false);
+}
+
+bool AmsConfiguration::isMeterChanged() {
+	return meterChanged;
+}
+
+void AmsConfiguration::ackMeterChanged() {
+	meterChanged = false;
 }
 
 
@@ -388,6 +415,7 @@ uint8_t AmsConfiguration::getHanPin() {
 
 void AmsConfiguration::setHanPin(uint8_t hanPin) {
 	if(!pinUsed(hanPin)) {
+		meterChanged |= config.hanPin != hanPin;
 		config.hanPin = hanPin;
 	}
 }
@@ -482,8 +510,16 @@ void AmsConfiguration::setVccPin(uint8_t vccPin) {
 	}
 }
 
+double AmsConfiguration::getVccOffset() {
+	return config.vccOffset > 0 ? config.vccOffset / 100.0 : 0;
+}
+
+void AmsConfiguration::setVccOffset(double vccOffset) {
+	config.vccOffset = vccOffset == 0 ? 0 : max(-350, min((int)(vccOffset * 100.0), 350));
+}
+
 double AmsConfiguration::getVccMultiplier() {
-	return config.vccMultiplier / 1000.0;
+	return config.vccMultiplier > 0 ? config.vccMultiplier / 1000.0 : 0;
 }
 
 void AmsConfiguration::setVccMultiplier(double vccMultiplier) {
@@ -491,7 +527,7 @@ void AmsConfiguration::setVccMultiplier(double vccMultiplier) {
 }
 
 double AmsConfiguration::getVccBootLimit() {
-	return config.vccBootLimit / 10.0;
+	return config.vccBootLimit > 0 ? config.vccBootLimit / 10.0 : 0;
 }
 
 void AmsConfiguration::setVccBootLimit(double vccBootLimit) {
@@ -532,12 +568,9 @@ bool AmsConfiguration::hasConfig() {
 		EEPROM.end();
 	}
 	switch(configVersion) {
-		case 71:
-		case 72:
-		case 75:
-		case 80:
 		case 81:
 		case 82:
+		case 83:
 			return true;
 		default:
 			configVersion = 0;
@@ -557,13 +590,13 @@ bool AmsConfiguration::load() {
 	int cs = EEPROM.read(address);
 	address++;
 	switch(cs) {
-		case 80: // v1.1
-			success = loadConfig80(address);
-			break;
 		case 81: // v1.2
 			success = loadConfig81(address);
 			break;
 		case 82: // v1.3
+			success = loadConfig82(address);
+			break;
+		case 83: // v1.4
 			EEPROM.get(address, config);
 			success = true;
 			break;
@@ -572,85 +605,65 @@ bool AmsConfiguration::load() {
 
 	if(config.apPin >= 0)
 		pinMode(config.apPin, INPUT_PULLUP);
+	meterChanged = true;
 
 	return success;
 }
 
-bool AmsConfiguration::loadConfig80(int address) {
-	char* temp;
+bool AmsConfiguration::loadConfig82(int address) {
+	ConfigObject82 config82;
+	EEPROM.get(address, config82);
+	config.boardType = config82.boardType;
+	strcpy(config.wifiSsid, config82.wifiSsid);
+	strcpy(config.wifiPassword, config82.wifiPassword);
+    strcpy(config.wifiIp, config82.wifiIp);
+    strcpy(config.wifiGw, config82.wifiGw);
+    strcpy(config.wifiSubnet, config82.wifiSubnet);
+	strcpy(config.wifiDns1, config82.wifiDns1);
+	strcpy(config.wifiDns2, config82.wifiDns2);
+	strcpy(config.wifiHostname, config82.wifiHostname);
+	strcpy(config.mqttHost, config82.mqttHost);
+	config.mqttPort = config82.mqttPort;
+	strcpy(config.mqttClientId, config82.mqttClientId);
+	strcpy(config.mqttPublishTopic, config82.mqttPublishTopic);
+	strcpy(config.mqttSubscribeTopic, config82.mqttSubscribeTopic);
+	strcpy(config.mqttUser, config82.mqttUser);
+	strcpy(config.mqttPassword, config82.mqttPassword);
+	config.mqttPayloadFormat = config82.mqttPayloadFormat;
+	config.mqttSsl = config82.mqttSsl;
+	config.authSecurity = config82.authSecurity;
+	strcpy(config.authUser, config82.authUser);
+	strcpy(config.authPassword, config82.authPassword);
+	
+	config.meterType = config82.meterType;
+	config.distributionSystem = config82.distributionSystem;
+	config.mainFuse = config82.mainFuse;
+	config.productionCapacity = config82.productionCapacity;
+	config.substituteMissing = config82.substituteMissing;
+	config.sendUnknown = config82.sendUnknown;
 
-	address += readString(address, &temp);
-	setWifiSsid(temp);
-	address += readString(address, &temp);
-	setWifiPassword(temp);
-	address += readString(address, &temp);
-	setWifiIp(temp);
-	address += readString(address, &temp);
-	setWifiGw(temp);
-	address += readString(address, &temp);
-	setWifiSubnet(temp);
+	config.debugTelnet = config82.debugTelnet;
+	config.debugSerial = config82.debugSerial;
+	config.debugLevel = config82.debugLevel;
 
-	bool mqtt = false;
-	address += readBool(address, &mqtt);
-	if(mqtt) {
-		address += readString(address, &temp);
-		setMqttHost(temp);
-		int port;
-		address += readInt(address, &port);
-		setMqttPort(port);
-		address += readString(address, &temp);
-		setMqttClientId(temp);
-		address += readString(address, &temp);
-		setMqttPublishTopic(temp);
-		address += readString(address, &temp);
-		setMqttSubscribeTopic(temp);
+	config.hanPin = config82.hanPin;
+	config.apPin = config82.apPin;
+	config.ledPin = config82.ledPin;
+	config.ledInverted = config82.ledInverted;
+	config.ledPinRed = config82.ledPinRed;
+	config.ledPinGreen = config82.ledPinGreen;
+	config.ledPinBlue = config82.ledPinBlue;
+	config.ledRgbInverted = config82.ledRgbInverted;
+	config.tempSensorPin = config82.tempSensorPin;
+	config.vccPin = config82.vccPin;
+	config.vccMultiplier = config82.vccMultiplier;
+	config.vccBootLimit = config82.vccBootLimit;
 
-		bool secure = false;
-		address += readBool(address, &secure);
-		if (secure)
-		{
-			address += readString(address, &temp);
-			setMqttUser(temp);
-			address += readString(address, &temp);
-			setMqttPassword(temp);
-		} else {
-			setMqttUser("");
-			setMqttPassword("");
-		}
-	} else {
-		clearMqtt();
-	}
-	setMqttPayloadFormat(0);
-
-	byte b;
-	address += readByte(address, &b);
-	setAuthSecurity(b);
-	if (b > 0) {
-		address += readString(address, &temp);
-		setAuthUser(temp);
-		address += readString(address, &temp);
-		setAuthPassword(temp);
-	} else {
-		clearAuth();
-	}
-
-	int i;
-	address += readInt(address, &i);
-	setMeterType(i);
-	address += readInt(address, &i);
-	setDistributionSystem(i);
-	address += readInt(address, &i);
-	setMainFuse(i);
-	address += readInt(address, &i);
-	setProductionCapacity(i);
-
-	ackWifiChange();
-
-	setDebugLevel(3); // 3=Info
-	setDebugTelnet(false);
-	setDebugSerial(false);
-
-	return true;
+	config.domoELIDX = config82.domoELIDX;
+	config.domoVL1IDX = config82.domoVL1IDX;
+	config.domoVL2IDX = config82.domoVL2IDX;
+	config.domoVL3IDX = config82.domoVL3IDX;
+	config.domoCL1IDX = config82.domoCL1IDX;
 }
 
 bool AmsConfiguration::loadConfig81(int address) {
@@ -852,13 +865,13 @@ void AmsConfiguration::print(Print* debugger)
 	debugger->printf("Vcc multiplier:       %f\r\n", this->getVccMultiplier());
 	debugger->printf("Vcc boot limit:       %f\r\n", this->getVccBootLimit());
 
-	//if(this->getDomoELIDX() > 0) {
-	debugger->printf("Domoticz ELIDX:       %i\r\n", this->getDomoELIDX());
-	debugger->printf("Domoticz VL1IDX:      %i\r\n", this->getDomoVL1IDX());
-	debugger->printf("Domoticz VL2IDX:      %i\r\n", this->getDomoVL2IDX());
-	debugger->printf("Domoticz VL3IDX:      %i\r\n", this->getDomoVL3IDX());
-	debugger->printf("Domoticz CL1IDX:      %i\r\n", this->getDomoCL1IDX());
-	//}
+	if(this->getDomoELIDX() > 0) {
+		debugger->printf("Domoticz ELIDX:       %i\r\n", this->getDomoELIDX());
+		debugger->printf("Domoticz VL1IDX:      %i\r\n", this->getDomoVL1IDX());
+		debugger->printf("Domoticz VL2IDX:      %i\r\n", this->getDomoVL2IDX());
+		debugger->printf("Domoticz VL3IDX:      %i\r\n", this->getDomoVL3IDX());
+		debugger->printf("Domoticz CL1IDX:      %i\r\n", this->getDomoCL1IDX());
+	}
 
 	debugger->println("-----------------------------------------------");
 }

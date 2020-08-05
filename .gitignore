@@ -11,3 +11,4 @@ platformio-user.ini
 /src/web/root
 /src/AmsToMqttBridge.ino.cpp
 /test
+/web/test.html

@@ -58,6 +58,17 @@ struct ConfigObject {
 	uint16_t domoVL2IDX;
 	uint16_t domoVL3IDX;
 	uint16_t domoCL1IDX;
+
+	bool mDnsEnable;
+	bool ntpEnable;
+	bool ntpDhcp;
+	int16_t ntpOffset;
+	int16_t ntpSummerOffset;
+	char ntpServer[64];
+
+	uint8_t tempAnalogSensorPin;
+	int8_t tempSensorInternal; // -128 = disabled, -1 = analog, 0-127 = digital sensor index
+	uint8_t tempSensorCount;
 };
 
 struct ConfigObject82 {
@@ -228,6 +239,8 @@ public:
 
 	uint8_t getTempSensorPin();
 	void setTempSensorPin(uint8_t tempSensorPin);
+	uint8_t getTempAnalogSensorPin();
+	void setTempAnalogSensorPin(uint8_t tempSensorPin);
 	uint8_t getVccPin();
 	void setVccPin(uint8_t vccPin);
 	double getVccOffset();
@@ -253,6 +266,24 @@ public:
 
 	bool isDomoChanged();
 	void ackDomoChange();
+
+	bool isMdnsEnable();
+	void setMdnsEnable(bool mdnsEnable);
+	
+	bool isNtpEnable();
+	void setNtpEnable(bool ntpEnable);
+	bool isNtpDhcp();
+	void setNtpDhcp(bool ntpDhcp);
+	int32_t getNtpOffset();
+	void setNtpOffset(uint32_t ntpOffset);
+	int32_t getNtpSummerOffset();
+	void setNtpSummerOffset(uint32_t ntpSummerOffset);
+	char* getNtpServer();
+	void setNtpServer(const char* ntpServer);
+	void clearNtp();
+
+	bool isNtpChanged();
+	void ackNtpChange();
 
 	void clear();
 
@@ -311,12 +342,21 @@ private:
 		0, // VL1IDX
 		0, // VL2IDX
 		0, // VL3IDX
-		0 // CL1IDX
-		// 822 bytes
+		0, // CL1IDX
+		true, // mDNS
+		true, // NTP
+		true, // NTP DHCP
+		360, // Timezone (*10)
+		360, // Summertime offset (*10)
+		"pool.ntp.org", // NTP server
+		0xFF, // Analog temp sensor
+		0xFF, // Internal temp sensor
+		0, // Temp sensor count
+		// 900 bytes
 	};
-	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged;
+	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged;
 
-	const int EEPROM_SIZE = 1024; // Config size + 4 bytes for config version
+	const int EEPROM_SIZE = 904; // Config size + 4 bytes for config version
 	const int EEPROM_CHECK_SUM = 83; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 

@@ -54,6 +54,9 @@
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
                 <li class="nav-item">
+                    <a id="config-temp-link" class="nav-link" href="/temperature">Temp<span class="d-none d-sm-inline">erature</span></a>
+                </li>
+                <li class="nav-item">
                     <a id="config-meter-link" class="nav-link" href="/config-meter">Meter</a>
                 </li>
                 <li class="nav-item">
@@ -63,10 +66,21 @@
                     <a id="config-mqtt-link" class="nav-link" href="/config-mqtt">MQTT</a>
                 </li>
                 <li class="nav-item">
-                    <a id="config-web-link" class="nav-link" href="/config-web">Web</a>
-                </li>
-                <li class="nav-item">
-                    <a id="config-system-link" class="nav-link" href="/config-system">System</a>
+                    <div class="dropdown">
+                        <a class="dropdown-toggle nav-link" href="#" role="button" id="config-system-link" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                          System
+                        </a>
+                      
+                        <div class="dropdown-menu" aria-labelledby="config-system-link">
+                            <a class="dropdown-item" href="/config-web">Web</a>
+                            <a class="dropdown-item" href="/ntp">NTP</a>
+                            <a class="dropdown-item" href="/gpio">GPIO</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="/debugging">Debugging</a>
+                            <a class="dropdown-item" href="/firmware">Firmware</a>
+                            <a class="dropdown-item text-danger" href="/reset">Factory reset</a>
+                        </div>
+                    </div>
                 </li>
             </ul>
         </div>

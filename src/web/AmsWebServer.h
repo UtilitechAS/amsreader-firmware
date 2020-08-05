@@ -65,6 +65,9 @@ private:
 	void configMqttHtml();
 	void configWebHtml();
 	void configDomoticzHtml();
+	void configNtpHtml();
+	void configGpioHtml();
+	void configDebugHtml();
 	void bootCss();
 	void gaugemeterJs();
 	void githubSvg();
@@ -73,7 +76,6 @@ private:
 	void handleSetup();
 	void handleSave();
 
-	void configSystemHtml();
 	String getSerialSelectOptions(int selected);
 	void firmwareHtml();
 	void firmwareUpload();

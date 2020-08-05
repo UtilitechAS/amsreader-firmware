@@ -99,6 +99,13 @@ $(function() {
         $(this).next('.custom-file-label').html(fileName);
     })
 
+    // For NTP
+    $('#ntpEnable').on('change', function() {
+        var inputs = $('.ntp-config');
+        inputs.prop('disabled', !$(this).is(':checked'));
+    });
+    $('#ntpEnable').trigger('change');
+
     switch(window.location.pathname) {
         case '/config-meter':
             $('#config-meter-link').addClass('active');
@@ -114,9 +121,9 @@ $(function() {
             $('#config-mqtt-link').addClass('active');
             break;
         case '/config-web':
-            $('#config-web-link').addClass('active');
-            break;
-        case '/config-system':
+        case '/ntp':
+        case '/gpio':
+        case '/debugging':
         case '/firmware':
         case '/reset':
             $('#config-system-link').addClass('active');

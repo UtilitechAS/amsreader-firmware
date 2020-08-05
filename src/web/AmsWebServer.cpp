@@ -12,7 +12,9 @@
 #include "root/configmqtt_html.h"
 #include "root/configweb_html.h"
 #include "root/configdomoticz_html.h"
-#include "root/configsystem_html.h"
+#include "root/ntp_html.h"
+#include "root/gpio_html.h"
+#include "root/debugging_html.h"
 #include "root/restartwait_html.h"
 #include "root/boot_css.h"
 #include "root/gaugemeter_js.h"
@@ -47,7 +49,10 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 
 	server.on("/save", HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
 
-	server.on("/config-system", HTTP_GET, std::bind(&AmsWebServer::configSystemHtml, this));
+	server.on("/ntp", HTTP_GET, std::bind(&AmsWebServer::configNtpHtml, this));
+	server.on("/gpio", HTTP_GET, std::bind(&AmsWebServer::configGpioHtml, this));
+	server.on("/debugging", HTTP_GET, std::bind(&AmsWebServer::configDebugHtml, this));
+
 	server.on("/firmware", HTTP_GET, std::bind(&AmsWebServer::firmwareHtml, this));
 	server.on("/firmware", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::firmwareUpload, this));
 	server.on("/upgrade", HTTP_GET, std::bind(&AmsWebServer::firmwareDownload, this));
@@ -767,7 +772,7 @@ void AmsWebServer::handleSave() {
 		}
 	}
 
-	if(server.hasArg("sysConfig") && server.arg("sysConfig") == "true") {
+	if(server.hasArg("gpioConfig") && server.arg("gpioConfig") == "true") {
 		// Unset all pins to avoid conflicts if GPIO have been swapped between pins
 		config->setLedPin(0xFF);
 		config->setLedPinRed(0xFF);
@@ -775,6 +780,7 @@ void AmsWebServer::handleSave() {
 		config->setLedPinBlue(0xFF);
 		config->setApPin(0xFF);
 		config->setTempSensorPin(0xFF);
+		config->setTempAnalogSensorPin(0xFF);
 		config->setVccPin(0xFF);
 
 		config->setHanPin(server.hasArg("hanPin") && !server.arg("hanPin").isEmpty() ? server.arg("hanPin").toInt() : 3);
@@ -786,11 +792,14 @@ void AmsWebServer::handleSave() {
 		config->setLedRgbInverted(server.hasArg("ledRgbInverted") && server.arg("ledRgbInverted") == "true");
 		config->setApPin(server.hasArg("apPin") && !server.arg("apPin").isEmpty() ? server.arg("apPin").toInt() : 0xFF);
 		config->setTempSensorPin(server.hasArg("tempSensorPin") && !server.arg("tempSensorPin").isEmpty() ?server.arg("tempSensorPin").toInt() : 0xFF);
+		config->setTempAnalogSensorPin(server.hasArg("tempAnalogSensorPin") && !server.arg("tempAnalogSensorPin").isEmpty() ?server.arg("tempAnalogSensorPin").toInt() : 0xFF);
 		config->setVccPin(server.hasArg("vccPin") && !server.arg("vccPin").isEmpty() ? server.arg("vccPin").toInt() : 0xFF);
 		config->setVccOffset(server.hasArg("vccOffset") && !server.arg("vccOffset").isEmpty() ? server.arg("vccOffset").toDouble() : 0.0);
 		config->setVccMultiplier(server.hasArg("vccMultiplier") && !server.arg("vccMultiplier").isEmpty() ? server.arg("vccMultiplier").toDouble() : 1.0);
 		config->setVccBootLimit(server.hasArg("vccBootLimit") && !server.arg("vccBootLimit").isEmpty() ? server.arg("vccBootLimit").toDouble() : 0.0);
+	}
 
+	if(server.hasArg("debugConfig") && server.arg("debugConfig") == "true") {
 		config->setDebugTelnet(server.hasArg("debugTelnet") && server.arg("debugTelnet") == "true");
 		config->setDebugSerial(server.hasArg("debugSerial") && server.arg("debugSerial") == "true");
 		config->setDebugLevel(server.arg("debugLevel").toInt());
@@ -806,6 +815,24 @@ void AmsWebServer::handleSave() {
 		if(!config->isDebugTelnet()) {
 			debugger->stop();
 		}
+	}
+
+	if(server.hasArg("ntpConfig") && server.arg("ntpConfig") == "true") {
+		config->setNtpEnable(server.hasArg("ntpEnable") && server.arg("ntpEnable") == "true");
+		config->setNtpDhcp(server.hasArg("ntpDhcp") && server.arg("ntpDhcp") == "true");
+		if(server.hasArg("ntpOffset") && !server.arg("ntpOffset").isEmpty()) {
+			int offset = server.arg("ntpOffset").toInt();
+			config->setNtpOffset(offset);
+			if(server.hasArg("ntpSummerOffset") && !server.arg("ntpSummerOffset").isEmpty()) {
+				int summerOffset = server.arg("ntpSummerOffset").toInt();
+				config->setNtpSummerOffset(summerOffset);
+			} else {
+				config->setNtpSummerOffset(0);
+			}
+		} else {
+			config->setNtpOffset(0);
+		}
+		config->setNtpServer(server.arg("ntpServer").c_str());
 	}
 
 	printI("Saving configuration now...");
@@ -835,13 +862,43 @@ void AmsWebServer::handleSave() {
 	}
 }
 
-void AmsWebServer::configSystemHtml() {
-	printD("Serving /config-system.html over http...");
+void AmsWebServer::configNtpHtml() {
+	printD("Serving /ntp.html over http...");
 
 	if(!checkSecurity(1))
 		return;
 
-	String html = String((const __FlashStringHelper*) CONFIGSYSTEM_HTML);
+	String html = String((const __FlashStringHelper*) NTP_HTML);
+
+	html.replace("${config.ntpEnable}", config->isNtpEnable() ? "checked" : "");
+
+	for(int i = (3600*-13); i<(3600*15); i+=3600) {
+		html.replace("${config.ntpOffset" + String(i) + "}", config->getNtpOffset() == i ? "selected"  : "");
+	}
+
+	for(int i = 0; i<(3600*3); i+=3600) {
+		html.replace("${config.ntpSummerOffset" + String(i) + "}", config->getNtpSummerOffset() == i ? "selected"  : "");
+	}
+
+	html.replace("${config.ntpServer}", config->getNtpServer());
+	html.replace("${config.ntpDhcp}", config->isNtpDhcp() ? "checked" : "");
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
+}
+
+void AmsWebServer::configGpioHtml() {
+	printD("Serving /gpio.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	String html = String((const __FlashStringHelper*) GPIO_HTML);
 
 	#if defined(ESP32)
 		html.replace("${gpio.max}", "39");
@@ -864,6 +921,23 @@ void AmsWebServer::configSystemHtml() {
 	html.replace("${config.vccOffset}", config->getVccOffset() > 0 ? String(config->getVccOffset(), 2) : "");
 	html.replace("${config.vccMultiplier}", config->getVccMultiplier() > 0 ? String(config->getVccMultiplier(), 2) : "");
 	html.replace("${config.vccBootLimit}", config->getVccBootLimit() > 0.0 ? String(config->getVccBootLimit(), 1) : "");
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
+}
+
+void AmsWebServer::configDebugHtml() {
+	printD("Serving /debugging.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	String html = String((const __FlashStringHelper*) DEBUGGING_HTML);
 
 	html.replace("${config.debugTelnet}", config->isDebugTelnet() ? "checked" : "");
 	html.replace("${config.debugSerial}", config->isDebugSerial() ? "checked" : "");

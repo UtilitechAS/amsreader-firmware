@@ -309,6 +309,8 @@ void AmsConfiguration::clearMeter() {
 	setDistributionSystem(0);
 	setMainFuse(0);
 	setProductionCapacity(0);
+	setMeterEncryptionKey(nullptr);
+	setMeterAuthenticationKey(nullptr);
 	setSubstituteMissing(false);
 	setSendUnknown(false);
 }
@@ -500,6 +502,16 @@ void AmsConfiguration::setTempSensorPin(uint8_t tempSensorPin) {
 	}
 }
 
+uint8_t AmsConfiguration::getTempAnalogSensorPin() {
+	return config.tempAnalogSensorPin;
+}
+
+void AmsConfiguration::setTempAnalogSensorPin(uint8_t tempAnalogSensorPin) {
+	if(!pinUsed(tempAnalogSensorPin)) {
+		config.tempAnalogSensorPin = tempAnalogSensorPin;
+	}
+}
+
 uint8_t AmsConfiguration::getVccPin() {
 	return config.vccPin;
 }
@@ -544,12 +556,88 @@ void AmsConfiguration::ackDomoChange() {
 	domoChanged = false;
 }
 
+bool AmsConfiguration::isMdnsEnable() {
+	return config.mDnsEnable;
+}
+
+void AmsConfiguration::setMdnsEnable(bool mdnsEnable) {
+	config.mDnsEnable = mdnsEnable;
+}
+
+bool AmsConfiguration::isNtpEnable() {
+	return config.ntpEnable;
+}
+
+void AmsConfiguration::setNtpEnable(bool ntpEnable) {
+	if(config.ntpEnable != ntpEnable) {
+		if(!ntpEnable) {
+			wifiChanged = true;
+		} else {
+			ntpChanged = true;
+		}
+		config.ntpEnable = ntpEnable;
+	}
+}
+
+bool AmsConfiguration::isNtpDhcp() {
+	return config.ntpDhcp;
+}
+
+void AmsConfiguration::setNtpDhcp(bool ntpDhcp) {
+	ntpChanged |= config.ntpDhcp != ntpDhcp;
+	config.ntpDhcp = ntpDhcp;
+}
+
+int32_t AmsConfiguration::getNtpOffset() {
+	return config.ntpOffset * 10;
+}
+
+void AmsConfiguration::setNtpOffset(uint32_t ntpOffset) {
+	ntpChanged |= config.ntpOffset != ntpOffset/10;
+	config.ntpOffset = ntpOffset == 0 ? 0 : ntpOffset / 10;
+}
+
+int32_t AmsConfiguration::getNtpSummerOffset() {
+	return config.ntpSummerOffset * 10;
+}
+
+void AmsConfiguration::setNtpSummerOffset(uint32_t ntpSummerOffset) {
+	ntpChanged |= config.ntpSummerOffset != ntpSummerOffset/10;
+	config.ntpSummerOffset = ntpSummerOffset == 0 ? 0 : ntpSummerOffset / 10;
+}
+
+char* AmsConfiguration::getNtpServer() {
+	return config.ntpServer;
+}
+
+void AmsConfiguration::setNtpServer(const char* ntpServer) {
+	strcpy(config.ntpServer, ntpServer);
+}
+
+bool AmsConfiguration::isNtpChanged() {
+	return ntpChanged;
+}
+
+void AmsConfiguration::ackNtpChange() {
+	ntpChanged = false;
+}
+
+void AmsConfiguration::clearNtp() {
+	setNtpEnable(true);
+	setNtpDhcp(true);
+	setNtpOffset(3600);
+	setNtpSummerOffset(3600);
+	setNtpServer("pool.ntp.org");
+}
+
+
 void AmsConfiguration::clear() {
 	clearMeter();
 	clearWifi();
 	clearMqtt();
 	clearAuth();
 	clearDomo();
+	clearNtp();
 
 	int address = EEPROM_CONFIG_ADDRESS;
 
@@ -863,6 +951,7 @@ void AmsConfiguration::print(Print* debugger)
 
 	debugger->printf("Vcc pin:              %i\r\n", this->getVccPin());
 	debugger->printf("Vcc multiplier:       %f\r\n", this->getVccMultiplier());
+	debugger->printf("Vcc offset:           %f\r\n", this->getVccOffset());
 	debugger->printf("Vcc boot limit:       %f\r\n", this->getVccBootLimit());
 
 	if(this->getDomoELIDX() > 0) {
@@ -871,6 +960,14 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf("Domoticz VL2IDX:      %i\r\n", this->getDomoVL2IDX());
 		debugger->printf("Domoticz VL3IDX:      %i\r\n", this->getDomoVL3IDX());
 		debugger->printf("Domoticz CL1IDX:      %i\r\n", this->getDomoCL1IDX());
+	}
+
+	debugger->printf("NTP:                  %s\r\n", this->isNtpEnable() ? "Yes" : "No");
+	if(this->isNtpEnable()) {
+		debugger->printf("NTP offset:           %i\r\n", this->getNtpOffset());
+		debugger->printf("NTP summer offset:    %i\r\n", this->getNtpSummerOffset());
+		debugger->printf("NTP server:           %s\r\n", this->getNtpServer());
+		debugger->printf("NTP DHCP:             %s\r\n", this->isNtpDhcp() ? "Yes" : "No");
 	}
 
 	debugger->println("-----------------------------------------------");

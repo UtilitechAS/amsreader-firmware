@@ -67,8 +67,6 @@ struct ConfigObject {
 	char ntpServer[64];
 
 	uint8_t tempAnalogSensorPin;
-	int8_t tempSensorInternal; // -128 = disabled, -1 = analog, 0-127 = digital sensor index
-	uint8_t tempSensorCount;
 };
 
 struct ConfigObject82 {
@@ -122,6 +120,12 @@ struct ConfigObject82 {
 	uint16_t domoVL2IDX;
 	uint16_t domoVL3IDX;
 	uint16_t domoCL1IDX;
+};
+
+struct TempSensorConfig {
+	uint8_t address[8];
+	char name[16];
+	bool common;
 };
 
 class AmsConfiguration {
@@ -285,6 +289,12 @@ public:
 	bool isNtpChanged();
 	void ackNtpChange();
 
+	uint8_t getTempSensorCount();
+	TempSensorConfig* getTempSensorConfig(uint8_t i);
+	void updateTempSensorConfig(uint8_t address[8], const char name[32], bool common);
+
+    bool isSensorAddressEqual(uint8_t a[8], uint8_t b[8]);
+
 	void clear();
 
 protected:
@@ -350,15 +360,20 @@ private:
 		360, // Summertime offset (*10)
 		"pool.ntp.org", // NTP server
 		0xFF, // Analog temp sensor
-		0xFF, // Internal temp sensor
-		0, // Temp sensor count
-		// 900 bytes
+		// 894 bytes
 	};
 	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged;
 
-	const int EEPROM_SIZE = 904; // Config size + 4 bytes for config version
+	uint8_t tempSensorCount = 0;
+	TempSensorConfig* tempSensors[32];
+
+	const int EEPROM_SIZE = 1024 * 3;
 	const int EEPROM_CHECK_SUM = 83; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
+	const int EEPROM_TEMP_CONFIG_ADDRESS = 2048;
+
+	void loadTempSensors();
+	void saveTempSensors();
 
 	bool loadConfig81(int address);
 	bool loadConfig82(int address);

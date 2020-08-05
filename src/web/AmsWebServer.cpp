@@ -22,6 +22,9 @@
 #include "root/upload_html.h"
 #include "root/delete_html.h"
 #include "root/reset_html.h"
+#include "root/temperature_head_html.h"
+#include "root/temperature_row_html.h"
+#include "root/temperature_foot_html.h"
 
 #include "base64.h"
 
@@ -37,6 +40,7 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/", HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on("/", HTTP_POST, std::bind(&AmsWebServer::handleSetup, this));
 	server.on("/application.js", HTTP_GET, std::bind(&AmsWebServer::applicationJs, this));
+	server.on("/temperature", HTTP_GET, std::bind(&AmsWebServer::temperature, this));
 	server.on("/config-meter", HTTP_GET, std::bind(&AmsWebServer::configMeterHtml, this));
 	server.on("/config-wifi", HTTP_GET, std::bind(&AmsWebServer::configWifiHtml, this));
 	server.on("/config-mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
@@ -118,6 +122,36 @@ bool AmsWebServer::checkSecurity(byte level) {
 	else
 		printD(" access denied");
 	return access;
+}
+
+void AmsWebServer::temperature() {
+	printD("Serving /temperature.html over http...");
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+
+	String html;
+	uint8_t c = hw->getTempSensorCount();
+	for(int i = 0; i < c; i++) {
+		TempSensorData* data = hw->getTempSensorData(i);
+		
+		String row = String((const __FlashStringHelper*) TEMPERATURE_ROW_HTML);
+		row.replace("${index}", String(i, DEC));
+		row.replace("${address}", toHex(data->address));
+		row.replace("${name}", data->name);
+		row.replace("${common}", data->common ? "checked" : "");
+		row.replace("${value}", String(data->lastRead, 1));
+
+		html += row;
+	}
+
+	server.setContentLength(html.length() + HEAD_HTML_LEN + TEMPERATURE_HEAD_HTML_LEN + FOOT_HTML_LEN + TEMPERATURE_FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent_P(TEMPERATURE_HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(TEMPERATURE_FOOT_HTML);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::indexHtml() {
@@ -267,6 +301,26 @@ void AmsWebServer::configMeterHtml() {
 	server.send_P(200, "text/html", HEAD_HTML);
 	server.sendContent(html);
 	server.sendContent_P(FOOT_HTML);
+}
+
+String AmsWebServer::toHex(uint8_t* in) {
+	String hex;
+	for(int i = 0; i < sizeof(in)*2; i++) {
+		if(in[i] < 0x10) {
+			hex += '0';
+		}
+		hex += String(in[i], HEX);
+	}
+	hex.toUpperCase();
+	return hex;
+}
+
+uint8_t* AmsWebServer::fromHex(String in, uint8_t size) {
+	uint8_t ret[size];
+	for(int i = 0; i < size*2; i += 2) {
+		ret[i/2] = strtol(in.substring(i, i+2).c_str(), 0, 16);
+	}
+	return ret;
 }
 
 void AmsWebServer::configWifiHtml() {
@@ -835,6 +889,16 @@ void AmsWebServer::handleSave() {
 		config->setNtpServer(server.arg("ntpServer").c_str());
 	}
 
+	if(server.hasArg("tempConfig") && server.arg("tempConfig") == "true") {
+		for(int i = 0; i < 32; i++) {
+			if(!server.hasArg("sensor" + String(i, DEC))) break;
+			String address  = server.arg("sensor" + String(i, DEC));
+			String name = server.arg("sensor" + String(i, DEC) + "name");
+			bool common = server.hasArg("sensor" + String(i, DEC) + "common") && server.arg("sensor" + String(i, DEC) + "common") == "true";
+			config->updateTempSensorConfig(fromHex(address, 8), name.c_str(), common);
+		}
+	}
+
 	printI("Saving configuration now...");
 
 	if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
@@ -854,6 +918,11 @@ void AmsWebServer::handleSave() {
 			hw->setVccPin(config->getVccPin());
 			hw->setVccOffset(config->getVccOffset());
 			hw->setVccMultiplier(config->getVccMultiplier());
+			uint8_t c = config->getTempSensorCount();
+			for(int i = 0; i < c; i++) {
+				TempSensorConfig* tsc = config->getTempSensorConfig(i);
+				hw->confTempSensor(tsc->address, tsc->name, tsc->common);
+			}
 		}
 	} else {
 		printE("Error saving configuration");

@@ -156,6 +156,14 @@ void setup() {
 		#endif
 	}
 
+	uint8_t c = config.getTempSensorCount();
+	for(int i = 0; i < c; i++) {
+		TempSensorConfig* tsc = config.getTempSensorConfig(i);
+		hw.confTempSensor(tsc->address, tsc->name, tsc->common);
+		Debug.print("Sensor name: ");
+		Debug.println(tsc->name);
+	}
+
 	double vcc = hw.getVcc();
 
 	if (Debug.isActive(RemoteDebug::INFO)) {
@@ -269,7 +277,6 @@ bool longPressActive = false;
 bool wifiConnected = false;
 
 unsigned long lastTemperatureRead = 0;
-double temperature = -127;
 
 unsigned long lastRead = 0;
 unsigned long lastSuccessfulRead = 0;
@@ -306,8 +313,8 @@ void loop() {
 		}
 	}
 	
-	if(now - lastTemperatureRead > 5000) {
-		temperature = hw.getTemperature();
+	if(now - lastTemperatureRead > 10000) {
+		hw.updateTemperatures();
 		lastTemperatureRead = now;
 	}
 
@@ -554,7 +561,7 @@ void readHanPort() {
 				if(strlen(config.getMqttHost()) > 0 && strlen(config.getMqttPublishTopic()) > 0) {
 					if(config.getMqttPayloadFormat() == 0) {
 						StaticJsonDocument<512> json;
-						hanToJson(json, data, hw, temperature, config.getMqttClientId());
+						hanToJson(json, data, hw, hw.getTemperature(), config.getMqttClientId());
 						if (Debug.isActive(RemoteDebug::INFO)) {
 							debugI("Sending data to MQTT");
 							if (Debug.isActive(RemoteDebug::DEBUG)) {
@@ -1012,7 +1019,7 @@ void sendSystemStatusToMqtt() {
 		mqtt.publish(String(config.getMqttPublishTopic()) + "/vcc", String(vcc, 2));
 	}
 	mqtt.publish(String(config.getMqttPublishTopic()) + "/rssi", String(hw.getWifiRssi()));
-    if(temperature != DEVICE_DISCONNECTED_C) {
-		mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature", String(temperature, 2));
+    if(hw.getTemperature() != DEVICE_DISCONNECTED_C) {
+		mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature", String(hw.getTemperature(), 2));
     }
 }

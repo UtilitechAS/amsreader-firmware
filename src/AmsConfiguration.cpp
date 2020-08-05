@@ -675,8 +675,7 @@ bool AmsConfiguration::load() {
 	bool success = false;
 
 	EEPROM.begin(EEPROM_SIZE);
-	int cs = EEPROM.read(address);
-	address++;
+	int cs = EEPROM.read(address++);
 	switch(cs) {
 		case 81: // v1.2
 			success = loadConfig81(address);
@@ -686,16 +685,47 @@ bool AmsConfiguration::load() {
 			break;
 		case 83: // v1.4
 			EEPROM.get(address, config);
+			loadTempSensors();
 			success = true;
 			break;
 	}
 	EEPROM.end();
+
 
 	if(config.apPin >= 0)
 		pinMode(config.apPin, INPUT_PULLUP);
 	meterChanged = true;
 
 	return success;
+}
+
+void AmsConfiguration::loadTempSensors() {
+	int address = EEPROM_TEMP_CONFIG_ADDRESS;
+	int c = 0;
+	int storedCount = EEPROM.read(address++);
+	if(storedCount > 0 && storedCount <= 32) {
+		for(int i = 0; i < storedCount; i++) {
+			TempSensorConfig* tsc = new TempSensorConfig();
+			EEPROM.get(address, *tsc);
+			if(tsc->address[0] != 0xFF) {
+				tempSensors[c++] = tsc;
+			}
+			address += sizeof(*tsc);
+		}
+	}
+	tempSensorCount = c;
+}
+
+void AmsConfiguration::saveTempSensors() {
+	int address = EEPROM_TEMP_CONFIG_ADDRESS;
+	EEPROM.put(address++, tempSensorCount);
+	for(int i = 0; i < tempSensorCount; i++) {
+		TempSensorConfig* tsc = tempSensors[i];
+		if(tsc->address[0] != 0xFF) {
+			EEPROM.put(address, *tsc);
+			address += sizeof(*tsc);
+		}
+	}
 }
 
 bool AmsConfiguration::loadConfig82(int address) {
@@ -855,12 +885,49 @@ bool AmsConfiguration::save() {
 	EEPROM.put(address, EEPROM_CHECK_SUM);
 	address++;
 	EEPROM.put(address, config);
+	saveTempSensors();
 	bool success = EEPROM.commit();
 	EEPROM.end();
 
 	configVersion = EEPROM_CHECK_SUM;
 	return success;
 }
+
+uint8_t AmsConfiguration::getTempSensorCount() {
+	return tempSensorCount;
+}
+
+TempSensorConfig* AmsConfiguration::getTempSensorConfig(uint8_t i) {
+	return tempSensors[i];
+}
+
+void AmsConfiguration::updateTempSensorConfig(uint8_t address[8], const char name[32], bool common) {
+    bool found = false;
+    for(int x = 0; x < tempSensorCount; x++) {
+        TempSensorConfig *data = tempSensors[x];
+        if(isSensorAddressEqual(data->address, address)) {
+            found = true;
+            strcpy(data->name, name);
+            data->common = common;
+        }
+    }
+    if(!found) {
+        TempSensorConfig *data = new TempSensorConfig();
+        memcpy(data->address, address, 8);
+        strcpy(data->name, name);
+        data->common = common;
+        tempSensors[tempSensorCount] = data;
+        tempSensorCount++;
+    }
+}
+
+bool AmsConfiguration::isSensorAddressEqual(uint8_t a[8], uint8_t b[8]) {
+    for(int i = 0; i < 8; i++) {
+        if(a[i] != b[i]) return false;
+    }
+    return true;
+}
+
 
 int AmsConfiguration::readString(int pAddress, char* pString[]) {
 	int address = 0;
@@ -969,6 +1036,8 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf("NTP server:           %s\r\n", this->getNtpServer());
 		debugger->printf("NTP DHCP:             %s\r\n", this->isNtpDhcp() ? "Yes" : "No");
 	}
+	
+	debugger->printf("Temp sensor count:    %i\r\n", this->getTempSensorCount());
 
 	debugger->println("-----------------------------------------------");
 }

@@ -107,10 +107,13 @@ $(function() {
     $('#ntpEnable').trigger('change');
 
     switch(window.location.pathname) {
+        case '/temperature':
+            $('#config-temp-link').addClass('active');
+            break;
         case '/config-meter':
             $('#config-meter-link').addClass('active');
             break;
-        case '/config-wifi':
+            case '/config-wifi':
             $('#config-wifi-link').addClass('active');
             break;
         case '/config-mqtt':

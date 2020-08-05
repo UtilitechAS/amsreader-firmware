@@ -276,7 +276,8 @@ bool longPressActive = false;
 
 bool wifiConnected = false;
 
-unsigned long lastTemperatureRead = 0;
+unsigned long lastTemperatureRead = -30000;
+float temperatures[32];
 
 unsigned long lastRead = 0;
 unsigned long lastSuccessfulRead = 0;
@@ -286,6 +287,19 @@ int lastError = 0;
 
 // domoticz energy init
 double energy = -1.0;
+
+String toHex(uint8_t* in) {
+	String hex;
+	for(int i = 0; i < sizeof(in)*2; i++) {
+		if(in[i] < 0x10) {
+			hex += '0';
+		}
+		hex += String(in[i], HEX);
+	}
+	hex.toUpperCase();
+	return hex;
+}
+
 
 void loop() {
 	Debug.handle();
@@ -316,6 +330,37 @@ void loop() {
 	if(now - lastTemperatureRead > 10000) {
 		hw.updateTemperatures();
 		lastTemperatureRead = now;
+
+		bool anyChanged = false;
+		uint8_t c = hw.getTempSensorCount();
+		for(int i = 0; i < c; i++) {
+			bool changed = false;
+			TempSensorData* data = hw.getTempSensorData(i);
+			if(data->lastValidRead > -85) {
+				changed = data->lastValidRead != temperatures[i];
+				temperatures[i] = data->lastValidRead;
+			}
+
+			if((changed && config.getMqttPayloadFormat() == 1) || config.getMqttPayloadFormat() == 2) {
+				mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature/" + toHex(data->address), String(temperatures[i], 2));
+			}
+
+			anyChanged |= changed;
+		}
+
+		if(anyChanged && config.getMqttPayloadFormat() == 0) {
+			StaticJsonDocument<512> json;
+			JsonObject temps = json.createNestedObject("temperatures");
+			for(int i = 0; i < c; i++) {
+			TempSensorData* data = hw.getTempSensorData(i);
+				JsonObject obj = temps.createNestedObject(toHex(data->address));
+				obj["name"] = data->name;
+				obj["value"] = serialized(String(temperatures[i], 2));
+			}
+			String msg;
+			serializeJson(json, msg);
+			mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
+		}
 	}
 
 	// Only do normal stuff if we're not booted as AP
@@ -1019,7 +1064,7 @@ void sendSystemStatusToMqtt() {
 		mqtt.publish(String(config.getMqttPublishTopic()) + "/vcc", String(vcc, 2));
 	}
 	mqtt.publish(String(config.getMqttPublishTopic()) + "/rssi", String(hw.getWifiRssi()));
-    if(hw.getTemperature() != DEVICE_DISCONNECTED_C) {
+    if(hw.getTemperature() > -85) {
 		mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature", String(hw.getTemperature(), 2));
     }
 }

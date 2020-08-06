@@ -41,6 +41,7 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/", HTTP_POST, std::bind(&AmsWebServer::handleSetup, this));
 	server.on("/application.js", HTTP_GET, std::bind(&AmsWebServer::applicationJs, this));
 	server.on("/temperature", HTTP_GET, std::bind(&AmsWebServer::temperature, this));
+	server.on("/temperature", HTTP_POST, std::bind(&AmsWebServer::temperaturePost, this));
 	server.on("/config-meter", HTTP_GET, std::bind(&AmsWebServer::configMeterHtml, this));
 	server.on("/config-wifi", HTTP_GET, std::bind(&AmsWebServer::configWifiHtml, this));
 	server.on("/config-mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
@@ -132,18 +133,38 @@ void AmsWebServer::temperature() {
 	server.sendHeader("Expires", "-1");
 
 	String html;
-	uint8_t c = hw->getTempSensorCount();
-	for(int i = 0; i < c; i++) {
+	int c = hw->getTempSensorCount();
+
+	int start = server.hasArg("start") && !server.arg("start").isEmpty() ? server.arg("start").toInt() : 0;
+	int end = min(start + 4, c);
+
+	for(int i = start; i < end; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
 		
 		String row = String((const __FlashStringHelper*) TEMPERATURE_ROW_HTML);
-		row.replace("${index}", String(i, DEC));
-		row.replace("${address}", toHex(data->address));
+		row.replace("${index}", String(i-start, DEC));
+		row.replace("${address}", toHex(data->address, 8));
 		row.replace("${name}", data->name);
 		row.replace("${common}", data->common ? "checked" : "");
-		row.replace("${value}", String(data->lastRead, 1));
+		row.replace("${value}", data->lastRead > -85 ? String(data->lastRead, 1) : "N/A");
 
 		html += row;
+	}
+
+	if(start > 0 || end < c) {
+		html += "<div class=\"row\"><div class=\"col-6\">";
+		if(start > 0) {
+			html += "<a href=\"?start=";
+			html += String(start-4, DEC);
+			html += "\" class=\"btn btn-sm btn-outline-secondary\">previous</a>";
+		}
+		html += "</div><div class=\"col-6 text-right\">";
+		if(end < c) {
+			html += "<a href=\"?start=";
+			html += String(end, DEC);
+			html += "\" class=\"btn btn-sm btn-outline-secondary\">next</a>";
+		}
+		html += "</div></div>";
 	}
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + TEMPERATURE_HEAD_HTML_LEN + FOOT_HTML_LEN + TEMPERATURE_FOOT_HTML_LEN);
@@ -152,6 +173,28 @@ void AmsWebServer::temperature() {
 	server.sendContent(html);
 	server.sendContent_P(TEMPERATURE_FOOT_HTML);
 	server.sendContent_P(FOOT_HTML);
+}
+
+void AmsWebServer::temperaturePost() {
+	int start = server.hasArg("start") && !server.arg("start").isEmpty() ? server.arg("start").toInt() : 0;
+	for(int i = 0; i < 4; i++) {
+		if(!server.hasArg("sensor" + String(i, DEC))) break;
+		String address  = server.arg("sensor" + String(i, DEC));
+		String name = server.arg("sensor" + String(i, DEC) + "name");
+		bool common = server.hasArg("sensor" + String(i, DEC) + "common") && server.arg("sensor" + String(i, DEC) + "common") == "true";
+		config->updateTempSensorConfig(fromHex(address, 8), name.c_str(), common);
+	}
+
+	if(config->save()) {
+		server.sendHeader("Location", String("/temperature?start=") + String(start, DEC), true);
+		server.send (302, "text/plain", "");
+
+		uint8_t c = config->getTempSensorCount();
+		for(int i = 0; i < c; i++) {
+			TempSensorConfig* tsc = config->getTempSensorConfig(i);
+			hw->confTempSensor(tsc->address, tsc->name, tsc->common);
+		}
+	}
 }
 
 void AmsWebServer::indexHtml() {
@@ -270,28 +313,12 @@ void AmsWebServer::configMeterHtml() {
 	}
 	html.replace("${config.productionCapacity}", String(config->getProductionCapacity()));
 
-	byte encryptionKey[16];
-	memcpy(encryptionKey, config->getMeterEncryptionKey(), 16);
 	String encryptionKeyHex = "0x";
-	for(int i = 0; i < sizeof(encryptionKey); i++) {
-		if(encryptionKey[i] < 0x10) {
-			encryptionKeyHex += '0';
-		}
-		encryptionKeyHex += String(encryptionKey[i], HEX);
-	}
-	encryptionKeyHex.toUpperCase();
+	encryptionKeyHex += toHex(config->getMeterEncryptionKey(), 16);
 	html.replace("${config.meterEncryptionKey}", encryptionKeyHex);
 
-	byte authenticationKey[16];
-	memcpy(authenticationKey, config->getMeterAuthenticationKey(), 16);
 	String authenticationKeyHex = "0x";
-	for(int i = 0; i < sizeof(authenticationKey); i++) {
-		if(authenticationKey[i] < 0x10) {
-			authenticationKeyHex += '0';
-		}
-		authenticationKeyHex += String(authenticationKey[i], HEX);
-	}
-	authenticationKeyHex.toUpperCase();
+	authenticationKeyHex += toHex(config->getMeterAuthenticationKey(), 16);
 	html.replace("${config.meterAuthenticationKey}", authenticationKeyHex);
 
 	html.replace("${config.substituteMissing}", config->isSubstituteMissing() ? "checked" : "");
@@ -303,9 +330,9 @@ void AmsWebServer::configMeterHtml() {
 	server.sendContent_P(FOOT_HTML);
 }
 
-String AmsWebServer::toHex(uint8_t* in) {
+String AmsWebServer::toHex(uint8_t* in, uint8_t size) {
 	String hex;
-	for(int i = 0; i < sizeof(in)*2; i++) {
+	for(int i = 0; i < size; i++) {
 		if(in[i] < 0x10) {
 			hex += '0';
 		}
@@ -343,6 +370,7 @@ void AmsWebServer::configWifiHtml() {
 	html.replace("${config.wifiDns1}", config->getWifiDns1());
 	html.replace("${config.wifiDns2}", config->getWifiDns2());
 	html.replace("${config.wifiHostname}", config->getWifiHostname());
+	html.replace("${config.mDnsEnable}", config->isMdnsEnable() ? "checked" : "");
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
@@ -727,6 +755,9 @@ void AmsWebServer::handleSetup() {
 		}
 		if(server.hasArg("wifiHostname") && !server.arg("wifiHostname").isEmpty()) {
 			config->setWifiHostname(server.arg("wifiHostname").c_str());
+			config->setMdnsEnable(true);
+		} else {
+			config->setMdnsEnable(false);
 		}
 		if(config->save()) {
 			performRestart = true;
@@ -754,21 +785,13 @@ void AmsWebServer::handleSave() {
 		String encryptionKeyHex = server.arg("meterEncryptionKey");
 		if(!encryptionKeyHex.isEmpty()) {
 			encryptionKeyHex.replace("0x", "");
-			uint8_t encryptionKey[16];
-			for(int i = 0; i < 32; i += 2) {
-				encryptionKey[i/2] = strtol(encryptionKeyHex.substring(i, i+2).c_str(), 0, 16);
-			}
-			config->setMeterEncryptionKey(encryptionKey);
+			config->setMeterEncryptionKey(fromHex(encryptionKeyHex, 16));
 		}
 
 		String authenticationKeyHex = server.arg("meterAuthenticationKey");
 		if(!authenticationKeyHex.isEmpty()) {
 			authenticationKeyHex.replace("0x", "");
-			uint8_t authenticationKey[16];
-			for(int i = 0; i < 32; i += 2) {
-				authenticationKey[i/2] = strtol(authenticationKeyHex.substring(i, i+2).c_str(), 0, 16);
-			}
-			config->setMeterAuthenticationKey(authenticationKey);
+			config->setMeterAuthenticationKey(fromHex(authenticationKeyHex, 16));
 		}
 	}
 
@@ -785,6 +808,7 @@ void AmsWebServer::handleSave() {
 			config->clearWifiIp();
 		}
 		config->setWifiHostname(server.arg("wifiHostname").c_str());
+		config->setMdnsEnable(server.hasArg("mDnsEnable") && server.arg("mDnsEnable") == "true");
 	}
 
 	if(server.hasArg("mqttConfig") && server.arg("mqttConfig") == "true") {
@@ -889,16 +913,6 @@ void AmsWebServer::handleSave() {
 		config->setNtpServer(server.arg("ntpServer").c_str());
 	}
 
-	if(server.hasArg("tempConfig") && server.arg("tempConfig") == "true") {
-		for(int i = 0; i < 32; i++) {
-			if(!server.hasArg("sensor" + String(i, DEC))) break;
-			String address  = server.arg("sensor" + String(i, DEC));
-			String name = server.arg("sensor" + String(i, DEC) + "name");
-			bool common = server.hasArg("sensor" + String(i, DEC) + "common") && server.arg("sensor" + String(i, DEC) + "common") == "true";
-			config->updateTempSensorConfig(fromHex(address, 8), name.c_str(), common);
-		}
-	}
-
 	printI("Saving configuration now...");
 
 	if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
@@ -918,11 +932,6 @@ void AmsWebServer::handleSave() {
 			hw->setVccPin(config->getVccPin());
 			hw->setVccOffset(config->getVccOffset());
 			hw->setVccMultiplier(config->getVccMultiplier());
-			uint8_t c = config->getTempSensorCount();
-			for(int i = 0; i < c; i++) {
-				TempSensorConfig* tsc = config->getTempSensorConfig(i);
-				hw->confTempSensor(tsc->address, tsc->name, tsc->common);
-			}
 		}
 	} else {
 		printE("Error saving configuration");

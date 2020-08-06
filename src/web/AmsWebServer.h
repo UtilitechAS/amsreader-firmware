@@ -61,6 +61,7 @@ private:
 	void indexHtml();
 	void applicationJs();
 	void temperature();
+	void temperaturePost();
 	void configMeterHtml();
 	void configWifiHtml();
 	void configMqttHtml();
@@ -104,7 +105,7 @@ private:
 
 	void notFound();
 
-	String toHex(uint8_t* in);
+	String toHex(uint8_t* in, uint8_t size);
 	uint8_t* fromHex(String in, uint8_t size);
 
 	void printD(String fmt, ...);

@@ -128,6 +128,7 @@ void setup() {
 	hw.setTempSensorPin(config.getTempSensorPin());
 	hw.setVccPin(config.getVccPin());
 	hw.setVccMultiplier(config.getVccMultiplier());
+	hw.setVccOffset(config.getVccOffset());
 	hw.ledBlink(LED_INTERNAL, 1);
 	hw.ledBlink(LED_RED, 1);
 	hw.ledBlink(LED_YELLOW, 1);
@@ -276,7 +277,7 @@ bool longPressActive = false;
 
 bool wifiConnected = false;
 
-unsigned long lastTemperatureRead = -30000;
+unsigned long lastTemperatureRead = 0;
 float temperatures[32];
 
 unsigned long lastRead = 0;
@@ -327,39 +328,41 @@ void loop() {
 		}
 	}
 	
-	if(now - lastTemperatureRead > 10000) {
+	if(now - lastTemperatureRead > 15000) {
 		hw.updateTemperatures();
 		lastTemperatureRead = now;
 
-		bool anyChanged = false;
-		uint8_t c = hw.getTempSensorCount();
-		for(int i = 0; i < c; i++) {
-			bool changed = false;
-			TempSensorData* data = hw.getTempSensorData(i);
-			if(data->lastValidRead > -85) {
-				changed = data->lastValidRead != temperatures[i];
-				temperatures[i] = data->lastValidRead;
-			}
-
-			if((changed && config.getMqttPayloadFormat() == 1) || config.getMqttPayloadFormat() == 2) {
-				mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature/" + toHex(data->address), String(temperatures[i], 2));
-			}
-
-			anyChanged |= changed;
-		}
-
-		if(anyChanged && config.getMqttPayloadFormat() == 0) {
-			StaticJsonDocument<512> json;
-			JsonObject temps = json.createNestedObject("temperatures");
+		if(strlen(config.getMqttHost()) > 0) {
+			bool anyChanged = false;
+			uint8_t c = hw.getTempSensorCount();
 			for(int i = 0; i < c; i++) {
-			TempSensorData* data = hw.getTempSensorData(i);
-				JsonObject obj = temps.createNestedObject(toHex(data->address));
-				obj["name"] = data->name;
-				obj["value"] = serialized(String(temperatures[i], 2));
+				bool changed = false;
+				TempSensorData* data = hw.getTempSensorData(i);
+				if(data->lastValidRead > -85) {
+					changed = data->lastValidRead != temperatures[i];
+					temperatures[i] = data->lastValidRead;
+				}
+
+				if((changed && config.getMqttPayloadFormat() == 1) || config.getMqttPayloadFormat() == 2) {
+					mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature/" + toHex(data->address), String(temperatures[i], 2));
+				}
+
+				anyChanged |= changed;
 			}
-			String msg;
-			serializeJson(json, msg);
-			mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
+
+			if(anyChanged && config.getMqttPayloadFormat() == 0) {
+				StaticJsonDocument<512> json;
+				JsonObject temps = json.createNestedObject("temperatures");
+				for(int i = 0; i < c; i++) {
+				TempSensorData* data = hw.getTempSensorData(i);
+					JsonObject obj = temps.createNestedObject(toHex(data->address));
+					obj["name"] = data->name;
+					obj["value"] = serialized(String(temperatures[i], 2));
+				}
+				String msg;
+				serializeJson(json, msg);
+				mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
+			}
 		}
 	}
 
@@ -384,7 +387,7 @@ void loop() {
 					debugI("Successfully connected to WiFi!");
 					debugI("IP: %s", WiFi.localIP().toString().c_str());
 				}
-				if(strlen(config.getWifiHostname()) > 0) {
+				if(strlen(config.getWifiHostname()) > 0 && config.isMdnsEnable()) {
 					MDNS.begin(config.getWifiHostname());
 					MDNS.addService("http", "tcp", 80);
 				}

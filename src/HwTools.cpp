@@ -88,38 +88,53 @@ bool HwTools::updateTemperatures() {
             sensorApi->begin();
             delay(50);
             tempSensorInit = true;
-        }
 
-        DeviceAddress addr;
-        sensorApi->requestTemperatures();
-        int c = sensorApi->getDeviceCount();
-        for(int i = 0; i < c; i++) {
-            bool found = false;
-            sensorApi->getAddress(addr, i);
-            float t = sensorApi->getTempC(addr);
-            for(int x = 0; x < sensorCount; x++) {
-                TempSensorData *data = tempSensors[x];
-                if(isSensorAddressEqual(data->address, addr)) {
-                    found = true;
+            DeviceAddress addr;
+            sensorApi->requestTemperatures();
+            int c = sensorApi->getDeviceCount();
+            Serial.print("Sensors found: ");
+            Serial.println(c);
+            for(int i = 0; i < c; i++) {
+                bool found = false;
+                sensorApi->getAddress(addr, i);
+                float t = sensorApi->getTempC(addr);
+                for(int x = 0; x < sensorCount; x++) {
+                    TempSensorData *data = tempSensors[x];
+                    if(isSensorAddressEqual(data->address, addr)) {
+                        found = true;
+                        data->lastRead = t;
+                        if(t > -85) {
+                            data->lastValidRead = t;
+                        }
+                    }
+                }
+                if(!found) {
+                    TempSensorData *data = new TempSensorData();
+                    memcpy(data->address, addr, 8);
+                    data->common = true;
                     data->lastRead = t;
                     if(t > -85) {
                         data->lastValidRead = t;
                     }
+
+                    tempSensors[sensorCount] = data;
+                    sensorCount++;
                 }
+                delay(10);
             }
-            if(!found) {
-                TempSensorData *data = new TempSensorData();
-                memcpy(data->address, addr, 8);
-                data->common = true;
+        } else {
+            sensorApi->requestTemperatures();
+
+            for(int x = 0; x < sensorCount; x++) {
+                TempSensorData *data = tempSensors[x];
+                float t = sensorApi->getTempC(data->address);
                 data->lastRead = t;
                 if(t > -85) {
                     data->lastValidRead = t;
                 }
-
-                tempSensors[sensorCount] = data;
-                sensorCount++;
             }
         }
+
         return true;
     }
     return false;

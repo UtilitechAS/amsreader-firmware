@@ -909,7 +909,7 @@ void WiFi_connect() {
 			WiFi.config(ip, gw, sn, dns1, dns2);
 		} else {
 #if defined(ESP32)
-			WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // Workaround to make DHCP hostname work for ESP32
+			WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // Workaround to make DHCP hostname work for ESP32. See: https://github.com/espressif/arduino-esp32/issues/2537
 #endif
 		}
 		if(strlen(config.getWifiHostname()) > 0) {

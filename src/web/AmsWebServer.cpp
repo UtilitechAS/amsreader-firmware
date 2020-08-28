@@ -24,6 +24,7 @@
 #include "root/reset_html.h"
 #include "root/temperature_head_html.h"
 #include "root/temperature_row_html.h"
+#include "root/temperature_none_html.h"
 #include "root/temperature_foot_html.h"
 
 #include "base64.h"
@@ -149,6 +150,10 @@ void AmsWebServer::temperature() {
 		row.replace("${value}", data->lastRead > -85 ? String(data->lastRead, 1) : "N/A");
 
 		html += row;
+	}
+
+	if(c == 0) {
+		html += String((const __FlashStringHelper*) TEMPERATURE_NONE_HTML);
 	}
 
 	if(start > 0 || end < c) {

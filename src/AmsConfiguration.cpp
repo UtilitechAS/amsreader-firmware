@@ -1005,6 +1005,7 @@ void AmsConfiguration::print(Print* debugger)
 	debugger->printf("fuseSize:             %i\r\n", this->getMainFuse());
 	debugger->printf("productionCapacity:   %i\r\n", this->getProductionCapacity());
 	debugger->printf("Substitute missing:   %s\r\n", this->isSubstituteMissing() ? "Yes" : "No");
+	Serial.flush();
 
 	debugger->printf("HAN pin:              %i\r\n", this->getHanPin());
 	debugger->printf("LED pin:              %i\r\n", this->getLedPin());
@@ -1015,6 +1016,7 @@ void AmsConfiguration::print(Print* debugger)
 	debugger->printf("LED inverted:         %s\r\n", this->isLedRgbInverted() ? "Yes" : "No");
 	debugger->printf("AP pin:               %i\r\n", this->getApPin());
 	debugger->printf("Temperature pin:      %i\r\n", this->getTempSensorPin());
+	Serial.flush();
 
 	debugger->printf("Vcc pin:              %i\r\n", this->getVccPin());
 	debugger->printf("Vcc multiplier:       %f\r\n", this->getVccMultiplier());

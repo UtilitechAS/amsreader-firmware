@@ -158,14 +158,6 @@ void setup() {
 		#endif
 	}
 
-	uint8_t c = config.getTempSensorCount();
-	for(int i = 0; i < c; i++) {
-		TempSensorConfig* tsc = config.getTempSensorConfig(i);
-		hw.confTempSensor(tsc->address, tsc->name, tsc->common);
-		Debug.print("Sensor name: ");
-		Debug.println(tsc->name);
-	}
-
 	double vcc = hw.getVcc();
 
 	if (Debug.isActive(RemoteDebug::INFO)) {
@@ -255,11 +247,11 @@ void setup() {
 
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
+		WiFi_connect();
 		if(config.isNtpEnable()) {
 			configTime(config.getNtpOffset(), config.getNtpSummerOffset(), config.getNtpServer());
 			sntp_servermode_dhcp(config.isNtpDhcp() ? 1 : 0);
 		}
-		WiFi_connect();
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("No configuration, booting AP");
@@ -389,8 +381,12 @@ void loop() {
 					debugI("IP: %s", WiFi.localIP().toString().c_str());
 				}
 				if(strlen(config.getWifiHostname()) > 0 && config.isMdnsEnable()) {
-					MDNS.begin(config.getWifiHostname());
-					MDNS.addService("http", "tcp", 80);
+					debugD("mDNS is enabled, using host: %s", config.getWifiHostname());
+					if(MDNS.begin(config.getWifiHostname())) {
+						MDNS.addService("http", "tcp", 80);
+					} else {
+						debugE("Failed to set up mDNS!");
+					}
 				}
 			}
 			if(config.isNtpChanged()) {
@@ -911,6 +907,10 @@ void WiFi_connect() {
 			dns1.fromString(config.getWifiDns1());
 			dns2.fromString(config.getWifiDns2());
 			WiFi.config(ip, gw, sn, dns1, dns2);
+		} else {
+#if defined(ESP32)
+			WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // Workaround to make DHCP hostname work for ESP32
+#endif
 		}
 		if(strlen(config.getWifiHostname()) > 0) {
 #if defined(ESP8266)

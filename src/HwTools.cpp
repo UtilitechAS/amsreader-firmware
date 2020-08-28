@@ -16,6 +16,17 @@ void HwTools::setTempSensorPin(int tempSensorPin) {
     }
 }
 
+void HwTools::setTempAnalogSensorPin(int tempAnalogSensorPin) {
+    if(tempAnalogSensorPin != this->tempAnalogSensorPin) {
+        if(tempAnalogSensorPin > 0 && tempAnalogSensorPin < 40) {
+            this->tempAnalogSensorPin = tempAnalogSensorPin;
+            pinMode(tempAnalogSensorPin, INPUT);
+        } else {
+            this->tempAnalogSensorPin = 0xFF;
+        }
+    }
+}
+
 void HwTools::setVccPin(int vccPin) {
     if(vccPin > 0 && vccPin < 40) {
         pinMode(vccPin, INPUT);

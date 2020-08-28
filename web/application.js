@@ -217,8 +217,9 @@ var fetch = function() {
 
         for(var id in json) {
             var str = json[id];
-            if(typeof str === "object")
+            if(typeof str === "object") {
                 continue;
+            }
             if(isNaN(str)) {
                 $('#'+id).html(str);
             } else {

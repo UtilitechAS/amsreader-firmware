@@ -929,6 +929,7 @@ void AmsWebServer::handleSave() {
 			hw->setLed(config->getLedPin(), config->isLedInverted());
 			hw->setLedRgb(config->getLedPinRed(), config->getLedPinGreen(), config->getLedPinBlue(), config->isLedRgbInverted());
 			hw->setTempSensorPin(config->getTempSensorPin());
+			hw->setTempAnalogSensorPin(config->getTempAnalogSensorPin());
 			hw->setVccPin(config->getVccPin());
 			hw->setVccOffset(config->getVccOffset());
 			hw->setVccMultiplier(config->getVccMultiplier());

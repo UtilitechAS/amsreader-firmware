@@ -92,8 +92,8 @@ bool HwTools::updateTemperatures() {
             DeviceAddress addr;
             sensorApi->requestTemperatures();
             int c = sensorApi->getDeviceCount();
-            Serial.print("Sensors found: ");
-            Serial.println(c);
+            //Serial.print("Sensors found: ");
+            //Serial.println(c);
             for(int i = 0; i < c; i++) {
                 bool found = false;
                 sensorApi->getAddress(addr, i);
@@ -150,6 +150,11 @@ bool HwTools::isSensorAddressEqual(uint8_t a[8], uint8_t b[8]) {
 double HwTools::getTemperature() {
     uint8_t c = 0;
     double ret = 0;
+    double analogTemp = getTemperatureAnalog();
+    if(analogTemp != DEVICE_DISCONNECTED_C) {
+        ret += analogTemp;
+        c++;
+    }
     for(int x = 0; x < sensorCount; x++) {
         TempSensorData data = *tempSensors[x];
         if(data.common && data.lastValidRead > -85) {
@@ -158,6 +163,20 @@ double HwTools::getTemperature() {
         }
     }
     return c == 0 ? DEVICE_DISCONNECTED_C : ret/c;
+}
+double HwTools::getTemperatureAnalog() {
+    if(tempAnalogSensorPin != 0xFF) {
+        float adcCalibrationFactor = 1.06587;
+        int adcRead = analogRead(tempAnalogSensorPin);
+        int volts;
+        #if defined(ESP8266)
+            volts = (analogRead(vccPin) / 1024.0) * 3.3;
+        #elif defined(ESP32)
+            volts = (analogRead(vccPin) / 4095.0) * 3.3;
+        #endif
+        return ((volts * adcCalibrationFactor) - 0.4) / 0.0195;
+    }
+    return DEVICE_DISCONNECTED_C;
 }
 
 int HwTools::getWifiRssi() {

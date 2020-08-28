@@ -126,6 +126,7 @@ void setup() {
 	hw.setLed(config.getLedPin(), config.isLedInverted());
 	hw.setLedRgb(config.getLedPinRed(), config.getLedPinGreen(), config.getLedPinBlue(), config.isLedRgbInverted());
 	hw.setTempSensorPin(config.getTempSensorPin());
+	hw.setTempAnalogSensorPin(config.getTempAnalogSensorPin());
 	hw.setVccPin(config.getVccPin());
 	hw.setVccMultiplier(config.getVccMultiplier());
 	hw.setVccOffset(config.getVccOffset());

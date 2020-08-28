@@ -29,6 +29,7 @@ struct TempSensorData {
 class HwTools {
 public:
     void setTempSensorPin(int tempSensorPin);
+    void setTempAnalogSensorPin(int tempAnalogSensorPin);
     void setVccPin(int vccPin);
     void setVccOffset(double vccOffset);
     void setVccMultiplier(double vccMultiplier);
@@ -37,6 +38,7 @@ public:
     uint8_t getTempSensorCount();
     TempSensorData* getTempSensorData(uint8_t i);
     bool updateTemperatures();
+    double getTemperature();
     double getTemperature();
     double getTemperature(uint8_t address[8]);
     int getWifiRssi();
@@ -48,7 +50,7 @@ public:
 
     HwTools() {};
 private:
-    uint8_t tempSensorPin = -1;
+    uint8_t tempSensorPin = -1, tempAnalogSensorPin = -1;
     uint8_t vccPin = -1;
     uint8_t ledPin = -1, ledPinRed = -1, ledPinGreen = -1, ledPinBlue = -1;
     bool ledInverted, ledRgbInverted;

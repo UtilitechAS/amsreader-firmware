@@ -14,7 +14,7 @@ void DlmsReader::Clear()
     this->frameFormatType = 0;
 }
 
-bool DlmsReader::Read(byte data)
+bool DlmsReader::Read(byte data, Print* debugger)
 {
     if (position == 0 && data != 0x7E)
     {
@@ -24,12 +24,21 @@ bool DlmsReader::Read(byte data)
     else
     {
         // We have completed reading of one package, so clear and be ready for the next
-        if (dataLength > 0 && position >= dataLength + 2)
+        if (dataLength > 0 && position >= dataLength + 2) {
+            if(debugger != NULL) {
+                debugger->printf("Preparing for next frame\n");
+            }
             Clear();
+        }
         
         // Check if we're about to run into a buffer overflow
-        if (position >= DLMS_READER_BUFFER_SIZE)
+        if (position >= DLMS_READER_BUFFER_SIZE) {
+            if(debugger != NULL) {
+                debugger->printf("Buffer overflow\n");
+                debugPrint(buffer, 0, position, debugger);
+            }
             Clear();
+        }
 
         // Check if this is a second start flag, which indicates the previous one was a stop from the last package
         if (position == 1 && data == 0x7E)
@@ -50,8 +59,13 @@ bool DlmsReader::Read(byte data)
         {
             // Capture the Frame Format Type
             frameFormatType = (byte)(data & 0xF0);
-            if (!IsValidFrameFormat(frameFormatType))
+            if (!IsValidFrameFormat(frameFormatType)) {
+                if(debugger != NULL) {
+                    debugger->printf("Incorrect frame format %02X\n", frameFormatType);
+                    debugPrint(buffer, 0, position, debugger);
+                }
                 Clear();
+            }
             return false;
         }
         else if (position == 3)
@@ -64,32 +78,52 @@ bool DlmsReader::Read(byte data)
         {
             // Capture the destination address
             destinationAddressLength = GetAddress(3, destinationAddress, 0, DLMS_READER_MAX_ADDRESS_SIZE);
-            if (destinationAddressLength > 3)
+            if (destinationAddressLength > 3) {
+                if(debugger != NULL) {
+                    debugger->printf("Destination address length incorrect\n");
+                    debugPrint(buffer, 0, position, debugger);
+                }
                 Clear();
+            }
             return false;
         }
         else if (sourceAddressLength == 0)
         {
             // Capture the source address
             sourceAddressLength = GetAddress(3 + destinationAddressLength, sourceAddress, 0, DLMS_READER_MAX_ADDRESS_SIZE);
-            if (sourceAddressLength > 3)
+            if (sourceAddressLength > 3) {
+                if(debugger != NULL) {
+                    debugger->printf("Source address length incorrect\n");
+                    debugPrint(buffer, 0, position, debugger);
+                }
                 Clear();
+            }
             return false;
         }
         else if (position == 4 + destinationAddressLength + sourceAddressLength + 2)
         {
             // Verify the header checksum
             ushort headerChecksum = GetChecksum(position - 3);
-            if (headerChecksum != Crc16.ComputeChecksum(buffer, 1, position - 3))
+            if (headerChecksum != Crc16.ComputeChecksum(buffer, 1, position - 3)) {
+                if(debugger != NULL) {
+                    debugger->printf("Header checksum is incorrect %02X\n", headerChecksum);
+                    debugPrint(buffer, 0, position, debugger);
+                }
                 Clear();
+            }
             return false;
         }
         else if (position == dataLength + 1)
         {
             // Verify the data package checksum
             ushort checksum = this->GetChecksum(position - 3);
-            if (checksum != Crc16.ComputeChecksum(buffer, 1, position - 3))
+            if (checksum != Crc16.ComputeChecksum(buffer, 1, position - 3)) {
+                if(debugger != NULL) {
+                    debugger->printf("Frame checksum is incorrect %02X\n", checksum);
+                    debugPrint(buffer, 0, position, debugger);
+                }
                 Clear();
+            }
             return false;
         }
         else if (position == dataLength + 2)
@@ -99,6 +133,10 @@ bool DlmsReader::Read(byte data)
                 return true;
             else
             {
+                if(debugger != NULL) {
+                    debugger->printf("Received incorrect end marker %02X\n", data);
+                    debugPrint(buffer, 0, position, debugger);
+                }
                 Clear();
                 return false;
             }
@@ -151,4 +189,20 @@ ushort DlmsReader::GetChecksum(int checksumPosition)
 {
     return (ushort)(buffer[checksumPosition + 2] << 8 |
         buffer[checksumPosition + 1]);
+}
+
+void DlmsReader::debugPrint(byte *buffer, int start, int length, Print* debugger) {
+	for (int i = start; i < start + length; i++) {
+		if (buffer[i] < 0x10)
+			debugger->print("0");
+		debugger->print(buffer[i], HEX);
+		debugger->print(" ");
+		if ((i - start + 1) % 16 == 0)
+			debugger->println("");
+		else if ((i - start + 1) % 4 == 0)
+			debugger->print(" ");
+
+		yield(); // Let other get some resources too
+	}
+	debugger->println("");
 }

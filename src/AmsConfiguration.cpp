@@ -968,6 +968,7 @@ void AmsConfiguration::print(Print* debugger)
 	debugger->println("-----------------------------------------------");
 	debugger->printf("WiFi SSID:            '%s'\r\n", this->getWifiSsid());
 	debugger->printf("WiFi Psk:             '%s'\r\n", this->getWifiPassword());
+	delay(1);
 	
 	if(strlen(getWifiIp()) > 0) {
 		debugger->printf("IP:                   '%s'\r\n", this->getWifiIp());
@@ -976,6 +977,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf("Primary DNS:          '%s'\r\n", this->getWifiDns1());
 		debugger->printf("Secondary DNS:        '%s'\r\n", this->getWifiDns2());
 	}
+	delay(1);
 	
 	debugger->printf("WiFi Host:            '%s'\r\n", this->getWifiHostname());
 
@@ -992,6 +994,7 @@ void AmsConfiguration::print(Print* debugger)
 		}
 		debugger->printf("payload format:       %i\r\n", this->getMqttPayloadFormat());
 	}
+	delay(1);
 
 	if (this->getAuthSecurity()) {
 		debugger->printf("WEB AUTH:\r\n");
@@ -1006,6 +1009,7 @@ void AmsConfiguration::print(Print* debugger)
 	debugger->printf("productionCapacity:   %i\r\n", this->getProductionCapacity());
 	debugger->printf("Substitute missing:   %s\r\n", this->isSubstituteMissing() ? "Yes" : "No");
 	Serial.flush();
+	delay(1);
 
 	debugger->printf("HAN pin:              %i\r\n", this->getHanPin());
 	debugger->printf("LED pin:              %i\r\n", this->getLedPin());
@@ -1017,6 +1021,7 @@ void AmsConfiguration::print(Print* debugger)
 	debugger->printf("AP pin:               %i\r\n", this->getApPin());
 	debugger->printf("Temperature pin:      %i\r\n", this->getTempSensorPin());
 	Serial.flush();
+	delay(1);
 
 	debugger->printf("Vcc pin:              %i\r\n", this->getVccPin());
 	debugger->printf("Vcc multiplier:       %f\r\n", this->getVccMultiplier());
@@ -1030,6 +1035,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf("Domoticz VL3IDX:      %i\r\n", this->getDomoVL3IDX());
 		debugger->printf("Domoticz CL1IDX:      %i\r\n", this->getDomoCL1IDX());
 	}
+	delay(1);
 
 	debugger->printf("NTP:                  %s\r\n", this->isNtpEnable() ? "Yes" : "No");
 	if(this->isNtpEnable()) {
@@ -1038,6 +1044,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf("NTP server:           %s\r\n", this->getNtpServer());
 		debugger->printf("NTP DHCP:             %s\r\n", this->isNtpDhcp() ? "Yes" : "No");
 	}
+	delay(1);
 	
 	debugger->printf("Temp sensor count:    %i\r\n", this->getTempSensorCount());
 

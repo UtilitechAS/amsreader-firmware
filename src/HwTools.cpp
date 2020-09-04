@@ -97,14 +97,12 @@ bool HwTools::updateTemperatures() {
             oneWire = new OneWire(tempSensorPin);
             sensorApi = new DallasTemperature(this->oneWire);
             sensorApi->begin();
-            delay(50);
+            delay(100);
             tempSensorInit = true;
 
             DeviceAddress addr;
             sensorApi->requestTemperatures();
             int c = sensorApi->getDeviceCount();
-            //Serial.print("Sensors found: ");
-            //Serial.println(c);
             for(int i = 0; i < c; i++) {
                 bool found = false;
                 sensorApi->getAddress(addr, i);

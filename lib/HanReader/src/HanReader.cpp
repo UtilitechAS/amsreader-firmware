@@ -31,7 +31,7 @@ void HanReader::setAuthenticationKey(uint8_t* authentication_key) {
 
 
 bool HanReader::read(byte data) {
-	if (reader.Read(data)) {
+	if (reader.Read(data, debugger->isActive(RemoteDebug::DEBUG) ? debugger : NULL)) {
 		bytesRead = reader.GetRawData(buffer, 0, 512);
 		if (debugger->isActive(RemoteDebug::INFO)) {
 			printI("Got valid DLMS data (%d bytes)", bytesRead);

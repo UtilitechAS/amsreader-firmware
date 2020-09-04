@@ -135,9 +135,10 @@ void AmsWebServer::temperature() {
 
 	String html;
 	int c = hw->getTempSensorCount();
+	int num = 8;
 
 	int start = server.hasArg("start") && !server.arg("start").isEmpty() ? server.arg("start").toInt() : 0;
-	int end = min(start + 4, c);
+	int end = min(start + num, c);
 
 	for(int i = start; i < end; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
@@ -160,7 +161,7 @@ void AmsWebServer::temperature() {
 		html += "<div class=\"row\"><div class=\"col-6\">";
 		if(start > 0) {
 			html += "<a href=\"?start=";
-			html += String(start-4, DEC);
+			html += String(start-num, DEC);
 			html += "\" class=\"btn btn-sm btn-outline-secondary\">previous</a>";
 		}
 		html += "</div><div class=\"col-6 text-right\">";

@@ -122,6 +122,7 @@ void setup() {
 			config.setTempSensorPin(14);
 		#endif
 	}
+	delay(1);
 
 	hw.setLed(config.getLedPin(), config.isLedInverted());
 	hw.setLedRgb(config.getLedPinRed(), config.getLedPinGreen(), config.getLedPinBlue(), config.isLedRgbInverted());
@@ -157,6 +158,13 @@ void setup() {
 			Debug.setSerialEnabled(true);
 		#endif
 	}
+	delay(1);
+
+	uint8_t c = config.getTempSensorCount();
+	for(int i = 0; i < c; i++) {
+		TempSensorConfig* tsc = config.getTempSensorConfig(i);
+		hw.confTempSensor(tsc->address, tsc->name, tsc->common);
+	}
 
 	double vcc = hw.getVcc();
 
@@ -188,6 +196,7 @@ void setup() {
 	debugD("ESP8266 SPIFFS");
 	spiffs = SPIFFS.begin();
 #endif
+	delay(1);
 
 	if(spiffs) {
 		bool flashed = false;
@@ -244,6 +253,7 @@ void setup() {
 			return;
 		}
 	}
+	delay(1);
 
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
@@ -325,9 +335,10 @@ void loop() {
 		hw.updateTemperatures();
 		lastTemperatureRead = now;
 
+		uint8_t c = hw.getTempSensorCount();
+
 		if(strlen(config.getMqttHost()) > 0) {
 			bool anyChanged = false;
-			uint8_t c = hw.getTempSensorCount();
 			for(int i = 0; i < c; i++) {
 				bool changed = false;
 				TempSensorData* data = hw.getTempSensorData(i);

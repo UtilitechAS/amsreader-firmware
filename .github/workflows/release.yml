@@ -55,32 +55,14 @@ jobs:
         release_name: Release ${{ github.ref }}
         draft: false
         prerelease: false
-    - name: Upload hw1esp12e binary to release
+    - name: Upload esp8266 binary to release
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/hw1esp12e/firmware.bin
-        asset_name: ams2mqtt-hw1esp12e-${{ steps.release_tag.outputs.tag }}.bin
-        asset_content_type: application/octet-stream
-    - name: Upload esp12e binary to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/esp12e/firmware.bin
-        asset_name: ams2mqtt-esp12e-${{ steps.release_tag.outputs.tag }}.bin
-        asset_content_type: application/octet-stream
-    - name: Upload d1mini binary to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/d1mini/firmware.bin
-        asset_name: ams2mqtt-d1mini-${{ steps.release_tag.outputs.tag }}.bin
+        asset_path: .pio/build/esp8266/firmware.bin
+        asset_name: ams2mqtt-esp8266-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream
     - name: Upload esp32 binary to release
       uses: actions/upload-release-asset@v1
@@ -90,40 +72,4 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: .pio/build/esp32/firmware.bin
         asset_name: ams2mqtt-esp32-${{ steps.release_tag.outputs.tag }}.bin
-        asset_content_type: application/octet-stream
-    - name: Upload lolind32 binary to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/lolind32/firmware.bin
-        asset_name: ams2mqtt-lolind32-${{ steps.release_tag.outputs.tag }}.bin
-        asset_content_type: application/octet-stream
-    - name: Upload featheresp32 binary to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/featheresp32/firmware.bin
-        asset_name: ams2mqtt-featheresp32-${{ steps.release_tag.outputs.tag }}.bin
-        asset_content_type: application/octet-stream
-    - name: Upload azdevkit4 binary to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/az-delivery-devkit-v4/firmware.bin
-        asset_name: ams2mqtt-azdevkit4-${{ steps.release_tag.outputs.tag }}.bin
-        asset_content_type: application/octet-stream
-    - name: Upload doitdevkit1 binary to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/esp32doit-devkit-v1/firmware.bin
-        asset_name: ams2mqtt-doitdevkit1-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream

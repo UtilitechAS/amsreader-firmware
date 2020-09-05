@@ -106,6 +106,7 @@ $(function() {
     });
     $('#ntpEnable').trigger('change');
 
+    // Navbar
     switch(window.location.pathname) {
         case '/temperature':
             $('#config-temp-link').addClass('active');
@@ -133,6 +134,7 @@ $(function() {
             break;
     }
 
+    // Check for software upgrade
     var swv = $('#swVersion')
     if(meters.length > 0 && swv.length == 1 && swv.text() != "SNAPSHOT") {
         var v = swv.text().substring(1).split('.');
@@ -190,6 +192,12 @@ $(function() {
                 $('#newVersion').removeClass('d-none');
             }
         });
+    }
+
+    // Temperature
+    var tt = $('#temp-template');
+    if(tt.length > 0) {
+        setTimeout(loadTempSensors, 500);
     }
 });
 
@@ -355,4 +363,41 @@ var upgrade = function() {
             window.location.href="/upgrade?version=" + nextVersion.tag_name;
         }
     }
+}
+
+var loadTempSensors = function() {
+    $.ajax({
+        url: '/temperature.json',
+        timeout: 10000,
+        dataType: 'json',
+    }).done(function(json) {
+        if($('#loading').length > 0) {
+            $('#loading').hide();
+
+            var list = $('#sensors');
+            if(json.c > 0) {
+                list.empty();
+                var temp = $.trim($('#temp-template').html());
+                $.each(json.s, function(i, o) {
+                    var item = temp.replace(/{{index}}/ig, o.i);
+                    var item = item.replace(/{{address}}/ig, o.a);
+                    var item = item.replace(/{{name}}/ig, o.n);
+                    var item = item.replace(/{{value}}/ig, o.v > -50 && o.v < 127 ? o.v : "N/A");
+                    var item = item.replace(/{{common}}/ig, o.c ? "checked" : "");
+                    list.append(item);
+                });
+            } else {
+                $('#notemp').show();
+            }
+        } else {
+            $.each(json.s, function(i, o) {
+                $('#temp-'+o.i).html(o.v > -50 && o.v < 127 ? o.v : "N/A");
+            });
+        }
+        setTimeout(loadTempSensors, 10000);
+    }).fail(function() {
+        setTimeout(loadTempSensors, 60000);
+        $('#loading').hide();
+        $('#error').show();
+    });
 }

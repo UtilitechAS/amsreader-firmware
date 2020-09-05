@@ -62,6 +62,7 @@ private:
 	void applicationJs();
 	void temperature();
 	void temperaturePost();
+	void temperatureJson();
 	void configMeterHtml();
 	void configWifiHtml();
 	void configMqttHtml();

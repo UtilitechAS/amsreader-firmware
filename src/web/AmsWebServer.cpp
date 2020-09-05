@@ -22,10 +22,7 @@
 #include "root/upload_html.h"
 #include "root/delete_html.h"
 #include "root/reset_html.h"
-#include "root/temperature_head_html.h"
-#include "root/temperature_row_html.h"
-#include "root/temperature_none_html.h"
-#include "root/temperature_foot_html.h"
+#include "root/temperature_html.h"
 
 #include "base64.h"
 
@@ -43,6 +40,7 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/application.js", HTTP_GET, std::bind(&AmsWebServer::applicationJs, this));
 	server.on("/temperature", HTTP_GET, std::bind(&AmsWebServer::temperature, this));
 	server.on("/temperature", HTTP_POST, std::bind(&AmsWebServer::temperaturePost, this));
+	server.on("/temperature.json", HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
 	server.on("/config-meter", HTTP_GET, std::bind(&AmsWebServer::configMeterHtml, this));
 	server.on("/config-wifi", HTTP_GET, std::bind(&AmsWebServer::configWifiHtml, this));
 	server.on("/config-mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
@@ -133,74 +131,71 @@ void AmsWebServer::temperature() {
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
 
-	String html;
-	int c = hw->getTempSensorCount();
-	int num = 8;
-
-	int start = server.hasArg("start") && !server.arg("start").isEmpty() ? server.arg("start").toInt() : 0;
-	int end = min(start + num, c);
-
-	for(int i = start; i < end; i++) {
-		TempSensorData* data = hw->getTempSensorData(i);
-		
-		String row = String((const __FlashStringHelper*) TEMPERATURE_ROW_HTML);
-		row.replace("${index}", String(i-start, DEC));
-		row.replace("${address}", toHex(data->address, 8));
-		row.replace("${name}", data->name);
-		row.replace("${common}", data->common ? "checked" : "");
-		row.replace("${value}", data->lastRead > -85 ? String(data->lastRead, 1) : "N/A");
-
-		html += row;
-	}
-
-	if(c == 0) {
-		html += String((const __FlashStringHelper*) TEMPERATURE_NONE_HTML);
-	}
-
-	if(start > 0 || end < c) {
-		html += "<div class=\"row\"><div class=\"col-6\">";
-		if(start > 0) {
-			html += "<a href=\"?start=";
-			html += String(start-num, DEC);
-			html += "\" class=\"btn btn-sm btn-outline-secondary\">previous</a>";
-		}
-		html += "</div><div class=\"col-6 text-right\">";
-		if(end < c) {
-			html += "<a href=\"?start=";
-			html += String(end, DEC);
-			html += "\" class=\"btn btn-sm btn-outline-secondary\">next</a>";
-		}
-		html += "</div></div>";
-	}
-
-	server.setContentLength(html.length() + HEAD_HTML_LEN + TEMPERATURE_HEAD_HTML_LEN + FOOT_HTML_LEN + TEMPERATURE_FOOT_HTML_LEN);
+	server.setContentLength(HEAD_HTML_LEN + TEMPERATURE_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
-	server.sendContent_P(TEMPERATURE_HEAD_HTML);
-	server.sendContent(html);
-	server.sendContent_P(TEMPERATURE_FOOT_HTML);
+	server.sendContent_P(TEMPERATURE_HTML);
 	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::temperaturePost() {
-	int start = server.hasArg("start") && !server.arg("start").isEmpty() ? server.arg("start").toInt() : 0;
-	for(int i = 0; i < 4; i++) {
+	printD("Saving temperature sensors...");
+	for(int i = 0; i < 32; i++) {
 		if(!server.hasArg("sensor" + String(i, DEC))) break;
 		String address  = server.arg("sensor" + String(i, DEC));
-		String name = server.arg("sensor" + String(i, DEC) + "name");
+		String name = server.arg("sensor" + String(i, DEC) + "name").substring(0,16);
 		bool common = server.hasArg("sensor" + String(i, DEC) + "common") && server.arg("sensor" + String(i, DEC) + "common") == "true";
+		if(debugger->isActive(RemoteDebug::DEBUG)) {
+			debugger->printf("Addr: %s, name: %s\n", address.c_str(), name.c_str());
+		}
 		config->updateTempSensorConfig(fromHex(address, 8), name.c_str(), common);
+		delay(1);
 	}
 
 	if(config->save()) {
-		server.sendHeader("Location", String("/temperature?start=") + String(start, DEC), true);
+		printD("Successfully saved temperature sensors");
+		server.sendHeader("Location", String("/temperature"), true);
 		server.send (302, "text/plain", "");
 
 		uint8_t c = config->getTempSensorCount();
 		for(int i = 0; i < c; i++) {
 			TempSensorConfig* tsc = config->getTempSensorConfig(i);
 			hw->confTempSensor(tsc->address, tsc->name, tsc->common);
+			delay(1);
 		}
 	}
+}
+
+void AmsWebServer::temperatureJson() {
+	printD("Serving /temperature.json over http...");
+
+	if(!checkSecurity(2))
+		return;
+
+	int count = hw->getTempSensorCount();
+
+	StaticJsonDocument<4096> json;
+	json["c"] = count;
+	JsonArray sensors = json.createNestedArray("s");
+	for(int i = 0; i < count; i++) {
+		TempSensorData* data = hw->getTempSensorData(i);
+		JsonObject obj = sensors.createNestedObject();
+		obj["i"] = i;
+		obj["a"] = toHex(data->address, 8);
+		obj["n"] = String(data->name).substring(0,16);
+		obj["v"] = String(data->lastRead, 2);
+		obj["c"] = data->common;
+		delay(1);
+	}
+
+    String jsonStr;
+	serializeJson(json, jsonStr);
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+
+	server.setContentLength(jsonStr.length());
+	server.send(200, "application/json", jsonStr);
 }
 
 void AmsWebServer::indexHtml() {

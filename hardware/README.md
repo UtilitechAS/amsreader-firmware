@@ -11,6 +11,12 @@ Building this project will require some skills in ordering and assembling electr
 
 *The completed board mounted in a [3D printed enclosure](/Enclosure)*
 
+## HAN reader 2.0 by [@dakarym](https://github.com/dakarym)
+A board that does not require external power source. This have only been successfully tested on Aidon as far as I know. It draws too much power for Kamstrup, but it may work with Kaifa. The design is almost 
+completely built with SMD components, so advanced soldering skills are required to make this one.
+
+[View his design here](https://github.com/dakarym/AmsToMqttBridge/tree/master/PCB)
+
 ## Assembly of readily available modules
 You can also use a ESP based development board and combine this with a M-Bus module. Here are a few boards that have been tested, each one has a dedicated firmware file in the releases section. 
 
@@ -23,7 +29,7 @@ You can also use a ESP based development board and combine this with a M-Bus mod
 
 ### ESP32 based boards
 
-[Wemos D32](https://docs.wemos.cc/en/latest/d32/d32.html) 
+[Wemos Lolin D32](https://docs.wemos.cc/en/latest/d32/d32.html) 
 - M-Bus connected to GPIO16
 - Jump GPIO4 to GND to force AP mode during boot
 - Dallas temp sensor connected to GPIO14

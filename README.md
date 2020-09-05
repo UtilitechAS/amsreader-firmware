@@ -12,14 +12,8 @@ Look in [hardware section](/hardware) for more details about supported hardware
 
 ## Release binaries
 
-In the [Release section](https://github.com/gskjold/AmsToMqttBridge/releases) of this repository, you will find precompiled binaries for some common boards.
+In the [Release section](https://github.com/gskjold/AmsToMqttBridge/releases) of this repository, you will find precompiled binaries for ESP8266 and ESP32 boards.
 
-- _hw1esp12e_ :: First version custom hardware with ESP 12E of 12F chip
-- _esp12e_ :: General ESP8266 board with 12E or 12F chip
-- _d1mini_ :: Wemos D1 mini
-- _esp32_ :: General ESP32 board
-- _lolind32_ :: Wemos D32
-- _featheresp32_ :: Adafruit ESP32 feather
 
 ### Flashing binaries with [esptool.py](https://github.com/espressif/esptool)
 

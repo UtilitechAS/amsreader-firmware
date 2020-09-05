@@ -1,7 +1,7 @@
 #ifndef _KAIFA_h
 #define _KAIFA_h
 
-enum class Kaifa : byte {
+enum class Kaifa {
 	List1			= 0x01,
 	List1PhaseShort	= 0x09,
 	List3PhaseShort	= 0x0D,

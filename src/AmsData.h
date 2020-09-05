@@ -8,6 +8,7 @@
 #define METER_TYPE_KAIFA 1
 #define METER_TYPE_AIDON 2
 #define METER_TYPE_KAMSTRUP 3
+#define METER_TYPE_OMNIPOWER 4
 
 class AmsData {
 public:
@@ -62,6 +63,7 @@ private:
     void extractFromKaifa(HanReader& hanReader, int listSize);
     void extractFromAidon(HanReader& hanReader, int listSize, bool substituteMissing);
     void extractFromKamstrup(HanReader& hanReader, int listSize, bool substituteMissing);
+    void extractFromOmnipower(HanReader& hanReader, int listSize);
 };
 
 #endif

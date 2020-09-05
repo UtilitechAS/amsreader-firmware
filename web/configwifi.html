@@ -24,6 +24,11 @@
                         <span class="input-group-text">Hostname</span>
                     </div>
                     <input type="text" name="wifiHostname" class="form-control" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader" value="${config.wifiHostname}"/>
+                    <div class="input-group-append" title="Enable mDNS">
+                        <label class="input-group-text">
+                            <input type="checkbox" name="mDnsEnable" value="true" ${config.mDnsEnable}/> mDNS
+                        </label>
+                    </div>
                 </div>
             </div>
             <div class="col-xl-2 col-md-6 form-group">

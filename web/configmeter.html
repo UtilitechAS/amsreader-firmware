@@ -12,6 +12,7 @@
                         <option value="1" ${config.meterType1}>Kaifa</option>
                         <option value="2" ${config.meterType2}>Aidon</option>
                         <option value="3" ${config.meterType3}>Kamstrup</option>
+                        <option value="4" ${config.meterType4}>Kamstrup (Omnipower)</option>
                     </select>
                 </div>
             </div>
@@ -52,6 +53,22 @@
                     <div class="input-group-append">
                         <span class="input-group-text">kWp</span>
                     </div>
+                </div>
+            </div>
+            <div class="col-lg-6 encryption">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Encryption key</span>
+                    </div>
+                    <input class="form-control" name="meterEncryptionKey" type="text" value="${config.meterEncryptionKey}" placeholder="0x00000000000000000000000000000000"/>
+                </div>
+            </div>
+            <div class="col-lg-6 encryption">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Authentication key</span>
+                    </div>
+                    <input class="form-control" name="meterAuthenticationKey" type="text" value="${config.meterAuthenticationKey}" placeholder="0x00000000000000000000000000000000"/>
                 </div>
             </div>
             <div id="substitute" class="col-lg-3 col-md-4 col-sm-5">

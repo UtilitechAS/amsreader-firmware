@@ -16,7 +16,7 @@ class DlmsReader
 {
   public:
     DlmsReader();
-    bool Read(byte data);
+    bool Read(byte data, Print* Debug);
     int GetRawData(byte *buffer, int start, int length);
     
   protected:
@@ -37,6 +37,7 @@ class DlmsReader
     unsigned short GetChecksum(int checksumPosition);
     bool IsValidFrameFormat(byte frameFormatType);
     void WriteBuffer();
+    void debugPrint(byte *buffer, int start, int length, Print* debugger);
 };
 
 #endif

@@ -18,13 +18,29 @@
 #define LED_BLUE 3
 #define LED_YELLOW 4
 
+struct TempSensorData {
+    uint8_t address[8];
+    char name[32];
+    bool common;
+    float lastRead;
+    float lastValidRead;
+};
+
 class HwTools {
 public:
     void setTempSensorPin(int tempSensorPin);
+    void setTempAnalogSensorPin(int tempAnalogSensorPin);
     void setVccPin(int vccPin);
+    void setVccOffset(double vccOffset);
     void setVccMultiplier(double vccMultiplier);
     double getVcc();
+    void confTempSensor(uint8_t address[8], const char name[32], bool common);
+    uint8_t getTempSensorCount();
+    TempSensorData* getTempSensorData(uint8_t i);
+    bool updateTemperatures();
     double getTemperature();
+    double getTemperatureAnalog();
+    double getTemperature(uint8_t address[8]);
     int getWifiRssi();
     void setLed(uint8_t ledPin, bool ledInverted);
     void setLedRgb(uint8_t ledPinRed, uint8_t ledPinGreen, uint8_t ledPinBlue, bool ledRgbInverted);
@@ -34,16 +50,21 @@ public:
 
     HwTools() {};
 private:
-    uint8_t tempSensorPin = -1;
-    uint8_t vccPin = -1;
-    uint8_t ledPin = -1, ledPinRed = -1, ledPinGreen = -1, ledPinBlue = -1;
+    uint8_t tempSensorPin = 0xFF, tempAnalogSensorPin = 0xFF;
+    uint8_t vccPin = 0xFF;
+    uint8_t ledPin = 0xFF, ledPinRed = 0xFF, ledPinGreen = 0xFF, ledPinBlue = 0xFF;
     bool ledInverted, ledRgbInverted;
+    double vccOffset = 0.0;
     double vccMultiplier = 1.0;
-    bool tempSensorInit, hasTempSensor;
+    
+    bool tempSensorInit;
     OneWire *oneWire;
-    DallasTemperature *tempSensor;
+    DallasTemperature *sensorApi;
+    uint8_t sensorCount = 0;
+    TempSensorData *tempSensors[32];
 
     bool writeLedPin(uint8_t color, uint8_t state);
+    bool isSensorAddressEqual(uint8_t a[8], uint8_t b[8]);
 };
 
 #endif

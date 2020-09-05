@@ -22,19 +22,7 @@
 #include <ArduinoJson.h>
 #include <MQTT.h>
 #include <DNSServer.h>
-// Tz.h does not exist for esp32, need to include time.h, timezone offsets to be given given in sec.
-#define NTP_SERVER "pool.ntp.org"  // put your local NTP server here
-#if defined(ESP8266)
-#include <TZ.h>
-#define MYTZ TZ_Europe_Oslo
-#elif defined(ESP32)
-#include <time.h>
-#define TZ            1               // (utc+) TZ in hours
-#define DST_MN        60              // use 60mn for summer time in some countries
-#define GMT_OFFSET_SEC 3600 * TZ      // Do not change here...
-#define DAYLIGHT_OFFSET_SEC 60 * DST_MN // Do not change here...
-#endif   
-
+#include <lwip/apps/sntp.h>
 
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);  
@@ -50,6 +38,7 @@ ADC_MODE(ADC_VCC);
 #include "Aidon.h"
 #include "Kaifa.h"
 #include "Kamstrup.h"
+#include "Omnipower.h"
 
 #include "Uptime.h"
 
@@ -74,7 +63,6 @@ MQTTClient mqtt(512);
 HanReader hanReader;
 
 Stream *hanSerial;
-int hanSerialPin = 0;
 
 void setup() {
 	if(config.hasConfig()) {
@@ -134,12 +122,15 @@ void setup() {
 			config.setTempSensorPin(14);
 		#endif
 	}
+	delay(1);
 
 	hw.setLed(config.getLedPin(), config.isLedInverted());
 	hw.setLedRgb(config.getLedPinRed(), config.getLedPinGreen(), config.getLedPinBlue(), config.isLedRgbInverted());
 	hw.setTempSensorPin(config.getTempSensorPin());
+	hw.setTempAnalogSensorPin(config.getTempAnalogSensorPin());
 	hw.setVccPin(config.getVccPin());
 	hw.setVccMultiplier(config.getVccMultiplier());
+	hw.setVccOffset(config.getVccOffset());
 	hw.ledBlink(LED_INTERNAL, 1);
 	hw.ledBlink(LED_RED, 1);
 	hw.ledBlink(LED_YELLOW, 1);
@@ -147,10 +138,14 @@ void setup() {
 	hw.ledBlink(LED_BLUE, 1);
 
 	if(config.getHanPin() == 3) {
-		if(config.getMeterType() == 3) {
-			Serial.begin(2400, SERIAL_8N1);
-		} else {
-			Serial.begin(2400, SERIAL_8E1);
+		switch(config.getMeterType()) {
+			case METER_TYPE_KAMSTRUP:
+			case METER_TYPE_OMNIPOWER:
+				Serial.begin(2400, SERIAL_8N1);
+				break;
+			default:
+				Serial.begin(2400, SERIAL_8E1);
+				break;
 		}
 	} else {
 		Serial.begin(115200);
@@ -162,6 +157,13 @@ void setup() {
 		#if DEBUG_MODE
 			Debug.setSerialEnabled(true);
 		#endif
+	}
+	delay(1);
+
+	uint8_t c = config.getTempSensorCount();
+	for(int i = 0; i < c; i++) {
+		TempSensorConfig* tsc = config.getTempSensorConfig(i);
+		hw.confTempSensor(tsc->address, tsc->name, tsc->common);
 	}
 
 	double vcc = hw.getVcc();
@@ -194,6 +196,7 @@ void setup() {
 	debugD("ESP8266 SPIFFS");
 	spiffs = SPIFFS.begin();
 #endif
+	delay(1);
 
 	if(spiffs) {
 		bool flashed = false;
@@ -250,16 +253,15 @@ void setup() {
 			return;
 		}
 	}
+	delay(1);
 
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
 		WiFi_connect();
-#if defined(ESP8266)
-  		configTime(MYTZ, NTP_SERVER);
-#elif defined(ESP32)
-  		configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
-#endif
-		//sntp_servermode_dhcp(0); // 0: disable obtaining SNTP servers from DHCP (enabled by default)
+		if(config.isNtpEnable()) {
+			configTime(config.getNtpOffset(), config.getNtpSummerOffset(), config.getNtpServer());
+			sntp_servermode_dhcp(config.isNtpDhcp() ? 1 : 0);
+		}
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("No configuration, booting AP");
@@ -270,6 +272,7 @@ void setup() {
 	ws.setup(&config, &mqtt);
 }
 
+
 int buttonTimer = 0;
 bool buttonActive = false;
 unsigned long longPressTime = 5000;
@@ -278,9 +281,8 @@ bool longPressActive = false;
 bool wifiConnected = false;
 
 unsigned long lastTemperatureRead = 0;
-double temperature = -127;
+float temperatures[32];
 
-unsigned long lastRead = 0;
 unsigned long lastSuccessfulRead = 0;
 
 unsigned long lastErrorBlink = 0; 
@@ -288,6 +290,19 @@ int lastError = 0;
 
 // domoticz energy init
 double energy = -1.0;
+
+String toHex(uint8_t* in) {
+	String hex;
+	for(int i = 0; i < sizeof(in)*2; i++) {
+		if(in[i] < 0x10) {
+			hex += '0';
+		}
+		hex += String(in[i], HEX);
+	}
+	hex.toUpperCase();
+	return hex;
+}
+
 
 void loop() {
 	Debug.handle();
@@ -315,9 +330,45 @@ void loop() {
 		}
 	}
 	
-	if(now - lastTemperatureRead > 5000) {
-		temperature = hw.getTemperature();
+	if(now - lastTemperatureRead > 15000) {
+		unsigned long start = millis();
+		hw.updateTemperatures();
 		lastTemperatureRead = now;
+
+		uint8_t c = hw.getTempSensorCount();
+
+		if(strlen(config.getMqttHost()) > 0) {
+			bool anyChanged = false;
+			for(int i = 0; i < c; i++) {
+				bool changed = false;
+				TempSensorData* data = hw.getTempSensorData(i);
+				if(data->lastValidRead > -85) {
+					changed = data->lastValidRead != temperatures[i];
+					temperatures[i] = data->lastValidRead;
+				}
+
+				if((changed && config.getMqttPayloadFormat() == 1) || config.getMqttPayloadFormat() == 2) {
+					mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature/" + toHex(data->address), String(temperatures[i], 2));
+				}
+
+				anyChanged |= changed;
+			}
+
+			if(anyChanged && config.getMqttPayloadFormat() == 0) {
+				StaticJsonDocument<512> json;
+				JsonObject temps = json.createNestedObject("temperatures");
+				for(int i = 0; i < c; i++) {
+				TempSensorData* data = hw.getTempSensorData(i);
+					JsonObject obj = temps.createNestedObject(toHex(data->address));
+					obj["name"] = data->name;
+					obj["value"] = serialized(String(temperatures[i], 2));
+				}
+				String msg;
+				serializeJson(json, msg);
+				mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
+			}
+		}
+		debugD("Used %d ms to update temperature", millis()-start);
 	}
 
 	// Only do normal stuff if we're not booted as AP
@@ -341,10 +392,21 @@ void loop() {
 					debugI("Successfully connected to WiFi!");
 					debugI("IP: %s", WiFi.localIP().toString().c_str());
 				}
-				if(strlen(config.getWifiHostname()) > 0) {
-					MDNS.begin(config.getWifiHostname());
-					MDNS.addService("http", "tcp", 80);
+				if(strlen(config.getWifiHostname()) > 0 && config.isMdnsEnable()) {
+					debugD("mDNS is enabled, using host: %s", config.getWifiHostname());
+					if(MDNS.begin(config.getWifiHostname())) {
+						MDNS.addService("http", "tcp", 80);
+					} else {
+						debugE("Failed to set up mDNS!");
+					}
 				}
+			}
+			if(config.isNtpChanged()) {
+				if(config.isNtpEnable()) {
+					configTime(config.getNtpOffset(), config.getNtpSummerOffset(), config.getNtpServer());
+					sntp_servermode_dhcp(config.isNtpDhcp() ? 1 : 0);
+				}
+				config.ackNtpChange();
 			}
 			#if defined ESP8266
 			MDNS.update();
@@ -377,21 +439,18 @@ void loop() {
 		}
 	}
 
-	if(hanSerialPin != config.getHanPin()) {
+	if(config.isMeterChanged()) {
 		setupHanPort(config.getHanPin(), config.getMeterType());
+		config.ackMeterChanged();
 	}
-
-	if(now - lastRead > 100) {
-		yield();
-		readHanPort();
-		lastRead = now;
-	}
+	delay(1);
+	readHanPort();
 	ws.loop();
 	delay(1); // Needed for auto modem sleep
 }
 
-void setupHanPort(int pin, int meterType) {
-	debugI("Setting up HAN on pin %d for meter type %d", pin, meterType);
+void setupHanPort(int pin, int newMeterType) {
+	debugI("Setting up HAN on pin %d for meter type %d", pin, newMeterType);
 
 	HardwareSerial *hwSerial = NULL;
 	if(pin == 3) {
@@ -414,33 +473,41 @@ void setupHanPort(int pin, int meterType) {
 	if(hwSerial != NULL) {
 		debugD("Hardware serial");
 		Serial.flush();
-		if(meterType == 3) {
-			hwSerial->begin(2400, SERIAL_8N1);
-		} else {
-			hwSerial->begin(2400, SERIAL_8E1);
+		switch(newMeterType) {
+			case METER_TYPE_KAMSTRUP:
+			case METER_TYPE_OMNIPOWER:
+				hwSerial->begin(2400, SERIAL_8N1);
+				break;
+			default:
+				hwSerial->begin(2400, SERIAL_8E1);
+				break;
 		}
-		hanSerialPin = pin;
 		hanSerial = hwSerial;
 	} else {
 		debugD("Software serial");
 		Serial.flush();
 		SoftwareSerial *swSerial = new SoftwareSerial(pin);
 
-		if(meterType == 3) {
-			swSerial->begin(2400, SWSERIAL_8N1);
-		} else {
-			swSerial->begin(2400, SWSERIAL_8E1);
+		switch(newMeterType) {
+			case METER_TYPE_KAMSTRUP:
+			case METER_TYPE_OMNIPOWER:
+				swSerial->begin(2400, SWSERIAL_8N1);
+				break;
+			default:
+				swSerial->begin(2400, SWSERIAL_8E1);
+				break;
 		}
-		hanSerialPin = pin;
 		hanSerial = swSerial;
 
 		Serial.begin(115200);
 	}
 
 	hanReader.setup(hanSerial, &Debug);
+	hanReader.setEncryptionKey(config.getMeterEncryptionKey());
+	hanReader.setAuthenticationKey(config.getMeterAuthenticationKey());
 
 	// Compensate for the known Kaifa bug
-	hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
+	hanReader.compensateFor09HeaderBug = (newMeterType == 1);
 
 	// Empty buffer before starting
 	while (hanSerial->available() > 0) {
@@ -529,11 +596,6 @@ int currentMeterType = 0;
 AmsData lastMqttData;
 void readHanPort() {
 	if (hanReader.read()) {
-		// Empty serial buffer. For some reason this seems to make a difference. Some garbage on the wire after package?
-		while(hanSerial->available()) {
-			hanSerial->read();
-		}
-
 		lastSuccessfulRead = millis();
 
 		if(config.getMeterType() > 0) {
@@ -547,7 +609,7 @@ void readHanPort() {
 				if(strlen(config.getMqttHost()) > 0 && strlen(config.getMqttPublishTopic()) > 0) {
 					if(config.getMqttPayloadFormat() == 0) {
 						StaticJsonDocument<512> json;
-						hanToJson(json, data, hw, temperature, config.getMqttClientId());
+						hanToJson(json, data, hw, hw.getTemperature(), config.getMqttClientId());
 						if (Debug.isActive(RemoteDebug::INFO)) {
 							debugI("Sending data to MQTT");
 							if (Debug.isActive(RemoteDebug::DEBUG)) {
@@ -812,6 +874,7 @@ void readHanPort() {
 		if(++currentMeterType == 4) currentMeterType = 1;
 		setupHanPort(config.getHanPin(), currentMeterType);
 	}
+	delay(1);
 }
 
 unsigned long wifiTimeout = WIFI_CONNECTION_TIMEOUT;
@@ -840,6 +903,10 @@ void WiFi_connect() {
 			dns1.fromString(config.getWifiDns1());
 			dns2.fromString(config.getWifiDns2());
 			WiFi.config(ip, gw, sn, dns1, dns2);
+		} else {
+#if defined(ESP32)
+			WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // Workaround to make DHCP hostname work for ESP32. See: https://github.com/espressif/arduino-esp32/issues/2537
+#endif
 		}
 		if(strlen(config.getWifiHostname()) > 0) {
 #if defined(ESP8266)
@@ -997,7 +1064,7 @@ void sendSystemStatusToMqtt() {
 		mqtt.publish(String(config.getMqttPublishTopic()) + "/vcc", String(vcc, 2));
 	}
 	mqtt.publish(String(config.getMqttPublishTopic()) + "/rssi", String(hw.getWifiRssi()));
-    if(temperature != DEVICE_DISCONNECTED_C) {
-		mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature", String(temperature, 2));
+    if(hw.getTemperature() > -85) {
+		mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature", String(hw.getTemperature(), 2));
     }
 }

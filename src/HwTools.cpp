@@ -3,8 +3,8 @@
 void HwTools::setTempSensorPin(int tempSensorPin) {
     if(tempSensorPin != this->tempSensorPin) {
         this->tempSensorInit = false;
-        if(tempSensor)
-            delete tempSensor;
+        if(sensorApi)
+            delete sensorApi;
         if(oneWire)
             delete oneWire;
         if(tempSensorPin > 0 && tempSensorPin < 40) {
@@ -16,6 +16,17 @@ void HwTools::setTempSensorPin(int tempSensorPin) {
     }
 }
 
+void HwTools::setTempAnalogSensorPin(int tempAnalogSensorPin) {
+    if(tempAnalogSensorPin != this->tempAnalogSensorPin) {
+        if(tempAnalogSensorPin > 0 && tempAnalogSensorPin < 40) {
+            this->tempAnalogSensorPin = tempAnalogSensorPin;
+            pinMode(tempAnalogSensorPin, INPUT);
+        } else {
+            this->tempAnalogSensorPin = 0xFF;
+        }
+    }
+}
+
 void HwTools::setVccPin(int vccPin) {
     if(vccPin > 0 && vccPin < 40) {
         pinMode(vccPin, INPUT);
@@ -23,6 +34,10 @@ void HwTools::setVccPin(int vccPin) {
     } else {
         this->vccPin = 0xFF;
     }
+}
+
+void HwTools::setVccOffset(double vccOffset) {
+    this->vccOffset = vccOffset;
 }
 
 void HwTools::setVccMultiplier(double vccMultiplier) {
@@ -43,29 +58,133 @@ double HwTools::getVcc() {
         #endif
     }
 
-    return volts > 0.0 ? volts * vccMultiplier : 0.0;
+    return vccOffset + (volts > 0.0 ? volts * vccMultiplier : 0.0);
 }
 
-double HwTools::getTemperature() {
+void HwTools::confTempSensor(uint8_t address[8], const char name[32], bool common) {
+    bool found = false;
+    for(int x = 0; x < sensorCount; x++) {
+        TempSensorData *data = tempSensors[x];
+        if(isSensorAddressEqual(data->address, address)) {
+            found = true;
+            strcpy(data->name, name);
+            data->common = common;
+        }
+    }
+    if(!found) {
+        TempSensorData *data = new TempSensorData();
+        memcpy(data->address, address, 8);
+        strcpy(data->name, name);
+        data->common = common;
+        data->lastRead = DEVICE_DISCONNECTED_C;
+        data->lastValidRead = DEVICE_DISCONNECTED_C;
+        tempSensors[sensorCount] = data;
+        sensorCount++;
+    }
+}
+
+uint8_t HwTools::getTempSensorCount() {
+    return sensorCount;
+}
+
+TempSensorData* HwTools::getTempSensorData(uint8_t i) {
+    return tempSensors[i];
+}
+
+bool HwTools::updateTemperatures() {
     if(tempSensorPin != 0xFF) {
         if(!tempSensorInit) {
             oneWire = new OneWire(tempSensorPin);
-            tempSensor = new DallasTemperature(this->oneWire);
-            tempSensor->begin();
-            delay(50);
-            tempSensor->requestTemperatures();
-            hasTempSensor = tempSensor->getTempCByIndex(0) != DEVICE_DISCONNECTED_C;
+            sensorApi = new DallasTemperature(this->oneWire);
+            sensorApi->begin();
+            delay(100);
             tempSensorInit = true;
+
+            DeviceAddress addr;
+            sensorApi->requestTemperatures();
+            int c = sensorApi->getDeviceCount();
+            for(int i = 0; i < c; i++) {
+                bool found = false;
+                sensorApi->getAddress(addr, i);
+                float t = sensorApi->getTempC(addr);
+                for(int x = 0; x < sensorCount; x++) {
+                    TempSensorData *data = tempSensors[x];
+                    if(isSensorAddressEqual(data->address, addr)) {
+                        found = true;
+                        data->lastRead = t;
+                        if(t > -85) {
+                            data->lastValidRead = t;
+                        }
+                    }
+                }
+                if(!found) {
+                    TempSensorData *data = new TempSensorData();
+                    memcpy(data->address, addr, 8);
+                    data->common = true;
+                    data->lastRead = t;
+                    if(t > -85) {
+                        data->lastValidRead = t;
+                    }
+
+                    tempSensors[sensorCount] = data;
+                    sensorCount++;
+                }
+                delay(10);
+            }
+        } else {
+            sensorApi->requestTemperatures();
+
+            for(int x = 0; x < sensorCount; x++) {
+                TempSensorData *data = tempSensors[x];
+                float t = sensorApi->getTempC(data->address);
+                data->lastRead = t;
+                if(t > -85) {
+                    data->lastValidRead = t;
+                }
+            }
         }
 
-        if(hasTempSensor) {
-            tempSensor->requestTemperatures();
-            return tempSensor->getTempCByIndex(0);
-        } else {
-            return DEVICE_DISCONNECTED_C;
+        return true;
+    }
+    return false;
+}
+
+bool HwTools::isSensorAddressEqual(uint8_t a[8], uint8_t b[8]) {
+    for(int i = 0; i < 8; i++) {
+        if(a[i] != b[i]) return false;
+    }
+    return true;
+}
+
+double HwTools::getTemperature() {
+    uint8_t c = 0;
+    double ret = 0;
+    double analogTemp = getTemperatureAnalog();
+    if(analogTemp != DEVICE_DISCONNECTED_C) {
+        ret += analogTemp;
+        c++;
+    }
+    for(int x = 0; x < sensorCount; x++) {
+        TempSensorData data = *tempSensors[x];
+        if(data.common && data.lastValidRead > -85) {
+            ret += data.lastValidRead;
+            c++;
         }
     }
-
+    return c == 0 ? DEVICE_DISCONNECTED_C : ret/c;
+}
+double HwTools::getTemperatureAnalog() {
+    if(tempAnalogSensorPin != 0xFF) {
+        float adcCalibrationFactor = 1.06587;
+        int adcRead = analogRead(tempAnalogSensorPin);
+        int volts;
+        #if defined(ESP8266)
+            volts = (analogRead(vccPin) / 1024.0) * 3.3;
+        #elif defined(ESP32)
+            volts = (analogRead(vccPin) / 4095.0) * 3.3;
+        #endif
+        return ((volts * adcCalibrationFactor) - 0.4) / 0.0195;
+    }
     return DEVICE_DISCONNECTED_C;
 }
 

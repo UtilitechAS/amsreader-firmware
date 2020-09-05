@@ -15,7 +15,7 @@
 class HanReader
 {
 public:
-	const uint dataHeader = 8;
+	uint dataHeader = 8;
 	bool compensateFor09HeaderBug = false;
 
 	HanReader();
@@ -31,6 +31,9 @@ public:
 	time_t getTime(int objectId);
 	int getBuffer(byte* buf);
 
+	void setEncryptionKey(uint8_t* encryption_key);
+	void setAuthenticationKey(uint8_t* authentication_key);
+
 private:
 	RemoteDebug* debugger;
 	Stream *han;
@@ -39,6 +42,8 @@ private:
 	DlmsReader reader;
 	int listSize;
 	Timezone *localZone;
+	uint8_t encryption_key[16];
+	uint8_t authentication_key[16];
 
 	int findValuePosition(int dataPosition, byte *buffer, int start, int length);
 
@@ -53,6 +58,8 @@ private:
 	String getString(int dataPosition, byte *buffer, int start, int length);
 
 	time_t toUnixTime(int year, int month, int day, int hour, int minute, int second);
+
+	bool decryptFrame();
 
 	void debugPrint(byte *buffer, int start, int length);
 

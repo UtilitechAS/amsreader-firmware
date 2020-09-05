@@ -58,13 +58,21 @@ $(function() {
 
     // For config-meter
     $('.subtitute-dependent').on('change', function() {
-        console.log("test");
         if(($('#meterType').val() == 2 || $('#meterType').val() == 3) && $('#distributionSystem').val() == 1) {
             $('#substitute').show();
         } else {
             $('#substitute').hide();
         }
     });
+
+    $('#meterType').on('change', function() {
+        if($('#meterType').val() == 4) {
+            $('.encryption').show();
+        } else {
+            $('.encryption').hide();
+        }
+    });
+
     $('#meterType').trigger('change');
 
     // For config-wifi
@@ -91,11 +99,22 @@ $(function() {
         $(this).next('.custom-file-label').html(fileName);
     })
 
+    // For NTP
+    $('#ntpEnable').on('change', function() {
+        var inputs = $('.ntp-config');
+        inputs.prop('disabled', !$(this).is(':checked'));
+    });
+    $('#ntpEnable').trigger('change');
+
+    // Navbar
     switch(window.location.pathname) {
+        case '/temperature':
+            $('#config-temp-link').addClass('active');
+            break;
         case '/config-meter':
             $('#config-meter-link').addClass('active');
             break;
-        case '/config-wifi':
+            case '/config-wifi':
             $('#config-wifi-link').addClass('active');
             break;
         case '/config-mqtt':
@@ -106,15 +125,16 @@ $(function() {
             $('#config-mqtt-link').addClass('active');
             break;
         case '/config-web':
-            $('#config-web-link').addClass('active');
-            break;
-        case '/config-system':
+        case '/ntp':
+        case '/gpio':
+        case '/debugging':
         case '/firmware':
         case '/reset':
             $('#config-system-link').addClass('active');
             break;
     }
 
+    // Check for software upgrade
     var swv = $('#swVersion')
     if(meters.length > 0 && swv.length == 1 && swv.text() != "SNAPSHOT") {
         var v = swv.text().substring(1).split('.');
@@ -173,6 +193,12 @@ $(function() {
             }
         });
     }
+
+    // Temperature
+    var tt = $('#temp-template');
+    if(tt.length > 0) {
+        setTimeout(loadTempSensors, 500);
+    }
 });
 
 var setStatus = function(id, status) {
@@ -199,8 +225,9 @@ var fetch = function() {
 
         for(var id in json) {
             var str = json[id];
-            if(typeof str === "object")
+            if(typeof str === "object") {
                 continue;
+            }
             if(isNaN(str)) {
                 $('#'+id).html(str);
             } else {
@@ -336,4 +363,41 @@ var upgrade = function() {
             window.location.href="/upgrade?version=" + nextVersion.tag_name;
         }
     }
+}
+
+var loadTempSensors = function() {
+    $.ajax({
+        url: '/temperature.json',
+        timeout: 10000,
+        dataType: 'json',
+    }).done(function(json) {
+        if($('#loading').length > 0) {
+            $('#loading').hide();
+
+            var list = $('#sensors');
+            if(json.c > 0) {
+                list.empty();
+                var temp = $.trim($('#temp-template').html());
+                $.each(json.s, function(i, o) {
+                    var item = temp.replace(/{{index}}/ig, o.i);
+                    var item = item.replace(/{{address}}/ig, o.a);
+                    var item = item.replace(/{{name}}/ig, o.n);
+                    var item = item.replace(/{{value}}/ig, o.v > -50 && o.v < 127 ? o.v : "N/A");
+                    var item = item.replace(/{{common}}/ig, o.c ? "checked" : "");
+                    list.append(item);
+                });
+            } else {
+                $('#notemp').show();
+            }
+        } else {
+            $.each(json.s, function(i, o) {
+                $('#temp-'+o.i).html(o.v > -50 && o.v < 127 ? o.v : "N/A");
+            });
+        }
+        setTimeout(loadTempSensors, 10000);
+    }).fail(function() {
+        setTimeout(loadTempSensors, 60000);
+        $('#loading').hide();
+        $('#error').show();
+    });
 }

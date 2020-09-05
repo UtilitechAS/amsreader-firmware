@@ -84,6 +84,7 @@ void AmsConfiguration::clearWifi() {
 	setWifiSsid("");
 	setWifiPassword("");
 	setWifiHostname("");
+	setMdnsEnable(true);
 	clearWifiIp();
 }
 
@@ -305,12 +306,14 @@ void AmsConfiguration::setSendUnknown(bool sendUnknown) {
 }
 
 void AmsConfiguration::clearMeter() {
+	uint8_t blankKey[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+
 	setMeterType(0);
 	setDistributionSystem(0);
 	setMainFuse(0);
 	setProductionCapacity(0);
-	setMeterEncryptionKey(nullptr);
-	setMeterAuthenticationKey(nullptr);
+	setMeterEncryptionKey(blankKey);
+	setMeterAuthenticationKey(blankKey);
 	setSubstituteMissing(false);
 	setSendUnknown(false);
 }

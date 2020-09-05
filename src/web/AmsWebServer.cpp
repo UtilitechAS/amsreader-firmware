@@ -1403,9 +1403,13 @@ void AmsWebServer::factoryResetHtml() {
 }
 
 void AmsWebServer::factoryResetPost() {
+	printD("Performing factory reset");
 	if(server.hasArg("perform") && server.arg("perform") == "true") {
+		printD("Formatting SPIFFS");
 		SPIFFS.format();
+		printD("Clearing configuration");
 		config->clear();
+		printD("Setting restart flag and redirecting");
 		performRestart = true;
 		server.sendHeader("Location","/restart-wait");
 		server.send(303);

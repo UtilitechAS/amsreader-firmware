@@ -283,7 +283,6 @@ bool wifiConnected = false;
 unsigned long lastTemperatureRead = 0;
 float temperatures[32];
 
-unsigned long lastRead = 0;
 unsigned long lastSuccessfulRead = 0;
 
 unsigned long lastErrorBlink = 0; 
@@ -332,6 +331,7 @@ void loop() {
 	}
 	
 	if(now - lastTemperatureRead > 15000) {
+		unsigned long start = millis();
 		hw.updateTemperatures();
 		lastTemperatureRead = now;
 
@@ -368,6 +368,7 @@ void loop() {
 				mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
 			}
 		}
+		debugD("Used %d ms to update temperature", millis()-start);
 	}
 
 	// Only do normal stuff if we're not booted as AP
@@ -442,12 +443,8 @@ void loop() {
 		setupHanPort(config.getHanPin(), config.getMeterType());
 		config.ackMeterChanged();
 	}
-
-	if(now - lastRead > 100) {
-		yield();
-		readHanPort();
-		lastRead = now;
-	}
+	delay(1);
+	readHanPort();
 	ws.loop();
 	delay(1); // Needed for auto modem sleep
 }
@@ -599,11 +596,6 @@ int currentMeterType = 0;
 AmsData lastMqttData;
 void readHanPort() {
 	if (hanReader.read()) {
-		// Empty serial buffer. For some reason this seems to make a difference. Some garbage on the wire after package?
-		while(hanSerial->available()) {
-			hanSerial->read();
-		}
-
 		lastSuccessfulRead = millis();
 
 		if(config.getMeterType() > 0) {
@@ -840,41 +832,33 @@ void readHanPort() {
 			}
 		} else {
 			// Auto detect meter if not set
-			for(int i = 1; i <= 4; i++) {
+			for(int i = 1; i <= 3; i++) {
 				String list;
 				switch(i) {
-					case METER_TYPE_KAIFA:
+					case 1:
 						list = hanReader.getString((int) Kaifa_List1Phase::ListVersionIdentifier);
 						break;
-					case METER_TYPE_AIDON:
+					case 2:
 						list = hanReader.getString((int) Aidon_List1Phase::ListVersionIdentifier);
 						break;
-					case METER_TYPE_KAMSTRUP:
+					case 3:
 						list = hanReader.getString((int) Kamstrup_List1Phase::ListVersionIdentifier);
-						break;
-					case METER_TYPE_OMNIPOWER:
-						list = hanReader.getString((int) Omnipower_DLMS::ListVersionIdentifier);
 						break;
 				}
 				if(!list.isEmpty()) {
 					list.toLowerCase();
 					if(list.startsWith("kfm")) {
-						config.setMeterType(METER_TYPE_KAIFA);
+						config.setMeterType(1);
 						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kaifa meter");
+						break;
 					} else if(list.startsWith("aidon")) {
-						config.setMeterType(METER_TYPE_AIDON);
+						config.setMeterType(2);
 						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Aidon meter");
+						break;
 					} else if(list.startsWith("kamstrup")) {
-						switch(i) {
-							case METER_TYPE_KAMSTRUP:
-								config.setMeterType(METER_TYPE_KAMSTRUP);
-								if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kamstrup meter");
-								break;
-							case METER_TYPE_OMNIPOWER:
-								config.setMeterType(METER_TYPE_OMNIPOWER);
-								if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kamstrup meter");
-								break;
-						}
+						config.setMeterType(3);
+						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kamstrup meter");
+						break;
 					}
 				}
 			}
@@ -890,6 +874,7 @@ void readHanPort() {
 		if(++currentMeterType == 4) currentMeterType = 1;
 		setupHanPort(config.getHanPin(), currentMeterType);
 	}
+	delay(1);
 }
 
 unsigned long wifiTimeout = WIFI_CONNECTION_TIMEOUT;

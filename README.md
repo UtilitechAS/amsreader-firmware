@@ -38,4 +38,4 @@ It is recommended to use Visual Studio Code with the PlatformIO plugin for devel
 
 [PlatformIO vscode plugin](https://platformio.org/install/ide?install=vscode)
 
-Copy the ```platformio-user.ini-example``` to ```platformio-user.ini``` and customize to your preference. The code will adapt to the platform and board set in your profile. If you are using the original board design by [@roarfred](https://github.com/roarfred) use build flag -D HW_ROARFRED=1
+Copy the ```platformio-user.ini-example``` to ```platformio-user.ini``` and customize to your preference. The code will adapt to the platform and board set in your profile.

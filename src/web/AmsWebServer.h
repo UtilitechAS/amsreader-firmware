@@ -107,7 +107,7 @@ private:
 	void notFound();
 
 	String toHex(uint8_t* in, uint8_t size);
-	uint8_t* fromHex(String in, uint8_t size);
+	void fromHex(uint8_t *out, String in, uint8_t size);
 
 	void printD(String fmt, ...);
 	void printI(String fmt, ...);

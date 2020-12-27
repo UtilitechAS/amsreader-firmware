@@ -147,7 +147,9 @@ void AmsWebServer::temperaturePost() {
 		if(debugger->isActive(RemoteDebug::DEBUG)) {
 			debugger->printf("Addr: %s, name: %s\n", address.c_str(), name.c_str());
 		}
-		config->updateTempSensorConfig(fromHex(address, 8), name.c_str(), common);
+		uint8_t hexStr[8];
+		fromHex(hexStr, address, 8);
+		config->updateTempSensorConfig(hexStr, name.c_str(), common);
 		delay(1);
 	}
 
@@ -343,12 +345,10 @@ String AmsWebServer::toHex(uint8_t* in, uint8_t size) {
 	return hex;
 }
 
-uint8_t* AmsWebServer::fromHex(String in, uint8_t size) {
-	uint8_t ret[size];
+void AmsWebServer::fromHex(uint8_t *out, String in, uint8_t size) {
 	for(int i = 0; i < size*2; i += 2) {
-		ret[i/2] = strtol(in.substring(i, i+2).c_str(), 0, 16);
+		out[i/2] = strtol(in.substring(i, i+2).c_str(), 0, 16);
 	}
-	return ret;
 }
 
 void AmsWebServer::configWifiHtml() {
@@ -786,13 +786,18 @@ void AmsWebServer::handleSave() {
 		String encryptionKeyHex = server.arg("meterEncryptionKey");
 		if(!encryptionKeyHex.isEmpty()) {
 			encryptionKeyHex.replace("0x", "");
-			config->setMeterEncryptionKey(fromHex(encryptionKeyHex, 16));
+			uint8_t hexStr[16];
+			fromHex(hexStr, encryptionKeyHex, 16);
+			config->setMeterEncryptionKey(hexStr);
 		}
+		printD("Meter 8");
 
 		String authenticationKeyHex = server.arg("meterAuthenticationKey");
 		if(!authenticationKeyHex.isEmpty()) {
 			authenticationKeyHex.replace("0x", "");
-			config->setMeterAuthenticationKey(fromHex(authenticationKeyHex, 16));
+			uint8_t hexStr[16];
+			fromHex(hexStr, encryptionKeyHex, 16);
+			config->setMeterAuthenticationKey(hexStr);
 		}
 	}
 

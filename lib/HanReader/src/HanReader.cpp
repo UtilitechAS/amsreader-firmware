@@ -169,15 +169,15 @@ int HanReader::getListSize() {
 	return listSize;
 }
 
-time_t HanReader::getPackageTime() {
+time_t HanReader::getPackageTime(bool respectTimezone, bool respectDsc) {
 	int packageTimePosition = dataHeader 
 		+ (compensateFor09HeaderBug ? 1 : 0);
 
-	return getTime(buffer, packageTimePosition, bytesRead);
+	return getTime(buffer, packageTimePosition, bytesRead, respectTimezone, respectDsc);
 }
 
-time_t HanReader::getTime(int objectId) {
-	return getTime(objectId, buffer, 0, bytesRead);
+time_t HanReader::getTime(int objectId, bool respectTimezone, bool respectDsc) {
+	return getTime(objectId, respectTimezone, respectDsc, buffer, 0, bytesRead);
 }
 
 int32_t HanReader::getInt(int objectId) {
@@ -240,14 +240,14 @@ int HanReader::findValuePosition(int dataPosition, byte *buffer, int start, int 
 }
 
 
-time_t HanReader::getTime(int dataPosition, byte *buffer, int start, int length) {
+time_t HanReader::getTime(int dataPosition, bool respectTimezone, bool respectDsc, byte *buffer, int start, int length) {
 	// TODO: check if the time is represented always as a 12 byte string (0x09 0x0C)
 	int timeStart = findValuePosition(dataPosition, buffer, start, length);
 	timeStart += 1;
-	return getTime(buffer, start + timeStart, length - timeStart);
+	return getTime(buffer, start + timeStart, length - timeStart, respectTimezone, respectDsc);
 }
 
-time_t HanReader::getTime(byte *buffer, int start, int length) {
+time_t HanReader::getTime(byte *buffer, int start, int length, bool respectTimezone, bool respectDsc) {
 	int pos = start;
 	int dataLength = buffer[pos++];
 
@@ -257,9 +257,16 @@ time_t HanReader::getTime(byte *buffer, int start, int length) {
 
 		int month = buffer[pos + 2];
 		int day = buffer[pos + 3];
+		// 4: Day of week
 		int hour = buffer[pos + 5];
 		int minute = buffer[pos + 6];
 		int second = buffer[pos + 7];
+		// 8: Hundredths
+		int tzMinutes = buffer[pos + 9] << 8 | buffer[pos + 10];
+		bool dsc = (buffer[pos + 11] & 0x01) == 0x01;
+
+		printD("Time offset: %d", tzMinutes);
+		printD(dsc ? "DSC" : "not DSC");
 
 		tmElements_t tm;
 		tm.Year = year - 1970;

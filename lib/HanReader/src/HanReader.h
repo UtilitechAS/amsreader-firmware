@@ -24,11 +24,11 @@ public:
 	bool read();
 	bool read(byte data);
 	int getListSize();
-	time_t getPackageTime();
+	time_t getPackageTime(bool respectTimezone, bool respectDsc);
 	int32_t getInt(int objectId); // Use this for uint8, int8, uint16, int16
 	uint32_t getUint(int objectId); // Only for uint32
 	String getString(int objectId);
-	time_t getTime(int objectId);
+	time_t getTime(int objectId, bool respectTimezone, bool respectDsc);
 	int getBuffer(byte* buf);
 
 	void setEncryptionKey(uint8_t* encryption_key);
@@ -47,8 +47,8 @@ private:
 
 	int findValuePosition(int dataPosition, byte *buffer, int start, int length);
 
-	time_t getTime(int dataPosition, byte *buffer, int start, int length);
-	time_t getTime(byte *buffer, int start, int length);
+	time_t getTime(int dataPosition, bool respectTimezone, bool respectDsc, byte *buffer, int start, int length);
+	time_t getTime(byte *buffer, int start, int length, bool respectTimezone, bool respectDsc);
 	int getInt(int dataPosition, byte *buffer, int start, int length);
 	int8_t getInt8(int dataPosition, byte *buffer, int start, int length);
 	uint8_t getUint8(int dataPosition, byte *buffer, int start, int length);

@@ -22,7 +22,7 @@ jobs:
     - name: Get release version for code
       env:
         GITHUB_REF: ${{ github.ref }}
-      run: echo ::set-env name=GITHUB_TAG::$(echo ${GITHUB_REF##*/})
+      run: echo "GITHUB_TAG=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
     - name: Cache Python dependencies
       uses: actions/cache@v1
       with:

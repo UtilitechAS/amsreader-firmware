@@ -176,12 +176,11 @@ double HwTools::getTemperature() {
 double HwTools::getTemperatureAnalog() {
     if(tempAnalogSensorPin != 0xFF) {
         float adcCalibrationFactor = 1.06587;
-        int adcRead = analogRead(tempAnalogSensorPin);
         int volts;
         #if defined(ESP8266)
-            volts = (analogRead(vccPin) / 1024.0) * 3.3;
+            volts = (analogRead(tempAnalogSensorPin) / 1024.0) * 3.3;
         #elif defined(ESP32)
-            volts = (analogRead(vccPin) / 4095.0) * 3.3;
+            volts = (analogRead(tempAnalogSensorPin) / 4095.0) * 3.3;
         #endif
         return ((volts * adcCalibrationFactor) - 0.4) / 0.0195;
     }

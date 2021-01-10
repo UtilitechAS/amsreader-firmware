@@ -48,6 +48,76 @@ struct ConfigObject {
 	uint8_t ledPinBlue;
 	bool ledRgbInverted;
 	uint8_t tempSensorPin;
+	uint8_t tempAnalogSensorPin;
+	uint8_t vccPin;
+	int16_t vccOffset;
+	uint16_t vccMultiplier;
+	uint8_t vccBootLimit;
+
+	uint16_t domoELIDX;
+	uint16_t domoVL1IDX;
+	uint16_t domoVL2IDX;
+	uint16_t domoVL3IDX;
+	uint16_t domoCL1IDX;
+
+	bool mDnsEnable;
+	bool ntpEnable;
+	bool ntpDhcp;
+	int16_t ntpOffset;
+	int16_t ntpSummerOffset;
+	char ntpServer[64];
+
+	char entsoeApiToken[37];
+	char entsoeApiArea[17];
+	char entsoeApiCurrency[4];
+	double entsoeApiMultiplier;
+};
+
+struct ConfigObject83 {
+	uint8_t boardType;
+	char wifiSsid[32];
+	char wifiPassword[64];
+    char wifiIp[15];
+    char wifiGw[15];
+    char wifiSubnet[15];
+	char wifiDns1[15];
+	char wifiDns2[15];
+	char wifiHostname[32];
+	char mqttHost[128];
+	uint16_t mqttPort;
+	char mqttClientId[32];
+	char mqttPublishTopic[64];
+	char mqttSubscribeTopic[64];
+	char mqttUser[64];
+	char mqttPassword[64];
+	uint8_t mqttPayloadFormat;
+	bool mqttSsl;
+	uint8_t authSecurity;
+	char authUser[64];
+	char authPassword[64];
+
+	uint8_t meterType;
+	uint8_t distributionSystem;
+	uint8_t mainFuse;
+	uint8_t productionCapacity;
+	uint8_t meterEncryptionKey[16];
+	uint8_t meterAuthenticationKey[16];
+	bool substituteMissing;
+	bool sendUnknown;
+
+	bool debugTelnet;
+	bool debugSerial;
+	uint8_t debugLevel;
+
+	uint8_t hanPin;
+	uint8_t apPin;
+	uint8_t ledPin;
+	bool ledInverted;
+	uint8_t ledPinRed;
+	uint8_t ledPinGreen;
+	uint8_t ledPinBlue;
+	bool ledRgbInverted;
+	uint8_t tempSensorPin;
 	uint8_t vccPin;
 	int16_t vccOffset;
 	uint16_t vccMultiplier;
@@ -91,6 +161,7 @@ struct ConfigObject82 {
 	uint8_t authSecurity;
 	char authUser[64];
 	char authPassword[64];
+
 	uint8_t meterType;
 	uint8_t distributionSystem;
 	uint8_t mainFuse;
@@ -289,6 +360,15 @@ public:
 	bool isNtpChanged();
 	void ackNtpChange();
 
+	char* getEntsoeApiToken();
+	void setEntsoeApiToken(const char* token);
+	char* getEntsoeApiArea();
+	void setEntsoeApiArea(const char* area);
+	char* getEntsoeApiCurrency();
+	void setEntsoeApiCurrency(const char* currency);
+	double getEntsoeApiMultiplier();
+	void setEntsoeApiMultiplier(double multiplier);
+
 	uint8_t getTempSensorCount();
 	TempSensorConfig* getTempSensorConfig(uint8_t i);
 	void updateTempSensorConfig(uint8_t address[8], const char name[32], bool common);
@@ -343,6 +423,7 @@ private:
 		0xFF, // Blue
 		true, // Inverted
 		0xFF, // Temp sensor
+		0xFF, // Analog temp sensor
 		0xFF, // Vcc
 		0, // Offset
 		100, // Multiplier
@@ -359,8 +440,11 @@ private:
 		360, // Timezone (*10)
 		360, // Summertime offset (*10)
 		"pool.ntp.org", // NTP server
-		0xFF, // Analog temp sensor
-		// 894 bytes
+		"", // Entsoe token
+		"", // Entsoe area
+		"", // Entsoe currency
+		1.00, // Entsoe multiplier
+		// 960 bytes
 	};
 	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged;
 
@@ -368,15 +452,15 @@ private:
 	TempSensorConfig* tempSensors[32];
 
 	const int EEPROM_SIZE = 1024 * 3;
-	const int EEPROM_CHECK_SUM = 83; // Used to check if config is stored. Change if structure changes
+	const int EEPROM_CHECK_SUM = 84; // Used to check if config is stored. Change if structure changes
 	const int EEPROM_CONFIG_ADDRESS = 0;
 	const int EEPROM_TEMP_CONFIG_ADDRESS = 2048;
 
 	void loadTempSensors();
 	void saveTempSensors();
 
-	bool loadConfig81(int address);
 	bool loadConfig82(int address);
+	bool loadConfig83(int address);
 
 	int readString(int pAddress, char* pString[]);
 	int readInt(int pAddress, int *pValue);

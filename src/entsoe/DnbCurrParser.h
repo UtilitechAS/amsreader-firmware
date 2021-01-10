@@ -1,0 +1,25 @@
+#ifndef _DNBCURRPARSER_H
+#define _DNBCURRPARSER_H
+
+#include "Stream.h"
+
+class DnbCurrParser: public Stream {
+public:
+    double getValue();
+    
+    int available();
+    int read();
+    int peek();
+    void flush();
+    size_t write(const uint8_t *buffer, size_t size);
+    size_t write(uint8_t);
+
+private:
+    double value = 1.0;
+
+    char buf[256];
+    uint8_t pos = 0;
+    uint8_t mode = 0;
+};
+
+#endif

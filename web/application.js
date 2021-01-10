@@ -111,19 +111,18 @@ $(function() {
         case '/temperature':
             $('#config-temp-link').addClass('active');
             break;
-        case '/config-meter':
+        case '/price':
+            $('#config-price-link').addClass('active');
+            break;
+            case '/config-meter':
             $('#config-meter-link').addClass('active');
             break;
-            case '/config-wifi':
-            $('#config-wifi-link').addClass('active');
-            break;
+        case '/config-wifi':
         case '/config-mqtt':
         case '/mqtt-ca':
         case '/mqtt-cert':
         case '/mqtt-key':
         case '/config-domoticz':
-            $('#config-mqtt-link').addClass('active');
-            break;
         case '/config-web':
         case '/ntp':
         case '/gpio':

@@ -12,6 +12,7 @@
 #include "root/configmqtt_html.h"
 #include "root/configweb_html.h"
 #include "root/configdomoticz_html.h"
+#include "root/entsoe_html.h"
 #include "root/ntp_html.h"
 #include "root/gpio_html.h"
 #include "root/debugging_html.h"
@@ -23,12 +24,14 @@
 #include "root/delete_html.h"
 #include "root/reset_html.h"
 #include "root/temperature_html.h"
+#include "root/price_html.h"
 
 #include "base64.h"
 
-AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw) {
+AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw, EntsoeApi* eapi) {
 	this->debugger = Debug;
 	this->hw = hw;
+	this->eapi = eapi;
 }
 
 void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
@@ -41,11 +44,13 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/temperature", HTTP_GET, std::bind(&AmsWebServer::temperature, this));
 	server.on("/temperature", HTTP_POST, std::bind(&AmsWebServer::temperaturePost, this));
 	server.on("/temperature.json", HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
+	server.on("/price", HTTP_GET, std::bind(&AmsWebServer::price, this));
 	server.on("/config-meter", HTTP_GET, std::bind(&AmsWebServer::configMeterHtml, this));
 	server.on("/config-wifi", HTTP_GET, std::bind(&AmsWebServer::configWifiHtml, this));
 	server.on("/config-mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
 	server.on("/config-web", HTTP_GET, std::bind(&AmsWebServer::configWebHtml, this));
 	server.on("/config-domoticz",HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
+	server.on("/config-entsoe",HTTP_GET, std::bind(&AmsWebServer::configEntsoeHtml, this));
 	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
 	server.on("/gaugemeter.js", HTTP_GET, std::bind(&AmsWebServer::gaugemeterJs, this)); 
 	server.on("/github.svg", HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
@@ -74,6 +79,10 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/reset", HTTP_POST, std::bind(&AmsWebServer::factoryResetPost, this));
 	
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
+
+	TimeChangeRule STD = {"STD", Last, Sun, Oct, 3, config->getNtpOffset() / 60};
+	TimeChangeRule DST = {"DST", Last, Sun, Mar, 2, (config->getNtpOffset() + config->getNtpSummerOffset()) / 60};
+	tz = new Timezone(DST, STD);
 	
 	server.begin(); // Web server start
 }
@@ -127,6 +136,9 @@ bool AmsWebServer::checkSecurity(byte level) {
 void AmsWebServer::temperature() {
 	printD("Serving /temperature.html over http...");
 
+	if(!checkSecurity(2))
+		return;
+
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
@@ -138,6 +150,9 @@ void AmsWebServer::temperature() {
 }
 
 void AmsWebServer::temperaturePost() {
+	if(!checkSecurity(1))
+		return;
+
 	printD("Saving temperature sensors...");
 	for(int i = 0; i < 32; i++) {
 		if(!server.hasArg("sensor" + String(i, DEC))) break;
@@ -198,6 +213,38 @@ void AmsWebServer::temperatureJson() {
 
 	server.setContentLength(jsonStr.length());
 	server.send(200, "application/json", jsonStr);
+}
+
+void AmsWebServer::price() {
+	printD("Serving /price.html over http...");
+
+	if(!checkSecurity(2))
+		return;
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+
+	String html = String((const __FlashStringHelper*) PRICE_HTML);
+	for(int i = 0; i < 24; i++) {
+        tmElements_t tm;
+        breakTime(tz->toLocal(time(nullptr)) + (SECS_PER_HOUR * i), tm);
+		char ts[5];
+		sprintf(ts, "%02d:00", tm.Hour);
+		html.replace("${time" + String(i) + "}", String(ts));
+
+		double price = eapi->getValueForHour(i);
+		if(price == ENTSOE_NO_VALUE) {
+			html.replace("${price" + String(i) + "}", "--");
+		} else {
+			html.replace("${price" + String(i) + "}", String(price, 4));
+		}
+	}
+
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::indexHtml() {
@@ -441,10 +488,6 @@ void AmsWebServer::configDomoticzHtml() {
 
 	String html = String((const __FlashStringHelper*) CONFIGDOMOTICZ_HTML);
 
-	if(WiFi.getMode() != WIFI_AP) {
-		html.replace("boot.css", BOOTSTRAP_URL);
-	}
-
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
@@ -465,6 +508,41 @@ void AmsWebServer::configDomoticzHtml() {
 	server.sendContent_P(FOOT_HTML);
 }
 
+void AmsWebServer::configEntsoeHtml() {
+	printD("Serving /config-entsoe.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	String html = String((const __FlashStringHelper*) ENTSOE_HTML);
+
+	html.replace("${config.entsoeApiToken}", config->getEntsoeApiToken());
+	html.replace("${config.entsoeApiMultiplier}", String(config->getEntsoeApiMultiplier(), 3));
+
+	html.replace("${config.entsoeApiAreaNo1}", strcmp(config->getEntsoeApiArea(), "10YNO-1--------2") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiAreaNo2}", strcmp(config->getEntsoeApiArea(), "10YNO-2--------T") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiAreaNo3}", strcmp(config->getEntsoeApiArea(), "10YNO-3--------J") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiAreaNo4}", strcmp(config->getEntsoeApiArea(), "10YNO-4--------9") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiAreaNo5}", strcmp(config->getEntsoeApiArea(), "10Y1001A1001A48H") == 0 ? "selected" : "");
+
+	html.replace("${config.entsoeApiAreaSe1}", strcmp(config->getEntsoeApiArea(), "10Y1001A1001A44P") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiAreaSe2}", strcmp(config->getEntsoeApiArea(), "10Y1001A1001A45N") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiAreaSe3}", strcmp(config->getEntsoeApiArea(), "10Y1001A1001A46L") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiAreaSe4}", strcmp(config->getEntsoeApiArea(), "10Y1001A1001A47J") == 0 ? "selected" : "");
+
+	html.replace("${config.entsoeApiAreaDk1}", strcmp(config->getEntsoeApiArea(), "10YDK-1--------W") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiAreaDk2}", strcmp(config->getEntsoeApiArea(), "10YDK-2--------M") == 0 ? "selected" : "");
+
+	html.replace("${config.entsoeApiCurrencyNOK}", strcmp(config->getEntsoeApiArea(), "NOK") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiCurrencySEK}", strcmp(config->getEntsoeApiArea(), "SEK") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiCurrencyDKK}", strcmp(config->getEntsoeApiArea(), "DKK") == 0 ? "selected" : "");
+	html.replace("${config.entsoeApiCurrencyEUR}", strcmp(config->getEntsoeApiArea(), "EUR") == 0 ? "selected" : "");
+
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
+}
 
 void AmsWebServer::configWebHtml() {
 	printD("Serving /config-web.html over http...");
@@ -773,6 +851,10 @@ void AmsWebServer::handleSetup() {
 }
 
 void AmsWebServer::handleSave() {
+	printD("Handling save method from http");
+	if(!checkSecurity(1))
+		return;
+
 	String temp;
 
 	if(server.hasArg("meterConfig") && server.arg("meterConfig") == "true") {
@@ -790,7 +872,6 @@ void AmsWebServer::handleSave() {
 			fromHex(hexStr, encryptionKeyHex, 16);
 			config->setMeterEncryptionKey(hexStr);
 		}
-		printD("Meter 8");
 
 		String authenticationKeyHex = server.arg("meterAuthenticationKey");
 		if(!authenticationKeyHex.isEmpty()) {
@@ -919,6 +1000,13 @@ void AmsWebServer::handleSave() {
 		config->setNtpServer(server.arg("ntpServer").c_str());
 	}
 
+	if(server.hasArg("entsoeConfig") && server.arg("entsoeConfig") == "true") {
+		config->setEntsoeApiToken(server.arg("entsoeApiToken").c_str());
+		config->setEntsoeApiArea(server.arg("entsoeApiArea").c_str());
+		config->setEntsoeApiCurrency(server.arg("entsoeApiCurrency").c_str());
+		config->setEntsoeApiMultiplier(server.arg("entsoeApiMultiplier").toDouble());
+	}
+
 	printI("Saving configuration now...");
 
 	if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
@@ -939,6 +1027,11 @@ void AmsWebServer::handleSave() {
 			hw->setVccPin(config->getVccPin());
 			hw->setVccOffset(config->getVccOffset());
 			hw->setVccMultiplier(config->getVccMultiplier());
+
+			eapi->setToken(config->getEntsoeApiToken());
+			eapi->setArea(config->getEntsoeApiArea());
+			eapi->setCurrency(config->getEntsoeApiCurrency());
+			eapi->setMultiplier(config->getEntsoeApiMultiplier());
 		}
 	} else {
 		printE("Error saving configuration");
@@ -1124,10 +1217,16 @@ void AmsWebServer::deleteFile(const char* path) {
 void AmsWebServer::firmwareHtml() {
 	printD("Serving /firmware.html over http...");
 
+	if(!checkSecurity(1))
+		return;
+
 	uploadHtml("CA file", "/firmware", "mqtt");
 }
 
 void AmsWebServer::firmwareUpload() {
+	if(!checkSecurity(1))
+		return;
+
 	HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START) {
         String filename = upload.filename;
@@ -1146,6 +1245,9 @@ void AmsWebServer::firmwareUpload() {
 const uint8_t githubFingerprint[] = {0x59, 0x74, 0x61, 0x88, 0x13, 0xCA, 0x12, 0x34, 0x15, 0x4D, 0x11, 0x0A, 0xC1, 0x7F, 0xE6, 0x67, 0x07, 0x69, 0x42, 0xF5};
 
 void AmsWebServer::firmwareDownload() {
+	if(!checkSecurity(1))
+		return;
+
 	printD("Firmware download URL triggered");
 	if(server.hasArg("version")) {
 		String version = server.arg("version");
@@ -1275,6 +1377,9 @@ void AmsWebServer::deleteHtml(const char* label, const char* action, const char*
 void AmsWebServer::mqttCa() {
 	printD("Serving /mqtt-ca.html over http...");
 
+	if(!checkSecurity(1))
+		return;
+
 	if(SPIFFS.begin()) {
 		if(SPIFFS.exists(FILE_MQTT_CA)) {
 			deleteHtml("CA file", "/mqtt-ca/delete", "mqtt");
@@ -1289,6 +1394,9 @@ void AmsWebServer::mqttCa() {
 }
 
 void AmsWebServer::mqttCaUpload() {
+	if(!checkSecurity(1))
+		return;
+
 	uploadFile(FILE_MQTT_CA);
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_END) {
@@ -1301,6 +1409,9 @@ void AmsWebServer::mqttCaUpload() {
 }
 
 void AmsWebServer::mqttCaDelete() {
+	if(!checkSecurity(1))
+		return;
+
 	if(!uploading) { // Not an upload
 		deleteFile(FILE_MQTT_CA);
 		server.sendHeader("Location","/config-mqtt");
@@ -1317,6 +1428,9 @@ void AmsWebServer::mqttCaDelete() {
 void AmsWebServer::mqttCert() {
 	printD("Serving /mqtt-cert.html over http...");
 
+	if(!checkSecurity(1))
+		return;
+
 	if(SPIFFS.begin()) {
 		if(SPIFFS.exists(FILE_MQTT_CERT)) {
 			deleteHtml("Certificate", "/mqtt-cert/delete", "mqtt");
@@ -1331,6 +1445,9 @@ void AmsWebServer::mqttCert() {
 }
 
 void AmsWebServer::mqttCertUpload() {
+	if(!checkSecurity(1))
+		return;
+
 	uploadFile(FILE_MQTT_CERT);
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_END) {
@@ -1343,6 +1460,9 @@ void AmsWebServer::mqttCertUpload() {
 }
 
 void AmsWebServer::mqttCertDelete() {
+	if(!checkSecurity(1))
+		return;
+
 	if(!uploading) { // Not an upload
 		deleteFile(FILE_MQTT_CERT);
 		server.sendHeader("Location","/config-mqtt");
@@ -1359,6 +1479,9 @@ void AmsWebServer::mqttCertDelete() {
 void AmsWebServer::mqttKey() {
 	printD("Serving /mqtt-key.html over http...");
 
+	if(!checkSecurity(1))
+		return;
+
 	if(SPIFFS.begin()) {
 		if(SPIFFS.exists(FILE_MQTT_KEY)) {
 			deleteHtml("Private key", "/mqtt-key/delete", "mqtt");
@@ -1373,6 +1496,9 @@ void AmsWebServer::mqttKey() {
 }
 
 void AmsWebServer::mqttKeyUpload() {
+	if(!checkSecurity(1))
+		return;
+
 	uploadFile(FILE_MQTT_KEY);
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_END) {
@@ -1385,6 +1511,9 @@ void AmsWebServer::mqttKeyUpload() {
 }
 
 void AmsWebServer::mqttKeyDelete() {
+	if(!checkSecurity(1))
+		return;
+
 	if(!uploading) { // Not an upload
 		deleteFile(FILE_MQTT_KEY);
 		server.sendHeader("Location","/config-mqtt");
@@ -1399,6 +1528,9 @@ void AmsWebServer::mqttKeyDelete() {
 }
 
 void AmsWebServer::factoryResetHtml() {
+	if(!checkSecurity(1))
+		return;
+
 	server.sendHeader("Cache-Control", "public, max-age=3600");
 	
 	server.setContentLength(RESET_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
@@ -1408,6 +1540,9 @@ void AmsWebServer::factoryResetHtml() {
 }
 
 void AmsWebServer::factoryResetPost() {
+	if(!checkSecurity(1))
+		return;
+
 	printD("Performing factory reset");
 	if(server.hasArg("perform") && server.arg("perform") == "true") {
 		printD("Formatting SPIFFS");

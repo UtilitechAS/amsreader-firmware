@@ -634,6 +634,40 @@ void AmsConfiguration::clearNtp() {
 }
 
 
+char* AmsConfiguration::getEntsoeApiToken() {
+	return config.entsoeApiToken;
+}
+
+void AmsConfiguration::setEntsoeApiToken(const char* token) {
+	strcpy(config.entsoeApiToken, token);
+}
+
+char* AmsConfiguration::getEntsoeApiArea() {
+	return config.entsoeApiArea;
+}
+
+void AmsConfiguration::setEntsoeApiArea(const char* area) {
+	strcpy(config.entsoeApiArea, area);
+}
+
+char* AmsConfiguration::getEntsoeApiCurrency() {
+	return config.entsoeApiCurrency;
+}
+
+void AmsConfiguration::setEntsoeApiCurrency(const char* currency) {
+	strcpy(config.entsoeApiCurrency, currency);
+}
+
+double AmsConfiguration::getEntsoeApiMultiplier() {
+	return config.entsoeApiMultiplier;
+}
+
+void AmsConfiguration::setEntsoeApiMultiplier(double multiplier) {
+	config.entsoeApiMultiplier = multiplier;
+}
+
+
+
 void AmsConfiguration::clear() {
 	clearMeter();
 	clearWifi();
@@ -662,6 +696,7 @@ bool AmsConfiguration::hasConfig() {
 		case 81:
 		case 82:
 		case 83:
+		case 84:
 			return true;
 		default:
 			configVersion = 0;
@@ -680,13 +715,13 @@ bool AmsConfiguration::load() {
 	EEPROM.begin(EEPROM_SIZE);
 	int cs = EEPROM.read(address++);
 	switch(cs) {
-		case 81: // v1.2
-			success = loadConfig81(address);
-			break;
 		case 82: // v1.3
 			success = loadConfig82(address);
 			break;
 		case 83: // v1.4
+			success = loadConfig83(address);
+			break;
+		case 84: // v1.5
 			EEPROM.get(address, config);
 			loadTempSensors();
 			success = true;
@@ -787,99 +822,73 @@ bool AmsConfiguration::loadConfig82(int address) {
 	config.domoCL1IDX = config82.domoCL1IDX;
 }
 
-bool AmsConfiguration::loadConfig81(int address) {
-	char* temp;
+bool AmsConfiguration::loadConfig83(int address) {
+	ConfigObject83 config83;
+	EEPROM.get(address, config83);
+	config.boardType = config83.boardType;
+	strcpy(config.wifiSsid, config83.wifiSsid);
+	strcpy(config.wifiPassword, config83.wifiPassword);
+    strcpy(config.wifiIp, config83.wifiIp);
+    strcpy(config.wifiGw, config83.wifiGw);
+    strcpy(config.wifiSubnet, config83.wifiSubnet);
+	strcpy(config.wifiDns1, config83.wifiDns1);
+	strcpy(config.wifiDns2, config83.wifiDns2);
+	strcpy(config.wifiHostname, config83.wifiHostname);
+	strcpy(config.mqttHost, config83.mqttHost);
+	config.mqttPort = config83.mqttPort;
+	strcpy(config.mqttClientId, config83.mqttClientId);
+	strcpy(config.mqttPublishTopic, config83.mqttPublishTopic);
+	strcpy(config.mqttSubscribeTopic, config83.mqttSubscribeTopic);
+	strcpy(config.mqttUser, config83.mqttUser);
+	strcpy(config.mqttPassword, config83.mqttPassword);
+	config.mqttPayloadFormat = config83.mqttPayloadFormat;
+	config.mqttSsl = config83.mqttSsl;
+	config.authSecurity = config83.authSecurity;
+	strcpy(config.authUser, config83.authUser);
+	strcpy(config.authPassword, config83.authPassword);
+	
+	config.meterType = config83.meterType;
+	config.distributionSystem = config83.distributionSystem;
+	config.mainFuse = config83.mainFuse;
+	config.productionCapacity = config83.productionCapacity;
+	memcpy(config.meterEncryptionKey, config83.meterEncryptionKey, 16);
+	memcpy(config.meterAuthenticationKey, config83.meterAuthenticationKey, 16);
+	config.substituteMissing = config83.substituteMissing;
+	config.sendUnknown = config83.sendUnknown;
 
-	address += readString(address, &temp);
-	setWifiSsid(temp);
-	address += readString(address, &temp);
-	setWifiPassword(temp);
+	config.debugTelnet = config83.debugTelnet;
+	config.debugSerial = config83.debugSerial;
+	config.debugLevel = config83.debugLevel;
 
-	bool staticIp = false;
-	address += readBool(address, &staticIp);
-	if(staticIp) {
-		address += readString(address, &temp);
-		setWifiIp(temp);
-		address += readString(address, &temp);
-		setWifiGw(temp);
-		address += readString(address, &temp);
-		setWifiSubnet(temp);
-		address += readString(address, &temp);
-		setWifiDns1(temp);
-		address += readString(address, &temp);
-		setWifiDns2(temp);
-	}
-	address += readString(address, &temp);
-	setWifiHostname(temp);
-	bool mqtt = false;
-	address += readBool(address, &mqtt);
-	if(mqtt) {
-		address += readString(address, &temp);
-		setMqttHost(temp);
-		int port;
-		address += readInt(address, &port);
-		setMqttPort(port);
-		address += readString(address, &temp);
-		setMqttClientId(temp);
-		address += readString(address, &temp);
-		setMqttPublishTopic(temp);
-		address += readString(address, &temp);
-		setMqttSubscribeTopic(temp);
+	config.hanPin = config83.hanPin;
+	config.apPin = config83.apPin;
+	config.ledPin = config83.ledPin;
+	config.ledInverted = config83.ledInverted;
+	config.ledPinRed = config83.ledPinRed;
+	config.ledPinGreen = config83.ledPinGreen;
+	config.ledPinBlue = config83.ledPinBlue;
+	config.ledRgbInverted = config83.ledRgbInverted;
+	config.tempSensorPin = config83.tempSensorPin;
+	config.vccPin = config83.vccPin;
+	config.vccOffset = config83.vccOffset;
+	config.vccMultiplier = config83.vccMultiplier;
+	config.vccBootLimit = config83.vccBootLimit;
 
-		bool secure = false;
-		address += readBool(address, &secure);
-		if (secure)
-		{
-			address += readString(address, &temp);
-			setMqttUser(temp);
-			address += readString(address, &temp);
-			setMqttPassword(temp);
-		} else {
-			setMqttUser("");
-			setMqttPassword("");
-		}
-		int payloadFormat;
-		address += readInt(address, &payloadFormat);
-		setMqttPayloadFormat(payloadFormat);
-	} else {
-		clearMqtt();
-	}
+	config.domoELIDX = config83.domoELIDX;
+	config.domoVL1IDX = config83.domoVL1IDX;
+	config.domoVL2IDX = config83.domoVL2IDX;
+	config.domoVL3IDX = config83.domoVL3IDX;
+	config.domoCL1IDX = config83.domoCL1IDX;
 
-	byte b;
-	address += readByte(address, &b);
-	setAuthSecurity(b);
-	if (b > 0) {
-		address += readString(address, &temp);
-		setAuthUser(temp);
-		address += readString(address, &temp);
-		setAuthPassword(temp);
-	} else {
-		clearAuth();
-	}
+	config.mDnsEnable = config83.mDnsEnable;
+	config.ntpEnable = config83.ntpEnable;
+	config.ntpDhcp = config83.ntpDhcp;
+	config.ntpOffset = config83.ntpOffset;
+	config.ntpSummerOffset = config83.ntpSummerOffset;
+	strcpy(config.ntpServer, config83.ntpServer);
 
-	int i;
-	address += readInt(address, &i);
-	setMeterType(i);
-	address += readInt(address, &i);
-	setDistributionSystem(i);
-	address += readInt(address, &i);
-	setMainFuse(i);
-	address += readInt(address, &i);
-	setProductionCapacity(i);
-
-	bool debugTelnet = false;
-	address += readBool(address, &debugTelnet);
-	setDebugTelnet(debugTelnet);
-	bool debugSerial = false;
-	address += readBool(address, &debugSerial);
-	setDebugSerial(debugSerial);
-	address += readInt(address, &i);
-	setDebugLevel(i);
-
-	ackWifiChange();
-
-	return true;
-} 
+	config.tempAnalogSensorPin = config83.tempAnalogSensorPin;
+}
 
 bool AmsConfiguration::save() {
 	int address = EEPROM_CONFIG_ADDRESS;

@@ -29,6 +29,7 @@ ADC_MODE(ADC_VCC);
 #endif   
 
 #include "HwTools.h"
+#include "entsoe/EntsoeApi.h"
 
 #include "web/AmsWebServer.h"
 #include "AmsConfiguration.h"
@@ -56,7 +57,11 @@ AmsConfiguration config;
 
 RemoteDebug Debug;
 
-AmsWebServer ws(&Debug, &hw);
+EntsoeApi eapi(&Debug);
+
+Timezone* tz;
+
+AmsWebServer ws(&Debug, &hw, &eapi);
 
 MQTTClient mqtt(512);
 
@@ -67,6 +72,10 @@ Stream *hanSerial;
 void setup() {
 	if(config.hasConfig()) {
 		config.load();
+
+		TimeChangeRule std = {"STD", Last, Sun, Oct, 3, config.getNtpOffset() / 60};
+		TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (config.getNtpOffset() + config.getNtpSummerOffset()) / 60};
+		tz = new Timezone(dst, std);
 	}
 
 	if(!config.hasConfig() || config.getConfigVersion() < 81) {
@@ -136,6 +145,10 @@ void setup() {
 	hw.ledBlink(LED_YELLOW, 1);
 	hw.ledBlink(LED_GREEN, 1);
 	hw.ledBlink(LED_BLUE, 1);
+	eapi.setToken(config.getEntsoeApiToken());
+	eapi.setArea(config.getEntsoeApiArea());
+	eapi.setCurrency(config.getEntsoeApiCurrency());
+	eapi.setMultiplier(config.getEntsoeApiMultiplier());
 
 	if(config.getHanPin() == 3) {
 		switch(config.getMeterType()) {
@@ -445,7 +458,12 @@ void loop() {
 	}
 	delay(1);
 	readHanPort();
-	ws.loop();
+	if(WiFi.status() == WL_CONNECTED) {
+		ws.loop();
+		if(eapi.loop()) {
+			sendPricesToMqtt();
+		}
+	}
 	delay(1); // Needed for auto modem sleep
 }
 
@@ -590,6 +608,129 @@ void mqttMessageReceived(String &topic, String &payload)
 
 	// Do whatever needed here...
 	// Ideas could be to query for values or to initiate OTA firmware update
+}
+
+void sendPricesToMqtt() {
+	double min1hr, min3hr, min6hr;
+	int min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
+	double min = INT16_MAX, max = INT16_MIN;
+	double values[48];
+	for(int i = 0; i < 48; i++) {
+		double val1 = eapi.getValueForHour(i);
+		values[i] = val1;
+
+		if(val1 == ENTSOE_NO_VALUE) break;
+		
+		if(val1 < min) min = val1;
+		if(val1 > max) max = val1;
+
+		if(i >= 24) continue; // Only estimate 1hr, 3hr and 6hr cheapest interval for next 24 hrs
+
+		if(min1hrIdx == -1 || min1hr > val1) {
+			min1hr = val1;
+			min1hrIdx = i;
+		}
+
+		double val2 = eapi.getValueForHour(i+1);
+		double val3 = eapi.getValueForHour(i+2);
+		if(val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE) continue;
+		double val3hr = val1+val2+val3;
+		if(min3hrIdx == -1 || min3hr > val3hr) {
+			min3hr = val3hr;
+			min3hrIdx = i;
+		}
+
+		double val4 = eapi.getValueForHour(i+3);
+		double val5 = eapi.getValueForHour(i+4);
+		double val6 = eapi.getValueForHour(i+5);
+		if(val4 == ENTSOE_NO_VALUE || val5 == ENTSOE_NO_VALUE || val6 == ENTSOE_NO_VALUE) continue;
+		double val6hr = val1+val2+val3+val4+val5+val6;
+		if(min6hrIdx == -1 || min6hr > val6hr) {
+			min6hr = val6hr;
+			min6hrIdx = i;
+		}
+	}
+
+	char ts1hr[21];
+	if(min1hrIdx != -1) {
+		tmElements_t tm;
+        breakTime(time(nullptr) + (SECS_PER_HOUR * min1hrIdx), tm);
+		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+	}
+	char ts3hr[21];
+	if(min3hrIdx != -1) {
+		tmElements_t tm;
+        breakTime(time(nullptr) + (SECS_PER_HOUR * min3hrIdx), tm);
+		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+	}
+	char ts6hr[21];
+	if(min6hrIdx != -1) {
+		tmElements_t tm;
+        breakTime(time(nullptr) + (SECS_PER_HOUR * min6hrIdx), tm);
+		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+	}
+
+	switch(config.getMqttPayloadFormat()) {
+		case 0: // JSON
+		{
+			StaticJsonDocument<512> json;
+			json["id"] = WiFi.macAddress();
+			json["name"] = config.getMqttClientId();
+			json["up"] = millis();
+		    JsonObject jp = json.createNestedObject("prices");
+				for(int i = 0; i < 48; i++) {
+					double val = values[i];
+					if(val == ENTSOE_NO_VALUE) break;
+					jp[String(i)] = serialized(String(val, 4));
+				}
+				if(min != INT16_MAX) {
+					jp["min"] = serialized(String(min, 4));
+				}
+				if(max != INT16_MIN) {
+					jp["max"] = serialized(String(max, 4));
+				}
+				if(min1hrIdx != -1) {
+					jp["cheapest1hr"] = String(ts1hr);
+				}
+				if(min3hrIdx != -1) {
+					jp["cheapest3hr"] = String(ts1hr);
+				}
+				if(min6hrIdx != -1) {
+					jp["cheapest6hr"] = String(ts1hr);
+				}
+			break;
+		}
+		case 1: // RAW
+		case 2:
+			// Send updated prices if we have them
+			if(strcmp(config.getEntsoeApiToken(), "") != 0) {
+				for(int i = 0; i < 48; i++) {
+					double val = values[i];
+					if(val == ENTSOE_NO_VALUE) {
+						mqtt.publish(String(config.getMqttPublishTopic()) + "/price/" + String(i), "");
+						break;
+					} else {
+						mqtt.publish(String(config.getMqttPublishTopic()) + "/price/" + String(i), String(val, 4));
+					}
+				}
+				if(min != INT16_MAX) {
+					mqtt.publish(String(config.getMqttPublishTopic()) + "/price/min", String(min, 4));
+				}
+				if(max != INT16_MIN) {
+					mqtt.publish(String(config.getMqttPublishTopic()) + "/price/max", String(max, 4));
+				}
+				if(min1hrIdx != -1) {
+					mqtt.publish(String(config.getMqttPublishTopic()) + "/price/cheapest/1hr", String(ts1hr));
+				}
+				if(min3hrIdx != -1) {
+					mqtt.publish(String(config.getMqttPublishTopic()) + "/price/cheapest/3hr", String(ts3hr));
+				}
+				if(min6hrIdx != -1) {
+					mqtt.publish(String(config.getMqttPublishTopic()) + "/price/cheapest/6hr", String(ts6hr));
+				}
+			}
+			break;
+	}
 }
 
 int currentMeterType = 0;
@@ -769,6 +910,8 @@ void readHanPort() {
 								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/import/active/accumulated", String(data.getActiveImportCounter(), 2));
 								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/reactive/accumulated", String(data.getReactiveExportCounter(), 2));
 								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
+
+								sendPricesToMqtt();
 							case 2:
 								// Only send data if changed. ID and Type is sent on the 10s interval only if changed
 								if(lastMqttData.getMeterId() != data.getMeterId() || config.getMqttPayloadFormat() == 2) {

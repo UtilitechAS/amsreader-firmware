@@ -10,6 +10,7 @@
 #include "AmsData.h"
 #include "Uptime.h"
 #include "RemoteDebug.h"
+#include "entsoe/EntsoeApi.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 	#include "Arduino.h"
@@ -33,7 +34,7 @@
 
 class AmsWebServer {
 public:
-	AmsWebServer(RemoteDebug* Debug, HwTools* hw);
+	AmsWebServer(RemoteDebug* Debug, HwTools* hw, EntsoeApi* eapi);
     void setup(AmsConfiguration* config, MQTTClient* mqtt);
     void loop();
 
@@ -43,6 +44,8 @@ private:
 	RemoteDebug* debugger;
 	int maxPwr = 0;
 	HwTools* hw;
+	Timezone* tz;
+	EntsoeApi* eapi;
     AmsConfiguration* config;
 	AmsData data;
 	MQTTClient* mqtt;
@@ -63,11 +66,13 @@ private:
 	void temperature();
 	void temperaturePost();
 	void temperatureJson();
+	void price();
 	void configMeterHtml();
 	void configWifiHtml();
 	void configMqttHtml();
 	void configWebHtml();
 	void configDomoticzHtml();
+	void configEntsoeHtml();
 	void configNtpHtml();
 	void configGpioHtml();
 	void configDebugHtml();

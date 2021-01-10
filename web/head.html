@@ -57,24 +57,25 @@
                     <a id="config-temp-link" class="nav-link" href="/temperature">Temp<span class="d-none d-sm-inline">erature</span></a>
                 </li>
                 <li class="nav-item">
+                    <a id="config-price-link" class="nav-link" href="/price"><span class="d-none d-sm-inline">Energy</span> Price</a>
+                </li>
+                <li class="nav-item">
                     <a id="config-meter-link" class="nav-link" href="/config-meter">Meter</a>
-                </li>
-                <li class="nav-item">
-                    <a id="config-wifi-link" class="nav-link" href="/config-wifi">WiFi</a>
-                </li>
-                <li class="nav-item">
-                    <a id="config-mqtt-link" class="nav-link" href="/config-mqtt">MQTT</a>
                 </li>
                 <li class="nav-item">
                     <div class="dropdown">
                         <a class="dropdown-toggle nav-link" href="#" role="button" id="config-system-link" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                          System
+                          Configure
                         </a>
                       
                         <div class="dropdown-menu" aria-labelledby="config-system-link">
+                            <a class="dropdown-item" href="/config-wifi">WiFi</a>
+                            <a class="dropdown-item" href="/config-mqtt">MQTT</a>
                             <a class="dropdown-item" href="/config-web">Web</a>
                             <a class="dropdown-item" href="/ntp">NTP</a>
                             <a class="dropdown-item" href="/gpio">GPIO</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="/config-entsoe">ENTSO-E API</a>
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item" href="/debugging">Debugging</a>
                             <a class="dropdown-item" href="/firmware">Firmware</a>

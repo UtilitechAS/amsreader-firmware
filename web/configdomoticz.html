@@ -1,18 +1,6 @@
 <form method="post" action="/save">
     <input type="hidden" name="domoConfig" value="true"/>
     <div class="my-3 p-3 bg-white rounded shadow">
-        <p>Domoticz Configuration. Requires that a Domoticz MQTT-message-broker is setup. HOWTO: https://www.domoticz.com/wiki/MQTT.</p>
-        <p>The following virtual sensors can currently be used:</p>
-        <ul>
-            <li>Electricity (instant and counter)</li>
-            <li>Electricity Current/Ampere 3 Phase</li>
-            <li>Voltage</li>
-        </ul>
-        <p>see: <a href="https://www.domoticz.com/wiki/Domoticz_API/JSON_URL's">https://www.domoticz.com/wiki/Domoticz_API/JSON_URL's</a></p>
-        <p>Create the sensors in Domoticz under Hardware > Dummy > Create virtual sensor, and use the IDX assigned to the sensor as input here.</p>
-        <p>"Electricity (instant and counter)" relies on Total energy import "tPI" and will not start before the first value is read (once an hour).</p>
-    </div>
-    <div class="my-3 p-3 bg-white rounded shadow">
         <div class="d-flex flex-row flex-wrap">
             <div class="m-2 input-group input-group-sm" style="width: 200px;">
                 <div class="input-group-prepend">

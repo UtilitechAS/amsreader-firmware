@@ -88,6 +88,8 @@ private:
 	void firmwareHtml();
 	void firmwareUpload();
 	void firmwareDownload();
+	void restartHtml();
+	void restartPost();
 	void restartWaitHtml();
 	void isAliveCheck();
 

@@ -114,9 +114,7 @@ $(function() {
         case '/price':
             $('#config-price-link').addClass('active');
             break;
-            case '/config-meter':
-            $('#config-meter-link').addClass('active');
-            break;
+        case '/config-meter':
         case '/config-wifi':
         case '/config-mqtt':
         case '/mqtt-ca':
@@ -125,11 +123,14 @@ $(function() {
         case '/config-domoticz':
         case '/config-web':
         case '/ntp':
+        case '/entsoe':
+            $('#config-link').addClass('active');
+            break;
         case '/gpio':
         case '/debugging':
         case '/firmware':
         case '/reset':
-            $('#config-system-link').addClass('active');
+            $('#system-link').addClass('active');
             break;
     }
 

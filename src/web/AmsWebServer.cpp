@@ -16,6 +16,7 @@
 #include "root/ntp_html.h"
 #include "root/gpio_html.h"
 #include "root/debugging_html.h"
+#include "root/restart_html.h"
 #include "root/restartwait_html.h"
 #include "root/boot_css.h"
 #include "root/gaugemeter_js.h"
@@ -50,7 +51,7 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/config-mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
 	server.on("/config-web", HTTP_GET, std::bind(&AmsWebServer::configWebHtml, this));
 	server.on("/config-domoticz",HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
-	server.on("/config-entsoe",HTTP_GET, std::bind(&AmsWebServer::configEntsoeHtml, this));
+	server.on("/entsoe",HTTP_GET, std::bind(&AmsWebServer::configEntsoeHtml, this));
 	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
 	server.on("/gaugemeter.js", HTTP_GET, std::bind(&AmsWebServer::gaugemeterJs, this)); 
 	server.on("/github.svg", HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
@@ -65,6 +66,8 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/firmware", HTTP_GET, std::bind(&AmsWebServer::firmwareHtml, this));
 	server.on("/firmware", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::firmwareUpload, this));
 	server.on("/upgrade", HTTP_GET, std::bind(&AmsWebServer::firmwareDownload, this));
+	server.on("/restart", HTTP_GET, std::bind(&AmsWebServer::restartHtml, this));
+	server.on("/restart", HTTP_POST, std::bind(&AmsWebServer::restartPost, this));
 	server.on("/restart-wait", HTTP_GET, std::bind(&AmsWebServer::restartWaitHtml, this));
 	server.on("/is-alive", HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
 
@@ -1309,6 +1312,31 @@ void AmsWebServer::firmwareDownload() {
 		server.sendHeader("Location","/");
 		server.send(303);
 	}
+}
+
+void AmsWebServer::restartHtml() {
+	printD("Serving /restart.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	server.setContentLength(RESTART_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent_P(RESTART_HTML);
+	server.sendContent_P(FOOT_HTML);
+}
+
+void AmsWebServer::restartPost() {
+	if(!checkSecurity(1))
+		return;
+
+	printD("Setting restart flag and redirecting");
+	performRestart = true;
+	server.sendHeader("Location","/restart-wait");
+	server.send(303);
 }
 
 void AmsWebServer::restartWaitHtml() {

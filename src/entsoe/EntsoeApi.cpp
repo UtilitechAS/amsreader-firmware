@@ -85,7 +85,7 @@ bool EntsoeApi::loop() {
     uint64_t now = millis64();
 
     if(midnightMillis == 0) {
-        time_t epoch = time(nullptr);
+        time_t epoch = tz->toLocal(time(nullptr));
         
         tmElements_t tm;
         breakTime(epoch, tm);
@@ -93,8 +93,8 @@ bool EntsoeApi::loop() {
             uint64_t curDeviceMillis = millis64();
             uint32_t curDayMillis = (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000);
 
-            printD("Setting midnight millis");
             midnightMillis = curDeviceMillis + (SECS_PER_DAY * 1000) - curDayMillis;
+            printD("Setting midnight millis " + String((uint32_t) midnightMillis));
         }
     } else if(now > midnightMillis) {
         printD("Rotating price objects");
@@ -130,7 +130,7 @@ bool EntsoeApi::loop() {
         }
 
         if(tomorrow == NULL
-            && midnightMillis - now < 43200000
+            && midnightMillis - now < 39600000
             && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 3600000)
         ) {
             time_t e1 = time(nullptr);

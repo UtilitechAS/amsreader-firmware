@@ -177,12 +177,14 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
         int status = https.GET();
         if(status == HTTP_CODE_OK) {
             https.writeToStream(doc);
+            https.end();
             return true;
         } else {
             printE("Communication error: ");
             printE(https.errorToString(status));
             printI(url);
             printD(https.getString());
+            https.end();
             return false;
         }
     } else {
@@ -225,6 +227,7 @@ double EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
                 printD(https.getString());
             }
             lastCurrencyFetch = now;
+            https.end();
         } else {
             return false;
         }

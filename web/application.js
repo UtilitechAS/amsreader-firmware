@@ -1,5 +1,5 @@
 var nextVersion;
-var im, em;
+var im, em, vm, am;
 $(function() {
     im = $("#importMeter");
     if(im && im.gaugeMeter) {
@@ -16,6 +16,24 @@ $(function() {
             percent: 0,
             text: "-",
             append: "W"
+        });
+    }
+    
+    vm = $("#voltMeter");
+    if(vm && vm.gaugeMeter) {
+        vm.gaugeMeter({
+            percent: 0,
+            text: "-",
+            append: "V"
+        });
+    }
+    
+    am = $("#ampMeter");
+    if(am && am.gaugeMeter) {
+        am.gaugeMeter({
+            percent: 0,
+            text: "-",
+            append: "A"
         });
     }
 
@@ -217,10 +235,12 @@ var fetch = function() {
         timeout: 10000,
         dataType: 'json',
     }).done(function(json) {
-        if(im && em) {
+        if(im) {
             $(".SimpleMeter").hide();
             im.show();
             em.show();
+            vm.show();
+            am.show();
         }
 
         for(var id in json) {
@@ -237,8 +257,8 @@ var fetch = function() {
         }
 
         if(window.moment) {
-            $('#currentMillis').html(moment.duration(parseInt(json.uptime_seconds), 'seconds').humanize());
-            $('#currentMillis').closest('.row').show();
+            $('.currentSeconds').html(moment.duration(parseInt(json.uptime_seconds), 'seconds').humanize());
+            $('.currentSeconds').closest('.row').show();
         }
 
         if(json.status) {
@@ -304,15 +324,45 @@ var fetch = function() {
                 });
             }
 
+            var v = parseFloat(json.v);
+            if(v > 0) {
+                var v_pct = parseInt(json.v_pct);
+
+                if(vm && vm.gaugeMeter) {
+                    vm.gaugeMeter({
+                        percent: v_pct,
+                        text: v.toFixed(1)
+                    });
+                }
+            }
+
+            var a = parseFloat(json.a);
+            if(a > 0) {
+                var a_pct = parseInt(json.a_pct);
+
+                if(am && am.gaugeMeter) {
+                    am.gaugeMeter({
+                        percent: a_pct,
+                        text: a.toFixed(1)
+                    });
+                }
+            }
+
             for(var id in json.data) {
                 var str = json.data[id];
                 if(isNaN(str)) {
-                    $('#'+id).html(str);
+                    $('.'+id).html(str);
                 } else {
                     var num = parseFloat(str);
-                    $('#'+id).html(num.toFixed(1));
+                    $('.'+id).html(num.toFixed(1));
                     $('#'+id+'-row').show();
+                    $('.'+id+'-row').show();
                 }
+            }
+
+            var temp = parseInt(json.temp);
+            if(temp == -127) {
+                $('.temp').html("N/A");
             }
         } else {
             if(im && im.gaugeMeter) {
@@ -330,26 +380,25 @@ var fetch = function() {
                     append: "W"
                 });
             }
+
+            if(vm && vm.gaugeMeter) {
+                vm.gaugeMeter({
+                    percent: 0,
+                    text: "-"
+                });
+            }
+
+            if(am && am.gaugeMeter) {
+                am.gaugeMeter({
+                    percent: 0,
+                    text: "-"
+                });
+            }
         }
         setTimeout(fetch, interval);
     }).fail(function() {
         setTimeout(fetch, interval*4);
 
-        if(im && im.gaugeMeter) {
-            im.gaugeMeter({
-                percent: 0,
-                text: "-",
-                append: "W"
-            });
-        }
-
-        if(em && em.gaugeMeter) {
-            em.gaugeMeter({
-                percent: 0,
-                text: "-",
-                append: "W"
-            });
-        }
         setStatus("mqtt", "secondary");
         setStatus("wifi", "secondary");
         setStatus("han", "secondary");

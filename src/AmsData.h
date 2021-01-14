@@ -51,6 +51,7 @@ public:
 
 private:
     unsigned long lastUpdateMillis = 0;
+    unsigned long lastList2UpdateMillis = 0;
     int listType = 0;
     unsigned long packageTimestamp = 0;
     String listId, meterId, meterType;
@@ -58,7 +59,7 @@ private:
     int activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
     double l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
     double activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
-    bool threePhase = false;
+    bool threePhase = false, counterEstimated = false;
 
     void extractFromKaifa(HanReader& hanReader, int listSize);
     void extractFromAidon(HanReader& hanReader, int listSize, bool substituteMissing);

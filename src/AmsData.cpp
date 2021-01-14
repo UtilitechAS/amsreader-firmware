@@ -287,6 +287,30 @@ void AmsData::extractFromOmnipower(HanReader& hanReader, int listSize) {
 }
 
 void AmsData::apply(AmsData& other) {
+    if(other.getListType() < 3) {
+        unsigned long ms = this->lastUpdateMillis > other.getLastUpdateMillis() ? 0 : other.getLastUpdateMillis() - this->lastUpdateMillis;
+
+        if(ms > 0) {
+            if(other.getActiveImportPower() > 0)
+                activeImportCounter += (((double) ms) * other.getActiveImportPower()) / 3600000000;
+            counterEstimated = true;
+        }
+
+        if(other.getListType() > 1) {
+            unsigned long ms2 = this->lastList2UpdateMillis > other.getLastUpdateMillis() ? 0 : other.getLastUpdateMillis() - this->lastList2UpdateMillis;
+            if(ms2 > 0) {
+                // Not sure why, but I cannot make these numbers correct. It seems to be double of what it should, so dividing it by two...
+                if(other.getActiveExportPower() > 0)
+                    activeExportCounter += (((double) ms2/2) * other.getActiveExportPower()) / 3600000000;
+                if(other.getReactiveImportPower() > 0)
+                    reactiveImportCounter += (((double) ms2/2) * other.getReactiveImportPower()) / 3600000000;
+                if(other.getReactiveExportPower() > 0)
+                    reactiveExportCounter += (((double) ms2/2) * other.getReactiveExportPower()) / 3600000000;
+                counterEstimated = true;
+            }
+        }
+    }
+
     this->lastUpdateMillis = other.getLastUpdateMillis();
     this->packageTimestamp = other.getPackageTimestamp();
     this->listType = max(this->listType, other.getListType());
@@ -297,6 +321,7 @@ void AmsData::apply(AmsData& other) {
             this->activeExportCounter = other.getActiveExportCounter();
             this->reactiveImportCounter = other.getReactiveImportCounter();
             this->reactiveExportCounter = other.getReactiveExportCounter();
+            this->counterEstimated = false;
         case 2:
             this->listId = other.getListId();
             this->meterId = other.getMeterId();
@@ -311,6 +336,7 @@ void AmsData::apply(AmsData& other) {
             this->l2voltage = other.getL2Voltage();
             this->l3voltage = other.getL3Voltage();
             this->threePhase = other.isThreePhase();
+            this->lastList2UpdateMillis = other.getLastUpdateMillis();
         case 1:
             this->activeImportPower = other.getActiveImportPower();
     }

@@ -15,6 +15,7 @@ public:
     bool loop();
 
     double getValueForHour(int hour);
+    double getValueForHour(time_t now, int hour);
     char* getCurrency();
 
     void setToken(const char* token);

@@ -295,19 +295,18 @@ void AmsWebServer::indexHtml() {
 		html.replace("${data.P}", String(data.getActiveImportPower()));
 		html.replace("${data.PO}", String(data.getActiveExportPower()));
 		html.replace("${display.export}", config->getProductionCapacity() > 0 ? "" : "none");
-		html.replace("${text.import}", config->getProductionCapacity() > 0 ? "Import" : "Consumption");
+		html.replace("${display.nonexport}", config->getProductionCapacity() > 0 ? "none" : "");
+		html.replace("${text.import}", config->getProductionCapacity() > 0 ? "Import" : "Use");
+		html.replace("${display.3p}", data.isThreePhase() ? "" : "none");
 
 		html.replace("${data.U1}", u1 > 0 ? String(u1, 1) : "");
 		html.replace("${data.I1}", u1 > 0 ? String(i1, 1) : "");
-		html.replace("${display.P1}", u1 > 0 ? "" : "none");
 
 		html.replace("${data.U2}", u2 > 0 ? String(u2, 1) : "");
 		html.replace("${data.I2}", u2 > 0 ? String(i2, 1) : "");
-		html.replace("${display.P2}", u2 > 0 ? "" : "none");
 
 		html.replace("${data.U3}", u3 > 0 ? String(u3, 1) : "");
 		html.replace("${data.I3}", u3 > 0 ? String(i3, 1) : "");
-		html.replace("${display.P3}", u3 > 0 ? "" : "none");
 
 		html.replace("${data.tPI}", tpi > 0 ? String(tpi, 1) : "");
 		html.replace("${data.tPO}", tpi > 0 ? String(tpo, 1) : "");
@@ -326,6 +325,8 @@ void AmsWebServer::indexHtml() {
 		html.replace("${wifi.rssi}", vcc > 0 ? String(rssi) : "");
 		html.replace("${wifi.channel}", WiFi.channel() > 0 ? String(WiFi.channel()) : "");
 		html.replace("${wifi.ssid}", !WiFi.SSID().isEmpty() ? String(WiFi.SSID()) : "");
+
+		html.replace("${currentSeconds}", String((uint32_t)(millis64()/1000), 10));
 
 		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 		server.send_P(200, "text/html", HEAD_HTML);
@@ -628,6 +629,9 @@ void AmsWebServer::dataJson() {
 		double tqi = data.getReactiveImportCounter();
 		double tqo = data.getReactiveExportCounter();
 
+		double volt = u1;
+		double amp = i1;
+
 		if(u1 > 0) {
 			json["data"]["U1"] = u1;
 			json["data"]["I1"] = i1;
@@ -635,10 +639,13 @@ void AmsWebServer::dataJson() {
 		if(u2 > 0) {
 			json["data"]["U2"] = u2;
 			json["data"]["I2"] = i2;
+			if(i2 > amp) amp = i2;
 		}
 		if(u3 > 0) {
 			json["data"]["U3"] = u3;
 			json["data"]["I3"] = i3;
+			volt = (u1+u2+u3)/3;
+			if(i3 > amp) amp = i3;
 		}
 
 		if(tpi > 0) {
@@ -649,6 +656,14 @@ void AmsWebServer::dataJson() {
 		}
 
 		json["p_pct"] = min(data.getActiveImportPower()*100/maxPwr, 100);
+
+		json["v"] = volt;
+		json["v_pct"] = (max((int)volt-207, 1)*100/46);
+
+		int maxAmp = config->getMainFuse() == 0 ? 32 : config->getMainFuse();
+
+		json["a"] = amp;
+		json["a_pct"] = amp * 100 / maxAmp;
 
 		if(config->getProductionCapacity() > 0) {
 			int maxPrd = config->getProductionCapacity() * 1000;

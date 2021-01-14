@@ -40,10 +40,13 @@ void EntsoeApi::setMultiplier(double multiplier) {
 char* EntsoeApi::getCurrency() {
     return currency;
 }
-
 double EntsoeApi::getValueForHour(int hour) {
-    tmElements_t tm;
     time_t cur = time(nullptr);
+    return getValueForHour(cur, hour);
+}
+
+double EntsoeApi::getValueForHour(time_t cur, int hour) {
+    tmElements_t tm;
     if(tz != NULL)
         cur = tz->toLocal(cur);
     breakTime(cur, tm);

@@ -459,11 +459,11 @@ void loop() {
 	delay(1);
 	readHanPort();
 	if(WiFi.status() == WL_CONNECTED) {
-		ws.loop();
-		if(eapi.loop()) {
-			sendPricesToMqtt();
-		}
+		//if(eapi.loop()) {
+		//	sendPricesToMqtt();
+		//}
 	}
+	ws.loop();
 	delay(1); // Needed for auto modem sleep
 }
 
@@ -611,62 +611,77 @@ void mqttMessageReceived(String &topic, String &payload)
 }
 
 void sendPricesToMqtt() {
+	if(strlen(config.getMqttHost()) == 0 || strlen(config.getMqttPublishTopic()) == 0)
+		return;
+	if(strcmp(config.getEntsoeApiToken(), "") != 0)
+		return;
+
+	time_t now = time(nullptr);
+
 	double min1hr, min3hr, min6hr;
 	int min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	double min = INT16_MAX, max = INT16_MIN;
-	double values[48];
-	for(int i = 0; i < 48; i++) {
-		double val1 = eapi.getValueForHour(i);
-		values[i] = val1;
+	double values[24] = {0};
+	for(int i = 0; i < 24; i++) {
+		double val = eapi.getValueForHour(now, i);
+		values[i] = val;
 
-		if(val1 == ENTSOE_NO_VALUE) break;
+		if(val == ENTSOE_NO_VALUE) break;
 		
-		if(val1 < min) min = val1;
-		if(val1 > max) max = val1;
+		if(val < min) min = val;
+		if(val > max) max = val;
 
-		if(i >= 24) continue; // Only estimate 1hr, 3hr and 6hr cheapest interval for next 24 hrs
-
-		if(min1hrIdx == -1 || min1hr > val1) {
-			min1hr = val1;
+		if(min1hrIdx == -1 || min1hr > val) {
+			min1hr = val;
 			min1hrIdx = i;
 		}
 
-		double val2 = eapi.getValueForHour(i+1);
-		double val3 = eapi.getValueForHour(i+2);
-		if(val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE) continue;
-		double val3hr = val1+val2+val3;
-		if(min3hrIdx == -1 || min3hr > val3hr) {
-			min3hr = val3hr;
-			min3hrIdx = i;
+		if(i >= 2) {
+			double val1 = values[i-2];
+			double val2 = values[i-1];
+			double val3 = val;
+			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE) continue;
+			double val3hr = val1+val2+val3;
+			if(min3hrIdx == -1 || min3hr > val3hr) {
+				min3hr = val3hr;
+				min3hrIdx = i-2;
+			}
 		}
 
-		double val4 = eapi.getValueForHour(i+3);
-		double val5 = eapi.getValueForHour(i+4);
-		double val6 = eapi.getValueForHour(i+5);
-		if(val4 == ENTSOE_NO_VALUE || val5 == ENTSOE_NO_VALUE || val6 == ENTSOE_NO_VALUE) continue;
-		double val6hr = val1+val2+val3+val4+val5+val6;
-		if(min6hrIdx == -1 || min6hr > val6hr) {
-			min6hr = val6hr;
-			min6hrIdx = i;
+
+		if(i >= 5) {
+			double val1 = values[i-5];
+			double val2 = values[i-4];
+			double val3 = values[i-3];
+			double val4 = values[i-2];
+			double val5 = values[i-1];
+			double val6 = val;
+			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE || val4 == ENTSOE_NO_VALUE || val5 == ENTSOE_NO_VALUE || val6 == ENTSOE_NO_VALUE) continue;
+			double val6hr = val1+val2+val3+val4+val5+val6;
+			if(min6hrIdx == -1 || min6hr > val6hr) {
+				min6hr = val6hr;
+				min6hrIdx = i-5;
+			}
 		}
+
 	}
 
 	char ts1hr[21];
 	if(min1hrIdx != -1) {
 		tmElements_t tm;
-        breakTime(time(nullptr) + (SECS_PER_HOUR * min1hrIdx), tm);
+        breakTime(now + (SECS_PER_HOUR * min1hrIdx), tm);
 		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts3hr[21];
 	if(min3hrIdx != -1) {
 		tmElements_t tm;
-        breakTime(time(nullptr) + (SECS_PER_HOUR * min3hrIdx), tm);
+        breakTime(now + (SECS_PER_HOUR * min3hrIdx), tm);
 		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts6hr[21];
 	if(min6hrIdx != -1) {
 		tmElements_t tm;
-        breakTime(time(nullptr) + (SECS_PER_HOUR * min6hrIdx), tm);
+        breakTime(now + (SECS_PER_HOUR * min6hrIdx), tm);
 		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
@@ -678,33 +693,37 @@ void sendPricesToMqtt() {
 			json["name"] = config.getMqttClientId();
 			json["up"] = millis();
 		    JsonObject jp = json.createNestedObject("prices");
-				for(int i = 0; i < 48; i++) {
-					double val = values[i];
-					if(val == ENTSOE_NO_VALUE) break;
-					jp[String(i)] = serialized(String(val, 4));
-				}
-				if(min != INT16_MAX) {
-					jp["min"] = serialized(String(min, 4));
-				}
-				if(max != INT16_MIN) {
-					jp["max"] = serialized(String(max, 4));
-				}
-				if(min1hrIdx != -1) {
-					jp["cheapest1hr"] = String(ts1hr);
-				}
-				if(min3hrIdx != -1) {
-					jp["cheapest3hr"] = String(ts1hr);
-				}
-				if(min6hrIdx != -1) {
-					jp["cheapest6hr"] = String(ts1hr);
-				}
+			for(int i = 0; i < 24; i++) {
+				double val = values[i];
+				if(val == ENTSOE_NO_VALUE) break;
+				jp[String(i)] = serialized(String(val, 4));
+			}
+			if(min != INT16_MAX) {
+				jp["min"] = serialized(String(min, 4));
+			}
+			if(max != INT16_MIN) {
+				jp["max"] = serialized(String(max, 4));
+			}
+
+			if(min1hrIdx != -1) {
+				jp["cheapest1hr"] = String(ts1hr);
+			}
+			if(min3hrIdx != -1) {
+				jp["cheapest3hr"] = String(ts3hr);
+			}
+			if(min6hrIdx != -1) {
+				jp["cheapest6hr"] = String(ts6hr);
+			}
+
+			String msg;
+			serializeJson(json, msg);
+			mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
 			break;
 		}
 		case 1: // RAW
 		case 2:
-			// Send updated prices if we have them
-			if(strcmp(config.getEntsoeApiToken(), "") != 0) {
-				for(int i = 0; i < 48; i++) {
+			{
+				for(int i = 0; i < 24; i++) {
 					double val = values[i];
 					if(val == ENTSOE_NO_VALUE) {
 						mqtt.publish(String(config.getMqttPublishTopic()) + "/price/" + String(i), "");
@@ -712,6 +731,8 @@ void sendPricesToMqtt() {
 					} else {
 						mqtt.publish(String(config.getMqttPublishTopic()) + "/price/" + String(i), String(val, 4));
 					}
+					mqtt.loop();
+					delay(10);
 				}
 				if(min != INT16_MAX) {
 					mqtt.publish(String(config.getMqttPublishTopic()) + "/price/min", String(min, 4));
@@ -719,6 +740,7 @@ void sendPricesToMqtt() {
 				if(max != INT16_MIN) {
 					mqtt.publish(String(config.getMqttPublishTopic()) + "/price/max", String(max, 4));
 				}
+
 				if(min1hrIdx != -1) {
 					mqtt.publish(String(config.getMqttPublishTopic()) + "/price/cheapest/1hr", String(ts1hr));
 				}
@@ -910,7 +932,6 @@ void readHanPort() {
 								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/import/active/accumulated", String(data.getActiveImportCounter(), 2));
 								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/reactive/accumulated", String(data.getReactiveExportCounter(), 2));
 								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
-
 								sendPricesToMqtt();
 							case 2:
 								// Only send data if changed. ID and Type is sent on the 10s interval only if changed

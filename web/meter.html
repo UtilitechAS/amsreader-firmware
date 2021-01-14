@@ -1,5 +1,5 @@
 <form method="post" action="/save">
-    <input type="hidden" name="meterConfig" value="true"/>
+    <input type="hidden" name="mc" value="true"/>
     <div class="my-3 p-3 bg-white rounded shadow">
         <h6>Meter</h6>
         <div class="row">
@@ -8,12 +8,12 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Meter type</span>
                     </div>
-                    <select id="meterType" class="form-control subtitute-dependent" name="meterType">
-                        <option value="0" ${config.meterType0}>Autodetect</option>
-                        <option value="1" ${config.meterType1}>Kaifa</option>
-                        <option value="2" ${config.meterType2}>Aidon</option>
-                        <option value="3" ${config.meterType3}>Kamstrup</option>
-                        <option value="4" ${config.meterType4}>Kamstrup (Omnipower)</option>
+                    <select id="mt" class="form-control sd" name="m">
+                        <option value="0" {m0}>Autodetect</option>
+                        <option value="1" {m1}>Kaifa</option>
+                        <option value="2" {m2}>Aidon</option>
+                        <option value="3" {m3}>Kamstrup</option>
+                        <option value="4" {m4}>Kamstrup (Omnipower)</option>
                     </select>
                 </div>
             </div>
@@ -22,10 +22,10 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Distribution system</span>
                     </div>
-                    <select id="distributionSystem" class="form-control subtitute-dependent" name="distributionSystem">
-                        <option value="0" ${config.distributionSystem0}></option>
-                        <option value="1" ${config.distributionSystem1}>IT (230V)</option>
-                        <option value="2" ${config.distributionSystem2}>TN (400V)</option>
+                    <select id="d" class="form-control sd" name="d">
+                        <option value="0" {d0}></option>
+                        <option value="1" {d1}>IT (230V)</option>
+                        <option value="2" {d2}>TN (400V)</option>
                     </select>
                 </div>
             </div>
@@ -34,14 +34,14 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Main fuse</span>
                     </div>
-                    <select class="form-control" name="mainFuse">
-                        <option value="0" ${config.mainFuse0}></option>
-                        <option value="25" ${config.mainFuse25}>25A</option>
-                        <option value="32" ${config.mainFuse32}>32A</option>
-                        <option value="35" ${config.mainFuse32}>35A</option>
-                        <option value="40" ${config.mainFuse40}>40A</option>
-                        <option value="50" ${config.mainFuse50}>50A</option>
-                        <option value="63" ${config.mainFuse63}>63A</option>
+                    <select class="form-control" name="f">
+                        <option value="0" {f0}></option>
+                        <option value="25" {f25}>25A</option>
+                        <option value="32" {f32}>32A</option>
+                        <option value="35" {f32}>35A</option>
+                        <option value="40" {f40}>40A</option>
+                        <option value="50" {f50}>50A</option>
+                        <option value="63" {f63}>63A</option>
                     </select>
                 </div>
             </div>
@@ -50,36 +50,36 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Production capacity</span>
                     </div>
-                    <input class="form-control" name="productionCapacity" type="number" min="0" max="50" value="${config.productionCapacity}"/>
+                    <input class="form-control" name="p" type="number" min="0" max="50" value="{p}"/>
                     <div class="input-group-append">
                         <span class="input-group-text">kWp</span>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6 encryption">
+            <div class="col-lg-6 enc">
                 <div class="m-2 input-group input-group-sm">
                     <div class="input-group-prepend">
                         <span class="input-group-text">Encryption key</span>
                     </div>
-                    <input class="form-control" name="meterEncryptionKey" type="text" value="${config.meterEncryptionKey}" placeholder="0x00000000000000000000000000000000"/>
+                    <input class="form-control" name="e" type="text" value="{e}"/>
                 </div>
             </div>
-            <div class="col-lg-6 encryption">
+            <div class="col-lg-6 enc">
                 <div class="m-2 input-group input-group-sm">
                     <div class="input-group-prepend">
                         <span class="input-group-text">Authentication key</span>
                     </div>
-                    <input class="form-control" name="meterAuthenticationKey" type="text" value="${config.meterAuthenticationKey}" placeholder="0x00000000000000000000000000000000"/>
+                    <input class="form-control" name="a" type="text" value="{a}"/>
                 </div>
             </div>
-            <div id="substitute" class="col-lg-3 col-md-4 col-sm-5">
+            <div id="ss" class="col-lg-3 col-md-4 col-sm-5">
                 <div class="m-2">
-                    <label class="small"><input id="substituteMissing" type="checkbox" name="substituteMissing" value="true" ${config.substituteMissing}/> Substitute missing values</label>
+                    <label class="small"><input type="checkbox" name="s" value="true" {s}/> Substitute missing values</label>
                 </div>
             </div>
             <div class="col-lg-3 col-md-4 col-sm-5">
                 <div class="m-2">
-                    <label class="small"><input type="checkbox" name="sendUnknown" value="true" ${config.sendUnknown}/> Send unknown packets to MQTT</label>
+                    <label class="small"><input type="checkbox" name="u" value="true" {u}/> Send unknown packets to MQTT</label>
                 </div>
             </div>
         </div>

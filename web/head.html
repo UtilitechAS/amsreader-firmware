@@ -45,19 +45,27 @@
             font-weight: 200;
             opacity: .8;
         }
+        .navbar-expand .navbar-nav .nav-link,.navbar-brand {
+            padding-top: 0px;
+            padding-bottom: 0px;
+            margin-top: 0px;
+            margin-bottom: 0px;
+        }
     </style>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
     <header class="navbar navbar-expand navbar-dark flex-column flex-lg-row rounded mt-2 mb-3" style="background-color: var(--purple);">
-        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small id="swVersion" data-url="https://api.github.com/repos/gskjold/AmsToMqttBridge/releases">${version}</small></h6></a>
+        <a href="/" class="">
+            <h6 class="navbar-brand">AMS reader <small id="swVersion" data-url="https://api.github.com/repos/gskjold/AmsToMqttBridge/releases">${version}</small></h6>
+        </a>
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
                 <li class="nav-item">
-                    <a id="config-temp-link" class="nav-link" href="/temperature">Temp<span class="d-none d-sm-inline">erature</span></a>
+                    <a id="temp-link" class="nav-link" href="/temperature">Temp<span class="d-none d-sm-inline">erature</span></a>
                 </li>
                 <li class="nav-item">
-                    <a id="config-price-link" class="nav-link" href="/price"><span class="d-none d-sm-inline">Energy</span> Price</a>
+                    <a id="price-link" class="nav-link" href="/price"><span class="d-none d-sm-inline">Energy</span> Price</a>
                 </li>
                 <li class="nav-item">
                     <div class="dropdown">
@@ -66,10 +74,10 @@
                         </a>
                       
                         <div class="dropdown-menu" aria-labelledby="config-link">
-                            <a class="dropdown-item" href="/config-meter">Meter</a>
-                            <a class="dropdown-item" href="/config-wifi">WiFi</a>
-                            <a class="dropdown-item" href="/config-mqtt">MQTT</a>
-                            <a class="dropdown-item" href="/config-web">Web</a>
+                            <a class="dropdown-item" href="/meter">Meter</a>
+                            <a class="dropdown-item" href="/wifi">WiFi</a>
+                            <a class="dropdown-item" href="/mqtt">MQTT</a>
+                            <a class="dropdown-item" href="/web">Web</a>
                             <a class="dropdown-item" href="/ntp">NTP</a>
                             <a class="dropdown-item" href="/entsoe">ENTSO-E API</a>
                             <div class="dropdown-divider"></div>

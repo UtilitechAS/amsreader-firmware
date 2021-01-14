@@ -1,7 +1,7 @@
 var nextVersion;
 var im, em, vm, am;
 $(function() {
-    im = $("#importMeter");
+    im = $("#im");
     if(im && im.gaugeMeter) {
         im.gaugeMeter({
             percent: 0,
@@ -10,7 +10,7 @@ $(function() {
         });
     }
     
-    em = $("#exportMeter");
+    em = $("#em");
     if(em && em.gaugeMeter) {
         em.gaugeMeter({
             percent: 0,
@@ -19,7 +19,7 @@ $(function() {
         });
     }
     
-    vm = $("#voltMeter");
+    vm = $("#vm");
     if(vm && vm.gaugeMeter) {
         vm.gaugeMeter({
             percent: 0,
@@ -28,7 +28,7 @@ $(function() {
         });
     }
     
-    am = $("#ampMeter");
+    am = $("#am");
     if(am && am.gaugeMeter) {
         am.gaugeMeter({
             percent: 0,
@@ -43,23 +43,23 @@ $(function() {
         fetch();
     }
 
-    // For config-mqtt
-    $('#mqttEnable').on('change', function() {
-        var inputs = $('.mqtt-config');
+    // For mqtt
+    $('#m').on('change', function() {
+        var inputs = $('.mc');
         inputs.prop('disabled', !$(this).is(':checked'));
     });
     
-    $('#mqttPayloadFormat').on('change', function() {
+    $('#f').on('change', function() {
         var val = parseInt($(this).val());
         if(val == 3) {
-            $('.format-type-domoticz').show();
+            $('.f3-s').show();
         } else {
-            $('.format-type-domoticz').hide();
+            $('.f3-s').hide();
         }
     });
 
-    $('#mqttSsl').on('change', function() {
-        var port = $('#mqttPort');
+    $('#s').on('change', function() {
+        var port = $('#p');
         if($(this).is(':checked')) {
             if(port.val() == 1883) {
                 port.val(8883);
@@ -71,45 +71,45 @@ $(function() {
         }
     });
 
-    $('#mqttEnable').trigger('change');
-    $('#mqttPayloadFormat').trigger('change');
+    $('#m').trigger('change');
+    $('#f').trigger('change');
 
-    // For config-meter
-    $('.subtitute-dependent').on('change', function() {
-        if(($('#meterType').val() == 2 || $('#meterType').val() == 3) && $('#distributionSystem').val() == 1) {
-            $('#substitute').show();
+    // For meter
+    $('.sd').on('change', function() {
+        if(($('#mt').val() == 2 || $('#mt').val() == 3) && $('#d').val() == 1) {
+            $('#ss').show();
         } else {
-            $('#substitute').hide();
+            $('#ss').hide();
         }
     });
 
-    $('#meterType').on('change', function() {
-        if($('#meterType').val() == 4) {
-            $('.encryption').show();
+    $('#mt').on('change', function() {
+        if($('#mt').val() == 4) {
+            $('.enc').show();
         } else {
-            $('.encryption').hide();
+            $('.enc').hide();
         }
     });
 
-    $('#meterType').trigger('change');
+    $('#mt').trigger('change');
 
-    // For config-wifi
-    $('#wifiIpType').on('change', function() {
+    // For wifi
+    $('#st').on('change', function() {
         if($(this).is(':checked')) {
-            $('#staticIp').show();
+            $('#i').show();
         } else {
-            $('#staticIp').hide();
+            $('#i').hide();
         }
     });
-    $('#wifiIpType').trigger('change');
+    $('#st').trigger('change');
 
-    // For config-web
-    $('#authSecurity').on('change', function() {
-        var inputs = $('.auth-config');
+    // For web
+    $('#as').on('change', function() {
+        var inputs = $('.ac');
         inputs.prop('disabled', $(this).val() == 0);
     });
     
-    $('#authSecurity').trigger('change');
+    $('#as').trigger('change');
 
     // For file upload
     $('#fileUploadField').on('change',function(){
@@ -118,28 +118,28 @@ $(function() {
     })
 
     // For NTP
-    $('#ntpEnable').on('change', function() {
-        var inputs = $('.ntp-config');
+    $('#n').on('change', function() {
+        var inputs = $('.nc');
         inputs.prop('disabled', !$(this).is(':checked'));
     });
-    $('#ntpEnable').trigger('change');
+    $('#n').trigger('change');
 
     // Navbar
     switch(window.location.pathname) {
         case '/temperature':
-            $('#config-temp-link').addClass('active');
+            $('#temp-link').addClass('active');
             break;
         case '/price':
-            $('#config-price-link').addClass('active');
+            $('#price-link').addClass('active');
             break;
-        case '/config-meter':
-        case '/config-wifi':
-        case '/config-mqtt':
+        case '/meter':
+        case '/wifi':
+        case '/mqtt':
         case '/mqtt-ca':
         case '/mqtt-cert':
         case '/mqtt-key':
-        case '/config-domoticz':
-        case '/config-web':
+        case '/domoticz':
+        case '/web':
         case '/ntp':
         case '/entsoe':
             $('#config-link').addClass('active');
@@ -257,8 +257,8 @@ var fetch = function() {
         }
 
         if(window.moment) {
-            $('.currentSeconds').html(moment.duration(parseInt(json.uptime_seconds), 'seconds').humanize());
-            $('.currentSeconds').closest('.row').show();
+            $('.cs').html(moment.duration(parseInt(json.uptime_seconds), 'seconds').humanize());
+            $('.cs').closest('.row').show();
         }
 
         if(json.status) {
@@ -268,9 +268,9 @@ var fetch = function() {
         }
 
         if(json.mqtt) {
-            $('.mqtt-error').addClass('d-none');
-            $('.mqtt-error'+json.mqtt.lastError).removeClass('d-none');
-            $('#mqtt-lastError').html(json.mqtt.lastError);
+            $('.me').addClass('d-none');
+            $('.me'+json.mqtt.lastError).removeClass('d-none');
+            $('#ml').html(json.mqtt.lastError);
         }
 
         if(json.wifi) {

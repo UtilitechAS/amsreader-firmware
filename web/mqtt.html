@@ -1,15 +1,15 @@
     <form method="post" action="/save">
-        <input type="hidden" name="mqttConfig" value="true"/>
+        <input type="hidden" name="mqc" value="true"/>
         <div class="my-3 p-3 bg-white rounded shadow">
             <h6>MQTT</h6>
-            <label class="m-2"><input id="mqttEnable" type="checkbox" name="mqtt" value="true" ${config.mqtt}/> Enable</label>
+            <label class="m-2"><input id="m" type="checkbox" name="m" value="true" {m}/> Enable</label>
             <div class="row">
                 <div class="col-xl-4 col-lg-5 col-md-6">
                     <div class="m-2 input-group input-group-sm">
                         <div class="input-group-prepend">
                             <span class="input-group-text">Host</span>
                         </div>
-                        <input type="text" class="form-control mqtt-config" name="mqttHost" value="${config.mqttHost}" maxlength="128"/>
+                        <input type="text" class="form-control mc" name="h" value="{h}" maxlength="128"/>
                     </div>
                 </div>
                 <div class="col-xl-2 col-lg-3 col-md-3 col-sm-4">
@@ -17,7 +17,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Port</span>
                         </div>
-                        <input id="mqttPort" type="number" class="form-control mqtt-config" name="mqttPort" value="${config.mqttPort}" min="1024" max="65535" placeholder="1883"/>
+                        <input id="p" type="number" class="form-control mc" name="p" value="{p}" min="1024" max="65535" placeholder="1883"/>
                     </div>
                 </div>
                 <div class="col-xl-3 col-lg-4 col-md-6 col-sm-8">
@@ -25,7 +25,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Client ID</span>
                         </div>
-                        <input type="text" class="form-control mqtt-config" name="mqttClientId" value="${config.mqttClientId}" maxlength="32"/>
+                        <input type="text" class="form-control mc" name="i" value="{i}" maxlength="32"/>
                     </div>
                 </div>
                 <div class="col-xl-3 col-lg-4 col-md-6">
@@ -33,7 +33,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Publish topic</span>
                         </div>
-                        <input type="text" class="form-control mqtt-config" name="mqttPublishTopic" value="${config.mqttPublishTopic}" maxlength="64"/>
+                        <input type="text" class="form-control mc" name="t" value="{t}" maxlength="64"/>
                     </div>
                 </div>
                 <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
@@ -41,7 +41,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Username</span>
                         </div>
-                        <input type="text" class="form-control mqtt-config" name="mqttUser" value="${config.mqttUser}" maxlength="64"/>
+                        <input type="text" class="form-control mc" name="u" value="{u}" maxlength="64"/>
                     </div>
                 </div>
                 <div class="col-xl-3 col-lg-4 col-md-6 col-sm-6">
@@ -49,7 +49,7 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Password</span>
                         </div>
-                        <input type="password" class="form-control mqtt-config" name="mqttPassword" value="${config.mqttPassword}" maxlength="64"/>
+                        <input type="password" class="form-control mc" name="pw" value="{pw}" maxlength="64"/>
                     </div>
                 </div>
                 <div class="col-lg-3 col-md-4 col-sm-6">
@@ -57,17 +57,17 @@
                         <div class="input-group-prepend">
                             <span class="input-group-text">Payload</span>
                         </div>
-                        <select id="mqttPayloadFormat" class="form-control mqtt-config" name="mqttPayloadFormat">
-                            <option value="0" ${config.mqttPayloadFormat0}>JSON</option>
-                            <option value="1" ${config.mqttPayloadFormat1}>Raw (minimal)</option>
-                            <option value="2" ${config.mqttPayloadFormat2}>Raw (full)</option>
-                            <option value="3" ${config.mqttPayloadFormat3}>Domoticz</option>
+                        <select id="f" class="form-control mc" name="f">
+                            <option value="0" {f0}>JSON</option>
+                            <option value="1" {f1}>Raw (minimal)</option>
+                            <option value="2" {f2}>Raw (full)</option>
+                            <option value="3" {f3}>Domoticz</option>
                         </select>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6 format-type-domoticz">
+                <div class="col-md-3 col-sm-6 f3-s">
                     <div class="m-2">
-                        <a href="/config-domoticz" class="btn btn-sm btn-outline-secondary">Configuration</a>
+                        <a href="/domoticz" class="btn btn-sm btn-outline-secondary">Configuration</a>
                     </div>
                 </div>
             </div>
@@ -75,7 +75,7 @@
         <div class="my-3 p-3 bg-white rounded shadow">
             <div class="row">
                 <div class="col-md-2">
-                    <label class="m-2"><input id="mqttSsl" type="checkbox" name="mqttSsl" value="true" ${config.mqttSsl}/> SSL</label>
+                    <label class="m-2"><input id="s" type="checkbox" name="s" value="true" {s}/> SSL</label>
                 </div>
                 <div class="col-lg-2 col-md-3">
                     <div class="m-2 input-group input-group-sm">
@@ -83,10 +83,10 @@
                             <span class="input-group-text">CA</span>
                         </div>
                         <div class="input-group-append">
-                            <span style="display: ${display.ca.upload};">
+                            <span style="display: {dcu};">
                                 <a href="/mqtt-ca" class="btn btn-sm btn-outline-secondary">Upload</a>
                             </span>
-                            <span style="display: ${display.ca.file};">
+                            <span style="display: {dcf};">
                                 <a href="/mqtt-ca" class="btn btn-sm btn-danger">Delete</a>
                             </span>
                         </div>
@@ -98,10 +98,10 @@
                             <span class="input-group-text">Certificate</span>
                         </div>
                         <div class="input-group-append">
-                            <span style="display: ${display.cert.upload};">
+                            <span style="display: {deu};">
                                 <a href="/mqtt-cert" class="btn btn-sm btn-outline-secondary">Upload</a>
                             </span>
-                            <span style="display: ${display.cert.file};">
+                            <span style="display: {def};">
                                 <a href="/mqtt-cert" class="btn btn-sm btn-danger">Delete</a>
                             </span>
                         </div>
@@ -113,10 +113,10 @@
                             <span class="input-group-text">Private key</span>
                         </div>
                         <div class="input-group-append">
-                            <span style="display: ${display.key.upload};">
+                            <span style="display: {dku};">
                                 <a href="/mqtt-key" class="btn btn-sm btn-outline-secondary">Upload</a>
                             </span>
-                            <span style="display: ${display.key.file};">
+                            <span style="display: {dkf};">
                                 <a href="/mqtt-key" class="btn btn-sm btn-danger">Delete</a>
                             </span>
                         </div>

@@ -459,9 +459,9 @@ void loop() {
 	delay(1);
 	readHanPort();
 	if(WiFi.status() == WL_CONNECTED) {
-		//if(eapi.loop()) {
-		//	sendPricesToMqtt();
-		//}
+		if(eapi.loop()) {
+			sendPricesToMqtt();
+		}
 	}
 	ws.loop();
 	delay(1); // Needed for auto modem sleep
@@ -1090,7 +1090,7 @@ void MQTT_connect() {
 		if(Debug.isActive(RemoteDebug::WARNING)) debugW("No MQTT config");
 		return;
 	}
-	if(millis() - lastMqttRetry < (mqtt.lastError() == 0 ? 5000 : 60000)) {
+	if(millis() - lastMqttRetry < (mqtt.lastError() == 0 || config.isMqttChanged() ? 5000 : 30000)) {
 		yield();
 		return;
 	}

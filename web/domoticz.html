@@ -1,18 +1,18 @@
 <form method="post" action="/save">
-    <input type="hidden" name="domoConfig" value="true"/>
+    <input type="hidden" name="dc" value="true"/>
     <div class="my-3 p-3 bg-white rounded shadow">
         <div class="d-flex flex-row flex-wrap">
             <div class="m-2 input-group input-group-sm" style="width: 200px;">
                 <div class="input-group-prepend">
                     <span class="input-group-text">Electricity IDX</span>
                 </div>
-                <input type="number" class="form-control" name="domoELIDX" value="${config.domoELIDX}" min="0" max="65535"/> 
+                <input type="number" class="form-control" name="elidx" value="{elidx}" min="0" max="65535"/> 
             </div>
             <div class="m-2 input-group input-group-sm" style="width: 240px;">
                 <div class="input-group-prepend">
                     <span class="input-group-text">Current (3 Phase) IDX</span>
                 </div>
-                <input type="number" class="form-control" name="domoCL1IDX" value="${config.domoCL1IDX}" min="0" max="65535"/>
+                <input type="number" class="form-control" name="cl1idx" value="{cl1idx}" min="0" max="65535"/>
             </div>
         </div>
         <div class="d-flex flex-row flex-wrap">
@@ -20,19 +20,19 @@
                 <div class="input-group-prepend">
                     <span class="input-group-text">Voltage L1 IDX</span>
                 </div>
-                <input type="number" class="form-control" name="domoVL1IDX" value="${config.domoVL1IDX}" min="0" max="65535"/>
+                <input type="number" class="form-control" name="vl1idx" value="{vl1idx}" min="0" max="65535"/>
             </div>
             <div class="m-2 input-group input-group-sm" style="width: 200px;">
                 <div class="input-group-prepend">
                     <span class="input-group-text">Voltage L1 IDX</span>
                 </div>
-                <input type="number" class="form-control" name="domoVL2IDX" value="${config.domoVL2IDX}" min="0" max="65535"/>
+                <input type="number" class="form-control" name="vl2idx" value="{vl2idx}" min="0" max="65535"/>
             </div>
             <div class="m-2 input-group input-group-sm" style="width: 200px;">
                 <div class="input-group-prepend">
                     <span class="input-group-text">Voltage L1 IDX</span>
                 </div>
-                <input type="number" class="form-control" name="domoVL3IDX" value="${config.domoVL3IDX}" min="0" max="65535"/>
+                <input type="number" class="form-control" name="vl3idx" value="{vl3idx}" min="0" max="65535"/>
             </div>
         </div>
     </div>

@@ -1,5 +1,5 @@
 <form method="post" action="/save">
-    <input type="hidden" name="entsoeConfig" value="true"/>
+    <input type="hidden" name="ec" value="true"/>
     <div class="my-3 p-3 bg-white rounded shadow">
         <h6>ENTSO-E API</h6>
         <div class="row">
@@ -8,7 +8,7 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Token</span>
                     </div>
-                    <input type="text" name="entsoeApiToken" class="form-control" value="${config.entsoeApiToken}"/>
+                    <input type="text" name="et" class="form-control" value="{et}"/>
                 </div>
             </div>
             <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
@@ -16,23 +16,23 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Region</span>
                     </div>
-                    <select name="entsoeApiArea" class="form-control">
+                    <select name="ea" class="form-control">
                         <optgroup label="Norway">
-                            <option value="10YNO-1--------2" ${config.entsoeApiAreaNo1}>NO1</option>
-                            <option value="10YNO-2--------T" ${config.entsoeApiAreaNo2}>NO2</option>
-                            <option value="10YNO-3--------J" ${config.entsoeApiAreaNo3}>NO3</option>
-                            <option value="10YNO-4--------9" ${config.entsoeApiAreaNo4}>NO4</option>
-                            <option value="10Y1001A1001A48H" ${config.entsoeApiAreaNo5}>NO5</option>
+                            <option value="10YNO-1--------2" {eaNo1}>NO1</option>
+                            <option value="10YNO-2--------T" {eaNo1}>NO2</option>
+                            <option value="10YNO-3--------J" {eaNo3}>NO3</option>
+                            <option value="10YNO-4--------9" {eaNo4}>NO4</option>
+                            <option value="10Y1001A1001A48H" {eaNo5}>NO5</option>
                         </optgroup>
                         <optgroup label="Sweden">
-                            <option value="10Y1001A1001A44P" ${config.entsoeApiAreaSe1}>SE1</option>
-                            <option value="10Y1001A1001A45N" ${config.entsoeApiAreaSe2}>SE2</option>
-                            <option value="10Y1001A1001A46L" ${config.entsoeApiAreaSe3}>SE3</option>
-                            <option value="10Y1001A1001A47J" ${config.entsoeApiAreaSe4}>SE4</option>
+                            <option value="10Y1001A1001A44P" {eaSe1}>SE1</option>
+                            <option value="10Y1001A1001A45N" {eaSe2}>SE2</option>
+                            <option value="10Y1001A1001A46L" {eaSe3}>SE3</option>
+                            <option value="10Y1001A1001A47J" {eaSe4}>SE4</option>
                             </optgroup>
                         <optgroup label="Denmark">
-                            <option value="10YDK-1--------W" ${config.entsoeApiAreaDk1}>DK1</option>
-                            <option value="10YDK-2--------M" ${config.entsoeApiAreaDk2}>DK2</option>
+                            <option value="10YDK-1--------W" {eaDk1}>DK1</option>
+                            <option value="10YDK-2--------M" {eaDk2}>DK2</option>
                         </optgroup>
                     </select>
                 </div>
@@ -42,11 +42,11 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Currency</span>
                     </div>
-                    <select name="entsoeApiCurrency" class="form-control">
-                        <option value="NOK" ${config.entsoeApiCurrencyNOK}>NOK</option>
-                        <option value="SEK" ${config.entsoeApiCurrencySEK}>SEK</option>
-                        <option value="DKK" ${config.entsoeApiCurrencyDKK}>DKK</option>
-                        <option value="EUR" ${config.entsoeApiCurrencyEUR}>EUR</option>
+                    <select name="ec" class="form-control">
+                        <option value="NOK" {ecNOK}>NOK</option>
+                        <option value="SEK" {ecSEK}>SEK</option>
+                        <option value="DKK" {ecDKK}>DKK</option>
+                        <option value="EUR" {ecEUR}>EUR</option>
                     </select>
                 </div>
             </div>
@@ -55,7 +55,7 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Multiplier</span>
                     </div>
-                    <input name="entsoeApiMultiplier" type="number" min="0.001" max="1000" step="0.001" class="form-control" value="${config.entsoeApiMultiplier}"/>
+                    <input name="em" type="number" min="0.001" max="1000" step="0.001" class="form-control" value="{em}"/>
                 </div>
             </div>
         </div>

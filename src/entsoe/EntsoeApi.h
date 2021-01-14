@@ -28,6 +28,7 @@ private:
     char token[37]; // UUID + null terminator
 
     uint64_t midnightMillis = 0;
+    uint64_t lastTodayFetch = 0;
     uint64_t lastTomorrowFetch = 0;
     uint64_t lastCurrencyFetch = 0;
     EntsoeA44Parser* today = NULL;

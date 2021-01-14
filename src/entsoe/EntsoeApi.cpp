@@ -106,7 +106,8 @@ bool EntsoeApi::loop() {
         tomorrow = NULL;
         midnightMillis = 0; // Force new midnight millis calculation
     } else {
-        if(today == NULL) {
+        if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > 60000)) {
+            lastTodayFetch = now;
             time_t e1 = time(nullptr) - (SECS_PER_DAY * 1);
             time_t e2 = e1 + SECS_PER_DAY;
             tmElements_t d1, d2;
@@ -134,8 +135,9 @@ bool EntsoeApi::loop() {
 
         if(tomorrow == NULL
             && midnightMillis - now < 39600000
-            && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 3600000)
+            && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 60000)
         ) {
+            lastTomorrowFetch = now;
             time_t e1 = time(nullptr);
             time_t e2 = e1 + SECS_PER_DAY;
             tmElements_t d1, d2;
@@ -159,7 +161,6 @@ bool EntsoeApi::loop() {
                 delete a44;
                 tomorrow = NULL;
             }
-            lastTomorrowFetch = now;
         }
     }
     return ret;
@@ -167,14 +168,15 @@ bool EntsoeApi::loop() {
 
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     WiFiClientSecure client;
-#if defined(ESP8266)
+    #if defined(ESP8266)
     client.setBufferSizes(512, 512);
     client.setInsecure();
-#endif
+    #endif
+    
     HTTPClient https;
-#if defined(ESP8266)
+    #if defined(ESP8266)
     https.setFollowRedirects(true);
-#endif
+    #endif
 
     if(https.begin(client, url)) {
         int status = https.GET();
@@ -187,10 +189,22 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
             printE(https.errorToString(status));
             printI(url);
             printD(https.getString());
+
+            #if defined(ESP8266)
+            char buf[256];
+            client.getLastSSLError(buf,256);
+            printE(buf);
+            #endif
+
             https.end();
             return false;
         }
     } else {
+        #if defined(ESP8266)
+        char buf[256];
+        client.getLastSSLError(buf,256);
+        printE(buf);
+        #endif
         return false;
     }
 }

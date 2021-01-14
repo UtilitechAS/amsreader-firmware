@@ -1,16 +1,16 @@
 <div class="bg-white rounded shadow p-1">
     <div class="row">
         <div class="col-md-3 col-6">
-            <div class="text-center">Up <span class="currentSeconds">${currentSeconds}</span></div>
+            <div class="text-center">Up <span class="cs">{cs}</span></div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="text-center">Temperature: <span class="temp">${temp}</span>&deg;C</div>
+            <div class="text-center">Temperature: <span class="temp">{temp}</span>&deg;C</div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="text-center">ESP volt: <span class="vcc">${vcc}</span>V</div>
+            <div class="text-center">ESP volt: <span class="vcc">{vcc}</span>V</div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="text-center">WiFi RSSI: <span class="rssi">${wifi.rssi}</span>dBm</div>
+            <div class="text-center">WiFi RSSI: <span class="rssi">{rssi}</span>dBm</div>
         </div>
     </div>
 </div>
@@ -22,9 +22,9 @@
                 <div class="bg-white rounded shadow p-3">
                     <div class="text-center">
                         <div id="P" class="SimpleMeter" style="display: inline;">
-                            ${data.P} W
+                            {P} W
                         </div>
-                        <div id="importMeter" class="GaugeMeter rounded"
+                        <div id="im" class="GaugeMeter rounded"
                             style="display: none;"
                             data-size="180px"
                             data-text_size="0.15"
@@ -32,21 +32,21 @@
                             data-style="Arch"
                             data-theme="Green-Gold-Red"
                             data-animationstep="0"
-                            data-label="${text.import}"
+                            data-label="{ti}"
                         ></div>
                     </div>
-                    <div id="tPI-row" class="row" style="display: ${display.accumulative};">
-                        <div class="col-12 text-right"><span class="tPI">${data.tPI}</span> kWh</div>
+                    <div id="tPI-row" class="row" style="display: {da};">
+                        <div class="col-12 text-right"><span class="tPI">{tPI}</span> kWh</div>
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6 mt-3" style="display: ${display.export};">
+            <div class="col-sm-6 mt-3" style="display: {de};">
                 <div class="bg-white rounded shadow p-3">
                     <div class="text-center">
                         <div id="P" class="SimpleMeter" style="display: inline;">
-                            ${data.PO} W
+                            {PO} W
                         </div>
-                        <div id="exportMeter" class="GaugeMeter rounded"
+                        <div id="em" class="GaugeMeter rounded"
                             style="display: none;"
                             data-size="180px"
                             data-text_size="0.15"
@@ -57,29 +57,29 @@
                             data-label="Export"
                         ></div>
                     </div>
-                    <div id="tPO-row" class="row" style="display: ${display.accumulative};">
-                        <div class="col-12 text-right"><span class="tPO">${data.tPO}</span> kWh</div>
+                    <div id="tPO-row" class="row" style="display: {da};">
+                        <div class="col-12 text-right"><span class="tPO">{tPO}</span> kWh</div>
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6 mt-3" style="display: ${display.nonexport};">
-                <div class="bg-white rounded shadow p-3" style="display: ${display.accumulative};">
+            <div class="col-sm-6 mt-3" style="display: {dn};">
+                <div class="bg-white rounded shadow p-3" style="display: {da};">
                     <h5 class="text-center">Reactive</h5>
                     <div id="tQI-row" class="row">
                         <div class="col-4">Import</div>
-                        <div class="col-8 text-right"><span class="tQI">${data.tQI}</span> kvarh</div>
+                        <div class="col-8 text-right"><span class="tQI">{tQI}</span> kvarh</div>
                         <div class="col-4">Export</div>
-                        <div class="col-8 text-right"><span class="tQO">${data.tQO}</span> kvarh</div>
+                        <div class="col-8 text-right"><span class="tQO">{tQO}</span> kvarh</div>
                     </div>
                 </div>
             </div>
-            <div class="col-sm-12 mt-3" style="display: ${display.export};">
-                <div class="bg-white rounded shadow p-3" style="display: ${display.accumulative};">
+            <div class="col-sm-12 mt-3" style="display: {de};">
+                <div class="bg-white rounded shadow p-3" style="display: {da};">
                     <div id="tQO-row" class="row">
-                        <div class="col-4">Import</div>
-                        <div class="col-8 text-right"><span class="tQI">${data.tQI}</span> kvarh</div>
-                        <div class="col-4">Export</div>
-                        <div class="col-8 text-right"><span class="tQO">${data.tQO}</span> kvarh</div>
+                        <div class="col-4 col-sm-2">Import</div>
+                        <div class="col-8 col-sm-4 text-right"><span class="tQI">{tQI}</span> kvarh</div>
+                        <div class="col-4 col-sm-2">Export</div>
+                        <div class="col-8 col-sm-4 text-right"><span class="tQO">{tQO}</span> kvarh</div>
                     </div>
                 </div>
             </div>
@@ -88,7 +88,7 @@
     <div class="col-lg-3 col-sm-6 mt-3">
         <div class="bg-white rounded shadow p-3">
             <div class="text-center">
-                <div id="voltMeter" class="GaugeMeter rounded"
+                <div id="vm" class="GaugeMeter rounded"
                     style="display: none;"
                     data-size="180px"
                     data-text_size="0.15"
@@ -99,40 +99,40 @@
                     data-label="Volt"
                 ></div>
             </div>
-            <div id="U2-row" class="row" style="display: ${display.3p};">
-                <div class="col-4" title="L1"><span class="U1">${data.U1}</span>V</div>
-                <div class="col-4 text-center" title="L2"><span class="U2">${data.U2}</span>V</div>
-                <div class="col-4 text-right" title="L3"><span class="U3">${data.U3}</span>V</div>
+            <div id="U2-row" class="row" style="display: {3p};">
+                <div class="col-4"><span class="U1">{U1}</span>V</div>
+                <div class="col-4 text-center"><span class="U2">{U2}</span>V</div>
+                <div class="col-4 text-right"><span class="U3">{U3}</span>V</div>
             </div>
         </div>
     </div>
     <div class="col-lg-3 col-sm-6 mb-3 mt-3">
         <div class="bg-white rounded shadow p-3">
             <div class="text-center">
-                <div id="ampMeter" class="GaugeMeter rounded"
+                <div id="am" class="GaugeMeter rounded"
                     style="display: none;"
                     data-size="180px"
                     data-text_size="0.15"
                     data-width="25"
                     data-style="Arch"
-                    data-theme="Green-Gold-Red"
+                    data-theme="Green-Red"
                     data-animationstep="0"
                     data-label="Ampere"
                 ></div>
             </div>
-            <div id="I2-row" class="row" style="display: ${display.3p};">
-                <div class="col-4" title="L1"><span class="I1">${data.I1}</span>A</div>
-                <div class="col-4 text-center" title="L2"><span class="I2">${data.I2}</span>A</div>
-                <div class="col-4 text-right" title="L3"><span class="I3">${data.I3}</span>A</div>
+            <div id="I2-row" class="row" style="display: {3p};">
+                <div class="col-4"><span class="I1">{I1}</span>A</div>
+                <div class="col-4 text-center"><span class="I2">{I2}</span>A</div>
+                <div class="col-4 text-right"><span class="I3">{I3}</span>A</div>
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-sm-6 mb-3 d-none mqtt-error mqtt-error-1 mqtt-error-2 mqtt-error-3 mqtt-error-4 mqtt-error-5 mqtt-error-6 mqtt-error-7 mqtt-error-8 mqtt-error-9 mqtt-error-10 mqtt-error-11 mqtt-error-12 mqtt-error-13">
-        <div class="d-none badge badge-danger mqtt-error mqtt-error-1 mqtt-error-2 mqtt-error-5 mqtt-error-6 mqtt-error-7 mqtt-error-8 mqtt-error-9 mqtt-error-12">MQTT communication error (<span id="mqtt-lastError">-</span>)</div>
-        <div class="d-none badge badge-danger mqtt-error mqtt-error-3">MQTT failed to connect</div>
-        <div class="d-none badge badge-danger mqtt-error mqtt-error-4">MQTT network timeout</div>
-        <div class="d-none badge badge-danger mqtt-error mqtt-error-10">MQTT connection denied</div>
-        <div class="d-none badge badge-danger mqtt-error mqtt-error-11">MQTT failed to subscribe</div>
-        <div class="d-none badge badge-danger mqtt-error mqtt-error-13">MQTT lost connection</div>
+    <div class="col-lg-3 col-sm-6 mb-3 d-none me me-1 me-2 me-3 me-4 me-5 me-6 me-7 me-8 me-9 me-10 me-11 me-12 me-13">
+        <div class="d-none badge badge-danger me me-1 me-2 me-5 me-6 me-7 me-8 me-9 me-12">MQTT communication error (<span id="ml">-</span>)</div>
+        <div class="d-none badge badge-danger me me-3">MQTT failed to connect</div>
+        <div class="d-none badge badge-danger me me-4">MQTT network timeout</div>
+        <div class="d-none badge badge-danger me me-10">MQTT connection denied</div>
+        <div class="d-none badge badge-danger me me-11">MQTT failed to subscribe</div>
+        <div class="d-none badge badge-danger me me-13">MQTT lost connection</div>
     </div>
 </div>

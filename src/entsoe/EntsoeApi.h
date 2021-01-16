@@ -5,27 +5,25 @@
 #include "Timezone.h"
 #include "RemoteDebug.h"
 #include "EntsoeA44Parser.h"
+#include "AmsConfiguration.h"
 
 #define ENTSOE_NO_VALUE -127
 #define ENTSOE_DEFAULT_MULTIPLIER 1.00
+#define SSL_BUF_SIZE 512
 
 class EntsoeApi {
 public:
-    EntsoeApi(RemoteDebug* Debug);
+    EntsoeApi(RemoteDebug*);
+    void setup(EntsoeConfig&);
     bool loop();
 
-    double getValueForHour(int hour);
-    double getValueForHour(time_t now, int hour);
-    char* getCurrency();
-
-    void setToken(const char* token);
-    void setArea(const char* area);
-    void setCurrency(const char* currency);
-    void setMultiplier(double multiplier);
+    char* getToken();
+    float getValueForHour(uint8_t);
+    float getValueForHour(time_t, uint8_t);
 
 private:
     RemoteDebug* debugger;
-    char token[37]; // UUID + null terminator
+    EntsoeConfig* config = NULL;
 
     uint64_t midnightMillis = 0;
     uint64_t lastTodayFetch = 0;
@@ -36,13 +34,10 @@ private:
 
     Timezone* tz = NULL;
 
-    char area[32];
-    char currency[4];
-    double multiplier = ENTSOE_DEFAULT_MULTIPLIER;
-    double currencyMultiplier = ENTSOE_DEFAULT_MULTIPLIER;
+    float currencyMultiplier = ENTSOE_DEFAULT_MULTIPLIER;
 
     bool retrieve(const char* url, Stream* doc);
-    double getCurrencyMultiplier(const char* from, const char* to);
+    float getCurrencyMultiplier(const char* from, const char* to);
 
 	void printD(String fmt, ...);
 	void printI(String fmt, ...);

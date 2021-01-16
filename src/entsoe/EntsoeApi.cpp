@@ -21,31 +21,23 @@ EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
 	tz = new Timezone(CEST, CET);
 }
 
-void EntsoeApi::setToken(const char* token) {
-    strcpy(this->token, token);
+void EntsoeApi::setup(EntsoeConfig& config) {
+    if(this->config == NULL) {
+        this->config = new EntsoeConfig();
+    }
+    memcpy(this->config, &config, sizeof(config));
 }
 
-void EntsoeApi::setArea(const char* area) {
-    strcpy(this->area, area);
+char* EntsoeApi::getToken() {
+    return this->config->token;
 }
 
-void EntsoeApi::setCurrency(const char* currency) {
-    strcpy(this->currency, currency);
-}
-
-void EntsoeApi::setMultiplier(double multiplier) {
-    this->multiplier = multiplier;
-}
-
-char* EntsoeApi::getCurrency() {
-    return currency;
-}
-double EntsoeApi::getValueForHour(int hour) {
+float EntsoeApi::getValueForHour(uint8_t hour) {
     time_t cur = time(nullptr);
     return getValueForHour(cur, hour);
 }
 
-double EntsoeApi::getValueForHour(time_t cur, int hour) {
+float EntsoeApi::getValueForHour(time_t cur, uint8_t hour) {
     tmElements_t tm;
     if(tz != NULL)
         cur = tz->toLocal(cur);
@@ -55,7 +47,7 @@ double EntsoeApi::getValueForHour(time_t cur, int hour) {
         return ENTSOE_NO_VALUE;
 
     double value = ENTSOE_NO_VALUE;
-    double multiplier = this->multiplier;
+    double multiplier = config->multiplier / 1000.0;
     if(pos > 23) {
         if(tomorrow == NULL)
             return ENTSOE_NO_VALUE;
@@ -65,7 +57,7 @@ double EntsoeApi::getValueForHour(time_t cur, int hour) {
         } else {
             return ENTSOE_NO_VALUE;
         }
-        multiplier *= getCurrencyMultiplier(tomorrow->getCurrency(), currency);
+        multiplier *= getCurrencyMultiplier(tomorrow->getCurrency(), config->currency);
     } else {
         if(today == NULL)
             return ENTSOE_NO_VALUE;
@@ -75,13 +67,13 @@ double EntsoeApi::getValueForHour(time_t cur, int hour) {
         } else {
             return ENTSOE_NO_VALUE;
         }
-        multiplier *= getCurrencyMultiplier(today->getCurrency(), currency);
+        multiplier *= getCurrencyMultiplier(today->getCurrency(), config->currency);
     }
     return value * multiplier;
 }
 
 bool EntsoeApi::loop() {
-    if(strlen(token) == 0)
+    if(strlen(config->token) == 0)
         return false;
     bool ret = false;
 
@@ -116,10 +108,10 @@ bool EntsoeApi::loop() {
 
             char url[256];
             snprintf(url, sizeof(url), "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-            "https://transparency.entsoe.eu/api", token, 
+            "https://transparency.entsoe.eu/api", config->token, 
             d1.Year+1970, d1.Month, d1.Day, 23, 00,
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
-            area, area);
+            config->area, config->area);
 
             printD("Fetching prices for today");
             printD(url);
@@ -146,10 +138,10 @@ bool EntsoeApi::loop() {
 
             char url[256];
             snprintf(url, sizeof(url), "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-            "https://transparency.entsoe.eu/api", token, 
+            "https://transparency.entsoe.eu/api", config->token, 
             d1.Year+1970, d1.Month, d1.Day, 23, 00,
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
-            area, area);
+            config->area, config->area);
 
             printD("Fetching prices for tomorrow");
             printD(url);
@@ -169,8 +161,9 @@ bool EntsoeApi::loop() {
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     WiFiClientSecure client;
     #if defined(ESP8266)
-    client.setBufferSizes(512, 512);
+    client.setBufferSizes(SSL_BUF_SIZE, SSL_BUF_SIZE);
     client.setInsecure();
+    client.setX509Time(time(nullptr));
     #endif
     
     HTTPClient https;
@@ -191,8 +184,8 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
             printD(https.getString());
 
             #if defined(ESP8266)
-            char buf[256];
-            client.getLastSSLError(buf,256);
+            char buf[64];
+            client.getLastSSLError(buf,64);
             printE(buf);
             #endif
 
@@ -201,53 +194,32 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
         }
     } else {
         #if defined(ESP8266)
-        char buf[256];
-        client.getLastSSLError(buf,256);
+        char buf[64];
+        client.getLastSSLError(buf,64);
         printE(buf);
         #endif
         return false;
     }
+    client.stop();
 }
 
-double EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
+float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
     if(strcmp(from, to) == 0)
         return 1.00;
 
     uint64_t now = millis64();
     if(lastCurrencyFetch == 0 || now - lastCurrencyFetch > (SECS_PER_HOUR * 1000)) {
-        WiFiClientSecure client;
-        #if defined(ESP8266)
-            client.setBufferSizes(512, 512);
-            client.setInsecure();
-        #endif
-        HTTPClient https;
-        #if defined(ESP8266)
-            https.setFollowRedirects(true);
-        #endif
-
         char url[256];
         snprintf(url, sizeof(url), "https://data.norges-bank.no/api/data/EXR/M.%s.%s.SP?lastNObservations=1", 
             from,
             to
         );
 
-        if(https.begin(client, url)) {
-            int status = https.GET();
-            if(status == HTTP_CODE_OK) {
-                DnbCurrParser p;
-                https.writeToStream(&p);
-                currencyMultiplier = p.getValue();
-            } else {
-                printE("Communication error: ");
-                printE(https.errorToString(status));
-                printI(url);
-                printD(https.getString());
-            }
-            lastCurrencyFetch = now;
-            https.end();
-        } else {
-            return false;
+        DnbCurrParser p;
+        if(retrieve(url, &p)) {
+            currencyMultiplier = p.getValue();
         }
+        lastCurrencyFetch = now;
     }
     return currencyMultiplier;
 }

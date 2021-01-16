@@ -5,7 +5,7 @@
 
 class DnbCurrParser: public Stream {
 public:
-    double getValue();
+    float getValue();
     
     int available();
     int read();
@@ -15,9 +15,9 @@ public:
     size_t write(uint8_t);
 
 private:
-    double value = 1.0;
+    float value = 1.0;
 
-    char buf[256];
+    char buf[64];
     uint8_t pos = 0;
     uint8_t mode = 0;
 };

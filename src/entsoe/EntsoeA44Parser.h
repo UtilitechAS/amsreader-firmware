@@ -15,7 +15,7 @@ public:
 
     char* getCurrency();
     char* getMeasurementUnit();
-    double getPoint(uint8_t position);
+    float getPoint(uint8_t position);
     
     int available();
     int read();
@@ -27,9 +27,9 @@ public:
 private:
     char currency[4];
     char measurementUnit[4];
-    double points[24];
+    float points[24];
 
-    char buf[256];
+    char buf[64];
     uint8_t pos = 0;
     uint8_t docPos = 0;
     uint8_t pointNum = 0;

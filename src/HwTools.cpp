@@ -1,56 +1,69 @@
 #include "HwTools.h"
 
-void HwTools::setTempSensorPin(int tempSensorPin) {
-    if(tempSensorPin != this->tempSensorPin) {
-        this->tempSensorInit = false;
-        if(sensorApi)
-            delete sensorApi;
-        if(oneWire)
-            delete oneWire;
-        if(tempSensorPin > 0 && tempSensorPin < 40) {
-            this->tempSensorPin = tempSensorPin;
-            pinMode(tempSensorPin, INPUT);
-        } else {
-            this->tempSensorPin = 0xFF;
-        }
-    }
-}
-
-void HwTools::setTempAnalogSensorPin(int tempAnalogSensorPin) {
-    if(tempAnalogSensorPin != this->tempAnalogSensorPin) {
-        if(tempAnalogSensorPin > 0 && tempAnalogSensorPin < 40) {
-            this->tempAnalogSensorPin = tempAnalogSensorPin;
-            pinMode(tempAnalogSensorPin, INPUT);
-        } else {
-            this->tempAnalogSensorPin = 0xFF;
-        }
-    }
-}
-
-void HwTools::setVccPin(int vccPin) {
-    if(vccPin > 0 && vccPin < 40) {
-        pinMode(vccPin, INPUT);
-        this->vccPin = vccPin;
+void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
+    this->config = config;
+    this->amsConf = amsConf;
+    this->tempSensorInit = false;
+    if(this->tempSensors == NULL)
+        this->tempSensors = new TempSensorData*[32];
+    if(sensorApi != NULL)
+        delete sensorApi;
+    if(oneWire != NULL)
+        delete oneWire;
+    if(config->tempSensorPin > 0 && config->tempSensorPin < 40) {
+        pinMode(config->tempSensorPin, INPUT);
     } else {
-        this->vccPin = 0xFF;
+        config->tempSensorPin = 0xFF;
     }
-}
 
-void HwTools::setVccOffset(double vccOffset) {
-    this->vccOffset = vccOffset;
-}
+    if(config->tempAnalogSensorPin > 0 && config->tempAnalogSensorPin < 40) {
+        pinMode(config->tempAnalogSensorPin, INPUT);
+    } else {
+        config->tempAnalogSensorPin = 0xFF;
+    }
 
-void HwTools::setVccMultiplier(double vccMultiplier) {
-    this->vccMultiplier = vccMultiplier;
+    if(config->vccPin > 0 && config->vccPin < 40) {
+        pinMode(config->vccPin, INPUT);
+    } else {
+        config->vccPin = 0xFF;
+    }
+
+    if(config->ledPin > 0 && config->ledPin < 40) {
+        pinMode(config->ledPin, OUTPUT);
+        ledOff(LED_INTERNAL);
+    } else {
+        config->ledPin = 0xFF;
+    }
+
+    if(config->ledPinRed > 0 && config->ledPinRed < 40) {
+        pinMode(config->ledPinRed, OUTPUT);
+        ledOff(LED_RED);
+    } else {
+        config->ledPinRed = 0xFF;
+    }
+
+    if(config->ledPinGreen > 0 && config->ledPinGreen < 40) {
+        pinMode(config->ledPinGreen, OUTPUT);
+        ledOff(LED_GREEN);
+    } else {
+        config->ledPinGreen = 0xFF;
+    }
+
+    if(config->ledPinBlue > 0 && config->ledPinBlue < 40) {
+        pinMode(config->ledPinBlue, OUTPUT);
+        ledOff(LED_BLUE);
+    } else {
+        config->ledPinBlue = 0xFF;
+    }
 }
 
 double HwTools::getVcc() {
     double volts = 0.0;
-    if(vccPin != 0xFF) {
+    if(config->vccPin != 0xFF) {
         #if defined(ESP8266)
-            volts = (analogRead(vccPin) / 1024.0) * 3.3;
+            volts = (analogRead(config->vccPin) / 1024.0) * 3.3;
         #elif defined(ESP32)
-            volts = (analogRead(vccPin) / 4095.0) * 3.3;
+            volts = (analogRead(config->vccPin) / 4095.0) * 3.3;
         #endif
     } else {
         #if defined(ESP8266)
@@ -58,29 +71,9 @@ double HwTools::getVcc() {
         #endif
     }
 
+    float vccOffset = config->vccOffset / 100.0;
+    float vccMultiplier = config->vccMultiplier / 1000.0;
     return vccOffset + (volts > 0.0 ? volts * vccMultiplier : 0.0);
-}
-
-void HwTools::confTempSensor(uint8_t address[8], const char name[32], bool common) {
-    bool found = false;
-    for(int x = 0; x < sensorCount; x++) {
-        TempSensorData *data = tempSensors[x];
-        if(isSensorAddressEqual(data->address, address)) {
-            found = true;
-            strcpy(data->name, name);
-            data->common = common;
-        }
-    }
-    if(!found) {
-        TempSensorData *data = new TempSensorData();
-        memcpy(data->address, address, 8);
-        strcpy(data->name, name);
-        data->common = common;
-        data->lastRead = DEVICE_DISCONNECTED_C;
-        data->lastValidRead = DEVICE_DISCONNECTED_C;
-        tempSensors[sensorCount] = data;
-        sensorCount++;
-    }
 }
 
 uint8_t HwTools::getTempSensorCount() {
@@ -92,9 +85,9 @@ TempSensorData* HwTools::getTempSensorData(uint8_t i) {
 }
 
 bool HwTools::updateTemperatures() {
-    if(tempSensorPin != 0xFF) {
+    if(config->tempSensorPin != 0xFF) {
         if(!tempSensorInit) {
-            oneWire = new OneWire(tempSensorPin);
+            oneWire = new OneWire(config->tempSensorPin);
             sensorApi = new DallasTemperature(this->oneWire);
             sensorApi->begin();
             delay(100);
@@ -120,14 +113,12 @@ bool HwTools::updateTemperatures() {
                 if(!found) {
                     TempSensorData *data = new TempSensorData();
                     memcpy(data->address, addr, 8);
-                    data->common = true;
                     data->lastRead = t;
                     if(t > -85) {
                         data->lastValidRead = t;
                     }
 
-                    tempSensors[sensorCount] = data;
-                    sensorCount++;
+                    tempSensors[sensorCount++] = data;
                 }
                 delay(10);
             }
@@ -166,7 +157,8 @@ double HwTools::getTemperature() {
     }
     for(int x = 0; x < sensorCount; x++) {
         TempSensorData data = *tempSensors[x];
-        if(data.common && data.lastValidRead > -85) {
+        TempSensorConfig* conf = amsConf->getTempSensorConfig(data.address);
+        if((conf == NULL || conf->common) && data.lastValidRead > -85) {
             ret += data.lastValidRead;
             c++;
         }
@@ -174,13 +166,13 @@ double HwTools::getTemperature() {
     return c == 0 ? DEVICE_DISCONNECTED_C : ret/c;
 }
 double HwTools::getTemperatureAnalog() {
-    if(tempAnalogSensorPin != 0xFF) {
+    if(config->tempAnalogSensorPin != 0xFF) {
         float adcCalibrationFactor = 1.06587;
         int volts;
         #if defined(ESP8266)
-            volts = (analogRead(tempAnalogSensorPin) / 1024.0) * 3.3;
+            volts = (analogRead(config->tempAnalogSensorPin) / 1024.0) * 3.3;
         #elif defined(ESP32)
-            volts = (analogRead(tempAnalogSensorPin) / 4095.0) * 3.3;
+            volts = (analogRead(config->tempAnalogSensorPin) / 4095.0) * 3.3;
         #endif
         return ((volts * adcCalibrationFactor) - 0.4) / 0.0195;
     }
@@ -192,55 +184,19 @@ int HwTools::getWifiRssi() {
     return isnan(rssi) ? -100.0 : rssi;
 }
 
-void HwTools::setLed(uint8_t ledPin, bool ledInverted) {
-    if(ledPin > 0 && ledPin < 40) {
-        this->ledPin = ledPin;
-        this->ledInverted = ledInverted;
-        pinMode(ledPin, OUTPUT);
-        ledOff(LED_INTERNAL);
-    } else {
-        this->ledPin = 0xFF;
-    }
-}
-
-void HwTools::setLedRgb(uint8_t ledPinRed, uint8_t ledPinGreen, uint8_t ledPinBlue, bool ledRgbInverted) {
-    this->ledRgbInverted = ledRgbInverted;
-    if(ledPinRed > 0 && ledPinRed < 40) {
-        this->ledPinRed = ledPinRed;
-        pinMode(ledPinRed, OUTPUT);
-        ledOff(LED_RED);
-    } else {
-        this->ledPinRed = 0xFF;
-    }
-    if(ledPinGreen > 0 && ledPinGreen < 40) {
-        this->ledPinGreen = ledPinGreen;
-        pinMode(ledPinGreen, OUTPUT);
-        ledOff(LED_GREEN);
-    } else {
-        this->ledPinGreen = 0xFF;
-    }
-    if(ledPinBlue > 0 && ledPinBlue < 40) {
-        this->ledPinBlue = ledPinBlue;
-        pinMode(ledPinBlue, OUTPUT);
-        ledOff(LED_BLUE);
-    } else {
-        this->ledPinBlue = 0xFF;
-    }
-}
-
 bool HwTools::ledOn(uint8_t color) {
     if(color == LED_INTERNAL) {
-        return writeLedPin(color, ledInverted ? LOW : HIGH);
+        return writeLedPin(color, config->ledInverted ? LOW : HIGH);
     } else {
-        return writeLedPin(color, ledRgbInverted ? LOW : HIGH);
+        return writeLedPin(color, config->ledRgbInverted ? LOW : HIGH);
     }
 }
 
 bool HwTools::ledOff(uint8_t color) {
     if(color == LED_INTERNAL) {
-        return writeLedPin(color, ledInverted ? HIGH : LOW);
+        return writeLedPin(color, config->ledInverted ? HIGH : LOW);
     } else {
-        return writeLedPin(color, ledRgbInverted ? HIGH : LOW);
+        return writeLedPin(color, config->ledRgbInverted ? HIGH : LOW);
     }
 }
 
@@ -256,47 +212,52 @@ bool HwTools::ledBlink(uint8_t color, uint8_t blink) {
 
 bool HwTools::writeLedPin(uint8_t color, uint8_t state) {
     switch(color) {
-        case LED_INTERNAL:
-            if(ledPin != 0xFF) {
-                digitalWrite(ledPin, state);
+        case LED_INTERNAL: {
+            if(config->ledPin != 0xFF) {
+                digitalWrite(config->ledPin, state);
                 return true;
             } else {
                 return false;
             }
             break;
-        case LED_RED:
-            if(ledPinRed != 0xFF) {
-                digitalWrite(ledPinRed, state);
+        }
+        case LED_RED: {
+            if(config->ledPinRed != 0xFF) {
+                digitalWrite(config->ledPinRed, state);
                 return true;
             } else {
                 return false;
             }
             break;
-        case LED_GREEN:
-            if(ledPinGreen != 0xFF) {
-                digitalWrite(ledPinGreen, state);
+        }
+        case LED_GREEN: {
+            if(config->ledPinGreen != 0xFF) {
+                digitalWrite(config->ledPinGreen, state);
                 return true;
             } else {
                 return false;
             }
             break;
-        case LED_BLUE:
-            if(ledPinBlue != 0xFF) {
-                digitalWrite(ledPinBlue, state);
+        }
+        case LED_BLUE: {
+            if(config->ledPinBlue != 0xFF) {
+                digitalWrite(config->ledPinBlue, state);
                 return true;
             } else {
                 return false;
             }
             break;
-        case LED_YELLOW:
-            if(ledPinRed != 0xFF && ledPinGreen != 0xFF) {
-                digitalWrite(ledPinRed, state);
-                digitalWrite(ledPinGreen, state);
+        }
+        case LED_YELLOW: {
+            if(config->ledPinRed != 0xFF && config->ledPinGreen != 0xFF) {
+                digitalWrite(config->ledPinRed, state);
+                digitalWrite(config->ledPinGreen, state);
                 return true;
             } else {
                 return false;
             }
             break;
+        }
     }
     return false;
 }

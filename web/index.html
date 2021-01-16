@@ -21,7 +21,7 @@
             <div class="col-sm-6 mt-3">
                 <div class="bg-white rounded shadow p-3">
                     <div class="text-center">
-                        <div id="P" class="SimpleMeter" style="display: inline;">
+                        <div class="SimpleMeter P" style="display: inline;">
                             {P} W
                         </div>
                         <div id="im" class="GaugeMeter rounded"
@@ -35,7 +35,7 @@
                             data-label="{ti}"
                         ></div>
                     </div>
-                    <div id="tPI-row" class="row" style="display: {da};">
+                    <div class="row tPI-row" style="display: {da};">
                         <div class="col-12 text-right"><span class="tPI">{tPI}</span> kWh</div>
                     </div>
                 </div>
@@ -43,7 +43,7 @@
             <div class="col-sm-6 mt-3" style="display: {de};">
                 <div class="bg-white rounded shadow p-3">
                     <div class="text-center">
-                        <div id="P" class="SimpleMeter" style="display: inline;">
+                        <div class="SimpleMeter PO" style="display: inline;">
                             {PO} W
                         </div>
                         <div id="em" class="GaugeMeter rounded"
@@ -57,7 +57,7 @@
                             data-label="Export"
                         ></div>
                     </div>
-                    <div id="tPO-row" class="row" style="display: {da};">
+                    <div class="row tPO-row" style="display: {da};">
                         <div class="col-12 text-right"><span class="tPO">{tPO}</span> kWh</div>
                     </div>
                 </div>
@@ -65,20 +65,20 @@
             <div class="col-sm-6 mt-3" style="display: {dn};">
                 <div class="bg-white rounded shadow p-3" style="display: {da};">
                     <h5 class="text-center">Reactive</h5>
-                    <div id="tQI-row" class="row">
-                        <div class="col-4">Import</div>
+                    <div class="row tQI-row">
+                        <div class="col-4">In</div>
                         <div class="col-8 text-right"><span class="tQI">{tQI}</span> kvarh</div>
-                        <div class="col-4">Export</div>
+                        <div class="col-4">Out</div>
                         <div class="col-8 text-right"><span class="tQO">{tQO}</span> kvarh</div>
                     </div>
                 </div>
             </div>
             <div class="col-sm-12 mt-3" style="display: {de};">
                 <div class="bg-white rounded shadow p-3" style="display: {da};">
-                    <div id="tQO-row" class="row">
-                        <div class="col-4 col-sm-2">Import</div>
+                    <div class="row tQO-row">
+                        <div class="col-4 col-sm-2">In</div>
                         <div class="col-8 col-sm-4 text-right"><span class="tQI">{tQI}</span> kvarh</div>
-                        <div class="col-4 col-sm-2">Export</div>
+                        <div class="col-4 col-sm-2">Out</div>
                         <div class="col-8 col-sm-4 text-right"><span class="tQO">{tQO}</span> kvarh</div>
                     </div>
                 </div>
@@ -99,7 +99,7 @@
                     data-label="Volt"
                 ></div>
             </div>
-            <div id="U2-row" class="row" style="display: {3p};">
+            <div class="row U2-row" style="display: {3p};">
                 <div class="col-4"><span class="U1">{U1}</span>V</div>
                 <div class="col-4 text-center"><span class="U2">{U2}</span>V</div>
                 <div class="col-4 text-right"><span class="U3">{U3}</span>V</div>
@@ -115,12 +115,12 @@
                     data-text_size="0.15"
                     data-width="25"
                     data-style="Arch"
-                    data-theme="Green-Red"
+                    data-theme="Green-Gold-Red"
                     data-animationstep="0"
                     data-label="Ampere"
                 ></div>
             </div>
-            <div id="I2-row" class="row" style="display: {3p};">
+            <div class="row I2-row" style="display: {3p};">
                 <div class="col-4"><span class="I1">{I1}</span>A</div>
                 <div class="col-4 text-center"><span class="I2">{I2}</span>A</div>
                 <div class="col-4 text-right"><span class="I3">{I3}</span>A</div>

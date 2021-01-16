@@ -3,6 +3,7 @@
 
 #define BOOTSTRAP_URL "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"
 
+#include "Arduino.h"
 #include <MQTT.h>
 #include <ArduinoJson.h>
 #include "AmsConfiguration.h"
@@ -11,12 +12,6 @@
 #include "Uptime.h"
 #include "RemoteDebug.h"
 #include "entsoe/EntsoeApi.h"
-
-#if defined(ARDUINO) && ARDUINO >= 100
-	#include "Arduino.h"
-#else
-	#include "WProgram.h"
-#endif
 
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>
@@ -27,7 +22,6 @@
 	#include <WebServer.h>
 	#include <HTTPClient.h>
 	#include "SPIFFS.h"
-	#include "Update.h"
 #else
 	#warning "Unsupported board type"
 #endif
@@ -35,19 +29,22 @@
 class AmsWebServer {
 public:
 	AmsWebServer(RemoteDebug* Debug, HwTools* hw, EntsoeApi* eapi);
-    void setup(AmsConfiguration* config, MQTTClient* mqtt);
+    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, MQTTClient*);
     void loop();
-
-	void setData(AmsData& data);
+	void setTimezone(Timezone* tz);
 
 private:
 	RemoteDebug* debugger;
+	bool mqttEnabled = false;
 	int maxPwr = 0;
 	HwTools* hw;
 	Timezone* tz;
 	EntsoeApi* eapi;
-    AmsConfiguration* config;
-	AmsData data;
+	AmsConfiguration* config;
+	GpioConfig* gpioConfig;
+	MeterConfig* meterConfig;
+	WebConfig webConfig;
+	AmsData* meterState;
 	MQTTClient* mqtt;
 	bool uploading = false;
 	File file;

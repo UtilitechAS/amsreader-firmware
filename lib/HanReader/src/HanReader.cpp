@@ -22,17 +22,18 @@ void HanReader::setup(Stream *hanPort){
 }
 
 void HanReader::setEncryptionKey(uint8_t* encryption_key) {
-	memcpy(this->encryption_key, encryption_key, 16);
+	this->encryption_key = encryption_key;
 }
 
 void HanReader::setAuthenticationKey(uint8_t* authentication_key) {
-	memcpy(this->authentication_key, authentication_key, 16);
+	this->authentication_key = authentication_key;
 }
 
 
 bool HanReader::read(byte data) {
 	if (reader.Read(data, debugger->isActive(RemoteDebug::DEBUG) ? debugger : NULL)) {
-		bytesRead = reader.GetRawData(buffer, 0, 512);
+		bytesRead = reader.getBytesRead();
+		buffer = reader.getBuffer();
 		if (debugger->isActive(RemoteDebug::INFO)) {
 			printI("Got valid DLMS data (%d bytes)", bytesRead);
 			if (debugger->isActive(RemoteDebug::DEBUG)) {
@@ -52,7 +53,6 @@ bool HanReader::read(byte data) {
 			buffer[0] != 0xE6 
 			|| buffer[1] != 0xE7
 			|| buffer[2] != 0x00
-			//|| buffer[3] != 0x0F
 		)
 		{
 			printW("Invalid HAN data: Start should be E6 E7 00");
@@ -176,19 +176,19 @@ time_t HanReader::getPackageTime(bool respectTimezone, bool respectDsc) {
 	return getTime(buffer, packageTimePosition, bytesRead, respectTimezone, respectDsc);
 }
 
-time_t HanReader::getTime(int objectId, bool respectTimezone, bool respectDsc) {
+time_t HanReader::getTime(uint8_t objectId, bool respectTimezone, bool respectDsc) {
 	return getTime(objectId, respectTimezone, respectDsc, buffer, 0, bytesRead);
 }
 
-int32_t HanReader::getInt(int objectId) {
+int32_t HanReader::getInt(uint8_t objectId) {
 	return getInt(objectId, buffer, 0, bytesRead);
 }
 
-uint32_t HanReader::getUint(int objectId) {
+uint32_t HanReader::getUint(uint8_t objectId) {
 	return getUint32(objectId, buffer, 0, bytesRead);
 }
 
-String HanReader::getString(int objectId) {
+String HanReader::getString(uint8_t objectId) {
 	return getString(objectId, buffer, 0, bytesRead);
 }
 
@@ -199,7 +199,7 @@ int HanReader::getBuffer(byte* buf) {
 	return bytesRead;
 }
 
-int HanReader::findValuePosition(int dataPosition, byte *buffer, int start, int length) {
+int HanReader::findValuePosition(uint8_t dataPosition, byte *buffer, int start, int length) {
 	// The first byte after the header gives the length 
 	// of the extended header information (variable)
 	int headerSize = dataHeader + (compensateFor09HeaderBug ? 1 : 0);
@@ -240,7 +240,7 @@ int HanReader::findValuePosition(int dataPosition, byte *buffer, int start, int 
 }
 
 
-time_t HanReader::getTime(int dataPosition, bool respectTimezone, bool respectDsc, byte *buffer, int start, int length) {
+time_t HanReader::getTime(uint8_t dataPosition, bool respectTimezone, bool respectDsc, byte *buffer, int start, int length) {
 	// TODO: check if the time is represented always as a 12 byte string (0x09 0x0C)
 	int timeStart = findValuePosition(dataPosition, buffer, start, length);
 	timeStart += 1;
@@ -285,7 +285,7 @@ time_t HanReader::getTime(byte *buffer, int start, int length, bool respectTimez
 	}
 }
 
-int HanReader::getInt(int dataPosition, byte *buffer, int start, int length) {
+int HanReader::getInt(uint8_t dataPosition, byte *buffer, int start, int length) {
 	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
 
 	if (valuePosition > 0) {
@@ -307,7 +307,7 @@ int HanReader::getInt(int dataPosition, byte *buffer, int start, int length) {
 	return 0;
 }
 
-int8_t HanReader::getInt8(int dataPosition, byte *buffer, int start, int length) {
+int8_t HanReader::getInt8(uint8_t dataPosition, byte *buffer, int start, int length) {
 	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
 	if (valuePosition > 0 && buffer[valuePosition++] == 0x0F) {
 		return buffer[valuePosition];
@@ -315,7 +315,7 @@ int8_t HanReader::getInt8(int dataPosition, byte *buffer, int start, int length)
 	return 0;
 }
 
-int16_t HanReader::getInt16(int dataPosition, byte *buffer, int start, int length) {
+int16_t HanReader::getInt16(uint8_t dataPosition, byte *buffer, int start, int length) {
 	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
 	if (valuePosition > 0 && buffer[valuePosition++] == 0x10) {
 		return buffer[valuePosition] << 8 | buffer[valuePosition+1];
@@ -323,7 +323,7 @@ int16_t HanReader::getInt16(int dataPosition, byte *buffer, int start, int lengt
 	return 0;
 }
 
-uint8_t HanReader::getUint8(int dataPosition, byte *buffer, int start, int length) {
+uint8_t HanReader::getUint8(uint8_t dataPosition, byte *buffer, int start, int length) {
 	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
 	if (valuePosition > 0) {
 		switch(buffer[valuePosition++]) {
@@ -336,7 +336,7 @@ uint8_t HanReader::getUint8(int dataPosition, byte *buffer, int start, int lengt
 	return 0;
 }
 
-uint16_t HanReader::getUint16(int dataPosition, byte *buffer, int start, int length) {
+uint16_t HanReader::getUint16(uint8_t dataPosition, byte *buffer, int start, int length) {
 	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
 	if (valuePosition > 0 && buffer[valuePosition++] == 0x12) {
 		return buffer[valuePosition] << 8 | buffer[valuePosition+1];
@@ -344,7 +344,7 @@ uint16_t HanReader::getUint16(int dataPosition, byte *buffer, int start, int len
 	return 0;
 }
 
-uint32_t HanReader::getUint32(int dataPosition, byte *buffer, int start, int length) {
+uint32_t HanReader::getUint32(uint8_t dataPosition, byte *buffer, int start, int length) {
 	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
 	if (valuePosition > 0) {
 		if(buffer[valuePosition++] != 0x06)
@@ -358,7 +358,7 @@ uint32_t HanReader::getUint32(int dataPosition, byte *buffer, int start, int len
 	return 0;
 }
 
-String HanReader::getString(int dataPosition, byte *buffer, int start, int length) {
+String HanReader::getString(uint8_t dataPosition, byte *buffer, int start, int length) {
 	int valuePosition = findValuePosition(dataPosition, buffer, start, length);
 	if (valuePosition > 0) {
 		String value = String("");

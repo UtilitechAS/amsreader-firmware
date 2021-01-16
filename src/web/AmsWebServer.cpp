@@ -36,8 +36,11 @@ AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw, EntsoeApi* eapi) {
 	this->eapi = eapi;
 }
 
-void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
+void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, MQTTClient* mqtt) {
     this->config = config;
+	this->gpioConfig = gpioConfig;
+	this->meterConfig = meterConfig;
+	this->meterState = meterState;
 	this->mqtt = mqtt;
 
 	server.on("/", HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
@@ -83,39 +86,37 @@ void AmsWebServer::setup(AmsConfiguration* config, MQTTClient* mqtt) {
 	server.on("/reset", HTTP_POST, std::bind(&AmsWebServer::factoryResetPost, this));
 	
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
-
-	TimeChangeRule STD = {"STD", Last, Sun, Oct, 3, config->getNtpOffset() / 60};
-	TimeChangeRule DST = {"DST", Last, Sun, Mar, 2, (config->getNtpOffset() + config->getNtpSummerOffset()) / 60};
-	tz = new Timezone(DST, STD);
 	
 	server.begin(); // Web server start
+
+	config->getWebConfig(webConfig);
+	MqttConfig mqttConfig;
+	config->getMqttConfig(mqttConfig);
+	mqttEnabled = strlen(mqttConfig.host) > 0;
+}
+
+void AmsWebServer::setTimezone(Timezone* tz) {
+	this->tz = tz;
 }
 
 void AmsWebServer::loop() {
 	server.handleClient();
-}
 
-
-void AmsWebServer::setData(AmsData& data) {
-	millis64(); // Make sure it catch all those rollovers
-
-	this->data.apply(data);
-
-	if(maxPwr == 0 && data.getListType() > 1 && config->hasConfig() && config->getMainFuse() > 0 && config->getDistributionSystem() > 0) {
-		int volt = config->getDistributionSystem() == 2 ? 400 : 230;
-		if(data.isThreePhase()) {
-			maxPwr = config->getMainFuse() * sqrt(3) * volt;
+	if(maxPwr == 0 && meterState->getListType() > 1 && meterConfig->mainFuse > 0 && meterConfig->distributionSystem > 0) {
+		if(meterState->isThreePhase()) {
+			int voltage = meterConfig->distributionSystem == 2 ? 400 : 230;
+			maxPwr = meterConfig->mainFuse * sqrt(3) * voltage;
 		} else {
-			maxPwr = config->getMainFuse() * 230;
+			maxPwr = meterConfig->mainFuse * 230;
 		}
 	}
 }
 
 bool AmsWebServer::checkSecurity(byte level) {
-	bool access = WiFi.getMode() == WIFI_AP || !config->hasConfig() || config->getAuthSecurity() < level;
-	if(!access && config->getAuthSecurity() >= level && server.hasHeader("Authorization")) {
+	bool access = WiFi.getMode() == WIFI_AP || webConfig.security < level;
+	if(!access && webConfig.security >= level && server.hasHeader("Authorization")) {
 		printD(" forcing web security");
-		String expectedAuth = String(config->getAuthUser()) + ":" + String(config->getAuthPassword());
+		String expectedAuth = String(webConfig.username) + ":" + String(webConfig.password);
 
 		String providedPwd = server.header("Authorization");
 		providedPwd.replace("Basic ", "");
@@ -176,13 +177,6 @@ void AmsWebServer::temperaturePost() {
 		printD("Successfully saved temperature sensors");
 		server.sendHeader("Location", String("/temperature"), true);
 		server.send (302, "text/plain", "");
-
-		uint8_t c = config->getTempSensorCount();
-		for(int i = 0; i < c; i++) {
-			TempSensorConfig* tsc = config->getTempSensorConfig(i);
-			hw->confTempSensor(tsc->address, tsc->name, tsc->common);
-			delay(1);
-		}
 	}
 }
 
@@ -199,12 +193,13 @@ void AmsWebServer::temperatureJson() {
 	JsonArray sensors = json.createNestedArray("s");
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
+		TempSensorConfig* conf = config->getTempSensorConfig(data->address);
 		JsonObject obj = sensors.createNestedObject();
 		obj["i"] = i;
 		obj["a"] = toHex(data->address, 8);
-		obj["n"] = String(data->name).substring(0,16);
+		obj["n"] = conf == NULL ? "" : String(conf->name).substring(0,16);
+		obj["c"] = conf == NULL ? true : conf->common;
 		obj["v"] = String(data->lastRead, 2);
-		obj["c"] = data->common;
 		delay(1);
 	}
 
@@ -259,22 +254,28 @@ void AmsWebServer::indexHtml() {
 	server.sendHeader("Expires", "-1");
 
 	if(WiFi.getMode() == WIFI_AP) {
+		SystemConfig sys;
+		config->getSystemConfig(sys);
+
+		WiFiConfig wifi;
+		config->clearWifi(wifi);
+
 		String html = String((const __FlashStringHelper*) SETUP_HTML);
 		for(int i = 0; i<255; i++) {
-			html.replace("${config.boardType" + String(i) + "}", config->getBoardType() == i ? "selected"  : "");
+			html.replace("${config.boardType" + String(i) + "}", sys.boardType == i ? "selected"  : "");
 		}
 		for(int i = 0; i<5; i++) {
-			html.replace("${config.meterType" + String(i) + "}", config->getMeterType() == i ? "selected"  : "");
+			html.replace("${config.meterType" + String(i) + "}", sys.boardType == i ? "selected"  : "");
 		}
-		html.replace("${config.wifiSsid}", config->getWifiSsid());
-		html.replace("${config.wifiPassword}", config->getWifiPassword());
-		html.replace("${config.wifiStaticIp}", strlen(config->getWifiIp()) > 0 ? "checked" : "");
-		html.replace("${config.wifiIp}", config->getWifiIp());
-		html.replace("${config.wifiGw}", config->getWifiGw());
-		html.replace("${config.wifiSubnet}", config->getWifiSubnet());
-		html.replace("${config.wifiDns1}", config->getWifiDns1());
-		html.replace("${config.wifiDns2}", config->getWifiDns2());
-		html.replace("${config.wifiHostname}", config->getWifiHostname());
+		html.replace("${config.wifiSsid}", wifi.ssid);
+		html.replace("${config.wifiPassword}", wifi.psk);
+		html.replace("${config.wifiStaticIp}", strlen(wifi.ip) > 0 ? "checked" : "");
+		html.replace("${config.wifiIp}", wifi.ip);
+		html.replace("${config.wifiGw}", wifi.gateway);
+		html.replace("${config.wifiSubnet}", wifi.subnet);
+		html.replace("${config.wifiDns1}", wifi.dns1);
+		html.replace("${config.wifiDns2}", wifi.dns2);
+		html.replace("${config.wifiHostname}", wifi.hostname);
 		server.send(200, "text/html", html);
 	} else {
 		if(!checkSecurity(2))
@@ -282,23 +283,23 @@ void AmsWebServer::indexHtml() {
 
 		String html = String((const __FlashStringHelper*) INDEX_HTML);
 
-		double u1 = data.getL1Voltage();
-		double u2 = data.getL2Voltage();
-		double u3 = data.getL3Voltage();
-		double i1 = data.getL1Current();
-		double i2 = data.getL2Current();
-		double i3 = data.getL3Current();
-		double tpi = data.getActiveImportCounter();
-		double tpo = data.getActiveExportCounter();
-		double tqi = data.getReactiveImportCounter();
-		double tqo = data.getReactiveExportCounter();
+		double u1 = meterState->getL1Voltage();
+		double u2 = meterState->getL2Voltage();
+		double u3 = meterState->getL3Voltage();
+		double i1 = meterState->getL1Current();
+		double i2 = meterState->getL2Current();
+		double i3 = meterState->getL3Current();
+		double tpi = meterState->getActiveImportCounter();
+		double tpo = meterState->getActiveExportCounter();
+		double tqi = meterState->getReactiveImportCounter();
+		double tqo = meterState->getReactiveExportCounter();
 
-		html.replace("{P}", String(data.getActiveImportPower()));
-		html.replace("{PO}", String(data.getActiveExportPower()));
-		html.replace("{de}", config->getProductionCapacity() > 0 ? "" : "none");
-		html.replace("{dn}", config->getProductionCapacity() > 0 ? "none" : "");
-		html.replace("{ti}", config->getProductionCapacity() > 0 ? "Import" : "Use");
-		html.replace("{3p}", data.isThreePhase() ? "" : "none");
+		html.replace("{P}", String(meterState->getActiveImportPower()));
+		html.replace("{PO}", String(meterState->getActiveExportPower()));
+		html.replace("{de}", meterConfig->productionCapacity > 0 ? "" : "none");
+		html.replace("{dn}", meterConfig->productionCapacity > 0 ? "none" : "");
+		html.replace("{ti}", meterConfig->productionCapacity > 0 ? "Import" : "Use");
+		html.replace("{3p}", meterState->isThreePhase() ? "" : "none");
 
 		html.replace("{U1}", u1 > 0 ? String(u1, 1) : "");
 		html.replace("{I1}", u1 > 0 ? String(i1, 1) : "");
@@ -351,35 +352,35 @@ void AmsWebServer::configMeterHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
-	html.replace("{m}", String(config->getMainFuse()));
+	html.replace("{m}", String(meterConfig->mainFuse));
 	for(int i = 0; i<5; i++) {
-		html.replace("{m" + String(i) + "}", config->getMeterType() == i ? "selected"  : "");
+		html.replace("{m" + String(i) + "}", meterConfig->type == i ? "selected"  : "");
 	}
-	html.replace("{d}", String(config->getDistributionSystem()));
+	html.replace("{d}", String(meterConfig->distributionSystem));
 	for(int i = 0; i<3; i++) {
-		html.replace("{d" + String(i) + "}", config->getDistributionSystem() == i ? "selected"  : "");
+		html.replace("{d" + String(i) + "}", meterConfig->distributionSystem == i ? "selected"  : "");
 	}
-	html.replace("{f}", String(config->getMainFuse()));
+	html.replace("{f}", String(meterConfig->mainFuse));
 	for(int i = 0; i<64; i++) {
-		html.replace("{f" + String(i) + "}", config->getMainFuse() == i ? "selected"  : "");
+		html.replace("{f" + String(i) + "}", meterConfig->mainFuse == i ? "selected"  : "");
 	}
-	html.replace("{p}", String(config->getProductionCapacity()));
+	html.replace("{p}", String(meterConfig->productionCapacity));
 
-	if(config->getMeterType() == METER_TYPE_OMNIPOWER) {
+	if(meterConfig->type == METER_TYPE_OMNIPOWER) {
 		String encryptionKeyHex = "0x";
-		encryptionKeyHex += toHex(config->getMeterEncryptionKey(), 16);
+		encryptionKeyHex += toHex(meterConfig->encryptionKey, 16);
 		html.replace("{e}", encryptionKeyHex);
 
 		String authenticationKeyHex = "0x";
-		authenticationKeyHex += toHex(config->getMeterAuthenticationKey(), 16);
+		authenticationKeyHex += toHex(meterConfig->authenticationKey, 16);
 		html.replace("{a}", authenticationKeyHex);
 	} else {
 		html.replace("{e}", "");
 		html.replace("{a}", "");
 	}
 
-	html.replace("{s}", config->isSubstituteMissing() ? "checked" : "");
-	html.replace("{u}", config->isSendUnknown() ? "checked" : "");
+	html.replace("{s}", meterConfig->substituteMissing ? "checked" : "");
+	html.replace("{u}", meterConfig->sendUnknown ? "checked" : "");
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
@@ -416,16 +417,19 @@ void AmsWebServer::configWifiHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
-	html.replace("{s}", config->getWifiSsid());
-	html.replace("{p}", config->getWifiPassword());
-	html.replace("{st}", strlen(config->getWifiIp()) > 0 ? "checked" : "");
-	html.replace("{i}", config->getWifiIp());
-	html.replace("{g}", config->getWifiGw());
-	html.replace("{sn}", config->getWifiSubnet());
-	html.replace("{d1}", config->getWifiDns1());
-	html.replace("{d2}", config->getWifiDns2());
-	html.replace("{h}", config->getWifiHostname());
-	html.replace("{m}", config->isMdnsEnable() ? "checked" : "");
+	WiFiConfig wifi;
+	config->getWiFiConfig(wifi);
+
+	html.replace("{s}", wifi.ssid);
+	html.replace("{p}", wifi.psk);
+	html.replace("{st}", strlen(wifi.ip) > 0 ? "checked" : "");
+	html.replace("{i}", wifi.ip);
+	html.replace("{g}", wifi.gateway);
+	html.replace("{sn}", wifi.subnet);
+	html.replace("{d1}", wifi.dns1);
+	html.replace("{d2}", wifi.dns2);
+	html.replace("{h}", wifi.hostname);
+	html.replace("{m}", wifi.mdns ? "checked" : "");
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
@@ -444,24 +448,27 @@ void AmsWebServer::configMqttHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
-	html.replace("{m}", strlen(config->getMqttHost()) == 0 ? "" : "checked");
-	html.replace("{h}", config->getMqttHost());
-	if(config->getMqttPort() > 0) {
-		html.replace("{p}", String(config->getMqttPort()));
+	MqttConfig mqtt;
+	config->getMqttConfig(mqtt);
+
+	html.replace("{m}", strlen(mqtt.host) == 0 ? "" : "checked");
+	html.replace("{h}", mqtt.host);
+	if(mqtt.port > 0) {
+		html.replace("{p}", String(mqtt.port));
 	} else {
 		html.replace("{p}", String(1883));
 	}
-	html.replace("{i}", config->getMqttClientId());
-	html.replace("{t}", config->getMqttPublishTopic());
-	html.replace("{st}", config->getMqttSubscribeTopic());
-	html.replace("{u}", config->getMqttUser());
-	html.replace("{pw}", config->getMqttPassword());
-	html.replace("{f}", String(config->getMqttPayloadFormat()));
+	html.replace("{i}", mqtt.clientId);
+	html.replace("{t}", mqtt.publishTopic);
+	html.replace("{st}", mqtt.subscribeTopic);
+	html.replace("{u}", mqtt.username);
+	html.replace("{pw}", mqtt.password);
+	html.replace("{f}", String(mqtt.payloadFormat));
 	for(int i = 0; i<4; i++) {
-		html.replace("{f" + String(i) + "}", config->getMqttPayloadFormat() == i ? "selected"  : "");
+		html.replace("{f" + String(i) + "}", mqtt.payloadFormat == i ? "selected"  : "");
 	}
 
-	html.replace("{s}", config->isMqttSsl() ? "checked" : "");
+	html.replace("{s}", mqtt.ssl ? "checked" : "");
 
 	if(SPIFFS.begin()) {
 		html.replace("{dcu}", SPIFFS.exists(FILE_MQTT_CA) ? "none" : "");
@@ -497,16 +504,14 @@ void AmsWebServer::configDomoticzHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
-	if(config->getDomoELIDX() > 0){ html.replace("{elidx}", String(config->getDomoELIDX()));
-	} else { html.replace("{elidx}", ""); }
-	if(config->getDomoVL1IDX() > 0){ html.replace("{vl1idx}", String(config->getDomoVL1IDX()));
-	} else { html.replace("{vl1idx}", ""); }
-	if(config->getDomoVL2IDX() > 0){ html.replace("{vl2idx}", String(config->getDomoVL2IDX()));
-	} else { html.replace("{vl2idx}", ""); }
-	if(config->getDomoVL3IDX() > 0){ html.replace("{vl3idx}", String(config->getDomoVL3IDX()));
-	} else { html.replace("{vl3idx}", ""); }
-	if(config->getDomoCL1IDX() > 0){ html.replace("{cl1idx}", String(config->getDomoCL1IDX()));
-	} else { html.replace("{cl1idx}", ""); }
+	DomoticzConfig domo;
+	config->getDomoticzConfig(domo);
+
+	html.replace("{elidx}", domo.elidx ? String(domo.elidx, 10) : "");
+	html.replace("{vl1idx}", domo.vl1idx ? String(domo.vl1idx, 10) : "");
+	html.replace("{vl2idx}", domo.vl2idx ? String(domo.vl2idx, 10) : "");
+	html.replace("{vl3idx}", domo.vl3idx ? String(domo.vl3idx, 10) : "");
+	html.replace("{cl1idx}", domo.cl1idx ? String(domo.cl1idx, 10) : "");
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
@@ -522,27 +527,30 @@ void AmsWebServer::configEntsoeHtml() {
 
 	String html = String((const __FlashStringHelper*) ENTSOE_HTML);
 
-	html.replace("{et}", config->getEntsoeApiToken());
-	html.replace("{em}", String(config->getEntsoeApiMultiplier(), 3));
+	EntsoeConfig entsoe;
+	config->getEntsoeConfig(entsoe);
 
-	html.replace("{eaNo1}", strcmp(config->getEntsoeApiArea(), "10YNO-1--------2") == 0 ? "selected" : "");
-	html.replace("{eaNo2}", strcmp(config->getEntsoeApiArea(), "10YNO-2--------T") == 0 ? "selected" : "");
-	html.replace("{eaNo3}", strcmp(config->getEntsoeApiArea(), "10YNO-3--------J") == 0 ? "selected" : "");
-	html.replace("{eaNo4}", strcmp(config->getEntsoeApiArea(), "10YNO-4--------9") == 0 ? "selected" : "");
-	html.replace("{eaNo5}", strcmp(config->getEntsoeApiArea(), "10Y1001A1001A48H") == 0 ? "selected" : "");
+	html.replace("{et}", entsoe.token);
+	html.replace("{em}", String(entsoe.multiplier / 1000.0, 3));
 
-	html.replace("{eaSe1}", strcmp(config->getEntsoeApiArea(), "10Y1001A1001A44P") == 0 ? "selected" : "");
-	html.replace("{eaSe2}", strcmp(config->getEntsoeApiArea(), "10Y1001A1001A45N") == 0 ? "selected" : "");
-	html.replace("{eaSe3}", strcmp(config->getEntsoeApiArea(), "10Y1001A1001A46L") == 0 ? "selected" : "");
-	html.replace("{eaSe4}", strcmp(config->getEntsoeApiArea(), "10Y1001A1001A47J") == 0 ? "selected" : "");
+	html.replace("{eaNo1}", strcmp(entsoe.area, "10YNO-1--------2") == 0 ? "selected" : "");
+	html.replace("{eaNo2}", strcmp(entsoe.area, "10YNO-2--------T") == 0 ? "selected" : "");
+	html.replace("{eaNo3}", strcmp(entsoe.area, "10YNO-3--------J") == 0 ? "selected" : "");
+	html.replace("{eaNo4}", strcmp(entsoe.area, "10YNO-4--------9") == 0 ? "selected" : "");
+	html.replace("{eaNo5}", strcmp(entsoe.area, "10Y1001A1001A48H") == 0 ? "selected" : "");
 
-	html.replace("{eaDk1}", strcmp(config->getEntsoeApiArea(), "10YDK-1--------W") == 0 ? "selected" : "");
-	html.replace("{eaDk2}", strcmp(config->getEntsoeApiArea(), "10YDK-2--------M") == 0 ? "selected" : "");
+	html.replace("{eaSe1}", strcmp(entsoe.area, "10Y1001A1001A44P") == 0 ? "selected" : "");
+	html.replace("{eaSe2}", strcmp(entsoe.area, "10Y1001A1001A45N") == 0 ? "selected" : "");
+	html.replace("{eaSe3}", strcmp(entsoe.area, "10Y1001A1001A46L") == 0 ? "selected" : "");
+	html.replace("{eaSe4}", strcmp(entsoe.area, "10Y1001A1001A47J") == 0 ? "selected" : "");
 
-	html.replace("{ecNOK}", strcmp(config->getEntsoeApiArea(), "NOK") == 0 ? "selected" : "");
-	html.replace("{ecSEK}", strcmp(config->getEntsoeApiArea(), "SEK") == 0 ? "selected" : "");
-	html.replace("{ecDKK}", strcmp(config->getEntsoeApiArea(), "DKK") == 0 ? "selected" : "");
-	html.replace("{ecEUR}", strcmp(config->getEntsoeApiArea(), "EUR") == 0 ? "selected" : "");
+	html.replace("{eaDk1}", strcmp(entsoe.area, "10YDK-1--------W") == 0 ? "selected" : "");
+	html.replace("{eaDk2}", strcmp(entsoe.area, "10YDK-2--------M") == 0 ? "selected" : "");
+
+	html.replace("{ecNOK}", strcmp(entsoe.area, "NOK") == 0 ? "selected" : "");
+	html.replace("{ecSEK}", strcmp(entsoe.area, "SEK") == 0 ? "selected" : "");
+	html.replace("{ecDKK}", strcmp(entsoe.area, "DKK") == 0 ? "selected" : "");
+	html.replace("{ecEUR}", strcmp(entsoe.area, "EUR") == 0 ? "selected" : "");
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
@@ -561,12 +569,12 @@ void AmsWebServer::configWebHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
-	html.replace("{as}", String(config->getAuthSecurity()));
+	html.replace("{as}", String(webConfig.security));
 	for(int i = 0; i<3; i++) {
-		html.replace("{as" + String(i) + "}", config->getAuthSecurity() == i ? "selected"  : "");
+		html.replace("{as" + String(i) + "}", webConfig.security == i ? "selected"  : "");
 	}
-	html.replace("{au}", config->getAuthUser());
-	html.replace("{ap}", config->getAuthPassword());
+	html.replace("{au}", webConfig.username);
+	html.replace("{ap}", webConfig.password);
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
@@ -604,32 +612,33 @@ void AmsWebServer::dataJson() {
 	StaticJsonDocument<768> json;
 
     String jsonStr;
-	if(data.getLastUpdateMillis() > 0) {
+	if(meterState->getLastUpdateMillis() > 0) {
 		int maxPwr = this->maxPwr;
 		if(maxPwr == 0) {
-			if(data.isThreePhase()) {
+			if(meterState->isThreePhase()) {
 				maxPwr = 20000;
 			} else {
 				maxPwr = 10000;
 			}
 		}
 
-		json["up"] = data.getLastUpdateMillis();
-		json["t"] = data.getPackageTimestamp();
+		json["up"] = meterState->getLastUpdateMillis();
+		json["t"] = meterState->getPackageTimestamp();
+		json["freemem"] = ESP.getFreeHeap();
 		json.createNestedObject("data");
-		json["data"]["P"] = data.getActiveImportPower();
-		json["data"]["PO"] = data.getActiveExportPower();
+		json["data"]["P"] = meterState->getActiveImportPower();
+		json["data"]["PO"] = meterState->getActiveExportPower();
 
-		double u1 = data.getL1Voltage();
-		double u2 = data.getL2Voltage();
-		double u3 = data.getL3Voltage();
-		double i1 = data.getL1Current();
-		double i2 = data.getL2Current();
-		double i3 = data.getL3Current();
-		double tpi = data.getActiveImportCounter();
-		double tpo = data.getActiveExportCounter();
-		double tqi = data.getReactiveImportCounter();
-		double tqo = data.getReactiveExportCounter();
+		double u1 = meterState->getL1Voltage();
+		double u2 = meterState->getL2Voltage();
+		double u3 = meterState->getL3Voltage();
+		double i1 = meterState->getL1Current();
+		double i2 = meterState->getL2Current();
+		double i3 = meterState->getL3Current();
+		double tpi = meterState->getActiveImportCounter();
+		double tpo = meterState->getActiveExportCounter();
+		double tqi = meterState->getReactiveImportCounter();
+		double tqo = meterState->getReactiveExportCounter();
 
 		double volt = u1;
 		double amp = i1;
@@ -657,19 +666,19 @@ void AmsWebServer::dataJson() {
 			json["data"]["tQO"] = tqo;
 		}
 
-		json["p_pct"] = min(data.getActiveImportPower()*100/maxPwr, 100);
+		json["p_pct"] = min(meterState->getActiveImportPower()*100/maxPwr, 100);
 
 		json["v"] = volt;
 		json["v_pct"] = (max((int)volt-207, 1)*100/46);
 
-		int maxAmp = config->getMainFuse() == 0 ? 32 : config->getMainFuse();
+		int maxAmp = meterConfig->mainFuse == 0 ? 32 : meterConfig->mainFuse;
 
 		json["a"] = amp;
 		json["a_pct"] = amp * 100 / maxAmp;
 
-		if(config->getProductionCapacity() > 0) {
-			int maxPrd = config->getProductionCapacity() * 1000;
-			json["po_pct"] = min(data.getActiveExportPower()*100/maxPrd, 100);
+		if(meterConfig->productionCapacity > 0) {
+			int maxPrd = meterConfig->productionCapacity * 1000;
+			json["po_pct"] = min(meterState->getActiveExportPower()*100/maxPrd, 100);
 		}
 	} else {
 		json["p_pct"] = -1;
@@ -678,7 +687,7 @@ void AmsWebServer::dataJson() {
 
 	json["id"] = WiFi.macAddress();
 	json["maxPower"] = maxPwr;
-	json["meterType"] = config->getMeterType();
+	json["meterType"] = meterConfig->type;
 	json["uptime_seconds"] = millis64() / 1000;
 	double vcc = hw->getVcc();
 	json["vcc"] = serialized(String(vcc, 3));
@@ -709,11 +718,11 @@ void AmsWebServer::dataJson() {
 
 	unsigned long now = millis();
 	String hanStatus;
-	if(config->getMeterType() == 0) {
+	if(meterConfig->type == 0) {
 		hanStatus = "secondary";
-	} else if(now - data.getLastUpdateMillis() < 15000) {
+	} else if(now - meterState->getLastUpdateMillis() < 15000) {
 		hanStatus = "success";
-	} else if(now - data.getLastUpdateMillis() < 30000) {
+	} else if(now - meterState->getLastUpdateMillis() < 30000) {
 		hanStatus = "warning";
 	} else {
 		hanStatus = "danger";
@@ -721,9 +730,7 @@ void AmsWebServer::dataJson() {
 	json["status"]["han"] = hanStatus;
 
 	String wifiStatus;
-	if(strlen(config->getWifiSsid()) == 0) {
-		wifiStatus = "secondary";
-	} else if(rssi > -75) {
+	if(rssi > -75) {
 		wifiStatus = "success";
 	} else if(rssi > -95) {
 		wifiStatus = "warning";
@@ -733,7 +740,7 @@ void AmsWebServer::dataJson() {
 	json["status"]["wifi"] = wifiStatus;
 
 	String mqttStatus;
-	if(strlen(config->getMqttHost()) == 0) {
+	if(!mqttEnabled) {
 		mqttStatus = "secondary";
 	} else if(mqtt->connected()) {
 		mqttStatus = "success";
@@ -758,107 +765,143 @@ void AmsWebServer::dataJson() {
 }
 
 void AmsWebServer::handleSetup() {
+	printD("Handling setup method from http");
+
 	if(!server.hasArg("wifiSsid") || server.arg("wifiSsid").isEmpty() || !server.hasArg("wifiPassword") || server.arg("wifiPassword").isEmpty()) {
 		server.sendHeader("Location", String("/"), true);
 		server.send (302, "text/plain", "");
 	} else {
-		config->setLedPin(0xFF);
-		config->setLedPinRed(0xFF);
-		config->setLedPinGreen(0xFF);
-		config->setLedPinBlue(0xFF);
-		config->setApPin(0xFF);
-		config->setTempSensorPin(0xFF);
-		config->setVccPin(0xFF);
+		SystemConfig sys { server.arg("board").toInt() };
 
-		config->setBoardType(server.arg("board").toInt());
-		config->setVccOffset(0.0);
-		config->setVccMultiplier(1.0);
-		config->setVccBootLimit(0);
-		switch(config->getBoardType()) {
+		config->clearGpio(*gpioConfig);
+		config->clearMeter(*meterConfig);
+
+		switch(sys.boardType) {
 			case 0: // roarfred
-				config->setHanPin(3);
-				config->setApPin(0);
-				config->setLedPin(2);
-				config->setLedInverted(true);
-				config->setTempSensorPin(5);
+				gpioConfig->hanPin = 3;
+				gpioConfig->apPin = 0;
+				gpioConfig->ledPin = 2;
+				gpioConfig->ledInverted = true;
+				gpioConfig->tempSensorPin = 5;
 				break;
 			case 1: // Arnio Kamstrup
-				config->setHanPin(3);
-				config->setApPin(0);
-				config->setLedPin(2);
-				config->setLedInverted(true);
-				config->setTempSensorPin(5);
-				config->setLedPinRed(13);
-				config->setLedPinGreen(14);
-				config->setLedRgbInverted(true);
+				gpioConfig->hanPin = 3;
+				gpioConfig->apPin = 0;
+				gpioConfig->ledPin = 2;
+				gpioConfig->ledInverted = true;
+				gpioConfig->tempSensorPin = 5;
+				gpioConfig->ledPinRed = 13;
+				gpioConfig->ledPinGreen = 14;
+				gpioConfig->ledRgbInverted = true;
 				break;
 			case 2: // spenceme
-				config->setHanPin(3);
-				config->setApPin(0);
-				config->setLedPin(2);
-				config->setLedInverted(true);
-				config->setTempSensorPin(5);
-				config->setVccBootLimit(3.3);
+				gpioConfig->hanPin = 3;
+				gpioConfig->apPin = 0;
+				gpioConfig->ledPin = 2;
+				gpioConfig->ledInverted = true;
+				gpioConfig->tempSensorPin = 5;
+				gpioConfig->vccBootLimit = 33;
 				break;
 			case 101: // D1
-				config->setHanPin(5);
-				config->setApPin(4);
-				config->setLedPin(2);
-				config->setLedInverted(true);
-				config->setTempSensorPin(14);
-				config->setVccMultiplier(1.1);
+				gpioConfig->hanPin = 5;
+				gpioConfig->apPin = 4;
+				gpioConfig->ledPin = 2;
+				gpioConfig->ledInverted = true;
+				gpioConfig->tempSensorPin = 14;
+				gpioConfig->vccMultiplier = 1100;
 				break;
 			case 100: // ESP8266
-				config->setHanPin(3);
-				config->setLedPin(2);
-				config->setLedInverted(true);
+				gpioConfig->hanPin = 3;
+				gpioConfig->ledPin = 2;
+				gpioConfig->ledInverted = true;
 				break;
 			case 201: // D32
-				config->setHanPin(16);
-				config->setApPin(4);
-				config->setLedPin(5);
-				config->setLedInverted(true);
-				config->setTempSensorPin(14);
-				config->setVccPin(35);
-				config->setVccMultiplier(2.25);
+				gpioConfig->hanPin = 16;
+				gpioConfig->apPin = 4;
+				gpioConfig->ledPin = 5;
+				gpioConfig->ledInverted = true;
+				gpioConfig->tempSensorPin = 14;
+				gpioConfig->vccPin = 35;
+				gpioConfig->vccMultiplier = 2250;
 				break;
 			case 202: // Feather
-				config->setHanPin(16);
-				config->setLedPin(2);
-				config->setLedInverted(false);
-				config->setTempSensorPin(14);
+				gpioConfig->hanPin = 16;
+				gpioConfig->ledPin = 2;
+				gpioConfig->ledInverted = false;
+				gpioConfig->tempSensorPin = 14;
 				break;
 			case 203: // DevKitC
-				config->setHanPin(16);
-				config->setLedPin(2);
-				config->setLedInverted(false);
+				gpioConfig->hanPin = 16;
+				gpioConfig->ledPin = 2;
+				gpioConfig->ledInverted = false;
 				break;
 			case 200: // ESP32
-				config->setHanPin(16);
-				config->setApPin(0);
-				config->setLedPin(2);
-				config->setLedInverted(false);
-				config->setTempSensorPin(14);
+				gpioConfig->hanPin = 16;
+				gpioConfig->apPin = 0;
+				gpioConfig->ledPin = 2;
+				gpioConfig->ledInverted = false;
+				gpioConfig->tempSensorPin = 14;
 				break;
 		}
-		config->setMeterType(server.arg("meterType").toInt());
-		config->setWifiSsid(server.arg("wifiSsid").c_str());
-		config->setWifiPassword(server.arg("wifiPassword").c_str());
+
+		WiFiConfig wifi;
+		config->clearWifi(wifi);
+
+		strcpy(wifi.ssid, server.arg("wifiSsid").c_str());
+		strcpy(wifi.psk, server.arg("wifiPassword").c_str());
+
 		if(server.hasArg("wifiIpType") && server.arg("wifiIpType").toInt() == 1) {
-			config->setWifiIp(server.arg("wifiIp").c_str());
-			config->setWifiGw(server.arg("wifiGw").c_str());
-			config->setWifiSubnet(server.arg("wifiSubnet").c_str());
-			config->setWifiDns1(server.arg("wifiDns1").c_str());
-		} else {
-			config->clearWifiIp();
+			strcpy(wifi.ip, server.arg("wifiIp").c_str());
+			strcpy(wifi.gateway, server.arg("wifiGw").c_str());
+			strcpy(wifi.subnet, server.arg("wifiSubnet").c_str());
+			strcpy(wifi.dns1, server.arg("wifiDns1").c_str());
 		}
 		if(server.hasArg("wifiHostname") && !server.arg("wifiHostname").isEmpty()) {
-			config->setWifiHostname(server.arg("wifiHostname").c_str());
-			config->setMdnsEnable(true);
+			strcpy(wifi.hostname, server.arg("wifiHostname").c_str());
+			wifi.mdns = true;
 		} else {
-			config->setMdnsEnable(false);
+			wifi.mdns = false;
 		}
-		if(config->save()) {
+		
+		MqttConfig mqttConfig;
+		config->clearMqtt(mqttConfig);
+		
+		config->clearAuth(webConfig);
+
+		NtpConfig ntp;
+		config->clearNtp(ntp);
+
+		bool success = true;
+		if(!config->setSystemConfig(sys)) {
+			printD("Unable to set system config");
+			success = false;
+		}
+		if(!config->setWiFiConfig(wifi)) {
+			printD("Unable to set WiFi config");
+			success = false;
+		}
+		if(!config->setMqttConfig(mqttConfig)) {
+			printD("Unable to set MQTT config");
+			success = false;
+		}
+		if(!config->setWebConfig(webConfig)) {
+			printD("Unable to set web config");
+			success = false;
+		}
+		if(!config->setMeterConfig(*meterConfig)) {
+			printD("Unable to set meter config");
+			success = false;
+		}
+		if(!config->setGpioConfig(*gpioConfig)) {
+			printD("Unable to set GPIO config");
+			success = false;
+		}
+		if(!config->setNtpConfig(ntp)) {
+			printD("Unable to set NTP config");
+			success = false;
+		}
+
+		if(success && config->save()) {
 			performRestart = true;
 			server.sendHeader("Location","/restart-wait");
 			server.send(303);
@@ -878,153 +921,163 @@ void AmsWebServer::handleSave() {
 	String temp;
 
 	if(server.hasArg("mc") && server.arg("mc") == "true") {
-		config->setMeterType(server.arg("m").toInt());
-		config->setDistributionSystem(server.arg("d").toInt());
-		config->setMainFuse(server.arg("f").toInt());
-		config->setProductionCapacity(server.arg("p").toInt());
-		config->setSubstituteMissing(server.hasArg("s") && server.arg("substituteMissing") == "true");
-		config->setSendUnknown(server.hasArg("u") && server.arg("sendUnknown") == "true");
+		printD("Received meter config");
+		meterConfig->type = server.arg("m").toInt();
+		meterConfig->distributionSystem = server.arg("d").toInt();
+		meterConfig->mainFuse = server.arg("f").toInt();
+		meterConfig->productionCapacity = server.arg("p").toInt();
 
 		String encryptionKeyHex = server.arg("e");
 		if(!encryptionKeyHex.isEmpty()) {
 			encryptionKeyHex.replace("0x", "");
-			uint8_t hexStr[16];
-			fromHex(hexStr, encryptionKeyHex, 16);
-			config->setMeterEncryptionKey(hexStr);
+			fromHex(meterConfig->encryptionKey, encryptionKeyHex, 16);
 		}
 
 		String authenticationKeyHex = server.arg("a");
 		if(!authenticationKeyHex.isEmpty()) {
 			authenticationKeyHex.replace("0x", "");
-			uint8_t hexStr[16];
-			fromHex(hexStr, encryptionKeyHex, 16);
-			config->setMeterAuthenticationKey(hexStr);
+			fromHex(meterConfig->authenticationKey, encryptionKeyHex, 16);
 		}
+		meterConfig->substituteMissing = server.hasArg("s") && server.arg("substituteMissing") == "true";
+		meterConfig->sendUnknown = server.hasArg("u") && server.arg("sendUnknown") == "true";
+		config->setMeterConfig(*meterConfig);
 	}
 
 	if(server.hasArg("wc") && server.arg("wc") == "true") {
-		config->setWifiSsid(server.arg("s").c_str());
-		config->setWifiPassword(server.arg("p").c_str());
+		printD("Received WiFi config");
+		WiFiConfig wifi;
+		config->clearWifi(wifi);
+		strcpy(wifi.ssid, server.arg("s").c_str());
+		strcpy(wifi.psk, server.arg("p").c_str());
+
 		if(server.hasArg("st") && server.arg("st").toInt() == 1) {
-			config->setWifiIp(server.arg("i").c_str());
-			config->setWifiGw(server.arg("g").c_str());
-			config->setWifiSubnet(server.arg("sn").c_str());
-			config->setWifiDns1(server.arg("d1").c_str());
-			config->setWifiDns2(server.arg("d2").c_str());
-		} else {
-			config->clearWifiIp();
+			strcpy(wifi.ip, server.arg("i").c_str());
+			strcpy(wifi.gateway, server.arg("g").c_str());
+			strcpy(wifi.subnet, server.arg("sn").c_str());
+			strcpy(wifi.dns1, server.arg("d1").c_str());
+			strcpy(wifi.dns2, server.arg("d2").c_str());
 		}
-		config->setWifiHostname(server.arg("h").c_str());
-		config->setMdnsEnable(server.hasArg("m") && server.arg("m") == "true");
+		if(server.hasArg("h") && !server.arg("h").isEmpty()) {
+			strcpy(wifi.hostname, server.arg("h").c_str());
+		}
+		config->setWiFiConfig(wifi);
 	}
 
 	if(server.hasArg("mqc") && server.arg("mqc") == "true") {
+		printD("Received MQTT config");
+		MqttConfig mqtt;
 		if(server.hasArg("m") && server.arg("m") == "true") {
-			config->setMqttHost(server.arg("h").c_str());
-			int port = server.arg("p").toInt();
-			config->setMqttPort(port == 0 ? 1883 : port);
-			config->setMqttClientId(server.arg("i").c_str());
-			config->setMqttPublishTopic(server.arg("t").c_str());
-			config->setMqttSubscribeTopic(server.arg("st").c_str());
-			config->setMqttUser(server.arg("u").c_str());
-			config->setMqttPassword(server.arg("pw").c_str());
-			config->setMqttPayloadFormat(server.arg("f").toInt());
-			config->setMqttSsl(server.arg("s") == "true");
+			strcpy(mqtt.host, server.arg("h").c_str());
+			strcpy(mqtt.clientId, server.arg("i").c_str());
+			strcpy(mqtt.publishTopic, server.arg("t").c_str());
+			strcpy(mqtt.subscribeTopic, server.arg("st").c_str());
+			strcpy(mqtt.username, server.arg("u").c_str());
+			strcpy(mqtt.password, server.arg("pw").c_str());
+			mqtt.payloadFormat = server.arg("f").toInt();
+			mqtt.ssl = server.arg("s") == "true";
+
+			mqtt.port = server.arg("p").toInt();
+			if(mqtt.port == 0) {
+				mqtt.port = mqtt.ssl ? 8883 : 1883;
+			}
 		} else {
-			config->clearMqtt();
+			config->clearMqtt(mqtt);
 		}
+		config->setMqttConfig(mqtt);
 	}
 
 	if(server.hasArg("dc") && server.arg("dc") == "true") {
-		config->setDomoELIDX(server.arg("elidx").toInt());
-		config->setDomoVL1IDX(server.arg("vl1idx").toInt());
-		config->setDomoVL2IDX(server.arg("vl2idx").toInt());
-		config->setDomoVL3IDX(server.arg("vl3idx").toInt());
-		config->setDomoCL1IDX(server.arg("cl1idx").toInt());
+		printD("Received Domoticz config");
+		DomoticzConfig domo {
+			server.arg("elidx").toInt(),
+			server.arg("vl1idx").toInt(),
+			server.arg("vl2idx").toInt(),
+			server.arg("vl3idx").toInt(),
+			server.arg("cl1idx").toInt()
+		};
+		config->setDomoticzConfig(domo);
 	}
-
 
 
 	if(server.hasArg("ac") && server.arg("ac") == "true") {
-		config->setAuthSecurity((byte)server.arg("as").toInt());
-		if(config->getAuthSecurity() > 0) {
-			config->setAuthUser(server.arg("au").c_str());
-			config->setAuthPassword(server.arg("ap").c_str());
-			debugger->setPassword(config->getAuthPassword());
+		printD("Received web config");
+		webConfig.security = server.arg("as").toInt();
+		if(webConfig.security > 0) {
+			strcpy(webConfig.username, server.arg("au").c_str());
+			strcpy(webConfig.password, server.arg("ap").c_str());
+			debugger->setPassword(webConfig.password);
 		} else {
+			strcpy(webConfig.username, "");
+			strcpy(webConfig.password, "");
 			debugger->setPassword("");
-			config->clearAuth();
 		}
+		config->setWebConfig(webConfig);
 	}
 
 	if(server.hasArg("gpioConfig") && server.arg("gpioConfig") == "true") {
-		// Unset all pins to avoid conflicts if GPIO have been swapped between pins
-		config->setLedPin(0xFF);
-		config->setLedPinRed(0xFF);
-		config->setLedPinGreen(0xFF);
-		config->setLedPinBlue(0xFF);
-		config->setApPin(0xFF);
-		config->setTempSensorPin(0xFF);
-		config->setTempAnalogSensorPin(0xFF);
-		config->setVccPin(0xFF);
-
-		config->setHanPin(server.hasArg("hanPin") && !server.arg("hanPin").isEmpty() ? server.arg("hanPin").toInt() : 3);
-		config->setLedPin(server.hasArg("ledPin") && !server.arg("ledPin").isEmpty() ? server.arg("ledPin").toInt() : 0xFF);
-		config->setLedInverted(server.hasArg("ledInverted") && server.arg("ledInverted") == "true");
-		config->setLedPinRed(server.hasArg("ledPinRed") && !server.arg("ledPinRed").isEmpty() ? server.arg("ledPinRed").toInt() : 0xFF);
-		config->setLedPinGreen(server.hasArg("ledPinGreen") && !server.arg("ledPinGreen").isEmpty() ? server.arg("ledPinGreen").toInt() : 0xFF);
-		config->setLedPinBlue(server.hasArg("ledPinBlue") && !server.arg("ledPinBlue").isEmpty() ? server.arg("ledPinBlue").toInt() : 0xFF);
-		config->setLedRgbInverted(server.hasArg("ledRgbInverted") && server.arg("ledRgbInverted") == "true");
-		config->setApPin(server.hasArg("apPin") && !server.arg("apPin").isEmpty() ? server.arg("apPin").toInt() : 0xFF);
-		config->setTempSensorPin(server.hasArg("tempSensorPin") && !server.arg("tempSensorPin").isEmpty() ?server.arg("tempSensorPin").toInt() : 0xFF);
-		config->setTempAnalogSensorPin(server.hasArg("tempAnalogSensorPin") && !server.arg("tempAnalogSensorPin").isEmpty() ?server.arg("tempAnalogSensorPin").toInt() : 0xFF);
-		config->setVccPin(server.hasArg("vccPin") && !server.arg("vccPin").isEmpty() ? server.arg("vccPin").toInt() : 0xFF);
-		config->setVccOffset(server.hasArg("vccOffset") && !server.arg("vccOffset").isEmpty() ? server.arg("vccOffset").toDouble() : 0.0);
-		config->setVccMultiplier(server.hasArg("vccMultiplier") && !server.arg("vccMultiplier").isEmpty() ? server.arg("vccMultiplier").toDouble() : 1.0);
-		config->setVccBootLimit(server.hasArg("vccBootLimit") && !server.arg("vccBootLimit").isEmpty() ? server.arg("vccBootLimit").toDouble() : 0.0);
+		printD("Received GPIO config");
+		gpioConfig->hanPin = server.hasArg("hanPin") && !server.arg("hanPin").isEmpty() ? server.arg("hanPin").toInt() : 3;
+		gpioConfig->ledPin = server.hasArg("ledPin") && !server.arg("ledPin").isEmpty() ? server.arg("ledPin").toInt() : 0xFF;
+		gpioConfig->ledInverted = server.hasArg("ledInverted") && server.arg("ledInverted") == "true";
+		gpioConfig->ledPinRed = server.hasArg("ledPinRed") && !server.arg("ledPinRed").isEmpty() ? server.arg("ledPinRed").toInt() : 0xFF;
+		gpioConfig->ledPinGreen = server.hasArg("ledPinGreen") && !server.arg("ledPinGreen").isEmpty() ? server.arg("ledPinGreen").toInt() : 0xFF;
+		gpioConfig->ledPinBlue = server.hasArg("ledPinBlue") && !server.arg("ledPinBlue").isEmpty() ? server.arg("ledPinBlue").toInt() : 0xFF;
+		gpioConfig->ledRgbInverted = server.hasArg("ledRgbInverted") && server.arg("ledRgbInverted") == "true";
+		gpioConfig->apPin = server.hasArg("apPin") && !server.arg("apPin").isEmpty() ? server.arg("apPin").toInt() : 0xFF;
+		gpioConfig->tempSensorPin = server.hasArg("tempSensorPin") && !server.arg("tempSensorPin").isEmpty() ?server.arg("tempSensorPin").toInt() : 0xFF;
+		gpioConfig->tempAnalogSensorPin = server.hasArg("tempAnalogSensorPin") && !server.arg("tempAnalogSensorPin").isEmpty() ?server.arg("tempAnalogSensorPin").toInt() : 0xFF;
+		gpioConfig->vccPin = server.hasArg("vccPin") && !server.arg("vccPin").isEmpty() ? server.arg("vccPin").toInt() : 0xFF;
+		gpioConfig->vccOffset = server.hasArg("vccOffset") && !server.arg("vccOffset").isEmpty() ? server.arg("vccOffset").toFloat() * 100 : 0;
+		gpioConfig->vccMultiplier = server.hasArg("vccMultiplier") && !server.arg("vccMultiplier").isEmpty() ? server.arg("vccMultiplier").toFloat() * 1000 : 1000;
+		gpioConfig->vccBootLimit = server.hasArg("vccBootLimit") && !server.arg("vccBootLimit").isEmpty() ? server.arg("vccBootLimit").toFloat() * 10 : 0;
+		config->setGpioConfig(*gpioConfig);
 	}
 
 	if(server.hasArg("debugConfig") && server.arg("debugConfig") == "true") {
-		config->setDebugTelnet(server.hasArg("debugTelnet") && server.arg("debugTelnet") == "true");
-		config->setDebugSerial(server.hasArg("debugSerial") && server.arg("debugSerial") == "true");
-		config->setDebugLevel(server.arg("debugLevel").toInt());
+		printD("Received Debug config");
+		DebugConfig debug;
+		debug.telnet = server.hasArg("debugTelnet") && server.arg("debugTelnet") == "true";
+		debug.serial = server.hasArg("debugSerial") && server.arg("debugSerial") == "true";
+		debug.level = server.arg("debugLevel").toInt();
 
 		debugger->stop();
-		if(config->getAuthSecurity() > 0) {
-			debugger->setPassword(config->getAuthPassword());
+		if(webConfig.security > 0) {
+			debugger->setPassword(webConfig.password);
 		} else {
 			debugger->setPassword("");
 		}
-		debugger->setSerialEnabled(config->isDebugSerial());
-		debugger->begin(config->getWifiHostname(), (uint8_t) config->getDebugLevel());
-		if(!config->isDebugTelnet()) {
-			debugger->stop();
+		debugger->setSerialEnabled(debug.serial);
+		WiFiConfig wifi;
+		if(config->getWiFiConfig(wifi) && strlen(wifi.hostname) > 0) {
+			debugger->begin(wifi.hostname, (uint8_t) debug.level);
+			if(!debug.telnet) {
+				debugger->stop();
+			}
 		}
+		config->setDebugConfig(debug);
 	}
 
 	if(server.hasArg("nc") && server.arg("nc") == "true") {
-		config->setNtpEnable(server.hasArg("n") && server.arg("n") == "true");
-		config->setNtpDhcp(server.hasArg("nd") && server.arg("nd") == "true");
-		if(server.hasArg("o") && !server.arg("o").isEmpty()) {
-			int offset = server.arg("o").toInt();
-			config->setNtpOffset(offset);
-			if(server.hasArg("so") && !server.arg("so").isEmpty()) {
-				int summerOffset = server.arg("so").toInt();
-				config->setNtpSummerOffset(summerOffset);
-			} else {
-				config->setNtpSummerOffset(0);
-			}
-		} else {
-			config->setNtpOffset(0);
-		}
-		config->setNtpServer(server.arg("ns").c_str());
+		printD("Received NTP config");
+		NtpConfig ntp {
+			server.hasArg("n") && server.arg("n") == "true",
+			server.hasArg("nd") && server.arg("nd") == "true",
+			server.arg("o").toInt() / 10,
+			server.arg("so").toInt() / 10
+		};
+		strcpy(ntp.server, server.arg("ns").c_str());
+		config->setNtpConfig(ntp);
 	}
 
 	if(server.hasArg("ec") && server.arg("ec") == "true") {
-		config->setEntsoeApiToken(server.arg("et").c_str());
-		config->setEntsoeApiArea(server.arg("ea").c_str());
-		config->setEntsoeApiCurrency(server.arg("ec").c_str());
-		config->setEntsoeApiMultiplier(server.arg("em").toDouble());
+		printD("Received ENTSO-E config");
+		EntsoeConfig entsoe;
+		strcpy(entsoe.token, server.arg("et").c_str());
+		strcpy(entsoe.area, server.arg("ea").c_str());
+		strcpy(entsoe.currency, server.arg("ecu").c_str());
+		entsoe.multiplier = server.arg("em").toFloat() * 1000;
+		config->setEntsoeConfig(entsoe);
+		eapi->setup(entsoe);
 	}
 
 	printI("Saving configuration now...");
@@ -1040,18 +1093,7 @@ void AmsWebServer::handleSave() {
 			server.sendHeader("Location", String("/"), true);
 			server.send (302, "text/plain", "");
 
-			hw->setLed(config->getLedPin(), config->isLedInverted());
-			hw->setLedRgb(config->getLedPinRed(), config->getLedPinGreen(), config->getLedPinBlue(), config->isLedRgbInverted());
-			hw->setTempSensorPin(config->getTempSensorPin());
-			hw->setTempAnalogSensorPin(config->getTempAnalogSensorPin());
-			hw->setVccPin(config->getVccPin());
-			hw->setVccOffset(config->getVccOffset());
-			hw->setVccMultiplier(config->getVccMultiplier());
-
-			eapi->setToken(config->getEntsoeApiToken());
-			eapi->setArea(config->getEntsoeApiArea());
-			eapi->setCurrency(config->getEntsoeApiCurrency());
-			eapi->setMultiplier(config->getEntsoeApiMultiplier());
+			hw->setup(gpioConfig, config);
 		}
 	} else {
 		printE("Error saving configuration");
@@ -1068,18 +1110,21 @@ void AmsWebServer::configNtpHtml() {
 
 	String html = String((const __FlashStringHelper*) NTP_HTML);
 
-	html.replace("{n}", config->isNtpEnable() ? "checked" : "");
+	NtpConfig ntp;
+	config->getNtpConfig(ntp);
+
+	html.replace("{n}", ntp.enable ? "checked" : "");
 
 	for(int i = (3600*-13); i<(3600*15); i+=3600) {
-		html.replace("{o" + String(i) + "}", config->getNtpOffset() == i ? "selected"  : "");
+		html.replace("{o" + String(i) + "}", ntp.offset * 10 == i ? "selected"  : "");
 	}
 
 	for(int i = 0; i<(3600*3); i+=3600) {
-		html.replace("{so" + String(i) + "}", config->getNtpSummerOffset() == i ? "selected"  : "");
+		html.replace("{so" + String(i) + "}", ntp.summerOffset * 10 == i ? "selected"  : "");
 	}
 
-	html.replace("{ns}", config->getNtpServer());
-	html.replace("{nd}", config->isNtpDhcp() ? "checked" : "");
+	html.replace("{ns}", ntp.server);
+	html.replace("{nd}", ntp.dhcp ? "checked" : "");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -1104,21 +1149,22 @@ void AmsWebServer::configGpioHtml() {
 		html.replace("${gpio.max}", "16");
 	#endif
 
-	html.replace("${options.han}", getSerialSelectOptions(config->getHanPin()));
+	html.replace("${options.han}", getSerialSelectOptions(gpioConfig->hanPin));
 
-	html.replace("${config.ledPin}", config->getLedPin() == 0xFF ? "" : String(config->getLedPin()));
-	html.replace("${config.ledInverted}", config->isLedInverted() ? "checked" : "");
-	html.replace("${config.ledPinRed}", config->getLedPinRed() == 0xFF ? "" : String(config->getLedPinRed()));
-	html.replace("${config.ledPinGreen}", config->getLedPinGreen() == 0xFF ? "" : String(config->getLedPinGreen()));
-	html.replace("${config.ledPinBlue}", config->getLedPinBlue() == 0xFF ? "" : String(config->getLedPinBlue()));
-	html.replace("${config.ledRgbInverted}", config->isLedRgbInverted() ? "checked" : "");
-	html.replace("${config.apPin}", config->getApPin() == 0xFF ? "" : String(config->getApPin()));
-	html.replace("${config.tempSensorPin}", config->getTempSensorPin() == 0xFF ? "" : String(config->getTempSensorPin()));
-	html.replace("${config.vccPin}", config->getVccPin() == 0xFF ? "" : String(config->getVccPin()));
+	html.replace("${config.ledPin}", gpioConfig->ledPin == 0xFF ? "" : String(gpioConfig->ledPin));
+	html.replace("${config.ledInverted}", gpioConfig->ledInverted ? "checked" : "");
+	html.replace("${config.ledPinRed}", gpioConfig->ledPinRed == 0xFF ? "" : String(gpioConfig->ledPinRed));
+	html.replace("${config.ledPinGreen}", gpioConfig->ledPinGreen == 0xFF ? "" : String(gpioConfig->ledPinGreen));
+	html.replace("${config.ledPinBlue}", gpioConfig->ledPinBlue == 0xFF ? "" : String(gpioConfig->ledPinBlue));
+	html.replace("${config.ledRgbInverted}", gpioConfig->ledRgbInverted ? "checked" : "");
+	html.replace("${config.apPin}", gpioConfig->apPin == 0xFF ? "" : String(gpioConfig->apPin));
+	html.replace("${config.tempSensorPin}", gpioConfig->tempSensorPin == 0xFF ? "" : String(gpioConfig->tempSensorPin));
+	html.replace("${config.tempAnalogSensorPin}", gpioConfig->tempAnalogSensorPin == 0xFF ? "" : String(gpioConfig->tempAnalogSensorPin));
+	html.replace("${config.vccPin}", gpioConfig->vccPin == 0xFF ? "" : String(gpioConfig->vccPin));
 
-	html.replace("${config.vccOffset}", config->getVccOffset() > 0 ? String(config->getVccOffset(), 2) : "");
-	html.replace("${config.vccMultiplier}", config->getVccMultiplier() > 0 ? String(config->getVccMultiplier(), 2) : "");
-	html.replace("${config.vccBootLimit}", config->getVccBootLimit() > 0.0 ? String(config->getVccBootLimit(), 1) : "");
+	html.replace("${config.vccOffset}", gpioConfig->vccOffset > 0 ? String(gpioConfig->vccOffset / 100.0, 2) : "");
+	html.replace("${config.vccMultiplier}", gpioConfig->vccMultiplier > 0 ? String(gpioConfig->vccMultiplier / 1000.0, 2) : "");
+	html.replace("${config.vccBootLimit}", gpioConfig->vccBootLimit > 0 ? String(gpioConfig->vccBootLimit / 10.0, 1) : "");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -1137,11 +1183,14 @@ void AmsWebServer::configDebugHtml() {
 
 	String html = String((const __FlashStringHelper*) DEBUGGING_HTML);
 
-	html.replace("${config.debugTelnet}", config->isDebugTelnet() ? "checked" : "");
-	html.replace("${config.debugSerial}", config->isDebugSerial() ? "checked" : "");
-	html.replace("${config.debugLevel}", String(config->getDebugLevel()));
+	DebugConfig debug;
+	config->getDebugConfig(debug);
+
+	html.replace("${config.debugTelnet}", debug.telnet ? "checked" : "");
+	html.replace("${config.debugSerial}", debug.serial ? "checked" : "");
+	html.replace("${config.debugLevel}", String(debug.level));
 	for(int i = 0; i<=RemoteDebug::ANY; i++) {
-		html.replace("${config.debugLevel" + String(i) + "}", config->getDebugLevel() == i ? "selected"  : "");
+		html.replace("${config.debugLevel" + String(i) + "}", debug.level == i ? "selected"  : "");
 	}
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -1315,11 +1364,13 @@ void AmsWebServer::firmwareDownload() {
 			}
 		} else {
 			printE("Unable to configure HTTP client");
-#if defined(ESP8266)
-			char buf[256];
-			client.getLastSSLError(buf,256);
+			
+			#if defined(ESP8266)
+			char buf[64];
+			client.getLastSSLError(buf,64);
 			printE(buf);
-#endif
+			#endif
+			
 			server.sendHeader("Location","/");
 			server.send(303);
 		}
@@ -1364,15 +1415,18 @@ void AmsWebServer::restartWaitHtml() {
 
 	String html = String((const __FlashStringHelper*) RESTARTWAIT_HTML);
 
+	WiFiConfig wifi;
+	config->getWiFiConfig(wifi);
+
 	if(WiFi.getMode() != WIFI_AP) {
 		html.replace("boot.css", BOOTSTRAP_URL);
 	}
-	if(strlen(config->getWifiIp()) == 0 && WiFi.getMode() != WIFI_AP) {
+	if(strlen(wifi.ip) == 0 && WiFi.getMode() != WIFI_AP) {
 		html.replace("${ip}", WiFi.localIP().toString());
 	} else {
-		html.replace("${ip}", config->getWifiIp());
+		html.replace("${ip}", wifi.ip);
 	}
-	html.replace("${hostname}", config->getWifiHostname());
+	html.replace("${hostname}", wifi.hostname);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -1383,7 +1437,7 @@ void AmsWebServer::restartWaitHtml() {
 	yield();
 	if(performRestart) {
 		SPIFFS.end();
-		printI("Firmware uploaded, rebooting");
+		printI("Rebooting");
 		delay(1000);
 #if defined(ESP8266)
 		ESP.reset();
@@ -1447,7 +1501,9 @@ void AmsWebServer::mqttCaUpload() {
     if(upload.status == UPLOAD_FILE_END) {
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
-		if(config->isMqttSsl()) {
+
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
 			config->setMqttChanged();
 		}
 	}
@@ -1461,7 +1517,8 @@ void AmsWebServer::mqttCaDelete() {
 		deleteFile(FILE_MQTT_CA);
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
-		if(config->isMqttSsl()) {
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
 			config->setMqttChanged();
 		}
 	} else {
@@ -1498,7 +1555,8 @@ void AmsWebServer::mqttCertUpload() {
     if(upload.status == UPLOAD_FILE_END) {
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
-		if(config->isMqttSsl()) {
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
 			config->setMqttChanged();
 		}
 	}
@@ -1512,7 +1570,8 @@ void AmsWebServer::mqttCertDelete() {
 		deleteFile(FILE_MQTT_CERT);
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
-		if(config->isMqttSsl()) {
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
 			config->setMqttChanged();
 		}
 	} else {
@@ -1549,7 +1608,8 @@ void AmsWebServer::mqttKeyUpload() {
     if(upload.status == UPLOAD_FILE_END) {
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
-		if(config->isMqttSsl()) {
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
 			config->setMqttChanged();
 		}
 	}
@@ -1563,7 +1623,8 @@ void AmsWebServer::mqttKeyDelete() {
 		deleteFile(FILE_MQTT_KEY);
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
-		if(config->isMqttSsl()) {
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
 			config->setMqttChanged();
 		}
 	} else {

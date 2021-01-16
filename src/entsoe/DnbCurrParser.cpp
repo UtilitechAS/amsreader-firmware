@@ -1,7 +1,7 @@
 #include "DnbCurrParser.h"
 #include "HardwareSerial.h"
 
-double DnbCurrParser::getValue() {
+float DnbCurrParser::getValue() {
     return value;
 }
 
@@ -49,7 +49,7 @@ size_t DnbCurrParser::write(uint8_t byte) {
                     break;
                 }
             }
-            value = String(buf+pos).toDouble();
+            value = String(buf+pos).toFloat();
         }
         pos = 0;
     } else {

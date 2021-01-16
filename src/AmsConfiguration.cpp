@@ -1,99 +1,78 @@
 #include "AmsConfiguration.h"
 
-uint8_t AmsConfiguration::getBoardType() {
-	return config.boardType;
+bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_SYSTEM_START, config);
+		EEPROM.end();
+		return true;
+	} else {
+		return false;
+	}
 }
 
-void AmsConfiguration::setBoardType(uint8_t boardType) {
-	config.boardType = boardType;
+bool AmsConfiguration::setSystemConfig(SystemConfig& config) {
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_SYSTEM_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
 }
 
-char* AmsConfiguration::getWifiSsid() {
-	return config.wifiSsid;
+bool AmsConfiguration::getWiFiConfig(WiFiConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_WIFI_START, config);
+		EEPROM.end();
+		return true;
+	} else {
+		clearWifi(config);
+		return false;
+	}
 }
 
-void AmsConfiguration::setWifiSsid(const char* wifiSsid) {
-	wifiChanged |= strcmp(config.wifiSsid, wifiSsid) != 0;
-	strcpy(config.wifiSsid, wifiSsid);
+bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
+	WiFiConfig existing;
+	if(getWiFiConfig(existing)) {
+		wifiChanged |= strcmp(config.ssid, existing.ssid) != 0;
+		wifiChanged |= strcmp(config.psk, existing.psk) != 0;
+		wifiChanged |= strcmp(config.ip, existing.ip) != 0;
+		wifiChanged |= strcmp(config.gateway, existing.gateway) != 0;
+		wifiChanged |= strcmp(config.subnet, existing.subnet) != 0;
+		wifiChanged |= strcmp(config.dns1, existing.dns1) != 0;
+		wifiChanged |= strcmp(config.dns2, existing.dns2) != 0;
+		wifiChanged |= strcmp(config.hostname, existing.hostname) != 0;
+	} else {
+		wifiChanged = true;
+	}
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_WIFI_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
 }
 
-char* AmsConfiguration::getWifiPassword() {
-	return config.wifiPassword;
+void AmsConfiguration::clearWifi(WiFiConfig& config) {
+	strcpy(config.ssid, "");
+	strcpy(config.psk, "");
+	clearWifiIp(config);
+
+	uint16_t chipId;
+	#if defined(ESP32)
+		chipId = ESP.getEfuseMac();
+	#else
+		chipId = ESP.getChipId();
+	#endif
+	strcpy(config.hostname, (String("ams-") + String(chipId, HEX)).c_str());
+	config.mdns = true;
 }
 
-void AmsConfiguration::setWifiPassword(const char* wifiPassword) {
-	wifiChanged |= strcmp(config.wifiPassword, wifiPassword) != 0;
-	strcpy(config.wifiPassword, wifiPassword);
-}
-
-char* AmsConfiguration::getWifiIp() {
-	return config.wifiIp;
-}
-
-void AmsConfiguration::setWifiIp(const char* wifiIp) {
-	wifiChanged |= strcmp(config.wifiIp, wifiIp) != 0;
-	strcpy(config.wifiIp, wifiIp);
-}
-
-char* AmsConfiguration::getWifiGw() {
-	return config.wifiGw;
-}
-
-void AmsConfiguration::setWifiGw(const char* wifiGw) {
-	wifiChanged |= strcmp(config.wifiGw, wifiGw) != 0;
-	strcpy(config.wifiGw, wifiGw);
-}
-
-char* AmsConfiguration::getWifiSubnet() {
-	return config.wifiSubnet;
-}
-
-void AmsConfiguration::setWifiSubnet(const char* wifiSubnet) {
-	wifiChanged |= strcmp(config.wifiSubnet, wifiSubnet) != 0;
-	strcpy(config.wifiSubnet, wifiSubnet);
-}
-
-char* AmsConfiguration::getWifiDns1() {
-	return config.wifiDns1;
-}
-
-void AmsConfiguration::setWifiDns1(const char* wifiDns1) {
-	wifiChanged |= strcmp(config.wifiDns1, wifiDns1) != 0;
-	strcpy(config.wifiDns1, wifiDns1);
-}
-
-char* AmsConfiguration::getWifiDns2() {
-	return config.wifiDns2;
-}
-
-void AmsConfiguration::setWifiDns2(const char* wifiDns2) {
-	wifiChanged |= strcmp(config.wifiDns2, wifiDns2) != 0;
-	strcpy(config.wifiDns2, wifiDns2);
-}
-
-char* AmsConfiguration::getWifiHostname() {
-	return config.wifiHostname;
-}
-
-void AmsConfiguration::setWifiHostname(const char* wifiHostname) {
-	wifiChanged |= strcmp(config.wifiHostname, wifiHostname) != 0;
-	strcpy(config.wifiHostname, wifiHostname);
-}
-
-void AmsConfiguration::clearWifi() {
-	setWifiSsid("");
-	setWifiPassword("");
-	setWifiHostname("");
-	setMdnsEnable(true);
-	clearWifiIp();
-}
-
-void AmsConfiguration::clearWifiIp() {
-	setWifiIp("");
-	setWifiGw("");
-	setWifiSubnet("");
-	setWifiDns1("");
-	setWifiDns2("");
+void AmsConfiguration::clearWifiIp(WiFiConfig& config) {
+	strcpy(config.ip, "");
+	strcpy(config.gateway, "");
+	strcpy(config.subnet, "");
+	strcpy(config.dns1, "");
+	strcpy(config.dns2, "");
 }
 
 bool AmsConfiguration::isWifiChanged() {
@@ -104,96 +83,49 @@ void AmsConfiguration::ackWifiChange() {
 	wifiChanged = false;
 }
 
-
-char* AmsConfiguration::getMqttHost() {
-	return config.mqttHost;
+bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_MQTT_START, config);
+		EEPROM.end();
+		return true;
+	} else {
+		clearMqtt(config);
+		return false;
+	}
 }
 
-void AmsConfiguration::setMqttHost(const char* mqttHost) {
-	mqttChanged |= strcmp(config.mqttHost, mqttHost) != 0;
-	strcpy(config.mqttHost, mqttHost);
+bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
+	MqttConfig existing;
+	if(getMqttConfig(existing)) {
+		mqttChanged |= strcmp(config.host, existing.host) != 0;
+		mqttChanged |= config.port != existing.port;
+		mqttChanged |= strcmp(config.clientId, existing.clientId) != 0;
+		mqttChanged |= strcmp(config.publishTopic, existing.publishTopic) != 0;
+		mqttChanged |= strcmp(config.subscribeTopic, existing.subscribeTopic) != 0;
+		mqttChanged |= strcmp(config.username, existing.username) != 0;
+		mqttChanged |= strcmp(config.password, existing.password) != 0;
+		mqttChanged |= config.ssl != existing.ssl;
+	} else {
+		mqttChanged = true;
+	}
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_MQTT_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
 }
 
-uint16_t AmsConfiguration::getMqttPort() {
-	return config.mqttPort;
-}
-
-void AmsConfiguration::setMqttPort(uint16_t mqttPort) {
-	mqttChanged |= config.mqttPort != mqttPort;
-	config.mqttPort = mqttPort;
-}
-
-char* AmsConfiguration::getMqttClientId() {
-	return config.mqttClientId;
-}
-
-void AmsConfiguration::setMqttClientId(const char* mqttClientId) {
-	mqttChanged |= strcmp(config.mqttClientId, mqttClientId) != 0;
-	strcpy(config.mqttClientId, mqttClientId);
-}
-
-char* AmsConfiguration::getMqttPublishTopic() {
-	return config.mqttPublishTopic;
-}
-
-void AmsConfiguration::setMqttPublishTopic(const char* mqttPublishTopic) {
-	mqttChanged |= strcmp(config.mqttPublishTopic, mqttPublishTopic) != 0;
-	strcpy(config.mqttPublishTopic, mqttPublishTopic);
-}
-
-char* AmsConfiguration::getMqttSubscribeTopic() {
-	return config.mqttSubscribeTopic;
-}
-
-void AmsConfiguration::setMqttSubscribeTopic(const char* mqttSubscribeTopic) {
-	mqttChanged |= strcmp(config.mqttSubscribeTopic, mqttSubscribeTopic) != 0;
-	strcpy(config.mqttSubscribeTopic, mqttSubscribeTopic);
-}
-
-char* AmsConfiguration::getMqttUser() {
-	return config.mqttUser;
-}
-
-void AmsConfiguration::setMqttUser(const char* mqttUser) {
-	mqttChanged |= strcmp(config.mqttUser, mqttUser) != 0;
-	strcpy(config.mqttUser, mqttUser);
-}
-
-char* AmsConfiguration::getMqttPassword() {
-	return config.mqttPassword;
-}
-
-void AmsConfiguration::setMqttPassword(const char* mqttPassword) {
-	mqttChanged |= strcmp(config.mqttPassword, mqttPassword) != 0;
-	strcpy(config.mqttPassword, mqttPassword);
-}
-
-uint8_t AmsConfiguration::getMqttPayloadFormat() {
-	return config.mqttPayloadFormat;
-}
-
-void AmsConfiguration::setMqttPayloadFormat(uint8_t mqttPayloadFormat) {
-	config.mqttPayloadFormat = mqttPayloadFormat;
-}
-
-bool AmsConfiguration::isMqttSsl() {
-	return config.mqttSsl;
-}
-
-void AmsConfiguration::setMqttSsl(bool mqttSsl) {
-	mqttChanged |= config.mqttSsl != mqttSsl;
-	config.mqttSsl = mqttSsl;
-}
-
-void AmsConfiguration::clearMqtt() {
-	setMqttHost("");
-	setMqttPort(1883);
-	setMqttClientId("");
-	setMqttPublishTopic("");
-	setMqttSubscribeTopic("");
-	setMqttUser("");
-	setMqttPassword("");
-	setMqttSsl(false);
+void AmsConfiguration::clearMqtt(MqttConfig& config) {
+	strcpy(config.host, "");
+	config.port = 1883;
+	strcpy(config.clientId, "");
+	strcpy(config.publishTopic, "");
+	strcpy(config.subscribeTopic, "");
+	strcpy(config.username, "");
+	strcpy(config.password, "");
+	config.payloadFormat = 0;
+	config.ssl = false;
 }
 
 void AmsConfiguration::setMqttChanged() {
@@ -208,114 +140,69 @@ void AmsConfiguration::ackMqttChange() {
 	mqttChanged = false;
 }
 
-byte AmsConfiguration::getAuthSecurity() {
-	return config.authSecurity;
+bool AmsConfiguration::getWebConfig(WebConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_WEB_START, config);
+		EEPROM.end();
+		return true;
+	} else {
+		clearAuth(config);
+		return false;
+	}
 }
 
-void AmsConfiguration::setAuthSecurity(byte authSecurity) {
-	config.authSecurity = authSecurity;
+bool AmsConfiguration::setWebConfig(WebConfig& config) {
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_WEB_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
 }
 
-char* AmsConfiguration::getAuthUser() {
-	return config.authUser;
+void AmsConfiguration::clearAuth(WebConfig& config) {
+	config.security = 0;
+	strcpy(config.username, "");
+	strcpy(config.password, "");
 }
 
-void AmsConfiguration::setAuthUser(const char* authUser) {
-	strcpy(config.authUser, authUser);
+bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_METER_START, config);
+		EEPROM.end();
+		return true;
+	} else {
+		clearMeter(config);
+		return false;
+	}
 }
 
-char* AmsConfiguration::getAuthPassword() {
-	return config.authPassword;
+bool AmsConfiguration::setMeterConfig(MeterConfig& config) {
+	MeterConfig existing;
+	if(getMeterConfig(existing)) {
+		meterChanged |= config.type != existing.type;
+		meterChanged |= strcmp((char*) config.encryptionKey, (char*) existing.encryptionKey);
+		meterChanged |= strcmp((char*) config.authenticationKey, (char*) existing.authenticationKey);
+	} else {
+		meterChanged = true;
+	}
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_METER_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
 }
 
-void AmsConfiguration::setAuthPassword(const char* authPassword) {
-	strcpy(config.authPassword, authPassword);
-}
-
-void AmsConfiguration::clearAuth() {
-	setAuthSecurity(0);
-	setAuthUser("");
-	setAuthPassword("");
-}
-
-uint8_t AmsConfiguration::getMeterType() {
-	return config.meterType;
-}
-
-void AmsConfiguration::setMeterType(uint8_t meterType) {
-	meterChanged |= config.meterType != meterType;
-	config.meterType = meterType;
-}
-
-uint8_t AmsConfiguration::getDistributionSystem() {
-	return config.distributionSystem;
-}
-
-void AmsConfiguration::setDistributionSystem(uint8_t distributionSystem) {
-	config.distributionSystem = distributionSystem;
-}
-
-uint8_t AmsConfiguration::getMainFuse() {
-	return config.mainFuse;
-}
-
-void AmsConfiguration::setMainFuse(uint8_t mainFuse) {
-	config.mainFuse = mainFuse;
-}
-
-uint8_t AmsConfiguration::getProductionCapacity() {
-	return config.productionCapacity;
-}
-
-void AmsConfiguration::setProductionCapacity(uint8_t productionCapacity) {
-	config.productionCapacity = productionCapacity;
-}
-
-uint8_t* AmsConfiguration::getMeterEncryptionKey() {
-	return config.meterEncryptionKey;
-}
-
-void AmsConfiguration::setMeterEncryptionKey(uint8_t* meterEncryptionKey) {
-	meterChanged |= strcmp((char*) config.meterEncryptionKey, (char*) meterEncryptionKey);
-	memcpy(config.meterEncryptionKey, meterEncryptionKey, 16);
-}
-
-uint8_t* AmsConfiguration::getMeterAuthenticationKey() {
-	return config.meterAuthenticationKey;
-}
-
-void AmsConfiguration::setMeterAuthenticationKey(uint8_t* meterAuthenticationKey) {
-	meterChanged |= strcmp((char*) config.meterAuthenticationKey, (char*) meterAuthenticationKey);
-	memcpy(config.meterAuthenticationKey, meterAuthenticationKey, 16);
-}
-
-bool AmsConfiguration::isSubstituteMissing() {
-	return config.substituteMissing;
-}
-
-void AmsConfiguration::setSubstituteMissing(bool substituteMissing) {
-	config.substituteMissing = substituteMissing;
-}
-
-bool AmsConfiguration::isSendUnknown() {
-	return config.sendUnknown;
-}
-
-void AmsConfiguration::setSendUnknown(bool sendUnknown) {
-	config.sendUnknown = sendUnknown;
-}
-
-void AmsConfiguration::clearMeter() {
-	uint8_t blankKey[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-	setMeterType(0);
-	setDistributionSystem(0);
-	setMainFuse(0);
-	setProductionCapacity(0);
-	setMeterEncryptionKey(blankKey);
-	setMeterAuthenticationKey(blankKey);
-	setSubstituteMissing(false);
-	setSendUnknown(false);
+void AmsConfiguration::clearMeter(MeterConfig& config) {
+	config.type = 0;
+	config.distributionSystem = 0;
+	config.mainFuse = 0;
+	config.productionCapacity = 0;
+	memset(config.encryptionKey, 0, 16);
+	memset(config.authenticationKey, 0, 16);
+	config.substituteMissing = false;
+	config.sendUnknown = false;
 }
 
 bool AmsConfiguration::isMeterChanged() {
@@ -326,231 +213,63 @@ void AmsConfiguration::ackMeterChanged() {
 	meterChanged = false;
 }
 
-
-bool AmsConfiguration::isDebugTelnet() {
-	return config.debugTelnet;
-}
-
-void AmsConfiguration::setDebugTelnet(bool debugTelnet) {
-	config.debugTelnet = debugTelnet;
-}
-
-bool AmsConfiguration::isDebugSerial() {
-	return config.debugSerial;
-}
-
-void AmsConfiguration::setDebugSerial(bool debugSerial) {
-	config.debugSerial = debugSerial;
-}
-
-uint8_t AmsConfiguration::getDebugLevel() {
-	return config.debugLevel;
-}
-
-void AmsConfiguration::setDebugLevel(uint8_t debugLevel) {
-	config.debugLevel = debugLevel;
-}
-
-uint16_t AmsConfiguration::getDomoELIDX() {
-	return config.domoELIDX;
-}
-uint16_t AmsConfiguration::getDomoVL1IDX() {
-	return config.domoVL1IDX;
-}
-uint16_t AmsConfiguration::getDomoVL2IDX() {
-	return config.domoVL2IDX;
-}
-uint16_t AmsConfiguration::getDomoVL3IDX() {
-	return config.domoVL3IDX;
-}
-uint16_t AmsConfiguration::getDomoCL1IDX() {
-	return config.domoCL1IDX;
-}
-
-void AmsConfiguration::setDomoELIDX(uint16_t domoELIDX) {
-	domoChanged |= config.domoELIDX != domoELIDX;
-	config.domoELIDX = domoELIDX;
-}
-
-void AmsConfiguration::setDomoVL1IDX(uint16_t domoVL1IDX) {
-	domoChanged |= config.domoVL1IDX != domoVL1IDX;
-	config.domoVL1IDX = domoVL1IDX;
-}
-
-void AmsConfiguration::setDomoVL2IDX(uint16_t domoVL2IDX) {
-	domoChanged |= config.domoVL2IDX != domoVL2IDX;
-	config.domoVL2IDX = domoVL2IDX;
-}
-
-void AmsConfiguration::setDomoVL3IDX(uint16_t domoVL3IDX) {
-	domoChanged |= config.domoVL3IDX != domoVL3IDX;
-	config.domoVL3IDX = domoVL3IDX;
-}
-
-void AmsConfiguration::setDomoCL1IDX(uint16_t domoCL1IDX) {
-	domoChanged |= config.domoCL1IDX != domoCL1IDX;
-	config.domoCL1IDX = domoCL1IDX;
-}
-
-void AmsConfiguration::clearDomo() {
-	setDomoELIDX(0);
-	setDomoVL1IDX(0);	
-	setDomoVL2IDX(0);	
-	setDomoVL3IDX(0);
-	setDomoCL1IDX(0);
-}
-
-bool AmsConfiguration::pinUsed(uint8_t pin) {
-	if(pin == 0xFF)
+bool AmsConfiguration::getDebugConfig(DebugConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_DEBUG_START, config);
+		EEPROM.end();
+		return true;
+	} else {
 		return false;
-	return 
-		pin == config.hanPin ||
-		pin == config.apPin ||
-		pin == config.ledPinRed ||
-		pin == config.ledPinGreen ||
-		pin == config.ledPinBlue ||
-		pin == config.tempSensorPin ||
-		pin == config.vccPin
-	;
-}
-
-uint8_t AmsConfiguration::getHanPin() {
-	return config.hanPin;
-}
-
-void AmsConfiguration::setHanPin(uint8_t hanPin) {
-	if(!pinUsed(hanPin)) {
-		meterChanged |= config.hanPin != hanPin;
-		config.hanPin = hanPin;
 	}
 }
 
-uint8_t AmsConfiguration::getApPin() {
-	return config.apPin;
+bool AmsConfiguration::setDebugConfig(DebugConfig& config) {
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_DEBUG_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
 }
 
-void AmsConfiguration::setApPin(uint8_t apPin) {
-	if(!pinUsed(apPin)) {
-		config.apPin = apPin;
-		if(apPin >= 0)
-			pinMode(apPin, INPUT_PULLUP);
+bool AmsConfiguration::getDomoticzConfig(DomoticzConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_DOMOTICZ_START, config);
+		EEPROM.end();
+		return true;
+	} else {
+		clearDomo(config);
+		return false;
 	}
 }
 
-uint8_t AmsConfiguration::getLedPin() {
-	return config.ledPin;
-}
-
-void AmsConfiguration::setLedPin(uint8_t ledPin) {
-	if(!pinUsed(ledPin)) {
-		config.ledPin = ledPin;
+bool AmsConfiguration::setDomoticzConfig(DomoticzConfig& config) {
+	DomoticzConfig existing;
+	if(getDomoticzConfig(existing)) {
+		domoChanged |= config.elidx != existing.elidx;
+		domoChanged |= config.vl1idx != existing.vl1idx;
+		domoChanged |= config.vl2idx != existing.vl2idx;
+		domoChanged |= config.vl3idx != existing.vl3idx;
+		domoChanged |= config.cl1idx != existing.cl1idx;
+	} else {
+		domoChanged = true;
 	}
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_DOMOTICZ_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
 }
 
-bool AmsConfiguration::isLedInverted() {
-	return config.ledInverted;
+void AmsConfiguration::clearDomo(DomoticzConfig& config) {
+	config.elidx = 0;
+	config.vl1idx = 0;
+	config.vl2idx = 0;
+	config.vl3idx = 0;
+	config.cl1idx = 0;
 }
 
-void AmsConfiguration::setLedInverted(bool ledInverted) {
-	config.ledInverted = ledInverted;
-}
-
-
-uint8_t AmsConfiguration::getLedPinRed() {
-	return config.ledPinRed;
-}
-
-void AmsConfiguration::setLedPinRed(uint8_t ledPinRed) {
-	if(!pinUsed(ledPinRed)) {
-		config.ledPinRed = ledPinRed;
-	}
-}
-
-uint8_t AmsConfiguration::getLedPinGreen() {
-	return config.ledPinGreen;
-}
-
-void AmsConfiguration::setLedPinGreen(uint8_t ledPinGreen) {
-	if(!pinUsed(ledPinGreen)) {
-		config.ledPinGreen = ledPinGreen;
-	}
-}
-
-uint8_t AmsConfiguration::getLedPinBlue() {
-	return config.ledPinBlue;
-}
-
-void AmsConfiguration::setLedPinBlue(uint8_t ledPinBlue) {
-	if(!pinUsed(ledPinBlue)) {
-		config.ledPinBlue = ledPinBlue;
-	}
-}
-
-bool AmsConfiguration::isLedRgbInverted() {
-	return config.ledRgbInverted;
-}
-
-void AmsConfiguration::setLedRgbInverted(bool ledRgbInverted) {
-	config.ledRgbInverted = ledRgbInverted;
-}
-
-
-uint8_t AmsConfiguration::getTempSensorPin() {
-	return config.tempSensorPin;
-}
-
-void AmsConfiguration::setTempSensorPin(uint8_t tempSensorPin) {
-	if(!pinUsed(tempSensorPin)) {
-		config.tempSensorPin = tempSensorPin;
-	}
-}
-
-uint8_t AmsConfiguration::getTempAnalogSensorPin() {
-	return config.tempAnalogSensorPin;
-}
-
-void AmsConfiguration::setTempAnalogSensorPin(uint8_t tempAnalogSensorPin) {
-	if(!pinUsed(tempAnalogSensorPin)) {
-		config.tempAnalogSensorPin = tempAnalogSensorPin;
-	}
-}
-
-uint8_t AmsConfiguration::getVccPin() {
-	return config.vccPin;
-}
-
-void AmsConfiguration::setVccPin(uint8_t vccPin) {
-	if(!pinUsed(vccPin)) {
-		config.vccPin = vccPin;
-	}
-}
-
-double AmsConfiguration::getVccOffset() {
-	return config.vccOffset > 0 ? config.vccOffset / 100.0 : 0;
-}
-
-void AmsConfiguration::setVccOffset(double vccOffset) {
-	config.vccOffset = vccOffset == 0 ? 0 : max(-350, min((int)(vccOffset * 100.0), 350));
-}
-
-double AmsConfiguration::getVccMultiplier() {
-	return config.vccMultiplier > 0 ? config.vccMultiplier / 1000.0 : 0;
-}
-
-void AmsConfiguration::setVccMultiplier(double vccMultiplier) {
-	config.vccMultiplier = max(1, min((int) (vccMultiplier * 1000), 65535));
-}
-
-double AmsConfiguration::getVccBootLimit() {
-	return config.vccBootLimit > 0 ? config.vccBootLimit / 10.0 : 0;
-}
-
-void AmsConfiguration::setVccBootLimit(double vccBootLimit) {
-	if(vccBootLimit == 0.0)
-		config.vccBootLimit = 0;
-	else
-		config.vccBootLimit = max(25, min((int)(vccBootLimit * 10), 35));
-}
 bool AmsConfiguration::isDomoChanged() {
 	return domoChanged;
 }
@@ -559,62 +278,138 @@ void AmsConfiguration::ackDomoChange() {
 	domoChanged = false;
 }
 
-bool AmsConfiguration::isMdnsEnable() {
-	return config.mDnsEnable;
+bool AmsConfiguration::pinUsed(uint8_t pin, GpioConfig& config) {
+	if(pin == 0xFF)
+		return false;
+	return 
+		pin == config.hanPin ||
+		pin == config.apPin ||
+		pin == config.ledPin ||
+		pin == config.ledPinRed ||
+		pin == config.ledPinGreen ||
+		pin == config.ledPinBlue ||
+		pin == config.tempSensorPin ||
+		pin == config.tempAnalogSensorPin ||
+		pin == config.vccPin
+	;
 }
 
-void AmsConfiguration::setMdnsEnable(bool mdnsEnable) {
-	config.mDnsEnable = mdnsEnable;
-}
-
-bool AmsConfiguration::isNtpEnable() {
-	return config.ntpEnable;
-}
-
-void AmsConfiguration::setNtpEnable(bool ntpEnable) {
-	if(config.ntpEnable != ntpEnable) {
-		if(!ntpEnable) {
-			wifiChanged = true;
-		} else {
-			ntpChanged = true;
-		}
-		config.ntpEnable = ntpEnable;
+bool AmsConfiguration::getGpioConfig(GpioConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_GPIO_START, config);
+		EEPROM.end();
+		return true;
+	} else {
+		clearGpio(config);
+		return false;
 	}
 }
 
-bool AmsConfiguration::isNtpDhcp() {
-	return config.ntpDhcp;
+bool AmsConfiguration::setGpioConfig(GpioConfig& config) {
+	GpioConfig existing;
+	if(getGpioConfig(existing)) {
+		meterChanged |= config.hanPin != existing.hanPin;
+	}
+	/* This currently does not work, as it checks its own pin
+	if(pinUsed(config.hanPin, config)) {
+		Serial.println("HAN pin already used");
+		return false;
+	}
+	if(pinUsed(config.apPin, config)) {
+		Serial.println("AP pin already used");
+		return false;
+	}
+	if(pinUsed(config.ledPin, config)) {
+		Serial.println("LED pin already used");
+		return false;
+	}
+	if(pinUsed(config.ledPinRed, config)) {
+		Serial.println("LED RED pin already used");
+		return false;
+	}
+	if(pinUsed(config.ledPinGreen, config)) {
+		Serial.println("LED GREEN pin already used");
+		return false;
+	}
+	if(pinUsed(config.ledPinBlue, config)) {
+		Serial.println("LED BLUE pin already used");
+		return false;
+	}
+	if(pinUsed(config.tempSensorPin, config)) {
+		Serial.println("Temp sensor pin already used");
+		return false;
+	}
+	if(pinUsed(config.tempAnalogSensorPin, config)) {
+		Serial.println("Analog temp sensor pin already used");
+		return false;
+	}
+	if(pinUsed(config.vccPin, config)) {
+		Serial.println("Vcc pin already used");
+		return false;
+	}
+	*/
+	if(config.apPin >= 0)
+		pinMode(config.apPin, INPUT_PULLUP);
+
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_GPIO_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
 }
 
-void AmsConfiguration::setNtpDhcp(bool ntpDhcp) {
-	ntpChanged |= config.ntpDhcp != ntpDhcp;
-	config.ntpDhcp = ntpDhcp;
+void AmsConfiguration::clearGpio(GpioConfig& config) {
+	config.hanPin = 3;
+	config.apPin = 0xFF;
+	config.ledPin = 0xFF;
+	config.ledInverted = true;
+	config.ledPinRed = 0xFF;
+	config.ledPinGreen = 0xFF;
+	config.ledPinBlue = 0xFF;
+	config.ledRgbInverted = true;
+	config.tempSensorPin = 0xFF;
+	config.tempAnalogSensorPin = 0xFF;
+	config.vccPin = 0xFF;
+	config.vccOffset = 0;
+	config.vccMultiplier = 1000;
+	config.vccBootLimit = 0;
 }
 
-int32_t AmsConfiguration::getNtpOffset() {
-	return config.ntpOffset * 10;
+bool AmsConfiguration::getNtpConfig(NtpConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_NTP_START, config);
+		EEPROM.end();
+		return true;
+	} else {
+		clearNtp(config);
+		return false;
+	}
 }
 
-void AmsConfiguration::setNtpOffset(uint32_t ntpOffset) {
-	ntpChanged |= config.ntpOffset != ntpOffset/10;
-	config.ntpOffset = ntpOffset == 0 ? 0 : ntpOffset / 10;
-}
-
-int32_t AmsConfiguration::getNtpSummerOffset() {
-	return config.ntpSummerOffset * 10;
-}
-
-void AmsConfiguration::setNtpSummerOffset(uint32_t ntpSummerOffset) {
-	ntpChanged |= config.ntpSummerOffset != ntpSummerOffset/10;
-	config.ntpSummerOffset = ntpSummerOffset == 0 ? 0 : ntpSummerOffset / 10;
-}
-
-char* AmsConfiguration::getNtpServer() {
-	return config.ntpServer;
-}
-
-void AmsConfiguration::setNtpServer(const char* ntpServer) {
-	strcpy(config.ntpServer, ntpServer);
+bool AmsConfiguration::setNtpConfig(NtpConfig& config) {
+	NtpConfig existing;
+	if(getNtpConfig(existing)) {
+		if(config.enable != existing.enable) {
+			if(!existing.enable) {
+				wifiChanged = true;
+			} else {
+				ntpChanged = true;
+			}
+		}
+		ntpChanged |= config.dhcp != existing.dhcp;
+		ntpChanged |= config.offset != existing.offset;
+		ntpChanged |= config.summerOffset != existing.summerOffset;
+		ntpChanged |= strcmp(config.server, existing.server) != 0;
+	} else {
+		ntpChanged = true;
+	}
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_NTP_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
 }
 
 bool AmsConfiguration::isNtpChanged() {
@@ -625,63 +420,60 @@ void AmsConfiguration::ackNtpChange() {
 	ntpChanged = false;
 }
 
-void AmsConfiguration::clearNtp() {
-	setNtpEnable(true);
-	setNtpDhcp(true);
-	setNtpOffset(3600);
-	setNtpSummerOffset(3600);
-	setNtpServer("pool.ntp.org");
+void AmsConfiguration::clearNtp(NtpConfig& config) {
+	config.enable = true;
+	config.dhcp = true;
+	config.offset = 360;
+	config.summerOffset = 360;
+	strcpy(config.server, "pool.ntp.org");
 }
 
-
-char* AmsConfiguration::getEntsoeApiToken() {
-	return config.entsoeApiToken;
+bool AmsConfiguration::getEntsoeConfig(EntsoeConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_ENTSOE_START, config);
+		EEPROM.end();
+		return true;
+	} else {
+		return false;
+	}
 }
 
-void AmsConfiguration::setEntsoeApiToken(const char* token) {
-	strcpy(config.entsoeApiToken, token);
+bool AmsConfiguration::setEntsoeConfig(EntsoeConfig& config) {
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_ENTSOE_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
 }
-
-char* AmsConfiguration::getEntsoeApiArea() {
-	return config.entsoeApiArea;
-}
-
-void AmsConfiguration::setEntsoeApiArea(const char* area) {
-	strcpy(config.entsoeApiArea, area);
-}
-
-char* AmsConfiguration::getEntsoeApiCurrency() {
-	return config.entsoeApiCurrency;
-}
-
-void AmsConfiguration::setEntsoeApiCurrency(const char* currency) {
-	strcpy(config.entsoeApiCurrency, currency);
-}
-
-double AmsConfiguration::getEntsoeApiMultiplier() {
-	return config.entsoeApiMultiplier;
-}
-
-void AmsConfiguration::setEntsoeApiMultiplier(double multiplier) {
-	config.entsoeApiMultiplier = multiplier;
-}
-
-
 
 void AmsConfiguration::clear() {
-	clearMeter();
-	clearWifi();
-	clearMqtt();
-	clearAuth();
-	clearDomo();
-	clearNtp();
+	MeterConfig meter;
+	clearMeter(meter);
+	setMeterConfig(meter);
 
-	int address = EEPROM_CONFIG_ADDRESS;
+	WiFiConfig wifi;
+	clearWifi(wifi);
+	setWiFiConfig(wifi);
+
+	MqttConfig mqtt;
+	clearMqtt(mqtt);
+	setMqttConfig(mqtt);
+
+	WebConfig web;
+	clearAuth(web);
+	setWebConfig(web);
+
+	DomoticzConfig domo;
+	clearDomo(domo);
+	setDomoticzConfig(domo);
+
+	NtpConfig ntp;
+	clearNtp(ntp);
+	setNtpConfig(ntp);
 
 	EEPROM.begin(EEPROM_SIZE);
-	while(address < EEPROM_CONFIG_ADDRESS+EEPROM_SIZE) {
-		EEPROM.put(address++, 0);
-	}
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, -1);
 	EEPROM.commit();
 	EEPROM.end();
 }
@@ -693,10 +485,23 @@ bool AmsConfiguration::hasConfig() {
 		EEPROM.end();
 	}
 	switch(configVersion) {
-		case 81:
 		case 82:
+			if(loadConfig82(EEPROM_CONFIG_ADDRESS+1)) {
+				return true;
+			} else {
+				configVersion = 0;
+				return false;
+			}
+			break;
 		case 83:
-		case 84:
+			if(loadConfig83(EEPROM_CONFIG_ADDRESS+1)) {
+				return true;
+			} else {
+				configVersion = 0;
+				return false;
+			}
+			break;
+		case EEPROM_CHECK_SUM:
 			return true;
 		default:
 			configVersion = 0;
@@ -708,36 +513,8 @@ int AmsConfiguration::getConfigVersion() {
 	return configVersion;
 }
 
-bool AmsConfiguration::load() {
-	int address = EEPROM_CONFIG_ADDRESS;
-	bool success = false;
-
-	EEPROM.begin(EEPROM_SIZE);
-	int cs = EEPROM.read(address++);
-	switch(cs) {
-		case 82: // v1.3
-			success = loadConfig82(address);
-			break;
-		case 83: // v1.4
-			success = loadConfig83(address);
-			break;
-		case 84: // v1.5
-			EEPROM.get(address, config);
-			loadTempSensors();
-			success = true;
-			break;
-	}
-	EEPROM.end();
-
-
-	if(config.apPin >= 0)
-		pinMode(config.apPin, INPUT_PULLUP);
-	meterChanged = true;
-
-	return success;
-}
-
 void AmsConfiguration::loadTempSensors() {
+	this->tempSensors = new TempSensorConfig*[32];
 	int address = EEPROM_TEMP_CONFIG_ADDRESS;
 	int c = 0;
 	int storedCount = EEPROM.read(address++);
@@ -767,136 +544,199 @@ void AmsConfiguration::saveTempSensors() {
 }
 
 bool AmsConfiguration::loadConfig82(int address) {
-	ConfigObject82 config82;
-	EEPROM.get(address, config82);
-	config.boardType = config82.boardType;
-	strcpy(config.wifiSsid, config82.wifiSsid);
-	strcpy(config.wifiPassword, config82.wifiPassword);
-    strcpy(config.wifiIp, config82.wifiIp);
-    strcpy(config.wifiGw, config82.wifiGw);
-    strcpy(config.wifiSubnet, config82.wifiSubnet);
-	strcpy(config.wifiDns1, config82.wifiDns1);
-	strcpy(config.wifiDns2, config82.wifiDns2);
-	strcpy(config.wifiHostname, config82.wifiHostname);
-	strcpy(config.mqttHost, config82.mqttHost);
-	config.mqttPort = config82.mqttPort;
-	strcpy(config.mqttClientId, config82.mqttClientId);
-	strcpy(config.mqttPublishTopic, config82.mqttPublishTopic);
-	strcpy(config.mqttSubscribeTopic, config82.mqttSubscribeTopic);
-	strcpy(config.mqttUser, config82.mqttUser);
-	strcpy(config.mqttPassword, config82.mqttPassword);
-	config.mqttPayloadFormat = config82.mqttPayloadFormat;
-	config.mqttSsl = config82.mqttSsl;
-	config.authSecurity = config82.authSecurity;
-	strcpy(config.authUser, config82.authUser);
-	strcpy(config.authPassword, config82.authPassword);
-	
-	config.meterType = config82.meterType;
-	config.distributionSystem = config82.distributionSystem;
-	config.mainFuse = config82.mainFuse;
-	config.productionCapacity = config82.productionCapacity;
-	config.substituteMissing = config82.substituteMissing;
-	config.sendUnknown = config82.sendUnknown;
+	ConfigObject82 c;
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.get(address, c);
+	EEPROM.end();
 
-	config.debugTelnet = config82.debugTelnet;
-	config.debugSerial = config82.debugSerial;
-	config.debugLevel = config82.debugLevel;
+	DomoticzConfig domo {
+		c.domoELIDX,
+		c.domoVL1IDX,
+		c.domoVL2IDX,
+		c.domoVL3IDX,
+		c.domoCL1IDX
+	};
+	setDomoticzConfig(domo);
 
-	config.hanPin = config82.hanPin;
-	config.apPin = config82.apPin;
-	config.ledPin = config82.ledPin;
-	config.ledInverted = config82.ledInverted;
-	config.ledPinRed = config82.ledPinRed;
-	config.ledPinGreen = config82.ledPinGreen;
-	config.ledPinBlue = config82.ledPinBlue;
-	config.ledRgbInverted = config82.ledRgbInverted;
-	config.tempSensorPin = config82.tempSensorPin;
-	config.vccPin = config82.vccPin;
-	config.vccMultiplier = config82.vccMultiplier;
-	config.vccBootLimit = config82.vccBootLimit;
+	GpioConfig gpio {
+		c.hanPin,
+		c.apPin,
+		c.ledPin,
+		c.ledInverted,
+		c.ledPinRed,
+		c.ledPinGreen,
+		c.ledPinBlue,
+		c.ledRgbInverted,
+		c.tempSensorPin,
+		0xFF,
+		c.vccPin,
+		0,
+		c.vccMultiplier,
+		c.vccBootLimit
+	};
+	setGpioConfig(gpio);
 
-	config.domoELIDX = config82.domoELIDX;
-	config.domoVL1IDX = config82.domoVL1IDX;
-	config.domoVL2IDX = config82.domoVL2IDX;
-	config.domoVL3IDX = config82.domoVL3IDX;
-	config.domoCL1IDX = config82.domoCL1IDX;
+	DebugConfig debug {
+		c.debugTelnet,
+		c.debugSerial,
+		c.debugLevel
+	};
+	setDebugConfig(debug);
+
+	MeterConfig meter {
+		c.meterType,
+		c.distributionSystem,
+		c.mainFuse,
+		c.productionCapacity,
+		{0},
+		{0},
+		c.substituteMissing,
+		c.sendUnknown
+	};
+	setMeterConfig(meter);
+
+	WebConfig web {
+		c.authSecurity
+	};
+	strcpy(web.username, c.authUser);
+	strcpy(web.password, c.authPassword);
+	setWebConfig(web);
+
+	MqttConfig mqtt;
+	strcpy(mqtt.host, c.mqttHost);
+	mqtt.port = c.mqttPort;
+	strcpy(mqtt.clientId, c.mqttClientId);
+	strcpy(mqtt.publishTopic, c.mqttPublishTopic);
+	strcpy(mqtt.subscribeTopic, c.mqttSubscribeTopic);
+	strcpy(mqtt.username, c.mqttUser);
+	strcpy(mqtt.password, c.mqttPassword);
+	mqtt.payloadFormat = c.mqttPayloadFormat;
+	mqtt.ssl = c.mqttSsl;
+	setMqttConfig(mqtt);
+
+	WiFiConfig wifi;
+	strcpy(wifi.ssid, c.wifiSsid);
+	strcpy(wifi.psk, c.wifiPassword);
+    strcpy(wifi.ip, c.wifiIp);
+    strcpy(wifi.gateway, c.wifiGw);
+    strcpy(wifi.subnet, c.wifiSubnet);
+	strcpy(wifi.dns1, c.wifiDns1);
+	strcpy(wifi.dns2, c.wifiDns2);
+	strcpy(wifi.hostname, c.wifiHostname);
+	wifi.mdns = true;
+	setWiFiConfig(wifi);
+
+	SystemConfig sys  {
+		c.boardType
+	};
+	setSystemConfig(sys);
+	return save();
 }
 
 bool AmsConfiguration::loadConfig83(int address) {
-	ConfigObject83 config83;
-	EEPROM.get(address, config83);
-	config.boardType = config83.boardType;
-	strcpy(config.wifiSsid, config83.wifiSsid);
-	strcpy(config.wifiPassword, config83.wifiPassword);
-    strcpy(config.wifiIp, config83.wifiIp);
-    strcpy(config.wifiGw, config83.wifiGw);
-    strcpy(config.wifiSubnet, config83.wifiSubnet);
-	strcpy(config.wifiDns1, config83.wifiDns1);
-	strcpy(config.wifiDns2, config83.wifiDns2);
-	strcpy(config.wifiHostname, config83.wifiHostname);
-	strcpy(config.mqttHost, config83.mqttHost);
-	config.mqttPort = config83.mqttPort;
-	strcpy(config.mqttClientId, config83.mqttClientId);
-	strcpy(config.mqttPublishTopic, config83.mqttPublishTopic);
-	strcpy(config.mqttSubscribeTopic, config83.mqttSubscribeTopic);
-	strcpy(config.mqttUser, config83.mqttUser);
-	strcpy(config.mqttPassword, config83.mqttPassword);
-	config.mqttPayloadFormat = config83.mqttPayloadFormat;
-	config.mqttSsl = config83.mqttSsl;
-	config.authSecurity = config83.authSecurity;
-	strcpy(config.authUser, config83.authUser);
-	strcpy(config.authPassword, config83.authPassword);
-	
-	config.meterType = config83.meterType;
-	config.distributionSystem = config83.distributionSystem;
-	config.mainFuse = config83.mainFuse;
-	config.productionCapacity = config83.productionCapacity;
-	memcpy(config.meterEncryptionKey, config83.meterEncryptionKey, 16);
-	memcpy(config.meterAuthenticationKey, config83.meterAuthenticationKey, 16);
-	config.substituteMissing = config83.substituteMissing;
-	config.sendUnknown = config83.sendUnknown;
+	ConfigObject83 c;
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.get(address, c);
+	EEPROM.end();
 
-	config.debugTelnet = config83.debugTelnet;
-	config.debugSerial = config83.debugSerial;
-	config.debugLevel = config83.debugLevel;
+	NtpConfig ntp {
+		c.ntpEnable,
+		c.ntpDhcp,
+		c.ntpOffset,
+		c.ntpSummerOffset
+	};
+	strcpy(ntp.server, c.ntpServer);
+	setNtpConfig(ntp);
 
-	config.hanPin = config83.hanPin;
-	config.apPin = config83.apPin;
-	config.ledPin = config83.ledPin;
-	config.ledInverted = config83.ledInverted;
-	config.ledPinRed = config83.ledPinRed;
-	config.ledPinGreen = config83.ledPinGreen;
-	config.ledPinBlue = config83.ledPinBlue;
-	config.ledRgbInverted = config83.ledRgbInverted;
-	config.tempSensorPin = config83.tempSensorPin;
-	config.vccPin = config83.vccPin;
-	config.vccOffset = config83.vccOffset;
-	config.vccMultiplier = config83.vccMultiplier;
-	config.vccBootLimit = config83.vccBootLimit;
+	DomoticzConfig domo {
+		c.domoELIDX,
+		c.domoVL1IDX,
+		c.domoVL2IDX,
+		c.domoVL3IDX,
+		c.domoCL1IDX
+	};
+	setDomoticzConfig(domo);
 
-	config.domoELIDX = config83.domoELIDX;
-	config.domoVL1IDX = config83.domoVL1IDX;
-	config.domoVL2IDX = config83.domoVL2IDX;
-	config.domoVL3IDX = config83.domoVL3IDX;
-	config.domoCL1IDX = config83.domoCL1IDX;
+	GpioConfig gpio {
+		c.hanPin,
+		c.apPin,
+		c.ledPin,
+		c.ledInverted,
+		c.ledPinRed,
+		c.ledPinGreen,
+		c.ledPinBlue,
+		c.ledRgbInverted,
+		c.tempSensorPin,
+		c.tempAnalogSensorPin,
+		c.vccPin,
+		c.vccOffset,
+		c.vccMultiplier,
+		c.vccBootLimit
+	};
+	setGpioConfig(gpio);
 
-	config.mDnsEnable = config83.mDnsEnable;
-	config.ntpEnable = config83.ntpEnable;
-	config.ntpDhcp = config83.ntpDhcp;
-	config.ntpOffset = config83.ntpOffset;
-	config.ntpSummerOffset = config83.ntpSummerOffset;
-	strcpy(config.ntpServer, config83.ntpServer);
+	DebugConfig debug {
+		c.debugTelnet,
+		c.debugSerial,
+		c.debugLevel
+	};
+	setDebugConfig(debug);
 
-	config.tempAnalogSensorPin = config83.tempAnalogSensorPin;
+	MeterConfig meter {
+		c.meterType,
+		c.distributionSystem,
+		c.mainFuse,
+		c.productionCapacity,
+		{0},
+		{0},
+		c.substituteMissing,
+		c.sendUnknown
+	};
+	memcpy(meter.encryptionKey, c.meterEncryptionKey, 16);
+	memcpy(meter.authenticationKey, c.meterAuthenticationKey, 16);
+	setMeterConfig(meter);
+
+	WebConfig web {
+		c.authSecurity
+	};
+	strcpy(web.username, c.authUser);
+	strcpy(web.password, c.authPassword);
+	setWebConfig(web);
+
+	MqttConfig mqtt;
+	strcpy(mqtt.host, c.mqttHost);
+	mqtt.port = c.mqttPort;
+	strcpy(mqtt.clientId, c.mqttClientId);
+	strcpy(mqtt.publishTopic, c.mqttPublishTopic);
+	strcpy(mqtt.subscribeTopic, c.mqttSubscribeTopic);
+	strcpy(mqtt.username, c.mqttUser);
+	strcpy(mqtt.password, c.mqttPassword);
+	mqtt.payloadFormat = c.mqttPayloadFormat;
+	mqtt.ssl = c.mqttSsl;
+	setMqttConfig(mqtt);
+
+	WiFiConfig wifi;
+	strcpy(wifi.ssid, c.wifiSsid);
+	strcpy(wifi.psk, c.wifiPassword);
+    strcpy(wifi.ip, c.wifiIp);
+    strcpy(wifi.gateway, c.wifiGw);
+    strcpy(wifi.subnet, c.wifiSubnet);
+	strcpy(wifi.dns1, c.wifiDns1);
+	strcpy(wifi.dns2, c.wifiDns2);
+	strcpy(wifi.hostname, c.wifiHostname);
+	wifi.mdns = c.mDnsEnable;
+	setWiFiConfig(wifi);
+
+	SystemConfig sys  {
+		c.boardType
+	};
+	setSystemConfig(sys);
+	return save();
 }
 
 bool AmsConfiguration::save() {
-	int address = EEPROM_CONFIG_ADDRESS;
-
 	EEPROM.begin(EEPROM_SIZE);
-	EEPROM.put(address, EEPROM_CHECK_SUM);
-	address++;
-	EEPROM.put(address, config);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
 	saveTempSensors();
 	bool success = EEPROM.commit();
 	EEPROM.end();
@@ -909,8 +749,14 @@ uint8_t AmsConfiguration::getTempSensorCount() {
 	return tempSensorCount;
 }
 
-TempSensorConfig* AmsConfiguration::getTempSensorConfig(uint8_t i) {
-	return tempSensors[i];
+TempSensorConfig* AmsConfiguration::getTempSensorConfig(uint8_t address[8]) {
+    for(int x = 0; x < tempSensorCount; x++) {
+        TempSensorConfig *conf = tempSensors[x];
+        if(isSensorAddressEqual(conf->address, address)) {
+			return conf;
+		}
+	}
+	return NULL;
 }
 
 void AmsConfiguration::updateTempSensorConfig(uint8_t address[8], const char name[32], bool common) {
@@ -975,89 +821,146 @@ int AmsConfiguration::readByte(int address, byte *value) {
 
 void AmsConfiguration::print(Print* debugger)
 {
-	debugger->print("Configuration size: ");
-	debugger->println(sizeof(config));
 	debugger->println("-----------------------------------------------");
-	debugger->printf("WiFi SSID:            '%s'\r\n", this->getWifiSsid());
-	debugger->printf("WiFi Psk:             '%s'\r\n", this->getWifiPassword());
-	delay(1);
-	
-	if(strlen(getWifiIp()) > 0) {
-		debugger->printf("IP:                   '%s'\r\n", this->getWifiIp());
-		debugger->printf("Gateway:              '%s'\r\n", this->getWifiGw());
-		debugger->printf("Subnet:               '%s'\r\n", this->getWifiSubnet());
-		debugger->printf("Primary DNS:          '%s'\r\n", this->getWifiDns1());
-		debugger->printf("Secondary DNS:        '%s'\r\n", this->getWifiDns2());
-	}
-	delay(1);
-	
-	debugger->printf("WiFi Host:            '%s'\r\n", this->getWifiHostname());
-
-	if(strlen(getMqttHost()) > 0) {
-		debugger->printf("mqttHost:             '%s'\r\n", this->getMqttHost());
-		debugger->printf("mqttPort:             %i\r\n", this->getMqttPort());
-		debugger->printf("mqttClientID:         '%s'\r\n", this->getMqttClientId());
-		debugger->printf("mqttPublishTopic:     '%s'\r\n", this->getMqttPublishTopic());
-		debugger->printf("mqttSubscribeTopic:   '%s'\r\n", this->getMqttSubscribeTopic());
-		if (this->getMqttUser()) {
-			debugger->printf("SECURE MQTT CONNECTION:\r\n");
-			debugger->printf("mqttUser:             '%s'\r\n", this->getMqttUser());
-			debugger->printf("mqttPass:             '%s'\r\n", this->getMqttPassword());
+	WiFiConfig wifi;
+	if(getWiFiConfig(wifi)) {
+		debugger->println("--WiFi configuration--");
+		debugger->printf("SSID:                 '%s'\r\n", wifi.ssid);
+		debugger->printf("Psk:                  '%s'\r\n", wifi.psk);
+		if(strlen(wifi.ip) > 0) {
+			debugger->printf("IP:                   '%s'\r\n", wifi.ip);
+			debugger->printf("Gateway:              '%s'\r\n", wifi.gateway);
+			debugger->printf("Subnet:               '%s'\r\n", wifi.subnet);
+			debugger->printf("DNS1:                 '%s'\r\n", wifi.dns1);
+			debugger->printf("DNS2:                 '%s'\r\n", wifi.dns2);
 		}
-		debugger->printf("payload format:       %i\r\n", this->getMqttPayloadFormat());
-	}
-	delay(1);
-
-	if (this->getAuthSecurity()) {
-		debugger->printf("WEB AUTH:\r\n");
-		debugger->printf("authSecurity:         %i\r\n", this->getAuthSecurity());
-		debugger->printf("authUser:             '%s'\r\n", this->getAuthUser());
-		debugger->printf("authPass:             '%s'\r\n", this->getAuthPassword());
+		debugger->printf("Hostname:             '%s'\r\n", wifi.hostname);
+		debugger->printf("mDNS:                 '%s'\r\n", wifi.mdns ? "Yes" : "No");
+		debugger->println("");
+		delay(10);
+		Serial.flush();
 	}
 
-	debugger->printf("meterType:            %i\r\n", this->getMeterType());
-	debugger->printf("distSys:              %i\r\n", this->getDistributionSystem());
-	debugger->printf("fuseSize:             %i\r\n", this->getMainFuse());
-	debugger->printf("productionCapacity:   %i\r\n", this->getProductionCapacity());
-	debugger->printf("Substitute missing:   %s\r\n", this->isSubstituteMissing() ? "Yes" : "No");
-	Serial.flush();
-	delay(1);
-
-	debugger->printf("HAN pin:              %i\r\n", this->getHanPin());
-	debugger->printf("LED pin:              %i\r\n", this->getLedPin());
-	debugger->printf("LED inverted:         %s\r\n", this->isLedInverted() ? "Yes" : "No");
-	debugger->printf("LED red pin:          %i\r\n", this->getLedPinRed());
-	debugger->printf("LED green pin:        %i\r\n", this->getLedPinGreen());
-	debugger->printf("LED blue pin:         %i\r\n", this->getLedPinBlue());
-	debugger->printf("LED inverted:         %s\r\n", this->isLedRgbInverted() ? "Yes" : "No");
-	debugger->printf("AP pin:               %i\r\n", this->getApPin());
-	debugger->printf("Temperature pin:      %i\r\n", this->getTempSensorPin());
-	Serial.flush();
-	delay(1);
-
-	debugger->printf("Vcc pin:              %i\r\n", this->getVccPin());
-	debugger->printf("Vcc multiplier:       %f\r\n", this->getVccMultiplier());
-	debugger->printf("Vcc offset:           %f\r\n", this->getVccOffset());
-	debugger->printf("Vcc boot limit:       %f\r\n", this->getVccBootLimit());
-
-	if(this->getDomoELIDX() > 0) {
-		debugger->printf("Domoticz ELIDX:       %i\r\n", this->getDomoELIDX());
-		debugger->printf("Domoticz VL1IDX:      %i\r\n", this->getDomoVL1IDX());
-		debugger->printf("Domoticz VL2IDX:      %i\r\n", this->getDomoVL2IDX());
-		debugger->printf("Domoticz VL3IDX:      %i\r\n", this->getDomoVL3IDX());
-		debugger->printf("Domoticz CL1IDX:      %i\r\n", this->getDomoCL1IDX());
+	MqttConfig mqtt;
+	if(getMqttConfig(mqtt)) {
+		debugger->println("--MQTT configuration--");
+		if(strlen(mqtt.host) > 0) {
+			debugger->printf("Enabled:              Yes\r\n");
+			debugger->printf("Host:                 '%s'\r\n", mqtt.host);
+			debugger->printf("Port:                 %i\r\n", mqtt.port);
+			debugger->printf("Client ID:            '%s'\r\n", mqtt.clientId);
+			debugger->printf("Publish topic:        '%s'\r\n", mqtt.publishTopic);
+			debugger->printf("Subscribe topic:      '%s'\r\n", mqtt.subscribeTopic);
+			if (strlen(mqtt.username) > 0) {
+				debugger->printf("Username:             '%s'\r\n", mqtt.username);
+				debugger->printf("Password:             '%s'\r\n", mqtt.password);
+			}
+			debugger->printf("Payload format:       %i\r\n", mqtt.payloadFormat);
+			debugger->printf("SSL:                  %s\r\n", mqtt.ssl ? "Yes" : "No");
+		} else {
+			debugger->printf("Enabled:              No\r\n");
+		}
+		debugger->println("");
+		delay(10);
+		Serial.flush();
 	}
-	delay(1);
 
-	debugger->printf("NTP:                  %s\r\n", this->isNtpEnable() ? "Yes" : "No");
-	if(this->isNtpEnable()) {
-		debugger->printf("NTP offset:           %i\r\n", this->getNtpOffset());
-		debugger->printf("NTP summer offset:    %i\r\n", this->getNtpSummerOffset());
-		debugger->printf("NTP server:           %s\r\n", this->getNtpServer());
-		debugger->printf("NTP DHCP:             %s\r\n", this->isNtpDhcp() ? "Yes" : "No");
+	WebConfig web;
+	if(getWebConfig(web)) {
+		debugger->println("--Web configuration--");
+		debugger->printf("Security:             %i\r\n", web.security);
+		if (web.security > 0) {
+			debugger->printf("Username:             '%s'\r\n", web.username);
+			debugger->printf("Password:             '%s'\r\n", web.password);
+		}
+		debugger->println("");
+		delay(10);
+		Serial.flush();
 	}
-	delay(1);
-	
+
+	MeterConfig meter;
+	if(getMeterConfig(meter)) {
+		debugger->println("--Meter configuration--");
+		debugger->printf("Type:                 %i\r\n", meter.type);
+		debugger->printf("Distribution system:  %i\r\n", meter.distributionSystem);
+		debugger->printf("Main fuse:            %i\r\n", meter.mainFuse);
+		debugger->printf("Production Capacity:  %i\r\n", meter.productionCapacity);
+		debugger->printf("Substitute missing:   %s\r\n", meter.substituteMissing ? "Yes" : "No");
+		debugger->printf("Send unknown:         %s\r\n", meter.sendUnknown ? "Yes" : "No");
+		debugger->println("");
+		delay(10);
+		Serial.flush();
+	}
+
+	GpioConfig gpio;
+	if(getGpioConfig(gpio)) {
+		debugger->println("--GPIO configuration--");
+		debugger->printf("HAN pin:              %i\r\n", gpio.hanPin);
+		debugger->printf("LED pin:              %i\r\n", gpio.ledPin);
+		debugger->printf("LED inverted:         %s\r\n", gpio.ledInverted ? "Yes" : "No");
+		debugger->printf("LED red pin:          %i\r\n", gpio.ledPinRed);
+		debugger->printf("LED green pin:        %i\r\n", gpio.ledPinGreen);
+		debugger->printf("LED blue pin:         %i\r\n", gpio.ledPinBlue);
+		debugger->printf("LED inverted:         %s\r\n", gpio.ledRgbInverted ? "Yes" : "No");
+		debugger->printf("AP pin:               %i\r\n", gpio.apPin);
+		debugger->printf("Temperature pin:      %i\r\n", gpio.tempSensorPin);
+		debugger->printf("Temp analog pin:      %i\r\n", gpio.tempAnalogSensorPin);
+		debugger->printf("Vcc pin:              %i\r\n", gpio.vccPin);
+		debugger->printf("Vcc multiplier:       %f\r\n", gpio.vccMultiplier / 1000.0);
+		debugger->printf("Vcc offset:           %f\r\n", gpio.vccOffset / 100.0);
+		debugger->printf("Vcc boot limit:       %f\r\n", gpio.vccBootLimit / 10.0);
+		debugger->println("");
+		delay(10);
+		Serial.flush();
+	}
+
+	DomoticzConfig domo;
+	if(getDomoticzConfig(domo)) {
+		debugger->println("--Domoticz configuration--");
+		if(mqtt.payloadFormat == 3 && domo.elidx > 0) {
+			debugger->printf("Enabled:              Yes\r\n");
+			debugger->printf("Domoticz ELIDX:       %i\r\n", domo.elidx);
+			debugger->printf("Domoticz VL1IDX:      %i\r\n", domo.vl1idx);
+			debugger->printf("Domoticz VL2IDX:      %i\r\n", domo.vl2idx);
+			debugger->printf("Domoticz VL3IDX:      %i\r\n", domo.vl3idx);
+			debugger->printf("Domoticz CL1IDX:      %i\r\n", domo.cl1idx);
+		} else {
+			debugger->printf("Enabled:              No\r\n");
+		}
+		debugger->println("");
+		delay(10);
+		Serial.flush();
+	}
+
+	NtpConfig ntp;
+	if(getNtpConfig(ntp)) {
+		debugger->println("--NTP configuration--");
+		debugger->printf("Enabled:              %s\r\n", ntp.enable ? "Yes" : "No");
+		if(ntp.enable) {
+			debugger->printf("Offset:               %i\r\n", ntp.offset);
+			debugger->printf("Summer offset:        %i\r\n", ntp.summerOffset);
+			debugger->printf("Server:               %s\r\n", ntp.server);
+			debugger->printf("DHCP:                 %s\r\n", ntp.dhcp ? "Yes" : "No");
+		}
+		debugger->println("");
+		delay(10);
+		Serial.flush();
+	}
+
+	EntsoeConfig entsoe;
+	if(getEntsoeConfig(entsoe)) {
+		debugger->println("--ENTSO-E configuration--");
+		debugger->printf("Token:                %s\r\n", entsoe.token);
+		if(strlen(entsoe.token) > 0) {
+			debugger->printf("Area:                 %s\r\n", entsoe.area);
+			debugger->printf("Currency:             %s\r\n", entsoe.currency);
+			debugger->printf("Multiplier:           %f\r\n", entsoe.multiplier / 1000.0);
+		}
+		debugger->println("");
+		delay(10);
+		Serial.flush();
+	}
+
 	debugger->printf("Temp sensor count:    %i\r\n", this->getTempSensorCount());
 
 	debugger->println("-----------------------------------------------");

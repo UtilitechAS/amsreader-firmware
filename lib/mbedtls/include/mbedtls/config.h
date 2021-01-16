@@ -34,6 +34,14 @@
 #ifndef MBEDTLS_CONFIG_H
 #define MBEDTLS_CONFIG_H
 
+#define MBEDTLS_SSL_MAX_CONTENT_LEN 8192
+#define MBEDTLS_MPI_MAX_SIZE 128
+#define MBEDTLS_MPI_WINDOW_SIZE 1
+#define MBEDTLS_ECP_MAX_BITS 128
+#define MBEDTLS_ECP_WINDOW_SIZE 2
+#define MBEDTLS_ECP_FIXED_POINT_OPTIM 0
+#define MBEDTLS_AES_ROM_TABLES 1
+
 /* System support */
 #define MBEDTLS_HAVE_ASM
 #define MBEDTLS_HAVE_TIME
@@ -83,9 +91,6 @@
 #define MBEDTLS_X509_CRT_PARSE_C
 #define MBEDTLS_X509_CRL_PARSE_C
 //#define MBEDTLS_CMAC_C
-
-/* Miscellaneous options */
-#define MBEDTLS_AES_ROM_TABLES
 
 #include "mbedtls/check_config.h"
 

@@ -249,10 +249,10 @@ var fetch = function() {
                 continue;
             }
             if(isNaN(str)) {
-                $('#'+id).html(str);
+                $('.'+id).html(str);
             } else {
                 var num = parseFloat(str);
-                $('#'+id).html(num.toFixed(num < 0 ? 0 : num < 10 ? 2  : 1));
+                $('.'+id).html(num.toFixed(num < 0 ? 0 : num < 10 ? 2  : 1));
             }
         }
 
@@ -276,13 +276,13 @@ var fetch = function() {
         if(json.wifi) {
             for(var id in json.wifi) {
                 var str = json.wifi[id];
-                dst = $('#'+id);
+                dst = $('.'+id);
                 if(isNaN(str)) {
                     dst.html(str);
                 } else {
                     var num = parseFloat(str);
                     dst.html(num.toFixed(0));
-                    $('#'+id+'-row').show();
+                    $('.'+id+'-row').show();
                 }
             }
         }
@@ -355,7 +355,6 @@ var fetch = function() {
                 } else {
                     var num = parseFloat(str);
                     $('.'+id).html(num.toFixed(1));
-                    $('#'+id+'-row').show();
                     $('.'+id+'-row').show();
                 }
             }

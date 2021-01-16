@@ -13,7 +13,7 @@ char* EntsoeA44Parser::getMeasurementUnit() {
     return measurementUnit;
 }
 
-double EntsoeA44Parser::getPoint(uint8_t position) {
+float EntsoeA44Parser::getPoint(uint8_t position) {
     return points[position];
 }
 
@@ -69,7 +69,7 @@ size_t EntsoeA44Parser::write(uint8_t byte) {
     } else if(docPos == DOCPOS_AMOUNT) {
         if(byte == '<') {
             buf[pos] = '\0';
-            points[pointNum] = String(buf).toDouble();
+            points[pointNum] = String(buf).toFloat();
             docPos = DOCPOS_SEEK;
             pos = 0;
         } else {

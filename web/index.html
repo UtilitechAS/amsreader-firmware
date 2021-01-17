@@ -1,16 +1,16 @@
 <div class="bg-white rounded shadow p-1">
     <div class="row">
         <div class="col-md-3 col-6">
-            <div class="text-center">Up <span class="cs">{cs}</span></div>
+            <div class="text-center">Up <span class="ju">{cs}</span></div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="text-center">Temperature: <span class="temp">{temp}</span>&deg;C</div>
+            <div class="text-center">Temperature: <span class="jt">{temp}</span>&deg;C</div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="text-center">ESP volt: <span class="vcc">{vcc}</span>V</div>
+            <div class="text-center">ESP volt: <span class="jv">{vcc}</span>V</div>
         </div>
         <div class="col-md-3 col-6">
-            <div class="text-center">WiFi RSSI: <span class="rssi">{rssi}</span>dBm</div>
+            <div class="text-center">WiFi RSSI: <span class="jr">{rssi}</span>dBm</div>
         </div>
     </div>
 </div>
@@ -21,7 +21,7 @@
             <div class="col-sm-6 mt-3">
                 <div class="bg-white rounded shadow p-3">
                     <div class="text-center">
-                        <div class="SimpleMeter P" style="display: inline;">
+                        <div class="SimpleMeter ji" style="display: inline;">
                             {P} W
                         </div>
                         <div id="im" class="GaugeMeter rounded"
@@ -35,15 +35,15 @@
                             data-label="{ti}"
                         ></div>
                     </div>
-                    <div class="row tPI-row" style="display: {da};">
-                        <div class="col-12 text-right"><span class="tPI">{tPI}</span> kWh</div>
+                    <div class="row ric" style="display: {da};">
+                        <div class="col-12 text-right"><span class="jic">{tPI}</span> kWh</div>
                     </div>
                 </div>
             </div>
             <div class="col-sm-6 mt-3" style="display: {de};">
                 <div class="bg-white rounded shadow p-3">
                     <div class="text-center">
-                        <div class="SimpleMeter PO" style="display: inline;">
+                        <div class="SimpleMeter je" style="display: inline;">
                             {PO} W
                         </div>
                         <div id="em" class="GaugeMeter rounded"
@@ -57,29 +57,29 @@
                             data-label="Export"
                         ></div>
                     </div>
-                    <div class="row tPO-row" style="display: {da};">
-                        <div class="col-12 text-right"><span class="tPO">{tPO}</span> kWh</div>
+                    <div class="row rec" style="display: {da};">
+                        <div class="col-12 text-right"><span class="jec">{tPO}</span> kWh</div>
                     </div>
                 </div>
             </div>
             <div class="col-sm-6 mt-3" style="display: {dn};">
                 <div class="bg-white rounded shadow p-3" style="display: {da};">
                     <h5 class="text-center">Reactive</h5>
-                    <div class="row tQI-row">
+                    <div class="row rric">
                         <div class="col-4">In</div>
-                        <div class="col-8 text-right"><span class="tQI">{tQI}</span> kvarh</div>
+                        <div class="col-8 text-right"><span class="jric">{tQI}</span> kvarh</div>
                         <div class="col-4">Out</div>
-                        <div class="col-8 text-right"><span class="tQO">{tQO}</span> kvarh</div>
+                        <div class="col-8 text-right"><span class="jrec">{tQO}</span> kvarh</div>
                     </div>
                 </div>
             </div>
             <div class="col-sm-12 mt-3" style="display: {de};">
                 <div class="bg-white rounded shadow p-3" style="display: {da};">
-                    <div class="row tQO-row">
+                    <div class="row rrec">
                         <div class="col-4 col-sm-2">In</div>
-                        <div class="col-8 col-sm-4 text-right"><span class="tQI">{tQI}</span> kvarh</div>
+                        <div class="col-8 col-sm-4 text-right"><span class="jric">{tQI}</span> kvarh</div>
                         <div class="col-4 col-sm-2">Out</div>
-                        <div class="col-8 col-sm-4 text-right"><span class="tQO">{tQO}</span> kvarh</div>
+                        <div class="col-8 col-sm-4 text-right"><span class="jrec">{tQO}</span> kvarh</div>
                     </div>
                 </div>
             </div>
@@ -99,10 +99,10 @@
                     data-label="Volt"
                 ></div>
             </div>
-            <div class="row U2-row" style="display: {3p};">
-                <div class="col-4"><span class="U1">{U1}</span>V</div>
-                <div class="col-4 text-center"><span class="U2">{U2}</span>V</div>
-                <div class="col-4 text-right"><span class="U3">{U3}</span>V</div>
+            <div class="row ru2" style="display: {3p};">
+                <div class="col-4"><span class="ju1">{U1}</span>V</div>
+                <div class="col-4 text-center"><span class="ju2">{U2}</span>V</div>
+                <div class="col-4 text-right"><span class="ju3">{U3}</span>V</div>
             </div>
         </div>
     </div>
@@ -120,10 +120,10 @@
                     data-label="Ampere"
                 ></div>
             </div>
-            <div class="row I2-row" style="display: {3p};">
-                <div class="col-4"><span class="I1">{I1}</span>A</div>
-                <div class="col-4 text-center"><span class="I2">{I2}</span>A</div>
-                <div class="col-4 text-right"><span class="I3">{I3}</span>A</div>
+            <div class="row ru2" style="display: {3p};">
+                <div class="col-4"><span class="ji1">{I1}</span>A</div>
+                <div class="col-4 text-center"><span class="ji2">{I2}</span>A</div>
+                <div class="col-4 text-right"><span class="ji3">{I3}</span>A</div>
             </div>
         </div>
     </div>

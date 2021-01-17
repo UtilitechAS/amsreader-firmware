@@ -27,6 +27,7 @@
 #include "root/temperature_html.h"
 #include "root/price_html.h"
 #include "root/notfound_html.h"
+#include "root/data_json.h"
 
 #include "base64.h"
 
@@ -604,163 +605,93 @@ void AmsWebServer::githubSvg() {
 
 void AmsWebServer::dataJson() {
 	printD("Serving /data.json over http...");
+	uint64_t now = millis64();
 
 	if(!checkSecurity(2))
 		return;
 
-	StaticJsonDocument<768> json;
+	float vcc = hw->getVcc();
+	int rssi = hw->getWifiRssi();
 
-    String jsonStr;
-	if(meterState->getLastUpdateMillis() > 0) {
-		int maxPwr = this->maxPwr;
-		if(maxPwr == 0) {
-			if(meterState->isThreePhase()) {
-				maxPwr = 20000;
-			} else {
-				maxPwr = 10000;
-			}
-		}
-
-		json["up"] = meterState->getLastUpdateMillis();
-		json["t"] = meterState->getPackageTimestamp();
-		json["freemem"] = ESP.getFreeHeap();
-		json.createNestedObject("data");
-		json["data"]["P"] = meterState->getActiveImportPower();
-		json["data"]["PO"] = meterState->getActiveExportPower();
-
-		double u1 = meterState->getL1Voltage();
-		double u2 = meterState->getL2Voltage();
-		double u3 = meterState->getL3Voltage();
-		double i1 = meterState->getL1Current();
-		double i2 = meterState->getL2Current();
-		double i3 = meterState->getL3Current();
-		double tpi = meterState->getActiveImportCounter();
-		double tpo = meterState->getActiveExportCounter();
-		double tqi = meterState->getReactiveImportCounter();
-		double tqo = meterState->getReactiveExportCounter();
-
-		double volt = u1;
-		double amp = i1;
-
-		if(u1 > 0) {
-			json["data"]["U1"] = u1;
-			json["data"]["I1"] = i1;
-		}
-		if(u2 > 0) {
-			json["data"]["U2"] = u2;
-			json["data"]["I2"] = i2;
-			if(i2 > amp) amp = i2;
-		}
-		if(u3 > 0) {
-			json["data"]["U3"] = u3;
-			json["data"]["I3"] = i3;
-			volt = (u1+u2+u3)/3;
-			if(i3 > amp) amp = i3;
-		}
-
-		if(tpi > 0) {
-			json["data"]["tPI"] = tpi;
-			json["data"]["tPO"] = tpo;
-			json["data"]["tQI"] = tqi;
-			json["data"]["tQO"] = tqo;
-		}
-
-		json["p_pct"] = min(meterState->getActiveImportPower()*100/maxPwr, 100);
-
-		json["v"] = volt;
-		json["v_pct"] = (max((int)volt-207, 1)*100/46);
-
-		int maxAmp = meterConfig->mainFuse == 0 ? 32 : meterConfig->mainFuse;
-
-		json["a"] = amp;
-		json["a_pct"] = amp * 100 / maxAmp;
-
-		if(meterConfig->productionCapacity > 0) {
-			int maxPrd = meterConfig->productionCapacity * 1000;
-			json["po_pct"] = min(meterState->getActiveExportPower()*100/maxPrd, 100);
-		}
-	} else {
-		json["p_pct"] = -1;
-		json["po_pct"] = -1;
-	}
-
-	json["id"] = WiFi.macAddress();
-	json["maxPower"] = maxPwr;
-	json["meterType"] = meterConfig->type;
-	json["uptime_seconds"] = millis64() / 1000;
-	double vcc = hw->getVcc();
-	json["vcc"] = serialized(String(vcc, 3));
-
-	double temp = hw->getTemperature();
-	json["temp"] = serialized(String(temp, 2));
-
-	json.createNestedObject("wifi");
-	float rssi = WiFi.RSSI();
-	rssi = isnan(rssi) ? -100.0 : rssi;
-	json["wifi"]["ssid"] = WiFi.SSID();
-	json["wifi"]["channel"] = (int) WiFi.channel();
-	json["wifi"]["rssi"] = rssi;
-
-	json.createNestedObject("status");
-
-	String espStatus;
+	uint8_t espStatus;
 	if(vcc == 0) {
-		espStatus = "secondary";
+		espStatus = 0;
 	} else if(vcc > 3.1) {
-		espStatus = "success";
+		espStatus = 1;
 	} else if(vcc > 2.8) {
-		espStatus = "warning";
+		espStatus = 2;
 	} else {
-		espStatus = "danger";
+		espStatus = 3;
 	}
-	json["status"]["esp"] = espStatus;
 
-	unsigned long now = millis();
-	String hanStatus;
+	uint8_t hanStatus;
 	if(meterConfig->type == 0) {
-		hanStatus = "secondary";
+		hanStatus = 0;
 	} else if(now - meterState->getLastUpdateMillis() < 15000) {
-		hanStatus = "success";
+		hanStatus = 1;
 	} else if(now - meterState->getLastUpdateMillis() < 30000) {
-		hanStatus = "warning";
+		hanStatus = 2;
 	} else {
-		hanStatus = "danger";
+		hanStatus = 3;
 	}
-	json["status"]["han"] = hanStatus;
 
-	String wifiStatus;
+	uint8_t wifiStatus;
 	if(rssi > -75) {
-		wifiStatus = "success";
+		wifiStatus = 1;
 	} else if(rssi > -95) {
-		wifiStatus = "warning";
+		wifiStatus = 2;
 	} else {
-		wifiStatus = "danger";
+		wifiStatus = 3;
 	}
-	json["status"]["wifi"] = wifiStatus;
 
-	String mqttStatus;
+	uint8_t mqttStatus;
 	if(!mqttEnabled) {
-		mqttStatus = "secondary";
+		mqttStatus = 0;
 	} else if(mqtt->connected()) {
-		mqttStatus = "success";
+		mqttStatus = 1;
 	} else if(mqtt->lastError() == 0) {
-		mqttStatus = "warning";
+		mqttStatus = 2;
 	} else {
-		mqttStatus = "danger";
+		mqttStatus = 3;
 	}
-	json["status"]["mqtt"] = mqttStatus;
 
-	json.createNestedObject("mqtt");
-	json["mqtt"]["lastError"] = (int) mqtt->lastError();
-
-	serializeJson(json, jsonStr);
+	char json[280];
+	snprintf_P(json, sizeof(json), DATA_JSON,
+		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
+		meterConfig->productionCapacity,
+		meterConfig->mainFuse == 0 ? 32 : meterConfig->mainFuse,
+		meterState->getActiveImportPower(),
+		meterState->getActiveExportPower(),
+		meterState->getReactiveImportPower(),
+		meterState->getReactiveExportPower(),
+		meterState->getActiveImportCounter(),
+		meterState->getReactiveExportCounter(),
+		meterState->getReactiveImportCounter(),
+		meterState->getReactiveExportCounter(),
+		meterState->getL1Voltage(),
+		meterState->getL2Voltage(),
+		meterState->getL3Voltage(),
+		meterState->getL1Current(),
+		meterState->getL2Current(),
+		meterState->getL3Current(),
+		vcc,
+		rssi,
+		hw->getTemperature(),
+		(uint32_t) (now / 1000),
+		ESP.getFreeHeap(),
+		espStatus,
+		hanStatus,
+		wifiStatus,
+		mqttStatus,
+		(int) mqtt->lastError()
+	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
 
-	server.setContentLength(jsonStr.length());
-	server.send(200, "application/json", jsonStr);
+	server.setContentLength(strlen(json));
+	server.send(200, "application/json", json);
 }
 
 void AmsWebServer::handleSetup() {

@@ -37,7 +37,7 @@ for filename in os.listdir(webroot):
             content = html_minify(content)
         elif filename.endswith(".css"):
             content = css_minify(content)
-        elif filename.endswith(".js") and filename != 'gaugemeter.js':
+        elif (filename.endswith(".js") and filename != 'gaugemeter.js') or filename.endswith(".json"):
             content = js_minify(content)
     except:
         print("WARN: Unable to minify")

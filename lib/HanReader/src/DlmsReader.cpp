@@ -168,7 +168,7 @@ int DlmsReader::GetRawData(byte *dataBuffer, int start, int length)
 }
 
 int DlmsReader::getBytesRead() {
-    return dataLength - (3 + destinationAddressLength + sourceAddressLength + 2 + 1);
+    return dataLength - (destinationAddressLength + sourceAddressLength + 7);
 }
 
 byte* DlmsReader::getBuffer() {

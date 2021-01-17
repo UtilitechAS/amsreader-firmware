@@ -1,5 +1,8 @@
 #include "HanReader.h"
+
+#if defined(ESP32)
 #include "mbedtls/gcm.h"
+#endif
 
 HanReader::HanReader() {
 	// Central European Time (Frankfurt, Paris)
@@ -87,8 +90,6 @@ bool HanReader::read(byte data) {
 const size_t headersize = 3;
 const size_t footersize = 0;
 
-mbedtls_gcm_context m_ctx;
-
 bool HanReader::decryptFrame() {
 	uint8_t system_title[8];
     memcpy(system_title, buffer + headersize + 2, 8);
@@ -110,7 +111,7 @@ bool HanReader::decryptFrame() {
     memcpy(additional_authenticated_data + 1, authentication_key, 16);
 	if (debugger->isActive(RemoteDebug::DEBUG)) {
 		printD("Additional authenticated data:");
-		debugPrint(additional_authenticated_data, 0, 12);
+		debugPrint(additional_authenticated_data, 0, 17);
 	}
 
     uint8_t authentication_tag[12];
@@ -120,11 +121,31 @@ bool HanReader::decryptFrame() {
 		debugPrint(authentication_tag, 0, 12);
 	}
 
+	if (debugger->isActive(RemoteDebug::DEBUG)) {
+		printD("Encryption key:");
+		debugPrint(encryption_key, 0, 16);
+	}
+
+#if defined(ESP8266)
+	br_gcm_context gcmCtx;
+	br_aes_ct_ctr_keys bc;
+	br_aes_ct_ctr_init(&bc, encryption_key, 16);
+	br_gcm_init(&gcmCtx, &bc.vtable, br_ghash_ctmul32);
+	br_gcm_reset(&gcmCtx, initialization_vector, sizeof(initialization_vector));
+	br_gcm_aad_inject(&gcmCtx, additional_authenticated_data, sizeof(additional_authenticated_data));
+	br_gcm_flip(&gcmCtx);
+	br_gcm_run(&gcmCtx, 0, buffer + headersize + 18, bytesRead - headersize - footersize - 18 - 12);
+	if(br_gcm_check_tag_trunc(&gcmCtx, authentication_tag, 12) != 1) {
+		printE("authdecrypt failed");
+		return false;
+	}
+#elif defined(ESP32)
     uint8_t cipher_text[bytesRead - headersize - footersize - 18 - 12];
     memcpy(cipher_text, buffer + headersize + 18, bytesRead - headersize - footersize - 12 - 18);
 
+	mbedtls_gcm_context m_ctx;
 	mbedtls_gcm_init(&m_ctx);
-	int success = mbedtls_gcm_setkey(&m_ctx, MBEDTLS_CIPHER_ID_AES, encryption_key, sizeof(encryption_key)*8);
+	int success = mbedtls_gcm_setkey(&m_ctx, MBEDTLS_CIPHER_ID_AES, encryption_key, 128);
 	if (0 != success ) {
 		printE("Setkey failed: " + String(success));
 		return false;
@@ -137,6 +158,7 @@ bool HanReader::decryptFrame() {
 		return false;
 	}
 	mbedtls_gcm_free(&m_ctx);
+#endif
 	return true;
 }
 

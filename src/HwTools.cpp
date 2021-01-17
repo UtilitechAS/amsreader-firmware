@@ -106,6 +106,7 @@ bool HwTools::updateTemperatures() {
                         found = true;
                         data->lastRead = t;
                         if(t > -85) {
+                            data->changed = data->lastValidRead != t;
                             data->lastValidRead = t;
                         }
                     }
@@ -115,6 +116,7 @@ bool HwTools::updateTemperatures() {
                     memcpy(data->address, addr, 8);
                     data->lastRead = t;
                     if(t > -85) {
+                        data->changed = data->lastValidRead != t;
                         data->lastValidRead = t;
                     }
 
@@ -130,6 +132,7 @@ bool HwTools::updateTemperatures() {
                 float t = sensorApi->getTempC(data->address);
                 data->lastRead = t;
                 if(t > -85) {
+                    data->changed = data->lastValidRead != t;
                     data->lastValidRead = t;
                 }
             }

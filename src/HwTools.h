@@ -23,6 +23,7 @@ struct TempSensorData {
     uint8_t address[8];
     float lastRead;
     float lastValidRead;
+    bool changed;
 };
 
 class HwTools {

@@ -61,8 +61,7 @@ struct MeterConfig {
 	uint8_t encryptionKey[16];
 	uint8_t authenticationKey[16];
 	bool substituteMissing;
-	bool sendUnknown;
-}; // 38
+}; // 37
 
 struct DebugConfig {
 	bool telnet;
@@ -309,7 +308,7 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged;
+	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged = true;
 
 	uint8_t tempSensorCount = 0;
 	TempSensorConfig** tempSensors;

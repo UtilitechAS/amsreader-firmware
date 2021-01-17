@@ -202,7 +202,6 @@ void AmsConfiguration::clearMeter(MeterConfig& config) {
 	memset(config.encryptionKey, 0, 16);
 	memset(config.authenticationKey, 0, 16);
 	config.substituteMissing = false;
-	config.sendUnknown = false;
 }
 
 bool AmsConfiguration::isMeterChanged() {
@@ -486,7 +485,9 @@ bool AmsConfiguration::hasConfig() {
 	}
 	switch(configVersion) {
 		case 82:
+			configVersion = -1; // Prevent loop
 			if(loadConfig82(EEPROM_CONFIG_ADDRESS+1)) {
+				configVersion = EEPROM_CHECK_SUM;
 				return true;
 			} else {
 				configVersion = 0;
@@ -494,7 +495,9 @@ bool AmsConfiguration::hasConfig() {
 			}
 			break;
 		case 83:
+			configVersion = -1; // Prevent loop
 			if(loadConfig83(EEPROM_CONFIG_ADDRESS+1)) {
+				configVersion = EEPROM_CHECK_SUM;
 				return true;
 			} else {
 				configVersion = 0;
@@ -590,8 +593,7 @@ bool AmsConfiguration::loadConfig82(int address) {
 		c.productionCapacity,
 		{0},
 		{0},
-		c.substituteMissing,
-		c.sendUnknown
+		c.substituteMissing
 	};
 	setMeterConfig(meter);
 
@@ -689,8 +691,7 @@ bool AmsConfiguration::loadConfig83(int address) {
 		c.productionCapacity,
 		{0},
 		{0},
-		c.substituteMissing,
-		c.sendUnknown
+		c.substituteMissing
 	};
 	memcpy(meter.encryptionKey, c.meterEncryptionKey, 16);
 	memcpy(meter.authenticationKey, c.meterAuthenticationKey, 16);
@@ -886,7 +887,6 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf("Main fuse:            %i\r\n", meter.mainFuse);
 		debugger->printf("Production Capacity:  %i\r\n", meter.productionCapacity);
 		debugger->printf("Substitute missing:   %s\r\n", meter.substituteMissing ? "Yes" : "No");
-		debugger->printf("Send unknown:         %s\r\n", meter.sendUnknown ? "Yes" : "No");
 		debugger->println("");
 		delay(10);
 		Serial.flush();

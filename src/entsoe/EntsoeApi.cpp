@@ -161,9 +161,8 @@ bool EntsoeApi::loop() {
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     WiFiClientSecure client;
     #if defined(ESP8266)
-    client.setBufferSizes(SSL_BUF_SIZE, SSL_BUF_SIZE);
+    //client.setBufferSizes(4096, 512);
     client.setInsecure();
-    client.setX509Time(time(nullptr));
     #endif
     
     HTTPClient https;
@@ -172,8 +171,12 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     #endif
 
     if(https.begin(client, url)) {
+        printD("Connection established");
+        //ESP.wdtDisable();
         int status = https.GET();
+        //ESP.wdtEnable(5000);
         if(status == HTTP_CODE_OK) {
+            printD("Receiving data");
             https.writeToStream(doc);
             https.end();
             return true;

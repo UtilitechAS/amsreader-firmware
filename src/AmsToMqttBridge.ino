@@ -46,9 +46,6 @@ ADC_MODE(ADC_VCC);
 #define WEBSOCKET_DISABLED true
 #include "RemoteDebug.h"
 
-#define DEBUG_ESP_HTTP_CLIENT 1
-#define DEBUG_ESP_PORT Serial
-
 HwTools hw;
 
 DNSServer* dnsServer = NULL;
@@ -124,6 +121,8 @@ void setup() {
 		#endif
 	}
 	delay(1);
+	if(gpioConfig.apPin >= 0)
+		pinMode(gpioConfig.apPin, INPUT_PULLUP);
 
 	hw.setup(&gpioConfig, &config);
 	hw.ledBlink(LED_INTERNAL, 1);
@@ -264,8 +263,8 @@ void setup() {
 				configTime(ntp.offset*10, ntp.summerOffset*10, ntp.server);
 				sntp_servermode_dhcp(ntp.dhcp ? 1 : 0);
 			}
-			TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 60};
-			TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 60};
+			TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
+			TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
 			tz = new Timezone(dst, std);
 			ws.setTimezone(tz);
 		}
@@ -287,10 +286,7 @@ bool longPressActive = false;
 bool wifiConnected = false;
 
 unsigned long lastTemperatureRead = 0;
-float temperatures[32];
-
 unsigned long lastSuccessfulRead = 0;
-
 unsigned long lastErrorBlink = 0; 
 int lastError = 0;
 
@@ -340,33 +336,30 @@ void loop() {
 		uint8_t c = hw.getTempSensorCount();
 
 		if(WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt.connected() && !topic.isEmpty()) {
-			bool anyChanged = false;
-			for(int i = 0; i < c; i++) {
-				bool changed = false;
-				TempSensorData* data = hw.getTempSensorData(i);
-				if(data->lastValidRead > -85) {
-					changed = data->lastValidRead != temperatures[i];
-					temperatures[i] = data->lastValidRead;
+			if(payloadFormat == 1 || payloadFormat == 2) {
+				for(int i = 0; i < c; i++) {
+					TempSensorData* data = hw.getTempSensorData(i);
+					if(data->lastValidRead > -85) {
+						if(data->changed || payloadFormat == 2) {
+							mqtt.publish(topic + "/temperature/" + toHex(data->address), String(data->lastValidRead, 2));
+							data->changed = false;
+						}
+					}
 				}
-
-				if((changed && payloadFormat == 1) || payloadFormat == 2) {
-					mqtt.publish(topic + "/temperature/" + toHex(data->address), String(temperatures[i], 2));
-				}
-
-				anyChanged |= changed;
-			}
-
-			if(anyChanged && payloadFormat == 0) {
+			} else if(payloadFormat == 0) {
 				StaticJsonDocument<512> json;
 				JsonObject temps = json.createNestedObject("temperatures");
 				for(int i = 0; i < c; i++) {
 					TempSensorData* data = hw.getTempSensorData(i);
-					TempSensorConfig* conf = config.getTempSensorConfig(data->address);
-					JsonObject obj = temps.createNestedObject(toHex(data->address));
-					if(conf != NULL) {
-						obj["name"] = conf->name;
+					if(data->lastValidRead > -85) {
+						TempSensorConfig* conf = config.getTempSensorConfig(data->address);
+						JsonObject obj = temps.createNestedObject(toHex(data->address));
+						if(conf != NULL) {
+							obj["name"] = conf->name;
+						}
+						obj["value"] = serialized(String(data->lastValidRead, 2));
 					}
-					obj["value"] = serialized(String(temperatures[i], 2));
+					data->changed = false;
 				}
 				String msg;
 				serializeJson(json, msg);
@@ -429,8 +422,8 @@ void loop() {
 				}
 
 				if(tz != NULL) delete tz;
-				TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 60};
-				TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 60};
+				TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
+				TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
 				tz = new Timezone(dst, std);
 				ws.setTimezone(tz);
 
@@ -635,12 +628,12 @@ void sendPricesToMqtt() {
 
 	time_t now = time(nullptr);
 
-	double min1hr, min3hr, min6hr;
+	float min1hr, min3hr, min6hr;
 	uint8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
-	double min = INT16_MAX, max = INT16_MIN;
-	double values[24] = {0};
+	float min = INT16_MAX, max = INT16_MIN;
+	float values[24] = {0};
 	for(uint8_t i = 0; i < 24; i++) {
-		double val = eapi.getValueForHour(now, i);
+		float val = eapi.getValueForHour(now, i);
 		values[i] = val;
 
 		if(val == ENTSOE_NO_VALUE) break;
@@ -655,11 +648,11 @@ void sendPricesToMqtt() {
 
 		if(i >= 2) {
 			i -= 2;
-			double val1 = values[i++];
-			double val2 = values[i++];
-			double val3 = val;
+			float val1 = values[i++];
+			float val2 = values[i++];
+			float val3 = val;
 			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE) continue;
-			double val3hr = val1+val2+val3;
+			float val3hr = val1+val2+val3;
 			if(min3hrIdx == -1 || min3hr > val3hr) {
 				min3hr = val3hr;
 				min3hrIdx = i-2;
@@ -668,14 +661,14 @@ void sendPricesToMqtt() {
 
 		if(i >= 5) {
 			i -= 5;
-			double val1 = values[i++];
-			double val2 = values[i++];
-			double val3 = values[i++];
-			double val4 = values[i++];
-			double val5 = values[i++];
-			double val6 = val;
+			float val1 = values[i++];
+			float val2 = values[i++];
+			float val3 = values[i++];
+			float val4 = values[i++];
+			float val5 = values[i++];
+			float val6 = val;
 			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE || val4 == ENTSOE_NO_VALUE || val5 == ENTSOE_NO_VALUE || val6 == ENTSOE_NO_VALUE) continue;
-			double val6hr = val1+val2+val3+val4+val5+val6;
+			float val6hr = val1+val2+val3+val4+val5+val6;
 			if(min6hrIdx == -1 || min6hr > val6hr) {
 				min6hr = val6hr;
 				min6hrIdx = i-5;
@@ -706,13 +699,11 @@ void sendPricesToMqtt() {
 	switch(payloadFormat) {
 		case 0: // JSON
 		{
-			StaticJsonDocument<512> json;
+			StaticJsonDocument<384> json;
 			json["id"] = WiFi.macAddress();
-			json["name"] = clientId;
-			json["up"] = millis();
 		    JsonObject jp = json.createNestedObject("prices");
 			for(int i = 0; i < 24; i++) {
-				double val = values[i];
+				float val = values[i];
 				if(val == ENTSOE_NO_VALUE) break;
 				jp[String(i)] = serialized(String(val, 4));
 			}
@@ -742,7 +733,7 @@ void sendPricesToMqtt() {
 		case 2:
 			{
 				for(int i = 0; i < 24; i++) {
-					double val = values[i];
+					float val = values[i];
 					if(val == ENTSOE_NO_VALUE) {
 						mqtt.publish(topic + "/price/" + String(i), "");
 						break;
@@ -947,21 +938,6 @@ void readHanPort() {
 					delay(10);
 				}
 				meterState.apply(data);
-			} else {
-				if(meterConfig.sendUnknown && mqttEnabled && mqtt.connected()) {
-					byte buf[512];
-					int length = hanReader.getBuffer(buf);
-					String hexstring = "";
-
-					for(int i = 0; i < length; i++) {
-						if(buf[i] < 0x10) {
-						hexstring += '0';
-						}
-
-						hexstring += String(buf[i], HEX);
-					}
-					mqtt.publish(topic, hexstring);
-				}
 			}
 		} else {
 			// Auto detect meter if not set

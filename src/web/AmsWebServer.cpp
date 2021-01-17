@@ -380,7 +380,6 @@ void AmsWebServer::configMeterHtml() {
 	}
 
 	html.replace("{s}", meterConfig->substituteMissing ? "checked" : "");
-	html.replace("{u}", meterConfig->sendUnknown ? "checked" : "");
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
@@ -936,10 +935,9 @@ void AmsWebServer::handleSave() {
 		String authenticationKeyHex = server.arg("a");
 		if(!authenticationKeyHex.isEmpty()) {
 			authenticationKeyHex.replace("0x", "");
-			fromHex(meterConfig->authenticationKey, encryptionKeyHex, 16);
+			fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
 		}
 		meterConfig->substituteMissing = server.hasArg("s") && server.arg("substituteMissing") == "true";
-		meterConfig->sendUnknown = server.hasArg("u") && server.arg("sendUnknown") == "true";
 		config->setMeterConfig(*meterConfig);
 	}
 

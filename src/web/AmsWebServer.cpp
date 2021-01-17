@@ -28,6 +28,7 @@
 #include "root/price_html.h"
 #include "root/notfound_html.h"
 #include "root/data_json.h"
+#include "root/tempsensor_json.h"
 
 #include "base64.h"
 
@@ -188,31 +189,33 @@ void AmsWebServer::temperatureJson() {
 		return;
 
 	int count = hw->getTempSensorCount();
+	int size = 32 + (count * 72);
 
-	StaticJsonDocument<4096> json;
-	json["c"] = count;
-	JsonArray sensors = json.createNestedArray("s");
+	char buf[size];
+	snprintf_P(buf, 16, "{\"c\":%d,\"s\":[", count);
+
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
 		TempSensorConfig* conf = config->getTempSensorConfig(data->address);
-		JsonObject obj = sensors.createNestedObject();
-		obj["i"] = i;
-		obj["a"] = toHex(data->address, 8);
-		obj["n"] = conf == NULL ? "" : String(conf->name).substring(0,16);
-		obj["c"] = conf == NULL ? true : conf->common;
-		obj["v"] = String(data->lastRead, 2);
+		char* pos = buf+strlen(buf);
+		snprintf_P(pos, 72, TEMPSENSOR_JSON, 
+			i,
+			toHex(data->address, 8).c_str(),
+			conf == NULL ? "" : String(conf->name).substring(0,16).c_str(),
+			conf == NULL || conf->common ? 1 : 0,
+			data->lastRead
+		);
 		delay(1);
 	}
-
-    String jsonStr;
-	serializeJson(json, jsonStr);
+	char* pos = buf+strlen(buf);
+	snprintf_P(count == 0 ? pos : pos-1, 8, "]}");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
 
-	server.setContentLength(jsonStr.length());
-	server.send(200, "application/json", jsonStr);
+	server.setContentLength(strlen(buf));
+	server.send(200, "application/json", buf);
 }
 
 void AmsWebServer::price() {
@@ -525,10 +528,10 @@ void AmsWebServer::configEntsoeHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	String html = String((const __FlashStringHelper*) ENTSOE_HTML);
-
 	EntsoeConfig entsoe;
 	config->getEntsoeConfig(entsoe);
+
+	String html = String((const __FlashStringHelper*) ENTSOE_HTML);
 
 	html.replace("{et}", entsoe.token);
 	html.replace("{em}", String(entsoe.multiplier / 1000.0, 3));

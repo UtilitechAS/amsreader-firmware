@@ -5,7 +5,6 @@
 
 #include "Arduino.h"
 #include <MQTT.h>
-#include <ArduinoJson.h>
 #include "AmsConfiguration.h"
 #include "HwTools.h"
 #include "AmsData.h"

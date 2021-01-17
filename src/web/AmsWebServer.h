@@ -31,6 +31,7 @@ public:
     void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, MQTTClient*);
     void loop();
 	void setTimezone(Timezone* tz);
+	void setMqttEnabled(bool);
 
 private:
 	RemoteDebug* debugger;
@@ -108,9 +109,6 @@ private:
 	void factoryResetPost();
 
 	void notFound();
-
-	String toHex(uint8_t* in, uint8_t size);
-	void fromHex(uint8_t *out, String in, uint8_t size);
 
 	void printD(String fmt, ...);
 	void printI(String fmt, ...);

@@ -19,7 +19,6 @@
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
 #define ARDUINOJSON_POSITIVE_EXPONENTIATION_THRESHOLD 1e9
-#include <ArduinoJson.h>
 #include <MQTT.h>
 #include <DNSServer.h>
 #include <lwip/apps/sntp.h>
@@ -34,7 +33,11 @@ ADC_MODE(ADC_VCC);
 #include "web/AmsWebServer.h"
 #include "AmsConfiguration.h"
 #include "HanReader.h"
-#include "HanToJson.h"
+
+#include "mqtt/AmsMqttHandler.h"
+#include "mqtt/JsonMqttHandler.h"
+#include "mqtt/RawMqttHandler.h"
+#include "mqtt/DomoticzMqttHandler.h"
 
 #include "Aidon.h"
 #include "Kaifa.h"
@@ -61,6 +64,7 @@ Timezone* tz;
 AmsWebServer ws(&Debug, &hw, &eapi);
 
 MQTTClient mqtt(512);
+AmsMqttHandler* mqttHandler = NULL;
 
 HanReader hanReader;
 
@@ -68,10 +72,7 @@ Stream *hanSerial;
 
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
-DomoticzConfig* domoConfig = NULL;
-float energy = 0.0;
 bool mqttEnabled = false;
-String clientId = "ams-reader";
 uint8_t payloadFormat = 0;
 String topic = "ams";
 AmsData meterState;
@@ -290,18 +291,6 @@ unsigned long lastSuccessfulRead = 0;
 unsigned long lastErrorBlink = 0; 
 int lastError = 0;
 
-String toHex(uint8_t* in) {
-	String hex;
-	for(int i = 0; i < sizeof(in)*2; i++) {
-		if(in[i] < 0x10) {
-			hex += '0';
-		}
-		hex += String(in[i], HEX);
-	}
-	hex.toUpperCase();
-	return hex;
-}
-
 void loop() {
 	Debug.handle();
 	unsigned long now = millis();
@@ -333,38 +322,8 @@ void loop() {
 		hw.updateTemperatures();
 		lastTemperatureRead = now;
 
-		uint8_t c = hw.getTempSensorCount();
-
-		if(WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt.connected() && !topic.isEmpty()) {
-			if(payloadFormat == 1 || payloadFormat == 2) {
-				for(int i = 0; i < c; i++) {
-					TempSensorData* data = hw.getTempSensorData(i);
-					if(data->lastValidRead > -85) {
-						if(data->changed || payloadFormat == 2) {
-							mqtt.publish(topic + "/temperature/" + toHex(data->address), String(data->lastValidRead, 2));
-							data->changed = false;
-						}
-					}
-				}
-			} else if(payloadFormat == 0) {
-				StaticJsonDocument<512> json;
-				JsonObject temps = json.createNestedObject("temperatures");
-				for(int i = 0; i < c; i++) {
-					TempSensorData* data = hw.getTempSensorData(i);
-					if(data->lastValidRead > -85) {
-						TempSensorConfig* conf = config.getTempSensorConfig(data->address);
-						JsonObject obj = temps.createNestedObject(toHex(data->address));
-						if(conf != NULL) {
-							obj["name"] = conf->name;
-						}
-						obj["value"] = serialized(String(data->lastValidRead, 2));
-					}
-					data->changed = false;
-				}
-				String msg;
-				serializeJson(json, msg);
-				mqtt.publish(topic, msg.c_str());
-			}
+		if(mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt.connected() && !topic.isEmpty()) {
+			mqttHandler->publishTemperatures(&config, &hw);
 		}
 		debugD("Used %d ms to update temperature", millis()-start);
 	}
@@ -412,6 +371,7 @@ void loop() {
 				MqttConfig mqttConfig;
 				if(config.getMqttConfig(mqttConfig)) {
 					mqttEnabled = strlen(mqttConfig.host) > 0;
+					ws.setMqttEnabled(mqttEnabled);
 				}
 			}
 			if(config.isNtpChanged()) {
@@ -443,9 +403,6 @@ void loop() {
 				if(!mqtt.connected() || config.isMqttChanged()) {
 					MQTT_connect();
 				}
-				if(payloadFormat == 1) {
-					sendSystemStatusToMqtt();
-				}
 			} else if(mqtt.connected()) {
 				mqtt.disconnect();
 			}
@@ -470,8 +427,8 @@ void loop() {
 	delay(1);
 	readHanPort();
 	if(WiFi.status() == WL_CONNECTED) {
-		if(eapi.loop()) {
-			sendPricesToMqtt();
+		if(eapi.loop() && mqttHandler != NULL) {
+			mqttHandler->publishPrices(&eapi);
 		}
 	}
 	ws.loop();
@@ -620,150 +577,6 @@ void mqttMessageReceived(String &topic, String &payload)
 	// Ideas could be to query for values or to initiate OTA firmware update
 }
 
-void sendPricesToMqtt() {
-	if(!mqttEnabled || topic.isEmpty() || !mqtt.connected())
-		return;
-	if(strcmp(eapi.getToken(), "") != 0)
-		return;
-
-	time_t now = time(nullptr);
-
-	float min1hr, min3hr, min6hr;
-	uint8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
-	float min = INT16_MAX, max = INT16_MIN;
-	float values[24] = {0};
-	for(uint8_t i = 0; i < 24; i++) {
-		float val = eapi.getValueForHour(now, i);
-		values[i] = val;
-
-		if(val == ENTSOE_NO_VALUE) break;
-		
-		if(val < min) min = val;
-		if(val > max) max = val;
-
-		if(min1hrIdx == -1 || min1hr > val) {
-			min1hr = val;
-			min1hrIdx = i;
-		}
-
-		if(i >= 2) {
-			i -= 2;
-			float val1 = values[i++];
-			float val2 = values[i++];
-			float val3 = val;
-			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE) continue;
-			float val3hr = val1+val2+val3;
-			if(min3hrIdx == -1 || min3hr > val3hr) {
-				min3hr = val3hr;
-				min3hrIdx = i-2;
-			}
-		}
-
-		if(i >= 5) {
-			i -= 5;
-			float val1 = values[i++];
-			float val2 = values[i++];
-			float val3 = values[i++];
-			float val4 = values[i++];
-			float val5 = values[i++];
-			float val6 = val;
-			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE || val4 == ENTSOE_NO_VALUE || val5 == ENTSOE_NO_VALUE || val6 == ENTSOE_NO_VALUE) continue;
-			float val6hr = val1+val2+val3+val4+val5+val6;
-			if(min6hrIdx == -1 || min6hr > val6hr) {
-				min6hr = val6hr;
-				min6hrIdx = i-5;
-			}
-		}
-
-	}
-
-	char ts1hr[21];
-	if(min1hrIdx != -1) {
-		tmElements_t tm;
-        breakTime(now + (SECS_PER_HOUR * min1hrIdx), tm);
-		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
-	}
-	char ts3hr[21];
-	if(min3hrIdx != -1) {
-		tmElements_t tm;
-        breakTime(now + (SECS_PER_HOUR * min3hrIdx), tm);
-		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
-	}
-	char ts6hr[21];
-	if(min6hrIdx != -1) {
-		tmElements_t tm;
-        breakTime(now + (SECS_PER_HOUR * min6hrIdx), tm);
-		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
-	}
-
-	switch(payloadFormat) {
-		case 0: // JSON
-		{
-			StaticJsonDocument<384> json;
-			json["id"] = WiFi.macAddress();
-		    JsonObject jp = json.createNestedObject("prices");
-			for(int i = 0; i < 24; i++) {
-				float val = values[i];
-				if(val == ENTSOE_NO_VALUE) break;
-				jp[String(i)] = serialized(String(val, 4));
-			}
-			if(min != INT16_MAX) {
-				jp["min"] = serialized(String(min, 4));
-			}
-			if(max != INT16_MIN) {
-				jp["max"] = serialized(String(max, 4));
-			}
-
-			if(min1hrIdx != -1) {
-				jp["cheapest1hr"] = String(ts1hr);
-			}
-			if(min3hrIdx != -1) {
-				jp["cheapest3hr"] = String(ts3hr);
-			}
-			if(min6hrIdx != -1) {
-				jp["cheapest6hr"] = String(ts6hr);
-			}
-
-			String msg;
-			serializeJson(json, msg);
-			mqtt.publish(topic, msg.c_str());
-			break;
-		}
-		case 1: // RAW
-		case 2:
-			{
-				for(int i = 0; i < 24; i++) {
-					float val = values[i];
-					if(val == ENTSOE_NO_VALUE) {
-						mqtt.publish(topic + "/price/" + String(i), "");
-						break;
-					} else {
-						mqtt.publish(topic + "/price/" + String(i), String(val, 4));
-					}
-					mqtt.loop();
-					delay(10);
-				}
-				if(min != INT16_MAX) {
-					mqtt.publish(topic + "/price/min", String(min, 4));
-				}
-				if(max != INT16_MIN) {
-					mqtt.publish(topic + "/price/max", String(max, 4));
-				}
-
-				if(min1hrIdx != -1) {
-					mqtt.publish(topic + "/price/cheapest/1hr", String(ts1hr));
-				}
-				if(min3hrIdx != -1) {
-					mqtt.publish(topic + "/price/cheapest/3hr", String(ts3hr));
-				}
-				if(min6hrIdx != -1) {
-					mqtt.publish(topic + "/price/cheapest/6hr", String(ts6hr));
-				}
-			}
-			break;
-	}
-}
-
 int currentMeterType = 0;
 void readHanPort() {
 	if (hanReader.read()) {
@@ -775,163 +588,13 @@ void readHanPort() {
 
 			AmsData data(meterConfig.type, meterConfig.substituteMissing, hanReader);
 			if(data.getListType() > 0) {
-				if(mqttEnabled && !topic.isEmpty()) {
-					if(payloadFormat == 0) {
-						StaticJsonDocument<512> json;
-						hanToJson(json, data, hw, hw.getTemperature(), clientId);
-						if (Debug.isActive(RemoteDebug::INFO)) {
-							debugI("Sending data to MQTT");
-							if (Debug.isActive(RemoteDebug::DEBUG)) {
-								serializeJsonPretty(json, Debug);
-							}
+				if(mqttEnabled && mqttHandler != NULL) {
+					if(mqttHandler->publish(&data, &meterState)) {
+						if(data.getListType() == 3) {
+							mqttHandler->publishPrices(&eapi);
 						}
-
-						String msg;
-						serializeJson(json, msg);
-						mqtt.publish(topic, msg.c_str());
-					// 
-					// Start DOMOTICZ
-					//
-					} else if(payloadFormat == 3) {
-						debugI("Sending data to MQTT");
-						if(config.isDomoChanged()) {
-							if(domoConfig == NULL)
-								domoConfig = new DomoticzConfig();
-							if(config.getDomoticzConfig(*domoConfig)) {
-								config.ackDomoChange();
-							}
-						}
-			
-						if (domoConfig->elidx > 0) {
-							if(data.getActiveImportCounter() > 1.0) {
-								energy = data.getActiveImportCounter();
-							}
-							if(energy > 0.0) {
-								String PowerEnergy;
-								int p;
-								StaticJsonDocument<200> json_PE;
-								p = data.getActiveImportPower();
-								PowerEnergy = String((double) p/1.0) + ";" + String(energy*1000.0, 0);
-								json_PE["command"] = "udevice";
-								json_PE["idx"] = domoConfig->elidx;
-								json_PE["nvalue"] = 0;
-								json_PE["svalue"] = PowerEnergy;
-								String msg_PE;
-								serializeJson(json_PE, msg_PE);
-								mqtt.publish("domoticz/in", msg_PE.c_str());
-							}
-						}
-
-						if (domoConfig->vl1idx > 0){				
-							if (data.getL1Voltage() > 0.1){ 
-								StaticJsonDocument<200> json_u1;
-								json_u1["command"] = "udevice";
-								json_u1["idx"] = domoConfig->vl1idx;
-								json_u1["nvalue"] = 0;
-								json_u1["svalue"] =  String(data.getL1Voltage(), 2);
-								String msg_u1;
-								serializeJson(json_u1, msg_u1);
-								mqtt.publish("domoticz/in", msg_u1.c_str());
-							}
-						}
-
-						if (domoConfig->vl2idx > 0){				
-							if (data.getL2Voltage() > 0.1){ 
-								StaticJsonDocument<200> json_u2;
-								json_u2["command"] = "udevice";
-								json_u2["idx"] = domoConfig->vl2idx;
-								json_u2["nvalue"] = 0;
-								json_u2["svalue"] =  String(data.getL2Voltage(), 2);
-								String msg_u2;
-								serializeJson(json_u2, msg_u2);
-								mqtt.publish("domoticz/in", msg_u2.c_str());
-							}
-						}
-
-						if (domoConfig->vl3idx > 0){				
-							if (data.getL3Voltage() > 0.1){ 
-								StaticJsonDocument<200> json_u3;
-								json_u3["command"] = "udevice";
-								json_u3["idx"] = domoConfig->vl3idx;
-								json_u3["nvalue"] = 0;
-								json_u3["svalue"] =  String(data.getL3Voltage());
-								String msg_u3;
-								serializeJson(json_u3, msg_u3);
-								mqtt.publish("domoticz/in", msg_u3.c_str());
-							}
-						}
-				
-						if (domoConfig->cl1idx > 0){				
-							if(data.getL1Current() > 0.0) {
-								StaticJsonDocument<200> json_i1;
-								String Ampere3;
-								Ampere3 = String(data.getL1Current(), 1) + ";" + String(data.getL2Current(), 1) + ";" + String(data.getL3Current(), 1) ;
-								json_i1["command"] = "udevice";
-								json_i1["idx"] = domoConfig->cl1idx;
-								json_i1["nvalue"] = 0;
-								json_i1["svalue"] =  Ampere3;
-								String msg_i1;
-								serializeJson(json_i1, msg_i1);
-								mqtt.publish("domoticz/in", msg_i1.c_str());
-							}
-						}			
-						//
-						// End DOMOTICZ
-						//
-					} else if(payloadFormat == 1 || payloadFormat == 2) {
-						if(data.getPackageTimestamp() > 0) {
-							mqtt.publish(topic + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
-						}
-						switch(data.getListType()) {
-							case 3:
-								// ID and type belongs to List 2, but I see no need to send that every 10s
-								mqtt.publish(topic + "/meter/id", data.getMeterId());
-								mqtt.publish(topic + "/meter/type", data.getMeterType());
-								mqtt.publish(topic + "/meter/clock", String(data.getMeterTimestamp()));
-								mqtt.publish(topic + "/meter/import/reactive/accumulated", String(data.getReactiveImportCounter(), 2));
-								mqtt.publish(topic + "/meter/import/active/accumulated", String(data.getActiveImportCounter(), 2));
-								mqtt.publish(topic + "/meter/export/reactive/accumulated", String(data.getReactiveExportCounter(), 2));
-								mqtt.publish(topic + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
-								sendPricesToMqtt();
-							case 2:
-								// Only send data if changed. ID and Type is sent on the 10s interval only if changed
-								if(meterState.getMeterId() != data.getMeterId() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/id", data.getMeterId());
-								}
-								if(meterState.getMeterType() != data.getMeterType() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/type", data.getMeterType());
-								}
-								if(meterState.getL1Current() != data.getL1Current() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/l1/current", String(data.getL1Current(), 2));
-								}
-								if(meterState.getL1Voltage() != data.getL1Voltage() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/l1/voltage", String(data.getL1Voltage(), 2));
-								}
-								if(meterState.getL2Current() != data.getL2Current() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/l2/current", String(data.getL2Current(), 2));
-								}
-								if(meterState.getL2Voltage() != data.getL2Voltage() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/l2/voltage", String(data.getL2Voltage(), 2));
-								}
-								if(meterState.getL3Current() != data.getL3Current() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/l3/current", String(data.getL3Current(), 2));
-								}
-								if(meterState.getL3Voltage() != data.getL3Voltage() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/l3/voltage", String(data.getL3Voltage(), 2));
-								}
-								if(meterState.getReactiveExportPower() != data.getReactiveExportPower() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/export/reactive", String(data.getReactiveExportPower()));
-								}
-								if(meterState.getActiveExportPower() != data.getActiveExportPower() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/export/active", String(data.getActiveExportPower()));
-								}
-								if(meterState.getReactiveImportPower() != data.getReactiveImportPower() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/import/reactive", String(data.getReactiveImportPower()));
-								}
-							case 1:
-								if(meterState.getActiveImportPower() != data.getActiveImportPower() || payloadFormat == 2) {
-									mqtt.publish(topic + "/meter/import/active", String(data.getActiveImportPower()));
-								}
+						if(data.getListType() >= 2) {
+							mqttHandler->publishSystem(&hw);
 						}
 					}
 					mqtt.loop();
@@ -1044,6 +707,7 @@ void MQTT_connect() {
 	if(!config.getMqttConfig(mqttConfig) || strlen(mqttConfig.host) == 0) {
 		if(Debug.isActive(RemoteDebug::WARNING)) debugW("No MQTT config");
 		mqttEnabled = false;
+		ws.setMqttEnabled(false);
 		config.ackMqttChange();
 		return;
 	}
@@ -1053,8 +717,8 @@ void MQTT_connect() {
 	}
 	lastMqttRetry = millis();
 
-	clientId = String(mqttConfig.clientId);
 	mqttEnabled = true;
+	ws.setMqttEnabled(true);
 	payloadFormat = mqttConfig.payloadFormat;
 	topic = String(mqttConfig.publishTopic);
 
@@ -1064,6 +728,26 @@ void MQTT_connect() {
 
 	mqtt.disconnect();
 	yield();
+
+	if(mqttHandler != NULL) {
+		delete mqttHandler;
+		mqttHandler = NULL;
+	}
+
+	switch(mqttConfig.payloadFormat) {
+		case 0:
+			mqttHandler = new JsonMqttHandler(&mqtt, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
+			break;
+		case 1:
+		case 2:
+			mqttHandler = new RawMqttHandler(&mqtt, mqttConfig.publishTopic, mqttConfig.payloadFormat == 2);
+			break;
+		case 3:
+			DomoticzConfig domo;
+			config.getDomoticzConfig(domo);
+			mqttHandler = new DomoticzMqttHandler(&mqtt, domo);
+			break;
+	}
 
 	WiFiClientSecure *secureClient = NULL;
 	Client *client = NULL;
@@ -1127,10 +811,8 @@ void MQTT_connect() {
 			if (Debug.isActive(RemoteDebug::INFO)) debugI("  Subscribing to [%s]\r\n", mqttConfig.subscribeTopic);
 		}
 		
-		if(payloadFormat == 0) {
-			sendMqttData("Connected!");
-		} else if(payloadFormat == 1 || payloadFormat == 2) {
-			sendSystemStatusToMqtt();
+		if(mqttHandler != NULL) {
+			mqttHandler->publishSystem(&hw);
 		}
 	} else {
 		if (Debug.isActive(RemoteDebug::ERROR)) {
@@ -1145,53 +827,4 @@ void MQTT_connect() {
 		}
 	}
 	yield();
-}
-
-// Send a simple string embedded in json over MQTT
-void sendMqttData(String data)
-{
-	// Make sure we have configured a publish topic
-	if (topic.isEmpty())
-		return;
-
-	// Build a json with the message in a "data" attribute
-	StaticJsonDocument<128> json;
-	json["id"] = WiFi.macAddress();
-	json["up"] = millis64()/1000;
-	json["data"] = data;
-	double vcc = hw.getVcc();
-	if(vcc > 0) {
-		json["vcc"] = vcc;
-	}
-	json["rssi"] = hw.getWifiRssi();
-
-	// Stringify the json
-	String msg;
-	serializeJson(json, msg);
-
-	// Send the json over MQTT
-	mqtt.publish(topic, msg.c_str());
-
-	if (Debug.isActive(RemoteDebug::INFO)) debugI("Sending MQTT data");
-	if (Debug.isActive(RemoteDebug::DEBUG)) debugD("[%s]", data.c_str());
-}
-
-unsigned long lastSystemDataSent = -10000;
-void sendSystemStatusToMqtt() {
-	if (topic.isEmpty())
-		return;
-	if(millis() - lastSystemDataSent < 10000)
-		return;
-	lastSystemDataSent = millis();
-
-	mqtt.publish(topic + "/id", WiFi.macAddress());
-	mqtt.publish(topic + "/uptime", String((unsigned long) millis64()/1000));
-	double vcc = hw.getVcc();
-	if(vcc > 0) {
-		mqtt.publish(topic + "/vcc", String(vcc, 2));
-	}
-	mqtt.publish(topic + "/rssi", String(hw.getWifiRssi()));
-    if(hw.getTemperature() > -85) {
-		mqtt.publish(topic + "/temperature", String(hw.getTemperature(), 2));
-    }
 }

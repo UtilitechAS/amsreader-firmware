@@ -105,6 +105,7 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 		mqttChanged |= strcmp(config.subscribeTopic, existing.subscribeTopic) != 0;
 		mqttChanged |= strcmp(config.username, existing.username) != 0;
 		mqttChanged |= strcmp(config.password, existing.password) != 0;
+		mqttChanged |= config.payloadFormat != existing.payloadFormat;
 		mqttChanged |= config.ssl != existing.ssl;
 	} else {
 		mqttChanged = true;
@@ -254,6 +255,7 @@ bool AmsConfiguration::setDomoticzConfig(DomoticzConfig& config) {
 	} else {
 		domoChanged = true;
 	}
+	mqttChanged = domoChanged;
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_DOMOTICZ_START, config);
 	bool ret = EEPROM.commit();

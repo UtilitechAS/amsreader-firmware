@@ -272,9 +272,9 @@ var fetch = function() {
         }
 
         setStatus("esp", json.em);
-        setStatus("han", json.em == 3 ? 0 : json.hm);
-        setStatus("wifi", json.em == 3 ? 0 : json.wm);
-        setStatus("mqtt", json.em == 3 ? 0 : json.mm);
+        setStatus("han", json.hm);
+        setStatus("wifi", json.wm);
+        setStatus("mqtt", json.mm);
 
 
         if(im && im.gaugeMeter) {
@@ -348,10 +348,10 @@ var fetch = function() {
     }).fail(function() {
         setTimeout(fetch, interval*4);
 
-        setStatus("mqtt", "secondary");
-        setStatus("wifi", "secondary");
-        setStatus("han", "secondary");
-        setStatus("esp", "danger");
+        setStatus("mqtt", 0);
+        setStatus("wifi", 0);
+        setStatus("han", 0);
+        setStatus("esp", 3);
     });
 }
 

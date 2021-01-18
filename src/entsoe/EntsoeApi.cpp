@@ -89,10 +89,10 @@ bool EntsoeApi::loop() {
             uint32_t curDayMillis = (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000);
 
             midnightMillis = curDeviceMillis + (SECS_PER_DAY * 1000) - curDayMillis;
-            printD("Setting midnight millis " + String((uint32_t) midnightMillis));
+            printI("Setting midnight millis " + String((uint32_t) midnightMillis));
         }
     } else if(now > midnightMillis) {
-        printD("Rotating price objects");
+        printI("Rotating price objects");
         delete today;
         today = tomorrow;
         tomorrow = NULL;
@@ -108,12 +108,12 @@ bool EntsoeApi::loop() {
 
             char url[256];
             snprintf(url, sizeof(url), "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-            "https://transparency.entsoe.eu/api", config->token, 
+            "https://gunnar.origin.no/api.xml", config->token, 
             d1.Year+1970, d1.Month, d1.Day, 23, 00,
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
             config->area, config->area);
 
-            printD("Fetching prices for today");
+            printI("Fetching prices for today");
             printD(url);
             EntsoeA44Parser* a44 = new EntsoeA44Parser();
             if(retrieve(url, a44)) {
@@ -143,7 +143,7 @@ bool EntsoeApi::loop() {
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
             config->area, config->area);
 
-            printD("Fetching prices for tomorrow");
+            printI("Fetching prices for tomorrow");
             printD(url);
             EntsoeA44Parser* a44 = new EntsoeA44Parser();
             if(retrieve(url, a44)) {
@@ -161,17 +161,35 @@ bool EntsoeApi::loop() {
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     WiFiClientSecure client;
     #if defined(ESP8266)
-    //client.setBufferSizes(4096, 512);
-    client.setInsecure();
+        // https://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/bearssl-client-secure-class.html#mfln-or-maximum-fragment-length-negotiation-saving-ram
+        int bufSize = 512;
+        while(!client.probeMaxFragmentLength("transparency.entsoe.eu", 443, bufSize) && bufSize <= 4096) {
+            bufSize += 512;
+        }
+        if(client.probeMaxFragmentLength("transparency.entsoe.eu", 443, bufSize)) {
+            printD("Negotiated MFLN size");
+            printD(String(bufSize));
+            client.setBufferSizes(bufSize, bufSize);
+        }
+
+        client.setInsecure();
     #endif
     
     HTTPClient https;
     #if defined(ESP8266)
-    https.setFollowRedirects(true);
+        https.setFollowRedirects(true);
     #endif
 
     if(https.begin(client, url)) {
         printD("Connection established");
+        #if defined(ESP8266)
+            if(!client.getMFLNStatus()) {
+                printE("Negotiated MFLN was not respected");
+                https.end();
+                client.stop();
+                return false;
+            }
+        #endif
         //ESP.wdtDisable();
         int status = https.GET();
         //ESP.wdtEnable(5000);
@@ -183,7 +201,6 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
         } else {
             printE("Communication error: ");
             printE(https.errorToString(status));
-            printI(url);
             printD(https.getString());
 
             #if defined(ESP8266)

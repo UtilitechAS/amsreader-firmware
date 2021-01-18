@@ -604,15 +604,28 @@ void AmsWebServer::dataJson() {
 	int rssi = hw->getWifiRssi();
 
 	uint8_t espStatus;
+	#if defined(ESP8266)
 	if(vcc == 0) {
 		espStatus = 0;
-	} else if(vcc > 3.1) {
+	} else if(vcc > 3.1 && vcc < 3.5) {
 		espStatus = 1;
-	} else if(vcc > 2.8) {
+	} else if(vcc > 3.0 && vcc < 3.6) {
 		espStatus = 2;
 	} else {
 		espStatus = 3;
 	}
+	#elif defined(ESP32)
+	if(vcc == 0) {
+		espStatus = 0;
+	} else if(vcc > 2.8 && vcc < 3.5) {
+		espStatus = 1;
+	} else if(vcc > 2.2 && vcc < 3.6) {
+		espStatus = 2;
+	} else {
+		espStatus = 3;
+	}
+	#endif
+
 
 	uint8_t hanStatus;
 	if(meterConfig->type == 0) {

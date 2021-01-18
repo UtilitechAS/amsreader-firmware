@@ -1,8 +1,8 @@
 {
     "id" : "%s",
     "name" : "%s",
-    "up" : %d,
-    "t" : %d,
+    "up" : %lu,
+    "t" : %lu,
     "vcc" : %.3f,
     "rssi": %d,
     "temp": %.2f,
@@ -24,6 +24,6 @@
         "tPO" : %.1f,
         "tQI" : %.1f,
         "tQO" : %.1f,
-        "rtc" : %d
+        "rtc" : %lu
     }
 }

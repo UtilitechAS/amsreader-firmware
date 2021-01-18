@@ -581,6 +581,7 @@ int currentMeterType = 0;
 void readHanPort() {
 	if (hanReader.read()) {
 		lastSuccessfulRead = millis();
+		delay(1);
 
 		if(meterConfig.type > 0) {
 			if(!hw.ledBlink(LED_GREEN, 1))
@@ -590,11 +591,14 @@ void readHanPort() {
 			if(data.getListType() > 0) {
 				if(mqttEnabled && mqttHandler != NULL) {
 					if(mqttHandler->publish(&data, &meterState)) {
+						delay(1);
 						if(data.getListType() == 3) {
 							mqttHandler->publishPrices(&eapi);
+							delay(1);
 						}
 						if(data.getListType() >= 2) {
 							mqttHandler->publishSystem(&hw);
+							delay(1);
 						}
 					}
 					mqtt.loop();

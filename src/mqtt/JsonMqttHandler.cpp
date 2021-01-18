@@ -11,7 +11,6 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 
-    double vcc = hw->getVcc();
     if(data->getListType() == 1) {
         char json[192];
         snprintf_P(json, sizeof(json), JSON1_JSON,
@@ -19,7 +18,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
             clientId.c_str(),
             (uint32_t) (millis64()/1000),
             data->getPackageTimestamp(),
-            vcc,
+            hw->getVcc(),
             hw->getWifiRssi(),
             hw->getTemperature(),
             data->getActiveImportPower()
@@ -32,7 +31,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
             clientId.c_str(),
             (uint32_t) (millis64()/1000),
             data->getPackageTimestamp(),
-            vcc,
+            hw->getVcc(),
             hw->getWifiRssi(),
             hw->getTemperature(),
             data->getListId().c_str(),
@@ -57,7 +56,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
             clientId.c_str(),
             (uint32_t) (millis64()/1000),
             data->getPackageTimestamp(),
-            vcc,
+            hw->getVcc(),
             hw->getWifiRssi(),
             hw->getTemperature(),
             data->getListId().c_str(),

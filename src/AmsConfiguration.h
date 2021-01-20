@@ -294,6 +294,9 @@ public:
 
 	bool getEntsoeConfig(EntsoeConfig&);
 	bool setEntsoeConfig(EntsoeConfig&);
+	void clearEntsoe(EntsoeConfig&);
+	bool isEntsoeChanged();
+	void ackEntsoeChange();
 
 	uint8_t getTempSensorCount();
 	TempSensorConfig* getTempSensorConfig(uint8_t address[8]);
@@ -308,7 +311,7 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged = true;
+	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged = true, entsoeChanged = false;
 
 	uint8_t tempSensorCount = 0;
 	TempSensorConfig** tempSensors;

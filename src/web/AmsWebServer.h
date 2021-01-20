@@ -27,11 +27,12 @@
 
 class AmsWebServer {
 public:
-	AmsWebServer(RemoteDebug* Debug, HwTools* hw, EntsoeApi* eapi);
+	AmsWebServer(RemoteDebug* Debug, HwTools* hw);
     void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, MQTTClient*);
     void loop();
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
+	void setEntsoeApi(EntsoeApi* eapi);
 
 private:
 	RemoteDebug* debugger;
@@ -39,7 +40,7 @@ private:
 	int maxPwr = 0;
 	HwTools* hw;
 	Timezone* tz;
-	EntsoeApi* eapi;
+	EntsoeApi* eapi = NULL;
 	AmsConfiguration* config;
 	GpioConfig* gpioConfig;
 	MeterConfig* meterConfig;

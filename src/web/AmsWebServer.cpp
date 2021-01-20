@@ -33,10 +33,9 @@
 
 #include "base64.h"
 
-AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw, EntsoeApi* eapi) {
+AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw) {
 	this->debugger = Debug;
 	this->hw = hw;
-	this->eapi = eapi;
 }
 
 void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, MQTTClient* mqtt) {
@@ -104,6 +103,10 @@ void AmsWebServer::setTimezone(Timezone* tz) {
 
 void AmsWebServer::setMqttEnabled(bool enabled) {
 	mqttEnabled = enabled;
+}
+
+void AmsWebServer::setEntsoeApi(EntsoeApi* eapi) {
+	this->eapi = eapi;
 }
 
 void AmsWebServer::loop() {
@@ -241,11 +244,15 @@ void AmsWebServer::price() {
 		sprintf(ts, "%02d:00", tm.Hour);
 		html.replace("${time" + String(i) + "}", String(ts));
 
-		double price = eapi->getValueForHour(i);
-		if(price == ENTSOE_NO_VALUE) {
-			html.replace("${price" + String(i) + "}", "--");
+		if(eapi != NULL) {
+			double price = eapi->getValueForHour(i);
+			if(price == ENTSOE_NO_VALUE) {
+				html.replace("${price" + String(i) + "}", "--");
+			} else {
+				html.replace("${price" + String(i) + "}", String(price, 4));
+			}
 		} else {
-			html.replace("${price" + String(i) + "}", String(price, 4));
+			html.replace("${price" + String(i) + "}", "--");
 		}
 	}
 
@@ -706,6 +713,8 @@ void AmsWebServer::handleSetup() {
 	} else {
 		SystemConfig sys { server.arg("board").toInt() };
 
+		config->clear();
+
 		config->clearGpio(*gpioConfig);
 		config->clearMeter(*meterConfig);
 
@@ -754,8 +763,6 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->ledPin = 5;
 				gpioConfig->ledInverted = true;
 				gpioConfig->tempSensorPin = 14;
-				gpioConfig->vccPin = 35;
-				gpioConfig->vccMultiplier = 2250;
 				break;
 			case 202: // Feather
 				gpioConfig->hanPin = 16;
@@ -1009,7 +1016,6 @@ void AmsWebServer::handleSave() {
 		strcpy(entsoe.currency, server.arg("ecu").c_str());
 		entsoe.multiplier = server.arg("em").toFloat() * 1000;
 		config->setEntsoeConfig(entsoe);
-		eapi->setup(entsoe);
 	}
 
 	printI("Saving configuration now...");

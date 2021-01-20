@@ -57,11 +57,11 @@ AmsConfiguration config;
 
 RemoteDebug Debug;
 
-EntsoeApi eapi(&Debug);
+EntsoeApi* eapi = NULL;
 
 Timezone* tz;
 
-AmsWebServer ws(&Debug, &hw, &eapi);
+AmsWebServer ws(&Debug, &hw);
 
 MQTTClient mqtt(512);
 AmsMqttHandler* mqttHandler = NULL;
@@ -100,8 +100,6 @@ void setup() {
 			gpioConfig.ledPin = 5;
 			gpioConfig.ledInverted = true;
 			gpioConfig.tempSensorPin = 14;
-			gpioConfig.vccPin = 35;
-			gpioConfig.vccMultiplier = 2250;
 		#elif defined(ARDUINO_FEATHER_ESP32)
 			gpioConfig.hanPin = 16;
 			gpioConfig.ledPin = 2;
@@ -133,8 +131,10 @@ void setup() {
 	hw.ledBlink(LED_BLUE, 1);
 
 	EntsoeConfig entsoe;
-	if(config.getEntsoeConfig(entsoe)) {
-		eapi.setup(entsoe);
+	if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
+		eapi = new EntsoeApi(&Debug);
+		eapi->setup(entsoe);
+		ws.setEntsoeApi(eapi);
 	}
 
 	bool shared = false;
@@ -406,6 +406,29 @@ void loop() {
 			} else if(mqtt.connected()) {
 				mqtt.disconnect();
 			}
+
+			if(eapi != NULL) {
+				if(eapi->loop() && mqttHandler != NULL && mqtt.connected()) {
+					mqttHandler->publishPrices(eapi);
+				}
+			}
+			
+			if(config.isEntsoeChanged()) {
+				EntsoeConfig entsoe;
+				if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
+					if(eapi == NULL) {
+						eapi = new EntsoeApi(&Debug);
+						ws.setEntsoeApi(eapi);
+					}
+					eapi->setup(entsoe);
+				} else if(eapi != NULL) {
+					delete eapi;
+					eapi = NULL;
+					ws.setEntsoeApi(eapi);
+				}
+				config.ackEntsoeChange();
+			}
+
 		}
 	} else {
 		if(dnsServer != NULL) {
@@ -426,11 +449,6 @@ void loop() {
 	}
 	delay(1);
 	readHanPort();
-	if(WiFi.status() == WL_CONNECTED) {
-		if(eapi.loop() && mqttHandler != NULL) {
-			mqttHandler->publishPrices(&eapi);
-		}
-	}
 	ws.loop();
 	delay(1); // Needed for auto modem sleep
 }
@@ -591,14 +609,11 @@ void readHanPort() {
 			if(data.getListType() > 0) {
 				if(mqttEnabled && mqttHandler != NULL) {
 					if(mqttHandler->publish(&data, &meterState)) {
-						delay(1);
-						if(data.getListType() == 3) {
-							mqttHandler->publishPrices(&eapi);
-							delay(1);
+						if(eapi != NULL && data.getListType() == 3) {
+							mqttHandler->publishPrices(eapi);
 						}
 						if(data.getListType() >= 2) {
 							mqttHandler->publishSystem(&hw);
-							delay(1);
 						}
 					}
 					mqtt.loop();

@@ -108,7 +108,7 @@ bool EntsoeApi::loop() {
 
             char url[256];
             snprintf(url, sizeof(url), "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-            "https://gunnar.origin.no/api.xml", config->token, 
+            "https://transparency.entsoe.eu/api", config->token, 
             d1.Year+1970, d1.Month, d1.Day, 23, 00,
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
             config->area, config->area);
@@ -162,6 +162,9 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     WiFiClientSecure client;
     #if defined(ESP8266)
         // https://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/bearssl-client-secure-class.html#mfln-or-maximum-fragment-length-negotiation-saving-ram
+        /* Rumor has it that a client cannot request a lower max_fragment_length, so I guess thats why the following does not work.
+           And there is currently not enough heap space to go around in this project to do a full HTTPS request on ESP8266
+
         int bufSize = 512;
         while(!client.probeMaxFragmentLength("transparency.entsoe.eu", 443, bufSize) && bufSize <= 4096) {
             bufSize += 512;
@@ -171,6 +174,7 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
             printD(String(bufSize));
             client.setBufferSizes(bufSize, bufSize);
         }
+        */
 
         client.setInsecure();
     #endif
@@ -182,6 +186,7 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
 
     if(https.begin(client, url)) {
         printD("Connection established");
+        /*
         #if defined(ESP8266)
             if(!client.getMFLNStatus()) {
                 printE("Negotiated MFLN was not respected");
@@ -190,9 +195,9 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
                 return false;
             }
         #endif
-        //ESP.wdtDisable();
+        */
+
         int status = https.GET();
-        //ESP.wdtEnable(5000);
         if(status == HTTP_CODE_OK) {
             printD("Receiving data");
             https.writeToStream(doc);

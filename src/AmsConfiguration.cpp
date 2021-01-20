@@ -441,11 +441,35 @@ bool AmsConfiguration::getEntsoeConfig(EntsoeConfig& config) {
 }
 
 bool AmsConfiguration::setEntsoeConfig(EntsoeConfig& config) {
+	EntsoeConfig existing;
+	if(getEntsoeConfig(existing)) {
+		entsoeChanged |= strcmp(config.token, existing.token) != 0;
+		entsoeChanged |= strcmp(config.area, existing.area) != 0;
+		entsoeChanged |= strcmp(config.currency, existing.currency) != 0;
+		entsoeChanged |= config.multiplier != existing.multiplier;
+	} else {
+		entsoeChanged = true;
+	}
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_ENTSOE_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;
+}
+
+void AmsConfiguration::clearEntsoe(EntsoeConfig& config) {
+	strcpy(config.token, "");
+	strcpy(config.area, "");
+	strcpy(config.currency, "");
+	config.multiplier = 1000;
+}
+
+bool AmsConfiguration::isEntsoeChanged() {
+	return entsoeChanged;
+}
+
+void AmsConfiguration::ackEntsoeChange() {
+	entsoeChanged = false;
 }
 
 void AmsConfiguration::clear() {
@@ -472,6 +496,10 @@ void AmsConfiguration::clear() {
 	NtpConfig ntp;
 	clearNtp(ntp);
 	setNtpConfig(ntp);
+
+	EntsoeConfig entsoe;
+	clearEntsoe(entsoe);
+	setEntsoeConfig(entsoe);
 
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, -1);

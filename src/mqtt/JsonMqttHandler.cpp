@@ -36,7 +36,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
             hw->getTemperature(),
             data->getListId().c_str(),
             data->getMeterId().c_str(),
-            data->getMeterType().c_str(),
+            data->getMeterModel().c_str(),
             data->getActiveImportPower(),
             data->getReactiveImportPower(),
             data->getActiveExportPower(),
@@ -61,7 +61,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
             hw->getTemperature(),
             data->getListId().c_str(),
             data->getMeterId().c_str(),
-            data->getMeterType().c_str(),
+            data->getMeterModel().c_str(),
             data->getActiveImportPower(),
             data->getReactiveImportPower(),
             data->getActiveExportPower(),
@@ -94,14 +94,15 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
 
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
-		TempSensorConfig* conf = config->getTempSensorConfig(data->address);
-		char* pos = buf+strlen(buf);
-		snprintf(pos, 26, "\"%s\":%.2f,", 
-			toHex(data->address, 8).c_str(),
-			data->lastRead
-		);
-        data->changed = false;
-		delay(1);
+        if(data != NULL) {
+            char* pos = buf+strlen(buf);
+            snprintf(pos, 26, "\"%s\":%.2f,", 
+                toHex(data->address, 8).c_str(),
+                data->lastRead
+            );
+            data->changed = false;
+            delay(1);
+        }
 	}
 	char* pos = buf+strlen(buf);
 	snprintf(count == 0 ? pos : pos-1, 8, "}}");

@@ -4,8 +4,6 @@ void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
     this->config = config;
     this->amsConf = amsConf;
     this->tempSensorInit = false;
-    if(this->tempSensors == NULL)
-        this->tempSensors = new TempSensorData*[32];
     if(sensorApi != NULL)
         delete sensorApi;
     if(oneWire != NULL)
@@ -81,7 +79,10 @@ uint8_t HwTools::getTempSensorCount() {
 }
 
 TempSensorData* HwTools::getTempSensorData(uint8_t i) {
-    return tempSensors[i];
+    if(i < sensorCount) {
+        return tempSensors[i];
+    }
+    return NULL;
 }
 
 bool HwTools::updateTemperatures() {
@@ -96,6 +97,10 @@ bool HwTools::updateTemperatures() {
             DeviceAddress addr;
             sensorApi->requestTemperatures();
             int c = sensorApi->getDeviceCount();
+            if(this->tempSensors != NULL) {
+                delete this->tempSensors;
+            }
+            this->tempSensors = new TempSensorData*[c];
             for(int i = 0; i < c; i++) {
                 bool found = false;
                 sensorApi->getAddress(addr, i);
@@ -119,7 +124,6 @@ bool HwTools::updateTemperatures() {
                         data->changed = data->lastValidRead != t;
                         data->lastValidRead = t;
                     }
-
                     tempSensors[sensorCount++] = data;
                 }
                 delay(10);

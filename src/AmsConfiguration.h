@@ -298,6 +298,8 @@ public:
 	bool isEntsoeChanged();
 	void ackEntsoeChange();
 
+	void loadTempSensors();
+	void saveTempSensors();
 	uint8_t getTempSensorCount();
 	TempSensorConfig* getTempSensorConfig(uint8_t address[8]);
 	void updateTempSensorConfig(uint8_t address[8], const char name[32], bool common);
@@ -315,9 +317,6 @@ private:
 
 	uint8_t tempSensorCount = 0;
 	TempSensorConfig** tempSensors;
-
-	void loadTempSensors();
-	void saveTempSensors();
 
 	bool loadConfig82(int address);
 	bool loadConfig83(int address);

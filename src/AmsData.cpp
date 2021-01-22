@@ -57,7 +57,7 @@ void AmsData::extractFromKaifa(HanReader& hanReader, uint8_t listSize) {
             case (uint8_t)Kaifa::List3PhaseShort:
                 listId                = hanReader.getString(        (int)Kaifa_List3Phase::ListVersionIdentifier);
                 meterId               = hanReader.getString(        (int)Kaifa_List3Phase::MeterID);
-                meterType             = hanReader.getString(        (int)Kaifa_List3Phase::MeterType);
+                meterModel            = hanReader.getString(        (int)Kaifa_List3Phase::MeterType);
                 activeImportPower     = hanReader.getUint(          (int)Kaifa_List3Phase::ActiveImportPower);
                 reactiveImportPower   = hanReader.getUint(          (int)Kaifa_List3Phase::ReactiveImportPower);
                 activeExportPower     = hanReader.getUint(          (int)Kaifa_List3Phase::ActiveExportPower);
@@ -78,7 +78,7 @@ void AmsData::extractFromKaifa(HanReader& hanReader, uint8_t listSize) {
             case (uint8_t)Kaifa::List1PhaseShort:
                 listId                = hanReader.getString(        (int)Kaifa_List1Phase::ListVersionIdentifier);
                 meterId               = hanReader.getString(        (int)Kaifa_List1Phase::MeterID);
-                meterType             = hanReader.getString(        (int)Kaifa_List1Phase::MeterType);
+                meterModel            = hanReader.getString(        (int)Kaifa_List1Phase::MeterType);
                 activeImportPower     = hanReader.getUint(          (int)Kaifa_List1Phase::ActiveImportPower);
                 reactiveImportPower   = hanReader.getUint(          (int)Kaifa_List1Phase::ReactiveImportPower);
                 activeExportPower     = hanReader.getUint(          (int)Kaifa_List1Phase::ActiveExportPower);
@@ -122,7 +122,7 @@ void AmsData::extractFromAidon(HanReader& hanReader, uint8_t listSize, bool subs
             case (uint8_t)Aidon::List3PhaseShort:
                 listId                = hanReader.getString(          (uint8_t)Aidon_List3Phase::ListVersionIdentifier);
                 meterId               = hanReader.getString(          (uint8_t)Aidon_List3Phase::MeterID);
-                meterType             = hanReader.getString(          (uint8_t)Aidon_List3Phase::MeterType);
+                meterModel            = hanReader.getString(          (uint8_t)Aidon_List3Phase::MeterType);
                 activeImportPower     = hanReader.getUint(            (uint8_t)Aidon_List3Phase::ActiveImportPower);
                 reactiveImportPower   = hanReader.getUint(            (uint8_t)Aidon_List3Phase::ReactiveImportPower);
                 activeExportPower     = hanReader.getUint(            (uint8_t)Aidon_List3Phase::ActiveExportPower);
@@ -143,7 +143,7 @@ void AmsData::extractFromAidon(HanReader& hanReader, uint8_t listSize, bool subs
             case (uint8_t)Aidon::List1PhaseShort:
                 listId                = hanReader.getString(          (uint8_t)Aidon_List1Phase::ListVersionIdentifier);
                 meterId               = hanReader.getString(          (uint8_t)Aidon_List1Phase::MeterID);
-                meterType             = hanReader.getString(          (uint8_t)Aidon_List1Phase::MeterType);
+                meterModel            = hanReader.getString(          (uint8_t)Aidon_List1Phase::MeterType);
                 activeImportPower     = hanReader.getUint(            (uint8_t)Aidon_List1Phase::ActiveImportPower);
                 reactiveImportPower   = hanReader.getUint(            (uint8_t)Aidon_List1Phase::ReactiveImportPower);
                 activeExportPower     = hanReader.getUint(            (uint8_t)Aidon_List1Phase::ActiveExportPower);
@@ -160,7 +160,7 @@ void AmsData::extractFromAidon(HanReader& hanReader, uint8_t listSize, bool subs
             case (uint8_t)Aidon::List3PhaseITShort:
                 listId                = hanReader.getString(          (uint8_t)Aidon_List3PhaseIT::ListVersionIdentifier);
                 meterId               = hanReader.getString(          (uint8_t)Aidon_List3PhaseIT::MeterID);
-                meterType             = hanReader.getString(          (uint8_t)Aidon_List3PhaseIT::MeterType);
+                meterModel            = hanReader.getString(          (uint8_t)Aidon_List3PhaseIT::MeterType);
                 activeImportPower     = hanReader.getUint(            (uint8_t)Aidon_List3PhaseIT::ActiveImportPower);
                 reactiveImportPower   = hanReader.getUint(            (uint8_t)Aidon_List3PhaseIT::ReactiveImportPower);
                 activeExportPower     = hanReader.getUint(            (uint8_t)Aidon_List3PhaseIT::ActiveExportPower);
@@ -205,7 +205,7 @@ void AmsData::extractFromKamstrup(HanReader& hanReader, uint8_t listSize, bool s
         case (uint8_t)Kamstrup::List1PhaseShort:
             listId                = hanReader.getString(       (uint8_t)Kamstrup_List1Phase::ListVersionIdentifier);
             meterId               = hanReader.getString(       (uint8_t)Kamstrup_List1Phase::MeterID);
-            meterType             = hanReader.getString(       (uint8_t)Kamstrup_List1Phase::MeterType);
+            meterModel            = hanReader.getString(       (uint8_t)Kamstrup_List1Phase::MeterType);
             activeImportPower     = hanReader.getInt(          (uint8_t)Kamstrup_List1Phase::ActiveImportPower);
             reactiveImportPower   = hanReader.getInt(          (uint8_t)Kamstrup_List1Phase::ReactiveImportPower);
             activeExportPower     = hanReader.getInt(          (uint8_t)Kamstrup_List1Phase::ActiveExportPower);
@@ -222,7 +222,7 @@ void AmsData::extractFromKamstrup(HanReader& hanReader, uint8_t listSize, bool s
         case (uint8_t)Kamstrup::List3PhaseShort:
             listId                = hanReader.getString(       (uint8_t)Kamstrup_List3Phase::ListVersionIdentifier);
             meterId               = hanReader.getString(       (uint8_t)Kamstrup_List3Phase::MeterID);
-            meterType             = hanReader.getString(       (uint8_t)Kamstrup_List3Phase::MeterType);
+            meterModel            = hanReader.getString(       (uint8_t)Kamstrup_List3Phase::MeterType);
             activeImportPower     = hanReader.getInt(          (uint8_t)Kamstrup_List3Phase::ActiveImportPower);
             reactiveImportPower   = hanReader.getInt(          (uint8_t)Kamstrup_List3Phase::ReactiveImportPower);
             activeExportPower     = hanReader.getInt(          (uint8_t)Kamstrup_List3Phase::ActiveExportPower);
@@ -243,7 +243,7 @@ void AmsData::extractFromKamstrup(HanReader& hanReader, uint8_t listSize, bool s
         case (uint8_t)Kamstrup::List3PhaseITShort:
             listId                = hanReader.getString(       (uint8_t)Kamstrup_List3Phase::ListVersionIdentifier);
             meterId               = hanReader.getString(       (uint8_t)Kamstrup_List3Phase::MeterID);
-            meterType             = hanReader.getString(       (uint8_t)Kamstrup_List3Phase::MeterType);
+            meterModel            = hanReader.getString(       (uint8_t)Kamstrup_List3Phase::MeterType);
             activeImportPower     = hanReader.getInt(          (uint8_t)Kamstrup_List3Phase::ActiveImportPower);
             reactiveImportPower   = hanReader.getInt(          (uint8_t)Kamstrup_List3Phase::ReactiveImportPower);
             activeExportPower     = hanReader.getInt(          (uint8_t)Kamstrup_List3Phase::ActiveExportPower);
@@ -321,7 +321,7 @@ void AmsData::apply(AmsData& other) {
         case 2:
             this->listId = other.getListId();
             this->meterId = other.getMeterId();
-            this->meterType = other.getMeterType();
+            this->meterModel = other.getMeterModel();
             this->reactiveImportPower = other.getReactiveImportPower();
             this->activeExportPower = other.getActiveExportPower();
             this->reactiveExportPower = other.getReactiveExportPower();
@@ -357,8 +357,8 @@ String AmsData::getMeterId() {
     return this->meterId;
 }
 
-String AmsData::getMeterType() {
-    return this->meterType;
+String AmsData::getMeterModel() {
+    return this->meterModel;
 }
 
 time_t AmsData::getMeterTimestamp() {

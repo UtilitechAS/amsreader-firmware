@@ -7,13 +7,13 @@
  * electricity providers in other countries. It was originally based on ESP8266, but have also been 
  * adapted to work with ESP32.
  * 
- * @author Roar Fredriksen (@roarfred)
- * The original developer for this project
- * https://github.com/roarfred/AmsToMqttBridge
- * 
  * @author Gunnar Skjold (@gskjold)
  * Maintainer of current code
  * https://github.com/gskjold/AmsToMqttBridge
+ * 
+ * @author Roar Fredriksen (@roarfred)
+ * The original developer for this project
+ * https://github.com/roarfred/AmsToMqttBridge
  */
 
 #include "AmsToMqttBridge.h"
@@ -76,6 +76,7 @@ bool mqttEnabled = false;
 uint8_t payloadFormat = 0;
 String topic = "ams";
 AmsData meterState;
+bool ntpEnabled = false;
 
 void setup() {
 	WiFiConfig wifi;
@@ -123,6 +124,7 @@ void setup() {
 	if(gpioConfig.apPin >= 0)
 		pinMode(gpioConfig.apPin, INPUT_PULLUP);
 
+	config.loadTempSensors();
 	hw.setup(&gpioConfig, &config);
 	hw.ledBlink(LED_INTERNAL, 1);
 	hw.ledBlink(LED_RED, 1);
@@ -206,7 +208,7 @@ void setup() {
 			WiFi.forceSleepBegin();
 #endif
 			int i = 0;
-			while(hw.getVcc() < 3.2 && i < 3) {
+			while(hw.getVcc() > 1.0 && hw.getVcc() < 3.2 && i < 3) {
 				if(Debug.isActive(RemoteDebug::INFO)) debugI(" vcc not optimal, light sleep 10s");
 #if defined(ESP8266)
 				delay(10000);
@@ -221,6 +223,7 @@ void setup() {
 			File firmwareFile = SPIFFS.open(FILE_FIRMWARE, "r");
 			debugD(" firmware size: %d", firmwareFile.size());
 			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+			debugD(" available: %d", maxSketchSpace);
 			if (!Update.begin(maxSketchSpace, U_FLASH)) {
 				if(Debug.isActive(RemoteDebug::ERROR)) {
 					debugE("Unable to start firmware update");
@@ -260,10 +263,9 @@ void setup() {
 		
 		NtpConfig ntp;
 		if(config.getNtpConfig(ntp)) {
-			if(ntp.enable) {
-				configTime(ntp.offset*10, ntp.summerOffset*10, ntp.server);
-				sntp_servermode_dhcp(ntp.dhcp ? 1 : 0);
-			}
+			configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? ntp.server : "");
+			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
+			ntpEnabled = ntp.enable;
 			TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
 			TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
 			tz = new Timezone(dst, std);
@@ -376,16 +378,17 @@ void loop() {
 			}
 			if(config.isNtpChanged()) {
 				NtpConfig ntp;
-				if(config.getNtpConfig(ntp) && ntp.enable && strlen(ntp.server) > 0) {
-					configTime(ntp.offset*10, ntp.summerOffset*10, ntp.server);
-					sntp_servermode_dhcp(ntp.dhcp ? 1 : 0);
-				}
+				if(config.getNtpConfig(ntp)) {
+					configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? ntp.server : "");
+					sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
+					ntpEnabled = ntp.enable;
 
-				if(tz != NULL) delete tz;
-				TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
-				TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
-				tz = new Timezone(dst, std);
-				ws.setTimezone(tz);
+					if(tz != NULL) delete tz;
+					TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
+					TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
+					tz = new Timezone(dst, std);
+					ws.setTimezone(tz);
+				}
 
 				config.ackNtpChange();
 			}
@@ -609,11 +612,25 @@ void readHanPort() {
 			if(data.getListType() > 0) {
 				if(mqttEnabled && mqttHandler != NULL) {
 					if(mqttHandler->publish(&data, &meterState)) {
-						if(eapi != NULL && data.getListType() == 3) {
+						if(data.getListType() == 3 && eapi != NULL) {
 							mqttHandler->publishPrices(eapi);
 						}
 						if(data.getListType() >= 2) {
 							mqttHandler->publishSystem(&hw);
+						}
+						time_t now = time(nullptr);
+						if(now < EPOCH_2021_01_01 || data.getListType() == 3) {
+							if(data.getMeterTimestamp() > EPOCH_2021_01_01 || !ntpEnabled) {
+								debugI("Using timestamp from meter");
+								now = data.getMeterTimestamp();
+							} else if(data.getPackageTimestamp() > EPOCH_2021_01_01) {
+								debugI("Using timestamp from meter (DLMS)");
+								now = data.getPackageTimestamp();
+							}
+							if(now > EPOCH_2021_01_01) {
+								timeval tv { now, 0};
+								settimeofday(&tv, nullptr);
+							}
 						}
 					}
 					mqtt.loop();

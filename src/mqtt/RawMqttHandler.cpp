@@ -13,7 +13,7 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
         case 3:
             // ID and type belongs to List 2, but I see no need to send that every 10s
             mqtt->publish(topic + "/meter/id", data->getMeterId());
-            mqtt->publish(topic + "/meter/type", data->getMeterType());
+            mqtt->publish(topic + "/meter/type", data->getMeterModel());
             mqtt->publish(topic + "/meter/clock", String(data->getMeterTimestamp()));
             mqtt->publish(topic + "/meter/import/reactive/accumulated", String(data->getReactiveImportCounter(), 2));
             mqtt->publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 2));
@@ -24,8 +24,8 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
             if(full || meterState->getMeterId() != data->getMeterId()) {
                 mqtt->publish(topic + "/meter/id", data->getMeterId());
             }
-            if(full || meterState->getMeterType() != data->getMeterType()) {
-                mqtt->publish(topic + "/meter/type", data->getMeterType());
+            if(full || meterState->getMeterModel() != data->getMeterModel()) {
+                mqtt->publish(topic + "/meter/type", data->getMeterModel());
             }
             if(full || meterState->getL1Current() != data->getL1Current()) {
                 mqtt->publish(topic + "/meter/l1/current", String(data->getL1Current(), 2));
@@ -66,7 +66,7 @@ bool RawMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) 
     uint8_t c = hw->getTempSensorCount();
     for(int i = 0; i < c; i++) {
         TempSensorData* data = hw->getTempSensorData(i);
-        if(data->lastValidRead > -85) {
+        if(data != NULL && data->lastValidRead > -85) {
             if(data->changed || full) {
                 mqtt->publish(topic + "/temperature/" + toHex(data->address), String(data->lastValidRead, 2));
                 data->changed = false;

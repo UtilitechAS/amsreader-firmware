@@ -473,35 +473,35 @@ void AmsConfiguration::ackEntsoeChange() {
 }
 
 void AmsConfiguration::clear() {
+	EEPROM.begin(EEPROM_SIZE);
 	MeterConfig meter;
 	clearMeter(meter);
-	setMeterConfig(meter);
+	EEPROM.put(CONFIG_METER_START, meter);
 
 	WiFiConfig wifi;
 	clearWifi(wifi);
-	setWiFiConfig(wifi);
+	EEPROM.put(CONFIG_WIFI_START, wifi);
 
 	MqttConfig mqtt;
 	clearMqtt(mqtt);
-	setMqttConfig(mqtt);
+	EEPROM.put(CONFIG_MQTT_START, mqtt);
 
 	WebConfig web;
 	clearAuth(web);
-	setWebConfig(web);
+	EEPROM.put(CONFIG_WEB_START, web);
 
 	DomoticzConfig domo;
 	clearDomo(domo);
-	setDomoticzConfig(domo);
+	EEPROM.put(CONFIG_DOMOTICZ_START, domo);
 
 	NtpConfig ntp;
 	clearNtp(ntp);
-	setNtpConfig(ntp);
+	EEPROM.put(CONFIG_NTP_START, domo);
 
 	EntsoeConfig entsoe;
 	clearEntsoe(entsoe);
-	setEntsoeConfig(entsoe);
+	EEPROM.put(CONFIG_ENTSOE_START, domo);
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, -1);
 	EEPROM.commit();
 	EEPROM.end();
@@ -547,10 +547,13 @@ int AmsConfiguration::getConfigVersion() {
 }
 
 void AmsConfiguration::loadTempSensors() {
-	this->tempSensors = new TempSensorConfig*[32];
+	EEPROM.begin(EEPROM_SIZE);
+	TempSensorConfig* tempSensors[32];
 	int address = EEPROM_TEMP_CONFIG_ADDRESS;
 	int c = 0;
 	int storedCount = EEPROM.read(address++);
+	Serial.print("SEnsors: ");
+	Serial.println(storedCount);
 	if(storedCount > 0 && storedCount <= 32) {
 		for(int i = 0; i < storedCount; i++) {
 			TempSensorConfig* tsc = new TempSensorConfig();
@@ -561,7 +564,12 @@ void AmsConfiguration::loadTempSensors() {
 			address += sizeof(*tsc);
 		}
 	}
+	this->tempSensors = new TempSensorConfig*[c];
+	for(int i = 0; i < c; i++) {
+		this->tempSensors[i] = tempSensors[i];
+	}
 	tempSensorCount = c;
+	EEPROM.end();
 }
 
 void AmsConfiguration::saveTempSensors() {
@@ -580,7 +588,14 @@ bool AmsConfiguration::loadConfig82(int address) {
 	ConfigObject82 c;
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.get(address, c);
-	EEPROM.end();
+
+	EntsoeConfig entsoe;
+	clearEntsoe(entsoe);
+	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
+
+	NtpConfig ntp;
+	clearNtp(ntp);
+	EEPROM.put(CONFIG_NTP_START, ntp);
 
 	DomoticzConfig domo {
 		c.domoELIDX,
@@ -589,7 +604,7 @@ bool AmsConfiguration::loadConfig82(int address) {
 		c.domoVL3IDX,
 		c.domoCL1IDX
 	};
-	setDomoticzConfig(domo);
+	EEPROM.put(CONFIG_DOMOTICZ_START, domo);
 
 	GpioConfig gpio {
 		c.hanPin,
@@ -607,14 +622,14 @@ bool AmsConfiguration::loadConfig82(int address) {
 		c.vccMultiplier,
 		c.vccBootLimit
 	};
-	setGpioConfig(gpio);
+	EEPROM.put(CONFIG_GPIO_START, gpio);
 
 	DebugConfig debug {
 		c.debugTelnet,
 		c.debugSerial,
 		c.debugLevel
 	};
-	setDebugConfig(debug);
+	EEPROM.put(CONFIG_DEBUG_START, debug);
 
 	MeterConfig meter {
 		c.meterType,
@@ -625,14 +640,14 @@ bool AmsConfiguration::loadConfig82(int address) {
 		{0},
 		c.substituteMissing
 	};
-	setMeterConfig(meter);
+	EEPROM.put(CONFIG_METER_START, meter);
 
 	WebConfig web {
 		c.authSecurity
 	};
 	strcpy(web.username, c.authUser);
 	strcpy(web.password, c.authPassword);
-	setWebConfig(web);
+	EEPROM.put(CONFIG_WEB_START, web);
 
 	MqttConfig mqtt;
 	strcpy(mqtt.host, c.mqttHost);
@@ -644,7 +659,7 @@ bool AmsConfiguration::loadConfig82(int address) {
 	strcpy(mqtt.password, c.mqttPassword);
 	mqtt.payloadFormat = c.mqttPayloadFormat;
 	mqtt.ssl = c.mqttSsl;
-	setMqttConfig(mqtt);
+	EEPROM.put(CONFIG_MQTT_START, mqtt);
 
 	WiFiConfig wifi;
 	strcpy(wifi.ssid, c.wifiSsid);
@@ -656,20 +671,27 @@ bool AmsConfiguration::loadConfig82(int address) {
 	strcpy(wifi.dns2, c.wifiDns2);
 	strcpy(wifi.hostname, c.wifiHostname);
 	wifi.mdns = true;
-	setWiFiConfig(wifi);
+	EEPROM.put(CONFIG_WIFI_START, wifi);
 
 	SystemConfig sys  {
 		c.boardType
 	};
-	setSystemConfig(sys);
-	return save();
+	EEPROM.put(CONFIG_SYSTEM_START, sys);
+
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+
+	return ret;
 }
 
 bool AmsConfiguration::loadConfig83(int address) {
 	ConfigObject83 c;
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.get(address, c);
-	EEPROM.end();
+
+	EntsoeConfig entsoe {"", "", "", 1000};
+	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
 
 	NtpConfig ntp {
 		c.ntpEnable,
@@ -678,7 +700,7 @@ bool AmsConfiguration::loadConfig83(int address) {
 		c.ntpSummerOffset
 	};
 	strcpy(ntp.server, c.ntpServer);
-	setNtpConfig(ntp);
+	EEPROM.put(CONFIG_NTP_START, ntp);
 
 	DomoticzConfig domo {
 		c.domoELIDX,
@@ -687,7 +709,7 @@ bool AmsConfiguration::loadConfig83(int address) {
 		c.domoVL3IDX,
 		c.domoCL1IDX
 	};
-	setDomoticzConfig(domo);
+	EEPROM.put(CONFIG_DOMOTICZ_START, domo);
 
 	GpioConfig gpio {
 		c.hanPin,
@@ -705,14 +727,14 @@ bool AmsConfiguration::loadConfig83(int address) {
 		c.vccMultiplier,
 		c.vccBootLimit
 	};
-	setGpioConfig(gpio);
+	EEPROM.put(CONFIG_GPIO_START, gpio);
 
 	DebugConfig debug {
 		c.debugTelnet,
 		c.debugSerial,
 		c.debugLevel
 	};
-	setDebugConfig(debug);
+	EEPROM.put(CONFIG_DEBUG_START, debug);
 
 	MeterConfig meter {
 		c.meterType,
@@ -725,14 +747,14 @@ bool AmsConfiguration::loadConfig83(int address) {
 	};
 	memcpy(meter.encryptionKey, c.meterEncryptionKey, 16);
 	memcpy(meter.authenticationKey, c.meterAuthenticationKey, 16);
-	setMeterConfig(meter);
+	EEPROM.put(CONFIG_METER_START, meter);
 
 	WebConfig web {
 		c.authSecurity
 	};
 	strcpy(web.username, c.authUser);
 	strcpy(web.password, c.authPassword);
-	setWebConfig(web);
+	EEPROM.put(CONFIG_WEB_START, web);
 
 	MqttConfig mqtt;
 	strcpy(mqtt.host, c.mqttHost);
@@ -744,7 +766,7 @@ bool AmsConfiguration::loadConfig83(int address) {
 	strcpy(mqtt.password, c.mqttPassword);
 	mqtt.payloadFormat = c.mqttPayloadFormat;
 	mqtt.ssl = c.mqttSsl;
-	setMqttConfig(mqtt);
+	EEPROM.put(CONFIG_MQTT_START, mqtt);
 
 	WiFiConfig wifi;
 	strcpy(wifi.ssid, c.wifiSsid);
@@ -756,13 +778,18 @@ bool AmsConfiguration::loadConfig83(int address) {
 	strcpy(wifi.dns2, c.wifiDns2);
 	strcpy(wifi.hostname, c.wifiHostname);
 	wifi.mdns = c.mDnsEnable;
-	setWiFiConfig(wifi);
+	EEPROM.put(CONFIG_WIFI_START, wifi);
 
 	SystemConfig sys  {
 		c.boardType
 	};
-	setSystemConfig(sys);
-	return save();
+	EEPROM.put(CONFIG_SYSTEM_START, sys);
+	
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+
+	return ret;
 }
 
 bool AmsConfiguration::save() {
@@ -801,12 +828,21 @@ void AmsConfiguration::updateTempSensorConfig(uint8_t address[8], const char nam
         }
     }
     if(!found) {
+		TempSensorConfig** tempSensors = new TempSensorConfig*[tempSensorCount+1];
+		if(this->tempSensors != NULL) {
+			for(int i = 0;i < tempSensorCount; i++) {
+				tempSensors[i] = this->tempSensors[i];
+			}
+		}
         TempSensorConfig *data = new TempSensorConfig();
         memcpy(data->address, address, 8);
         strcpy(data->name, name);
         data->common = common;
-        tempSensors[tempSensorCount] = data;
-        tempSensorCount++;
+        tempSensors[tempSensorCount++] = data;
+		if(this->tempSensors != NULL) {
+			delete this->tempSensors;
+		}
+		this->tempSensors = tempSensors;
     }
 }
 

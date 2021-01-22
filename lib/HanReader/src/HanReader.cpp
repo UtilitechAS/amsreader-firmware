@@ -284,11 +284,8 @@ time_t HanReader::getTime(byte *buffer, int start, int length, bool respectTimez
 		int minute = buffer[pos + 6];
 		int second = buffer[pos + 7];
 		// 8: Hundredths
-		int tzMinutes = buffer[pos + 9] << 8 | buffer[pos + 10];
-		bool dsc = (buffer[pos + 11] & 0x01) == 0x01;
-
-		printD("Time offset: %d", tzMinutes);
-		printD(dsc ? "DSC" : "not DSC");
+		int16_t tzMinutes = buffer[pos + 9] << 8 | buffer[pos + 10];
+		bool dsc = (buffer[pos + 11] & 0x80) == 0x80;
 
 		tmElements_t tm;
 		tm.Year = year - 1970;
@@ -297,7 +294,18 @@ time_t HanReader::getTime(byte *buffer, int start, int length, bool respectTimez
 		tm.Hour = hour;
 		tm.Minute = minute;
 		tm.Second = second;
-		return localZone->toUTC(makeTime(tm));
+
+		time_t time = makeTime(tm);
+		if(respectTimezone && tzMinutes != 0x8000) {
+			time -= tzMinutes * 60;
+			if(respectDsc && dsc)
+				time -= 3600;
+		} else {
+			if(respectDsc && dsc)
+				time += 3600;
+			time = localZone->toUTC(time);
+		}
+		return time;
 	} else if(dataLength == 0) {
 		return (time_t)0L;
 	} else {

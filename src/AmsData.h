@@ -25,7 +25,7 @@ public:
 
     String getListId();
     String getMeterId();
-    String getMeterType();
+    String getMeterModel();
 
     time_t getMeterTimestamp();
 
@@ -53,7 +53,7 @@ private:
     unsigned long lastUpdateMillis = 0;
     uint8_t listType = 0;
     time_t packageTimestamp = 0;
-    String listId, meterId, meterType;
+    String listId, meterId, meterModel;
     time_t meterTimestamp = 0;
     uint16_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
     float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;

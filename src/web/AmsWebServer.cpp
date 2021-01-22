@@ -30,6 +30,7 @@
 #include "root/notfound_html.h"
 #include "root/data_json.h"
 #include "root/tempsensor_json.h"
+#include "root/lowmem_html.h"
 
 #include "base64.h"
 
@@ -45,9 +46,12 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	this->meterState = meterState;
 	this->mqtt = mqtt;
 
+	char jsuri[32];
+	snprintf(jsuri, 32, "/application-%s.js", VERSION);
+
 	server.on("/", HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on("/", HTTP_POST, std::bind(&AmsWebServer::handleSetup, this));
-	server.on("/application.js", HTTP_GET, std::bind(&AmsWebServer::applicationJs, this));
+	server.on(jsuri, HTTP_GET, std::bind(&AmsWebServer::applicationJs, this));
 	server.on("/temperature", HTTP_GET, std::bind(&AmsWebServer::temperature, this));
 	server.on("/temperature", HTTP_POST, std::bind(&AmsWebServer::temperaturePost, this));
 	server.on("/temperature.json", HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
@@ -125,7 +129,6 @@ void AmsWebServer::loop() {
 bool AmsWebServer::checkSecurity(byte level) {
 	bool access = WiFi.getMode() == WIFI_AP || webConfig.security < level;
 	if(!access && webConfig.security >= level && server.hasHeader("Authorization")) {
-		printD(" forcing web security");
 		String expectedAuth = String(webConfig.username) + ":" + String(webConfig.password);
 
 		String providedPwd = server.header("Authorization");
@@ -136,15 +139,10 @@ bool AmsWebServer::checkSecurity(byte level) {
 	}
 
 	if(!access) {
-		printD(" no access, requesting user/pass");
 		server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure Area\"");
 		server.setContentLength(0);
 		server.send(401, "text/html", "");
 	}
-	if(access)
-		printD(" access granted");
-	else
-		printD(" access denied");
 	return access;
 }
 
@@ -183,10 +181,15 @@ void AmsWebServer::temperaturePost() {
 		delay(1);
 	}
 
+	if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
 	if(config->save()) {
 		printD("Successfully saved temperature sensors");
 		server.sendHeader("Location", String("/temperature"), true);
 		server.send (302, "text/plain", "");
+	} else {
+		printE("Error saving configuration");
+		String html = "<html><body><h1>Error saving configuration!</h1></form>";
+		server.send(500, "text/html", html);
 	}
 }
 
@@ -204,6 +207,8 @@ void AmsWebServer::temperatureJson() {
 
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
+		if(data == NULL) continue;
+
 		TempSensorConfig* conf = config->getTempSensorConfig(data->address);
 		char* pos = buf+strlen(buf);
 		snprintf_P(pos, 72, TEMPSENSOR_JSON, 
@@ -236,30 +241,38 @@ void AmsWebServer::price() {
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
 
-	String html = String((const __FlashStringHelper*) PRICE_HTML);
-	for(int i = 0; i < 24; i++) {
-        tmElements_t tm;
-        breakTime(tz->toLocal(time(nullptr)) + (SECS_PER_HOUR * i), tm);
-		char ts[5];
-		sprintf(ts, "%02d:00", tm.Hour);
-		html.replace("${time" + String(i) + "}", String(ts));
+	if(ESP.getFreeHeap() > 25000) {
+		String html = String((const __FlashStringHelper*) PRICE_HTML);
+		for(int i = 0; i < 24; i++) {
+			tmElements_t tm;
+			breakTime(tz->toLocal(time(nullptr)) + (SECS_PER_HOUR * i), tm);
+			char ts[5];
+			sprintf(ts, "%02d:00", tm.Hour);
+			html.replace("${time" + String(i) + "}", String(ts));
 
-		if(eapi != NULL) {
-			double price = eapi->getValueForHour(i);
-			if(price == ENTSOE_NO_VALUE) {
-				html.replace("${price" + String(i) + "}", "--");
+			if(eapi != NULL) {
+				double price = eapi->getValueForHour(i);
+				if(price == ENTSOE_NO_VALUE) {
+					html.replace("${price" + String(i) + "}", "--");
+				} else {
+					html.replace("${price" + String(i) + "}", String(price, 4));
+				}
 			} else {
-				html.replace("${price" + String(i) + "}", String(price, 4));
+				html.replace("${price" + String(i) + "}", "--");
 			}
-		} else {
-			html.replace("${price" + String(i) + "}", "--");
 		}
+
+		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+		server.send_P(200, "text/html", HEAD_HTML);
+		server.sendContent(html);
+		server.sendContent_P(FOOT_HTML);
+	} else {
+		server.setContentLength(LOWMEM_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
+		server.send_P(200, "text/html", HEAD_HTML);
+		server.sendContent_P(LOWMEM_HTML);
+		server.sendContent_P(FOOT_HTML);
 	}
 
-	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
-	server.sendContent(html);
-	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::indexHtml() {
@@ -525,34 +538,41 @@ void AmsWebServer::configEntsoeHtml() {
 	EntsoeConfig entsoe;
 	config->getEntsoeConfig(entsoe);
 
-	String html = String((const __FlashStringHelper*) ENTSOE_HTML);
+	if(ESP.getFreeHeap() > 25000) {
+		String html = String((const __FlashStringHelper*) ENTSOE_HTML);
 
-	html.replace("{et}", entsoe.token);
-	html.replace("{em}", String(entsoe.multiplier / 1000.0, 3));
+		html.replace("{et}", entsoe.token);
+		html.replace("{em}", String(entsoe.multiplier / 1000.0, 3));
 
-	html.replace("{eaNo1}", strcmp(entsoe.area, "10YNO-1--------2") == 0 ? "selected" : "");
-	html.replace("{eaNo2}", strcmp(entsoe.area, "10YNO-2--------T") == 0 ? "selected" : "");
-	html.replace("{eaNo3}", strcmp(entsoe.area, "10YNO-3--------J") == 0 ? "selected" : "");
-	html.replace("{eaNo4}", strcmp(entsoe.area, "10YNO-4--------9") == 0 ? "selected" : "");
-	html.replace("{eaNo5}", strcmp(entsoe.area, "10Y1001A1001A48H") == 0 ? "selected" : "");
+		html.replace("{eaNo1}", strcmp(entsoe.area, "10YNO-1--------2") == 0 ? "selected" : "");
+		html.replace("{eaNo2}", strcmp(entsoe.area, "10YNO-2--------T") == 0 ? "selected" : "");
+		html.replace("{eaNo3}", strcmp(entsoe.area, "10YNO-3--------J") == 0 ? "selected" : "");
+		html.replace("{eaNo4}", strcmp(entsoe.area, "10YNO-4--------9") == 0 ? "selected" : "");
+		html.replace("{eaNo5}", strcmp(entsoe.area, "10Y1001A1001A48H") == 0 ? "selected" : "");
 
-	html.replace("{eaSe1}", strcmp(entsoe.area, "10Y1001A1001A44P") == 0 ? "selected" : "");
-	html.replace("{eaSe2}", strcmp(entsoe.area, "10Y1001A1001A45N") == 0 ? "selected" : "");
-	html.replace("{eaSe3}", strcmp(entsoe.area, "10Y1001A1001A46L") == 0 ? "selected" : "");
-	html.replace("{eaSe4}", strcmp(entsoe.area, "10Y1001A1001A47J") == 0 ? "selected" : "");
+		html.replace("{eaSe1}", strcmp(entsoe.area, "10Y1001A1001A44P") == 0 ? "selected" : "");
+		html.replace("{eaSe2}", strcmp(entsoe.area, "10Y1001A1001A45N") == 0 ? "selected" : "");
+		html.replace("{eaSe3}", strcmp(entsoe.area, "10Y1001A1001A46L") == 0 ? "selected" : "");
+		html.replace("{eaSe4}", strcmp(entsoe.area, "10Y1001A1001A47J") == 0 ? "selected" : "");
 
-	html.replace("{eaDk1}", strcmp(entsoe.area, "10YDK-1--------W") == 0 ? "selected" : "");
-	html.replace("{eaDk2}", strcmp(entsoe.area, "10YDK-2--------M") == 0 ? "selected" : "");
+		html.replace("{eaDk1}", strcmp(entsoe.area, "10YDK-1--------W") == 0 ? "selected" : "");
+		html.replace("{eaDk2}", strcmp(entsoe.area, "10YDK-2--------M") == 0 ? "selected" : "");
 
-	html.replace("{ecNOK}", strcmp(entsoe.area, "NOK") == 0 ? "selected" : "");
-	html.replace("{ecSEK}", strcmp(entsoe.area, "SEK") == 0 ? "selected" : "");
-	html.replace("{ecDKK}", strcmp(entsoe.area, "DKK") == 0 ? "selected" : "");
-	html.replace("{ecEUR}", strcmp(entsoe.area, "EUR") == 0 ? "selected" : "");
+		html.replace("{ecNOK}", strcmp(entsoe.area, "NOK") == 0 ? "selected" : "");
+		html.replace("{ecSEK}", strcmp(entsoe.area, "SEK") == 0 ? "selected" : "");
+		html.replace("{ecDKK}", strcmp(entsoe.area, "DKK") == 0 ? "selected" : "");
+		html.replace("{ecEUR}", strcmp(entsoe.area, "EUR") == 0 ? "selected" : "");
 
-	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
-	server.sendContent(html);
-	server.sendContent_P(FOOT_HTML);
+		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+		server.send_P(200, "text/html", HEAD_HTML);
+		server.sendContent(html);
+		server.sendContent_P(FOOT_HTML);
+	} else {
+		server.setContentLength(LOWMEM_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
+		server.send_P(200, "text/html", HEAD_HTML);
+		server.sendContent_P(LOWMEM_HTML);
+		server.sendContent_P(FOOT_HTML);
+	}
 }
 
 void AmsWebServer::configWebHtml() {
@@ -1185,7 +1205,6 @@ void AmsWebServer::uploadPost() {
 void AmsWebServer::uploadFile(const char* path) {
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START){
-        String filename = upload.filename;
 		if(uploading) {
 			printE("Upload already in progress");
 			String html = "<html><body><h1>Upload already in progress!</h1></form>";
@@ -1196,18 +1215,23 @@ void AmsWebServer::uploadFile(const char* path) {
 			server.send(500, "text/html", html);
 		} else {
 			uploading = true;
-		    printD("handleFileUpload Name: %s", filename.c_str());
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf("handleFileUpload file: %s\n", path);
+			}
 		    file = SPIFFS.open(path, "w");
-	  	    filename = String();
+            file.write(upload.buf, upload.currentSize);
 	    } 
     } else if(upload.status == UPLOAD_FILE_WRITE) {
         if(file)
             file.write(upload.buf, upload.currentSize);
     } else if(upload.status == UPLOAD_FILE_END) {
         if(file) {
+			file.flush();
             file.close();
 			SPIFFS.end();
-            printD("handleFileUpload Size: %d", upload.totalSize);
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf("handleFileUpload Size: %lu\n", upload.totalSize);
+			}
         } else {
             server.send(500, "text/plain", "500: couldn't create file");
         }

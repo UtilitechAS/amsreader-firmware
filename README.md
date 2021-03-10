@@ -5,7 +5,7 @@ This repository contains the code and schematics necessary to build a device to 
 
 There is a web interface available on runtime, showing meter data in real time.
 
-<img src="webui.jpg" width="480">
+<img src="webui.jpg">
 
 ## Hardware options
 Look in [hardware section](/hardware) for more details about supported hardware

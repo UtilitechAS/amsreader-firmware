@@ -5,7 +5,23 @@ import shutil
 try:
     from css_html_js_minify import html_minify, js_minify, css_minify
 except:
-    print("WARN: Unable to load minifier")
+    from SCons.Script import (
+        ARGUMENTS,
+        COMMAND_LINE_TARGETS,
+        DefaultEnvironment,
+    )
+    env = DefaultEnvironment()
+
+    env.Execute(
+        env.VerboseAction(
+            '$PYTHONEXE -m pip install "css_html_js_minify" ',
+            "Installing Python dependencies",
+        )
+    )
+    try:
+        from css_html_js_minify import html_minify, js_minify, css_minify
+    except:
+        print("WARN: Unable to load minifier")
 
 
 webroot = "web"

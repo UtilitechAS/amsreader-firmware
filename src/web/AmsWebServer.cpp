@@ -200,7 +200,7 @@ void AmsWebServer::temperatureJson() {
 		return;
 
 	int count = hw->getTempSensorCount();
-	int size = 32 + (count * 72);
+	int size = 16 + (count * 72);
 
 	char buf[size];
 	snprintf(buf, 16, "{\"c\":%d,\"s\":[", count);

@@ -345,7 +345,10 @@ var fetch = function() {
             $('.jt').html("N/A");
         }
         setTimeout(fetch, interval);
-    }).fail(function() {
+    }).fail(function(x, text, error) {
+        console.log("Failed request");
+        console.log(text);
+        console.log(error);
         setTimeout(fetch, interval*4);
 
         setStatus("mqtt", 0);

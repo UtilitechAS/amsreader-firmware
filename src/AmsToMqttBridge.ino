@@ -7,19 +7,18 @@
  * electricity providers in other countries. It was originally based on ESP8266, but have also been 
  * adapted to work with ESP32.
  * 
- * @author Roar Fredriksen (@roarfred)
- * The original developer for this project
- * https://github.com/roarfred/AmsToMqttBridge
- * 
  * @author Gunnar Skjold (@gskjold)
  * Maintainer of current code
  * https://github.com/gskjold/AmsToMqttBridge
+ * 
+ * @author Roar Fredriksen (@roarfred)
+ * The original developer for this project
+ * https://github.com/roarfred/AmsToMqttBridge
  */
 
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
 #define ARDUINOJSON_POSITIVE_EXPONENTIATION_THRESHOLD 1e9
-#include <ArduinoJson.h>
 #include <MQTT.h>
 #include <DNSServer.h>
 #include <lwip/apps/sntp.h>
@@ -29,11 +28,16 @@ ADC_MODE(ADC_VCC);
 #endif   
 
 #include "HwTools.h"
+#include "entsoe/EntsoeApi.h"
 
 #include "web/AmsWebServer.h"
 #include "AmsConfiguration.h"
 #include "HanReader.h"
-#include "HanToJson.h"
+
+#include "mqtt/AmsMqttHandler.h"
+#include "mqtt/JsonMqttHandler.h"
+#include "mqtt/RawMqttHandler.h"
+#include "mqtt/DomoticzMqttHandler.h"
 
 #include "Aidon.h"
 #include "Kaifa.h"
@@ -45,100 +49,101 @@ ADC_MODE(ADC_VCC);
 #define WEBSOCKET_DISABLED true
 #include "RemoteDebug.h"
 
-#define DEBUG_ESP_HTTP_CLIENT 1
-#define DEBUG_ESP_PORT Serial
-
 HwTools hw;
 
-DNSServer dnsServer;
+DNSServer* dnsServer = NULL;
 
 AmsConfiguration config;
 
 RemoteDebug Debug;
 
+EntsoeApi* eapi = NULL;
+
+Timezone* tz;
+
 AmsWebServer ws(&Debug, &hw);
 
 MQTTClient mqtt(512);
+AmsMqttHandler* mqttHandler = NULL;
 
 HanReader hanReader;
 
 Stream *hanSerial;
 
+GpioConfig gpioConfig;
+MeterConfig meterConfig;
+bool mqttEnabled = false;
+uint8_t payloadFormat = 0;
+String topic = "ams";
+AmsData meterState;
+bool ntpEnabled = false;
+
 void setup() {
-	if(config.hasConfig()) {
-		config.load();
-	}
+	WiFiConfig wifi;
+	Serial.begin(115200);
 
-	if(!config.hasConfig() || config.getConfigVersion() < 81) {
-		debugI("Setting default hostname");
-		uint16_t chipId;
-		#if defined(ESP32)
-			chipId = ESP.getEfuseMac();
-		#else
-			chipId = ESP.getChipId();
-		#endif
-		config.setWifiHostname((String("ams-") + String(chipId, HEX)).c_str());
-	}
-
-	if(!config.hasConfig() || config.getConfigVersion() < 82) {
-		config.setVccMultiplier(1.0);
-		config.setVccBootLimit(0);
+	if(!config.getGpioConfig(gpioConfig)) {
 		#if HW_ROARFRED
-			config.setHanPin(3);
-			config.setApPin(0);
-			config.setLedPin(2);
-			config.setLedInverted(true);
-			config.setTempSensorPin(5);
+			gpioConfig.hanPin = 3;
+			gpioConfig.apPin = 0;
+			gpioConfig.ledPin = 2;
+			gpioConfig.ledInverted = true;
+			gpioConfig.tempSensorPin = 5;
 		#elif defined(ARDUINO_ESP8266_WEMOS_D1MINI)
-			config.setHanPin(5);
-			config.setApPin(4);
-			config.setLedPin(2);
-			config.setLedInverted(true);
-			config.setTempSensorPin(14);
-			config.setVccMultiplier(1.1);
+			gpioConfig.hanPin = 5;
+			gpioConfig.apPin = 4;
+			gpioConfig.ledPin = 2;
+			gpioConfig.ledInverted = true;
+			gpioConfig.tempSensorPin = 14;
+			gpioConfig.vccMultiplier = 1100;
 		#elif defined(ARDUINO_LOLIN_D32)
-			config.setHanPin(16);
-			config.setLedPin(5);
-			config.setLedInverted(true);
-			config.setTempSensorPin(14);
-			config.setVccPin(35);
-			config.setVccMultiplier(2.25);
+			gpioConfig.hanPin = 16;
+			gpioConfig.ledPin = 5;
+			gpioConfig.ledInverted = true;
+			gpioConfig.tempSensorPin = 14;
 		#elif defined(ARDUINO_FEATHER_ESP32)
-			config.setHanPin(16);
-			config.setLedPin(2);
-			config.setTempSensorPin(14);
+			gpioConfig.hanPin = 16;
+			gpioConfig.ledPin = 2;
+			gpioConfig.tempSensorPin = 14;
 		#elif defined(ARDUINO_ESP32_DEV)
-			config.setHanPin(16);
-			config.setLedPin(2);
-			config.setLedInverted(false);
+			gpioConfig.hanPin = 16;
+			gpioConfig.ledPin = 2;
+			gpioConfig.ledInverted = true;
 		#elif defined(ESP8266)
-			config.setHanPin(3);
-			config.setLedPin(2);
-			config.setLedInverted(true);
+			gpioConfig.hanPin = 3;
+			gpioConfig.ledPin = 2;
+			gpioConfig.ledInverted = true;
 		#elif defined(ESP32)
-			config.setHanPin(16);
-			config.setLedPin(2);
-			config.setLedInverted(true);
-			config.setTempSensorPin(14);
+			gpioConfig.hanPin = 16;
+			gpioConfig.ledPin = 2;
+			gpioConfig.ledInverted = true;
+			gpioConfig.tempSensorPin = 14;
 		#endif
 	}
 	delay(1);
+	if(gpioConfig.apPin >= 0)
+		pinMode(gpioConfig.apPin, INPUT_PULLUP);
 
-	hw.setLed(config.getLedPin(), config.isLedInverted());
-	hw.setLedRgb(config.getLedPinRed(), config.getLedPinGreen(), config.getLedPinBlue(), config.isLedRgbInverted());
-	hw.setTempSensorPin(config.getTempSensorPin());
-	hw.setTempAnalogSensorPin(config.getTempAnalogSensorPin());
-	hw.setVccPin(config.getVccPin());
-	hw.setVccMultiplier(config.getVccMultiplier());
-	hw.setVccOffset(config.getVccOffset());
+	config.loadTempSensors();
+	hw.setup(&gpioConfig, &config);
 	hw.ledBlink(LED_INTERNAL, 1);
 	hw.ledBlink(LED_RED, 1);
 	hw.ledBlink(LED_YELLOW, 1);
 	hw.ledBlink(LED_GREEN, 1);
 	hw.ledBlink(LED_BLUE, 1);
 
-	if(config.getHanPin() == 3) {
-		switch(config.getMeterType()) {
+	EntsoeConfig entsoe;
+	if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
+		eapi = new EntsoeApi(&Debug);
+		eapi->setup(entsoe);
+		ws.setEntsoeApi(eapi);
+	}
+
+	bool shared = false;
+	config.getMeterConfig(meterConfig);
+	if(gpioConfig.hanPin == 3) {
+		shared = true;
+		switch(meterConfig.type) {
 			case METER_TYPE_KAMSTRUP:
 			case METER_TYPE_OMNIPOWER:
 				Serial.begin(2400, SERIAL_8N1);
@@ -147,34 +152,30 @@ void setup() {
 				Serial.begin(2400, SERIAL_8E1);
 				break;
 		}
-	} else {
+	}
+
+ 	if(!shared) {
 		Serial.begin(115200);
 	}
 
-	if(config.hasConfig() && config.isDebugSerial()) {
-		Debug.setSerialEnabled(config.isDebugSerial());
-	} else {
-		#if DEBUG_MODE
-			Debug.setSerialEnabled(true);
-		#endif
+	DebugConfig debug;
+	if(config.getDebugConfig(debug)) {
+		Debug.setSerialEnabled(debug.serial);
 	}
+	#if DEBUG_MODE
+		Debug.setSerialEnabled(true);
+	#endif
 	delay(1);
 
-	uint8_t c = config.getTempSensorCount();
-	for(int i = 0; i < c; i++) {
-		TempSensorConfig* tsc = config.getTempSensorConfig(i);
-		hw.confTempSensor(tsc->address, tsc->name, tsc->common);
-	}
-
-	double vcc = hw.getVcc();
+	float vcc = hw.getVcc();
 
 	if (Debug.isActive(RemoteDebug::INFO)) {
 		debugI("AMS bridge started");
 		debugI("Voltage: %.2fV", vcc);
 	}
 
-	double vccBootLimit = config.getVccBootLimit();
-	if(vccBootLimit > 0 && (config.getApPin() == 0xFF || digitalRead(config.getApPin()) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
+	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : gpioConfig.vccBootLimit / 10.0;
+	if(vccBootLimit > 0 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
 		if (vcc < vccBootLimit) {
 			if(Debug.isActive(RemoteDebug::INFO)) {
 				debugI("Voltage is too low, sleeping");
@@ -207,7 +208,7 @@ void setup() {
 			WiFi.forceSleepBegin();
 #endif
 			int i = 0;
-			while(hw.getVcc() < 3.2 && i < 3) {
+			while(hw.getVcc() > 1.0 && hw.getVcc() < 3.2 && i < 3) {
 				if(Debug.isActive(RemoteDebug::INFO)) debugI(" vcc not optimal, light sleep 10s");
 #if defined(ESP8266)
 				delay(10000);
@@ -222,6 +223,7 @@ void setup() {
 			File firmwareFile = SPIFFS.open(FILE_FIRMWARE, "r");
 			debugD(" firmware size: %d", firmwareFile.size());
 			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+			debugD(" available: %d", maxSketchSpace);
 			if (!Update.begin(maxSketchSpace, U_FLASH)) {
 				if(Debug.isActive(RemoteDebug::ERROR)) {
 					debugE("Unable to start firmware update");
@@ -258,9 +260,16 @@ void setup() {
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
 		WiFi_connect();
-		if(config.isNtpEnable()) {
-			configTime(config.getNtpOffset(), config.getNtpSummerOffset(), config.getNtpServer());
-			sntp_servermode_dhcp(config.isNtpDhcp() ? 1 : 0);
+		
+		NtpConfig ntp;
+		if(config.getNtpConfig(ntp)) {
+			configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? ntp.server : "");
+			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
+			ntpEnabled = ntp.enable;
+			TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
+			TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
+			tz = new Timezone(dst, std);
+			ws.setTimezone(tz);
 		}
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
@@ -269,9 +278,8 @@ void setup() {
 		swapWifiMode();
 	}
 
-	ws.setup(&config, &mqtt);
+	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &mqtt);
 }
-
 
 int buttonTimer = 0;
 bool buttonActive = false;
@@ -281,34 +289,15 @@ bool longPressActive = false;
 bool wifiConnected = false;
 
 unsigned long lastTemperatureRead = 0;
-float temperatures[32];
-
 unsigned long lastSuccessfulRead = 0;
-
 unsigned long lastErrorBlink = 0; 
 int lastError = 0;
-
-// domoticz energy init
-double energy = -1.0;
-
-String toHex(uint8_t* in) {
-	String hex;
-	for(int i = 0; i < sizeof(in)*2; i++) {
-		if(in[i] < 0x10) {
-			hex += '0';
-		}
-		hex += String(in[i], HEX);
-	}
-	hex.toUpperCase();
-	return hex;
-}
-
 
 void loop() {
 	Debug.handle();
 	unsigned long now = millis();
-	if(config.getApPin() != 0xFF) {
-		if (digitalRead(config.getApPin()) == LOW) {
+	if(gpioConfig.apPin != 0xFF) {
+		if (digitalRead(gpioConfig.apPin) == LOW) {
 			if (buttonActive == false) {
 				buttonActive = true;
 				buttonTimer = now;
@@ -329,44 +318,14 @@ void loop() {
 			}
 		}
 	}
-	
+
 	if(now - lastTemperatureRead > 15000) {
 		unsigned long start = millis();
 		hw.updateTemperatures();
 		lastTemperatureRead = now;
 
-		uint8_t c = hw.getTempSensorCount();
-
-		if(strlen(config.getMqttHost()) > 0) {
-			bool anyChanged = false;
-			for(int i = 0; i < c; i++) {
-				bool changed = false;
-				TempSensorData* data = hw.getTempSensorData(i);
-				if(data->lastValidRead > -85) {
-					changed = data->lastValidRead != temperatures[i];
-					temperatures[i] = data->lastValidRead;
-				}
-
-				if((changed && config.getMqttPayloadFormat() == 1) || config.getMqttPayloadFormat() == 2) {
-					mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature/" + toHex(data->address), String(temperatures[i], 2));
-				}
-
-				anyChanged |= changed;
-			}
-
-			if(anyChanged && config.getMqttPayloadFormat() == 0) {
-				StaticJsonDocument<512> json;
-				JsonObject temps = json.createNestedObject("temperatures");
-				for(int i = 0; i < c; i++) {
-				TempSensorData* data = hw.getTempSensorData(i);
-					JsonObject obj = temps.createNestedObject(toHex(data->address));
-					obj["name"] = data->name;
-					obj["value"] = serialized(String(temperatures[i], 2));
-				}
-				String msg;
-				serializeJson(json, msg);
-				mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
-			}
+		if(mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt.connected() && !topic.isEmpty()) {
+			mqttHandler->publishTemperatures(&config, &hw);
 		}
 		debugD("Used %d ms to update temperature", millis()-start);
 	}
@@ -380,32 +339,57 @@ void loop() {
 		} else {
 			if(!wifiConnected) {
 				wifiConnected = true;
-				if(config.getAuthSecurity() > 0) {
-					Debug.setPassword(config.getAuthPassword());
-				}
-				Debug.begin(config.getWifiHostname(), (uint8_t) config.getDebugLevel());
-				Debug.setSerialEnabled(config.isDebugSerial());
-				if(!config.isDebugTelnet()) {
-					Debug.stop();
-				}
-				if(Debug.isActive(RemoteDebug::INFO)) {
-					debugI("Successfully connected to WiFi!");
-					debugI("IP: %s", WiFi.localIP().toString().c_str());
-				}
-				if(strlen(config.getWifiHostname()) > 0 && config.isMdnsEnable()) {
-					debugD("mDNS is enabled, using host: %s", config.getWifiHostname());
-					if(MDNS.begin(config.getWifiHostname())) {
-						MDNS.addService("http", "tcp", 80);
-					} else {
-						debugE("Failed to set up mDNS!");
+				
+				WiFiConfig wifi;
+				if(config.getWiFiConfig(wifi)) {
+					WebConfig web;
+					if(config.getWebConfig(web) && web.security > 0) {
+						Debug.setPassword(web.password);
 					}
+					DebugConfig debug;
+					if(config.getDebugConfig(debug)) {
+						Debug.begin(wifi.hostname, (uint8_t) debug.level);
+						Debug.setSerialEnabled(debug.serial);
+						if(!debug.telnet) {
+							Debug.stop();
+						}
+					}
+					if(Debug.isActive(RemoteDebug::INFO)) {
+						debugI("Successfully connected to WiFi!");
+						debugI("IP:  %s", WiFi.localIP().toString().c_str());
+						debugI("GW:  %s", WiFi.gatewayIP().toString().c_str());
+						debugI("DNS: %s", WiFi.dnsIP().toString().c_str());
+					}
+					if(strlen(wifi.hostname) > 0 && wifi.mdns) {
+						debugD("mDNS is enabled, using host: %s", wifi.hostname);
+						if(MDNS.begin(wifi.hostname)) {
+							MDNS.addService("http", "tcp", 80);
+						} else {
+							debugE("Failed to set up mDNS!");
+						}
+					}
+				}
+
+				MqttConfig mqttConfig;
+				if(config.getMqttConfig(mqttConfig)) {
+					mqttEnabled = strlen(mqttConfig.host) > 0;
+					ws.setMqttEnabled(mqttEnabled);
 				}
 			}
 			if(config.isNtpChanged()) {
-				if(config.isNtpEnable()) {
-					configTime(config.getNtpOffset(), config.getNtpSummerOffset(), config.getNtpServer());
-					sntp_servermode_dhcp(config.isNtpDhcp() ? 1 : 0);
+				NtpConfig ntp;
+				if(config.getNtpConfig(ntp)) {
+					configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? ntp.server : "");
+					sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
+					ntpEnabled = ntp.enable;
+
+					if(tz != NULL) delete tz;
+					TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
+					TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
+					tz = new Timezone(dst, std);
+					ws.setTimezone(tz);
 				}
+
 				config.ackNtpChange();
 			}
 			#if defined ESP8266
@@ -416,21 +400,43 @@ void loop() {
 				errorBlink();
 			}
 
-			if (strlen(config.getMqttHost()) > 0) {
+			if (mqttEnabled || config.isMqttChanged()) {
 				mqtt.loop();
 				delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
 				if(!mqtt.connected() || config.isMqttChanged()) {
 					MQTT_connect();
 				}
-				if(config.getMqttPayloadFormat() == 1) {
-					sendSystemStatusToMqtt();
-				}
 			} else if(mqtt.connected()) {
 				mqtt.disconnect();
 			}
+
+			if(eapi != NULL) {
+				if(eapi->loop() && mqttHandler != NULL && mqtt.connected()) {
+					mqttHandler->publishPrices(eapi);
+				}
+			}
+			
+			if(config.isEntsoeChanged()) {
+				EntsoeConfig entsoe;
+				if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
+					if(eapi == NULL) {
+						eapi = new EntsoeApi(&Debug);
+						ws.setEntsoeApi(eapi);
+					}
+					eapi->setup(entsoe);
+				} else if(eapi != NULL) {
+					delete eapi;
+					eapi = NULL;
+					ws.setEntsoeApi(eapi);
+				}
+				config.ackEntsoeChange();
+			}
+
 		}
 	} else {
-		dnsServer.processNextRequest();
+		if(dnsServer != NULL) {
+			dnsServer->processNextRequest();
+		}
 		// Continously flash the LED when AP mode
 		if (now / 50 % 64 == 0) {
 			if(!hw.ledBlink(LED_YELLOW, 1)) {
@@ -440,7 +446,8 @@ void loop() {
 	}
 
 	if(config.isMeterChanged()) {
-		setupHanPort(config.getHanPin(), config.getMeterType());
+		config.getMeterConfig(meterConfig);
+		setupHanPort(gpioConfig.hanPin, meterConfig.type);
 		config.ackMeterChanged();
 	}
 	delay(1);
@@ -503,8 +510,8 @@ void setupHanPort(int pin, int newMeterType) {
 	}
 
 	hanReader.setup(hanSerial, &Debug);
-	hanReader.setEncryptionKey(config.getMeterEncryptionKey());
-	hanReader.setAuthenticationKey(config.getMeterAuthenticationKey());
+	hanReader.setEncryptionKey(meterConfig.encryptionKey);
+	hanReader.setAuthenticationKey(meterConfig.authenticationKey);
 
 	// Compensate for the known Kaifa bug
 	hanReader.compensateFor09HeaderBug = (newMeterType == 1);
@@ -512,16 +519,6 @@ void setupHanPort(int pin, int newMeterType) {
 	// Empty buffer before starting
 	while (hanSerial->available() > 0) {
 		hanSerial->read();
-	}
-
-	if(config.hasConfig() && config.isDebugSerial()) {
-		if(WiFi.status() == WL_CONNECTED) {
-			Debug.begin(config.getWifiHostname(), (uint8_t) config.getDebugLevel());
-		}
-		Debug.setSerialEnabled(config.isDebugSerial());
-		if(!config.isDebugTelnet()) {
-			Debug.stop();
-		}
 	}
 }
 
@@ -538,7 +535,7 @@ void errorBlink() {
 				}
 				break;
 			case 1:
-				if(strlen(config.getMqttHost()) > 0 && mqtt.lastError() != 0) {
+				if(mqttEnabled && mqtt.lastError() != 0) {
 					hw.ledBlink(LED_RED, 2); // If MQTT error, blink twice
 					return;
 				}
@@ -558,7 +555,9 @@ void swapWifiMode() {
 		hw.ledOn(LED_INTERNAL);
 	}
 	WiFiMode_t mode = WiFi.getMode();
-	dnsServer.stop();
+	if(dnsServer != NULL) {
+		dnsServer->stop();
+	}
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
@@ -569,10 +568,17 @@ void swapWifiMode() {
 		WiFi.softAP("AMS2MQTT");
 		WiFi.mode(WIFI_AP);
 
-		dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-		dnsServer.start(53, "*", WiFi.softAPIP());
+		if(dnsServer == NULL) {
+			dnsServer = new DNSServer();
+		}
+		dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
+		dnsServer->start(53, "*", WiFi.softAPIP());
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to STA mode");
+		if(dnsServer != NULL) {
+			delete dnsServer;
+			dnsServer = NULL;
+		}
 		WiFi_connect();
 	}
 	delay(500);
@@ -593,242 +599,44 @@ void mqttMessageReceived(String &topic, String &payload)
 }
 
 int currentMeterType = 0;
-AmsData lastMqttData;
 void readHanPort() {
 	if (hanReader.read()) {
 		lastSuccessfulRead = millis();
+		delay(1);
 
-		if(config.getMeterType() > 0) {
+		if(meterConfig.type > 0) {
 			if(!hw.ledBlink(LED_GREEN, 1))
 				hw.ledBlink(LED_INTERNAL, 1);
 
-			AmsData data(config.getMeterType(), config.isSubstituteMissing(), hanReader);
+			AmsData data(meterConfig.type, meterConfig.substituteMissing, hanReader);
 			if(data.getListType() > 0) {
-				ws.setData(data);
-
-				if(strlen(config.getMqttHost()) > 0 && strlen(config.getMqttPublishTopic()) > 0) {
-					if(config.getMqttPayloadFormat() == 0) {
-						StaticJsonDocument<512> json;
-						hanToJson(json, data, hw, hw.getTemperature(), config.getMqttClientId());
-						if (Debug.isActive(RemoteDebug::INFO)) {
-							debugI("Sending data to MQTT");
-							if (Debug.isActive(RemoteDebug::DEBUG)) {
-								serializeJsonPretty(json, Debug);
+				if(mqttEnabled && mqttHandler != NULL) {
+					if(mqttHandler->publish(&data, &meterState)) {
+						if(data.getListType() == 3 && eapi != NULL) {
+							mqttHandler->publishPrices(eapi);
+						}
+						if(data.getListType() >= 2) {
+							mqttHandler->publishSystem(&hw);
+						}
+						time_t now = time(nullptr);
+						if(now < EPOCH_2021_01_01 || data.getListType() == 3) {
+							if(data.getMeterTimestamp() > EPOCH_2021_01_01 || !ntpEnabled) {
+								debugI("Using timestamp from meter");
+								now = data.getMeterTimestamp();
+							} else if(data.getPackageTimestamp() > EPOCH_2021_01_01) {
+								debugI("Using timestamp from meter (DLMS)");
+								now = data.getPackageTimestamp();
 							}
-						}
-
-						String msg;
-						serializeJson(json, msg);
-						mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
-					// 
-					// Start DOMOTICZ
-					//
-					} else if(config.getMqttPayloadFormat() == 3) {
-						debugI("Sending data to MQTT");
-						//
-						// Special MQTT messages for DOMOTIZ (https://www.domoticz.com/wiki/MQTT)
-						// -All messages should be published to topic "domoticz/in"
-						//
-						//  message msg_PE : send active power and and cumulative energy consuption to  virtual meter "Electricity (instant and counter)"
-						//
-						//      /json.htm?type=command&param=udevice&idx=IDX&nvalue=0&svalue=POWER;ENERGY
-						//
-						//       MQTT sample message:    {"command": "udevice",  "idx" : IDX , "nvalue" : 0, "svalue" : "POWER;ENERGY"}   
-						//         IDX = id of your device (This number can be found in the devices tab in the column "IDX")
-						//         POWER = current power (Watt)
-						//         ENERGY = cumulative energy in Watt-hours (Wh) This is an incrementing counter.
-						//               (if you choose as type "Energy read : Computed", this is just a "dummy" counter, not updatable because it's the result of DomoticZ calculs from POWER)
-						//
-						//  message msg_V1 : send Voltage of L1 to virtual Voltage meter
-						//
-						//	      /json.htm?type=command&param=udevice&idx=IDX&nvalue=0&svalue=VOLTAGE
-						//
-						//       MQTT sample message:    {"command": "udevice",  "idx" : IDX , "nvalue" : 0, "svalue" : "VOLTAGE"}   
-						//         IDX = id of your device (This number can be found in the devices tab in the column "IDX")
-						//         VOLTAGE = Voltage (V)
-						//  
-			
-						int idx1 = config.getDomoELIDX();
-						if (idx1 > 0) {
-							String PowerEnergy;
-							int p;
-							// double energy = config.getDomoEnergy();
-							double tmp_energy;
-							StaticJsonDocument<200> json_PE;
-							p = data.getActiveImportPower();
-							// cumulative energy is given only once pr hour. check if value is different from 0 and store last valid value on global variable.
-							tmp_energy = data.getActiveImportCounter();
-							if (tmp_energy > 1.0) energy = tmp_energy;		
-							//  power_unit: watt, energy_unit: watt*h. Stored as kwh, need watth
-							PowerEnergy = String((double) p/1.0) + ";" + String((double) energy*1000.0) ;
-							json_PE["command"] = "udevice";
-							json_PE["idx"] = idx1;
-							json_PE["nvalue"] = 0;
-							json_PE["svalue"] = PowerEnergy;
-							// Stringify the json
-							String msg_PE;
-							serializeJson(json_PE, msg_PE);
-							// publish power data directly to domoticz/in, but only after first reading of total power, once an hour... . (otherwise total consumtion will be wrong.)
-							if (energy > 0.0 ) mqtt.publish("domoticz/in", msg_PE.c_str());
-						}
-						int idxu1 =config.getDomoVL1IDX();
-						if (idxu1 > 0){				
-							StaticJsonDocument<200> json_u1;
-							double u1;
-							//
-							// prepare message msg_u1 for virtual Voltage meter"
-							//
-							u1 = data.getL1Voltage();
-							if (u1 > 0.1){ 
-								json_u1["command"] = "udevice";
-								json_u1["idx"] = idxu1;
-								json_u1["nvalue"] = 0;
-								json_u1["svalue"] =  String(u1);
-								// Stringify the json
-								String msg_u1;
-								serializeJson(json_u1, msg_u1);
-								// publish power data directly to domoticz/in
-								mqtt.publish("domoticz/in", msg_u1.c_str());
+							if(now > EPOCH_2021_01_01) {
+								timeval tv { now, 0};
+								settimeofday(&tv, nullptr);
 							}
-						}
-						int idxu2 =config.getDomoVL2IDX();
-						if (idxu2 > 0){				
-							StaticJsonDocument<200> json_u2;
-							double u2;
-							//
-							// prepare message msg_u2 for virtual Voltage meter"
-							//
-							u2 = data.getL2Voltage();
-							if (u2 > 0.1){ 
-								json_u2["command"] = "udevice";
-								json_u2["idx"] = idxu2;
-								json_u2["nvalue"] = 0;
-								json_u2["svalue"] =  String(u2);
-								// Stringify the json
-								String msg_u2;
-								serializeJson(json_u2, msg_u2);
-								// publish power data directly to domoticz/in
-								mqtt.publish("domoticz/in", msg_u2.c_str());
-							}
-						}
-						int idxu3 =config.getDomoVL3IDX();
-						if (idxu3 > 0){				
-							StaticJsonDocument<200> json_u3;
-							double u3;
-							//
-							// prepare message msg_u3 for virtual Voltage meter"
-							//
-							u3 = data.getL3Voltage();
-							if (u3 > 0.1){ 
-								json_u3["command"] = "udevice";
-								json_u3["idx"] = idxu3;
-								json_u3["nvalue"] = 0;
-								json_u3["svalue"] =  String(u3);
-								// Stringify the json
-								String msg_u3;
-								serializeJson(json_u3, msg_u3);
-								// publish power data directly to domoticz/in
-								mqtt.publish("domoticz/in", msg_u3.c_str());
-							}
-						}
-				
-						int idxi1 =config.getDomoCL1IDX();
-						if (idxi1 > 0){				
-							StaticJsonDocument<200> json_i1;
-							double i1, i2, i3;
-							String Ampere3;
-							//
-							// prepare message msg_i1 for virtual Current/Ampere 3phase mater"
-							//
-							i1 = data.getL1Current();
-							i2 = data.getL2Current();
-							i3 = data.getL3Current();
-							Ampere3 = String(i1) + ";" + String(i2) + ";" + String(i3) ;
-							json_i1["command"] = "udevice";
-							json_i1["idx"] = idxi1;
-							json_i1["nvalue"] = 0;
-							json_i1["svalue"] =  Ampere3;
-							// Stringify the json
-							String msg_i1;
-							serializeJson(json_i1, msg_i1);
-							// publish power data directly to domoticz/in
-							if (i1 > 0.0) mqtt.publish("domoticz/in", msg_i1.c_str());
-						}			
-						//
-						// End DOMOTICZ
-						//
-					} else if(config.getMqttPayloadFormat() == 1 || config.getMqttPayloadFormat() == 2) {
-						mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
-						switch(data.getListType()) {
-							case 3:
-								// ID and type belongs to List 2, but I see no need to send that every 10s
-								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/id", data.getMeterId());
-								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/type", data.getMeterType());
-								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/clock", String(data.getMeterTimestamp()));
-								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/import/reactive/accumulated", String(data.getReactiveImportCounter(), 2));
-								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/import/active/accumulated", String(data.getActiveImportCounter(), 2));
-								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/reactive/accumulated", String(data.getReactiveExportCounter(), 2));
-								mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/active/accumulated", String(data.getActiveExportCounter(), 2));
-							case 2:
-								// Only send data if changed. ID and Type is sent on the 10s interval only if changed
-								if(lastMqttData.getMeterId() != data.getMeterId() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/id", data.getMeterId());
-								}
-								if(lastMqttData.getMeterType() != data.getMeterType() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/type", data.getMeterType());
-								}
-								if(lastMqttData.getL1Current() != data.getL1Current() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l1/current", String(data.getL1Current(), 2));
-								}
-								if(lastMqttData.getL1Voltage() != data.getL1Voltage() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l1/voltage", String(data.getL1Voltage(), 2));
-								}
-								if(lastMqttData.getL2Current() != data.getL2Current() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l2/current", String(data.getL2Current(), 2));
-								}
-								if(lastMqttData.getL2Voltage() != data.getL2Voltage() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l2/voltage", String(data.getL2Voltage(), 2));
-								}
-								if(lastMqttData.getL3Current() != data.getL3Current() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l3/current", String(data.getL3Current(), 2));
-								}
-								if(lastMqttData.getL3Voltage() != data.getL3Voltage() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/l3/voltage", String(data.getL3Voltage(), 2));
-								}
-								if(lastMqttData.getReactiveExportPower() != data.getReactiveExportPower() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/reactive", String(data.getReactiveExportPower()));
-								}
-								if(lastMqttData.getActiveExportPower() != data.getActiveExportPower() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/export/active", String(data.getActiveExportPower()));
-								}
-								if(lastMqttData.getReactiveImportPower() != data.getReactiveImportPower() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/import/reactive", String(data.getReactiveImportPower()));
-								}
-							case 1:
-								if(lastMqttData.getActiveImportPower() != data.getActiveImportPower() || config.getMqttPayloadFormat() == 2) {
-									mqtt.publish(String(config.getMqttPublishTopic()) + "/meter/import/active", String(data.getActiveImportPower()));
-								}
 						}
 					}
-					lastMqttData.apply(data);
 					mqtt.loop();
 					delay(10);
 				}
-			} else {
-				if(config.isSendUnknown() && strlen(config.getMqttHost()) > 0 && strlen(config.getMqttPublishTopic()) > 0) {
-					byte buf[512];
-					int length = hanReader.getBuffer(buf);
-					String hexstring = "";
-
-					for(int i = 0; i < length; i++) {
-						if(buf[i] < 0x10) {
-						hexstring += '0';
-						}
-
-						hexstring += String(buf[i], HEX);
-					}
-					mqtt.publish(String(config.getMqttPublishTopic()), hexstring);
-				}
+				meterState.apply(data);
 			}
 		} else {
 			// Auto detect meter if not set
@@ -848,31 +656,34 @@ void readHanPort() {
 				if(!list.isEmpty()) {
 					list.toLowerCase();
 					if(list.startsWith("kfm")) {
-						config.setMeterType(1);
+						meterConfig.type = 1;
+						config.setMeterConfig(meterConfig);
 						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kaifa meter");
 						break;
 					} else if(list.startsWith("aidon")) {
-						config.setMeterType(2);
+						meterConfig.type = 2;
+						config.setMeterConfig(meterConfig);
 						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Aidon meter");
 						break;
 					} else if(list.startsWith("kamstrup")) {
-						config.setMeterType(3);
+						meterConfig.type = 3;
+						config.setMeterConfig(meterConfig);
 						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kamstrup meter");
 						break;
 					}
 				}
 			}
-			hanReader.compensateFor09HeaderBug = (config.getMeterType() == 1);
+			hanReader.compensateFor09HeaderBug = (meterConfig.type == 1);
 		}
 	}
 
 	// Switch parity if meter is still not detected
-	if(config.getMeterType() == 0 && millis() - lastSuccessfulRead > 10000) {
+	if(meterConfig.type == 0 && millis() - lastSuccessfulRead > 10000) {
 		lastSuccessfulRead = millis();
 		debugD("No data for current setting, switching parity");
 		Serial.flush();
 		if(++currentMeterType == 4) currentMeterType = 1;
-		setupHanPort(config.getHanPin(), currentMeterType);
+		setupHanPort(gpioConfig.hanPin, currentMeterType);
 	}
 	delay(1);
 }
@@ -886,51 +697,67 @@ void WiFi_connect() {
 	}
 	lastWifiRetry = millis();
 
-	if (Debug.isActive(RemoteDebug::INFO)) debugI("Connecting to WiFi network: %s", config.getWifiSsid());
-
 	if (WiFi.status() != WL_CONNECTED) {
+		WiFiConfig wifi;
+		if(!config.getWiFiConfig(wifi) || strlen(wifi.ssid) == 0) {
+			swapWifiMode();
+			return;
+		}
+
+		if (Debug.isActive(RemoteDebug::INFO)) debugI("Connecting to WiFi network: %s", wifi.ssid);
+
 		MDNS.end();
 		WiFi.disconnect();
 		yield();
 
 		WiFi.enableAP(false);
 		WiFi.mode(WIFI_STA);
-		if(strlen(config.getWifiIp()) > 0) {
+		if(strlen(wifi.ip) > 0) {
 			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
-			ip.fromString(config.getWifiIp());
-			gw.fromString(config.getWifiGw());
-			sn.fromString(config.getWifiSubnet());
-			dns1.fromString(config.getWifiDns1());
-			dns2.fromString(config.getWifiDns2());
+			ip.fromString(wifi.ip);
+			gw.fromString(wifi.gateway);
+			sn.fromString(wifi.subnet);
+			dns1.fromString(wifi.dns1);
+			dns2.fromString(wifi.dns2);
 			WiFi.config(ip, gw, sn, dns1, dns2);
 		} else {
-#if defined(ESP32)
+			#if defined(ESP32)
 			WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // Workaround to make DHCP hostname work for ESP32. See: https://github.com/espressif/arduino-esp32/issues/2537
-#endif
+			#endif
 		}
-		if(strlen(config.getWifiHostname()) > 0) {
-#if defined(ESP8266)
-			WiFi.hostname(config.getWifiHostname());
-#elif defined(ESP32)
-			WiFi.setHostname(config.getWifiHostname());
-#endif
+		if(strlen(wifi.hostname) > 0) {
+			#if defined(ESP8266)
+			WiFi.hostname(wifi.hostname);
+			#elif defined(ESP32)
+			WiFi.setHostname(wifi.hostname);
+			#endif
 		}
-		WiFi.begin(config.getWifiSsid(), config.getWifiPassword());
+		WiFi.begin(wifi.ssid, wifi.psk);
 		yield();
 	}
 }
 
 unsigned long lastMqttRetry = -10000;
 void MQTT_connect() {
-	if(strlen(config.getMqttHost()) == 0) {
+	MqttConfig mqttConfig;
+	if(!config.getMqttConfig(mqttConfig) || strlen(mqttConfig.host) == 0) {
 		if(Debug.isActive(RemoteDebug::WARNING)) debugW("No MQTT config");
+		mqttEnabled = false;
+		ws.setMqttEnabled(false);
+		config.ackMqttChange();
 		return;
 	}
-	if(millis() - lastMqttRetry < (mqtt.lastError() == 0 ? 5000 : 60000)) {
+	if(millis() - lastMqttRetry < (mqtt.lastError() == 0 || config.isMqttChanged() ? 5000 : 30000)) {
 		yield();
 		return;
 	}
 	lastMqttRetry = millis();
+
+	mqttEnabled = true;
+	ws.setMqttEnabled(true);
+	payloadFormat = mqttConfig.payloadFormat;
+	topic = String(mqttConfig.publishTopic);
+
 	if(Debug.isActive(RemoteDebug::INFO)) {
 		debugD("Disconnecting MQTT before connecting");
 	}
@@ -938,15 +765,35 @@ void MQTT_connect() {
 	mqtt.disconnect();
 	yield();
 
+	if(mqttHandler != NULL) {
+		delete mqttHandler;
+		mqttHandler = NULL;
+	}
+
+	switch(mqttConfig.payloadFormat) {
+		case 0:
+			mqttHandler = new JsonMqttHandler(&mqtt, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
+			break;
+		case 1:
+		case 2:
+			mqttHandler = new RawMqttHandler(&mqtt, mqttConfig.publishTopic, mqttConfig.payloadFormat == 2);
+			break;
+		case 3:
+			DomoticzConfig domo;
+			config.getDomoticzConfig(domo);
+			mqttHandler = new DomoticzMqttHandler(&mqtt, domo);
+			break;
+	}
+
 	WiFiClientSecure *secureClient = NULL;
 	Client *client = NULL;
-	if(config.isMqttSsl()) {
+	if(mqttConfig.ssl) {
 		debugI("MQTT SSL is configured");
 
 		secureClient = new WiFiClientSecure();
-#if defined(ESP8266)
+		#if defined(ESP8266)
 		secureClient->setBufferSizes(512, 512);
-#endif
+		#endif
 
 		if(SPIFFS.begin()) {
 			char *ca = NULL;
@@ -976,95 +823,44 @@ void MQTT_connect() {
 	}
 
 	if(Debug.isActive(RemoteDebug::INFO)) {
-		debugI("Connecting to MQTT %s:%d", config.getMqttHost(), config.getMqttPort());
+		debugI("Connecting to MQTT %s:%d", mqttConfig.host, mqttConfig.port);
 	}
-	mqtt.begin(config.getMqttHost(), config.getMqttPort(), *client);
+	mqtt.begin(mqttConfig.host, mqttConfig.port, *client);
 
-#if defined(ESP8266)
+	#if defined(ESP8266)
 	if(secureClient) {
 		time_t epoch = time(nullptr);
 		debugD("Setting NTP time %i for secure MQTT connection", epoch);
  		secureClient->setX509Time(epoch);
 	}
-#endif
+	#endif
 
 	// Connect to a unsecure or secure MQTT server
-	if ((strlen(config.getMqttUser()) == 0 && mqtt.connect(config.getMqttClientId())) ||
-		(strlen(config.getMqttUser()) > 0 && mqtt.connect(config.getMqttClientId(), config.getMqttUser(), config.getMqttPassword()))) {
+	if ((strlen(mqttConfig.username) == 0 && mqtt.connect(mqttConfig.clientId)) ||
+		(strlen(mqttConfig.username) > 0 && mqtt.connect(mqttConfig.clientId, mqttConfig.username, mqttConfig.password))) {
 		if (Debug.isActive(RemoteDebug::INFO)) debugI("Successfully connected to MQTT!");
 		config.ackMqttChange();
 
 		// Subscribe to the chosen MQTT topic, if set in configuration
-		if (strlen(config.getMqttSubscribeTopic()) > 0) {
-			mqtt.subscribe(config.getMqttSubscribeTopic());
-			if (Debug.isActive(RemoteDebug::INFO)) debugI("  Subscribing to [%s]\r\n", config.getMqttSubscribeTopic());
+		if (strlen(mqttConfig.subscribeTopic) > 0) {
+			mqtt.subscribe(mqttConfig.subscribeTopic);
+			if (Debug.isActive(RemoteDebug::INFO)) debugI("  Subscribing to [%s]\r\n", mqttConfig.subscribeTopic);
 		}
 		
-		if(config.getMqttPayloadFormat() == 0) {
-			sendMqttData("Connected!");
-		} else if(config.getMqttPayloadFormat() == 1) {
-			sendSystemStatusToMqtt();
+		if(mqttHandler != NULL) {
+			mqttHandler->publishSystem(&hw);
 		}
 	} else {
 		if (Debug.isActive(RemoteDebug::ERROR)) {
 			debugE("Failed to connect to MQTT");
 #if defined(ESP8266)
 			if(secureClient) {
-				char buf[256];
-  				secureClient->getLastSSLError(buf,256);
+				char buf[64];
+  				secureClient->getLastSSLError(buf,64);
 				Debug.println(buf);
 			}
 #endif
 		}
 	}
 	yield();
-}
-
-// Send a simple string embedded in json over MQTT
-void sendMqttData(String data)
-{
-	// Make sure we have configured a publish topic
-	if (strlen(config.getMqttPublishTopic()) == 0)
-		return;
-
-	// Build a json with the message in a "data" attribute
-	StaticJsonDocument<128> json;
-	json["id"] = WiFi.macAddress();
-	json["up"] = millis64()/1000;
-	json["data"] = data;
-	double vcc = hw.getVcc();
-	if(vcc > 0) {
-		json["vcc"] = vcc;
-	}
-	json["rssi"] = hw.getWifiRssi();
-
-	// Stringify the json
-	String msg;
-	serializeJson(json, msg);
-
-	// Send the json over MQTT
-	mqtt.publish(config.getMqttPublishTopic(), msg.c_str());
-
-	if (Debug.isActive(RemoteDebug::INFO)) debugI("Sending MQTT data");
-	if (Debug.isActive(RemoteDebug::DEBUG)) debugD("[%s]", data.c_str());
-}
-
-unsigned long lastSystemDataSent = -10000;
-void sendSystemStatusToMqtt() {
-	if (strlen(config.getMqttPublishTopic()) == 0)
-		return;
-	if(millis() - lastSystemDataSent < 10000)
-		return;
-	lastSystemDataSent = millis();
-
-	mqtt.publish(String(config.getMqttPublishTopic()) + "/id", WiFi.macAddress());
-	mqtt.publish(String(config.getMqttPublishTopic()) + "/uptime", String((unsigned long) millis64()/1000));
-	double vcc = hw.getVcc();
-	if(vcc > 0) {
-		mqtt.publish(String(config.getMqttPublishTopic()) + "/vcc", String(vcc, 2));
-	}
-	mqtt.publish(String(config.getMqttPublishTopic()) + "/rssi", String(hw.getWifiRssi()));
-    if(hw.getTemperature() > -85) {
-		mqtt.publish(String(config.getMqttPublishTopic()) + "/temperature", String(hw.getTemperature(), 2));
-    }
 }

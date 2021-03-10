@@ -1,0 +1,91 @@
+<form method="post" action="/save">
+    <input type="hidden" name="mc" value="true"/>
+    <div class="my-3 p-3 bg-white rounded shadow">
+        <h6>Meter</h6>
+        <div class="row">
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Meter type</span>
+                    </div>
+                    <select id="mt" class="form-control sd" name="m">
+                        <option value="0" {m0}>Autodetect</option>
+                        <option value="1" {m1}>Kaifa</option>
+                        <option value="2" {m2}>Aidon</option>
+                        <option value="3" {m3}>Kamstrup</option>
+                        <option value="4" {m4}>Kamstrup (Omnipower)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-4 col-md-5 col-sm-6">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Distribution system</span>
+                    </div>
+                    <select id="d" class="form-control sd" name="d">
+                        <option value="0" {d0}></option>
+                        <option value="1" {d1}>IT (230V)</option>
+                        <option value="2" {d2}>TN (400V)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-xl-2 col-md-3 col-sm-5">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Main fuse</span>
+                    </div>
+                    <select class="form-control" name="f">
+                        <option value="0" {f0}></option>
+                        <option value="25" {f25}>25A</option>
+                        <option value="32" {f32}>32A</option>
+                        <option value="35" {f35}>35A</option>
+                        <option value="40" {f40}>40A</option>
+                        <option value="50" {f50}>50A</option>
+                        <option value="63" {f63}>63A</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-4 col-md-5 col-sm-7">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Production capacity</span>
+                    </div>
+                    <input class="form-control" name="p" type="number" min="0" max="50" value="{p}"/>
+                    <div class="input-group-append">
+                        <span class="input-group-text">kWp</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-6 enc">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Encryption key</span>
+                    </div>
+                    <input class="form-control" name="e" type="text" value="{e}"/>
+                </div>
+            </div>
+            <div class="col-lg-6 enc">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Authentication key</span>
+                    </div>
+                    <input class="form-control" name="a" type="text" value="{a}"/>
+                </div>
+            </div>
+            <div id="ss" class="col-lg-3 col-md-4 col-sm-5">
+                <div class="m-2">
+                    <label class="small"><input type="checkbox" name="s" value="true" {s}/> Substitute missing values</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    <hr/>
+    <div class="row form-group">
+        <div class="col-6">
+            <a href="/" class="btn btn-outline-secondary">Back</a>
+        </div>
+        <div class="col-6 text-right">
+            <button class="btn btn-primary">Save</button>
+        </div>
+    </div>
+</form>

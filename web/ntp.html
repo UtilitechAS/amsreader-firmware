@@ -1,18 +1,18 @@
 <form method="post" action="/save">
-    <input type="hidden" name="ntpConfig" value="true"/>
+    <input type="hidden" name="nc" value="true"/>
     <div class="my-3 p-3 bg-white rounded shadow">
         <h6>NTP</h6>
-        <label class="m-2"><input id="ntpEnable" type="checkbox" name="ntpEnable" value="true" ${config.ntpEnable}/> Enable</label>
+        <label class="m-2"><input id="n" type="checkbox" name="n" value="true" {n}/> Enable</label>
         <div class="row">
             <div class="col-lg-3 col-md-4 col-sm-5">
                 <div class="m-2 input-group input-group-sm">
                     <div class="input-group-prepend">
                         <span class="input-group-text">Timezone</span>
                     </div>
-                    <select id="ntpOffset" class="form-control ntp-config" name="ntpOffset">
-                        <option value="0" ${config.ntpOffset0}>UTC</option>
-                        <option value="3600" ${config.ntpOffset3600}>UTC+1</option>
-                        <option value="7200" ${config.ntpOffset7200}>UTC+2</option>
+                    <select id="o" class="form-control nc" name="o">
+                        <option value="0" {o0}>UTC</option>
+                        <option value="3600" {o3600}>UTC+1</option>
+                        <option value="7200" {o7200}>UTC+2</option>
                     </select>
                 </div>
             </div>
@@ -21,9 +21,9 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Summertime offset</span>
                     </div>
-                    <select id="ntpSummerOffset" class="form-control ntp-config" name="ntpSummerOffset">
-                        <option value="0" ${config.ntpSummerOffset0}>Disabled</option>
-                        <option value="3600" ${config.ntpSummerOffset3600}>+1hr</option>
+                    <select id="so" class="form-control nc" name="so">
+                        <option value="0" {so0}>Disabled</option>
+                        <option value="3600" {so3600}>+1hr</option>
                     </select>
                 </div>
             </div>
@@ -32,12 +32,12 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Server</span>
                     </div>
-                    <input type="text" class="form-control ntp-config" name="ntpServer" value="${config.ntpServer}" maxlength="64"/>
+                    <input type="text" class="form-control nc" name="ns" value="{ns}" maxlength="64"/>
                 </div>
             </div>
             <div class="col-lg-4 col-md-5 col-sm-6">
                 <div class="m-2">
-                    <label class="small"><input type="checkbox" name="ntpDhcp" value="true" ${config.ntpDhcp} class="ntp-config"/> Obtain NTP server from DHCP</label>
+                    <label class="small"><input type="checkbox" name="nd" value="true" {nd} class="nc"/> Obtain NTP server from DHCP</label>
                 </div>
             </div>    
         </div>

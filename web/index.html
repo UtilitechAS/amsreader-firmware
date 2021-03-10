@@ -1,107 +1,138 @@
-<div class="my-3 p-3 bg-white rounded shadow">
+<div class="bg-white rounded shadow p-1">
     <div class="row">
-        <div class="col-sm-6 col-lg-3">
-            <div class="text-center">
-                <div id="P" class="SimpleMeter" style="display: inline;">
-                    ${data.P} W
+        <div class="col-md-3 col-6">
+            <div class="text-center">Up <span class="ju">{cs}</span></div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="text-center">Temperature: <span class="jt">{temp}</span>&deg;C</div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="text-center">ESP volt: <span class="jv">{vcc}</span>V</div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="text-center">WiFi RSSI: <span class="jr">{rssi}</span>dBm</div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="row">
+            <div class="col-sm-6 mt-3">
+                <div class="bg-white rounded shadow p-3">
+                    <div class="text-center">
+                        <div class="SimpleMeter ji" style="display: inline;">
+                            {P} W
+                        </div>
+                        <div id="im" class="GaugeMeter rounded"
+                            style="display: none;"
+                            data-size="180px"
+                            data-text_size="0.15"
+                            data-width="25"
+                            data-style="Arch"
+                            data-theme="Green-Gold-Red"
+                            data-animationstep="0"
+                            data-label="{ti}"
+                        ></div>
+                    </div>
+                    <div class="row ric" style="display: {da};">
+                        <div class="col-12 text-right"><span class="jic">{tPI}</span> kWh</div>
+                    </div>
                 </div>
-                <div id="importMeter" class="GaugeMeter rounded"
+            </div>
+            <div class="col-sm-6 mt-3" style="display: {de};">
+                <div class="bg-white rounded shadow p-3">
+                    <div class="text-center">
+                        <div class="SimpleMeter je" style="display: inline;">
+                            {PO} W
+                        </div>
+                        <div id="em" class="GaugeMeter rounded"
+                            style="display: none;"
+                            data-size="180px"
+                            data-text_size="0.15"
+                            data-width="25"
+                            data-style="Arch"
+                            data-theme="DarkGreen-LightGreen"
+                            data-animationstep="0"
+                            data-label="Export"
+                        ></div>
+                    </div>
+                    <div class="row rec" style="display: {da};">
+                        <div class="col-12 text-right"><span class="jec">{tPO}</span> kWh</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-6 mt-3" style="display: {dn};">
+                <div class="bg-white rounded shadow p-3" style="display: {da};">
+                    <h5 class="text-center">Reactive</h5>
+                    <div class="row rric">
+                        <div class="col-4">In</div>
+                        <div class="col-8 text-right"><span class="jric">{tQI}</span> kvarh</div>
+                        <div class="col-4">Out</div>
+                        <div class="col-8 text-right"><span class="jrec">{tQO}</span> kvarh</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-12 mt-3" style="display: {de};">
+                <div class="bg-white rounded shadow p-3" style="display: {da};">
+                    <div class="row rrec">
+                        <div class="col-4 col-sm-2">In</div>
+                        <div class="col-8 col-sm-4 text-right"><span class="jric">{tQI}</span> kvarh</div>
+                        <div class="col-4 col-sm-2">Out</div>
+                        <div class="col-8 col-sm-4 text-right"><span class="jrec">{tQO}</span> kvarh</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-sm-6 mt-3">
+        <div class="bg-white rounded shadow p-3">
+            <div class="text-center">
+                <div id="vm" class="GaugeMeter rounded"
                     style="display: none;"
-                    data-size="200px"
-                    data-text_size="0.11"
+                    data-size="180px"
+                    data-text_size="0.15"
+                    data-width="25"
+                    data-style="Arch"
+                    data-theme="Voltage"
+                    data-animationstep="0"
+                    data-label="Volt"
+                ></div>
+            </div>
+            <div class="row ru2" style="display: {3p};">
+                <div class="col-4"><span class="ju1">{U1}</span>V</div>
+                <div class="col-4 text-center"><span class="ju2">{U2}</span>V</div>
+                <div class="col-4 text-right"><span class="ju3">{U3}</span>V</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-sm-6 mb-3 mt-3">
+        <div class="bg-white rounded shadow p-3">
+            <div class="text-center">
+                <div id="am" class="GaugeMeter rounded"
+                    style="display: none;"
+                    data-size="180px"
+                    data-text_size="0.15"
                     data-width="25"
                     data-style="Arch"
                     data-theme="Green-Gold-Red"
                     data-animationstep="0"
-                    data-label="${text.import}"
+                    data-label="Ampere"
                 ></div>
             </div>
-        </div>
-        <div class="col-sm-6 col-lg-3">
-            <div id="U1-row" class="row" style="display: ${display.P1};">
-                <div class="col-2">L1</div>
-                <div class="col-5 text-right"><span id="U1">${data.U1}</span> V</div>
-                <div class="col-5 text-right"><span id="I1">${data.I1}</span> A</div>
-            </div>
-            <div id="U2-row" class="row" style="display: ${display.P2};">
-                <div class="col-2">L2</div>
-                <div class="col-5 text-right"><span id="U2">${data.U2}</span> V</div>
-                <div class="col-5 text-right"><span id="I2">${data.I2}</span> A</div>
-            </div>
-            <div id="U3-row" class="row" style="display: ${display.P3};">
-                <div class="col-2">L3</div>
-                <div class="col-5 text-right"><span id="U3">${data.U3}</span> V</div>
-                <div class="col-5 text-right"><span id="I3">${data.I3}</span> A</div>
-            </div>
-            <hr/>
-            <div id="tPI-row" class="row" style="display: ${display.accumulative};">
-                <div class="col-6">Active in</div>
-                <div class="col-6 text-right"><span id="tPI">${data.tPI}</span> kWh</div>
-            </div>
-            <div id="tPO-row" class="row" style="display: ${display.accumulative};">
-                <div class="col-6">Active out</div>
-                <div class="col-6 text-right"><span id="tPO">${data.tPO}</span> kWh</div>
-            </div>
-            <div id="tQI-row" class="row" style="display: ${display.accumulative};">
-                <div class="col-6">Reactive in</div>
-                <div class="col-6 text-right"><span id="tQI">${data.tQI}</span> kvarh</div>
-            </div>
-            <div id="tQO-row" class="row" style="display: ${display.accumulative};">
-                <div class="col-6">Reactive out</div>
-                <div class="col-6 text-right"><span id="tQO">${data.tQO}</span> kvarh</div>
+            <div class="row ru2" style="display: {3p};">
+                <div class="col-4"><span class="ji1">{I1}</span>A</div>
+                <div class="col-4 text-center"><span class="ji2">{I2}</span>A</div>
+                <div class="col-4 text-right"><span class="ji3">{I3}</span>A</div>
             </div>
         </div>
-        <div class="col-sm-6 col-lg-3">
-            <div class="text-center" style="display: ${display.export};">
-                <div id="P" class="SimpleMeter" style="display: inline;">
-                    ${data.PO} W
-                </div>
-                <div id="exportMeter" class="GaugeMeter rounded"
-                    style="display: none;"
-                    data-size="200px"
-                    data-text_size="0.11"
-                    data-width="25"
-                    data-style="Arch"
-                    data-theme="DarkGreen-LightGreen"
-                    data-animationstep="0"
-                    data-label="Export"
-                ></div>
-            </div>
     </div>
-        <div class="col-sm-6 col-lg-3">
-            <hr class="d-md-inline"/>
-            <div class="row">
-                <div class="col-6">Vcc</div>
-                <div class="col-6 text-right"><span id="vcc">${vcc}</span> V</div>
-            </div>
-            <div class="row" style="display: ${display.temp};">
-                <div class="col-6">Temperature</div>
-                <div class="col-6 text-right"><span id="temp">${temp}</span> &deg;C</div>
-            </div>
-            <div class="row" style="display: none;">
-                <div class="col-6">Uptime</div>
-                <div class="col-6 text-right"><span id="currentMillis">${currentMillis}</span></div>
-            </div>
-            <hr/>
-            <div class="row">
-                <div class="col-6">SSID</div>
-                <div class="col-6 text-right"><span id="ssid">${wifi.ssid}</span></div>
-            </div>
-            <div class="row">
-                <div class="col-6">Channel</div>
-                <div class="col-6 text-right"><span id="channel">${wifi.channel}</span></div>
-            </div>
-            <div class="row">
-                <div class="col-6">RSSI</div>
-                <div class="col-6 text-right"><span id="rssi">${wifi.rssi}</span> dBm</div>
-            </div>
-            <hr class="d-none mqtt-error mqtt-error-1 mqtt-error-2 mqtt-error-3 mqtt-error-4 mqtt-error-5 mqtt-error-6 mqtt-error-7 mqtt-error-8 mqtt-error-9 mqtt-error-10 mqtt-error-11 mqtt-error-12 mqtt-error-13"/>
-            <div class="d-none badge badge-danger mqtt-error mqtt-error-1 mqtt-error-2 mqtt-error-5 mqtt-error-6 mqtt-error-7 mqtt-error-8 mqtt-error-9 mqtt-error-12">MQTT communication error (<span id="mqtt-lastError">-</span>)</div>
-            <div class="d-none badge badge-danger mqtt-error mqtt-error-3">MQTT failed to connect</div>
-            <div class="d-none badge badge-danger mqtt-error mqtt-error-4">MQTT network timeout</div>
-            <div class="d-none badge badge-danger mqtt-error mqtt-error-10">MQTT connection denied</div>
-            <div class="d-none badge badge-danger mqtt-error mqtt-error-11">MQTT failed to subscribe</div>
-            <div class="d-none badge badge-danger mqtt-error mqtt-error-13">MQTT lost connection</div>
-        </div>
+    <div class="col-lg-3 col-sm-6 mb-3 d-none me me-1 me-2 me-3 me-4 me-5 me-6 me-7 me-8 me-9 me-10 me-11 me-12 me-13">
+        <div class="d-none badge badge-danger me me-1 me-2 me-5 me-6 me-7 me-8 me-9 me-12">MQTT communication error (<span id="ml">-</span>)</div>
+        <div class="d-none badge badge-danger me me-3">MQTT failed to connect</div>
+        <div class="d-none badge badge-danger me me-4">MQTT network timeout</div>
+        <div class="d-none badge badge-danger me me-10">MQTT connection denied</div>
+        <div class="d-none badge badge-danger me me-11">MQTT failed to subscribe</div>
+        <div class="d-none badge badge-danger me me-13">MQTT lost connection</div>
     </div>
 </div>

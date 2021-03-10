@@ -1,7 +1,7 @@
 var nextVersion;
-var im, em;
+var im, em, vm, am;
 $(function() {
-    im = $("#importMeter");
+    im = $("#im");
     if(im && im.gaugeMeter) {
         im.gaugeMeter({
             percent: 0,
@@ -10,12 +10,30 @@ $(function() {
         });
     }
     
-    em = $("#exportMeter");
+    em = $("#em");
     if(em && em.gaugeMeter) {
         em.gaugeMeter({
             percent: 0,
             text: "-",
             append: "W"
+        });
+    }
+    
+    vm = $("#vm");
+    if(vm && vm.gaugeMeter) {
+        vm.gaugeMeter({
+            percent: 0,
+            text: "-",
+            append: "V"
+        });
+    }
+    
+    am = $("#am");
+    if(am && am.gaugeMeter) {
+        am.gaugeMeter({
+            percent: 0,
+            text: "-",
+            append: "A"
         });
     }
 
@@ -25,23 +43,23 @@ $(function() {
         fetch();
     }
 
-    // For config-mqtt
-    $('#mqttEnable').on('change', function() {
-        var inputs = $('.mqtt-config');
+    // For mqtt
+    $('#m').on('change', function() {
+        var inputs = $('.mc');
         inputs.prop('disabled', !$(this).is(':checked'));
     });
     
-    $('#mqttPayloadFormat').on('change', function() {
+    $('#f').on('change', function() {
         var val = parseInt($(this).val());
         if(val == 3) {
-            $('.format-type-domoticz').show();
+            $('.f3-s').show();
         } else {
-            $('.format-type-domoticz').hide();
+            $('.f3-s').hide();
         }
     });
 
-    $('#mqttSsl').on('change', function() {
-        var port = $('#mqttPort');
+    $('#s').on('change', function() {
+        var port = $('#p');
         if($(this).is(':checked')) {
             if(port.val() == 1883) {
                 port.val(8883);
@@ -53,45 +71,45 @@ $(function() {
         }
     });
 
-    $('#mqttEnable').trigger('change');
-    $('#mqttPayloadFormat').trigger('change');
+    $('#m').trigger('change');
+    $('#f').trigger('change');
 
-    // For config-meter
-    $('.subtitute-dependent').on('change', function() {
-        if(($('#meterType').val() == 2 || $('#meterType').val() == 3) && $('#distributionSystem').val() == 1) {
-            $('#substitute').show();
+    // For meter
+    $('.sd').on('change', function() {
+        if(($('#mt').val() == 2 || $('#mt').val() == 3) && $('#d').val() == 1) {
+            $('#ss').show();
         } else {
-            $('#substitute').hide();
+            $('#ss').hide();
         }
     });
 
-    $('#meterType').on('change', function() {
-        if($('#meterType').val() == 4) {
-            $('.encryption').show();
+    $('#mt').on('change', function() {
+        if($('#mt').val() == 4) {
+            $('.enc').show();
         } else {
-            $('.encryption').hide();
+            $('.enc').hide();
         }
     });
 
-    $('#meterType').trigger('change');
+    $('#mt').trigger('change');
 
-    // For config-wifi
-    $('#wifiIpType').on('change', function() {
+    // For wifi
+    $('#st').on('change', function() {
         if($(this).is(':checked')) {
-            $('#staticIp').show();
+            $('#i').show();
         } else {
-            $('#staticIp').hide();
+            $('#i').hide();
         }
     });
-    $('#wifiIpType').trigger('change');
+    $('#st').trigger('change');
 
-    // For config-web
-    $('#authSecurity').on('change', function() {
-        var inputs = $('.auth-config');
+    // For web
+    $('#as').on('change', function() {
+        var inputs = $('.ac');
         inputs.prop('disabled', $(this).val() == 0);
     });
     
-    $('#authSecurity').trigger('change');
+    $('#as').trigger('change');
 
     // For file upload
     $('#fileUploadField').on('change',function(){
@@ -100,37 +118,37 @@ $(function() {
     })
 
     // For NTP
-    $('#ntpEnable').on('change', function() {
-        var inputs = $('.ntp-config');
+    $('#n').on('change', function() {
+        var inputs = $('.nc');
         inputs.prop('disabled', !$(this).is(':checked'));
     });
-    $('#ntpEnable').trigger('change');
+    $('#n').trigger('change');
 
     // Navbar
     switch(window.location.pathname) {
         case '/temperature':
-            $('#config-temp-link').addClass('active');
+            $('#temp-link').addClass('active');
             break;
-        case '/config-meter':
-            $('#config-meter-link').addClass('active');
+        case '/price':
+            $('#price-link').addClass('active');
             break;
-            case '/config-wifi':
-            $('#config-wifi-link').addClass('active');
-            break;
-        case '/config-mqtt':
+        case '/meter':
+        case '/wifi':
+        case '/mqtt':
         case '/mqtt-ca':
         case '/mqtt-cert':
         case '/mqtt-key':
-        case '/config-domoticz':
-            $('#config-mqtt-link').addClass('active');
-            break;
-        case '/config-web':
+        case '/domoticz':
+        case '/web':
         case '/ntp':
+        case '/entsoe':
+            $('#config-link').addClass('active');
+            break;
         case '/gpio':
         case '/debugging':
         case '/firmware':
         case '/reset':
-            $('#config-system-link').addClass('active');
+            $('#system-link').addClass('active');
             break;
     }
 
@@ -201,12 +219,22 @@ $(function() {
     }
 });
 
-var setStatus = function(id, status) {
+var setStatus = function(id, sid) {
     var item = $('#'+id);
     item.removeClass('d-none');
     item.removeClass (function (index, className) {
         return (className.match (/(^|\s)badge-\S+/g) || []).join(' ');
     });
+    var status;
+    if(sid == 0) {
+        status = "secondary";
+    } else if(sid == 1) {
+        status = "success";
+    } else if(sid == 2) {
+        status = "warning";
+    } else {
+        status = "danger";
+    }
     item.addClass('badge badge-' + status);
 };
 
@@ -217,10 +245,12 @@ var fetch = function() {
         timeout: 10000,
         dataType: 'json',
     }).done(function(json) {
-        if(im && em) {
+        if(im) {
             $(".SimpleMeter").hide();
             im.show();
             em.show();
+            vm.show();
+            am.show();
         }
 
         for(var id in json) {
@@ -229,131 +259,102 @@ var fetch = function() {
                 continue;
             }
             if(isNaN(str)) {
-                $('#'+id).html(str);
+                $('.j'+id).html(str);
             } else {
                 var num = parseFloat(str);
-                $('#'+id).html(num.toFixed(num < 0 ? 0 : num < 10 ? 2  : 1));
+                $('.j'+id).html(num.toFixed(num < 0 ? 0 : num < 10 ? 2  : 1));
             }
+            $('.r'+id).show();
         }
 
         if(window.moment) {
-            $('#currentMillis').html(moment.duration(parseInt(json.uptime_seconds), 'seconds').humanize());
-            $('#currentMillis').closest('.row').show();
+            $('.ju').html(moment.duration(parseInt(json.u), 'seconds').humanize());
         }
 
-        if(json.status) {
-            for(var id in json.status) {
-                setStatus(id, json.status[id]);
-            }
-        }
+        setStatus("esp", json.em);
+        setStatus("han", json.hm);
+        setStatus("wifi", json.wm);
+        setStatus("mqtt", json.mm);
 
-        if(json.mqtt) {
-            $('.mqtt-error').addClass('d-none');
-            $('.mqtt-error'+json.mqtt.lastError).removeClass('d-none');
-            $('#mqtt-lastError').html(json.mqtt.lastError);
-        }
-
-        if(json.wifi) {
-            for(var id in json.wifi) {
-                var str = json.wifi[id];
-                dst = $('#'+id);
-                if(isNaN(str)) {
-                    dst.html(str);
-                } else {
-                    var num = parseFloat(str);
-                    dst.html(num.toFixed(0));
-                    $('#'+id+'-row').show();
-                }
-            }
-        }
-
-        if(json.data) {
-            var p = 0;
-            var p_pct = parseInt(json.p_pct);
-            var p_append = "W";
-            if(json.data.P) {
-                p = parseFloat(json.data.P);
-                if(p > 1000) {
-                    p = (p/1000).toFixed(1);
-                    p_append = "kW";
-                }
-            }
-            if(im && im.gaugeMeter) {
-                im.gaugeMeter({
-                    percent: p_pct,
-                    text: p,
-                    append: p_append
-                });
-            }
-
-            var po = 0;
-            var po_pct = parseInt(json.po_pct);
-            var po_append = "W";
-            if(json.data.PO) {
-                po = parseFloat(json.data.PO);
-                if(po > 1000) {
-                    po = (po/1000).toFixed(1);
-                    po_append = "kW";
-                }
-            }
-            if(em && em.gaugeMeter) {
-                em.gaugeMeter({
-                    percent: po_pct,
-                    text: po,
-                    append: po_append
-                });
-            }
-
-            for(var id in json.data) {
-                var str = json.data[id];
-                if(isNaN(str)) {
-                    $('#'+id).html(str);
-                } else {
-                    var num = parseFloat(str);
-                    $('#'+id).html(num.toFixed(1));
-                    $('#'+id+'-row').show();
-                }
-            }
-        } else {
-            if(im && im.gaugeMeter) {
-                im.gaugeMeter({
-                    percent: 0,
-                    text: "-",
-                    append: "W"
-                });
-            }
-
-            if(em && em.gaugeMeter) {
-                em.gaugeMeter({
-                    percent: 0,
-                    text: "-",
-                    append: "W"
-                });
-            }
-        }
-        setTimeout(fetch, interval);
-    }).fail(function() {
-        setTimeout(fetch, interval*4);
 
         if(im && im.gaugeMeter) {
+            var v = parseInt(json.i);
+            var pct = (v*100)/parseInt(json.im);
+            var append = "W";
+            if(v > 1000) {
+                v = (v/1000).toFixed(1);
+                append = "kW";
+            }
             im.gaugeMeter({
-                percent: 0,
-                text: "-",
-                append: "W"
+                percent: pct,
+                text: v,
+                append: append
             });
         }
 
-        if(em && em.gaugeMeter) {
+        if(em && em.gaugeMeter && json.om) {
+            var v = parseInt(json.e);
+            var pct = (v*100)/(parseInt(json.om)*1000);
+            var append = "W";
+            if(v > 1000) {
+                v = (v/1000).toFixed(1);
+                append = "kW";
+            }
             em.gaugeMeter({
-                percent: 0,
-                text: "-",
-                append: "W"
+                percent: pct,
+                text: v,
+                append: append
             });
         }
-        setStatus("mqtt", "secondary");
-        setStatus("wifi", "secondary");
-        setStatus("han", "secondary");
-        setStatus("esp", "danger");
+
+        if(vm && vm.gaugeMeter && json.u1) {
+            var v = parseFloat(json.u1);
+            if(json.u2) {
+                v = (v+parseFloat(json.u2)+parseFloat(json.u3)) / 3;
+            }
+            var pct = (Math.max(v-207, 1)*100/46);
+            vm.gaugeMeter({
+                percent: pct,
+                text: v.toFixed(1)
+            });
+        }
+
+        if(am && am.gaugeMeter && json.i1 && json.mf) {
+            var v = parseFloat(json.i1);
+            if(json.i2) {
+                v = Math.max(v, parseFloat(json.i2));
+            }
+            if(json.i3) {
+                v = Math.max(v, parseFloat(json.i3));
+            }
+            var pct = (v*100)/parseInt(json.mf);
+            am.gaugeMeter({
+                percent: pct,
+                text: v.toFixed(1)
+            });
+        }
+
+        if(json.me) {
+            $('.me').addClass('d-none');
+            $('.me'+json.me).removeClass('d-none');
+            $('#ml').html(json.me);
+        }
+
+        var temp = parseInt(json.t);
+        if(temp == -127) {
+            $('.jt').html("N/A");
+        }
+        setTimeout(fetch, interval);
+    }).fail(function(x, text, error) {
+        console.log("Failed request");
+        console.log(text);
+        console.log(error);
+        setTimeout(fetch, interval*4);
+
+        setStatus("mqtt", 0);
+        setStatus("wifi", 0);
+        setStatus("han", 0);
+        setStatus("esp", 3);
     });
 }
 

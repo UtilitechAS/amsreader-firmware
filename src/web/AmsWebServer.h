@@ -3,19 +3,14 @@
 
 #define BOOTSTRAP_URL "https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.4.1/css/bootstrap.min.css"
 
+#include "Arduino.h"
 #include <MQTT.h>
-#include <ArduinoJson.h>
 #include "AmsConfiguration.h"
 #include "HwTools.h"
 #include "AmsData.h"
 #include "Uptime.h"
 #include "RemoteDebug.h"
-
-#if defined(ARDUINO) && ARDUINO >= 100
-	#include "Arduino.h"
-#else
-	#include "WProgram.h"
-#endif
+#include "entsoe/EntsoeApi.h"
 
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>
@@ -26,7 +21,6 @@
 	#include <WebServer.h>
 	#include <HTTPClient.h>
 	#include "SPIFFS.h"
-	#include "Update.h"
 #else
 	#warning "Unsupported board type"
 #endif
@@ -34,17 +28,24 @@
 class AmsWebServer {
 public:
 	AmsWebServer(RemoteDebug* Debug, HwTools* hw);
-    void setup(AmsConfiguration* config, MQTTClient* mqtt);
+    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, MQTTClient*);
     void loop();
-
-	void setData(AmsData& data);
+	void setTimezone(Timezone* tz);
+	void setMqttEnabled(bool);
+	void setEntsoeApi(EntsoeApi* eapi);
 
 private:
 	RemoteDebug* debugger;
+	bool mqttEnabled = false;
 	int maxPwr = 0;
 	HwTools* hw;
-    AmsConfiguration* config;
-	AmsData data;
+	Timezone* tz;
+	EntsoeApi* eapi = NULL;
+	AmsConfiguration* config;
+	GpioConfig* gpioConfig;
+	MeterConfig* meterConfig;
+	WebConfig webConfig;
+	AmsData* meterState;
 	MQTTClient* mqtt;
 	bool uploading = false;
 	File file;
@@ -63,11 +64,13 @@ private:
 	void temperature();
 	void temperaturePost();
 	void temperatureJson();
+	void price();
 	void configMeterHtml();
 	void configWifiHtml();
 	void configMqttHtml();
 	void configWebHtml();
 	void configDomoticzHtml();
+	void configEntsoeHtml();
 	void configNtpHtml();
 	void configGpioHtml();
 	void configDebugHtml();
@@ -83,6 +86,8 @@ private:
 	void firmwareHtml();
 	void firmwareUpload();
 	void firmwareDownload();
+	void restartHtml();
+	void restartPost();
 	void restartWaitHtml();
 	void isAliveCheck();
 
@@ -105,9 +110,6 @@ private:
 	void factoryResetPost();
 
 	void notFound();
-
-	String toHex(uint8_t* in, uint8_t size);
-	void fromHex(uint8_t *out, String in, uint8_t size);
 
 	void printD(String fmt, ...);
 	void printI(String fmt, ...);

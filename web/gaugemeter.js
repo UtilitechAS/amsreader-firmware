@@ -55,6 +55,7 @@
                     "LightGreen-DarkGreen" === option.theme && (e > 0 && (t = "#3afc00"), e > 10 && (t = "#39f900"), e > 20 && (t = "#38f600"), e > 30 && (t = "#38f100"), e > 40 && (t = "#37ec00"), e > 50 && (t = "#36e700"), e > 60 && (t = "#34e200"), e > 70 && (t = "#34df00"), e > 80 && (t = "#33db00"), e > 90 && (t = "#32d900")),
                     "DarkGold-LightGold" === option.theme && (e > 0 && (t = "#ffb800"), e > 10 && (t = "#ffba00"), e > 20 && (t = "#ffbd00"), e > 30 && (t = "#ffc200"), e > 40 && (t = "#ffc600"), e > 50 && (t = "#ffcb00"), e > 60 && (t = "#ffcf00"), e > 70 && (t = "#ffd400"), e > 80 && (t = "#ffd600"), e > 90 && (t = "#ffd900")),
                     "LightGold-DarkGold" === option.theme && (e > 0 && (t = "#ffd900"), e > 10 && (t = "#ffd600"), e > 20 && (t = "#ffd400"), e > 30 && (t = "#ffcf00"), e > 40 && (t = "#ffcb00"), e > 50 && (t = "#ffc600"), e > 60 && (t = "#ffc200"), e > 70 && (t = "#ffbd00"), e > 80 && (t = "#ffba00"), e > 90 && (t = "#ffb800")),
+                    "Voltage" === option.theme && (e <= 0 && (t = "#d90000"), e > 0 && (t = "#e32100"), e > 10 && (t = "#ffb800"), e > 20 && (t = "#dcd800"), e > 30 && (t = "#32d900"), e > 40 && (t = "#32d900"), e > 50 && (t = "#32d900"), e > 60 && (t = "#32d900"), e > 70 && (t = "#dcd800"), e > 80 && (t = "#ffb800"), e > 90 && (t = "#e32100"), e >= 100 && (t = "#d90000")),
                     "White" === option.theme && (t = "#fff"),
                     "Black" === option.theme && (t = "#000"),
                     t;

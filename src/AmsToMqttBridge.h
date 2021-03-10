@@ -5,6 +5,8 @@
 
 #define INVALID_BUTTON_PIN  0xFFFFFFFF
 
+#define EPOCH_2021_01_01 1609459200
+
 #include <SoftwareSerial.h>
 
 #if defined(ESP8266)

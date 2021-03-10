@@ -45,39 +45,57 @@
             font-weight: 200;
             opacity: .8;
         }
+        .navbar-expand .navbar-nav .nav-link,.navbar-brand {
+            padding-top: 0px;
+            padding-bottom: 0px;
+            margin-top: 0px;
+            margin-bottom: 0px;
+        }
     </style>
 </head>
 <body class="bg-light">
 <main role="main" class="container">
-    <header class="navbar navbar-expand navbar-dark flex-column flex-lg-row rounded mt-2 mb-4" style="background-color: var(--purple);">
-        <a href="/" class=""><h6 class="navbar-brand">AMS reader <small id="swVersion" data-url="https://api.github.com/repos/gskjold/AmsToMqttBridge/releases">${version}</small></h6></a>
+    <header class="navbar navbar-expand navbar-dark flex-column flex-lg-row rounded shadow mt-2 mb-3" style="background-color: var(--purple);">
+        <a href="/" class="">
+            <h6 class="navbar-brand">AMS reader <small id="swVersion" data-url="https://api.github.com/repos/gskjold/AmsToMqttBridge/releases">${version}</small></h6>
+        </a>
         <div class="navbar-nav-scroll">
             <ul class="navbar-nav bd-navbar-nav flex-row">
                 <li class="nav-item">
-                    <a id="config-temp-link" class="nav-link" href="/temperature">Temp<span class="d-none d-sm-inline">erature</span></a>
+                    <a id="temp-link" class="nav-link" href="/temperature">Temp<span class="d-none d-sm-inline">erature</span></a>
                 </li>
                 <li class="nav-item">
-                    <a id="config-meter-link" class="nav-link" href="/config-meter">Meter</a>
-                </li>
-                <li class="nav-item">
-                    <a id="config-wifi-link" class="nav-link" href="/config-wifi">WiFi</a>
-                </li>
-                <li class="nav-item">
-                    <a id="config-mqtt-link" class="nav-link" href="/config-mqtt">MQTT</a>
+                    <a id="price-link" class="nav-link" href="/price"><span class="d-none d-sm-inline">Energy</span> Price</a>
                 </li>
                 <li class="nav-item">
                     <div class="dropdown">
-                        <a class="dropdown-toggle nav-link" href="#" role="button" id="config-system-link" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                          System
+                        <a class="dropdown-toggle nav-link" href="#" role="button" id="config-link" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Config<span class="d-none d-md-inline d-lg-none d-xl-inline">uration</span>
                         </a>
                       
-                        <div class="dropdown-menu" aria-labelledby="config-system-link">
-                            <a class="dropdown-item" href="/config-web">Web</a>
+                        <div class="dropdown-menu" aria-labelledby="config-link">
+                            <a class="dropdown-item" href="/meter">Meter</a>
+                            <a class="dropdown-item" href="/wifi">WiFi</a>
+                            <a class="dropdown-item" href="/mqtt">MQTT</a>
+                            <a class="dropdown-item" href="/web">Web</a>
                             <a class="dropdown-item" href="/ntp">NTP</a>
-                            <a class="dropdown-item" href="/gpio">GPIO</a>
+                            <a class="dropdown-item" href="/entsoe">ENTSO-E API</a>
                             <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="https://github.com/gskjold/AmsToMqttBridge/wiki" target="_blank">Documentation</a>
+                        </div>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="dropdown">
+                        <a class="dropdown-toggle nav-link" href="#" role="button" id="system-link" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Sys<span class="d-none d-sm-inline">tem</span>
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="system-link">
+                            <a class="dropdown-item" href="/gpio">GPIO</a>
                             <a class="dropdown-item" href="/debugging">Debugging</a>
                             <a class="dropdown-item" href="/firmware">Firmware</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="/restart">Restart</a>
                             <a class="dropdown-item text-danger" href="/reset">Factory reset</a>
                         </div>
                     </div>

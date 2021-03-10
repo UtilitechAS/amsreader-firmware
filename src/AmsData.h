@@ -13,57 +13,57 @@
 class AmsData {
 public:
     AmsData();
-    AmsData(int meterType, bool substituteMissing, HanReader& hanReader);
+    AmsData(uint8_t meterType, bool substituteMissing, HanReader& hanReader);
 
     void apply(AmsData& other);
 
     unsigned long getLastUpdateMillis();
 
-    unsigned long getPackageTimestamp();
+    time_t getPackageTimestamp();
 
-    int getListType();
+    uint8_t getListType();
 
     String getListId();
     String getMeterId();
-    String getMeterType();
+    String getMeterModel();
 
-    unsigned long getMeterTimestamp();
+    time_t getMeterTimestamp();
 
-    int getActiveImportPower();
-    int getReactiveImportPower();
-    int getActiveExportPower();
-    int getReactiveExportPower();
+    uint16_t getActiveImportPower();
+    uint16_t getReactiveImportPower();
+    uint16_t getActiveExportPower();
+    uint16_t getReactiveExportPower();
 
-    double getL1Voltage();
-    double getL2Voltage();
-    double getL3Voltage();
+    float getL1Voltage();
+    float getL2Voltage();
+    float getL3Voltage();
 
-    double getL1Current();
-    double getL2Current();
-    double getL3Current();
+    float getL1Current();
+    float getL2Current();
+    float getL3Current();
 
-    double getActiveImportCounter();
-    double getReactiveImportCounter();
-    double getActiveExportCounter();
-    double getReactiveExportCounter();
+    float getActiveImportCounter();
+    float getReactiveImportCounter();
+    float getActiveExportCounter();
+    float getReactiveExportCounter();
 
     bool isThreePhase();
 
 private:
     unsigned long lastUpdateMillis = 0;
-    int listType = 0;
-    unsigned long packageTimestamp = 0;
-    String listId, meterId, meterType;
-    unsigned long meterTimestamp = 0;
-    int activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
-    double l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
-    double activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
-    bool threePhase = false;
+    uint8_t listType = 0;
+    time_t packageTimestamp = 0;
+    String listId, meterId, meterModel;
+    time_t meterTimestamp = 0;
+    uint16_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
+    float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
+    float activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
+    bool threePhase = false, counterEstimated = false;
 
-    void extractFromKaifa(HanReader& hanReader, int listSize);
-    void extractFromAidon(HanReader& hanReader, int listSize, bool substituteMissing);
-    void extractFromKamstrup(HanReader& hanReader, int listSize, bool substituteMissing);
-    void extractFromOmnipower(HanReader& hanReader, int listSize);
+    void extractFromKaifa(HanReader& hanReader, uint8_t listSize);
+    void extractFromAidon(HanReader& hanReader, uint8_t listSize, bool substituteMissing);
+    void extractFromKamstrup(HanReader& hanReader, uint8_t listSize, bool substituteMissing);
+    void extractFromOmnipower(HanReader& hanReader, uint8_t listSize);
 };
 
 #endif

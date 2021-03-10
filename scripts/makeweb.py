@@ -5,7 +5,23 @@ import shutil
 try:
     from css_html_js_minify import html_minify, js_minify, css_minify
 except:
-    print("WARN: Unable to load minifier")
+    from SCons.Script import (
+        ARGUMENTS,
+        COMMAND_LINE_TARGETS,
+        DefaultEnvironment,
+    )
+    env = DefaultEnvironment()
+
+    env.Execute(
+        env.VerboseAction(
+            '$PYTHONEXE -m pip install "css_html_js_minify" ',
+            "Installing Python dependencies",
+        )
+    )
+    try:
+        from css_html_js_minify import html_minify, js_minify, css_minify
+    except:
+        print("WARN: Unable to load minifier")
 
 
 webroot = "web"
@@ -37,7 +53,7 @@ for filename in os.listdir(webroot):
             content = html_minify(content)
         elif filename.endswith(".css"):
             content = css_minify(content)
-        elif filename.endswith(".js") and filename != 'gaugemeter.js':
+        elif (filename.endswith(".js") and filename != 'gaugemeter.js') or filename.endswith(".json"):
             content = js_minify(content)
     except:
         print("WARN: Unable to minify")
@@ -50,7 +66,7 @@ for filename in os.listdir(webroot):
         dst.write(")==\"==\";\n")
         dst.write("const int ");
         dst.write(varname)
-        dst.write("_LEN = ");
+        dst.write("_LEN PROGMEM = ");
         dst.write(str(len(content)))
         dst.write(";");
         

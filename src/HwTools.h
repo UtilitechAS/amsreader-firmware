@@ -11,6 +11,7 @@
 
 #include <DallasTemperature.h>
 #include <OneWire.h>
+#include "AmsConfiguration.h"
 
 #define LED_INTERNAL 0
 #define LED_RED 1
@@ -20,48 +21,35 @@
 
 struct TempSensorData {
     uint8_t address[8];
-    char name[32];
-    bool common;
     float lastRead;
     float lastValidRead;
+    bool changed;
 };
 
 class HwTools {
 public:
-    void setTempSensorPin(int tempSensorPin);
-    void setTempAnalogSensorPin(int tempAnalogSensorPin);
-    void setVccPin(int vccPin);
-    void setVccOffset(double vccOffset);
-    void setVccMultiplier(double vccMultiplier);
+    void setup(GpioConfig*, AmsConfiguration*);
     double getVcc();
-    void confTempSensor(uint8_t address[8], const char name[32], bool common);
     uint8_t getTempSensorCount();
-    TempSensorData* getTempSensorData(uint8_t i);
+    TempSensorData* getTempSensorData(uint8_t);
     bool updateTemperatures();
     double getTemperature();
     double getTemperatureAnalog();
     double getTemperature(uint8_t address[8]);
     int getWifiRssi();
-    void setLed(uint8_t ledPin, bool ledInverted);
-    void setLedRgb(uint8_t ledPinRed, uint8_t ledPinGreen, uint8_t ledPinBlue, bool ledRgbInverted);
     bool ledOn(uint8_t color);
     bool ledOff(uint8_t color);
     bool ledBlink(uint8_t color, uint8_t blink);
 
     HwTools() {};
 private:
-    uint8_t tempSensorPin = 0xFF, tempAnalogSensorPin = 0xFF;
-    uint8_t vccPin = 0xFF;
-    uint8_t ledPin = 0xFF, ledPinRed = 0xFF, ledPinGreen = 0xFF, ledPinBlue = 0xFF;
-    bool ledInverted, ledRgbInverted;
-    double vccOffset = 0.0;
-    double vccMultiplier = 1.0;
-    
+    GpioConfig* config;
+    AmsConfiguration* amsConf;
     bool tempSensorInit;
-    OneWire *oneWire;
-    DallasTemperature *sensorApi;
+    OneWire *oneWire = NULL;
+    DallasTemperature *sensorApi = NULL;
     uint8_t sensorCount = 0;
-    TempSensorData *tempSensors[32];
+    TempSensorData** tempSensors = NULL;
 
     bool writeLedPin(uint8_t color, uint8_t state);
     bool isSensorAddressEqual(uint8_t a[8], uint8_t b[8]);

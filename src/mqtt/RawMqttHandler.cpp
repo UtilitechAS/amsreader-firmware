@@ -12,13 +12,13 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
     switch(data->getListType()) {
         case 3:
             // ID and type belongs to List 2, but I see no need to send that every 10s
-            mqtt->publish(topic + "/meter/id", data->getMeterId());
-            mqtt->publish(topic + "/meter/type", data->getMeterModel());
+            mqtt->publish(topic + "/meter/id", data->getMeterId(), true, 0);
+            mqtt->publish(topic + "/meter/type", data->getMeterModel(), true, 0);
             mqtt->publish(topic + "/meter/clock", String(data->getMeterTimestamp()));
-            mqtt->publish(topic + "/meter/import/reactive/accumulated", String(data->getReactiveImportCounter(), 2));
-            mqtt->publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 2));
-            mqtt->publish(topic + "/meter/export/reactive/accumulated", String(data->getReactiveExportCounter(), 2));
-            mqtt->publish(topic + "/meter/export/active/accumulated", String(data->getActiveExportCounter(), 2));
+            mqtt->publish(topic + "/meter/import/reactive/accumulated", String(data->getReactiveImportCounter(), 2), true, 0);
+            mqtt->publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 2), true, 0);
+            mqtt->publish(topic + "/meter/export/reactive/accumulated", String(data->getReactiveExportCounter(), 2), true, 0);
+            mqtt->publish(topic + "/meter/export/active/accumulated", String(data->getActiveExportCounter(), 2), true, 0);
         case 2:
             // Only send data if changed. ID and Type is sent on the 10s interval only if changed
             if(full || meterState->getMeterId() != data->getMeterId()) {

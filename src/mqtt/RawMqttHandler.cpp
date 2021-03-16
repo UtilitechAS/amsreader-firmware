@@ -155,29 +155,29 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
     for(int i = 0; i < 24; i++) {
         float val = values[i];
         if(val == ENTSOE_NO_VALUE) {
-            mqtt->publish(topic + "/price/" + String(i), "");
+            mqtt->publish(topic + "/price/" + String(i), "", true, 0);
             break;
         } else {
-            mqtt->publish(topic + "/price/" + String(i), String(val, 4));
+            mqtt->publish(topic + "/price/" + String(i), String(val, 4), true, 0);
         }
         mqtt->loop();
         delay(10);
     }
     if(min != INT16_MAX) {
-        mqtt->publish(topic + "/price/min", String(min, 4));
+        mqtt->publish(topic + "/price/min", String(min, 4), true, 0);
     }
     if(max != INT16_MIN) {
-        mqtt->publish(topic + "/price/max", String(max, 4));
+        mqtt->publish(topic + "/price/max", String(max, 4), true, 0);
     }
 
     if(min1hrIdx != -1) {
-        mqtt->publish(topic + "/price/cheapest/1hr", String(ts1hr));
+        mqtt->publish(topic + "/price/cheapest/1hr", String(ts1hr), true, 0);
     }
     if(min3hrIdx != -1) {
-        mqtt->publish(topic + "/price/cheapest/3hr", String(ts3hr));
+        mqtt->publish(topic + "/price/cheapest/3hr", String(ts3hr), true, 0);
     }
     if(min6hrIdx != -1) {
-        mqtt->publish(topic + "/price/cheapest/6hr", String(ts6hr));
+        mqtt->publish(topic + "/price/cheapest/6hr", String(ts6hr), true, 0);
     }
     return true;
 }
@@ -186,7 +186,7 @@ bool RawMqttHandler::publishSystem(HwTools* hw) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 
-	mqtt->publish(topic + "/id", WiFi.macAddress());
+	mqtt->publish(topic + "/id", WiFi.macAddress(), true, 0);
 	mqtt->publish(topic + "/uptime", String((unsigned long) millis64()/1000));
 	float vcc = hw->getVcc();
 	if(vcc > 0) {

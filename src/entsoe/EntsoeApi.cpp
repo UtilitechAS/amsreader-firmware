@@ -78,9 +78,13 @@ bool EntsoeApi::loop() {
     bool ret = false;
 
     uint64_t now = millis64();
+    if(now < 10000) return false; // Grace period
 
     if(midnightMillis == 0) {
-        time_t epoch = tz->toLocal(time(nullptr));
+        time_t t = time(nullptr);
+        if(t <= 0) return false; // NTP not ready
+
+        time_t epoch = tz->toLocal(t);
         
         tmElements_t tm;
         breakTime(epoch, tm);

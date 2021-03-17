@@ -410,7 +410,7 @@ void loop() {
 				mqtt.disconnect();
 			}
 
-			if(eapi != NULL) {
+			if(eapi != NULL && ntpEnabled) {
 				if(eapi->loop() && mqttHandler != NULL && mqtt.connected()) {
 					mqttHandler->publishPrices(eapi);
 				}

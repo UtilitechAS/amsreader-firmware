@@ -118,7 +118,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 	time_t now = time(nullptr);
 
 	float min1hr, min3hr, min6hr;
-	uint8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
+	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[24] = {0};
 	for(uint8_t i = 0; i < 24; i++) {
@@ -167,21 +167,27 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 	}
 
 	char ts1hr[21];
-	if(min1hrIdx != -1) {
+	if(min1hrIdx > -1) {
+        time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
+        //Serial.printf("1hr: %d %lu\n", min1hrIdx, ts);
 		tmElements_t tm;
-        breakTime(now + (SECS_PER_HOUR * min1hrIdx), tm);
+        breakTime(ts, tm);
 		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts3hr[21];
-	if(min3hrIdx != -1) {
+	if(min3hrIdx > -1) {
+        time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
+        //Serial.printf("3hr: %d %lu\n", min3hrIdx, ts);
 		tmElements_t tm;
-        breakTime(now + (SECS_PER_HOUR * min3hrIdx), tm);
+        breakTime(ts, tm);
 		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts6hr[21];
-	if(min6hrIdx != -1) {
+	if(min6hrIdx > -1) {
+        time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
+        //Serial.printf("6hr: %d %lu\n", min6hrIdx, ts);
 		tmElements_t tm;
-        breakTime(now + (SECS_PER_HOUR * min6hrIdx), tm);
+        breakTime(ts, tm);
 		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 

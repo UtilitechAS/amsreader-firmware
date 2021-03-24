@@ -18,15 +18,15 @@ float EntsoeA44Parser::getPoint(uint8_t position) {
 }
 
 int EntsoeA44Parser::available() {
-
+    return 0;
 }
 
 int EntsoeA44Parser::read() {
-    
+    return 0;
 }
 
 int EntsoeA44Parser::peek() {
-
+    return 0;
 }
 
 void EntsoeA44Parser::flush() {

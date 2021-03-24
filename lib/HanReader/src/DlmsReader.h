@@ -20,6 +20,8 @@ class DlmsReader
     int GetRawData(byte *buffer, int start, int length);
     int getBytesRead();
     byte* getBuffer();
+    byte* getFullBuffer();
+    int getFullBufferLength();
     
   protected:
     Crc16Class Crc16;

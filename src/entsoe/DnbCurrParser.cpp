@@ -6,15 +6,15 @@ float DnbCurrParser::getValue() {
 }
 
 int DnbCurrParser::available() {
-
+    return 0;
 }
 
 int DnbCurrParser::read() {
-
+    return 0;
 }
 
 int DnbCurrParser::peek() {
-
+    return 0;
 }
 
 void DnbCurrParser::flush() {

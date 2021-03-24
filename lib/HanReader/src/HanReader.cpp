@@ -40,7 +40,10 @@ bool HanReader::read(byte data) {
 		if (debugger->isActive(RemoteDebug::INFO)) {
 			printI("Got valid DLMS data (%d bytes)", bytesRead);
 			if (debugger->isActive(RemoteDebug::DEBUG)) {
-				debugPrint(buffer, 0, bytesRead);
+				byte* full = reader.getFullBuffer();
+				int size = reader.getFullBufferLength();
+				printI("Full DLMS frame (%d bytes)", size);
+				debugPrint(full, 0, size);
 			}
 		}
 

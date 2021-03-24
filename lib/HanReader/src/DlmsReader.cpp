@@ -175,6 +175,14 @@ byte* DlmsReader::getBuffer() {
     return buffer  + (3 + destinationAddressLength + sourceAddressLength + 2 + 1);
 }
 
+byte* DlmsReader::getFullBuffer() {
+    return buffer;
+}
+
+int DlmsReader::getFullBufferLength() {
+    return dataLength;
+}
+
 int DlmsReader::GetAddress(int addressPosition, byte* addressBuffer, int start, int length)
 {
     int addressBufferPos = start;

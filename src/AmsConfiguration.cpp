@@ -496,11 +496,11 @@ void AmsConfiguration::clear() {
 
 	NtpConfig ntp;
 	clearNtp(ntp);
-	EEPROM.put(CONFIG_NTP_START, domo);
+	EEPROM.put(CONFIG_NTP_START, ntp);
 
 	EntsoeConfig entsoe;
 	clearEntsoe(entsoe);
-	EEPROM.put(CONFIG_ENTSOE_START, domo);
+	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, -1);
 	EEPROM.commit();

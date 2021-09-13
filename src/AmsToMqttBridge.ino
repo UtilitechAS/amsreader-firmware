@@ -18,7 +18,6 @@
 
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
-#define ARDUINOJSON_POSITIVE_EXPONENTIATION_THRESHOLD 1e9
 #include <MQTT.h>
 #include <DNSServer.h>
 #include <lwip/apps/sntp.h>

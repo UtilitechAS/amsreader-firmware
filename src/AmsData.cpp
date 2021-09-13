@@ -22,7 +22,7 @@ AmsData::AmsData(uint8_t meterType, bool substituteMissing, HanReader& hanReader
 			extractFromKamstrup(hanReader, listSize, substituteMissing);
             break;
         case METER_TYPE_OMNIPOWER:
-            extractFromOmnipower(hanReader, listSize);
+            extractFromOmnipower(hanReader, listSize, substituteMissing);
             break;
     }
 }
@@ -261,8 +261,16 @@ void AmsData::extractFromKamstrup(HanReader& hanReader, uint8_t listSize, bool s
     }
 }
 
-void AmsData::extractFromOmnipower(HanReader& hanReader, uint8_t listSize) {
+void AmsData::extractFromOmnipower(HanReader& hanReader, uint8_t listSize, bool substituteMissing) {
     switch(listSize) {
+        case (uint8_t)Kamstrup::List3PhaseITShort:
+        case (uint8_t)Kamstrup::List3PhaseShort:
+        case (uint8_t)Kamstrup::List1PhaseShort:
+        case (uint8_t)Kamstrup::List3PhaseITLong:
+        case (uint8_t)Kamstrup::List3PhaseLong:
+        case (uint8_t)Kamstrup::List1PhaseLong:
+            extractFromKamstrup(hanReader, listSize, substituteMissing);
+            break;
         case (uint8_t)Omnipower::DLMS:
             meterTimestamp        = hanReader.getTime(         (uint8_t)Omnipower_DLMS::MeterClock, true, true);
             activeImportCounter   = ((float) hanReader.getInt((uint8_t)Omnipower_DLMS::CumulativeActiveImportEnergy)) / 100;

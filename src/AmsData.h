@@ -63,7 +63,7 @@ private:
     void extractFromKaifa(HanReader& hanReader, uint8_t listSize);
     void extractFromAidon(HanReader& hanReader, uint8_t listSize, bool substituteMissing);
     void extractFromKamstrup(HanReader& hanReader, uint8_t listSize, bool substituteMissing);
-    void extractFromOmnipower(HanReader& hanReader, uint8_t listSize);
+    void extractFromOmnipower(HanReader& hanReader, uint8_t listSize, bool substituteMissing);
 };
 
 #endif

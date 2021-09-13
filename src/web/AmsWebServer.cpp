@@ -352,7 +352,7 @@ void AmsWebServer::indexHtml() {
 		html.replace("{temp}", temp > 0 ? String(temp, 1) : "");
 
 		int rssi = hw->getWifiRssi();
-		html.replace("{rssi}", vcc > 0 ? String(rssi) : "");
+		html.replace("{rssi}", String(rssi));
 
 		html.replace("{cs}", String((uint32_t)(millis64()/1000), 10));
 
@@ -1251,7 +1251,7 @@ void AmsWebServer::firmwareHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	uploadHtml("CA file", "/firmware", "mqtt");
+	uploadHtml("Firmware", "/firmware", "system");
 }
 
 void AmsWebServer::firmwareUpload() {

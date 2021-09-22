@@ -695,7 +695,7 @@ void AmsWebServer::dataJson() {
 		meterState->getReactiveImportPower(),
 		meterState->getReactiveExportPower(),
 		meterState->getActiveImportCounter(),
-		meterState->getReactiveExportCounter(),
+		meterState->getActiveExportCounter(),
 		meterState->getReactiveImportCounter(),
 		meterState->getReactiveExportCounter(),
 		meterState->getL1Voltage(),

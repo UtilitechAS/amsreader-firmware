@@ -41,7 +41,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -U platformio css_html_js_minify
     - name: Configure build targets
-      run: echo "[platformio]\ndefault_envs = hw1esp12e, esp12e, esp32" > platformio-user.ini
+      run: echo "[platformio]\ndefault_envs = esp8266, esp32" > platformio-user.ini
     - name: PlatformIO lib install
       run: pio lib install
     - name: PlatformIO run

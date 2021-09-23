@@ -220,6 +220,7 @@ bool AmsConfiguration::getDebugConfig(DebugConfig& config) {
 		EEPROM.end();
 		return true;
 	} else {
+		clearDebug(config);
 		return false;
 	}
 }
@@ -230,6 +231,12 @@ bool AmsConfiguration::setDebugConfig(DebugConfig& config) {
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;
+}
+
+void AmsConfiguration::clearDebug(DebugConfig& config) {
+	config.level = 5;
+	config.telnet = false;
+	config.serial = false;
 }
 
 bool AmsConfiguration::getDomoticzConfig(DomoticzConfig& config) {

@@ -286,6 +286,7 @@ public:
 
 	bool getDebugConfig(DebugConfig&);
 	bool setDebugConfig(DebugConfig&);
+	void clearDebug(DebugConfig&);
 
 	bool pinUsed(uint8_t, GpioConfig&);
 

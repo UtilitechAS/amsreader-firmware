@@ -741,6 +741,9 @@ void AmsWebServer::handleSetup() {
 	} else {
 		SystemConfig sys { server.arg("board").toInt() };
 
+		DebugConfig debugConfig;
+		config->getDebugConfig(debugConfig);
+
 		config->clear();
 
 		config->clearGpio(*gpioConfig);
@@ -881,6 +884,8 @@ void AmsWebServer::handleSetup() {
 			printD("Unable to set NTP config");
 			success = false;
 		}
+
+		config->setDebugConfig(debugConfig);
 
 		if(success && config->save()) {
 			performRestart = true;

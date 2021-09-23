@@ -134,7 +134,11 @@ bool AmsWebServer::checkSecurity(byte level) {
 		String providedPwd = server.header("Authorization");
 		providedPwd.replace("Basic ", "");
 
-		String expectedBase64 = base64::encode(expectedAuth);
+		String expectedBase64 = base64::encode(expectedAuth, false);
+
+		debugger->printf("Expected auth: %s\n", expectedBase64.c_str());
+		debugger->printf("Provided auth: %s\n", providedPwd.c_str());
+
 		access = providedPwd.equals(expectedBase64);
 	}
 

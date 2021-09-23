@@ -764,6 +764,26 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->tempSensorPin = 5;
 				gpioConfig->vccBootLimit = 33;
 				break;
+			case 3: // Pow UART0
+				gpioConfig->hanPin = 3;
+				gpioConfig->apPin = 0;
+				gpioConfig->ledPin = 2;
+				gpioConfig->ledInverted = true;
+				gpioConfig->tempSensorPin = 5;
+				gpioConfig->ledPinRed = 13;
+				gpioConfig->ledPinGreen = 14;
+				gpioConfig->ledRgbInverted = true;
+				break;
+			case 4: // Pow GPIO12
+				gpioConfig->hanPin = 12;
+				gpioConfig->apPin = 0;
+				gpioConfig->ledPin = 2;
+				gpioConfig->ledInverted = true;
+				gpioConfig->tempSensorPin = 5;
+				gpioConfig->ledPinRed = 13;
+				gpioConfig->ledPinGreen = 14;
+				gpioConfig->ledRgbInverted = true;
+				break;
 			case 101: // D1
 				gpioConfig->hanPin = 5;
 				gpioConfig->apPin = 4;

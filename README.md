@@ -7,11 +7,8 @@ There is a web interface available on runtime, showing meter data in real time.
 
 <img src="webui.jpg">
 
-## Hardware options
-Look in [hardware section](/hardware) for more details about supported hardware
-
 ## Setting up your device
-Go to the [WiKi](https://github.com/gskjold/AmsToMqttBridge/wiki) for information on how to set up your own device.
+Go to the [WiKi](https://github.com/gskjold/AmsToMqttBridge/wiki) for information on how to get your own device!
 
 ## Building this project with PlatformIO
 To build this project, you need [PlatformIO](https://platformio.org/) installed.

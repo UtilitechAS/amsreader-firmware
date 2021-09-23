@@ -926,7 +926,7 @@ void AmsWebServer::handleSave() {
 			authenticationKeyHex.replace("0x", "");
 			fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
 		}
-		meterConfig->substituteMissing = server.hasArg("s") && server.arg("substituteMissing") == "true";
+		meterConfig->substituteMissing = server.hasArg("s") && server.arg("s") == "true";
 		config->setMeterConfig(*meterConfig);
 	}
 

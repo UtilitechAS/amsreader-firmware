@@ -129,15 +129,17 @@ bool HwTools::updateTemperatures() {
                 delay(10);
             }
         } else {
-            sensorApi->requestTemperatures();
+            if(sensorCount > 0) {
+                sensorApi->requestTemperatures();
 
-            for(int x = 0; x < sensorCount; x++) {
-                TempSensorData *data = tempSensors[x];
-                float t = sensorApi->getTempC(data->address);
-                data->lastRead = t;
-                if(t > -85) {
-                    data->changed = data->lastValidRead != t;
-                    data->lastValidRead = t;
+                for(int x = 0; x < sensorCount; x++) {
+                    TempSensorData *data = tempSensors[x];
+                    float t = sensorApi->getTempC(data->address);
+                    data->lastRead = t;
+                    if(t > -85) {
+                        data->changed = data->lastValidRead != t;
+                        data->lastValidRead = t;
+                    }
                 }
             }
         }

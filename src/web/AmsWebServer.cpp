@@ -759,7 +759,6 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPin = 2;
 				gpioConfig->ledInverted = true;
-				gpioConfig->tempSensorPin = 5;
 				gpioConfig->ledPinRed = 13;
 				gpioConfig->ledPinGreen = 14;
 				gpioConfig->ledRgbInverted = true;
@@ -777,7 +776,6 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPin = 2;
 				gpioConfig->ledInverted = true;
-				gpioConfig->tempSensorPin = 5;
 				gpioConfig->ledPinRed = 13;
 				gpioConfig->ledPinGreen = 14;
 				gpioConfig->ledRgbInverted = true;
@@ -787,7 +785,6 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPin = 2;
 				gpioConfig->ledInverted = true;
-				gpioConfig->tempSensorPin = 5;
 				gpioConfig->ledPinRed = 13;
 				gpioConfig->ledPinGreen = 14;
 				gpioConfig->ledRgbInverted = true;
@@ -797,7 +794,6 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->apPin = 4;
 				gpioConfig->ledPin = 2;
 				gpioConfig->ledInverted = true;
-				gpioConfig->tempSensorPin = 14;
 				gpioConfig->vccMultiplier = 1100;
 				break;
 			case 100: // ESP8266
@@ -810,13 +806,11 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->apPin = 4;
 				gpioConfig->ledPin = 5;
 				gpioConfig->ledInverted = true;
-				gpioConfig->tempSensorPin = 14;
 				break;
 			case 202: // Feather
 				gpioConfig->hanPin = 16;
 				gpioConfig->ledPin = 2;
 				gpioConfig->ledInverted = false;
-				gpioConfig->tempSensorPin = 14;
 				break;
 			case 203: // DevKitC
 				gpioConfig->hanPin = 16;
@@ -828,7 +822,6 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPin = 2;
 				gpioConfig->ledInverted = false;
-				gpioConfig->tempSensorPin = 14;
 				break;
 		}
 

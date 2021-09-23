@@ -134,7 +134,11 @@ bool AmsWebServer::checkSecurity(byte level) {
 		String providedPwd = server.header("Authorization");
 		providedPwd.replace("Basic ", "");
 
+		#if defined(ESP8266)
 		String expectedBase64 = base64::encode(expectedAuth, false);
+		#elif defined(ESP32)
+		String expectedBase64 = base64::encode(expectedAuth);
+		#endif
 
 		debugger->printf("Expected auth: %s\n", expectedBase64.c_str());
 		debugger->printf("Provided auth: %s\n", providedPwd.c_str());

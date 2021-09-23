@@ -4,13 +4,12 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024 * 3
-#define EEPROM_CHECK_SUM 86 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 87 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
 #define CONFIG_SYSTEM_START 8
 #define CONFIG_WIFI_START 16
-#define CONFIG_MQTT_START 224
 #define CONFIG_WEB_START 648
 #define CONFIG_METER_START 784
 #define CONFIG_DEBUG_START 824
@@ -18,6 +17,10 @@
 #define CONFIG_DOMOTICZ_START 856 
 #define CONFIG_NTP_START 872
 #define CONFIG_ENTSOE_START 944
+#define CONFIG_MQTT_START 1004
+
+#define CONFIG_MQTT_START_86 224
+
 
 struct SystemConfig {
 	uint8_t boardType;
@@ -35,7 +38,7 @@ struct WiFiConfig {
 	bool mdns;
 }; // 204 
 
-struct MqttConfig {
+struct MqttConfig86 {
 	char host[128];
 	uint16_t port;
 	char clientId[32];
@@ -46,6 +49,18 @@ struct MqttConfig {
 	uint8_t payloadFormat;
 	bool ssl;
 }; // 420
+
+struct MqttConfig {
+	char host[128];
+	uint16_t port;
+	char clientId[32];
+	char publishTopic[64];
+	char subscribeTopic[64];
+	char username[128];
+	char password[256];
+	uint8_t payloadFormat;
+	bool ssl;
+}; // 676
 
 struct WebConfig {
 	uint8_t security;
@@ -320,6 +335,7 @@ private:
 
 	bool loadConfig82(int address);
 	bool loadConfig83(int address);
+	bool relocateConfig86();
 
 	int readString(int pAddress, char* pString[]);
 	int readInt(int pAddress, int *pValue);

@@ -534,6 +534,17 @@ bool AmsConfiguration::hasConfig() {
 				return false;
 			}
 			break;
+		case 86:
+			configVersion = -1; // Prevent loop
+			if(relocateConfig86()) {
+				configVersion = EEPROM_CHECK_SUM;
+				return true;
+			} else {
+				configVersion = 0;
+				return false;
+			}
+			break;
+		    break;
 		case EEPROM_CHECK_SUM:
 			return true;
 		default:
@@ -552,7 +563,7 @@ void AmsConfiguration::loadTempSensors() {
 	int address = EEPROM_TEMP_CONFIG_ADDRESS;
 	int c = 0;
 	int storedCount = EEPROM.read(address++);
-	Serial.print("SEnsors: ");
+	Serial.print("Sensors: ");
 	Serial.println(storedCount);
 	if(storedCount > 0 && storedCount <= 32) {
 		for(int i = 0; i < storedCount; i++) {
@@ -789,6 +800,26 @@ bool AmsConfiguration::loadConfig83(int address) {
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig86() {
+	MqttConfig86 mqtt86;
+	MqttConfig mqtt;
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.get(CONFIG_MQTT_START_86, mqtt86);
+	strcpy(mqtt.host, mqtt86.host);
+	mqtt.port = mqtt86.port;
+	strcpy(mqtt.clientId, mqtt86.clientId);
+	strcpy(mqtt.publishTopic, mqtt86.publishTopic);
+	strcpy(mqtt.subscribeTopic, mqtt86.subscribeTopic);
+	strcpy(mqtt.username, mqtt86.username);
+	strcpy(mqtt.password, mqtt86.password);
+	mqtt.payloadFormat = mqtt86.payloadFormat;
+	mqtt.ssl = mqtt86.ssl;
+	EEPROM.put(CONFIG_MQTT_START, mqtt);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
 	return ret;
 }
 

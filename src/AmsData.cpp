@@ -103,8 +103,10 @@ void AmsData::extractFromAidon(HanReader& hanReader, uint8_t listSize, bool subs
             break;
         case (uint8_t)Aidon::List3PhaseITLong:
         case (uint8_t)Aidon::List3PhaseLong:
+        case (uint8_t)Aidon::Swedish3p:
             threePhase = true;
         case (uint8_t)Aidon::List1PhaseLong:
+        case (uint8_t)Aidon::Swedish1p:
             listType = 3;
             break;
     }
@@ -174,6 +176,42 @@ void AmsData::extractFromAidon(HanReader& hanReader, uint8_t listSize, bool subs
                 if(substituteMissing) {
                     l2current         = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
                 }
+                break;
+            case (uint8_t)Aidon::Swedish1p:
+                meterTimestamp        = hanReader.getTime(            (uint8_t)Aidon_Swedish1p::Timestamp, false, false);
+                activeImportCounter   = ((float) hanReader.getUint(  (uint8_t)Aidon_Swedish1p::CumulativeActiveImportEnergy)) / 100;
+                activeExportCounter   = ((float) hanReader.getUint(  (uint8_t)Aidon_Swedish1p::CumulativeActiveExportEnergy)) / 100;
+                reactiveImportCounter = ((float) hanReader.getUint(  (uint8_t)Aidon_Swedish1p::CumulativeReactiveImportEnergy)) / 100;
+                reactiveExportCounter = ((float) hanReader.getUint(  (uint8_t)Aidon_Swedish1p::CumulativeReactiveExportEnergy)) / 100;
+                listId                = "AIDON_H0001";
+                meterId               = "";
+                meterModel            = "";
+                activeImportPower     = hanReader.getUint(            (uint8_t)Aidon_Swedish1p::ActiveImportPower);
+                reactiveImportPower   = hanReader.getUint(            (uint8_t)Aidon_Swedish1p::ReactiveImportPower);
+                activeExportPower     = hanReader.getUint(            (uint8_t)Aidon_Swedish1p::ActiveExportPower);
+                reactiveExportPower   = hanReader.getUint(            (uint8_t)Aidon_Swedish1p::ReactiveExportPower);
+                l1current             = ((float) hanReader.getInt(   (uint8_t)Aidon_Swedish1p::CurrentL1)) / 10;
+                l1voltage             = ((float) hanReader.getInt(   (uint8_t)Aidon_Swedish1p::VoltageL1)) / 10;
+                break;
+            case (uint8_t)Aidon::Swedish3p:
+                meterTimestamp        = hanReader.getTime(            (uint8_t)Aidon_Swedish3p::Timestamp, false, false);
+                activeImportCounter   = ((float) hanReader.getUint(  (uint8_t)Aidon_Swedish3p::CumulativeActiveImportEnergy)) / 100;
+                activeExportCounter   = ((float) hanReader.getUint(  (uint8_t)Aidon_Swedish3p::CumulativeActiveExportEnergy)) / 100;
+                reactiveImportCounter = ((float) hanReader.getUint(  (uint8_t)Aidon_Swedish3p::CumulativeReactiveImportEnergy)) / 100;
+                reactiveExportCounter = ((float) hanReader.getUint(  (uint8_t)Aidon_Swedish3p::CumulativeReactiveExportEnergy)) / 100;
+                listId                = "AIDON_H0001";
+                meterId               = "";
+                meterModel            = "";
+                activeImportPower     = hanReader.getUint(            (uint8_t)Aidon_Swedish3p::ActiveImportPower);
+                reactiveImportPower   = hanReader.getUint(            (uint8_t)Aidon_Swedish3p::ReactiveImportPower);
+                activeExportPower     = hanReader.getUint(            (uint8_t)Aidon_Swedish3p::ActiveExportPower);
+                reactiveExportPower   = hanReader.getUint(            (uint8_t)Aidon_Swedish3p::ReactiveExportPower);
+                l1current             = ((float) hanReader.getInt(   (uint8_t)Aidon_Swedish3p::CurrentL1)) / 10;
+                l2current             = ((float) hanReader.getInt(   (uint8_t)Aidon_Swedish3p::CurrentL2)) / 10;
+                l3current             = ((float) hanReader.getInt(   (uint8_t)Aidon_Swedish3p::CurrentL3)) / 10;
+                l1voltage             = ((float) hanReader.getInt(   (uint8_t)Aidon_Swedish3p::VoltageL1)) / 10;
+                l2voltage             = ((float) hanReader.getInt(   (uint8_t)Aidon_Swedish3p::VoltageL2)) / 10;
+                l3voltage             = ((float) hanReader.getInt(   (uint8_t)Aidon_Swedish3p::VoltageL3)) / 10;
                 break;
         }
     }

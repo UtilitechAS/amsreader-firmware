@@ -302,7 +302,7 @@ void AmsWebServer::indexHtml() {
 			html.replace("${config.boardType" + String(i) + "}", sys.boardType == i ? "selected"  : "");
 		}
 		for(int i = 0; i<5; i++) {
-			html.replace("${config.meterType" + String(i) + "}", sys.boardType == i ? "selected"  : "");
+			html.replace("${config.meterType" + String(i) + "}", meterConfig->type == i ? "selected"  : "");
 		}
 		html.replace("${config.wifiSsid}", wifi.ssid);
 		html.replace("${config.wifiPassword}", wifi.psk);
@@ -390,7 +390,7 @@ void AmsWebServer::configMeterHtml() {
 	server.sendHeader("Pragma", "no-cache");
 
 	html.replace("{m}", String(meterConfig->mainFuse));
-	for(int i = 0; i<5; i++) {
+	for(int i = 0; i<7; i++) {
 		html.replace("{m" + String(i) + "}", meterConfig->type == i ? "selected"  : "");
 	}
 	html.replace("{d}", String(meterConfig->distributionSystem));

@@ -147,6 +147,16 @@ void setup() {
 			case METER_TYPE_OMNIPOWER:
 				Serial.begin(2400, SERIAL_8N1);
 				break;
+			case METER_TYPE_RJ12:
+				Serial.begin(115200, SERIAL_8N1);
+				break;
+			case METER_TYPE_RJ12_INV:
+				#if defined(ESP32)
+					Serial.begin(115200, SERIAL_8N1, -1, -1, true);
+				#elif
+					Serial.begin(115200, SERIAL_8N1, SERIAL_FULL, 1, true);
+				#endif
+				break;
 			default:
 				Serial.begin(2400, SERIAL_8E1);
 				break;
@@ -484,6 +494,16 @@ void setupHanPort(int pin, int newMeterType) {
 			case METER_TYPE_OMNIPOWER:
 				hwSerial->begin(2400, SERIAL_8N1);
 				break;
+			case METER_TYPE_RJ12:
+				hwSerial->begin(115200, SERIAL_8N1);
+				break;
+			case METER_TYPE_RJ12_INV:
+				#if defined(ESP32)
+					Serial.begin(115200, SERIAL_8N1, -1, -1, true);
+				#elif
+					Serial.begin(115200, SERIAL_8N1, SERIAL_FULL, 1, true);
+				#endif
+				break;
 			default:
 				hwSerial->begin(2400, SERIAL_8E1);
 				break;
@@ -498,6 +518,12 @@ void setupHanPort(int pin, int newMeterType) {
 			case METER_TYPE_KAMSTRUP:
 			case METER_TYPE_OMNIPOWER:
 				swSerial->begin(2400, SWSERIAL_8N1);
+				break;
+			case METER_TYPE_RJ12:
+				swSerial->begin(115200, SWSERIAL_8N1);
+				break;
+			case METER_TYPE_RJ12_INV:
+				swSerial->begin(115200, SWSERIAL_8N1, pin, -1, true);
 				break;
 			default:
 				swSerial->begin(2400, SWSERIAL_8E1);

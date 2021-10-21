@@ -9,6 +9,8 @@
 #define METER_TYPE_AIDON 2
 #define METER_TYPE_KAMSTRUP 3
 #define METER_TYPE_OMNIPOWER 4
+#define METER_TYPE_RJ12 5
+#define METER_TYPE_RJ12_INV 6
 
 class AmsData {
 public:

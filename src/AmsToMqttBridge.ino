@@ -153,7 +153,7 @@ void setup() {
 			case METER_TYPE_RJ12_INV:
 				#if defined(ESP32)
 					Serial.begin(115200, SERIAL_8N1, -1, -1, true);
-				#elif
+				#else
 					Serial.begin(115200, SERIAL_8N1, SERIAL_FULL, 1, true);
 				#endif
 				break;
@@ -500,7 +500,7 @@ void setupHanPort(int pin, int newMeterType) {
 			case METER_TYPE_RJ12_INV:
 				#if defined(ESP32)
 					Serial.begin(115200, SERIAL_8N1, -1, -1, true);
-				#elif
+				#else
 					Serial.begin(115200, SERIAL_8N1, SERIAL_FULL, 1, true);
 				#endif
 				break;

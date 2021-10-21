@@ -308,10 +308,21 @@ var fetch = function() {
         }
 
         if(vm && vm.gaugeMeter && json.u1) {
-            var v = parseFloat(json.u1);
-            if(json.u2) {
-                v = (v+parseFloat(json.u2)+parseFloat(json.u3)) / 3;
+            var c = 0;
+            var t = 0;
+            if(json.u1) {
+                t += parseFloat(json.u1);
+                c++;
             }
+            if(json.u2) {
+                t += parseFloat(json.u2);
+                c++;
+            }
+            if(json.u3) {
+                t += parseFloat(json.u3);
+                c++;
+            }
+            v = t/c;
             var pct = (Math.max(v-207, 1)*100/46);
             vm.gaugeMeter({
                 percent: pct,
@@ -320,14 +331,17 @@ var fetch = function() {
         }
 
         if(am && am.gaugeMeter && json.i1 && json.mf) {
-            var v = parseFloat(json.i1);
+            var a = 0;
+            if(json.i1) {
+                a = Math.max(a, parseFloat(json.i1));
+            }
             if(json.i2) {
-                v = Math.max(v, parseFloat(json.i2));
+                a = Math.max(a, parseFloat(json.i2));
             }
             if(json.i3) {
-                v = Math.max(v, parseFloat(json.i3));
+                a = Math.max(a, parseFloat(json.i3));
             }
-            var pct = (v*100)/parseInt(json.mf);
+            var pct = (a*100)/parseInt(json.mf);
             am.gaugeMeter({
                 percent: pct,
                 text: v.toFixed(1)

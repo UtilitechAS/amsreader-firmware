@@ -345,7 +345,7 @@ var fetch = function() {
             var pct = (a*100)/parseInt(json.mf);
             am.gaugeMeter({
                 percent: pct,
-                text: v.toFixed(1)
+                text: a.toFixed(1)
             });
         }
 

@@ -117,9 +117,11 @@ void AmsWebServer::loop() {
 	server.handleClient();
 
 	if(maxPwr == 0 && meterState->getListType() > 1 && meterConfig->mainFuse > 0 && meterConfig->distributionSystem > 0) {
+		int voltage = meterConfig->distributionSystem == 2 ? 400 : 230;
 		if(meterState->isThreePhase()) {
-			int voltage = meterConfig->distributionSystem == 2 ? 400 : 230;
 			maxPwr = meterConfig->mainFuse * sqrt(3) * voltage;
+		} else if(meterState->isTwoPhase()) {
+			maxPwr = meterConfig->mainFuse * voltage;
 		} else {
 			maxPwr = meterConfig->mainFuse * 230;
 		}

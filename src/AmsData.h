@@ -48,6 +48,7 @@ public:
     float getReactiveExportCounter();
 
     bool isThreePhase();
+    bool isTwoPhase();
 
 private:
     unsigned long lastUpdateMillis = 0;
@@ -58,12 +59,12 @@ private:
     uint16_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
     float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
     float activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
-    bool threePhase = false, counterEstimated = false;
+    bool threePhase = false, twoPhase = false, counterEstimated = false;
 
     void extractFromKaifa(HanReader& hanReader, uint8_t listSize);
-    void extractFromAidon(HanReader& hanReader, uint8_t listSize, bool substituteMissing);
-    void extractFromKamstrup(HanReader& hanReader, uint8_t listSize, bool substituteMissing);
-    void extractFromOmnipower(HanReader& hanReader, uint8_t listSize, bool substituteMissing);
+    void extractFromAidon(HanReader& hanReader, uint8_t listSize);
+    void extractFromKamstrup(HanReader& hanReader, uint8_t listSize);
+    void extractFromOmnipower(HanReader& hanReader, uint8_t listSize);
 };
 
 #endif

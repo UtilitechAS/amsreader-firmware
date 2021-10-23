@@ -16,14 +16,22 @@ AmsData::AmsData(uint8_t meterType, bool substituteMissing, HanReader& hanReader
 			extractFromKaifa(hanReader, listSize);
             break;
 		case METER_TYPE_AIDON:
-			extractFromAidon(hanReader, listSize, substituteMissing);
+			extractFromAidon(hanReader, listSize);
             break;
 		case METER_TYPE_KAMSTRUP:
-			extractFromKamstrup(hanReader, listSize, substituteMissing);
+			extractFromKamstrup(hanReader, listSize);
             break;
         case METER_TYPE_OMNIPOWER:
-            extractFromOmnipower(hanReader, listSize, substituteMissing);
+            extractFromOmnipower(hanReader, listSize);
             break;
+    }
+    threePhase = l1voltage > 0 && l2voltage > 0 && l3voltage > 0;
+    twoPhase = (l1voltage > 0 && l2voltage > 0) || (l2voltage > 0 && l3voltage > 0) || (l3voltage > 0  && l1voltage > 0);
+
+    if(threePhase) {
+        if(substituteMissing) {
+            l2current         = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+        }
     }
 }
 
@@ -90,7 +98,7 @@ void AmsData::extractFromKaifa(HanReader& hanReader, uint8_t listSize) {
     }
 }
 
-void AmsData::extractFromAidon(HanReader& hanReader, uint8_t listSize, bool substituteMissing) {
+void AmsData::extractFromAidon(HanReader& hanReader, uint8_t listSize) {
     switch(listSize) {
         case (uint8_t)Aidon::List1:
             listType = 1;
@@ -171,15 +179,12 @@ void AmsData::extractFromAidon(HanReader& hanReader, uint8_t listSize, bool subs
                 l1voltage             = ((float) hanReader.getInt(   (uint8_t)Aidon_List3PhaseIT::VoltageL1)) / 10;
                 l2voltage             = ((float) hanReader.getInt(   (uint8_t)Aidon_List3PhaseIT::VoltageL2)) / 10;
                 l3voltage             = ((float) hanReader.getInt(   (uint8_t)Aidon_List3PhaseIT::VoltageL3)) / 10;
-                if(substituteMissing) {
-                    l2current         = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
-                }
                 break;
         }
     }
 }
 
-void AmsData::extractFromKamstrup(HanReader& hanReader, uint8_t listSize, bool substituteMissing) {
+void AmsData::extractFromKamstrup(HanReader& hanReader, uint8_t listSize) {
     switch(listSize) {
         case (uint8_t)Kamstrup::List3PhaseITShort:
         case (uint8_t)Kamstrup::List3PhaseShort:
@@ -254,14 +259,11 @@ void AmsData::extractFromKamstrup(HanReader& hanReader, uint8_t listSize, bool s
             l1voltage             = hanReader.getInt(          (uint8_t)Kamstrup_List3Phase::VoltageL1);
             l2voltage             = hanReader.getInt(          (uint8_t)Kamstrup_List3Phase::VoltageL2);
             l3voltage             = hanReader.getInt(          (uint8_t)Kamstrup_List3Phase::VoltageL3);
-            if(substituteMissing) {
-                l2current         = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
-            }
             break;
     }
 }
 
-void AmsData::extractFromOmnipower(HanReader& hanReader, uint8_t listSize, bool substituteMissing) {
+void AmsData::extractFromOmnipower(HanReader& hanReader, uint8_t listSize) {
     switch(listSize) {
         case (uint8_t)Kamstrup::List3PhaseITShort:
         case (uint8_t)Kamstrup::List3PhaseShort:
@@ -269,7 +271,7 @@ void AmsData::extractFromOmnipower(HanReader& hanReader, uint8_t listSize, bool 
         case (uint8_t)Kamstrup::List3PhaseITLong:
         case (uint8_t)Kamstrup::List3PhaseLong:
         case (uint8_t)Kamstrup::List1PhaseLong:
-            extractFromKamstrup(hanReader, listSize, substituteMissing);
+            extractFromKamstrup(hanReader, listSize);
             break;
         case (uint8_t)Omnipower::DLMS:
             meterTimestamp        = hanReader.getTime(         (uint8_t)Omnipower_DLMS::MeterClock, true, true);
@@ -340,6 +342,7 @@ void AmsData::apply(AmsData& other) {
             this->l2voltage = other.getL2Voltage();
             this->l3voltage = other.getL3Voltage();
             this->threePhase = other.isThreePhase();
+            this->twoPhase = other.isTwoPhase();
         case 1:
             this->activeImportPower = other.getActiveImportPower();
     }

@@ -695,7 +695,7 @@ void AmsWebServer::dataJson() {
 		mqttStatus = 3;
 	}
 
-	char json[280];
+	char json[284];
 	snprintf_P(json, sizeof(json), DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		meterConfig->productionCapacity,

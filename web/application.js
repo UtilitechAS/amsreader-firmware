@@ -307,7 +307,7 @@ var fetch = function() {
             });
         }
 
-        if(vm && vm.gaugeMeter && json.u1) {
+        if(vm && vm.gaugeMeter) {
             var c = 0;
             var t = 0;
             if(json.u1) {
@@ -330,7 +330,7 @@ var fetch = function() {
             });
         }
 
-        if(am && am.gaugeMeter && json.i1 && json.mf) {
+        if(am && am.gaugeMeter && json.mf) {
             var a = 0;
             if(json.i1) {
                 a = Math.max(a, parseFloat(json.i1));

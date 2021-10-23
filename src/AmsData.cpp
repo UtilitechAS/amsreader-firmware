@@ -435,3 +435,7 @@ float AmsData::getReactiveExportCounter() {
 bool AmsData::isThreePhase() {
     return this->threePhase;
 }
+
+bool AmsData::isTwoPhase() {
+    return this->twoPhase;
+}

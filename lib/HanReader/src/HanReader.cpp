@@ -299,10 +299,10 @@ time_t HanReader::getTime(byte *buffer, int start, int length, bool respectTimez
 		tm.Second = second;
 
 		time_t time = makeTime(tm);
-		if(respectTimezone && tzMinutes != 0x8000) {
+		if(respectTimezone && (tzMinutes | 0x8000) != 0x8000 && tzMinutes <= 720 && tzMinutes >= -720) {
 			time -= tzMinutes * 60;
 			if(respectDsc && dsc)
-				time -= 3600;
+				time += 3600;
 		} else {
 			if(respectDsc && dsc)
 				time += 3600;

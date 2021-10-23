@@ -1189,22 +1189,22 @@ void AmsWebServer::configDebugHtml() {
 String AmsWebServer::getSerialSelectOptions(int selected) {
 	String gpioOptions;
 	if(selected == 3) {
-		gpioOptions += "<option value=\"3\" selected>UART0</option>";
+		gpioOptions += "<option value=\"3\" selected>UART0 (GPIO3)</option>";
 	} else {
-		gpioOptions += "<option value=\"3\">UART0</option>";
+		gpioOptions += "<option value=\"3\">UART0 (GPIO3)</option>";
 	}
 	#if defined(ESP32)
 		int numGpio = 24;
 		int gpios[] = {4,5,6,7,8,10,11,12,13,14,15,17,18,19,21,22,23,25,32,33,34,35,36,39};
 		if(selected == 9) {
-			gpioOptions += "<option value=\"9\" selected>UART1</option>";
+			gpioOptions += "<option value=\"9\" selected>UART1 (GPIO9)</option>";
 		} else {
-			gpioOptions += "<option value=\"9\">UART1</option>";
+			gpioOptions += "<option value=\"9\">UART1 (GPIO9)</option>";
 		}
 		if(selected == 16) {
-			gpioOptions += "<option value=\"16\" selected>UART2</option>";
+			gpioOptions += "<option value=\"16\" selected>UART2 (GPIO16)</option>";
 		} else {
-			gpioOptions += "<option value=\"16\">UART2</option>";
+			gpioOptions += "<option value=\"16\">UART2 (GPIO16)</option>";
 		}
 	#elif defined(ESP8266)
 		int numGpio = 9;

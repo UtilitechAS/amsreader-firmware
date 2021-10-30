@@ -147,7 +147,7 @@ $(function() {
         case '/gpio':
         case '/debugging':
         case '/firmware':
-            $('firmware-warn').show();
+            $('#firmware-warn').show();
         case '/reset':
             $('#system-link').addClass('active');
             break;

@@ -198,7 +198,7 @@ void AmsWebServer::temperaturePost() {
 		server.send (302, "text/plain", "");
 	} else {
 		printE("Error saving configuration");
-		String html = "<html><body><h1>Error saving configuration!</h1></form>";
+		String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
 		server.send(500, "text/html", html);
 	}
 }
@@ -895,7 +895,7 @@ void AmsWebServer::handleSetup() {
 			server.send(303);
 		} else {
 			printE("Error saving configuration");
-			String html = "<html><body><h1>Error saving configuration!</h1></form>";
+			String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
 			server.send(500, "text/html", html);
 		}
 	}
@@ -1083,7 +1083,7 @@ void AmsWebServer::handleSave() {
 		}
 	} else {
 		printE("Error saving configuration");
-		String html = "<html><body><h1>Error saving configuration!</h1></form>";
+		String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
 		server.send(500, "text/html", html);
 	}
 }
@@ -1235,31 +1235,75 @@ void AmsWebServer::uploadFile(const char* path) {
     if(upload.status == UPLOAD_FILE_START){
 		if(uploading) {
 			printE("Upload already in progress");
-			String html = "<html><body><h1>Upload already in progress!</h1></form>";
+			String html = "<html><body><h1>Upload already in progress!</h1></body></html>";
 			server.send(500, "text/html", html);
 		} else if (!SPIFFS.begin()) {
 			printE("An Error has occurred while mounting SPIFFS");
-			String html = "<html><body><h1>Unable to mount SPIFFS!</h1></form>";
+			String html = "<html><body><h1>Unable to mount SPIFFS!</h1></body></html>";
 			server.send(500, "text/html", html);
 		} else {
 			uploading = true;
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf("handleFileUpload file: %s\n", path);
 			}
+			#if defined(ESP32)
+				if(debugger->isActive(RemoteDebug::DEBUG)) {
+					debugger->printf("handleFileUpload Free heap: %lu\n", ESP.getFreeHeap());
+					debugger->printf("handleFileUpload SPIFFS size: %lu\n", SPIFFS.totalBytes());
+					debugger->printf("handleFileUpload SPIFFS used: %lu\n", SPIFFS.usedBytes());
+					debugger->printf("handleFileUpload SPIFFS free: %lu\n", SPIFFS.totalBytes()-SPIFFS.usedBytes());
+				}
+			#endif
 		    file = SPIFFS.open(path, "w");
-            file.write(upload.buf, upload.currentSize);
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf("handleFileUpload Open file and write: %lu\n", upload.currentSize);
+			}
+            size_t written = file.write(upload.buf, upload.currentSize);
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf("handleFileUpload Written: %lu\n", written);
+			}
 	    } 
     } else if(upload.status == UPLOAD_FILE_WRITE) {
-        if(file)
-            file.write(upload.buf, upload.currentSize);
+		if(debugger->isActive(RemoteDebug::DEBUG)) {
+			debugger->printf("handleFileUpload Writing: %lu\n", upload.currentSize);
+		}
+        if(file) {
+            size_t written = file.write(upload.buf, upload.currentSize);
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf("handleFileUpload Written: %lu\n", written);
+			}
+			delay(1);
+			if(written != upload.currentSize) {
+				#if defined(ESP32)
+					if(debugger->isActive(RemoteDebug::DEBUG)) {
+						debugger->printf("handleFileUpload Free heap: %lu\n", ESP.getFreeHeap());
+						debugger->printf("handleFileUpload SPIFFS size: %lu\n", SPIFFS.totalBytes());
+						debugger->printf("handleFileUpload SPIFFS used: %lu\n", SPIFFS.usedBytes());
+						debugger->printf("handleFileUpload SPIFFS free: %lu\n", SPIFFS.totalBytes()-SPIFFS.usedBytes());
+					}
+				#endif
+
+				file.flush();
+				file.close();
+				SPIFFS.remove(path);
+				SPIFFS.end();
+
+				printE("An Error has occurred while writing file");
+				String html = "<html><body><h1>Unable to write file!</h1></body></html>";
+				server.send(500, "text/html", html);
+			}
+		}
     } else if(upload.status == UPLOAD_FILE_END) {
         if(file) {
 			file.flush();
             file.close();
-			SPIFFS.end();
+		    file = SPIFFS.open(path, "r");
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf("handleFileUpload Size: %lu\n", upload.totalSize);
+				debugger->printf("handleFileUpload File size: %lu\n", file.size());
 			}
+            file.close();
+			SPIFFS.end();
         } else {
             server.send(500, "text/plain", "500: couldn't create file");
         }
@@ -1315,16 +1359,16 @@ void AmsWebServer::firmwareDownload() {
 		WiFiClientSecure client;
 #if defined(ESP8266)
 		client.setBufferSizes(512, 512);
+		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp8266-" + versionStripped + ".bin";
+#elif defined(ESP32)
+		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32-" + versionStripped + ".bin";
+#endif
 		client.setInsecure();
-#endif
-		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp12e-" + versionStripped + ".bin";
 		HTTPClient https;
-#if defined(ESP8266)
-		https.setFollowRedirects(true);
-#endif
+		https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
+		https.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 		if(https.begin(client, url)) {
-			https.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 			printD("HTTP client setup successful");
 			int status = https.GET();
 			if(status == HTTP_CODE_OK) {
@@ -1332,7 +1376,6 @@ void AmsWebServer::firmwareDownload() {
 				if(SPIFFS.begin()) {
 					printI("Downloading firmware to SPIFFS");
 					file = SPIFFS.open(FILE_FIRMWARE, "w");
-					// The following does not work... Maybe someone will make it work in the future? It seems to be disconnected at this point.
 					int len = https.writeToStream(&file);
 					file.close();
 					SPIFFS.end();
@@ -1365,6 +1408,7 @@ void AmsWebServer::firmwareDownload() {
 			server.send(303);
 		}
 		https.end();
+		client.stop();
 	} else {
 		printI("No firmware version specified...");
 		server.sendHeader("Location","/");

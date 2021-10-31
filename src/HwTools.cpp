@@ -217,6 +217,7 @@ bool HwTools::ledBlink(uint8_t color, uint8_t blink) {
         if(i != blink)
             delay(50);
     }
+    return true;
 }
 
 bool HwTools::writeLedPin(uint8_t color, uint8_t state) {

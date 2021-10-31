@@ -7,6 +7,8 @@
 
 #define EPOCH_2021_01_01 1609459200
 
+#define MAX_PEM_SIZE 4096
+
 #include <SoftwareSerial.h>
 
 #if defined(ESP8266)

@@ -184,9 +184,7 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     #endif
     
     HTTPClient https;
-    #if defined(ESP8266)
-        https.setFollowRedirects(true);
-    #endif
+    https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
     if(https.begin(client, url)) {
         printD("Connection established");

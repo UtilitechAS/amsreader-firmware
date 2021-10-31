@@ -45,7 +45,6 @@ ADC_MODE(ADC_VCC);
 
 #include "Uptime.h"
 
-#define WEBSOCKET_DISABLED true
 #include "RemoteDebug.h"
 
 HwTools hw;
@@ -188,17 +187,18 @@ void setup() {
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
 
-	bool spiffs = false;
+	bool hasFs = false;
 #if defined(ESP32)
 	debugD("ESP32 SPIFFS");
-	spiffs = SPIFFS.begin(true);
+	hasFs = SPIFFS.begin(true);
+	debugD(" size: %d", SPIFFS.totalBytes());
 #else
 	debugD("ESP8266 SPIFFS");
-	spiffs = SPIFFS.begin();
+	hasFs = SPIFFS.begin();
 #endif
 	delay(1);
 
-	if(spiffs) {
+	if(hasFs) {
 		bool flashed = false;
 		if(SPIFFS.exists(FILE_FIRMWARE)) {
 			if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
@@ -798,21 +798,41 @@ void MQTT_connect() {
 			char *ca = NULL;
 			char *cert = NULL;
 			char *key = NULL;
+			File file;
 
 			if(SPIFFS.exists(FILE_MQTT_CA)) {
 				debugI("Found MQTT CA file");
-				File file = SPIFFS.open(FILE_MQTT_CA, "r");
-				secureClient->loadCACert(file, file.size());
+				file = SPIFFS.open(FILE_MQTT_CA, "r");
+				#if defined(ESP8266)
+					char caStr[MAX_PEM_SIZE];
+					file.readBytes(caStr, file.size());
+					BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(caStr);
+					secureClient->setTrustAnchors(serverTrustedCA);
+				#elif defined(ESP32)
+					secureClient->loadCACert(file, file.size());
+				#endif
 			}
-			if(SPIFFS.exists(FILE_MQTT_CERT)) {
-				debugI("Found MQTT certificate file");
-				File file = SPIFFS.open(FILE_MQTT_CERT, "r");
-				secureClient->loadCertificate(file, file.size());
-			}
-			if(SPIFFS.exists(FILE_MQTT_KEY)) {
-				debugI("Found MQTT key file");
-				File file = SPIFFS.open(FILE_MQTT_KEY, "r");
-				secureClient->loadPrivateKey(file, file.size());
+
+			if(SPIFFS.exists(FILE_MQTT_CERT) && SPIFFS.exists(FILE_MQTT_KEY)) {
+				#if defined(ESP8266)
+					char certStr[MAX_PEM_SIZE];
+					file = SPIFFS.open(FILE_MQTT_CERT, "r");
+					file.readBytes(certStr, file.size());
+				 	BearSSL::X509List *serverCertList = new BearSSL::X509List(certStr);
+					char keyStr[MAX_PEM_SIZE];
+					file = SPIFFS.open(FILE_MQTT_KEY, "r");
+					file.readBytes(keyStr, file.size());
+  					BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(keyStr);
+					secureClient->setClientRSACert(serverCertList, serverPrivKey);
+				#elif defined(ESP32)
+					debugI("Found MQTT certificate file");
+					file = SPIFFS.open(FILE_MQTT_CERT, "r");
+					secureClient->loadCertificate(file, file.size());
+
+					debugI("Found MQTT key file");
+					file = SPIFFS.open(FILE_MQTT_KEY, "r");
+					secureClient->loadPrivateKey(file, file.size());
+				#endif
 			}
 			SPIFFS.end();
 		}

@@ -80,6 +80,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
         );
         return mqtt->publish(topic, json);
     }
+    return false;
 }
 
 bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {

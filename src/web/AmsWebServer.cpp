@@ -391,10 +391,13 @@ void AmsWebServer::configMeterHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
-	html.replace("{m}", String(meterConfig->mainFuse));
-	for(int i = 0; i<5; i++) {
-		html.replace("{m" + String(i) + "}", meterConfig->type == i ? "selected"  : "");
-	}
+	html.replace("{b}", String(meterConfig->baud));
+	html.replace("{b2400}", meterConfig->baud == 2400 ? "selected"  : "");
+	html.replace("{b115200}", meterConfig->baud == 115200 ? "selected"  : "");
+	html.replace("{c}", String(meterConfig->baud));
+	html.replace("{c3}", meterConfig->parity == 3 ? "selected"  : "");
+	html.replace("{c11}", meterConfig->parity == 11 ? "selected"  : "");
+	html.replace("{i}", meterConfig->invert ? "checked"  : "");
 	html.replace("{d}", String(meterConfig->distributionSystem));
 	for(int i = 0; i<3; i++) {
 		html.replace("{d" + String(i) + "}", meterConfig->distributionSystem == i ? "selected"  : "");
@@ -405,7 +408,7 @@ void AmsWebServer::configMeterHtml() {
 	}
 	html.replace("{p}", String(meterConfig->productionCapacity));
 
-	if(meterConfig->type == METER_TYPE_OMNIPOWER) {
+	if(meterConfig->encryptionKey[0] != 0x00) {
 		String encryptionKeyHex = "0x";
 		encryptionKeyHex += toHex(meterConfig->encryptionKey, 16);
 		html.replace("{e}", encryptionKeyHex);
@@ -417,8 +420,6 @@ void AmsWebServer::configMeterHtml() {
 		html.replace("{e}", "");
 		html.replace("{a}", "");
 	}
-
-	html.replace("{s}", meterConfig->substituteMissing ? "checked" : "");
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
@@ -665,7 +666,7 @@ void AmsWebServer::dataJson() {
 
 
 	uint8_t hanStatus;
-	if(meterConfig->type == 0) {
+	if(meterConfig->baud == 0) {
 		hanStatus = 0;
 	} else if(now - meterState->getLastUpdateMillis() < 15000) {
 		hanStatus = 1;
@@ -910,7 +911,9 @@ void AmsWebServer::handleSave() {
 
 	if(server.hasArg("mc") && server.arg("mc") == "true") {
 		printD("Received meter config");
-		meterConfig->type = server.arg("m").toInt();
+		meterConfig->baud = server.arg("b").toInt();
+		meterConfig->parity = server.arg("c").toInt();
+		meterConfig->invert = server.hasArg("i") && server.arg("i") == "true";
 		meterConfig->distributionSystem = server.arg("d").toInt();
 		meterConfig->mainFuse = server.arg("f").toInt();
 		meterConfig->productionCapacity = server.arg("p").toInt();
@@ -926,7 +929,6 @@ void AmsWebServer::handleSave() {
 			authenticationKeyHex.replace("0x", "");
 			fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
 		}
-		meterConfig->substituteMissing = server.hasArg("s") && server.arg("s") == "true";
 		config->setMeterConfig(*meterConfig);
 	}
 

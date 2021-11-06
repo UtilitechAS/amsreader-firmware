@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #define HDLC_FLAG 0x7E
+#define HDLC_ENCRYPTION_CONFIG_MISSING -90
 
 struct HDLCConfig {
     uint8_t encryption_key[32];

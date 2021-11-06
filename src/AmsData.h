@@ -3,7 +3,6 @@
 
 #include "Arduino.h"
 #include <Timezone.h>
-#include "HanReader.h"
 
 #define METER_TYPE_KAIFA 1
 #define METER_TYPE_AIDON 2
@@ -14,7 +13,6 @@ class AmsData {
 public:
     AmsData();
     AmsData(const char* d, bool substituteMissing);
-    AmsData(uint8_t meterType, bool substituteMissing, HanReader& hanReader);
 
     void apply(AmsData& other);
 
@@ -61,11 +59,6 @@ private:
     float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
     float activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
     bool threePhase = false, twoPhase = false, counterEstimated = false;
-
-    void extractFromKaifa(HanReader& hanReader, uint8_t listSize);
-    void extractFromAidon(HanReader& hanReader, uint8_t listSize);
-    void extractFromKamstrup(HanReader& hanReader, uint8_t listSize);
-    void extractFromOmnipower(HanReader& hanReader, uint8_t listSize);
 };
 
 #endif

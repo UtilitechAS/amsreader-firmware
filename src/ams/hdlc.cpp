@@ -90,7 +90,7 @@ int HDLC_validate(const uint8_t* d, int len, HDLCConfig* config) {
         // Encrypted APDU
         // http://www.weigu.lu/tutorials/sensors2bus/04_encryption/index.html
         if(config == NULL)
-            return -90;
+            return HDLC_ENCRYPTION_CONFIG_MISSING;
 
         memcpy(config->system_title, d + headersize + 2, 8);
         memcpy(config->initialization_vector, config->system_title, 8);

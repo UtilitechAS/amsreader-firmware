@@ -74,25 +74,6 @@ $(function() {
     $('#m').trigger('change');
     $('#f').trigger('change');
 
-    // For meter
-    $('.sd').on('change', function() {
-        if(($('#mt').val() == 2 || $('#mt').val() == 3) && $('#d').val() == 1) {
-            $('#ss').show();
-        } else {
-            $('#ss').hide();
-        }
-    });
-
-    $('#mt').on('change', function() {
-        if($('#mt').val() == 4) {
-            $('.enc').show();
-        } else {
-            $('.enc').hide();
-        }
-    });
-
-    $('#mt').trigger('change');
-
     // For wifi
     $('#st').on('change', function() {
         if($(this).is(':checked')) {

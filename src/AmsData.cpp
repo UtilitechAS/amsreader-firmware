@@ -109,25 +109,28 @@ AmsData::AmsData(const char* d, bool substituteMissing) {
         l3current = s32;
     }
 
-    int vdiv = 1;
-    int voltage = l1voltage == 0 ? l2voltage == 0 ? l3voltage == 0 ? 0 : l3voltage : l2voltage : l1voltage;
-    while(voltage > 1000) {
-        vdiv *= 10;
-        voltage /= 10;
-    }
+    if(listType == 2) {
+        int vdiv = 1;
+        int voltage = l1voltage == 0 ? l2voltage == 0 ? l3voltage == 0 ? 0 : l3voltage : l2voltage : l1voltage;
+        while(voltage > 1000) {
+            vdiv *= 10;
+            voltage /= 10;
+        }
 
-    l1voltage = l1voltage != 0 ? l1voltage / vdiv : 0;
-    l2voltage = l2voltage != 0 ? l2voltage / vdiv : 0;
-    l3voltage = l3voltage != 0 ? l3voltage / vdiv : 0;
+        l1voltage = l1voltage != 0 ? l1voltage / vdiv : 0;
+        l2voltage = l2voltage != 0 ? l2voltage / vdiv : 0;
+        l3voltage = l3voltage != 0 ? l3voltage / vdiv : 0;
 
-    if(meterType == AmsTypeAidon) {
-        l1current = l1current != 0 ? l1current / 10.0 : 0;
-        l2current = l2current != 0 ? l2current / 10.0 : 0;
-        l3current = l3current != 0 ? l3current / 10.0 : 0;
-    } else if(meterType == AmsTypeKamstrup) {
-        l1current = l1current != 0 ? l1current / 100.0 : 0;
-        l2current = l2current != 0 ? l2current / 100.0 : 0;
-        l3current = l3current != 0 ? l3current / 100.0 : 0;
+        int adiv = 1;
+        int watt = (l1voltage * l1current) + (l2voltage * l2current) + (l3voltage * l3current);
+        while(watt / activeImportPower > 2) {
+            adiv *= 10;
+            watt /= 10;
+        }
+
+        l1current = l1current != 0 ? l1current / adiv : 0;
+        l2current = l2current != 0 ? l2current / adiv : 0;
+        l3current = l3current != 0 ? l3current / adiv : 0;
     }
 
     u32 = AMS_getUnsignedNumber(AMS_OBIS_ACTIVE_IMPORT_COUNT, ((char *) (d)));
@@ -170,8 +173,8 @@ AmsData::AmsData(const char* d, bool substituteMissing) {
     twoPhase = (l1voltage > 0 && l2voltage > 0) || (l2voltage > 0 && l3voltage > 0) || (l3voltage > 0  && l1voltage > 0);
 
     if(threePhase) {
-        if(substituteMissing) {
-            l2current         = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+        if(substituteMissing && l2current == 0) {
+            l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
         }
     }
 

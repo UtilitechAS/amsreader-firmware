@@ -31,17 +31,11 @@ ADC_MODE(ADC_VCC);
 
 #include "web/AmsWebServer.h"
 #include "AmsConfiguration.h"
-#include "HanReader.h"
 
 #include "mqtt/AmsMqttHandler.h"
 #include "mqtt/JsonMqttHandler.h"
 #include "mqtt/RawMqttHandler.h"
 #include "mqtt/DomoticzMqttHandler.h"
-
-#include "Aidon.h"
-#include "Kaifa.h"
-#include "Kamstrup.h"
-#include "Omnipower.h"
 
 #include "Uptime.h"
 
@@ -66,8 +60,6 @@ AmsWebServer ws(&Debug, &hw);
 
 MQTTClient mqtt(512);
 AmsMqttHandler* mqttHandler = NULL;
-
-HanReader hanReader;
 
 Stream *hanSerial;
 
@@ -144,15 +136,16 @@ void setup() {
 	config.getMeterConfig(meterConfig);
 	if(gpioConfig.hanPin == 3) {
 		shared = true;
-		switch(meterConfig.type) {
-			case METER_TYPE_KAMSTRUP:
-			case METER_TYPE_OMNIPOWER:
-				Serial.begin(2400, SERIAL_8N1);
+		SerialConfig serialConfig;
+		switch(meterConfig.parity) {
+			case 3:
+				serialConfig = SERIAL_8N1;
 				break;
 			default:
-				Serial.begin(2400, SERIAL_8E1);
+				serialConfig = SERIAL_8E1;
 				break;
 		}
+		Serial.begin(meterConfig.baud, serialConfig);
 	}
 
  	if(!shared) {
@@ -449,7 +442,7 @@ void loop() {
 
 	if(config.isMeterChanged()) {
 		config.getMeterConfig(meterConfig);
-		setupHanPort(gpioConfig.hanPin, meterConfig.type);
+		setupHanPort(gpioConfig.hanPin, meterConfig.baud, meterConfig.parity, meterConfig.invert);
 		config.ackMeterChanged();
 	}
 	delay(1);
@@ -458,8 +451,8 @@ void loop() {
 	delay(1); // Needed for auto modem sleep
 }
 
-void setupHanPort(int pin, int newMeterType) {
-	debugI("Setting up HAN on pin %d for meter type %d", pin, newMeterType);
+void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert) {
+	debugI("Setting up HAN on pin %d with baud %d and parity %d", pin, baud, parityOrdinal);
 
 	HardwareSerial *hwSerial = NULL;
 	if(pin == 3) {
@@ -482,41 +475,39 @@ void setupHanPort(int pin, int newMeterType) {
 	if(hwSerial != NULL) {
 		debugD("Hardware serial");
 		Serial.flush();
-		switch(newMeterType) {
-			case METER_TYPE_KAMSTRUP:
-			case METER_TYPE_OMNIPOWER:
-				hwSerial->begin(2400, SERIAL_8N1);
+
+		SerialConfig serialConfig;
+		switch(parityOrdinal) {
+			case 3:
+				serialConfig = SERIAL_8N1;
 				break;
 			default:
-				hwSerial->begin(2400, SERIAL_8E1);
+				serialConfig = SERIAL_8E1;
 				break;
 		}
+
+		hwSerial->begin(baud, serialConfig, SERIAL_FULL, -1, invert);
 		hanSerial = hwSerial;
 	} else {
 		debugD("Software serial");
 		Serial.flush();
-		SoftwareSerial *swSerial = new SoftwareSerial(pin);
 
-		switch(newMeterType) {
-			case METER_TYPE_KAMSTRUP:
-			case METER_TYPE_OMNIPOWER:
-				swSerial->begin(2400, SWSERIAL_8N1);
+		SoftwareSerialConfig serialConfig;
+		switch(parityOrdinal) {
+			case 3:
+				serialConfig = SWSERIAL_8N1;
 				break;
 			default:
-				swSerial->begin(2400, SWSERIAL_8E1);
+				serialConfig = SWSERIAL_8E1;
 				break;
 		}
+
+		SoftwareSerial *swSerial = new SoftwareSerial(pin, -1, invert);
+		swSerial->begin(baud, serialConfig);
 		hanSerial = swSerial;
 
 		Serial.begin(115200);
 	}
-
-	hanReader.setup(hanSerial, &Debug);
-	hanReader.setEncryptionKey(meterConfig.encryptionKey);
-	hanReader.setAuthenticationKey(meterConfig.authenticationKey);
-
-	// Compensate for the known Kaifa bug
-	hanReader.compensateFor09HeaderBug = (newMeterType == 1);
 
 	// Empty buffer before starting
 	while (hanSerial->available() > 0) {
@@ -604,15 +595,16 @@ HDLCConfig* hc = NULL;
 int currentMeterType = 0;
 void readHanPort() {
     uint8_t buf[BUF_SIZE];
+	if(!hanSerial->available()) return;
 	size_t len = hanSerial->readBytes(buf, BUF_SIZE); // TODO: read one byte at the time. This blocks up the GUI
 	if(len > 0) {
-		if(meterConfig.type == 4 && hc == NULL) {
+		int pos = HDLC_validate((uint8_t *) buf, len, hc);
+		if(pos == HDLC_ENCRYPTION_CONFIG_MISSING) {
 			hc = new HDLCConfig();
 			memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);
 			memcpy(hc->authentication_key, meterConfig.authenticationKey, 16);
 		}
-		int pos = HDLC_validate((uint8_t *) buf, len, hc);
-		if(Debug.isActive(RemoteDebug::INFO)) {
+		if(Debug.isActive(RemoteDebug::DEBUG)) {
 			debugD("Frame dump:");
 			debugPrint(buf, 0, len);
 			if(hc != NULL) {
@@ -630,7 +622,7 @@ void readHanPort() {
 			debugI("Valid HDLC, start at %d", pos);
 			if(!hw.ledBlink(LED_GREEN, 1))
 				hw.ledBlink(LED_INTERNAL, 1);
-			AmsData data = AmsData(((char *) (buf)) + pos, meterConfig.substituteMissing);
+			AmsData data = AmsData(((char *) (buf)) + pos, true);
 			if(data.getListType() > 0) {
 				if(mqttEnabled && mqttHandler != NULL) {
 					if(mqttHandler->publish(&data, &meterState)) {
@@ -680,95 +672,6 @@ void debugPrint(byte *buffer, int start, int length) {
 		yield(); // Let other get some resources too
 	}
 	Debug.println("");
-}
-
-void oldReadHanPort() {
-	if (hanReader.read()) {
-		lastSuccessfulRead = millis();
-		delay(1);
-
-		if(meterConfig.type > 0) {
-			if(!hw.ledBlink(LED_GREEN, 1))
-				hw.ledBlink(LED_INTERNAL, 1);
-
-			AmsData data(meterConfig.type, meterConfig.substituteMissing, hanReader);
-			if(data.getListType() > 0) {
-				if(mqttEnabled && mqttHandler != NULL) {
-					if(mqttHandler->publish(&data, &meterState)) {
-						if(data.getListType() == 3 && eapi != NULL) {
-							mqttHandler->publishPrices(eapi);
-						}
-						if(data.getListType() >= 2) {
-							mqttHandler->publishSystem(&hw);
-						}
-						time_t now = time(nullptr);
-						if(now < EPOCH_2021_01_01 || data.getListType() == 3) {
-							if(data.getMeterTimestamp() > EPOCH_2021_01_01 || !ntpEnabled) {
-								debugI("Using timestamp from meter");
-								now = data.getMeterTimestamp();
-							} else if(data.getPackageTimestamp() > EPOCH_2021_01_01) {
-								debugI("Using timestamp from meter (DLMS)");
-								now = data.getPackageTimestamp();
-							}
-							if(now > EPOCH_2021_01_01) {
-								timeval tv { now, 0};
-								settimeofday(&tv, nullptr);
-							}
-						}
-					}
-					mqtt.loop();
-					delay(10);
-				}
-				meterState.apply(data);
-			}
-		} else {
-			// Auto detect meter if not set
-			for(int i = 1; i <= 3; i++) {
-				String list;
-				switch(i) {
-					case 1:
-						list = hanReader.getString((int) Kaifa_List1Phase::ListVersionIdentifier);
-						break;
-					case 2:
-						list = hanReader.getString((int) Aidon_List1Phase::ListVersionIdentifier);
-						break;
-					case 3:
-						list = hanReader.getString((int) Kamstrup_List1Phase::ListVersionIdentifier);
-						break;
-				}
-				if(!list.isEmpty()) {
-					list.toLowerCase();
-					if(list.startsWith("kfm")) {
-						meterConfig.type = 1;
-						config.setMeterConfig(meterConfig);
-						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kaifa meter");
-						break;
-					} else if(list.startsWith("aidon")) {
-						meterConfig.type = 2;
-						config.setMeterConfig(meterConfig);
-						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Aidon meter");
-						break;
-					} else if(list.startsWith("kamstrup")) {
-						meterConfig.type = 3;
-						config.setMeterConfig(meterConfig);
-						if(Debug.isActive(RemoteDebug::INFO)) debugI("Detected Kamstrup meter");
-						break;
-					}
-				}
-			}
-			hanReader.compensateFor09HeaderBug = (meterConfig.type == 1);
-		}
-	}
-
-	// Switch parity if meter is still not detected
-	if(meterConfig.type == 0 && millis() - lastSuccessfulRead > 10000) {
-		lastSuccessfulRead = millis();
-		debugD("No data for current setting, switching parity");
-		Serial.flush();
-		if(++currentMeterType == 4) currentMeterType = 1;
-		setupHanPort(gpioConfig.hanPin, currentMeterType);
-	}
-	delay(1);
 }
 
 unsigned long wifiTimeout = WIFI_CONNECTION_TIMEOUT;

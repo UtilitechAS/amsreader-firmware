@@ -4,7 +4,7 @@
 uint8_t AMS_OBIS_VERSION[6]                 = { 1, 1,  0, 2, 129, 255 };
 uint8_t AMS_OBIS_METER_MODEL[6]             = { 0, 0, 96, 1, 7,   255 };
 uint8_t AMS_OBIS_METER_ID[6]                = { 0, 0, 96, 1, 0,   255 };
-uint8_t AMS_OBIS_METER_TIMESTAMP[6]         = { 0, 0,  1, 0, 0,   255 };
+uint8_t AMS_OBIS_METER_TIMESTAMP[6]         = {  1, 0, 0, 255 };
 uint8_t AMS_OBIS_ACTIVE_IMPORT[6]           = {  1, 7, 0, 255 };
 uint8_t AMS_OBIS_ACTIVE_IMPORT_L1[6]        = { 21, 7, 0, 255 };
 uint8_t AMS_OBIS_ACTIVE_IMPORT_L2[6]        = { 41, 7, 0, 255 };

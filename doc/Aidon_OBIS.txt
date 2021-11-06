@@ -1,6 +1,6 @@
-1.1.0.2.129.255
-0.0.96.1.0.255
-0.0.96.1.7.255
+1.1.0.2.129.255 - List version identifier
+0.0.96.1.0.255 - Meter ID
+0.0.96.1.7.255 - Meter Model
 1.0.1.7.0.255 - Active+ Instantaneous value 
 1.0.2.7.0.255 - Active- Instantaneous value
 1.0.3.7.0.255 - Reactive+ Instantaneous value

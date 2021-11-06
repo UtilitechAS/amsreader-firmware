@@ -1,0 +1,112 @@
+<GatewayRequest>
+  <NetworkId Value="231" />
+  <PhysicalDeviceAddress Value="" />
+  <DataNotification>
+    <LongInvokeIdAndPriority Value="40000000" />
+    <DateTime Value="" />
+    <NotificationBody>
+      <DataValue>
+        <Structure Qty="41" >
+          <String Value="Kamstrup_V0001" />
+          <!--1.1.1.8.0.255-->
+          <OctetString Value="0101010800FF" />
+          <UInt32 Value="001194CA" />
+          <!--1.1.2.8.0.255-->
+          <OctetString Value="0101020800FF" />
+          <UInt32 Value="00000000" />
+          <!--1.1.3.8.0.255-->
+          <OctetString Value="0101030800FF" />
+          <UInt32 Value="0000127E" />
+          <!--1.1.4.8.0.255-->
+          <OctetString Value="0101040800FF" />
+          <UInt32 Value="0009550E" />
+          <!--1.1.0.0.1.255-->
+          <OctetString Value="0101000001FF" />
+          <UInt32 Value="0144ADE1" />
+          <!--1.1.1.7.0.255-->
+          <OctetString Value="0101010700FF" />
+          <UInt32 Value="00000531" />
+          <!--1.1.2.7.0.255-->
+          <OctetString Value="0101020700FF" />
+          <UInt32 Value="00000000" />
+          <!--1.1.3.7.0.255-->
+          <OctetString Value="0101030700FF" />
+          <UInt32 Value="00000000" />
+          <!--1.1.4.7.0.255-->
+          <OctetString Value="0101040700FF" />
+          <UInt32 Value="00000054" />
+          <!--0.1.1.0.0.255-->
+          <OctetString Value="0001010000FF" />
+          <!--2020-05-12 10:24:50-->
+          <OctetString Value="07E4050C020A1832FF800080" />
+          <!--1.1.32.7.0.255-->
+          <OctetString Value="0101200700FF" />
+          <UInt16 Value="00E4" />
+          <!--1.1.52.7.0.255-->
+          <OctetString Value="0101340700FF" />
+          <UInt16 Value="00E5" />
+          <!--1.1.72.7.0.255-->
+          <OctetString Value="0101480700FF" />
+          <UInt16 Value="00E3" />
+          <!--1.1.31.7.0.255-->
+          <OctetString Value="01011F0700FF" />
+          <UInt32 Value="0000004B" />
+          <!--1.1.51.7.0.255-->
+          <OctetString Value="0101330700FF" />
+          <UInt32 Value="00000070" />
+          <!--1.1.71.7.0.255-->
+          <OctetString Value="0101470700FF" />
+          <UInt32 Value="000001E4" />
+          <!--1.1.21.7.0.255-->
+          <OctetString Value="0101150700FF" />
+          <UInt32 Value="00000070" />
+          <!--1.1.41.7.0.255-->
+          <OctetString Value="0101290700FF" />
+          <UInt32 Value="000000B5" />
+          <!--1.1.61.7.0.255-->
+          <OctetString Value="01013D0700FF" />
+          <UInt32 Value="0000040C" />
+          <!--1.1.33.7.0.255-->
+          <OctetString Value="0101210700FF" />
+          <UInt16 Value="004D" />
+          <!--1.1.53.7.0.255-->
+          <OctetString Value="0101350700FF" />
+          <UInt16 Value="004E" />
+          <!--1.1.73.7.0.255-->
+          <OctetString Value="0101490700FF" />
+          <UInt16 Value="0062" />
+          <!--1.1.13.7.0.255-->
+          <OctetString Value="01010D0700FF" />
+          <UInt16 Value="0063" />
+          <!--1.1.22.7.0.255-->
+          <OctetString Value="0101160700FF" />
+          <UInt32 Value="00000000" />
+          <!--1.1.42.7.0.255-->
+          <OctetString Value="01012A0700FF" />
+          <UInt32 Value="00000000" />
+          <!--1.1.62.7.0.255-->
+          <OctetString Value="01013E0700FF" />
+          <UInt32 Value="00000000" />
+          <!--1.1.22.8.0.255-->
+          <OctetString Value="0101160800FF" />
+          <UInt32 Value="00000000" />
+          <!--1.1.42.8.0.255-->
+          <OctetString Value="01012A0800FF" />
+          <UInt32 Value="00000000" />
+          <!--1.1.62.8.0.255-->
+          <OctetString Value="01013E0800FF" />
+          <UInt32 Value="00000000" />
+          <!--1.1.21.8.0.255-->
+          <OctetString Value="0101150800FF" />
+          <UInt32 Value="000A8F97" />
+          <!--1.1.41.8.0.255-->
+          <OctetString Value="0101290800FF" />
+          <UInt32 Value="0004C152" />
+          <!--1.1.61.8.0.255-->
+          <OctetString Value="01013D0800FF" />
+          <UInt32 Value="000243DF" />
+        </Structure>
+      </DataValue>
+    </NotificationBody>
+  </DataNotification>
+</GatewayRequest>

@@ -253,6 +253,8 @@ var fetch = function() {
             $('.ju').html(moment.duration(parseInt(json.u), 'seconds').humanize());
         }
 
+        $('.jm').html((json.m.toFixed(0)/1000).toFixed(1));
+
         setStatus("esp", json.em);
         setStatus("han", json.hm);
         setStatus("wifi", json.wm);

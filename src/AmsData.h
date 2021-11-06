@@ -4,10 +4,12 @@
 #include "Arduino.h"
 #include <Timezone.h>
 
-#define METER_TYPE_KAIFA 1
-#define METER_TYPE_AIDON 2
-#define METER_TYPE_KAMSTRUP 3
-#define METER_TYPE_OMNIPOWER 4
+enum AmsType {
+    AmsTypeAidon = 0x01,
+    AmsTypeKaifa = 0x02,
+    AmsTypeKamstrup = 0x03,
+    AmsTypeUnknown = 0xFF
+};
 
 class AmsData {
 public:
@@ -24,6 +26,7 @@ public:
 
     String getListId();
     String getMeterId();
+    uint8_t getMeterType();
     String getMeterModel();
 
     time_t getMeterTimestamp();
@@ -51,7 +54,7 @@ public:
 
 private:
     unsigned long lastUpdateMillis = 0;
-    uint8_t listType = 0;
+    uint8_t listType = 0, meterType = AmsTypeUnknown;
     time_t packageTimestamp = 0;
     String listId, meterId, meterModel;
     time_t meterTimestamp = 0;

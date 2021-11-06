@@ -3,8 +3,8 @@
 #include "lwip/def.h"
 #include "Time.h"
 
-time_t AMS_getTimestamp(uint8_t* obis, const char* ptr) {
-    CosemData* item = AMS_findObis(obis, ptr);
+time_t AMS_getTimestamp(uint8_t* obis, int matchlength, const char* ptr) {
+    CosemData* item = AMS_findObis(obis, matchlength, ptr);
     if(item != NULL) {
         switch(item->base.type) {
             case CosemTypeOctetString: {
@@ -31,8 +31,8 @@ time_t AMS_getTimestamp(uint8_t* obis, const char* ptr) {
     return 0;
 }
 
-uint8_t AMS_getString(uint8_t* obis, const char* ptr, char* target) {
-    CosemData* item = AMS_findObis(obis, ptr);
+uint8_t AMS_getString(uint8_t* obis, int matchlength, const char* ptr, char* target) {
+    CosemData* item = AMS_findObis(obis, matchlength, ptr);
     if(item != NULL) {
         switch(item->base.type) {
             case CosemTypeString:
@@ -48,8 +48,8 @@ uint8_t AMS_getString(uint8_t* obis, const char* ptr, char* target) {
     return 0;
 }
 
-uint32_t AMS_getUnsignedNumber(uint8_t* obis, const char* ptr) {
-    CosemData* item = AMS_findObis(obis, ptr);
+uint32_t AMS_getUnsignedNumber(uint8_t* obis, int matchlength, const char* ptr) {
+    CosemData* item = AMS_findObis(obis, matchlength, ptr);
     if(item != NULL) {
         switch(item->base.type) {
             case CosemTypeLongUnsigned:
@@ -61,8 +61,8 @@ uint32_t AMS_getUnsignedNumber(uint8_t* obis, const char* ptr) {
     return 0xFFFFFFFF;
 }
 
-int32_t AMS_getSignedNumber(uint8_t* obis, const char* ptr) {
-    CosemData* item = AMS_findObis(obis, ptr);
+int32_t AMS_getSignedNumber(uint8_t* obis, int matchlength, const char* ptr) {
+    CosemData* item = AMS_findObis(obis, matchlength, ptr);
     if(item != NULL) {
         switch(item->base.type) {
             case CosemTypeLongUnsigned:
@@ -76,7 +76,7 @@ int32_t AMS_getSignedNumber(uint8_t* obis, const char* ptr) {
     return 0xFFFFFFFF;
 }
 
-CosemData* AMS_findObis(uint8_t* obis, const char* ptr) {
+CosemData* AMS_findObis(uint8_t* obis, int matchlength, const char* ptr) {
     CosemData* item = (CosemData*) ptr;
     int ret = 0;
     char* pos = (char*) ptr;
@@ -91,11 +91,11 @@ CosemData* AMS_findObis(uint8_t* obis, const char* ptr) {
             case CosemTypeOctetString: {
                 ret = 1;
                 uint8_t* found = item->oct.data;
-                int x = 6 - sizeof(&obis);
+                int x = 6 - matchlength;
                 for(int i = x; i < 6; i++) {
                     if(found[i] != obis[i-x]) ret = 0;
                 }
-            }
+            } // Fallthrough
             case CosemTypeString: {
                 pos += 2 + item->base.length;
                 break;

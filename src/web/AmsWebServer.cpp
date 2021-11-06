@@ -2,6 +2,7 @@
 #include "version.h"
 #include "AmsStorage.h"
 #include "hexutils.h"
+#include "AmsData.h"
 
 #include "root/head_html.h"
 #include "root/foot_html.h"
@@ -364,6 +365,8 @@ void AmsWebServer::indexHtml() {
 		int rssi = hw->getWifiRssi();
 		html.replace("{rssi}", String(rssi));
 
+		html.replace("{mem}", String(ESP.getFreeHeap()/1000, 1));
+
 		html.replace("{cs}", String((uint32_t)(millis64()/1000), 10));
 
 		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
@@ -391,6 +394,22 @@ void AmsWebServer::configMeterHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
+	String manufacturer;
+	switch(meterState->getMeterType()) {
+		case AmsTypeAidon:
+			manufacturer = "Aidon";
+			break;
+		case AmsTypeKamstrup:
+			manufacturer = "Kamstrup";
+			break;
+		default:
+			manufacturer = "Unknown";
+			break;
+	}
+
+	html.replace("{maf}", manufacturer);
+	html.replace("{mod}", meterState->getMeterModel());
+	html.replace("{mid}", meterState->getMeterId());
 	html.replace("{b}", String(meterConfig->baud));
 	html.replace("{b2400}", meterConfig->baud == 2400 ? "selected"  : "");
 	html.replace("{b115200}", meterConfig->baud == 115200 ? "selected"  : "");

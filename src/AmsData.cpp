@@ -4,35 +4,35 @@
 uint8_t AMS_OBIS_VERSION[6]                 = { 1, 1,  0, 2, 129, 255 };
 uint8_t AMS_OBIS_METER_MODEL[6]             = { 0, 0, 96, 1, 7,   255 };
 uint8_t AMS_OBIS_METER_ID[6]                = { 0, 0, 96, 1, 0,   255 };
-uint8_t AMS_OBIS_METER_TIMESTAMP[6]         = {  1, 0, 0, 255 };
-uint8_t AMS_OBIS_ACTIVE_IMPORT[6]           = {  1, 7, 0, 255 };
-uint8_t AMS_OBIS_ACTIVE_IMPORT_L1[6]        = { 21, 7, 0, 255 };
-uint8_t AMS_OBIS_ACTIVE_IMPORT_L2[6]        = { 41, 7, 0, 255 };
-uint8_t AMS_OBIS_ACTIVE_IMPORT_L3[6]        = { 61, 7, 0, 255 };
-uint8_t AMS_OBIS_ACTIVE_EXPORT[6]           = {  2, 7, 0, 255 };
-uint8_t AMS_OBIS_ACTIVE_EXPORT_L1[6]        = { 22, 7, 0, 255 };
-uint8_t AMS_OBIS_ACTIVE_EXPORT_L2[6]        = { 42, 7, 0, 255 };
-uint8_t AMS_OBIS_ACTIVE_EXPORT_L3[6]        = { 62, 7, 0, 255 };
-uint8_t AMS_OBIS_REACTIVE_IMPORT[6]         = {  3, 7, 0, 255 };
-uint8_t AMS_OBIS_REACTIVE_IMPORT_L1[6]      = { 23, 7, 0, 255 };
-uint8_t AMS_OBIS_REACTIVE_IMPORT_L2[6]      = { 43, 7, 0, 255 };
-uint8_t AMS_OBIS_REACTIVE_IMPORT_L3[6]      = { 63, 7, 0, 255 };
-uint8_t AMS_OBIS_REACTIVE_EXPORT[6]         = {  4, 7, 0, 255 };
-uint8_t AMS_OBIS_REACTIVE_EXPORT_L1[6]      = { 24, 7, 0, 255 };
-uint8_t AMS_OBIS_REACTIVE_EXPORT_L2[6]      = { 44, 7, 0, 255 };
-uint8_t AMS_OBIS_REACTIVE_EXPORT_L3[6]      = { 64, 7, 0, 255 };
-uint8_t AMS_OBIS_CURRENT[6]                 = { 11, 7, 0, 255 };
-uint8_t AMS_OBIS_CURRENT_L1[6]              = { 31, 7, 0, 255 };
-uint8_t AMS_OBIS_CURRENT_L2[6]              = { 51, 7, 0, 255 };
-uint8_t AMS_OBIS_CURRENT_L3[6]              = { 71, 7, 0, 255 };
-uint8_t AMS_OBIS_VOLTAGE[6]                 = { 12, 7, 0, 255 };
-uint8_t AMS_OBIS_VOLTAGE_L1[6]              = { 32, 7, 0, 255 };
-uint8_t AMS_OBIS_VOLTAGE_L2[6]              = { 52, 7, 0, 255 };
-uint8_t AMS_OBIS_VOLTAGE_L3[6]              = { 72, 7, 0, 255 };
-uint8_t AMS_OBIS_ACTIVE_IMPORT_COUNT[6]     = {  1, 8, 0, 255 };
-uint8_t AMS_OBIS_ACTIVE_EXPORT_COUNT[6]     = {  2, 8, 0, 255 };
-uint8_t AMS_OBIS_REACTIVE_IMPORT_COUNT[6]   = {  3, 8, 0, 255 };
-uint8_t AMS_OBIS_REACTIVE_EXPORT_COUNT[6]   = {  4, 8, 0, 255 };
+uint8_t AMS_OBIS_METER_TIMESTAMP[4]         = {  1, 0, 0, 255 };
+uint8_t AMS_OBIS_ACTIVE_IMPORT[4]           = {  1, 7, 0, 255 };
+uint8_t AMS_OBIS_ACTIVE_IMPORT_L1[4]        = { 21, 7, 0, 255 };
+uint8_t AMS_OBIS_ACTIVE_IMPORT_L2[4]        = { 41, 7, 0, 255 };
+uint8_t AMS_OBIS_ACTIVE_IMPORT_L3[4]        = { 61, 7, 0, 255 };
+uint8_t AMS_OBIS_ACTIVE_EXPORT[4]           = {  2, 7, 0, 255 };
+uint8_t AMS_OBIS_ACTIVE_EXPORT_L1[4]        = { 22, 7, 0, 255 };
+uint8_t AMS_OBIS_ACTIVE_EXPORT_L2[4]        = { 42, 7, 0, 255 };
+uint8_t AMS_OBIS_ACTIVE_EXPORT_L3[4]        = { 62, 7, 0, 255 };
+uint8_t AMS_OBIS_REACTIVE_IMPORT[4]         = {  3, 7, 0, 255 };
+uint8_t AMS_OBIS_REACTIVE_IMPORT_L1[4]      = { 23, 7, 0, 255 };
+uint8_t AMS_OBIS_REACTIVE_IMPORT_L2[4]      = { 43, 7, 0, 255 };
+uint8_t AMS_OBIS_REACTIVE_IMPORT_L3[4]      = { 63, 7, 0, 255 };
+uint8_t AMS_OBIS_REACTIVE_EXPORT[4]         = {  4, 7, 0, 255 };
+uint8_t AMS_OBIS_REACTIVE_EXPORT_L1[4]      = { 24, 7, 0, 255 };
+uint8_t AMS_OBIS_REACTIVE_EXPORT_L2[4]      = { 44, 7, 0, 255 };
+uint8_t AMS_OBIS_REACTIVE_EXPORT_L3[4]      = { 64, 7, 0, 255 };
+uint8_t AMS_OBIS_CURRENT[4]                 = { 11, 7, 0, 255 };
+uint8_t AMS_OBIS_CURRENT_L1[4]              = { 31, 7, 0, 255 };
+uint8_t AMS_OBIS_CURRENT_L2[4]              = { 51, 7, 0, 255 };
+uint8_t AMS_OBIS_CURRENT_L3[4]              = { 71, 7, 0, 255 };
+uint8_t AMS_OBIS_VOLTAGE[4]                 = { 12, 7, 0, 255 };
+uint8_t AMS_OBIS_VOLTAGE_L1[4]              = { 32, 7, 0, 255 };
+uint8_t AMS_OBIS_VOLTAGE_L2[4]              = { 52, 7, 0, 255 };
+uint8_t AMS_OBIS_VOLTAGE_L3[4]              = { 72, 7, 0, 255 };
+uint8_t AMS_OBIS_ACTIVE_IMPORT_COUNT[4]     = {  1, 8, 0, 255 };
+uint8_t AMS_OBIS_ACTIVE_EXPORT_COUNT[4]     = {  2, 8, 0, 255 };
+uint8_t AMS_OBIS_REACTIVE_IMPORT_COUNT[4]   = {  3, 8, 0, 255 };
+uint8_t AMS_OBIS_REACTIVE_EXPORT_COUNT[4]   = {  4, 8, 0, 255 };
 
 AmsData::AmsData() {}
 
@@ -41,14 +41,14 @@ AmsData::AmsData(const char* d, bool substituteMissing) {
     int32_t s32;
     char str[64];
 
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_ACTIVE_IMPORT, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_ACTIVE_IMPORT, sizeof(AMS_OBIS_ACTIVE_IMPORT), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         listType = 1;
         activeImportPower = u32;
     }
 
-    int meterType = AmsTypeUnknown;
-    CosemData* version = AMS_findObis(AMS_OBIS_VERSION, d);
+    meterType = AmsTypeUnknown;
+    CosemData* version = AMS_findObis(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), d);
     if(version != NULL && version->base.type == CosemTypeString) {
         if(memcmp(version->str.data, "AIDON", 5) == 0) {
             meterType = AmsTypeAidon;
@@ -57,53 +57,53 @@ AmsData::AmsData(const char* d, bool substituteMissing) {
         }
     }
 
-    u32 = AMS_getString(AMS_OBIS_VERSION, ((char *) (d)), str);
+    u32 = AMS_getString(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), ((char *) (d)), str);
     if(u32 > 0) {
         listId = String(str);
     }
 
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_ACTIVE_EXPORT, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_ACTIVE_EXPORT, sizeof(AMS_OBIS_ACTIVE_EXPORT), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         activeExportPower = u32;
     }
 
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_REACTIVE_IMPORT, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_REACTIVE_IMPORT, sizeof(AMS_OBIS_REACTIVE_IMPORT), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         reactiveImportPower = u32;
     }
 
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_REACTIVE_EXPORT, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_REACTIVE_EXPORT, sizeof(AMS_OBIS_REACTIVE_EXPORT), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         reactiveExportPower = u32;
     }
 
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_VOLTAGE_L1, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_VOLTAGE_L1, sizeof(AMS_OBIS_VOLTAGE_L1), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         listType = 2;
         l1voltage = u32;
     }
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_VOLTAGE_L2, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_VOLTAGE_L2, sizeof(AMS_OBIS_VOLTAGE_L2), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         listType = 2;
         l2voltage = u32;
     }
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_VOLTAGE_L3, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_VOLTAGE_L3, sizeof(AMS_OBIS_VOLTAGE_L3), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         listType = 2;
         l3voltage = u32;
     }
 
-    s32 = AMS_getSignedNumber(AMS_OBIS_CURRENT_L1, ((char *) (d)));
+    s32 = AMS_getSignedNumber(AMS_OBIS_CURRENT_L1, sizeof(AMS_OBIS_CURRENT_L1), ((char *) (d)));
     if(s32 != 0xFFFFFFFF) {
         listType = 2;
         l1current = s32;
     }
-    s32 = AMS_getSignedNumber(AMS_OBIS_CURRENT_L2, ((char *) (d)));
+    s32 = AMS_getSignedNumber(AMS_OBIS_CURRENT_L2, sizeof(AMS_OBIS_CURRENT_L2), ((char *) (d)));
     if(s32 != 0xFFFFFFFF) {
         listType = 2;
         l2current = s32;
     }
-    s32 = AMS_getSignedNumber(AMS_OBIS_CURRENT_L3, ((char *) (d)));
+    s32 = AMS_getSignedNumber(AMS_OBIS_CURRENT_L3, sizeof(AMS_OBIS_CURRENT_L3), ((char *) (d)));
     if(s32 != 0xFFFFFFFF) {
         listType = 2;
         l3current = s32;
@@ -133,38 +133,38 @@ AmsData::AmsData(const char* d, bool substituteMissing) {
         l3current = l3current != 0 ? l3current / adiv : 0;
     }
 
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_ACTIVE_IMPORT_COUNT, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_ACTIVE_IMPORT_COUNT, sizeof(AMS_OBIS_ACTIVE_IMPORT_COUNT), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         listType = 3;
         activeImportCounter = u32 / 100.0;
     }
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_ACTIVE_EXPORT_COUNT, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_ACTIVE_EXPORT_COUNT, sizeof(AMS_OBIS_ACTIVE_EXPORT_COUNT), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         listType = 3;
         activeExportCounter = u32 / 100.0;
     }
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_REACTIVE_IMPORT_COUNT, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_REACTIVE_IMPORT_COUNT, sizeof(AMS_OBIS_REACTIVE_IMPORT_COUNT), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         listType = 3;
         reactiveImportCounter = u32 / 100.0;
     }
-    u32 = AMS_getUnsignedNumber(AMS_OBIS_REACTIVE_EXPORT_COUNT, ((char *) (d)));
+    u32 = AMS_getUnsignedNumber(AMS_OBIS_REACTIVE_EXPORT_COUNT, sizeof(AMS_OBIS_REACTIVE_EXPORT_COUNT), ((char *) (d)));
     if(u32 != 0xFFFFFFFF) {
         listType = 3;
         reactiveExportCounter = u32 / 100.0;
     }
 
-    u32 = AMS_getString(AMS_OBIS_METER_MODEL, ((char *) (d)), str);
+    u32 = AMS_getString(AMS_OBIS_METER_MODEL, sizeof(AMS_OBIS_METER_MODEL), ((char *) (d)), str);
     if(u32 > 0) {
         meterModel = String(str);
     }
 
-    u32 = AMS_getString(AMS_OBIS_METER_ID, ((char *) (d)), str);
+    u32 = AMS_getString(AMS_OBIS_METER_ID, sizeof(AMS_OBIS_METER_ID), ((char *) (d)), str);
     if(u32 > 0) {
         meterId = String(str);
     }
 
-    time_t ts = AMS_getTimestamp(AMS_OBIS_METER_TIMESTAMP, ((char *) (d)));
+    time_t ts = AMS_getTimestamp(AMS_OBIS_METER_TIMESTAMP, sizeof(AMS_OBIS_METER_TIMESTAMP), ((char *) (d)));
     if(ts > 0) {
         meterTimestamp = ts;
     }
@@ -225,6 +225,7 @@ void AmsData::apply(AmsData& other) {
         case 2:
             this->listId = other.getListId();
             this->meterId = other.getMeterId();
+            this->meterType = other.getMeterType();
             this->meterModel = other.getMeterModel();
             this->reactiveImportPower = other.getReactiveImportPower();
             this->activeExportPower = other.getActiveExportPower();
@@ -260,6 +261,10 @@ String AmsData::getListId() {
 
 String AmsData::getMeterId() {
     return this->meterId;
+}
+
+uint8_t AmsData::getMeterType() {
+    return this->meterType;
 }
 
 String AmsData::getMeterModel() {

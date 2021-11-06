@@ -633,8 +633,8 @@ void readHanPort() {
 							mqttHandler->publishSystem(&hw);
 						}
 						time_t now = time(nullptr);
-						if(now < EPOCH_2021_01_01 || data.getListType() == 3) {
-							if(data.getMeterTimestamp() > EPOCH_2021_01_01 || !ntpEnabled) {
+						if(now < EPOCH_2021_01_01 && data.getListType() == 3 && !ntpEnabled) {
+							if(data.getMeterTimestamp() > EPOCH_2021_01_01) {
 								debugI("Using timestamp from meter");
 								now = data.getMeterTimestamp();
 							} else if(data.getPackageTimestamp() > EPOCH_2021_01_01) {

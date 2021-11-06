@@ -210,6 +210,10 @@ void setup() {
 
 	if(spiffs) {
 		bool flashed = false;
+#if defined(ESP32)
+	if(SPIFFS.exists(FILE_FIRMWARE))
+		SPIFFS.remove(FILE_FIRMWARE);
+#endif
 		if(SPIFFS.exists(FILE_FIRMWARE)) {
 			if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
 #if defined(ESP8266)

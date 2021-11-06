@@ -13,6 +13,7 @@
 class AmsData {
 public:
     AmsData();
+    AmsData(const char* d, bool substituteMissing);
     AmsData(uint8_t meterType, bool substituteMissing, HanReader& hanReader);
 
     void apply(AmsData& other);

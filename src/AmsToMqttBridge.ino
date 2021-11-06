@@ -47,6 +47,9 @@ ADC_MODE(ADC_VCC);
 
 #include "RemoteDebug.h"
 
+#define BUF_SIZE (1024)
+#include "ams/hdlc.h"
+
 HwTools hw;
 
 DNSServer* dnsServer = NULL;
@@ -597,8 +600,89 @@ void mqttMessageReceived(String &topic, String &payload)
 	// Ideas could be to query for values or to initiate OTA firmware update
 }
 
+HDLCConfig* hc = NULL;
 int currentMeterType = 0;
 void readHanPort() {
+    uint8_t buf[BUF_SIZE];
+	size_t len = hanSerial->readBytes(buf, BUF_SIZE); // TODO: read one byte at the time. This blocks up the GUI
+	if(len > 0) {
+		if(meterConfig.type == 4 && hc == NULL) {
+			hc = new HDLCConfig();
+			memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);
+			memcpy(hc->authentication_key, meterConfig.authenticationKey, 16);
+		}
+		int pos = HDLC_validate((uint8_t *) buf, len, hc);
+		if(Debug.isActive(RemoteDebug::INFO)) {
+			debugD("Frame dump:");
+			debugPrint(buf, 0, len);
+			if(hc != NULL) {
+				debugD("System title:");
+				debugPrint(hc->system_title, 0, 8);
+				debugD("Initialization vector:");
+				debugPrint(hc->initialization_vector, 0, 12);
+				debugD("Additional authenticated data:");
+				debugPrint(hc->additional_authenticated_data, 0, 17);
+				debugD("Authentication tag:");
+				debugPrint(hc->authentication_tag, 0, 8);
+			}
+		}
+		if(pos >= 0) {
+			debugI("Valid HDLC, start at %d", pos);
+			if(!hw.ledBlink(LED_GREEN, 1))
+				hw.ledBlink(LED_INTERNAL, 1);
+			AmsData data = AmsData(((char *) (buf)) + pos, meterConfig.substituteMissing);
+			if(data.getListType() > 0) {
+				if(mqttEnabled && mqttHandler != NULL) {
+					if(mqttHandler->publish(&data, &meterState)) {
+						if(data.getListType() == 3 && eapi != NULL) {
+							mqttHandler->publishPrices(eapi);
+						}
+						if(data.getListType() >= 2) {
+							mqttHandler->publishSystem(&hw);
+						}
+						time_t now = time(nullptr);
+						if(now < EPOCH_2021_01_01 || data.getListType() == 3) {
+							if(data.getMeterTimestamp() > EPOCH_2021_01_01 || !ntpEnabled) {
+								debugI("Using timestamp from meter");
+								now = data.getMeterTimestamp();
+							} else if(data.getPackageTimestamp() > EPOCH_2021_01_01) {
+								debugI("Using timestamp from meter (DLMS)");
+								now = data.getPackageTimestamp();
+							}
+							if(now > EPOCH_2021_01_01) {
+								timeval tv { now, 0};
+								settimeofday(&tv, nullptr);
+							}
+						}
+					}
+					mqtt.loop();
+					delay(10);
+				}
+				meterState.apply(data);
+			}
+		} else {
+			debugW("Invalid HDLC, returned with %d", pos);
+		}
+	}
+}
+
+void debugPrint(byte *buffer, int start, int length) {
+	for (int i = start; i < start + length; i++) {
+		if (buffer[i] < 0x10)
+			Debug.print("0");
+		Debug.print(buffer[i], HEX);
+		Debug.print(" ");
+		if ((i - start + 1) % 16 == 0)
+			Debug.println("");
+		else if ((i - start + 1) % 4 == 0)
+			Debug.print(" ");
+
+		yield(); // Let other get some resources too
+	}
+	Debug.println("");
+}
+
+void oldReadHanPort() {
 	if (hanReader.read()) {
 		lastSuccessfulRead = millis();
 		delay(1);

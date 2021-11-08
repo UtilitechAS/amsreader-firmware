@@ -140,21 +140,11 @@ void setup() {
 
 	bool shared = false;
 	config.getMeterConfig(meterConfig);
+	Serial.flush();
+	Serial.end();
 	if(gpioConfig.hanPin == 3) {
 		shared = true;
-		switch(meterConfig.type) {
-			case METER_TYPE_KAMSTRUP:
-			case METER_TYPE_OMNIPOWER:
-				Serial.begin(2400, SERIAL_8N1);
-				break;
-			default:
-				Serial.begin(2400, SERIAL_8E1);
-				break;
-		}
-	}
-
- 	if(!shared) {
-		Serial.begin(115200);
+		setupHanPort(gpioConfig.hanPin, meterConfig.type);
 	}
 
 	DebugConfig debug;
@@ -459,9 +449,11 @@ void setupHanPort(int pin, int newMeterType) {
 	debugI("Setting up HAN on pin %d for meter type %d", pin, newMeterType);
 
 	HardwareSerial *hwSerial = NULL;
-	if(pin == 3) {
+	if(pin == 3 || pin == 113) {
 		hwSerial = &Serial;
 	}
+
+
 	#if defined(ESP32)
 		if(pin == 9) {
 			hwSerial = &Serial1;
@@ -478,7 +470,9 @@ void setupHanPort(int pin, int newMeterType) {
 
 	if(hwSerial != NULL) {
 		debugD("Hardware serial");
-		Serial.flush();
+		hwSerial->flush();
+		hwSerial->end();
+
 		switch(newMeterType) {
 			case METER_TYPE_KAMSTRUP:
 			case METER_TYPE_OMNIPOWER:
@@ -488,6 +482,17 @@ void setupHanPort(int pin, int newMeterType) {
 				hwSerial->begin(2400, SERIAL_8E1);
 				break;
 		}
+
+		#if defined(ESP8266)
+			if(pin == 3) {
+				debugI("Switching UART0 to pin 1 & 3");
+				Serial.pins(1,3);
+			} else if(pin == 113) {
+				debugI("Switching UART0 to pin 15 & 13");
+				Serial.pins(15,13);
+			}
+		#endif
+
 		hanSerial = hwSerial;
 	} else {
 		debugD("Software serial");
@@ -505,6 +510,7 @@ void setupHanPort(int pin, int newMeterType) {
 		}
 		hanSerial = swSerial;
 
+		Serial.end();
 		Serial.begin(115200);
 	}
 

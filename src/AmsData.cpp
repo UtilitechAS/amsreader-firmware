@@ -16,6 +16,8 @@ AmsData::AmsData(uint8_t meterType, bool substituteMissing, HanReader& hanReader
 			extractFromKaifa(hanReader, listSize);
             break;
 		case METER_TYPE_AIDON:
+        case METER_TYPE_RJ12:
+        case METER_TYPE_RJ12_INV:
 			extractFromAidon(hanReader, listSize, substituteMissing);
             break;
 		case METER_TYPE_KAMSTRUP:

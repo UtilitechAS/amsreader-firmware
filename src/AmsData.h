@@ -8,13 +8,15 @@ enum AmsType {
     AmsTypeAidon = 0x01,
     AmsTypeKaifa = 0x02,
     AmsTypeKamstrup = 0x03,
+    AmsTypeIskra = 0x08,
+    AmsTypeLandis = 0x09,
+    AmsTypeSagemcom = 0x0A,
     AmsTypeUnknown = 0xFF
 };
 
 class AmsData {
 public:
     AmsData();
-    AmsData(const char* d, bool substituteMissing);
 
     void apply(AmsData& other);
 
@@ -52,7 +54,7 @@ public:
     bool isThreePhase();
     bool isTwoPhase();
 
-private:
+protected:
     unsigned long lastUpdateMillis = 0;
     uint8_t listType = 0, meterType = AmsTypeUnknown;
     time_t packageTimestamp = 0;

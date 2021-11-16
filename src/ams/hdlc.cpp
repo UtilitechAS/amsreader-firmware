@@ -121,8 +121,8 @@ int HDLC_validate(const uint8_t* d, int len, HDLCConfig* config) {
             if (0 != success ) {
                 return -92;
             }
-            success = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text), initialization_vector, sizeof(initialization_vector),
-                additional_authenticated_data, sizeof(additional_authenticated_data), authentication_tag, sizeof(authentication_tag),
+            success = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text), config->initialization_vector, sizeof(config->initialization_vector),
+                config->additional_authenticated_data, sizeof(config->additional_authenticated_data), config->authentication_tag, sizeof(config->authentication_tag),
                 cipher_text, (unsigned char*)(d + headersize + 18));
             if (0 != success) {
                 return -91;

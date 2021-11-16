@@ -399,8 +399,20 @@ void AmsWebServer::configMeterHtml() {
 		case AmsTypeAidon:
 			manufacturer = "Aidon";
 			break;
+		case AmsTypeKaifa:
+			manufacturer = "Kaifa";
+			break;
 		case AmsTypeKamstrup:
 			manufacturer = "Kamstrup";
+			break;
+		case AmsTypeIskra:
+			manufacturer = "Iskra";
+			break;
+		case AmsTypeLandis:
+			manufacturer = "Landis + Gyro";
+			break;
+		case AmsTypeSagemcom:
+			manufacturer = "Sagemcom";
 			break;
 		default:
 			manufacturer = "Unknown";
@@ -412,9 +424,12 @@ void AmsWebServer::configMeterHtml() {
 	html.replace("{mid}", meterState->getMeterId());
 	html.replace("{b}", String(meterConfig->baud));
 	html.replace("{b2400}", meterConfig->baud == 2400 ? "selected"  : "");
+	html.replace("{b9600}", meterConfig->baud == 9600 ? "selected"  : "");
 	html.replace("{b115200}", meterConfig->baud == 115200 ? "selected"  : "");
 	html.replace("{c}", String(meterConfig->baud));
+	html.replace("{c2}", meterConfig->parity == 2 ? "selected"  : "");
 	html.replace("{c3}", meterConfig->parity == 3 ? "selected"  : "");
+	html.replace("{c10}", meterConfig->parity == 10 ? "selected"  : "");
 	html.replace("{c11}", meterConfig->parity == 11 ? "selected"  : "");
 	html.replace("{i}", meterConfig->invert ? "checked"  : "");
 	html.replace("{d}", String(meterConfig->distributionSystem));
@@ -715,7 +730,7 @@ void AmsWebServer::dataJson() {
 		mqttStatus = 3;
 	}
 
-	char json[290];
+	char json[300];
 	snprintf_P(json, sizeof(json), DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		meterConfig->productionCapacity,

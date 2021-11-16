@@ -738,9 +738,15 @@ bool AmsConfiguration::relocateConfig87() {
 	MeterConfig meter;
 	EEPROM.begin(EEPROM_SIZE);
     EEPROM.get(CONFIG_METER_START_87, meter87);
-	meter.baud = 2400;
-	meter.parity = meter87.type == 3 || meter87.type == 4 ? 3 : 11;
-	meter.invert = false;
+	if(meter87.type < 5) {
+		meter.baud = 2400;
+		meter.parity = meter87.type == 3 || meter87.type == 4 ? 3 : 11;
+		meter.invert = false;
+	} else {
+		meter.baud = 115200;
+		meter.parity = 3;
+		meter.invert = meter87.type == 6;
+	}
 	meter.distributionSystem = meter87.distributionSystem;
 	meter.mainFuse = meter87.mainFuse;
 	meter.productionCapacity = meter87.productionCapacity;

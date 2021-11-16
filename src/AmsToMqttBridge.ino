@@ -44,6 +44,9 @@ ADC_MODE(ADC_VCC);
 #define BUF_SIZE (1024)
 #include "ams/hdlc.h"
 
+#include "IEC6205621.h"
+#include "IEC6205675.h"
+
 HwTools hw;
 
 DNSServer* dnsServer = NULL;
@@ -136,16 +139,30 @@ void setup() {
 	config.getMeterConfig(meterConfig);
 	if(gpioConfig.hanPin == 3) {
 		shared = true;
-		SerialConfig serialConfig;
+		#if defined(ESP8266)
+			SerialConfig serialConfig;
+		#elif defined(ESP32)
+			uint32_t serialConfig;
+		#endif;
 		switch(meterConfig.parity) {
+			case 2:
+				serialConfig = SERIAL_7N1;
+				break;
 			case 3:
 				serialConfig = SERIAL_8N1;
+				break;
+			case 10:
+				serialConfig = SERIAL_7E1;
 				break;
 			default:
 				serialConfig = SERIAL_8E1;
 				break;
 		}
-		Serial.begin(meterConfig.baud, serialConfig);
+		#if defined(ESP32)
+			Serial.begin(meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
+		#else
+			Serial.begin(meterConfig.baud, serialConfig, SERIAL_FULL, 1, meterConfig.invert);
+		#endif
 	}
 
  	if(!shared) {
@@ -475,18 +492,31 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 	if(hwSerial != NULL) {
 		debugD("Hardware serial");
 		Serial.flush();
-
-		SerialConfig serialConfig;
+		#if defined(ESP8266)
+			SerialConfig serialConfig;
+		#elif defined(ESP32)
+			uint32_t serialConfig;
+		#endif
 		switch(parityOrdinal) {
+			case 2:
+				serialConfig = SERIAL_7N1;
+				break;
 			case 3:
 				serialConfig = SERIAL_8N1;
+				break;
+			case 10:
+				serialConfig = SERIAL_7E1;
 				break;
 			default:
 				serialConfig = SERIAL_8E1;
 				break;
 		}
 
-		hwSerial->begin(baud, serialConfig, SERIAL_FULL, -1, invert);
+		#if defined(ESP32)
+			hwSerial->begin(baud, serialConfig, -1, -1, invert);
+		#else
+			hwSerial->begin(baud, serialConfig, SERIAL_FULL, 1, invert);
+		#endif
 		hanSerial = hwSerial;
 	} else {
 		debugD("Software serial");
@@ -494,8 +524,14 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 
 		SoftwareSerialConfig serialConfig;
 		switch(parityOrdinal) {
+			case 2:
+				serialConfig = SWSERIAL_7N1;
+				break;
 			case 3:
 				serialConfig = SWSERIAL_8N1;
+				break;
+			case 10:
+				serialConfig = SWSERIAL_7E1;
 				break;
 			default:
 				serialConfig = SWSERIAL_8E1;
@@ -592,69 +628,101 @@ void mqttMessageReceived(String &topic, String &payload)
 }
 
 HDLCConfig* hc = NULL;
-int currentMeterType = 0;
+int currentMeterType = -1;
 void readHanPort() {
-    uint8_t buf[BUF_SIZE];
 	if(!hanSerial->available()) return;
-	size_t len = hanSerial->readBytes(buf, BUF_SIZE); // TODO: read one byte at the time. This blocks up the GUI
-	if(len > 0) {
-		int pos = HDLC_validate((uint8_t *) buf, len, hc);
-		if(pos == HDLC_ENCRYPTION_CONFIG_MISSING) {
-			hc = new HDLCConfig();
-			memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);
-			memcpy(hc->authentication_key, meterConfig.authenticationKey, 16);
-		}
-		if(Debug.isActive(RemoteDebug::DEBUG)) {
-			debugD("Frame dump:");
-			debugPrint(buf, 0, len);
-			if(hc != NULL) {
-				debugD("System title:");
-				debugPrint(hc->system_title, 0, 8);
-				debugD("Initialization vector:");
-				debugPrint(hc->initialization_vector, 0, 12);
-				debugD("Additional authenticated data:");
-				debugPrint(hc->additional_authenticated_data, 0, 17);
-				debugD("Authentication tag:");
-				debugPrint(hc->authentication_tag, 0, 8);
+
+	if(currentMeterType == -1) {
+		while(hanSerial->available()) hanSerial->read();
+		currentMeterType = 0;
+		return;
+	}
+	if(currentMeterType == 0) {
+		uint8_t flag = hanSerial->read();
+		if(flag == 0x7E) currentMeterType = 1;
+		else currentMeterType = 2;
+		while(hanSerial->available()) hanSerial->read();
+		return;
+	}
+	AmsData data;
+	if(currentMeterType == 1) {
+		uint8_t buf[BUF_SIZE];
+		size_t len = hanSerial->readBytes(buf, BUF_SIZE); // TODO: read one byte at the time. This blocks up the GUI
+		if(len > 0) {
+			int pos = HDLC_validate((uint8_t *) buf, len, hc);
+			if(pos == HDLC_ENCRYPTION_CONFIG_MISSING) {
+				hc = new HDLCConfig();
+				memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);
+				memcpy(hc->authentication_key, meterConfig.authenticationKey, 16);
 			}
-		}
-		if(pos >= 0) {
-			debugI("Valid HDLC, start at %d", pos);
-			if(!hw.ledBlink(LED_GREEN, 1))
-				hw.ledBlink(LED_INTERNAL, 1);
-			AmsData data = AmsData(((char *) (buf)) + pos, true);
-			if(data.getListType() > 0) {
-				if(mqttEnabled && mqttHandler != NULL) {
-					if(mqttHandler->publish(&data, &meterState)) {
-						if(data.getListType() == 3 && eapi != NULL) {
-							mqttHandler->publishPrices(eapi);
-						}
-						if(data.getListType() >= 2) {
-							mqttHandler->publishSystem(&hw);
-						}
-						time_t now = time(nullptr);
-						if(now < EPOCH_2021_01_01 && data.getListType() == 3 && !ntpEnabled) {
-							if(data.getMeterTimestamp() > EPOCH_2021_01_01) {
-								debugI("Using timestamp from meter");
-								now = data.getMeterTimestamp();
-							} else if(data.getPackageTimestamp() > EPOCH_2021_01_01) {
-								debugI("Using timestamp from meter (DLMS)");
-								now = data.getPackageTimestamp();
-							}
-							if(now > EPOCH_2021_01_01) {
-								timeval tv { now, 0};
-								settimeofday(&tv, nullptr);
-							}
-						}
-					}
-					mqtt.loop();
-					delay(10);
+			if(Debug.isActive(RemoteDebug::DEBUG)) {
+				debugD("Frame dump:");
+				debugPrint(buf, 0, len);
+				if(hc != NULL) {
+					debugD("System title:");
+					debugPrint(hc->system_title, 0, 8);
+					debugD("Initialization vector:");
+					debugPrint(hc->initialization_vector, 0, 12);
+					debugD("Additional authenticated data:");
+					debugPrint(hc->additional_authenticated_data, 0, 17);
+					debugD("Authentication tag:");
+					debugPrint(hc->authentication_tag, 0, 8);
 				}
-				meterState.apply(data);
+			}
+			if(pos >= 0) {
+				debugI("Valid HDLC, start at %d", pos);
+				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType());
+			} else {
+				debugW("Invalid HDLC, returned with %d", pos);
+				currentMeterType = 0;
+				return;
 			}
 		} else {
-			debugW("Invalid HDLC, returned with %d", pos);
+			return;
 		}
+	} else if(currentMeterType == 2) {
+		String payload = hanSerial->readString();
+		data = IEC6205621(payload);
+		if(data.getListType() == 0) {
+			currentMeterType = 1;
+		} else {
+			if(Debug.isActive(RemoteDebug::DEBUG)) {
+				debugD("Frame dump: %d", payload.length());
+				debugD("%s", payload.c_str());
+			}
+		}
+	}
+
+	if(data.getListType() > 0) {
+		if(!hw.ledBlink(LED_GREEN, 1))
+			hw.ledBlink(LED_INTERNAL, 1);
+		if(mqttEnabled && mqttHandler != NULL) {
+			if(mqttHandler->publish(&data, &meterState)) {
+				if(data.getListType() == 3 && eapi != NULL) {
+					mqttHandler->publishPrices(eapi);
+				}
+				if(data.getListType() >= 2) {
+					mqttHandler->publishSystem(&hw);
+				}
+				time_t now = time(nullptr);
+				if(now < EPOCH_2021_01_01 && data.getListType() == 3 && !ntpEnabled) {
+					if(data.getMeterTimestamp() > EPOCH_2021_01_01) {
+						debugI("Using timestamp from meter");
+						now = data.getMeterTimestamp();
+					} else if(data.getPackageTimestamp() > EPOCH_2021_01_01) {
+						debugI("Using timestamp from meter (DLMS)");
+						now = data.getPackageTimestamp();
+					}
+					if(now > EPOCH_2021_01_01) {
+						timeval tv { now, 0};
+						settimeofday(&tv, nullptr);
+					}
+				}
+			}
+			mqtt.loop();
+			delay(10);
+		}
+		meterState.apply(data);
 	}
 }
 

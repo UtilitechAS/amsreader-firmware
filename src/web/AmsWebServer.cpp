@@ -191,7 +191,7 @@ void AmsWebServer::temperaturePost() {
 		delay(1);
 	}
 
-	if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
+	//if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
 	if(config->save()) {
 		printD("Successfully saved temperature sensors");
 		server.sendHeader("Location", String("/temperature"), true);
@@ -1068,7 +1068,7 @@ void AmsWebServer::handleSave() {
 
 	printI("Saving configuration now...");
 
-	if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
+	//if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
 	if (config->save()) {
 		printI("Successfully saved.");
 		if(config->isWifiChanged()) {

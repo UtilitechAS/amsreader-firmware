@@ -68,6 +68,7 @@ AmsMqttHandler* mqttHandler = NULL;
 HanReader hanReader;
 
 Stream *hanSerial;
+SoftwareSerial *swSerial = NULL;
 
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
@@ -497,7 +498,12 @@ void setupHanPort(int pin, int newMeterType) {
 	} else {
 		debugD("Software serial");
 		Serial.flush();
-		SoftwareSerial *swSerial = new SoftwareSerial(pin);
+		
+		if(swSerial != NULL) {
+			swSerial->end();
+			delete swSerial;
+		}
+		swSerial = new SoftwareSerial(pin);
 
 		switch(newMeterType) {
 			case METER_TYPE_KAMSTRUP:

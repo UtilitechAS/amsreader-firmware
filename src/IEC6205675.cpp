@@ -144,7 +144,16 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType) {
             } else if(memcmp(version->str.data, "Kamstrup", 8) == 0) {
                 meterType = AmsTypeKamstrup;
             }
+        } else {
+            version = getCosemDataAt(1, ((char *) (d)));
+            if(version->base.type == CosemTypeString) {
+                if(memcmp(version->str.data, "Kamstrup", 8) == 0) {
+                    meterType = AmsTypeKamstrup;
+                }
+            }
         }
+
+
 
         u32 = getString(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), ((char *) (d)), str);
         if(u32 > 0) {

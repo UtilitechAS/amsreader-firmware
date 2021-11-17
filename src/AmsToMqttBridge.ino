@@ -517,7 +517,6 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 		#else
 			hwSerial->begin(baud, serialConfig, SERIAL_FULL, 1, invert);
 		#endif
-		hwSerial->setRxBufferSize(256);
 		hanSerial = hwSerial;
 	} else {
 		debugD("Software serial");
@@ -540,7 +539,7 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 		}
 
 		SoftwareSerial *swSerial = new SoftwareSerial(pin, -1, invert);
-		swSerial->begin(baud, serialConfig, pin, -1, invert, 256);
+		swSerial->begin(baud, serialConfig);
 		hanSerial = swSerial;
 
 		Serial.begin(115200);

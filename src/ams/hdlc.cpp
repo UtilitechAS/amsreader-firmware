@@ -8,8 +8,6 @@
 #include "mbedtls/gcm.h"
 #endif
 
-int wtf = 48;
-
 void mbus_hexdump(const uint8_t* buf, int len) {
     printf("\nDUMP (%db) [ ", len); 
     for(const uint8_t* p = buf; p-buf < len; ++p)
@@ -76,11 +74,14 @@ int HDLC_validate(const uint8_t* d, int len, HDLCConfig* config) {
         ptr += sizeof *adpu;
 
         // ADPU timestamp
+        // TODO : extract and return
         CosemData* dateTime = (CosemData*) ptr;
-        if(dateTime->base.type == CosemTypeOctetString) 
+        if(dateTime->base.type == CosemTypeOctetString) {
             ptr += 2 + dateTime->base.length;
-        else if(dateTime->base.type == CosemTypeNull) {
+        } else if(dateTime->base.type == CosemTypeNull) {
             ptr++;
+        } else if(dateTime->base.type == 0x0C) { // Kamstrup bug...
+            ptr += 13;
         } else {
             return -99;
         }
@@ -133,6 +134,6 @@ int HDLC_validate(const uint8_t* d, int len, HDLCConfig* config) {
         return ptr-d;
     }    
 
-    // No payload
+    // Unknown payload
 	return 0;
 }

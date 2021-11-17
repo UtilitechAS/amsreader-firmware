@@ -517,6 +517,7 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 		#else
 			hwSerial->begin(baud, serialConfig, SERIAL_FULL, 1, invert);
 		#endif
+		hwSerial->setRxBufferSize(256);
 		hanSerial = hwSerial;
 	} else {
 		debugD("Software serial");
@@ -539,7 +540,7 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 		}
 
 		SoftwareSerial *swSerial = new SoftwareSerial(pin, -1, invert);
-		swSerial->begin(baud, serialConfig);
+		swSerial->begin(baud, serialConfig, pin, -1, invert, 256);
 		hanSerial = swSerial;
 
 		Serial.begin(115200);
@@ -627,13 +628,14 @@ void mqttMessageReceived(String &topic, String &payload)
 	// Ideas could be to query for values or to initiate OTA firmware update
 }
 
+uint8_t buf[BUF_SIZE];
 HDLCConfig* hc = NULL;
 int currentMeterType = -1;
 void readHanPort() {
 	if(!hanSerial->available()) return;
 
 	if(currentMeterType == -1) {
-		while(hanSerial->available()) hanSerial->read();
+		hanSerial->readBytes(buf, BUF_SIZE);
 		currentMeterType = 0;
 		return;
 	}
@@ -641,12 +643,11 @@ void readHanPort() {
 		uint8_t flag = hanSerial->read();
 		if(flag == 0x7E) currentMeterType = 1;
 		else currentMeterType = 2;
-		while(hanSerial->available()) hanSerial->read();
+		hanSerial->readBytes(buf, BUF_SIZE);
 		return;
 	}
 	AmsData data;
 	if(currentMeterType == 1) {
-		uint8_t buf[BUF_SIZE];
 		size_t len = hanSerial->readBytes(buf, BUF_SIZE); // TODO: read one byte at the time. This blocks up the GUI
 		if(len > 0) {
 			int pos = HDLC_validate((uint8_t *) buf, len, hc);

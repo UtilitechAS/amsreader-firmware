@@ -18,8 +18,9 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <ESPmDNS.h>
-#include "SPIFFS.h"
 #include "Update.h"
 #endif
+
+#include "LittleFS.h"
 
 #endif

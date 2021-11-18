@@ -20,10 +20,11 @@
 	#include <WiFi.h>
 	#include <WebServer.h>
 	#include <HTTPClient.h>
-	#include "SPIFFS.h"
 #else
 	#warning "Unsupported board type"
 #endif
+
+#include "LittleFS.h"
 
 class AmsWebServer {
 public:

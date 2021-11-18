@@ -202,18 +202,18 @@ void setup() {
 
 	bool hasFs = false;
 #if defined(ESP32)
-	debugD("ESP32 SPIFFS");
-	hasFs = SPIFFS.begin(true);
-	debugD(" size: %d", SPIFFS.totalBytes());
+	debugD("ESP32 LittleFS");
+	hasFs = LittleFS.begin(true);
+	debugD(" size: %d", LittleFS.totalBytes());
 #else
-	debugD("ESP8266 SPIFFS");
-	hasFs = SPIFFS.begin();
+	debugD("ESP8266 LittleFS");
+	hasFs = LittleFS.begin();
 #endif
 	delay(1);
 
 	if(hasFs) {
 		bool flashed = false;
-		if(SPIFFS.exists(FILE_FIRMWARE)) {
+		if(LittleFS.exists(FILE_FIRMWARE)) {
 			if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
 #if defined(ESP8266)
 			WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
@@ -232,7 +232,7 @@ void setup() {
 			}
 
 			debugI(" flashing");
-			File firmwareFile = SPIFFS.open(FILE_FIRMWARE, "r");
+			File firmwareFile = LittleFS.open(FILE_FIRMWARE, "r");
 			debugD(" firmware size: %d", firmwareFile.size());
 			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 			debugD(" available: %d", maxSketchSpace);
@@ -250,9 +250,9 @@ void setup() {
 				flashed = Update.end(true);
 			}
 			firmwareFile.close();
-			SPIFFS.remove(FILE_FIRMWARE);
+			LittleFS.remove(FILE_FIRMWARE);
 		}
-		SPIFFS.end();
+		LittleFS.end();
 		if(flashed) {
 			if(Debug.isActive(RemoteDebug::INFO)) {
 				debugI("Firmware update complete, restarting");
@@ -776,16 +776,20 @@ void WiFi_connect() {
 			WiFi.config(ip, gw, sn, dns1, dns2);
 		} else {
 			#if defined(ESP32)
-			WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // Workaround to make DHCP hostname work for ESP32. See: https://github.com/espressif/arduino-esp32/issues/2537
+			// Changed from INADDR_NONE to INADDR_ANY for last ESP32-Arduino version
+			WiFi.config(INADDR_ANY, INADDR_ANY, INADDR_ANY); // Workaround to make DHCP hostname work for ESP32. See: https://github.com/espressif/arduino-esp32/issues/2537
 			#endif
 		}
+		#if defined(ESP8266)
 		if(strlen(wifi.hostname) > 0) {
-			#if defined(ESP8266)
 			WiFi.hostname(wifi.hostname);
-			#elif defined(ESP32)
-			WiFi.setHostname(wifi.hostname);
-			#endif
 		}
+		#endif
+		#if defined(ESP32)
+			if(strlen(wifi.hostname) > 0) {
+				WiFi.setHostname(wifi.hostname);
+			}
+		#endif
 		WiFi.begin(wifi.ssid, wifi.psk);
 		yield();
 	}
@@ -849,15 +853,15 @@ void MQTT_connect() {
 		secureClient->setBufferSizes(512, 512);
 		#endif
 
-		if(SPIFFS.begin()) {
+		if(LittleFS.begin()) {
 			char *ca = NULL;
 			char *cert = NULL;
 			char *key = NULL;
 			File file;
 
-			if(SPIFFS.exists(FILE_MQTT_CA)) {
+			if(LittleFS.exists(FILE_MQTT_CA)) {
 				debugI("Found MQTT CA file");
-				file = SPIFFS.open(FILE_MQTT_CA, "r");
+				file = LittleFS.open(FILE_MQTT_CA, "r");
 				#if defined(ESP8266)
 					char caStr[MAX_PEM_SIZE];
 					file.readBytes(caStr, file.size());
@@ -868,28 +872,28 @@ void MQTT_connect() {
 				#endif
 			}
 
-			if(SPIFFS.exists(FILE_MQTT_CERT) && SPIFFS.exists(FILE_MQTT_KEY)) {
+			if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
 				#if defined(ESP8266)
 					char certStr[MAX_PEM_SIZE];
-					file = SPIFFS.open(FILE_MQTT_CERT, "r");
+					file = LittleFS.open(FILE_MQTT_CERT, "r");
 					file.readBytes(certStr, file.size());
 				 	BearSSL::X509List *serverCertList = new BearSSL::X509List(certStr);
 					char keyStr[MAX_PEM_SIZE];
-					file = SPIFFS.open(FILE_MQTT_KEY, "r");
+					file = LittleFS.open(FILE_MQTT_KEY, "r");
 					file.readBytes(keyStr, file.size());
   					BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(keyStr);
 					secureClient->setClientRSACert(serverCertList, serverPrivKey);
 				#elif defined(ESP32)
 					debugI("Found MQTT certificate file");
-					file = SPIFFS.open(FILE_MQTT_CERT, "r");
+					file = LittleFS.open(FILE_MQTT_CERT, "r");
 					secureClient->loadCertificate(file, file.size());
 
 					debugI("Found MQTT key file");
-					file = SPIFFS.open(FILE_MQTT_KEY, "r");
+					file = LittleFS.open(FILE_MQTT_KEY, "r");
 					secureClient->loadPrivateKey(file, file.size());
 				#endif
 			}
-			SPIFFS.end();
+			LittleFS.end();
 		}
 		client = secureClient;
 	} else {
@@ -926,14 +930,14 @@ void MQTT_connect() {
 		}
 	} else {
 		if (Debug.isActive(RemoteDebug::ERROR)) {
-			debugE("Failed to connect to MQTT");
-#if defined(ESP8266)
-			if(secureClient) {
-				char buf[64];
-  				secureClient->getLastSSLError(buf,64);
-				Debug.println(buf);
-			}
-#endif
+			debugE("Failed to connect to MQTT: %d", mqtt.lastError());
+			#if defined(ESP8266)
+				if(secureClient) {
+					char buf[64];
+					secureClient->getLastSSLError(buf,64);
+					Debug.println(buf);
+				}
+			#endif
 		}
 	}
 	yield();

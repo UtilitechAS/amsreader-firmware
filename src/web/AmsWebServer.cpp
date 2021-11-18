@@ -525,14 +525,14 @@ void AmsWebServer::configMqttHtml() {
 
 	html.replace("{s}", mqtt.ssl ? "checked" : "");
 
-	if(SPIFFS.begin()) {
-		html.replace("{dcu}", SPIFFS.exists(FILE_MQTT_CA) ? "none" : "");
-		html.replace("{dcf}", SPIFFS.exists(FILE_MQTT_CA) ? "" : "none");
-		html.replace("{deu}", SPIFFS.exists(FILE_MQTT_CERT) ? "none" : "");
-		html.replace("{def}", SPIFFS.exists(FILE_MQTT_CERT) ? "" : "none");
-		html.replace("{dku}", SPIFFS.exists(FILE_MQTT_KEY) ? "none" : "");
-		html.replace("{dkf}", SPIFFS.exists(FILE_MQTT_KEY) ? "" : "none");
-		SPIFFS.end();
+	if(LittleFS.begin()) {
+		html.replace("{dcu}", LittleFS.exists(FILE_MQTT_CA) ? "none" : "");
+		html.replace("{dcf}", LittleFS.exists(FILE_MQTT_CA) ? "" : "none");
+		html.replace("{deu}", LittleFS.exists(FILE_MQTT_CERT) ? "none" : "");
+		html.replace("{def}", LittleFS.exists(FILE_MQTT_CERT) ? "" : "none");
+		html.replace("{dku}", LittleFS.exists(FILE_MQTT_KEY) ? "none" : "");
+		html.replace("{dkf}", LittleFS.exists(FILE_MQTT_KEY) ? "" : "none");
+		LittleFS.end();
 	} else {
 		html.replace("{dcu}", "");
 		html.replace("{dcf}", "none");
@@ -1273,9 +1273,9 @@ void AmsWebServer::uploadFile(const char* path) {
 			printE("Upload already in progress");
 			String html = "<html><body><h1>Upload already in progress!</h1></body></html>";
 			server.send(500, "text/html", html);
-		} else if (!SPIFFS.begin()) {
-			printE("An Error has occurred while mounting SPIFFS");
-			String html = "<html><body><h1>Unable to mount SPIFFS!</h1></body></html>";
+		} else if (!LittleFS.begin()) {
+			printE("An Error has occurred while mounting LittleFS");
+			String html = "<html><body><h1>Unable to mount LittleFS!</h1></body></html>";
 			server.send(500, "text/html", html);
 		} else {
 			uploading = true;
@@ -1285,12 +1285,12 @@ void AmsWebServer::uploadFile(const char* path) {
 			#if defined(ESP32)
 				if(debugger->isActive(RemoteDebug::DEBUG)) {
 					debugger->printf("handleFileUpload Free heap: %lu\n", ESP.getFreeHeap());
-					debugger->printf("handleFileUpload SPIFFS size: %lu\n", SPIFFS.totalBytes());
-					debugger->printf("handleFileUpload SPIFFS used: %lu\n", SPIFFS.usedBytes());
-					debugger->printf("handleFileUpload SPIFFS free: %lu\n", SPIFFS.totalBytes()-SPIFFS.usedBytes());
+					debugger->printf("handleFileUpload LittleFS size: %lu\n", LittleFS.totalBytes());
+					debugger->printf("handleFileUpload LittleFS used: %lu\n", LittleFS.usedBytes());
+					debugger->printf("handleFileUpload LittleFS free: %lu\n", LittleFS.totalBytes()-LittleFS.usedBytes());
 				}
 			#endif
-		    file = SPIFFS.open(path, "w");
+		    file = LittleFS.open(path, "w");
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf("handleFileUpload Open file and write: %lu\n", upload.currentSize);
 			}
@@ -1313,16 +1313,16 @@ void AmsWebServer::uploadFile(const char* path) {
 				#if defined(ESP32)
 					if(debugger->isActive(RemoteDebug::DEBUG)) {
 						debugger->printf("handleFileUpload Free heap: %lu\n", ESP.getFreeHeap());
-						debugger->printf("handleFileUpload SPIFFS size: %lu\n", SPIFFS.totalBytes());
-						debugger->printf("handleFileUpload SPIFFS used: %lu\n", SPIFFS.usedBytes());
-						debugger->printf("handleFileUpload SPIFFS free: %lu\n", SPIFFS.totalBytes()-SPIFFS.usedBytes());
+						debugger->printf("handleFileUpload LittleFS size: %lu\n", LittleFS.totalBytes());
+						debugger->printf("handleFileUpload LittleFS used: %lu\n", LittleFS.usedBytes());
+						debugger->printf("handleFileUpload LittleFS free: %lu\n", LittleFS.totalBytes()-LittleFS.usedBytes());
 					}
 				#endif
 
 				file.flush();
 				file.close();
-				SPIFFS.remove(path);
-				SPIFFS.end();
+				LittleFS.remove(path);
+				LittleFS.end();
 
 				printE("An Error has occurred while writing file");
 				String html = "<html><body><h1>Unable to write file!</h1></body></html>";
@@ -1333,13 +1333,13 @@ void AmsWebServer::uploadFile(const char* path) {
         if(file) {
 			file.flush();
             file.close();
-		    file = SPIFFS.open(path, "r");
+		    file = LittleFS.open(path, "r");
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf("handleFileUpload Size: %lu\n", upload.totalSize);
 				debugger->printf("handleFileUpload File size: %lu\n", file.size());
 			}
             file.close();
-			SPIFFS.end();
+			LittleFS.end();
         } else {
             server.send(500, "text/plain", "500: couldn't create file");
         }
@@ -1347,9 +1347,9 @@ void AmsWebServer::uploadFile(const char* path) {
 }
 
 void AmsWebServer::deleteFile(const char* path) {
-	if(SPIFFS.begin()) {
-		SPIFFS.remove(path);
-		SPIFFS.end();
+	if(LittleFS.begin()) {
+		LittleFS.remove(path);
+		LittleFS.end();
 	}
 }
 
@@ -1409,17 +1409,17 @@ void AmsWebServer::firmwareDownload() {
 			int status = https.GET();
 			if(status == HTTP_CODE_OK) {
 				printD("Received OK from server");
-				if(SPIFFS.begin()) {
-					printI("Downloading firmware to SPIFFS");
-					file = SPIFFS.open(FILE_FIRMWARE, "w");
+				if(LittleFS.begin()) {
+					printI("Downloading firmware to LittleFS");
+					file = LittleFS.open(FILE_FIRMWARE, "w");
 					int len = https.writeToStream(&file);
 					file.close();
-					SPIFFS.end();
+					LittleFS.end();
 					performRestart = true;
 					server.sendHeader("Location","/restart-wait");
 					server.send(303);
 				} else {
-					printE("Unable to open SPIFFS for writing");
+					printE("Unable to open LittleFS for writing");
 					server.sendHeader("Location","/");
 					server.send(303);
 				}
@@ -1506,7 +1506,7 @@ void AmsWebServer::restartWaitHtml() {
 
 	yield();
 	if(performRestart) {
-		SPIFFS.end();
+		LittleFS.end();
 		printI("Rebooting");
 		delay(1000);
 #if defined(ESP8266)
@@ -1549,13 +1549,13 @@ void AmsWebServer::mqttCa() {
 	if(!checkSecurity(1))
 		return;
 
-	if(SPIFFS.begin()) {
-		if(SPIFFS.exists(FILE_MQTT_CA)) {
+	if(LittleFS.begin()) {
+		if(LittleFS.exists(FILE_MQTT_CA)) {
 			deleteHtml("CA file", "/mqtt-ca/delete", "mqtt");
 		} else {
 			uploadHtml("CA file", "/mqtt-ca", "mqtt");
 		}
-		SPIFFS.end();
+		LittleFS.end();
 	} else {
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
@@ -1603,13 +1603,13 @@ void AmsWebServer::mqttCert() {
 	if(!checkSecurity(1))
 		return;
 
-	if(SPIFFS.begin()) {
-		if(SPIFFS.exists(FILE_MQTT_CERT)) {
+	if(LittleFS.begin()) {
+		if(LittleFS.exists(FILE_MQTT_CERT)) {
 			deleteHtml("Certificate", "/mqtt-cert/delete", "mqtt");
 		} else {
 			uploadHtml("Certificate", "/mqtt-cert", "mqtt");
 		}
-		SPIFFS.end();
+		LittleFS.end();
 	} else {
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
@@ -1656,13 +1656,13 @@ void AmsWebServer::mqttKey() {
 	if(!checkSecurity(1))
 		return;
 
-	if(SPIFFS.begin()) {
-		if(SPIFFS.exists(FILE_MQTT_KEY)) {
+	if(LittleFS.begin()) {
+		if(LittleFS.exists(FILE_MQTT_KEY)) {
 			deleteHtml("Private key", "/mqtt-key/delete", "mqtt");
 		} else {
 			uploadHtml("Private key", "/mqtt-key", "mqtt");
 		}
-		SPIFFS.end();
+		LittleFS.end();
 	} else {
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
@@ -1721,8 +1721,8 @@ void AmsWebServer::factoryResetPost() {
 
 	printD("Performing factory reset");
 	if(server.hasArg("perform") && server.arg("perform") == "true") {
-		printD("Formatting SPIFFS");
-		SPIFFS.format();
+		printD("Formatting LittleFS");
+		LittleFS.format();
 		printD("Clearing configuration");
 		config->clear();
 		printD("Setting restart flag and redirecting");

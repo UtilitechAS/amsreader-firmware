@@ -4,7 +4,16 @@
 #include "hexutils.h"
 #include "AmsData.h"
 
-#include "root/head_html.h"
+#if defined(ESP8266)
+	#include "root/head8266_html.h"
+	#define HEAD_HTML HEAD8266_HTML
+	#define HEAD_HTML_LEN HEAD8266_HTML_LEN
+#elif defined(ESP32) 
+	#include "root/head32_html.h"
+	#define HEAD_HTML HEAD32_HTML
+	#define HEAD_HTML_LEN HEAD32_HTML_LEN
+#endif
+
 #include "root/foot_html.h"
 #include "root/index_html.h"
 #include "root/application_js.h"

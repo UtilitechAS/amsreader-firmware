@@ -253,7 +253,11 @@ var fetch = function() {
             $('.ju').html(moment.duration(parseInt(json.u), 'seconds').humanize());
         }
 
-        $('.jm').html((parseInt(json.m).toFixed(0)/1000).toFixed(1));
+        var kib = parseInt(json.m)/1000;
+        $('.jm').html(kib.toFixed(1));
+        if(kib > 32) {
+            $('.ssl-capable').removeClass('d-none');
+        }
 
         setStatus("esp", json.em);
         setStatus("han", json.hm);

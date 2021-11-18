@@ -56,6 +56,10 @@ private:
     uint8_t AMS_OBIS_ACTIVE_EXPORT_COUNT[4]     = {  2, 8, 0, 255 };
     uint8_t AMS_OBIS_REACTIVE_IMPORT_COUNT[4]   = {  3, 8, 0, 255 };
     uint8_t AMS_OBIS_REACTIVE_EXPORT_COUNT[4]   = {  4, 8, 0, 255 };
+    uint8_t AMS_OBIS_POWER_FACTOR[4]            = { 13, 7, 0, 255 };
+    uint8_t AMS_OBIS_POWER_FACTOR_L1[4]         = { 33, 7, 0, 255 };
+    uint8_t AMS_OBIS_POWER_FACTOR_L2[4]         = { 53, 7, 0, 255 };
+    uint8_t AMS_OBIS_POWER_FACTOR_L3[4]         = { 73, 7, 0, 255 };
 
 };
 #endif

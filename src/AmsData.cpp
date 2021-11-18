@@ -28,6 +28,10 @@ void AmsData::apply(AmsData& other) {
         this->listType = other.getListType();
     switch(other.getListType()) {
         case 3:
+            this->powerFactor = other.getPowerFactor();
+            this->l1PowerFactor = other.getL1PowerFactor();
+            this->l2PowerFactor = other.getL2PowerFactor();
+            this->l3PowerFactor = other.getL3PowerFactor();
             this->meterTimestamp = other.getMeterTimestamp();
             this->activeImportCounter = other.getActiveImportCounter();
             this->activeExportCounter = other.getActiveExportCounter();
@@ -125,6 +129,22 @@ float AmsData::getL2Current() {
 
 float AmsData::getL3Current() {
     return this->l3current;
+}
+
+float AmsData::getPowerFactor() {
+    return this->powerFactor;
+}
+
+float AmsData::getL1PowerFactor() {
+    return this->l1PowerFactor;
+}
+
+float AmsData::getL2PowerFactor() {
+    return this->l2PowerFactor;
+}
+
+float AmsData::getL3PowerFactor() {
+    return this->l3PowerFactor;
 }
 
 float AmsData::getActiveImportCounter() {

@@ -266,6 +266,23 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
             meterTimestamp = ts;
         }
 
+        u32 = getUnsignedNumber(AMS_OBIS_POWER_FACTOR, sizeof(AMS_OBIS_POWER_FACTOR), ((char *) (d)));
+        if(u32 != 0xFFFFFFFF) {
+            powerFactor = u32 / 100.0;
+        }
+        u32 = getUnsignedNumber(AMS_OBIS_POWER_FACTOR_L1, sizeof(AMS_OBIS_POWER_FACTOR_L1), ((char *) (d)));
+        if(u32 != 0xFFFFFFFF) {
+            l1PowerFactor = u32 / 100.0;
+        }
+        u32 = getUnsignedNumber(AMS_OBIS_POWER_FACTOR_L2, sizeof(AMS_OBIS_POWER_FACTOR_L2), ((char *) (d)));
+        if(u32 != 0xFFFFFFFF) {
+            l2PowerFactor = u32 / 100.0;
+        }
+        u32 = getUnsignedNumber(AMS_OBIS_POWER_FACTOR_L3, sizeof(AMS_OBIS_POWER_FACTOR_L3), ((char *) (d)));
+        if(u32 != 0xFFFFFFFF) {
+            l3PowerFactor = u32 / 100.0;
+        }
+
         lastUpdateMillis = millis();
     }
 

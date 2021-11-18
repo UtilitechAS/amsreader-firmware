@@ -46,6 +46,11 @@ public:
     float getL2Current();
     float getL3Current();
 
+    float getPowerFactor();
+    float getL1PowerFactor();
+    float getL2PowerFactor();
+    float getL3PowerFactor();
+
     float getActiveImportCounter();
     float getReactiveImportCounter();
     float getActiveExportCounter();
@@ -62,6 +67,7 @@ protected:
     time_t meterTimestamp = 0;
     uint16_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
     float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
+    float powerFactor = 0, l1PowerFactor = 0, l2PowerFactor = 0, l3PowerFactor = 0;
     float activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
     bool threePhase = false, twoPhase = false, counterEstimated = false;
 };

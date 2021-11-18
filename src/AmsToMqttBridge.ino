@@ -301,7 +301,6 @@ bool longPressActive = false;
 bool wifiConnected = false;
 
 unsigned long lastTemperatureRead = 0;
-unsigned long lastSuccessfulRead = 0;
 unsigned long lastErrorBlink = 0; 
 int lastError = 0;
 
@@ -558,7 +557,7 @@ void errorBlink() {
 	for(;lastError < 3;lastError++) {
 		switch(lastError) {
 			case 0:
-				if(lastErrorBlink - lastSuccessfulRead > 30000) {
+				if(lastErrorBlink - meterState.getLastUpdateMillis() > 30000) {
 					hw.ledBlink(LED_RED, 1); // If no message received from AMS in 30 sec, blink once
 					return;
 				}
@@ -645,11 +644,12 @@ void readHanPort() {
 		hanSerial->readBytes(buf, BUF_SIZE);
 		return;
 	}
+	CosemDateTime timestamp;
 	AmsData data;
 	if(currentMeterType == 1) {
 		size_t len = hanSerial->readBytes(buf, BUF_SIZE); // TODO: read one byte at the time. This blocks up the GUI
 		if(len > 0) {
-			int pos = HDLC_validate((uint8_t *) buf, len, hc);
+			int pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
 			if(pos == HDLC_ENCRYPTION_CONFIG_MISSING) {
 				hc = new HDLCConfig();
 				memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);
@@ -671,7 +671,7 @@ void readHanPort() {
 			}
 			if(pos >= 0) {
 				debugI("Valid HDLC, start at %d", pos);
-				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType());
+				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), timestamp);
 			} else {
 				debugW("Invalid HDLC, returned with %d", pos);
 				currentMeterType = 0;

@@ -51,7 +51,8 @@ enum CosemType {
     CosemTypeString = 0x0A,
     CosemTypeDLongUnsigned = 0x06,
     CosemTypeLongSigned = 0x10,
-    CosemTypeLongUnsigned = 0x12
+    CosemTypeLongUnsigned = 0x12,
+    CosemTypeDateTime = 0x19
 };
 
 struct CosemBasic {
@@ -80,6 +81,20 @@ struct CosemLongSigned {
 	int16_t data;
 } __attribute__((packed));
 
+struct CosemDateTime {
+    uint8_t type;
+    uint16_t year;
+    uint8_t month;
+    uint8_t dayOfMonth;
+    uint8_t dayOfWeek;
+    uint8_t hour;
+    uint8_t minute;
+    uint8_t second;
+    uint8_t hundredths;
+    int16_t deviation;
+    uint8_t status;
+} __attribute__((packed));
+
 typedef union {
     struct CosemBasic base;
 	struct CosemString str;
@@ -87,9 +102,10 @@ typedef union {
 	struct CosemLongUnsigned lu;
     struct CosemDLongUnsigned dlu;
     struct CosemLongSigned ls;
+    struct CosemDateTime dt;
 } CosemData; 
 
 void mbus_hexdump(const uint8_t* buf, int len);
-int HDLC_validate(const uint8_t* d, int len, HDLCConfig* config);
+int HDLC_validate(const uint8_t* d, int len, HDLCConfig* config, CosemDateTime* timestamp);
 
 #endif

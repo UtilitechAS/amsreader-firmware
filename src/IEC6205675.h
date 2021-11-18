@@ -5,21 +5,13 @@
 #include "ams/hdlc.h"
 
 struct AmsOctetTimestamp {
-    uint16_t year;
-    uint8_t month;
-    uint8_t dayOfMonth;
-    uint8_t dayOfWeek;
-    uint8_t hour;
-    uint8_t minute;
-    uint8_t second;
-    uint8_t hundredths;
-    int16_t deviation;
-    uint8_t status;
+    uint8_t type;
+    CosemDateTime dt;
 } __attribute__((packed));
 
 class IEC6205675 : public AmsData {
 public:
-    IEC6205675(const char* payload, uint8_t useMeterType);
+    IEC6205675(const char* payload, uint8_t useMeterType, CosemDateTime packageTimestamp);
 
 private:
     CosemData* getCosemDataAt(uint8_t index, const char* ptr);
@@ -28,6 +20,7 @@ private:
     uint32_t getSignedNumber(uint8_t* obis, int matchlength, const char* ptr);
     uint32_t getUnsignedNumber(uint8_t* obis, int matchlength, const char* ptr);
     time_t getTimestamp(uint8_t* obis, int matchlength, const char* ptr);
+    time_t getTimestamp(CosemDateTime timestamp);
 
     uint8_t AMS_OBIS_VERSION[6]                 = { 1, 1,  0, 2, 129, 255 };
     uint8_t AMS_OBIS_METER_MODEL[4]             = { 96, 1, 1, 255 };

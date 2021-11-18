@@ -1,10 +1,12 @@
 #include "IEC6205675.h"
 #include "lwip/def.h"
 
-IEC6205675::IEC6205675(const char* d, uint8_t useMeterType) {
+IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packageTimestamp) {
     uint32_t u32;
     int32_t s32;
     char str[64];
+
+    this->packageTimestamp = getTimestamp(packageTimestamp);
 
     u32 = getUnsignedNumber(AMS_OBIS_ACTIVE_IMPORT, sizeof(AMS_OBIS_ACTIVE_IMPORT), ((char *) (d)));
     if(u32 == 0xFFFFFFFF) {
@@ -94,20 +96,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType) {
                         case CosemTypeOctetString: {
                             if(data->oct.length == 0x0C) {
                                 AmsOctetTimestamp* ts = (AmsOctetTimestamp*) data;
-                                tmElements_t tm;
-                                tm.Year = ntohs(ts->year) - 1970;
-                                tm.Month = ts->month;
-                                tm.Day = ts->dayOfMonth;
-                                tm.Hour = ts->hour;
-                                tm.Minute = ts->minute;
-                                tm.Second = ts->second;
-
-                                time_t time = makeTime(tm);
-                                int16_t deviation = ntohs(ts->deviation);
-                                if(deviation >= -720 && deviation <= 720) {
-                                    time -= deviation * 60;
-                                }
-                                meterTimestamp = time;
+                                meterTimestamp = getTimestamp(ts->dt);
                             }
                         }
                     }
@@ -419,23 +408,28 @@ time_t IEC6205675::getTimestamp(uint8_t* obis, int matchlength, const char* ptr)
             case CosemTypeOctetString: {
                 if(item->oct.length == 0x0C) {
                     AmsOctetTimestamp* ts = (AmsOctetTimestamp*) item;
-                    tmElements_t tm;
-                    tm.Year = ntohs(ts->year) - 1970;
-                    tm.Month = ts->month;
-                    tm.Day = ts->dayOfMonth;
-                    tm.Hour = ts->hour;
-                    tm.Minute = ts->minute;
-                    tm.Second = ts->second;
-
-                    time_t time = makeTime(tm);
-                    int16_t deviation = ntohs(ts->deviation);
-                    if(deviation >= -720 && deviation <= 720) {
-                        time -= deviation * 60;
-                    }
-                    return time;
+                    //Serial.printf("\nYear: %d, Month: %d, Day: %d, Hour: %d, Minutes %d, Second: %d, Deviation: %d\n", ntohs(ts->dt.year), ts->dt.month, ts->dt.dayOfMonth, ts->dt.hour, ts->dt.minute, ts->dt.second, ntohs(ts->dt.deviation));
+                    return getTimestamp(ts->dt);
                 }
             }
         }
     }
     return 0;
+}
+
+time_t IEC6205675::getTimestamp(CosemDateTime timestamp) {
+    tmElements_t tm;
+    tm.Year = ntohs(timestamp.year) - 1970;
+    tm.Month = timestamp.month;
+    tm.Day = timestamp.dayOfMonth;
+    tm.Hour = timestamp.hour;
+    tm.Minute = timestamp.minute;
+    tm.Second = timestamp.second;
+
+    time_t time = makeTime(tm);
+    int16_t deviation = ntohs(timestamp.deviation);
+    if(deviation >= -720 && deviation <= 720) {
+        time -= deviation * 60;
+    }
+    return time;
 }

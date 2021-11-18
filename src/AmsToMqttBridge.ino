@@ -214,42 +214,46 @@ void setup() {
 	if(hasFs) {
 		bool flashed = false;
 		if(LittleFS.exists(FILE_FIRMWARE)) {
-			if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
-#if defined(ESP8266)
-			WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
-			WiFi.forceSleepBegin();
-#endif
-			int i = 0;
-			while(hw.getVcc() > 1.0 && hw.getVcc() < 3.2 && i < 3) {
-				if(Debug.isActive(RemoteDebug::INFO)) debugI(" vcc not optimal, light sleep 10s");
-#if defined(ESP8266)
-				delay(10000);
-#elif defined(ESP32)
-			    esp_sleep_enable_timer_wakeup(10000000);
-			    esp_light_sleep_start();
-#endif
-				i++;
-			}
+			if (digitalRead(gpioConfig.apPin) == HIGH) {
+				if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
+				#if defined(ESP8266)
+					WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
+					WiFi.forceSleepBegin();
+				#endif
+				int i = 0;
+				while(hw.getVcc() > 1.0 && hw.getVcc() < 3.2 && i < 3) {
+					if(Debug.isActive(RemoteDebug::INFO)) debugI(" vcc not optimal, light sleep 10s");
+					#if defined(ESP8266)
+						delay(10000);
+					#elif defined(ESP32)
+						esp_sleep_enable_timer_wakeup(10000000);
+						esp_light_sleep_start();
+					#endif
+					i++;
+				}
 
-			debugI(" flashing");
-			File firmwareFile = LittleFS.open(FILE_FIRMWARE, "r");
-			debugD(" firmware size: %d", firmwareFile.size());
-			uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-			debugD(" available: %d", maxSketchSpace);
-			if (!Update.begin(maxSketchSpace, U_FLASH)) {
-				if(Debug.isActive(RemoteDebug::ERROR)) {
-					debugE("Unable to start firmware update");
-					Update.printError(Serial);
+				debugI(" flashing");
+				File firmwareFile = LittleFS.open(FILE_FIRMWARE, "r");
+				debugD(" firmware size: %d", firmwareFile.size());
+				uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+				debugD(" available: %d", maxSketchSpace);
+				if (!Update.begin(maxSketchSpace, U_FLASH)) {
+					if(Debug.isActive(RemoteDebug::ERROR)) {
+						debugE("Unable to start firmware update");
+						Update.printError(Serial);
+					}
+				} else {
+					while (firmwareFile.available()) {
+						uint8_t ibuffer[128];
+						firmwareFile.read((uint8_t *)ibuffer, 128);
+						Update.write(ibuffer, sizeof(ibuffer));
+					}
+					flashed = Update.end(true);
 				}
+				firmwareFile.close();
 			} else {
-				while (firmwareFile.available()) {
-					uint8_t ibuffer[128];
-					firmwareFile.read((uint8_t *)ibuffer, 128);
-					Update.write(ibuffer, sizeof(ibuffer));
-				}
-				flashed = Update.end(true);
+				debugW("AP button pressed, skipping firmware update and deleting firmware file.");
 			}
-			firmwareFile.close();
 			LittleFS.remove(FILE_FIRMWARE);
 		}
 		LittleFS.end();

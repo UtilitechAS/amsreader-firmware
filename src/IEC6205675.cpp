@@ -1,5 +1,6 @@
 #include "IEC6205675.h"
 #include "lwip/def.h"
+#include "Timezone.h"
 
 IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packageTimestamp) {
     uint32_t u32;
@@ -261,9 +262,21 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
             }
         }
 
-        time_t ts = getTimestamp(AMS_OBIS_METER_TIMESTAMP, sizeof(AMS_OBIS_METER_TIMESTAMP), ((char *) (d)));
-        if(ts > 0) {
-            meterTimestamp = ts;
+        CosemData* meterTs = findObis(AMS_OBIS_METER_TIMESTAMP, sizeof(AMS_OBIS_METER_TIMESTAMP), ((char *) (d)));
+        if(meterTs != NULL) {
+            TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
+            TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
+            Timezone tz(CEST, CET);
+
+            AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
+            time_t ts = getTimestamp(amst->dt);
+            if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
+                this->packageTimestamp = tz.toUTC(ts);
+                this->meterTimestamp = tz.toUTC(ts);
+                Serial.printf("\nKamstrup/Aidon time: %d\n", meterTimestamp);
+            } else {
+                meterTimestamp = ts;
+            }
         }
 
         u32 = getUnsignedNumber(AMS_OBIS_POWER_FACTOR, sizeof(AMS_OBIS_POWER_FACTOR), ((char *) (d)));
@@ -425,7 +438,6 @@ time_t IEC6205675::getTimestamp(uint8_t* obis, int matchlength, const char* ptr)
             case CosemTypeOctetString: {
                 if(item->oct.length == 0x0C) {
                     AmsOctetTimestamp* ts = (AmsOctetTimestamp*) item;
-                    //Serial.printf("\nYear: %d, Month: %d, Day: %d, Hour: %d, Minutes %d, Second: %d, Deviation: %d\n", ntohs(ts->dt.year), ts->dt.month, ts->dt.dayOfMonth, ts->dt.hour, ts->dt.minute, ts->dt.second, ntohs(ts->dt.deviation));
                     return getTimestamp(ts->dt);
                 }
             }
@@ -436,12 +448,16 @@ time_t IEC6205675::getTimestamp(uint8_t* obis, int matchlength, const char* ptr)
 
 time_t IEC6205675::getTimestamp(CosemDateTime timestamp) {
     tmElements_t tm;
-    tm.Year = ntohs(timestamp.year) - 1970;
+    uint16_t year = ntohs(timestamp.year);
+    if(year < 1970) return 0;
+    tm.Year = year - 1970;
     tm.Month = timestamp.month;
     tm.Day = timestamp.dayOfMonth;
     tm.Hour = timestamp.hour;
     tm.Minute = timestamp.minute;
     tm.Second = timestamp.second;
+
+    Serial.printf("\nY: %d, M: %d, D: %d, h: %d, m: %d, s: %d, deviation: 0x%2X, status: 0x%1X\n", tm.Year, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second, timestamp.deviation, timestamp.status);
 
     time_t time = makeTime(tm);
     int16_t deviation = ntohs(timestamp.deviation);

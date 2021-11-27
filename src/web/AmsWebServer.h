@@ -8,6 +8,7 @@
 #include "AmsConfiguration.h"
 #include "HwTools.h"
 #include "AmsData.h"
+#include "AmsDataStorage.h"
 #include "Uptime.h"
 #include "RemoteDebug.h"
 #include "entsoe/EntsoeApi.h"
@@ -29,7 +30,7 @@
 class AmsWebServer {
 public:
 	AmsWebServer(RemoteDebug* Debug, HwTools* hw);
-    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, MQTTClient*);
+    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage* ds, MQTTClient*);
     void loop();
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
@@ -47,6 +48,7 @@ private:
 	MeterConfig* meterConfig;
 	WebConfig webConfig;
 	AmsData* meterState;
+	AmsDataStorage* ds;
 	MQTTClient* mqtt;
 	bool uploading = false;
 	File file;
@@ -76,9 +78,10 @@ private:
 	void configGpioHtml();
 	void configDebugHtml();
 	void bootCss();
-	void gaugemeterJs();
 	void githubSvg();
     void dataJson();
+	void dayplotJson();
+	void monthplotJson();
 
 	void handleSetup();
 	void handleSave();

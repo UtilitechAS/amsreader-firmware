@@ -1,4 +1,4 @@
-<div class="bg-white rounded shadow p-1">
+<div class="bg-white rounded shadow p-1 mb-3">
     <div class="row">
         <div class="col-md-2 col-6">
             <div class="text-center">Up <span class="ju">{cs}</span></div>
@@ -21,51 +21,39 @@
 <div class="row">
     <div class="col-lg-6">
         <div class="row">
-            <div class="col-sm-6 mt-3">
+            <div class="col-sm-6 mb-3">
                 <div class="bg-white rounded shadow p-3">
-                    <div class="text-center">
-                        <div class="SimpleMeter ji" style="display: inline;">
-                            {P} W
-                        </div>
-                        <div id="im" class="GaugeMeter rounded"
-                            style="display: none;"
-                            data-size="180px"
-                            data-text_size="0.15"
-                            data-width="25"
-                            data-style="Arch"
-                            data-theme="Green-Gold-Red"
-                            data-animationstep="0"
-                            data-label="{ti}"
-                        ></div>
+                    <div class="text-center overlay-plot">
+                        <div id="ip" class="plot1"></div>
+                        <span class="plot-overlay">
+                            <span class="ipo">{P}</span> 
+                            <span class="ipoa">W</span>
+                            <br/>
+                            <span class="pol">{ti}</span>
+                        </span>
                     </div>
                     <div class="row ric" style="display: {da};">
                         <div class="col-12 text-right"><span class="jic">{tPI}</span> kWh</div>
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6 mt-3" style="display: {de};">
+            <div class="col-sm-6 mb-3" style="display: {de};">
                 <div class="bg-white rounded shadow p-3">
-                    <div class="text-center">
-                        <div class="SimpleMeter je" style="display: inline;">
-                            {PO} W
-                        </div>
-                        <div id="em" class="GaugeMeter rounded"
-                            style="display: none;"
-                            data-size="180px"
-                            data-text_size="0.15"
-                            data-width="25"
-                            data-style="Arch"
-                            data-theme="DarkGreen-LightGreen"
-                            data-animationstep="0"
-                            data-label="Export"
-                        ></div>
+                    <div class="text-center overlay-plot">
+                        <div id="xp" class="plot1"></div>
+                        <span class="plot-overlay">
+                            <span class="xpo">{PO}</span> 
+                            <span class="xpoa">W</span>
+                            <br/>
+                            <span class="pol">Export</span>
+                        </span>
                     </div>
                     <div class="row rec" style="display: {da};">
                         <div class="col-12 text-right"><span class="jec">{tPO}</span> kWh</div>
                     </div>
                 </div>
             </div>
-            <div class="col-sm-6 mt-3" style="display: {dn};">
+            <div class="col-sm-6 mb-3" style="display: {dn};">
                 <div class="bg-white rounded shadow p-3" style="display: {da};">
                     <h5 class="text-center">Reactive</h5>
                     <div class="row rric">
@@ -76,7 +64,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-sm-12 mt-3" style="display: {de};">
+            <div class="col-sm-12 mb-3" style="display: {de};">
                 <div class="bg-white rounded shadow p-3" style="display: {da};">
                     <div class="row rrec">
                         <div class="col-4 col-sm-2">In</div>
@@ -88,47 +76,25 @@
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-sm-6 mt-3">
+    <div class="col-lg-3 col-sm-6 mb-3">
         <div class="bg-white rounded shadow p-3">
             <div class="text-center">
-                <div id="vm" class="GaugeMeter rounded"
-                    style="display: none;"
-                    data-size="180px"
-                    data-text_size="0.15"
-                    data-width="25"
-                    data-style="Arch"
-                    data-theme="Voltage"
-                    data-animationstep="0"
-                    data-label="Volt"
-                ></div>
-            </div>
-            <div class="row ru2" style="display: {3p};">
-                <div class="col-4"><span class="ju1">{U1}</span>V</div>
-                <div class="col-4 text-center"><span class="ju2">{U2}</span>V</div>
-                <div class="col-4 text-right"><span class="ju3">{U3}</span>V</div>
+                <div id="vp" class="plot2"></div>
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-sm-6 mb-3 mt-3">
+    <div class="col-lg-3 col-sm-6 mb-3">
         <div class="bg-white rounded shadow p-3">
             <div class="text-center">
-                <div id="am" class="GaugeMeter rounded"
-                    style="display: none;"
-                    data-size="180px"
-                    data-text_size="0.15"
-                    data-width="25"
-                    data-style="Arch"
-                    data-theme="Green-Gold-Red"
-                    data-animationstep="0"
-                    data-label="Ampere"
-                ></div>
-            </div>
-            <div class="row ru2" style="display: {3p};">
-                <div class="col-4"><span class="ji1">{I1}</span>A</div>
-                <div class="col-4 text-center"><span class="ji2">{I2}</span>A</div>
-                <div class="col-4 text-right"><span class="ji3">{I3}</span>A</div>
+                <div id="ap" class="plot2"></div>
             </div>
         </div>
+    </div>
+    <div class="col-xl-12 mb-3">
+        <div class="bg-white rounded shadow" id="ep" style="width: 100%; height: 224px;"></div>
+    </div>
+    <div class="col-xl-12 mb-3">
+        <div class="bg-white rounded shadow" id="mp" style="width: 100%; height: 224px;"></div>
     </div>
     <div class="col-lg-3 col-sm-6 mb-3 d-none me me-1 me-2 me-3 me-4 me-5 me-6 me-7 me-8 me-9 me-10 me-11 me-12 me-13">
         <div class="d-none badge badge-danger me me-1 me-2 me-5 me-6 me-7 me-8 me-9 me-12">MQTT communication error (<span id="ml">-</span>)</div>
@@ -139,3 +105,4 @@
         <div class="d-none badge badge-danger me me-13">MQTT lost connection</div>
     </div>
 </div>
+

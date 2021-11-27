@@ -6,50 +6,39 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
     <style>
-        .GaugeMeter {
-            position: Relative;
-            text-align: Center;
-            overflow: Hidden;
-            cursor: Default;
-            display: inline-block;
-        }
-        
-        .GaugeMeter SPAN, .GaugeMeter B {
-            width: 54%;
-            position: Absolute;
-            text-align: Center;
-            display: Inline-Block;
-            color: RGBa(0,0,0,.8);
-            font-weight: 100;
-            font-family: "Open Sans", Arial;
-            overflow: Hidden;
-            white-space: NoWrap;
-            text-overflow: Ellipsis;
-            margin: 0 23%;
-        }
-        
-        .GaugeMeter[data-style="Semi"] B {
-            width: 80%;
-            margin: 0 10%;
-        }
-        
-        .GaugeMeter S, .GaugeMeter U {
-            text-decoration: None;
-            font-size: .60em;
-            font-weight: 200;
-            opacity: .6;
-        }
-        
-        .GaugeMeter B {
-            color: #000;
-            font-weight: 200;
-            opacity: .8;
-        }
         .navbar-expand .navbar-nav .nav-link,.navbar-brand {
             padding-top: 0px;
             padding-bottom: 0px;
             margin-top: 0px;
             margin-bottom: 0px;
+        }
+        .plot1 {
+            width: 100%;
+            height: 200px;
+        }
+        .plot2 {
+            width: 100%;
+            height: 224px;
+        }
+        .overlay-plot {
+            position: relative;
+        }
+        .plot-overlay {
+            position: absolute;
+            top: 70px;
+            left: 25%;
+            width: 50%;
+            text-align: center;
+        }
+        .ipo,.xpo {
+            font-size: 1.7rem;
+        }
+        .ipoa,.xpoa {
+            font-size: 1.0rem;
+            color: grey;
+        }
+        .pol {
+            font-size: 1.0rem;
         }
     </style>
 </head>

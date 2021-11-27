@@ -5,6 +5,8 @@
 #include <stdint.h>
 
 #define HDLC_FLAG 0x7E
+#define HDLC_BOUNDRY_FLAG_MISSING -1
+#define HDLC_FRAME_INCOMPLETE -4
 #define HDLC_ENCRYPTION_CONFIG_MISSING -90
 
 struct HDLCConfig {

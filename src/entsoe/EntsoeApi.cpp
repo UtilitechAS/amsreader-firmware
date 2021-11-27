@@ -179,9 +179,9 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
             client.setBufferSizes(bufSize, bufSize);
         }
         */
-
-        client.setInsecure();
     #endif
+
+    client.setInsecure();
     
     HTTPClient https;
     https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);

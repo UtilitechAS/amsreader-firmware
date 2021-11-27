@@ -30,9 +30,9 @@
 #include "root/restart_html.h"
 #include "root/restartwait_html.h"
 #include "root/boot_css.h"
-#include "root/gaugemeter_js.h"
 #include "root/github_svg.h"
 #include "root/upload_html.h"
+#include "root/firmware_html.h"
 #include "root/delete_html.h"
 #include "root/reset_html.h"
 #include "root/temperature_html.h"
@@ -41,6 +41,8 @@
 #include "root/data_json.h"
 #include "root/tempsensor_json.h"
 #include "root/lowmem_html.h"
+#include "root/dayplot_json.h"
+#include "root/monthplot_json.h"
 
 #include "base64.h"
 
@@ -49,11 +51,12 @@ AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw) {
 	this->hw = hw;
 }
 
-void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, MQTTClient* mqtt) {
+void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds, MQTTClient* mqtt) {
     this->config = config;
 	this->gpioConfig = gpioConfig;
 	this->meterConfig = meterConfig;
 	this->meterState = meterState;
+	this->ds = ds;
 	this->mqtt = mqtt;
 
 	char jsuri[32];
@@ -73,9 +76,10 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/domoticz",HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
 	server.on("/entsoe",HTTP_GET, std::bind(&AmsWebServer::configEntsoeHtml, this));
 	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
-	server.on("/gaugemeter.js", HTTP_GET, std::bind(&AmsWebServer::gaugemeterJs, this)); 
 	server.on("/github.svg", HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
 	server.on("/data.json", HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
+	server.on("/dayplot.json", HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
+	server.on("/monthplot.json", HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
 
 	server.on("/save", HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
 
@@ -660,13 +664,6 @@ void AmsWebServer::bootCss() {
 	server.send_P(200, "text/css", BOOT_CSS);
 }
 
-void AmsWebServer::gaugemeterJs() {
-	printD("Serving /gaugemeter.js over http...");
-
-	server.sendHeader("Cache-Control", "public, max-age=3600");
-	server.send_P(200, "application/javascript", GAUGEMETER_JS);
-}
-
 void AmsWebServer::githubSvg() {
 	printD("Serving /github.svg over http...");
 
@@ -782,6 +779,95 @@ void AmsWebServer::dataJson() {
 	server.send(200, "application/json", json);
 }
 
+void AmsWebServer::dayplotJson() {
+	printD("Serving /dayplot.json over http...");
+
+	DayDataPoints d = ds->getDayDataPoints();
+
+	char json[384];
+	snprintf_P(json, sizeof(json), DAYPLOT_JSON,
+		d.h00 / 100.0,
+		d.h01 / 100.0,
+		d.h02 / 100.0,
+		d.h03 / 100.0,
+		d.h04 / 100.0,
+		d.h05 / 100.0,
+		d.h06 / 100.0,
+		d.h07 / 100.0,
+		d.h08 / 100.0,
+		d.h09 / 100.0,
+		d.h10 / 100.0,
+		d.h11 / 100.0,
+		d.h12 / 100.0,
+		d.h13 / 100.0,
+		d.h14 / 100.0,
+		d.h15 / 100.0,
+		d.h16 / 100.0,
+		d.h17 / 100.0,
+		d.h18 / 100.0,
+		d.h19 / 100.0,
+		d.h20 / 100.0,
+		d.h21 / 100.0,
+		d.h22 / 100.0,
+		d.h23 / 100.0
+	);
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+
+	server.setContentLength(strlen(json));
+	server.send(200, "application/json", json);
+}
+
+void AmsWebServer::monthplotJson() {
+	printD("Serving /monthplot.json over http...");
+
+	MonthDataPoints m = ds->getMonthDataPoints();
+
+	char json[512];
+	snprintf_P(json, sizeof(json), MONTHPLOT_JSON,
+		m.d01 / 100.0,
+		m.d02 / 100.0,
+		m.d03 / 100.0,
+		m.d04 / 100.0,
+		m.d05 / 100.0,
+		m.d06 / 100.0,
+		m.d07 / 100.0,
+		m.d08 / 100.0,
+		m.d09 / 100.0,
+		m.d10 / 100.0,
+		m.d11 / 100.0,
+		m.d12 / 100.0,
+		m.d13 / 100.0,
+		m.d14 / 100.0,
+		m.d15 / 100.0,
+		m.d16 / 100.0,
+		m.d17 / 100.0,
+		m.d18 / 100.0,
+		m.d19 / 100.0,
+		m.d20 / 100.0,
+		m.d21 / 100.0,
+		m.d22 / 100.0,
+		m.d23 / 100.0,
+		m.d24 / 100.0,
+		m.d25 / 100.0,
+		m.d26 / 100.0,
+		m.d27 / 100.0,
+		m.d28 / 100.0,
+		m.d29 / 100.0,
+		m.d30 / 100.0,
+		m.d31 / 100.0
+	);
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+
+	server.setContentLength(strlen(json));
+	server.send(200, "application/json", json);
+}
+
 void AmsWebServer::handleSetup() {
 	printD("Handling setup method from http");
 
@@ -795,9 +881,6 @@ void AmsWebServer::handleSetup() {
 		config->getDebugConfig(debugConfig);
 
 		config->clear();
-
-		config->clearGpio(*gpioConfig);
-		config->clearMeter(*meterConfig);
 
 		switch(sys.boardType) {
 			case 0: // roarfred
@@ -920,10 +1003,6 @@ void AmsWebServer::handleSetup() {
 		}
 		if(!config->setWebConfig(webConfig)) {
 			printD("Unable to set web config");
-			success = false;
-		}
-		if(!config->setMeterConfig(*meterConfig)) {
-			printD("Unable to set meter config");
 			success = false;
 		}
 		if(!config->setGpioConfig(*gpioConfig)) {
@@ -1066,6 +1145,8 @@ void AmsWebServer::handleSave() {
 		gpioConfig->vccOffset = server.hasArg("vccOffset") && !server.arg("vccOffset").isEmpty() ? server.arg("vccOffset").toFloat() * 100 : 0;
 		gpioConfig->vccMultiplier = server.hasArg("vccMultiplier") && !server.arg("vccMultiplier").isEmpty() ? server.arg("vccMultiplier").toFloat() * 1000 : 1000;
 		gpioConfig->vccBootLimit = server.hasArg("vccBootLimit") && !server.arg("vccBootLimit").isEmpty() ? server.arg("vccBootLimit").toFloat() * 10 : 0;
+		gpioConfig->vccResistorGnd = server.hasArg("vccResistorGnd") && !server.arg("vccResistorGnd").isEmpty() ? server.arg("vccResistorGnd").toInt() : 0;
+		gpioConfig->vccResistorVcc = server.hasArg("vccResistorVcc") && !server.arg("vccResistorVcc").isEmpty() ? server.arg("vccResistorVcc").toInt() : 0;
 		config->setGpioConfig(*gpioConfig);
 	}
 
@@ -1200,6 +1281,9 @@ void AmsWebServer::configGpioHtml() {
 	html.replace("${config.vccOffset}", gpioConfig->vccOffset > 0 ? String(gpioConfig->vccOffset / 100.0, 2) : "");
 	html.replace("${config.vccMultiplier}", gpioConfig->vccMultiplier > 0 ? String(gpioConfig->vccMultiplier / 1000.0, 2) : "");
 	html.replace("${config.vccBootLimit}", gpioConfig->vccBootLimit > 0 ? String(gpioConfig->vccBootLimit / 10.0, 1) : "");
+
+	html.replace("${config.vccResistorGnd}", gpioConfig->vccResistorGnd > 0 ? String(gpioConfig->vccResistorGnd) : "");
+	html.replace("${config.vccResistorVcc}", gpioConfig->vccResistorVcc > 0 ? String(gpioConfig->vccResistorVcc) : "");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -1372,7 +1456,21 @@ void AmsWebServer::firmwareHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	uploadHtml("Firmware", "/firmware", "system");
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	String html = String((const __FlashStringHelper*) FIRMWARE_HTML);
+
+	#if defined(ESP8266)
+	html.replace("{chipset}", "ESP8266");
+	#elif defined(ESP32)
+	html.replace("{chipset}", "ESP32");
+	#endif
+	
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::firmwareUpload() {
@@ -1519,7 +1617,7 @@ void AmsWebServer::restartWaitHtml() {
 
 	yield();
 	if(performRestart) {
-		LittleFS.end();
+		ds->save();
 		printI("Rebooting");
 		delay(1000);
 #if defined(ESP8266)

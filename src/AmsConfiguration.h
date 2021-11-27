@@ -3,17 +3,16 @@
 #include <EEPROM.h>
 #include "Arduino.h"
 
-#define EEPROM_SIZE 1024 * 3
-#define EEPROM_CHECK_SUM 88 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 89 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
 #define CONFIG_SYSTEM_START 8
 #define CONFIG_WIFI_START 16
 #define CONFIG_METER_START 224
+#define CONFIG_GPIO_START 266
 #define CONFIG_WEB_START 648
 #define CONFIG_DEBUG_START 824
-#define CONFIG_GPIO_START 832
 #define CONFIG_DOMOTICZ_START 856 
 #define CONFIG_NTP_START 872
 #define CONFIG_ENTSOE_START 944
@@ -21,6 +20,7 @@
 
 #define CONFIG_MQTT_START_86 224
 #define CONFIG_METER_START_87 784
+#define CONFIG_GPIO_START_88 832
 
 
 struct SystemConfig {
@@ -97,6 +97,25 @@ struct DebugConfig {
 }; // 3
 
 struct GpioConfig {
+	uint8_t hanPin;
+	uint8_t apPin;
+	uint8_t ledPin;
+	bool ledInverted;
+	uint8_t ledPinRed;
+	uint8_t ledPinGreen;
+	uint8_t ledPinBlue;
+	bool ledRgbInverted;
+	uint8_t tempSensorPin;
+	uint8_t tempAnalogSensorPin;
+	uint8_t vccPin;
+	int16_t vccOffset;
+	uint16_t vccMultiplier;
+	uint8_t vccBootLimit;
+	uint16_t vccResistorGnd;
+	uint16_t vccResistorVcc;
+}; // 20
+
+struct GpioConfig88 {
 	uint8_t hanPin;
 	uint8_t apPin;
 	uint8_t ledPin;
@@ -295,6 +314,7 @@ private:
 	bool loadConfig83(int address);
 	bool relocateConfig86();
 	bool relocateConfig87();
+	bool relocateConfig88(); // dev 1.6
 
 	int readString(int pAddress, char* pString[]);
 	int readInt(int pAddress, int *pValue);

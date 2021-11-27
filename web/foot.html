@@ -1,12 +1,20 @@
-        <div id="newVersion" class="alert alert-info d-none">New version <span id="newVersionTag"></span>! <a id="newVersionUrl" href="#" target="_blank">view</a><span class="d-none ssl-capable"> or <a href="javascript:upgrade();">upgrade</a></span></div>
+        <div id="newVersion" class="alert alert-info d-none">New version <span id="newVersionTag"></span>! 
+            <a id="newVersionUrl" href="#" target="_blank">view</a>
+            <span class="d-none ssl-capable"> or <a href="javascript:upgrade();">upgrade</a></span>
+        </div>
     </main>
 
+    <div id="loading-indicator" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #dddddd99; z-index: 999999; padding-top: 20%; display: none;" class="text-center">
+        <div class="spinner-border text-primary" role="status" style="width: 5rem; height: 5rem;">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>    
 
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
-    <script src="gaugemeter.js"></script>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
     <script src="application-${version}.js"></script>
 
 </body>

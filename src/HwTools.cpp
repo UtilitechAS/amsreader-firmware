@@ -1,4 +1,7 @@
 #include "HwTools.h"
+#if defined(ESP8266)
+ADC_MODE(ADC_VCC);
+#endif
 
 void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
     this->config = config;
@@ -14,16 +17,33 @@ void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
         config->tempSensorPin = 0xFF;
     }
 
+    if(config->vccPin > 0 && config->vccPin < 40) {
+        getAdcChannel(config->vccPin, voltAdc);
+        if(voltAdc.unit != 0xFF) {
+            #if defined(ESP32)
+                if(voltAdc.unit == ADC_UNIT_1) {
+                    voltAdcChar = (esp_adc_cal_characteristics_t*) calloc(1, sizeof(esp_adc_cal_characteristics_t));
+                    esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_6, ADC_WIDTH_BIT_12, 1100, voltAdcChar);
+                    adc1_config_channel_atten((adc1_channel_t) voltAdc.channel, ADC_ATTEN_DB_6);
+                } else if(voltAdc.unit == ADC_UNIT_2) {
+                    voltAdcChar = (esp_adc_cal_characteristics_t*) calloc(1, sizeof(esp_adc_cal_characteristics_t));
+                    esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_6, ADC_WIDTH_BIT_12, 1100, voltAdcChar);
+                    adc2_config_channel_atten((adc2_channel_t) voltAdc.channel, ADC_ATTEN_DB_6);
+                }
+            #endif
+        } else {
+            pinMode(config->vccPin, INPUT);
+        }
+    } else {
+        voltAdc.unit = 0xFF;
+        voltAdc.channel = 0xFF;
+        config->vccPin = 0xFF;
+    }
+
     if(config->tempAnalogSensorPin > 0 && config->tempAnalogSensorPin < 40) {
         pinMode(config->tempAnalogSensorPin, INPUT);
     } else {
         config->tempAnalogSensorPin = 0xFF;
-    }
-
-    if(config->vccPin > 0 && config->vccPin < 40) {
-        pinMode(config->vccPin, INPUT);
-    } else {
-        config->vccPin = 0xFF;
     }
 
     if(config->ledPin > 0 && config->ledPin < 40) {
@@ -55,19 +75,128 @@ void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
     }
 }
 
+void HwTools::getAdcChannel(uint8_t pin, AdcConfig& config) {
+    config.unit = 0xFF;
+    config.channel = 0xFF;
+    #if defined(ESP32)
+        switch(pin) {
+            case ADC1_CHANNEL_0_GPIO_NUM:
+                config.unit = ADC_UNIT_1;
+                config.channel = ADC1_CHANNEL_0;
+                break;
+            case ADC1_CHANNEL_1_GPIO_NUM:
+                config.unit = ADC_UNIT_1;
+                config.channel = ADC1_CHANNEL_1;
+                break;
+            case ADC1_CHANNEL_2_GPIO_NUM:
+                config.unit = ADC_UNIT_1;
+                config.channel = ADC1_CHANNEL_2;
+                break;
+            case ADC1_CHANNEL_3_GPIO_NUM:
+                config.unit = ADC_UNIT_1;
+                config.channel = ADC1_CHANNEL_3;
+                break;
+            case ADC1_CHANNEL_4_GPIO_NUM:
+                config.unit = ADC_UNIT_1;
+                config.channel = ADC1_CHANNEL_4;
+                break;
+            case ADC1_CHANNEL_5_GPIO_NUM:
+                config.unit = ADC_UNIT_1;
+                config.channel = ADC1_CHANNEL_5;
+                break;
+            case ADC1_CHANNEL_6_GPIO_NUM:
+                config.unit = ADC_UNIT_1;
+                config.channel = ADC1_CHANNEL_6;
+                break;
+            case ADC1_CHANNEL_7_GPIO_NUM:
+                config.unit = ADC_UNIT_1;
+                config.channel = ADC1_CHANNEL_7;
+                break;
+            case ADC2_CHANNEL_0_GPIO_NUM:
+                config.unit = ADC_UNIT_2;
+                config.channel = ADC2_CHANNEL_0;
+                break;
+            case ADC2_CHANNEL_1_GPIO_NUM:
+                config.unit = ADC_UNIT_2;
+                config.channel = ADC2_CHANNEL_1;
+                break;
+            case ADC2_CHANNEL_2_GPIO_NUM:
+                config.unit = ADC_UNIT_2;
+                config.channel = ADC2_CHANNEL_2;
+                break;
+            case ADC2_CHANNEL_3_GPIO_NUM:
+                config.unit = ADC_UNIT_2;
+                config.channel = ADC2_CHANNEL_3;
+                break;
+            case ADC2_CHANNEL_4_GPIO_NUM:
+                config.unit = ADC_UNIT_2;
+                config.channel = ADC2_CHANNEL_4;
+                break;
+            case ADC2_CHANNEL_5_GPIO_NUM:
+                config.unit = ADC_UNIT_2;
+                config.channel = ADC2_CHANNEL_5;
+                break;
+            case ADC2_CHANNEL_6_GPIO_NUM:
+                config.unit = ADC_UNIT_2;
+                config.channel = ADC2_CHANNEL_6;
+                break;
+            case ADC2_CHANNEL_7_GPIO_NUM:
+                config.unit = ADC_UNIT_2;
+                config.channel = ADC2_CHANNEL_7;
+                break;
+            case ADC2_CHANNEL_8_GPIO_NUM:
+                config.unit = ADC_UNIT_2;
+                config.channel = ADC2_CHANNEL_8;
+                break;
+            case ADC2_CHANNEL_9_GPIO_NUM:
+                config.unit = ADC_UNIT_2;
+                config.channel = ADC2_CHANNEL_9;
+                break;
+        }
+    #endif
+}
+
 double HwTools::getVcc() {
     double volts = 0.0;
     if(config->vccPin != 0xFF) {
         #if defined(ESP8266)
-            volts = (analogRead(config->vccPin) / 1024.0) * 3.3;
+            uint32_t x = 0;
+            for (int i = 0; i < 10; i++) {
+                x += analogRead(config->vccPin);
+            }
+            volts = x / 10240;
         #elif defined(ESP32)
-            volts = (analogRead(config->vccPin) / 4095.0) * 3.3;
+            if(voltAdc.unit != 0xFF) {
+                uint32_t x = 0;
+                for (int i = 0; i < 10; i++) {
+                    if(voltAdc.unit == ADC_UNIT_1) {
+                        x +=  adc1_get_raw((adc1_channel_t) voltAdc.channel);
+                    } else if(voltAdc.unit == ADC_UNIT_2) {
+                        int v = 0;
+                        adc2_get_raw((adc2_channel_t) voltAdc.channel, ADC_WIDTH_BIT_12, &v);
+                        x += v;
+                    }
+                }
+                x = x / 10;
+                uint32_t voltage = esp_adc_cal_raw_to_voltage(x, voltAdcChar);
+                volts = voltage / 1000.0;
+            } else {
+                uint32_t x = 0;
+                for (int i = 0; i < 10; i++) {
+                    x += analogRead(config->vccPin);
+                }
+                volts = x / 40950;
+            }
         #endif
     } else {
         #if defined(ESP8266)
-            volts = ((double) ESP.getVcc()) / 1024.0;
+            volts = ESP.getVcc() / 1024.0;
         #endif
     }
+    if(config->vccResistorGnd > 0 && config->vccResistorVcc > 0) {
+        volts *= ((double) (config->vccResistorGnd + config->vccResistorVcc) / config->vccResistorGnd);
+    }
+
 
     float vccOffset = config->vccOffset / 100.0;
     float vccMultiplier = config->vccMultiplier / 1000.0;

@@ -7,6 +7,9 @@
 #include <ESP8266WiFi.h>
 #elif defined(ESP32)
 #include <WiFi.h>
+#include <driver/adc.h>
+#include <esp_adc_cal.h>
+#include <soc/adc_channel.h>
 #endif
 
 #include <DallasTemperature.h>
@@ -26,6 +29,11 @@ struct TempSensorData {
     bool changed;
 };
 
+struct AdcConfig {
+    uint8_t unit;
+    uint8_t channel;
+};
+
 class HwTools {
 public:
     void setup(GpioConfig*, AmsConfiguration*);
@@ -43,6 +51,10 @@ public:
 
     HwTools() {};
 private:
+    AdcConfig voltAdc, tempAdc;
+    #if defined(ESP32)
+        esp_adc_cal_characteristics_t* voltAdcChar, tempAdcChar;
+    #endif
     GpioConfig* config;
     AmsConfiguration* amsConf;
     bool tempSensorInit;
@@ -53,6 +65,7 @@ private:
 
     bool writeLedPin(uint8_t color, uint8_t state);
     bool isSensorAddressEqual(uint8_t a[8], uint8_t b[8]);
+    void getAdcChannel(uint8_t pin, AdcConfig&);
 };
 
 #endif

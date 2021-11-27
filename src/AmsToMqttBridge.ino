@@ -18,13 +18,10 @@
 
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
+#include "AmsDataStorage.h"
 #include <MQTT.h>
 #include <DNSServer.h>
 #include <lwip/apps/sntp.h>
-
-#if defined(ESP8266)
-ADC_MODE(ADC_VCC);  
-#endif   
 
 #include "HwTools.h"
 #include "entsoe/EntsoeApi.h"
@@ -73,6 +70,8 @@ uint8_t payloadFormat = 0;
 String topic = "ams";
 AmsData meterState;
 bool ntpEnabled = false;
+
+AmsDataStorage ds(&Debug);
 
 void setup() {
 	WiFiConfig wifi;
@@ -143,7 +142,7 @@ void setup() {
 			SerialConfig serialConfig;
 		#elif defined(ESP32)
 			uint32_t serialConfig;
-		#endif;
+		#endif
 		switch(meterConfig.parity) {
 			case 2:
 				serialConfig = SERIAL_7N1;
@@ -186,10 +185,10 @@ void setup() {
 	}
 
 	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : gpioConfig.vccBootLimit / 10.0;
-	if(vccBootLimit > 0 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
+	if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
 		if (vcc < vccBootLimit) {
 			if(Debug.isActive(RemoteDebug::INFO)) {
-				debugI("Voltage is too low, sleeping");
+				Debug.printf("(setup) Voltage is too low (%.2f < %.2f), sleeping\n", vcc, vccBootLimit);
 				Serial.flush();
 			}
 			ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
@@ -214,7 +213,7 @@ void setup() {
 	if(hasFs) {
 		bool flashed = false;
 		if(LittleFS.exists(FILE_FIRMWARE)) {
-			if (digitalRead(gpioConfig.apPin) == HIGH) {
+			if (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH) {
 				if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
 				#if defined(ESP8266)
 					WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
@@ -286,7 +285,10 @@ void setup() {
 			TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
 			tz = new Timezone(dst, std);
 			ws.setTimezone(tz);
+			ds.setTimezone(tz);
 		}
+
+		ds.load(&meterState);
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("No configuration, booting AP");
@@ -294,7 +296,7 @@ void setup() {
 		swapWifiMode();
 	}
 
-	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &mqtt);
+	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &mqtt);
 }
 
 int buttonTimer = 0;
@@ -472,7 +474,7 @@ void loop() {
 }
 
 void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert) {
-	debugI("Setting up HAN on pin %d with baud %d and parity %d", pin, baud, parityOrdinal);
+	if(Debug.isActive(RemoteDebug::INFO)) Debug.printf("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n", pin, baud, parityOrdinal);
 
 	HardwareSerial *hwSerial = NULL;
 	if(pin == 3) {
@@ -630,6 +632,7 @@ void mqttMessageReceived(String &topic, String &payload)
 	// Ideas could be to query for values or to initiate OTA firmware update
 }
 
+int len = 0;
 uint8_t buf[BUF_SIZE];
 HDLCConfig* hc = NULL;
 int currentMeterType = -1;
@@ -648,12 +651,22 @@ void readHanPort() {
 		hanSerial->readBytes(buf, BUF_SIZE);
 		return;
 	}
-	CosemDateTime timestamp;
+	CosemDateTime timestamp = {0};
 	AmsData data;
 	if(currentMeterType == 1) {
-		size_t len = hanSerial->readBytes(buf, BUF_SIZE); // TODO: read one byte at the time. This blocks up the GUI
+		while(hanSerial->available()) {
+			buf[len++] = hanSerial->read();
+		}
 		if(len > 0) {
 			int pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
+			if(pos == HDLC_FRAME_INCOMPLETE) {
+				if(len >= BUF_SIZE) {
+					hanSerial->readBytes(buf, BUF_SIZE);
+					len = 0;
+					debugI("Buffer overflow, resetting");
+				}
+				return;
+			}
 			if(pos == HDLC_ENCRYPTION_CONFIG_MISSING) {
 				hc = new HDLCConfig();
 				memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);
@@ -673,6 +686,7 @@ void readHanPort() {
 					debugPrint(hc->authentication_tag, 0, 8);
 				}
 			}
+			len = 0;
 			if(pos >= 0) {
 				debugI("Valid HDLC, start at %d", pos);
 				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), timestamp);
@@ -726,6 +740,14 @@ void readHanPort() {
 			mqtt.loop();
 			delay(10);
 		}
+
+		if(ds.update(&data)) {
+			debugI("Saving day plot");
+			ds.save();
+		} else if(data.getListType() == 3) {
+			debugE("Unable to update day plot");
+		}
+
 		meterState.apply(data);
 	}
 }

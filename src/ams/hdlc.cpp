@@ -15,13 +15,15 @@ void mbus_hexdump(const uint8_t* buf, int len) {
     printf("]\n");
 }
 
-int HDLC_validate(const uint8_t* d, int len, HDLCConfig* config, CosemDateTime* timestamp) {
+int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTime* timestamp) {
     //mbus_hexdump(d, len);
 
 	HDLCHeader* h = (HDLCHeader*) d;
 
 	// Length field (11 lsb of format)
-    len = (ntohs(h->format) & 0x7FF) + 2;
+    int len = (ntohs(h->format) & 0x7FF) + 2;
+    if(len > length)
+        return -4;
 
 	HDLCFooter* f = (HDLCFooter*) (d + len - sizeof *f);
 
@@ -81,11 +83,12 @@ int HDLC_validate(const uint8_t* d, int len, HDLCConfig* config, CosemDateTime* 
             }
             ptr += 2 + dateTime->base.length;
         } else if(dateTime->base.type == CosemTypeNull) {
+            timestamp = 0;
             ptr++;
         } else if(dateTime->base.type == CosemTypeDateTime) {
             memcpy(timestamp, ptr, dateTime->base.length);
         } else if(dateTime->base.type == 0x0C) { // Kamstrup bug...
-            memcpy(timestamp, ptr, dateTime->base.length);
+            memcpy(timestamp, ptr, 0x0C);
             ptr += 13;
         } else {
             return -99;

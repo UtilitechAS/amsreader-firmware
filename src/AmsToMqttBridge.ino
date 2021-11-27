@@ -141,7 +141,6 @@ void setup() {
 	Serial.end();
 	if(gpioConfig.hanPin == 3) {
 		shared = true;
-<<<<<<< HEAD
 		#if defined(ESP8266)
 			SerialConfig serialConfig;
 		#elif defined(ESP32)
@@ -170,9 +169,6 @@ void setup() {
 
  	if(!shared) {
 		Serial.begin(115200);
-=======
-		setupHanPort(gpioConfig.hanPin, meterConfig.type);
->>>>>>> master
 	}
 
 	DebugConfig debug;
@@ -488,7 +484,6 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 		hwSerial = &Serial;
 	}
 
-
 	#if defined(ESP32)
 		if(pin == 9) {
 			hwSerial = &Serial1;
@@ -505,7 +500,6 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 
 	if(hwSerial != NULL) {
 		debugD("Hardware serial");
-<<<<<<< HEAD
 		Serial.flush();
 		#if defined(ESP8266)
 			SerialConfig serialConfig;
@@ -521,28 +515,18 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 				break;
 			case 10:
 				serialConfig = SERIAL_7E1;
-=======
-		hwSerial->flush();
-		hwSerial->end();
-
-		switch(newMeterType) {
-			case METER_TYPE_KAMSTRUP:
-			case METER_TYPE_OMNIPOWER:
-				hwSerial->begin(2400, SERIAL_8N1);
->>>>>>> master
 				break;
 			default:
 				serialConfig = SERIAL_8E1;
 				break;
 		}
 
-<<<<<<< HEAD
 		#if defined(ESP32)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
 		#else
 			hwSerial->begin(baud, serialConfig, SERIAL_FULL, 1, invert);
 		#endif
-=======
+		
 		#if defined(ESP8266)
 			if(pin == 3) {
 				debugI("Switching UART0 to pin 1 & 3");
@@ -553,20 +537,16 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 			}
 		#endif
 
->>>>>>> master
 		hanSerial = hwSerial;
 	} else {
 		debugD("Software serial");
 		Serial.flush();
-<<<<<<< HEAD
-=======
 		
 		if(swSerial != NULL) {
 			swSerial->end();
 			delete swSerial;
 		}
 		swSerial = new SoftwareSerial(pin);
->>>>>>> master
 
 		SoftwareSerialConfig serialConfig;
 		switch(parityOrdinal) {

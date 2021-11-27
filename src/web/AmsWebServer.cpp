@@ -205,7 +205,7 @@ void AmsWebServer::temperaturePost() {
 		delay(1);
 	}
 
-	if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
+	//if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
 	if(config->save()) {
 		printD("Successfully saved temperature sensors");
 		server.sendHeader("Location", String("/temperature"), true);
@@ -1198,7 +1198,7 @@ void AmsWebServer::handleSave() {
 
 	printI("Saving configuration now...");
 
-	if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
+	//if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
 	if (config->save()) {
 		printI("Successfully saved.");
 		if(config->isWifiChanged()) {
@@ -1344,6 +1344,11 @@ String AmsWebServer::getSerialSelectOptions(int selected) {
 	#elif defined(ESP8266)
 		int numGpio = 9;
 		int gpios[] = {4,5,9,10,12,13,14,15,16};
+		if(selected == 113) {
+			gpioOptions += "<option value=\"113\" selected>UART2 (GPIO13)</option>";
+		} else {
+			gpioOptions += "<option value=\"113\">UART2 (GPIO13)</option>";
+		}
 	#endif
 
 	for(int i = 0; i < numGpio; i++) {

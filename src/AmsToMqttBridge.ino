@@ -689,6 +689,9 @@ void readHanPort() {
 				}
 				return;
 			}
+			for(int i = len; i<BUF_SIZE; i++) {
+				buf[i] = 0x00;
+			}
 			if(pos == HDLC_ENCRYPTION_CONFIG_MISSING) {
 				hc = new HDLCConfig();
 				memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);

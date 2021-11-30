@@ -271,9 +271,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
             AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
             time_t ts = getTimestamp(amst->dt);
             if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
-                this->packageTimestamp = tz.toUTC(ts);
+                this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
                 this->meterTimestamp = tz.toUTC(ts);
-                Serial.printf("\nKamstrup/Aidon time: %d\n", meterTimestamp);
             } else {
                 meterTimestamp = ts;
             }
@@ -457,7 +456,7 @@ time_t IEC6205675::getTimestamp(CosemDateTime timestamp) {
     tm.Minute = timestamp.minute;
     tm.Second = timestamp.second;
 
-    Serial.printf("\nY: %d, M: %d, D: %d, h: %d, m: %d, s: %d, deviation: 0x%2X, status: 0x%1X\n", tm.Year, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second, timestamp.deviation, timestamp.status);
+    //Serial.printf("\nY: %d, M: %d, D: %d, h: %d, m: %d, s: %d, deviation: 0x%2X, status: 0x%1X\n", tm.Year, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second, timestamp.deviation, timestamp.status);
 
     time_t time = makeTime(tm);
     int16_t deviation = ntohs(timestamp.deviation);

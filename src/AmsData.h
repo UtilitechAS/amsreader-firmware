@@ -5,12 +5,14 @@
 #include <Timezone.h>
 
 enum AmsType {
+    AmsTypeAutodetect = 0x00,
     AmsTypeAidon = 0x01,
     AmsTypeKaifa = 0x02,
     AmsTypeKamstrup = 0x03,
     AmsTypeIskra = 0x08,
     AmsTypeLandis = 0x09,
     AmsTypeSagemcom = 0x0A,
+    AmsTypeCustom = 0x88,
     AmsTypeUnknown = 0xFF
 };
 

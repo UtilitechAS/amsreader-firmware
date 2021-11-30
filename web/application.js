@@ -6,11 +6,17 @@ var ep;
 var ea;
 var eo = {
     title: 'Last 24 hours',
-    curveType: 'function',
+    titleTextStyle: {
+        fontSize: 14
+    },
+    bar: { groupWidth: '90%' },
     legend: { position: 'none' },
     vAxis: {
+        title: 'kWh',
         viewWindowMode: 'maximized'
-    }
+    },
+    tooltip: { trigger: 'none'},
+    enableInteractivity: false,
 };
 
 // Month plot
@@ -18,11 +24,17 @@ var mp;
 var ma;
 var mo = {
     title: 'Last month',
-    curveType: 'function',
+    titleTextStyle: {
+        fontSize: 14
+    },
+    bar: { groupWidth: '90%' },
     legend: { position: 'none' },
     vAxis: {
+        title: 'kWh',
         viewWindowMode: 'maximized'
-    }
+    },
+    tooltip: { trigger: 'none'},
+    enableInteractivity: false,
 };
 
 // Voltage plot
@@ -328,8 +340,8 @@ var zeropad = function(num) {
 }
 
 var setupChart = function() {
-    ep = new google.visualization.LineChart(document.getElementById('ep'));
-    mp = new google.visualization.LineChart(document.getElementById('mp'));
+    ep = new google.visualization.ColumnChart(document.getElementById('ep'));
+    mp = new google.visualization.ColumnChart(document.getElementById('mp'));
     vp = new google.visualization.ColumnChart(document.getElementById('vp'));
     ap = new google.visualization.ColumnChart(document.getElementById('ap'));
     ip = new google.visualization.PieChart(document.getElementById('ip'));
@@ -353,19 +365,19 @@ var drawEnergy = function() {
         timeout: 30000,
         dataType: 'json',
     }).done(function(json) {
-        data = [['Hour','Value']];
+        data = [['Hour','kWh', { role: 'style' }, { role: 'annotation' }]];
         var r = 1;
         var hour = moment.utc().hours();
         var offset = moment().utcOffset()/60;
         var min = 0;
         for(var i = hour; i<24; i++) {
             var val = json["h"+zeropad(i)];
-            data[r++] = [zeropad((i+offset)%24), val];
+            data[r++] = [zeropad((i+offset)%24), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(1)];
             Math.min(0, val);
         };
         for(var i = 0; i < hour; i++) {
             var val = json["h"+zeropad(i)];
-            data[r++] = [zeropad((i+offset)%24), val];
+            data[r++] = [zeropad((i+offset)%24), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(1)];
             Math.min(0, val);
         };
         ea = google.visualization.arrayToDataTable(data);
@@ -378,19 +390,19 @@ var drawEnergy = function() {
         timeout: 30000,
         dataType: 'json',
     }).done(function(json) {
-        data = [['Day','Value']];
+        data = [['Day','kWh', { role: 'style' }, { role: 'annotation' }]];
         var r = 1;
         var day = moment().date();
         var start = moment().subtract(1, 'months').endOf('month').date();
         var min = 0;
         for(var i = day; i<=start; i++) {
             var val = json["d"+zeropad(i)];
-            data[r++] = [zeropad((i)), val];
+            data[r++] = [zeropad((i)), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(0)];
             Math.min(0, val);
         }
         for(var i = 1; i < day; i++) {
             var val = json["d"+zeropad(i)];
-            data[r++] = [zeropad((i)), val];
+            data[r++] = [zeropad((i)), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(0)];
             Math.min(0, val);
         }
         ma = google.visualization.arrayToDataTable(data);
@@ -535,21 +547,21 @@ var fetch = function() {
                 t += u1;
                 c++;
                 var pct = (Math.max(parseFloat(json.u1)-195.5, 1)*100/69);
-                arr[r++] = ['L1', u1, voltcol(pct), u1 + "V"];
+                arr[r++] = ['L1', u1, "color: " + voltcol(pct) + ";opacity: 0.9;", u1 + "V"];
             }
             if(json.u2) {
                 var u2 = parseFloat(json.u2);
                 t += u2;
                 c++;
                 var pct = (Math.max(parseFloat(json.u2)-195.5, 1)*100/69);
-                arr[r++] = ['L2', u2, voltcol(pct), u2 + "V"];
+                arr[r++] = ['L2', u2, "color: " + voltcol(pct) + ";opacity: 0.9;", u2 + "V"];
             }
             if(json.u3) {
                 var u3 = parseFloat(json.u3);
                 t += u3;
                 c++;
                 var pct = (Math.max(parseFloat(json.u3)-195.5, 1)*100/69);
-                arr[r++] = ['L3', u3, voltcol(pct), u3 + "V"];
+                arr[r++] = ['L3', u3, "color: " + voltcol(pct) + ";opacity: 0.9;", u3 + "V"];
             }
             v = t/c;
             if(v > 0) {
@@ -566,19 +578,19 @@ var fetch = function() {
                 var i1 = parseFloat(json.i1);
                 a = Math.max(a, i1);
                 var pct = (parseFloat(json.i1)/parseInt(json.mf))*100;
-                arr[r++] = ['L1', pct, ampcol(pct), i1 + "A"];
+                arr[r++] = ['L1', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i1 + "A"];
             }
             if(json.i2) {
                 var i2 = parseFloat(json.i2);
                 a = Math.max(a, i2);
                 var pct = (parseFloat(json.i2)/parseInt(json.mf))*100;
-                arr[r++] = ['L2', pct, ampcol(pct), i2 + "A"];
+                arr[r++] = ['L2', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i2 + "A"];
             }
             if(json.i3) {
                 var i3 = parseFloat(json.i3);
                 a = Math.max(a, i3);
                 var pct = (parseFloat(json.i3)/parseInt(json.mf))*100;
-                arr[r++] = ['L3', pct, ampcol(pct), i3 + "A"];
+                arr[r++] = ['L3', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i3 + "A"];
             }
             if(a > 0) {
                 aa = google.visualization.arrayToDataTable(arr);

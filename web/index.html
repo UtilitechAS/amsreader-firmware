@@ -56,7 +56,15 @@
             <div class="col-sm-6 mb-3" style="display: {dn};">
                 <div class="bg-white rounded shadow p-3" style="display: {da};">
                     <h5 class="text-center">Reactive</h5>
+                    <div class="row rri">
+                        <div class="col-12 font-weight-bold">Instant</div>
+                        <div class="col-4">In</div>
+                        <div class="col-8 text-right"><span class="jri">{Q}</span> var</div>
+                        <div class="col-4">Out</div>
+                        <div class="col-8 text-right"><span class="jre">{QO}</span> var</div>
+                    </div>
                     <div class="row rric">
+                        <div class="col-12 font-weight-bold">Total</div>
                         <div class="col-4">In</div>
                         <div class="col-8 text-right"><span class="jric">{tQI}</span> kvarh</div>
                         <div class="col-4">Out</div>
@@ -64,29 +72,45 @@
                     </div>
                 </div>
             </div>
-            <div class="col-sm-12 mb-3" style="display: {de};">
+            <div class="col-12 mb-3" style="display: {de};">
                 <div class="bg-white rounded shadow p-3" style="display: {da};">
                     <div class="row rrec">
-                        <div class="col-4 col-sm-2">In</div>
-                        <div class="col-8 col-sm-4 text-right"><span class="jric">{tQI}</span> kvarh</div>
-                        <div class="col-4 col-sm-2">Out</div>
-                        <div class="col-8 col-sm-4 text-right"><span class="jrec">{tQO}</span> kvarh</div>
+                        <div class="col-sm-4 font-weight-bold">Instant reactive</div>
+                        <div class="col-4 col-sm-1">In</div>
+                        <div class="col-8 col-sm-3 text-right"><span class="jric">{tQI}</span> kvarh</div>
+                        <div class="col-4 col-sm-1">Out</div>
+                        <div class="col-8 col-sm-3 text-right"><span class="jrec">{tQO}</span> kvarh</div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-3 col-sm-6 mb-3">
-        <div class="bg-white rounded shadow p-3">
-            <div class="text-center">
-                <div id="vp" class="plot2"></div>
+    <div class="col-lg-6">
+        <div class="row">
+            <div class="col-sm-6 mb-3">
+                <div class="bg-white rounded shadow p-3">
+                    <div class="text-center">
+                        <div id="vp" class="plot2"></div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
-    <div class="col-lg-3 col-sm-6 mb-3">
-        <div class="bg-white rounded shadow p-3">
-            <div class="text-center">
-                <div id="ap" class="plot2"></div>
+            <div class="col-sm-6 mb-3">
+                <div class="bg-white rounded shadow p-3">
+                    <div class="text-center">
+                        <div id="ap" class="plot2"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 mb-3" style="display: {de};">
+                <div class="bg-white rounded shadow p-3" style="display: {da};">
+                    <div class="row rrec">
+                        <div class="col-sm-4 font-weight-bold">Total reactive</div>
+                        <div class="col-4 col-sm-1">In</div>
+                        <div class="col-8 col-sm-3 text-right"><span class="jric">{tQI}</span> kvarh</div>
+                        <div class="col-4 col-sm-1">Out</div>
+                        <div class="col-8 col-sm-3 text-right"><span class="jrec">{tQO}</span> kvarh</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

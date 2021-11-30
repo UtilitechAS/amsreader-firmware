@@ -349,6 +349,8 @@ void AmsWebServer::indexHtml() {
 
 		html.replace("{P}", String(meterState->getActiveImportPower()));
 		html.replace("{PO}", String(meterState->getActiveExportPower()));
+		html.replace("{Q}", String(meterState->getReactiveImportPower()));
+		html.replace("{QO}", String(meterState->getReactiveExportPower()));
 		html.replace("{de}", meterConfig->productionCapacity > 0 ? "" : "none");
 		html.replace("{dn}", meterConfig->productionCapacity > 0 ? "none" : "");
 		html.replace("{ti}", meterConfig->productionCapacity > 0 ? "Import" : "Use");

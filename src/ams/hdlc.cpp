@@ -23,17 +23,17 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
 	// Length field (11 lsb of format)
     int len = (ntohs(h->format) & 0x7FF) + 2;
     if(len > length)
-        return -4;
+        return HDLC_FRAME_INCOMPLETE;
 
 	HDLCFooter* f = (HDLCFooter*) (d + len - sizeof *f);
 
 	// First and last byte should be MBUS_HAN_TAG
 	if(h->flag != HDLC_FLAG || f->flag != HDLC_FLAG)
-		return -1;
+		return HDLC_BOUNDRY_FLAG_MISSING;
 
 	// Verify FCS
 	if(ntohs(f->fcs) != crc16_x25(d + 1, len - sizeof *f - 1))
-		return -2;
+		return HDLC_FCS_ERROR;
 
     int headersize = 8;
     int footersize = 3;
@@ -60,7 +60,7 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
 
         // Verify HCS
         if(ntohs(t3->hcs) != crc16_x25(d + 1, ptr-d))
-            return -3;
+            return HDLC_HCS_ERROR;
 
         ptr += sizeof *t3;
     }
@@ -138,7 +138,28 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             }
             mbedtls_gcm_free(&m_ctx);
         #endif
-        ptr += 36; // TODO: Come to this number in a proper way...
+
+        ptr += 23; // TODO: Come to this number in a proper way...
+
+        // ADPU timestamp
+        CosemData* dateTime = (CosemData*) ptr;
+        if(dateTime->base.type == CosemTypeOctetString) {
+            if(dateTime->base.length == 0x0C) {
+                memcpy(timestamp, ptr+1, dateTime->base.length);
+            }
+            ptr += 2 + dateTime->base.length;
+        } else if(dateTime->base.type == CosemTypeNull) {
+            timestamp = 0;
+            ptr++;
+        } else if(dateTime->base.type == CosemTypeDateTime) {
+            memcpy(timestamp, ptr, dateTime->base.length);
+        } else if(dateTime->base.type == 0x0C) { // Kamstrup bug...
+            memcpy(timestamp, ptr, 0x0C);
+            ptr += 13;
+        } else {
+            return -99;
+        }
+
         return ptr-d;
     }    
 

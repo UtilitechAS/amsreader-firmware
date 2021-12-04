@@ -43,6 +43,7 @@
 #include "root/lowmem_html.h"
 #include "root/dayplot_json.h"
 #include "root/monthplot_json.h"
+#include "root/energyprice_json.h"
 
 #include "base64.h"
 
@@ -51,13 +52,12 @@ AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw) {
 	this->hw = hw;
 }
 
-void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds, MQTTClient* mqtt) {
+void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds) {
     this->config = config;
 	this->gpioConfig = gpioConfig;
 	this->meterConfig = meterConfig;
 	this->meterState = meterState;
 	this->ds = ds;
-	this->mqtt = mqtt;
 
 	char jsuri[32];
 	snprintf(jsuri, 32, "/application-%s.js", VERSION);
@@ -80,6 +80,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/data.json", HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
 	server.on("/dayplot.json", HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
 	server.on("/monthplot.json", HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
+	server.on("/energyprice.json", HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
 
 	server.on("/save", HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
 
@@ -113,6 +114,10 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	MqttConfig mqttConfig;
 	config->getMqttConfig(mqttConfig);
 	mqttEnabled = strlen(mqttConfig.host) > 0;
+}
+
+void AmsWebServer::setMqtt(MQTTClient* mqtt) {
+	this->mqtt = mqtt;
 }
 
 void AmsWebServer::setTimezone(Timezone* tz) {
@@ -618,10 +623,10 @@ void AmsWebServer::configEntsoeHtml() {
 		html.replace("{eaDk1}", strcmp(entsoe.area, "10YDK-1--------W") == 0 ? "selected" : "");
 		html.replace("{eaDk2}", strcmp(entsoe.area, "10YDK-2--------M") == 0 ? "selected" : "");
 
-		html.replace("{ecNOK}", strcmp(entsoe.area, "NOK") == 0 ? "selected" : "");
-		html.replace("{ecSEK}", strcmp(entsoe.area, "SEK") == 0 ? "selected" : "");
-		html.replace("{ecDKK}", strcmp(entsoe.area, "DKK") == 0 ? "selected" : "");
-		html.replace("{ecEUR}", strcmp(entsoe.area, "EUR") == 0 ? "selected" : "");
+		html.replace("{ecNOK}", strcmp(entsoe.currency, "NOK") == 0 ? "selected" : "");
+		html.replace("{ecSEK}", strcmp(entsoe.currency, "SEK") == 0 ? "selected" : "");
+		html.replace("{ecDKK}", strcmp(entsoe.currency, "DKK") == 0 ? "selected" : "");
+		html.replace("{ecEUR}", strcmp(entsoe.currency, "EUR") == 0 ? "selected" : "");
 
 		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 		server.send_P(200, "text/html", HEAD_HTML);
@@ -730,13 +735,17 @@ void AmsWebServer::dataJson() {
 	uint8_t mqttStatus;
 	if(!mqttEnabled) {
 		mqttStatus = 0;
-	} else if(mqtt->connected()) {
+	} else if(mqtt != NULL && mqtt->connected()) {
 		mqttStatus = 1;
-	} else if(mqtt->lastError() == 0) {
+	} else if(mqtt != NULL && mqtt->lastError() == 0) {
 		mqttStatus = 2;
 	} else {
 		mqttStatus = 3;
 	}
+
+	float price = ENTSOE_NO_VALUE;
+	if(eapi != NULL && strlen(eapi->getToken()) > 0)
+		price = eapi->getValueForHour(0);
 
 	char json[340];
 	snprintf_P(json, sizeof(json), DATA_JSON,
@@ -770,7 +779,8 @@ void AmsWebServer::dataJson() {
 		hanStatus,
 		wifiStatus,
 		mqttStatus,
-		(int) mqtt->lastError()
+		mqtt == NULL ? 0 : (int) mqtt->lastError(),
+		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str()
 	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -784,34 +794,32 @@ void AmsWebServer::dataJson() {
 void AmsWebServer::dayplotJson() {
 	printD("Serving /dayplot.json over http...");
 
-	DayDataPoints d = ds->getDayDataPoints();
-
 	char json[384];
 	snprintf_P(json, sizeof(json), DAYPLOT_JSON,
-		d.h00 / 100.0,
-		d.h01 / 100.0,
-		d.h02 / 100.0,
-		d.h03 / 100.0,
-		d.h04 / 100.0,
-		d.h05 / 100.0,
-		d.h06 / 100.0,
-		d.h07 / 100.0,
-		d.h08 / 100.0,
-		d.h09 / 100.0,
-		d.h10 / 100.0,
-		d.h11 / 100.0,
-		d.h12 / 100.0,
-		d.h13 / 100.0,
-		d.h14 / 100.0,
-		d.h15 / 100.0,
-		d.h16 / 100.0,
-		d.h17 / 100.0,
-		d.h18 / 100.0,
-		d.h19 / 100.0,
-		d.h20 / 100.0,
-		d.h21 / 100.0,
-		d.h22 / 100.0,
-		d.h23 / 100.0
+		ds->getHour(0) / 1000.0,
+		ds->getHour(1) / 1000.0,
+		ds->getHour(2) / 1000.0,
+		ds->getHour(3) / 1000.0,
+		ds->getHour(4) / 1000.0,
+		ds->getHour(5) / 1000.0,
+		ds->getHour(6) / 1000.0,
+		ds->getHour(7) / 1000.0,
+		ds->getHour(8) / 1000.0,
+		ds->getHour(9) / 1000.0,
+		ds->getHour(10) / 1000.0,
+		ds->getHour(11) / 1000.0,
+		ds->getHour(12) / 1000.0,
+		ds->getHour(13) / 1000.0,
+		ds->getHour(14) / 1000.0,
+		ds->getHour(15) / 1000.0,
+		ds->getHour(16) / 1000.0,
+		ds->getHour(17) / 1000.0,
+		ds->getHour(18) / 1000.0,
+		ds->getHour(19) / 1000.0,
+		ds->getHour(20) / 1000.0,
+		ds->getHour(21) / 1000.0,
+		ds->getHour(22) / 1000.0,
+		ds->getHour(23) / 1000.0
 	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -825,41 +833,96 @@ void AmsWebServer::dayplotJson() {
 void AmsWebServer::monthplotJson() {
 	printD("Serving /monthplot.json over http...");
 
-	MonthDataPoints m = ds->getMonthDataPoints();
-
 	char json[512];
 	snprintf_P(json, sizeof(json), MONTHPLOT_JSON,
-		m.d01 / 100.0,
-		m.d02 / 100.0,
-		m.d03 / 100.0,
-		m.d04 / 100.0,
-		m.d05 / 100.0,
-		m.d06 / 100.0,
-		m.d07 / 100.0,
-		m.d08 / 100.0,
-		m.d09 / 100.0,
-		m.d10 / 100.0,
-		m.d11 / 100.0,
-		m.d12 / 100.0,
-		m.d13 / 100.0,
-		m.d14 / 100.0,
-		m.d15 / 100.0,
-		m.d16 / 100.0,
-		m.d17 / 100.0,
-		m.d18 / 100.0,
-		m.d19 / 100.0,
-		m.d20 / 100.0,
-		m.d21 / 100.0,
-		m.d22 / 100.0,
-		m.d23 / 100.0,
-		m.d24 / 100.0,
-		m.d25 / 100.0,
-		m.d26 / 100.0,
-		m.d27 / 100.0,
-		m.d28 / 100.0,
-		m.d29 / 100.0,
-		m.d30 / 100.0,
-		m.d31 / 100.0
+		ds->getDay(1) / 1000.0,
+		ds->getDay(2) / 1000.0,
+		ds->getDay(3) / 1000.0,
+		ds->getDay(4) / 1000.0,
+		ds->getDay(5) / 1000.0,
+		ds->getDay(6) / 1000.0,
+		ds->getDay(7) / 1000.0,
+		ds->getDay(8) / 1000.0,
+		ds->getDay(9) / 1000.0,
+		ds->getDay(10) / 1000.0,
+		ds->getDay(11) / 1000.0,
+		ds->getDay(12) / 1000.0,
+		ds->getDay(13) / 1000.0,
+		ds->getDay(14) / 1000.0,
+		ds->getDay(15) / 1000.0,
+		ds->getDay(16) / 1000.0,
+		ds->getDay(17) / 1000.0,
+		ds->getDay(18) / 1000.0,
+		ds->getDay(19) / 1000.0,
+		ds->getDay(20) / 1000.0,
+		ds->getDay(21) / 1000.0,
+		ds->getDay(22) / 1000.0,
+		ds->getDay(23) / 1000.0,
+		ds->getDay(24) / 1000.0,
+		ds->getDay(25) / 1000.0,
+		ds->getDay(26) / 1000.0,
+		ds->getDay(27) / 1000.0,
+		ds->getDay(28) / 1000.0,
+		ds->getDay(29) / 1000.0,
+		ds->getDay(30) / 1000.0,
+		ds->getDay(31) / 1000.0
+	);
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+
+	server.setContentLength(strlen(json));
+	server.send(200, "application/json", json);
+}
+
+void AmsWebServer::energyPriceJson() {
+	printD("Serving /energyprice.json over http...");
+
+	float prices[36];
+	for(int i = 0; i < 36; i++) {
+		prices[i] = eapi == NULL ? ENTSOE_NO_VALUE : eapi->getValueForHour(i);
+	}
+
+	char json[768];
+	snprintf_P(json, sizeof(json), ENERGYPRICE_JSON, 
+		eapi == NULL ? "" : eapi->getCurrency(),
+		prices[0] == ENTSOE_NO_VALUE ? "null" : String(prices[0], 2).c_str(),
+		prices[1] == ENTSOE_NO_VALUE ? "null" : String(prices[1], 2).c_str(),
+		prices[2] == ENTSOE_NO_VALUE ? "null" : String(prices[2], 2).c_str(),
+		prices[3] == ENTSOE_NO_VALUE ? "null" : String(prices[3], 2).c_str(),
+		prices[4] == ENTSOE_NO_VALUE ? "null" : String(prices[4], 2).c_str(),
+		prices[5] == ENTSOE_NO_VALUE ? "null" : String(prices[5], 2).c_str(),
+		prices[6] == ENTSOE_NO_VALUE ? "null" : String(prices[6], 2).c_str(),
+		prices[7] == ENTSOE_NO_VALUE ? "null" : String(prices[7], 2).c_str(),
+		prices[8] == ENTSOE_NO_VALUE ? "null" : String(prices[8], 2).c_str(),
+		prices[9] == ENTSOE_NO_VALUE ? "null" : String(prices[9], 2).c_str(),
+		prices[10] == ENTSOE_NO_VALUE ? "null" : String(prices[10], 2).c_str(),
+		prices[11] == ENTSOE_NO_VALUE ? "null" : String(prices[11], 2).c_str(),
+		prices[12] == ENTSOE_NO_VALUE ? "null" : String(prices[12], 2).c_str(),
+		prices[13] == ENTSOE_NO_VALUE ? "null" : String(prices[13], 2).c_str(),
+		prices[14] == ENTSOE_NO_VALUE ? "null" : String(prices[14], 2).c_str(),
+		prices[15] == ENTSOE_NO_VALUE ? "null" : String(prices[15], 2).c_str(),
+		prices[16] == ENTSOE_NO_VALUE ? "null" : String(prices[16], 2).c_str(),
+		prices[17] == ENTSOE_NO_VALUE ? "null" : String(prices[17], 2).c_str(),
+		prices[18] == ENTSOE_NO_VALUE ? "null" : String(prices[18], 2).c_str(),
+		prices[19] == ENTSOE_NO_VALUE ? "null" : String(prices[19], 2).c_str(),
+		prices[20] == ENTSOE_NO_VALUE ? "null" : String(prices[20], 2).c_str(),
+		prices[21] == ENTSOE_NO_VALUE ? "null" : String(prices[21], 2).c_str(),
+		prices[22] == ENTSOE_NO_VALUE ? "null" : String(prices[22], 2).c_str(),
+		prices[23] == ENTSOE_NO_VALUE ? "null" : String(prices[23], 2).c_str(),
+		prices[24] == ENTSOE_NO_VALUE ? "null" : String(prices[24], 2).c_str(),
+		prices[25] == ENTSOE_NO_VALUE ? "null" : String(prices[25], 2).c_str(),
+		prices[26] == ENTSOE_NO_VALUE ? "null" : String(prices[26], 2).c_str(),
+		prices[27] == ENTSOE_NO_VALUE ? "null" : String(prices[27], 2).c_str(),
+		prices[28] == ENTSOE_NO_VALUE ? "null" : String(prices[28], 2).c_str(),
+		prices[29] == ENTSOE_NO_VALUE ? "null" : String(prices[29], 2).c_str(),
+		prices[30] == ENTSOE_NO_VALUE ? "null" : String(prices[30], 2).c_str(),
+		prices[31] == ENTSOE_NO_VALUE ? "null" : String(prices[31], 2).c_str(),
+		prices[32] == ENTSOE_NO_VALUE ? "null" : String(prices[32], 2).c_str(),
+		prices[33] == ENTSOE_NO_VALUE ? "null" : String(prices[33], 2).c_str(),
+		prices[34] == ENTSOE_NO_VALUE ? "null" : String(prices[34], 2).c_str(),
+		prices[35] == ENTSOE_NO_VALUE ? "null" : String(prices[35], 2).c_str()
 	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");

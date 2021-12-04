@@ -58,7 +58,9 @@ Timezone* tz;
 
 AmsWebServer ws(&Debug, &hw);
 
-MQTTClient mqtt(512);
+MQTTClient *mqtt = NULL;
+WiFiClient *mqttClient = NULL;
+WiFiClientSecure *mqttSecureClient = NULL;
 AmsMqttHandler* mqttHandler = NULL;
 
 Stream *hanSerial;
@@ -73,6 +75,8 @@ AmsData meterState;
 bool ntpEnabled = false;
 
 AmsDataStorage ds(&Debug);
+
+uint8_t wifiReconnectCount = 0;
 
 void setup() {
 	WiFiConfig wifi;
@@ -299,7 +303,7 @@ void setup() {
 		swapWifiMode();
 	}
 
-	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &mqtt);
+	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds);
 }
 
 int buttonTimer = 0;
@@ -344,7 +348,7 @@ void loop() {
 		hw.updateTemperatures();
 		lastTemperatureRead = now;
 
-		if(mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt.connected() && !topic.isEmpty()) {
+		if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
 			mqttHandler->publishTemperatures(&config, &hw);
 		}
 		debugD("Used %d ms to update temperature", millis()-start);
@@ -357,6 +361,7 @@ void loop() {
 			Debug.stop();
 			WiFi_connect();
 		} else {
+			wifiReconnectCount = 0;
 			if(!wifiConnected) {
 				wifiConnected = true;
 				
@@ -420,18 +425,21 @@ void loop() {
 				errorBlink();
 			}
 
-			if (mqttEnabled || config.isMqttChanged()) {
-				mqtt.loop();
-				delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
-				if(!mqtt.connected() || config.isMqttChanged()) {
+			if (mqttEnabled) {
+				if(mqtt != NULL) {
+					mqtt->loop();
+					delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
+				}
+				if(mqtt == NULL || !mqtt->connected() || config.isMqttChanged()) {
 					MQTT_connect();
 				}
-			} else if(mqtt.connected()) {
-				mqtt.disconnect();
+			} else if(mqtt != NULL && mqtt->connected()) {
+				mqttClient->stop();
+				mqtt->disconnect();
 			}
 
 			if(eapi != NULL && ntpEnabled) {
-				if(eapi->loop() && mqttHandler != NULL && mqtt.connected()) {
+				if(eapi->loop() && mqtt != NULL && mqttHandler != NULL && mqtt->connected()) {
 					mqttHandler->publishPrices(eapi);
 				}
 			}
@@ -591,7 +599,7 @@ void errorBlink() {
 				}
 				break;
 			case 1:
-				if(mqttEnabled && mqtt.lastError() != 0) {
+				if(mqttEnabled && mqtt != NULL && mqtt->lastError() != 0) {
 					hw.ledBlink(LED_RED, 2); // If MQTT error, blink twice
 					return;
 				}
@@ -678,6 +686,7 @@ void readHanPort() {
 	if(currentMeterType == 1) {
 		while(hanSerial->available()) {
 			buf[len++] = hanSerial->read();
+			delay(1);
 		}
 		if(len > 0) {
 			int pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
@@ -698,7 +707,7 @@ void readHanPort() {
 				memcpy(hc->authentication_key, meterConfig.authenticationKey, 16);
 			}
 			if(Debug.isActive(RemoteDebug::DEBUG)) {
-				debugD("Frame dump:");
+				debugD("Frame dump (%db):", len);
 				debugPrint(buf, 0, len);
 				if(hc != NULL) {
 					debugD("System title:");
@@ -739,7 +748,7 @@ void readHanPort() {
 	if(data.getListType() > 0) {
 		if(!hw.ledBlink(LED_GREEN, 1))
 			hw.ledBlink(LED_INTERNAL, 1);
-		if(mqttEnabled && mqttHandler != NULL) {
+		if(mqttEnabled && mqttHandler != NULL && mqtt != NULL) {
 			if(mqttHandler->publish(&data, &meterState)) {
 				if(data.getListType() == 3 && eapi != NULL) {
 					mqttHandler->publishPrices(eapi);
@@ -762,8 +771,10 @@ void readHanPort() {
 					}
 				}
 			}
-			mqtt.loop();
-			delay(10);
+			if(mqtt != NULL) {
+				mqtt->loop();
+				delay(10);
+			}
 		}
 
 		if(ds.update(&data)) {
@@ -803,6 +814,45 @@ void WiFi_connect() {
 	lastWifiRetry = millis();
 
 	if (WiFi.status() != WL_CONNECTED) {
+		if(WiFi.getMode() != WIFI_OFF) {
+			if(wifiReconnectCount > 3) {
+				ESP.restart();
+				return;
+			}
+			if (Debug.isActive(RemoteDebug::INFO)) debugI("Disconnecting from WiFi");
+			if(mqtt != NULL) {
+				mqtt->disconnect();
+				mqtt->loop();
+				yield();
+				delete mqtt;
+				mqtt = NULL;
+				ws.setMqtt(NULL);
+			}
+
+			if(mqttClient != NULL) {
+				mqttClient->stop();
+				delete mqttClient;
+				mqttClient = NULL;
+				if(mqttSecureClient != NULL) {
+					mqttSecureClient = NULL;
+				}
+			}
+
+			#if defined(ESP8266)
+				WiFiClient::stopAll();
+			#endif
+
+			MDNS.end();
+			WiFi.disconnect(true);
+			WiFi.softAPdisconnect(true);
+			WiFi.mode(WIFI_OFF);
+			WiFi.enableAP(false);
+			yield();
+			wifiTimeout = 5000;
+			return;
+		}
+		wifiTimeout = WIFI_CONNECTION_TIMEOUT;
+
 		WiFiConfig wifi;
 		if(!config.getWiFiConfig(wifi) || strlen(wifi.ssid) == 0) {
 			swapWifiMode();
@@ -811,11 +861,8 @@ void WiFi_connect() {
 
 		if (Debug.isActive(RemoteDebug::INFO)) debugI("Connecting to WiFi network: %s", wifi.ssid);
 
-		MDNS.end();
-		WiFi.disconnect();
-		yield();
+		wifiReconnectCount++;
 
-		WiFi.enableAP(false);
 		WiFi.mode(WIFI_STA);
 		if(strlen(wifi.ip) > 0) {
 			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
@@ -827,23 +874,25 @@ void WiFi_connect() {
 			WiFi.config(ip, gw, sn, dns1, dns2);
 		} else {
 			#if defined(ESP32)
-			// Changed from INADDR_NONE to INADDR_ANY for last ESP32-Arduino version
-			WiFi.config(INADDR_ANY, INADDR_ANY, INADDR_ANY); // Workaround to make DHCP hostname work for ESP32. See: https://github.com/espressif/arduino-esp32/issues/2537
+			// This trick does not work anymore...
+			// WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // Workaround to make DHCP hostname work for ESP32. See: https://github.com/espressif/arduino-esp32/issues/2537
 			#endif
 		}
-		#if defined(ESP8266)
 		if(strlen(wifi.hostname) > 0) {
+			#if defined(ESP8266)
 			WiFi.hostname(wifi.hostname);
+			#elif defined(ESP32)
+			WiFi.setHostname(wifi.hostname);
+			#endif
+		}	
+		WiFi.setAutoReconnect(true);
+		WiFi.persistent(true);
+		if(WiFi.begin(wifi.ssid, wifi.psk)) {
+			yield();
+		} else {
+			if (Debug.isActive(RemoteDebug::ERROR)) debugI("Unable to enable WiFi");
 		}
-		#endif
-		#if defined(ESP32)
-			if(strlen(wifi.hostname) > 0) {
-				WiFi.setHostname(wifi.hostname);
-			}
-		#endif
-		WiFi.begin(wifi.ssid, wifi.psk);
-		yield();
-	}
+  	}
 }
 
 unsigned long lastMqttRetry = -10000;
@@ -856,23 +905,28 @@ void MQTT_connect() {
 		config.ackMqttChange();
 		return;
 	}
-	if(millis() - lastMqttRetry < (mqtt.lastError() == 0 || config.isMqttChanged() ? 5000 : 30000)) {
+	if(mqtt != NULL) {
+		if(millis() - lastMqttRetry < (mqtt->lastError() == 0 || config.isMqttChanged() ? 5000 : 30000)) {
+			yield();
+			return;
+		}
+		lastMqttRetry = millis();
+
+		if(Debug.isActive(RemoteDebug::INFO)) {
+			debugD("Disconnecting MQTT before connecting");
+		}
+
+		mqtt->disconnect();
 		yield();
-		return;
+	} else {
+		mqtt = new MQTTClient(512);
+		ws.setMqtt(mqtt);
 	}
-	lastMqttRetry = millis();
 
 	mqttEnabled = true;
 	ws.setMqttEnabled(true);
 	payloadFormat = mqttConfig.payloadFormat;
 	topic = String(mqttConfig.publishTopic);
-
-	if(Debug.isActive(RemoteDebug::INFO)) {
-		debugD("Disconnecting MQTT before connecting");
-	}
-
-	mqtt.disconnect();
-	yield();
 
 	if(mqttHandler != NULL) {
 		delete mqttHandler;
@@ -881,27 +935,26 @@ void MQTT_connect() {
 
 	switch(mqttConfig.payloadFormat) {
 		case 0:
-			mqttHandler = new JsonMqttHandler(&mqtt, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
+			mqttHandler = new JsonMqttHandler(mqtt, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
 			break;
 		case 1:
 		case 2:
-			mqttHandler = new RawMqttHandler(&mqtt, mqttConfig.publishTopic, mqttConfig.payloadFormat == 2);
+			mqttHandler = new RawMqttHandler(mqtt, mqttConfig.publishTopic, mqttConfig.payloadFormat == 2);
 			break;
 		case 3:
 			DomoticzConfig domo;
 			config.getDomoticzConfig(domo);
-			mqttHandler = new DomoticzMqttHandler(&mqtt, domo);
+			mqttHandler = new DomoticzMqttHandler(mqtt, domo);
 			break;
 	}
 
-	WiFiClientSecure *secureClient = NULL;
-	Client *client = NULL;
 	if(mqttConfig.ssl) {
 		debugI("MQTT SSL is configured");
-
-		secureClient = new WiFiClientSecure();
+		if(mqttSecureClient == NULL) {
+			mqttSecureClient = new WiFiClientSecure();
+		}
 		#if defined(ESP8266)
-		secureClient->setBufferSizes(512, 512);
+			mqttSecureClient->setBufferSizes(512, 512);
 		#endif
 
 		if(LittleFS.begin()) {
@@ -917,9 +970,9 @@ void MQTT_connect() {
 					char caStr[MAX_PEM_SIZE];
 					file.readBytes(caStr, file.size());
 					BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(caStr);
-					secureClient->setTrustAnchors(serverTrustedCA);
+					mqttSecureClient->setTrustAnchors(serverTrustedCA);
 				#elif defined(ESP32)
-					secureClient->loadCACert(file, file.size());
+					mqttSecureClient->loadCACert(file, file.size());
 				#endif
 			}
 
@@ -933,46 +986,46 @@ void MQTT_connect() {
 					file = LittleFS.open(FILE_MQTT_KEY, "r");
 					file.readBytes(keyStr, file.size());
   					BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(keyStr);
-					secureClient->setClientRSACert(serverCertList, serverPrivKey);
+					mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
 				#elif defined(ESP32)
 					debugI("Found MQTT certificate file");
 					file = LittleFS.open(FILE_MQTT_CERT, "r");
-					secureClient->loadCertificate(file, file.size());
+					mqttSecureClient->loadCertificate(file, file.size());
 
 					debugI("Found MQTT key file");
 					file = LittleFS.open(FILE_MQTT_KEY, "r");
-					secureClient->loadPrivateKey(file, file.size());
+					mqttSecureClient->loadPrivateKey(file, file.size());
 				#endif
 			}
 			LittleFS.end();
 		}
-		client = secureClient;
-	} else {
-		client = new WiFiClient();
+		mqttClient = mqttSecureClient;
+	} else if(mqttClient == NULL) {
+		mqttClient = new WiFiClient();
 	}
 
 	if(Debug.isActive(RemoteDebug::INFO)) {
 		debugI("Connecting to MQTT %s:%d", mqttConfig.host, mqttConfig.port);
 	}
-	mqtt.begin(mqttConfig.host, mqttConfig.port, *client);
+	mqtt->begin(mqttConfig.host, mqttConfig.port, *mqttClient);
 
 	#if defined(ESP8266)
-	if(secureClient) {
-		time_t epoch = time(nullptr);
-		debugD("Setting NTP time %i for secure MQTT connection", epoch);
- 		secureClient->setX509Time(epoch);
-	}
+		if(mqttSecureClient) {
+			time_t epoch = time(nullptr);
+			debugD("Setting NTP time %i for secure MQTT connection", epoch);
+			mqttSecureClient->setX509Time(epoch);
+		}
 	#endif
 
 	// Connect to a unsecure or secure MQTT server
-	if ((strlen(mqttConfig.username) == 0 && mqtt.connect(mqttConfig.clientId)) ||
-		(strlen(mqttConfig.username) > 0 && mqtt.connect(mqttConfig.clientId, mqttConfig.username, mqttConfig.password))) {
+	if ((strlen(mqttConfig.username) == 0 && mqtt->connect(mqttConfig.clientId)) ||
+		(strlen(mqttConfig.username) > 0 && mqtt->connect(mqttConfig.clientId, mqttConfig.username, mqttConfig.password))) {
 		if (Debug.isActive(RemoteDebug::INFO)) debugI("Successfully connected to MQTT!");
 		config.ackMqttChange();
 
 		// Subscribe to the chosen MQTT topic, if set in configuration
 		if (strlen(mqttConfig.subscribeTopic) > 0) {
-			mqtt.subscribe(mqttConfig.subscribeTopic);
+			mqtt->subscribe(mqttConfig.subscribeTopic);
 			if (Debug.isActive(RemoteDebug::INFO)) debugI("  Subscribing to [%s]\r\n", mqttConfig.subscribeTopic);
 		}
 		
@@ -981,11 +1034,11 @@ void MQTT_connect() {
 		}
 	} else {
 		if (Debug.isActive(RemoteDebug::ERROR)) {
-			debugE("Failed to connect to MQTT: %d", mqtt.lastError());
+			debugE("Failed to connect to MQTT: %d", mqtt->lastError());
 			#if defined(ESP8266)
-				if(secureClient) {
+				if(mqttSecureClient) {
 					char buf[64];
-					secureClient->getLastSSLError(buf,64);
+					mqttSecureClient->getLastSSLError(buf,64);
 					Debug.println(buf);
 				}
 			#endif

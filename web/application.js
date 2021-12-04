@@ -1,11 +1,29 @@
 var nextVersion;
 var im, em;
 
+// Price plot
+var pp;
+var pa;
+var po = {
+    title: 'Future energy price',
+    titleTextStyle: {
+        fontSize: 14
+    },
+    bar: { groupWidth: '90%' },
+    legend: { position: 'none' },
+    vAxis: {
+        viewWindowMode: 'maximized'
+    },
+    tooltip: { trigger: 'none'},
+    enableInteractivity: false,
+};
+var pl = null; // Last price
+
 // Day plot
 var ep;
 var ea;
 var eo = {
-    title: 'Last 24 hours',
+    title: 'Energy use last 24 hours',
     titleTextStyle: {
         fontSize: 14
     },
@@ -23,7 +41,7 @@ var eo = {
 var mp;
 var ma;
 var mo = {
-    title: 'Last month',
+    title: 'Energy use last month',
     titleTextStyle: {
         fontSize: 14
     },
@@ -340,6 +358,7 @@ var zeropad = function(num) {
 }
 
 var setupChart = function() {
+    pp = new google.visualization.ColumnChart(document.getElementById('pp'));
     ep = new google.visualization.ColumnChart(document.getElementById('ep'));
     mp = new google.visualization.ColumnChart(document.getElementById('mp'));
     vp = new google.visualization.ColumnChart(document.getElementById('vp'));
@@ -347,10 +366,14 @@ var setupChart = function() {
     ip = new google.visualization.PieChart(document.getElementById('ip'));
     xp = new google.visualization.PieChart(document.getElementById('xp'));
     fetch();
-    drawEnergy();
+    drawDay();
+    drawMonth();
 };
 
 var redraw = function() {
+    if(pl != null) {
+        pp.draw(pa, po);
+    }
     ep.draw(ea, eo);
     mp.draw(ma, mo);
     vp.draw(va, vo);
@@ -359,7 +382,41 @@ var redraw = function() {
     xp.draw(xa, xo);
 };
 
-var drawEnergy = function() {
+var drawPrices = function() {
+    $('#ppc').show();
+    $.ajax({
+        url: '/energyprice.json',
+        timeout: 30000,
+        dataType: 'json',
+    }).done(function(json) {
+        data = [['Hour',json.currency + '/kWh', { role: 'style' }, { role: 'annotation' }]];
+        var r = 1;
+        var hour = moment.utc().hours();
+        var offset = moment().utcOffset()/60;
+        var min = 0;
+        var h  = 0;
+        var d = json["20"] == null ? 2 : 1;
+        for(var i = hour; i<24; i++) {
+            var val = json[zeropad(h++)];
+            if(val == null) break;
+            data[r++] = [zeropad((i+offset)%24), val, "color: #6f42c1;opacity: 0.9;", val == null ? "" : val.toFixed(d)];
+            Math.min(0, val);
+        };
+        for(var i = 0; i < 24; i++) {
+            var val = json[zeropad(h++)];
+            if(val == null) break;
+            data[r++] = [zeropad((i+offset)%24), val, "color: #6f42c1;opacity: 0.9;", val == null ? "" : val.toFixed(d)];
+            Math.min(0, val);
+        };
+        pa = google.visualization.arrayToDataTable(data);
+        po.vAxis.title = json.currency;
+        if(min == 0)
+            po.vAxis.minValue = 0;
+        pp.draw(pa, po);
+    });
+}
+
+var drawDay = function() {
     $.ajax({
         url: '/dayplot.json',
         timeout: 30000,
@@ -384,7 +441,12 @@ var drawEnergy = function() {
         if(min == 0)
             eo.vAxis.minValue = 0;
         ep.draw(ea, eo);
+
+        setTimeout(drawDay, (61-moment().minute())*60000);
     });
+};
+
+var drawMonth = function() {
     $.ajax({
         url: '/monthplot.json',
         timeout: 30000,
@@ -393,9 +455,9 @@ var drawEnergy = function() {
         data = [['Day','kWh', { role: 'style' }, { role: 'annotation' }]];
         var r = 1;
         var day = moment().date();
-        var start = moment().subtract(1, 'months').endOf('month').date();
+        var eom = moment().subtract(1, 'months').endOf('month').date();
         var min = 0;
-        for(var i = day; i<=start; i++) {
+        for(var i = day; i<=eom; i++) {
             var val = json["d"+zeropad(i)];
             data[r++] = [zeropad((i)), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(0)];
             Math.min(0, val);
@@ -409,6 +471,8 @@ var drawEnergy = function() {
         if(min == 0)
             mo.vAxis.minValue = 0;
         mp.draw(ma, mo);
+
+        setTimeout(drawMonth, (24-moment().hour())*60000);
     });
 };
 
@@ -609,6 +673,12 @@ var fetch = function() {
             $('.jt').html("N/A");
         }
         setTimeout(fetch, interval);
+
+        var price = parseFloat(json.p);
+        if(price && price != pl) {
+            pl = price;
+            drawPrices();
+        }
     }).fail(function(x, text, error) {
         console.log("Failed request");
         console.log(text);

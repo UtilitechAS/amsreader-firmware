@@ -143,7 +143,13 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
             }
         }
 
+        TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
+        TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
+        Timezone tz(CEST, CET);
 
+        if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
+            this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
+        }
 
         u32 = getString(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), ((char *) (d)), str);
         if(u32 > 0) {
@@ -264,14 +270,9 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
 
         CosemData* meterTs = findObis(AMS_OBIS_METER_TIMESTAMP, sizeof(AMS_OBIS_METER_TIMESTAMP), ((char *) (d)));
         if(meterTs != NULL) {
-            TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
-            TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
-            Timezone tz(CEST, CET);
-
             AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
             time_t ts = getTimestamp(amst->dt);
             if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
-                this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
                 this->meterTimestamp = tz.toUTC(ts);
             } else {
                 meterTimestamp = ts;

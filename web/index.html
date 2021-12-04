@@ -19,100 +19,96 @@
 </div>
 
 <div class="row">
-    <div class="col-lg-6">
-        <div class="row">
-            <div class="col-sm-6 mb-3">
-                <div class="bg-white rounded shadow p-3">
-                    <div class="text-center overlay-plot">
-                        <div id="ip" class="plot1"></div>
-                        <span class="plot-overlay">
-                            <span class="ipo">{P}</span> 
-                            <span class="ipoa">W</span>
-                            <br/>
-                            <span class="pol">{ti}</span>
-                        </span>
-                    </div>
-                    <div class="row ric" style="display: {da};">
-                        <div class="col-12 text-right"><span class="jic">{tPI}</span> kWh</div>
-                    </div>
-                </div>
+    <div class="col-lg-3 col-sm-6 mb-3">
+        <div class="bg-white rounded shadow p-3">
+            <div class="text-center overlay-plot">
+                <div id="ip" class="plot1"></div>
+                <span class="plot-overlay">
+                    <span class="ipo">{P}</span> 
+                    <span class="ipoa">W</span>
+                    <br/>
+                    <span class="pol">{ti}</span>
+                </span>
             </div>
-            <div class="col-sm-6 mb-3" style="display: {de};">
-                <div class="bg-white rounded shadow p-3">
-                    <div class="text-center overlay-plot">
-                        <div id="xp" class="plot1"></div>
-                        <span class="plot-overlay">
-                            <span class="xpo">{PO}</span> 
-                            <span class="xpoa">W</span>
-                            <br/>
-                            <span class="pol">Export</span>
-                        </span>
-                    </div>
-                    <div class="row rec" style="display: {da};">
-                        <div class="col-12 text-right"><span class="jec">{tPO}</span> kWh</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 mb-3" style="display: {dn};">
-                <div class="bg-white rounded shadow p-3" style="display: {da};">
-                    <h5 class="text-center">Reactive</h5>
-                    <div class="row rri">
-                        <div class="col-12 font-weight-bold">Instant</div>
-                        <div class="col-4">In</div>
-                        <div class="col-8 text-right"><span class="jri">{Q}</span> var</div>
-                        <div class="col-4">Out</div>
-                        <div class="col-8 text-right"><span class="jre">{QO}</span> var</div>
-                    </div>
-                    <div class="row rric">
-                        <div class="col-12 font-weight-bold">Total</div>
-                        <div class="col-4">In</div>
-                        <div class="col-8 text-right"><span class="jric">{tQI}</span> kvarh</div>
-                        <div class="col-4">Out</div>
-                        <div class="col-8 text-right"><span class="jrec">{tQO}</span> kvarh</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-12 mb-3" style="display: {de};">
-                <div class="bg-white rounded shadow p-3" style="display: {da};">
-                    <div class="row rrec">
-                        <div class="col-sm-4 font-weight-bold">Instant reactive</div>
-                        <div class="col-4 col-sm-1">In</div>
-                        <div class="col-8 col-sm-3 text-right"><span class="jric">{tQI}</span> kvarh</div>
-                        <div class="col-4 col-sm-1">Out</div>
-                        <div class="col-8 col-sm-3 text-right"><span class="jrec">{tQO}</span> kvarh</div>
-                    </div>
-                </div>
+            <div class="row ric" style="display: {da};">
+                <div class="col-12 text-right"><span class="jic">{tPI}</span> kWh</div>
             </div>
         </div>
     </div>
-    <div class="col-lg-6">
-        <div class="row">
-            <div class="col-sm-6 mb-3">
-                <div class="bg-white rounded shadow p-3">
-                    <div class="text-center">
-                        <div id="vp" class="plot2"></div>
-                    </div>
-                </div>
+    <div class="col-lg-3 col-sm-6 mb-3" style="display: {de};">
+        <div class="bg-white rounded shadow p-3">
+            <div class="text-center overlay-plot">
+                <div id="xp" class="plot1"></div>
+                <span class="plot-overlay">
+                    <span class="xpo">{PO}</span> 
+                    <span class="xpoa">W</span>
+                    <br/>
+                    <span class="pol">Export</span>
+                </span>
             </div>
-            <div class="col-sm-6 mb-3">
-                <div class="bg-white rounded shadow p-3">
-                    <div class="text-center">
-                        <div id="ap" class="plot2"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-12 mb-3" style="display: {de};">
-                <div class="bg-white rounded shadow p-3" style="display: {da};">
-                    <div class="row rrec">
-                        <div class="col-sm-4 font-weight-bold">Total reactive</div>
-                        <div class="col-4 col-sm-1">In</div>
-                        <div class="col-8 col-sm-3 text-right"><span class="jric">{tQI}</span> kvarh</div>
-                        <div class="col-4 col-sm-1">Out</div>
-                        <div class="col-8 col-sm-3 text-right"><span class="jrec">{tQO}</span> kvarh</div>
-                    </div>
-                </div>
+            <div class="row rec" style="display: {da};">
+                <div class="col-12 text-right"><span class="jec">{tPO}</span> kWh</div>
             </div>
         </div>
+    </div>
+    <div class="col-lg-3 col-sm-6 mb-3">
+        <div class="bg-white rounded shadow p-3">
+            <div class="text-center">
+                <div id="vp" class="plot2"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-sm-6 mb-3">
+        <div class="bg-white rounded shadow p-3">
+            <div class="text-center">
+                <div id="ap" class="plot2"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-sm-6 mb-3" style="display: {dn};">
+        <div class="bg-white rounded shadow p-3" style="display: {da};">
+            <h5 class="text-center">Reactive</h5>
+            <div class="row rri">
+                <div class="col-12 font-weight-bold">Instant</div>
+                <div class="col-4">In</div>
+                <div class="col-8 text-right"><span class="jri">{Q}</span> VAr</div>
+                <div class="col-4">Out</div>
+                <div class="col-8 text-right"><span class="jre">{QO}</span> VAr</div>
+            </div>
+            <div class="row rric">
+                <div class="col-12 font-weight-bold">Total</div>
+                <div class="col-4">In</div>
+                <div class="col-8 text-right"><span class="jric">{tQI}</span> kVArh</div>
+                <div class="col-4">Out</div>
+                <div class="col-8 text-right"><span class="jrec">{tQO}</span> kVArh</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-3" style="display: {de};">
+        <div class="bg-white rounded shadow p-3" style="display: {da};">
+            <div class="row rrec">
+                <div class="col-sm-4 font-weight-bold">Instant reactive</div>
+                <div class="col-4 col-sm-1">In</div>
+                <div class="col-8 col-sm-3 text-right"><span class="jri">{Q}</span> VAr</div>
+                <div class="col-4 col-sm-1">Out</div>
+                <div class="col-8 col-sm-3 text-right"><span class="jre">{QO}</span> VAr</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 mb-3" style="display: {de};">
+        <div class="bg-white rounded shadow p-3" style="display: {da};">
+            <div class="row rrec">
+                <div class="col-sm-4 font-weight-bold">Total reactive</div>
+                <div class="col-4 col-sm-1">In</div>
+                <div class="col-8 col-sm-3 text-right"><span class="jric">{tQI}</span> kVArh</div>
+                <div class="col-4 col-sm-1">Out</div>
+                <div class="col-8 col-sm-3 text-right"><span class="jrec">{tQO}</span> kVArh</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="ppc" class="col-xl-12 mb-3" style="display: none;">
+        <div class="bg-white rounded shadow" id="pp" style="width: 100%; height: 224px;"></div>
     </div>
     <div class="col-xl-12 mb-3">
         <div class="bg-white rounded shadow" id="ep" style="width: 100%; height: 224px;"></div>

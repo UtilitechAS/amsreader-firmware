@@ -30,8 +30,9 @@
 class AmsWebServer {
 public:
 	AmsWebServer(RemoteDebug* Debug, HwTools* hw);
-    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage* ds, MQTTClient*);
+    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage*);
     void loop();
+	void setMqtt(MQTTClient* mqtt);
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
 	void setEntsoeApi(EntsoeApi* eapi);
@@ -49,7 +50,7 @@ private:
 	WebConfig webConfig;
 	AmsData* meterState;
 	AmsDataStorage* ds;
-	MQTTClient* mqtt;
+	MQTTClient* mqtt = NULL;
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
@@ -82,6 +83,7 @@ private:
     void dataJson();
 	void dayplotJson();
 	void monthplotJson();
+	void energyPriceJson();
 
 	void handleSetup();
 	void handleSave();

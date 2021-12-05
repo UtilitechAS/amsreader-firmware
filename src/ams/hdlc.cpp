@@ -126,11 +126,11 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
         headersize += 2 + systemTitleLength;
         ptr += systemTitleLength;
         if(((*ptr) & 0xFF) == 0x81) {
-            ptr++
+            ptr++;
             // 1-byte payload length
-            ptr++
+            ptr++;
         } else if(((*ptr) & 0xFF) == 0x82) {
-            ptr++
+            ptr++;
             headersize++;
             // 2-byte payload length
             ptr += 2;

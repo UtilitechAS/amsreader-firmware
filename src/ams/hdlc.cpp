@@ -16,8 +16,6 @@ void mbus_hexdump(const uint8_t* buf, int len) {
 }
 
 int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTime* timestamp) {
-    //mbus_hexdump(d, len);
-
 	HDLCHeader* h = (HDLCHeader*) d;
 
 	// Length field (11 lsb of format)
@@ -25,27 +23,28 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
     if(len > length)
         return HDLC_FRAME_INCOMPLETE;
 
-	HDLCFooter* f = (HDLCFooter*) (d + len - sizeof *f);
-
-	// First and last byte should be MBUS_HAN_TAG
-	if(h->flag != HDLC_FLAG || f->flag != HDLC_FLAG)
-		return HDLC_BOUNDRY_FLAG_MISSING;
-
-	// Verify FCS
-	if(ntohs(f->fcs) != crc16_x25(d + 1, len - sizeof *f - 1))
-		return HDLC_FCS_ERROR;
-
-    int headersize = 8;
-    int footersize = 3;
+    int headersize = 3;
+    int footersize = 1;
     uint8_t* ptr = (uint8_t*) &h[1];
     // Frame format type 3
     if((h->format & 0xF0) == 0xA0) {
+    	HDLCFooter* f = (HDLCFooter*) (d + len - sizeof *f);
+        footersize = sizeof *f;
+
+        // First and last byte should be MBUS_HAN_TAG
+        if(h->flag != HDLC_FLAG || f->flag != HDLC_FLAG)
+            return HDLC_BOUNDRY_FLAG_MISSING;
+
+        // Verify FCS
+        if(ntohs(f->fcs) != crc16_x25(d + 1, len - sizeof *f - 1))
+            return HDLC_FCS_ERROR;
 
         // Skip destination address, LSB marks last byte
         while(((*ptr) & 0x01) == 0x00) {
             ptr++;
             headersize++;
         }
+        headersize++;
         ptr++;
 
         // Skip source address, LSB marks last byte
@@ -53,6 +52,7 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             ptr++;
             headersize++;
         }
+        headersize++;
         ptr++;
 
         HDLC3CtrlHcs* t3 = (HDLC3CtrlHcs*) (ptr);
@@ -63,11 +63,27 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             return HDLC_HCS_ERROR;
 
         ptr += sizeof *t3;
+    } else if((h->format & 0xF0) == 0x00) {
+    	MbusFooter* f = (MbusFooter*) (d + len - sizeof *f);
+        footersize = sizeof *f;
+
+        // First and last byte should be MBUS_HAN_TAG
+        if(h->flag != MBUS_START || f->flag != MBUS_END)
+            return HDLC_BOUNDRY_FLAG_MISSING;
+
+        // TODO: Verify FCS with crc8, not 16
+        //if(ntohs(f->fcs) != crc16_x25(d + 1, len - sizeof *f - 1))
+        //    return HDLC_FCS_ERROR;
+
+        // Ignore: Flag + Control field + Address
+        ptr += 3;
+        headersize += 3;
     }
 
     // Extract LLC
     HDLCLLC* llc = (HDLCLLC*) ptr;
     ptr += sizeof *llc;
+    headersize += 3;
 
     if(((*ptr) & 0xFF) == 0x0F) {
         // Unencrypted APDU
@@ -96,17 +112,52 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
 
         return ptr-d;
     } else if(((*ptr) & 0xFF) == 0xDB) {
+        ptr++;
         // Encrypted APDU
         // http://www.weigu.lu/tutorials/sensors2bus/04_encryption/index.html
         if(config == NULL)
             return HDLC_ENCRYPTION_CONFIG_MISSING;
 
-        memcpy(config->system_title, d + headersize + 2, 8);
-        memcpy(config->initialization_vector, config->system_title, 8);
-        memcpy(config->initialization_vector + 8, d + headersize + 14, 4);
-        memcpy(config->additional_authenticated_data, d + headersize + 13, 1);
-        memcpy(config->additional_authenticated_data + 1, config->authentication_key, 16);
-        memcpy(config->authentication_tag, d + headersize + len - headersize - footersize - 12, 12);
+        uint8_t systemTitleLength = *ptr;
+        ptr++;
+        memcpy(config->system_title, ptr, systemTitleLength);
+        memcpy(config->initialization_vector, config->system_title, systemTitleLength);
+
+        headersize += 2 + systemTitleLength;
+        ptr += systemTitleLength;
+        if(((*ptr) & 0xFF) == 0x81) {
+            ptr++
+            // 1-byte payload length
+            ptr++
+        } else if(((*ptr) & 0xFF) == 0x82) {
+            ptr++
+            headersize++;
+            // 2-byte payload length
+            ptr += 2;
+            headersize += 2;
+        }
+
+        memcpy(config->additional_authenticated_data, ptr, 1);
+
+        // Security tag
+        uint8_t sec = *ptr;
+        ptr++;
+        headersize++;
+
+        // Frame counter
+        memcpy(config->initialization_vector + 8, ptr, 4);
+        ptr += 4;
+        headersize += 4;
+
+        // Authentication enabled
+        uint8_t authkeylen = 0, aadlen = 0;
+        if((sec & 0x10) == 0x10) {
+            authkeylen = 12;
+            aadlen = 17;
+            footersize += authkeylen;
+            memcpy(config->additional_authenticated_data + 1, config->authentication_key, 16);
+            memcpy(config->authentication_tag, d + len - footersize, authkeylen);
+        }
 
         #if defined(ESP8266)
             br_gcm_context gcmCtx;
@@ -114,15 +165,17 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             br_aes_ct_ctr_init(&bc, config->encryption_key, 16);
             br_gcm_init(&gcmCtx, &bc.vtable, br_ghash_ctmul32);
             br_gcm_reset(&gcmCtx, config->initialization_vector, sizeof(config->initialization_vector));
-            br_gcm_aad_inject(&gcmCtx, config->additional_authenticated_data, sizeof(config->additional_authenticated_data));
+            if(authkeylen > 0) {
+                br_gcm_aad_inject(&gcmCtx, config->additional_authenticated_data, aadlen);
+            }
             br_gcm_flip(&gcmCtx);
-            br_gcm_run(&gcmCtx, 0, (void*) (d + headersize + 18), (len - headersize - footersize - 18 - 12));
-            if(br_gcm_check_tag_trunc(&gcmCtx, config->authentication_tag, 12) != 1) {
+            br_gcm_run(&gcmCtx, 0, (void*) ptr, (len - headersize - footersize));
+            if(authkeylen > 0  && br_gcm_check_tag_trunc(&gcmCtx, config->authentication_tag, authkeylen) != 1) {
                 return -91;
             }
         #elif defined(ESP32)
-            uint8_t cipher_text[len - headersize - footersize - 18 - 12];
-            memcpy(cipher_text, d + headersize + 18, len - headersize - footersize - 12 - 18);
+            uint8_t cipher_text[len - headersize - footersize];
+            memcpy(cipher_text, ptr, len - headersize - footersize);
 
             mbedtls_gcm_context m_ctx;
             mbedtls_gcm_init(&m_ctx);
@@ -131,15 +184,15 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
                 return -92;
             }
             success = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text), config->initialization_vector, sizeof(config->initialization_vector),
-                config->additional_authenticated_data, sizeof(config->additional_authenticated_data), config->authentication_tag, sizeof(config->authentication_tag),
-                cipher_text, (unsigned char*)(d + headersize + 18));
+                config->additional_authenticated_data, aadlen, config->authentication_tag, authkeylen,
+                cipher_text, (unsigned char*)(ptr));
             if (0 != success) {
                 return -91;
             }
             mbedtls_gcm_free(&m_ctx);
         #endif
 
-        ptr += 23; // TODO: Come to this number in a proper way...
+        ptr += 5; // TODO: Come to this number in a proper way...
 
         // ADPU timestamp
         CosemData* dateTime = (CosemData*) ptr;

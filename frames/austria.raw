@@ -1,0 +1,39 @@
+// HDLC header
+68 
+01 01 // Format (0x00) and total length (257)
+
+68 // Start
+53 // Control field
+FF // Address (Broadcast address)
+
+// LLC 
+00 // Control information field
+01 // Source SAP
+67 // Destination SAP
+
+DB // Encrypted
+08 53 41 47 59 05 E6 D9 FD // System title
+81 // Prefix for 1-byte length
+F8 // Length (248)
+20 // Security tag 0010 0000, 0=Compression off, 0=Unicast, 1=Encryption, 0=No auth, 0000= Security Suite ID
+00 72 00 76 // Frame counter
+
+1F 16 66 EA 3C 81 67 0D 0C FE AC 1F 98 20 36 92 
+DA 43 68 8F 58 58 23 7D D1 2F 02 C7 70 81 94 C6 
+4D 24 EF DC 04 4A F4 F6 C6 61 92 5F 63 E4 17 78 
+8A E3 A0 3B 8E 26 C8 9A FE 28 73 37 BA EF 13 BD 
+// 64
+50 78 AB EE E0 ED F5 4B 8C B7 2D 72 88 1A 30 54 
+48 88 BE EE 7A 70 3A EA FA EC 90 88 39 08 8A 53 
+14 37 16 CD 3F CA 7E 7B 68 46 5D 86 46 F6 CE 1F 
+28 32 A6 CF CB 4B 3A CB E7 05 7F 1A 52 06 DE E8 
+// 128
+5B 68 02 A6 67 0E 0B EF 1E 6D 40 08 51 C7 C2 6E 
+7F AA C0 8A BD DC B6 1F F8 FA BA 54 CF C0 CC A4 
+33 67 93 FA 0E DF 5E 64 89 72 CC 0E 85 19 F9 D7 
+5E FF 0C DE B7 1E 20 A9 BB 90 22 2C D9 00 E2 DE 
+// 192
+17 E2 D9 25 45 BD B1 7B 62 C6 C4 0E A9 00 55 43 
+12 75 85 C4 18 6B 22 D9 26 FB B3 25 28 39 0D 97 
+// 224
+45 03 90 03 FF 05 AD E6 69

@@ -11,6 +11,9 @@
 #define HDLC_FRAME_INCOMPLETE -4
 #define HDLC_ENCRYPTION_CONFIG_MISSING -90
 
+#define MBUS_START 0x68
+#define MBUS_END 0x16
+
 struct HDLCConfig {
     uint8_t encryption_key[32];
 	uint8_t authentication_key[32];
@@ -45,6 +48,13 @@ typedef struct HDLCADPU {
     uint8_t flag;
     uint32_t id;
 } __attribute__((packed)) HDLCADPU;
+
+
+typedef struct MbusFooter {
+	uint8_t fcs;
+	uint8_t flag;
+} __attribute__((packed)) MbusFooter;
+
 
 // Blue book, Table 2
 enum CosemType {

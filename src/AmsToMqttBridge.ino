@@ -15,6 +15,9 @@
  * The original developer for this project
  * https://github.com/roarfred/AmsToMqttBridge
  */
+#if defined(ESP8266)
+ADC_MODE(ADC_VCC);
+#endif
 
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
@@ -426,10 +429,6 @@ void loop() {
 			}
 
 			if (mqttEnabled) {
-				if(mqtt != NULL) {
-					mqtt->loop();
-					delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
-				}
 				if(mqtt == NULL || !mqtt->connected() || config.isMqttChanged()) {
 					MQTT_connect();
 				}
@@ -459,7 +458,12 @@ void loop() {
 				}
 				config.ackEntsoeChange();
 			}
-
+			ws.loop();
+			readHanPort(); // TODO: Move to bottom
+		}
+		if(mqtt != NULL) { // Run loop regardless, to let MQTT do its work.
+			mqtt->loop();
+			delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
 		}
 	} else {
 		if(dnsServer != NULL) {
@@ -471,6 +475,7 @@ void loop() {
 				hw.ledBlink(LED_INTERNAL, 1);
 			}
 		}
+		ws.loop();
 	}
 
 	if(config.isMeterChanged()) {
@@ -478,9 +483,7 @@ void loop() {
 		setupHanPort(gpioConfig.hanPin, meterConfig.baud, meterConfig.parity, meterConfig.invert);
 		config.ackMeterChanged();
 	}
-	delay(1);
-	readHanPort();
-	ws.loop();
+
 	delay(1); // Needed for auto modem sleep
 }
 
@@ -777,15 +780,16 @@ void readHanPort() {
 			}
 		}
 
-		if(ds.update(&data)) {
+		meterState.apply(data);
+
+		if(ds.update(&meterState)) {
 			debugI("Saving day plot");
 			ds.save();
 		} else if(data.getListType() == 3) {
 			debugE("Unable to update day plot");
 		}
-
-		meterState.apply(data);
 	}
+	delay(1);
 }
 
 void debugPrint(byte *buffer, int start, int length) {
@@ -819,7 +823,7 @@ void WiFi_connect() {
 				ESP.restart();
 				return;
 			}
-			if (Debug.isActive(RemoteDebug::INFO)) debugI("Disconnecting from WiFi");
+			if (Debug.isActive(RemoteDebug::INFO)) debugI("Not connected to WiFi, closing resources");
 			if(mqtt != NULL) {
 				mqtt->disconnect();
 				mqtt->loop();
@@ -843,10 +847,12 @@ void WiFi_connect() {
 			#endif
 
 			MDNS.end();
+			WiFi.persistent(false);
 			WiFi.disconnect(true);
 			WiFi.softAPdisconnect(true);
-			WiFi.mode(WIFI_OFF);
 			WiFi.enableAP(false);
+			WiFi.mode(WIFI_OFF);
+			wifi_fpm_close();
 			yield();
 			wifiTimeout = 5000;
 			return;
@@ -864,6 +870,7 @@ void WiFi_connect() {
 		wifiReconnectCount++;
 
 		WiFi.mode(WIFI_STA);
+		WiFi.setOutputPower(0);
 		if(strlen(wifi.ip) > 0) {
 			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
 			ip.fromString(wifi.ip);
@@ -890,7 +897,7 @@ void WiFi_connect() {
 		if(WiFi.begin(wifi.ssid, wifi.psk)) {
 			yield();
 		} else {
-			if (Debug.isActive(RemoteDebug::ERROR)) debugI("Unable to enable WiFi");
+			if (Debug.isActive(RemoteDebug::ERROR)) debugI("Unable to start WiFi");
 		}
   	}
 }

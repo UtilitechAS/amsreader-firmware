@@ -1,7 +1,4 @@
 #include "HwTools.h"
-#if defined(ESP8266)
-ADC_MODE(ADC_VCC);
-#endif
 
 void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
     this->config = config;

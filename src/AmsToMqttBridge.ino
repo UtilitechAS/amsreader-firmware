@@ -852,7 +852,6 @@ void WiFi_connect() {
 			WiFi.softAPdisconnect(true);
 			WiFi.enableAP(false);
 			WiFi.mode(WIFI_OFF);
-			wifi_fpm_close();
 			yield();
 			wifiTimeout = 5000;
 			return;

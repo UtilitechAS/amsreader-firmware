@@ -869,7 +869,6 @@ void WiFi_connect() {
 		wifiReconnectCount++;
 
 		WiFi.mode(WIFI_STA);
-		WiFi.setOutputPower(0);
 		if(strlen(wifi.ip) > 0) {
 			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
 			ip.fromString(wifi.ip);

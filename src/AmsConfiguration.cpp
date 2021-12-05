@@ -2,7 +2,7 @@
 
 bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_SYSTEM_START, config);
 		EEPROM.end();
 		return true;
@@ -12,7 +12,7 @@ bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 }
 
 bool AmsConfiguration::setSystemConfig(SystemConfig& config) {
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_SYSTEM_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -21,7 +21,7 @@ bool AmsConfiguration::setSystemConfig(SystemConfig& config) {
 
 bool AmsConfiguration::getWiFiConfig(WiFiConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_WIFI_START, config);
 		EEPROM.end();
 		return true;
@@ -45,7 +45,7 @@ bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 	} else {
 		wifiChanged = true;
 	}
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_WIFI_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -85,7 +85,7 @@ void AmsConfiguration::ackWifiChange() {
 
 bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_MQTT_START, config);
 		EEPROM.end();
 		return true;
@@ -110,7 +110,7 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 	} else {
 		mqttChanged = true;
 	}
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_MQTT_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -143,7 +143,7 @@ void AmsConfiguration::ackMqttChange() {
 
 bool AmsConfiguration::getWebConfig(WebConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_WEB_START, config);
 		EEPROM.end();
 		return true;
@@ -154,7 +154,7 @@ bool AmsConfiguration::getWebConfig(WebConfig& config) {
 }
 
 bool AmsConfiguration::setWebConfig(WebConfig& config) {
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_WEB_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -169,7 +169,7 @@ void AmsConfiguration::clearAuth(WebConfig& config) {
 
 bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_METER_START, config);
 		EEPROM.end();
 		return true;
@@ -193,7 +193,7 @@ bool AmsConfiguration::setMeterConfig(MeterConfig& config) {
 	} else {
 		meterChanged = true;
 	}
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_METER_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -221,7 +221,7 @@ void AmsConfiguration::ackMeterChanged() {
 
 bool AmsConfiguration::getDebugConfig(DebugConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_DEBUG_START, config);
 		EEPROM.end();
 		return true;
@@ -232,7 +232,7 @@ bool AmsConfiguration::getDebugConfig(DebugConfig& config) {
 }
 
 bool AmsConfiguration::setDebugConfig(DebugConfig& config) {
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_DEBUG_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -247,7 +247,7 @@ void AmsConfiguration::clearDebug(DebugConfig& config) {
 
 bool AmsConfiguration::getDomoticzConfig(DomoticzConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_DOMOTICZ_START, config);
 		EEPROM.end();
 		return true;
@@ -269,7 +269,7 @@ bool AmsConfiguration::setDomoticzConfig(DomoticzConfig& config) {
 		domoChanged = true;
 	}
 	mqttChanged = domoChanged;
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_DOMOTICZ_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -310,7 +310,7 @@ bool AmsConfiguration::pinUsed(uint8_t pin, GpioConfig& config) {
 
 bool AmsConfiguration::getGpioConfig(GpioConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_GPIO_START, config);
 		EEPROM.end();
 		return true;
@@ -366,7 +366,7 @@ bool AmsConfiguration::setGpioConfig(GpioConfig& config) {
 	if(config.apPin >= 0)
 		pinMode(config.apPin, INPUT_PULLUP);
 
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_GPIO_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -394,7 +394,7 @@ void AmsConfiguration::clearGpio(GpioConfig& config) {
 
 bool AmsConfiguration::getNtpConfig(NtpConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_NTP_START, config);
 		EEPROM.end();
 		return true;
@@ -421,7 +421,7 @@ bool AmsConfiguration::setNtpConfig(NtpConfig& config) {
 	} else {
 		ntpChanged = true;
 	}
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_NTP_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -446,7 +446,7 @@ void AmsConfiguration::clearNtp(NtpConfig& config) {
 
 bool AmsConfiguration::getEntsoeConfig(EntsoeConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_ENTSOE_START, config);
 		EEPROM.end();
 		return true;
@@ -465,7 +465,7 @@ bool AmsConfiguration::setEntsoeConfig(EntsoeConfig& config) {
 	} else {
 		entsoeChanged = true;
 	}
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_ENTSOE_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -488,7 +488,7 @@ void AmsConfiguration::ackEntsoeChange() {
 }
 
 void AmsConfiguration::clear() {
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	MeterConfig meter;
 	clearMeter(meter);
 	EEPROM.put(CONFIG_METER_START, meter);
@@ -524,7 +524,7 @@ void AmsConfiguration::clear() {
 
 bool AmsConfiguration::hasConfig() {
 	if(configVersion == 0) {
-		EEPROM.begin(SPI_FLASH_SEC_SIZE);
+		EEPROM.begin(EEPROM_SIZE);
 		configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
 		EEPROM.end();
 	}
@@ -577,7 +577,7 @@ int AmsConfiguration::getConfigVersion() {
 }
 
 void AmsConfiguration::loadTempSensors() {
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	TempSensorConfig* tempSensors[32];
 	int address = EEPROM_TEMP_CONFIG_ADDRESS;
 	int c = 0;
@@ -616,7 +616,7 @@ void AmsConfiguration::saveTempSensors() {
 
 bool AmsConfiguration::loadConfig83(int address) {
 	ConfigObject83 c;
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.get(address, c);
 
 	EntsoeConfig entsoe {"", "", "", 1000};
@@ -727,7 +727,7 @@ bool AmsConfiguration::loadConfig83(int address) {
 bool AmsConfiguration::relocateConfig86() {
 	MqttConfig86 mqtt86;
 	MqttConfig mqtt;
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.get(CONFIG_MQTT_START_86, mqtt86);
 	strcpy(mqtt.host, mqtt86.host);
 	mqtt.port = mqtt86.port;
@@ -748,7 +748,7 @@ bool AmsConfiguration::relocateConfig86() {
 bool AmsConfiguration::relocateConfig87() {
 	MeterConfig87 meter87;
 	MeterConfig meter;
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
     EEPROM.get(CONFIG_METER_START_87, meter87);
 	if(meter87.type < 5) {
 		meter.baud = 2400;
@@ -771,7 +771,7 @@ bool AmsConfiguration::relocateConfig87() {
 
 bool AmsConfiguration::relocateConfig88() {
 	GpioConfig88 gpio88;
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
     EEPROM.get(CONFIG_GPIO_START_88, gpio88);
 
 	GpioConfig gpio {
@@ -800,7 +800,7 @@ bool AmsConfiguration::relocateConfig88() {
 }
 
 bool AmsConfiguration::save() {
-	EEPROM.begin(SPI_FLASH_SEC_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
 	saveTempSensors();
 	bool success = EEPROM.commit();

@@ -280,6 +280,7 @@ void setup() {
 			return;
 		}
 	}
+	LittleFS.end();
 	delay(1);
 
 	if(config.hasConfig()) {
@@ -362,7 +363,7 @@ void loop() {
 		if (WiFi.status() != WL_CONNECTED) {
 			wifiConnected = false;
 			Debug.stop();
-			WiFi_connect();
+			//WiFi_connect();
 		} else {
 			wifiReconnectCount = 0;
 			if(!wifiConnected) {
@@ -652,17 +653,6 @@ void swapWifiMode() {
 	if(!hw.ledOff(LED_YELLOW)) {
 		hw.ledOff(LED_INTERNAL);
 	}
-}
-
-void mqttMessageReceived(String &topic, String &payload)
-{
-
-	if (Debug.isActive(RemoteDebug::DEBUG)) {
-		debugD("Incoming MQTT message: [%s] %s", topic.c_str(), payload.c_str());
-	}
-
-	// Do whatever needed here...
-	// Ideas could be to query for values or to initiate OTA firmware update
 }
 
 int len = 0;
@@ -1027,12 +1017,6 @@ void MQTT_connect() {
 		(strlen(mqttConfig.username) > 0 && mqtt->connect(mqttConfig.clientId, mqttConfig.username, mqttConfig.password))) {
 		if (Debug.isActive(RemoteDebug::INFO)) debugI("Successfully connected to MQTT!");
 		config.ackMqttChange();
-
-		// Subscribe to the chosen MQTT topic, if set in configuration
-		if (strlen(mqttConfig.subscribeTopic) > 0) {
-			mqtt->subscribe(mqttConfig.subscribeTopic);
-			if (Debug.isActive(RemoteDebug::INFO)) debugI("  Subscribing to [%s]\r\n", mqttConfig.subscribeTopic);
-		}
 		
 		if(mqttHandler != NULL) {
 			mqttHandler->publishSystem(&hw);

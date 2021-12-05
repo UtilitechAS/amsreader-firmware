@@ -793,87 +793,94 @@ void AmsWebServer::dataJson() {
 
 void AmsWebServer::dayplotJson() {
 	printD("Serving /dayplot.json over http...");
+	if(ds == NULL) {
+		notFound();
+	} else {
+		char json[384];
+		snprintf_P(json, sizeof(json), DAYPLOT_JSON,
+			ds->getHour(0) / 1000.0,
+			ds->getHour(1) / 1000.0,
+			ds->getHour(2) / 1000.0,
+			ds->getHour(3) / 1000.0,
+			ds->getHour(4) / 1000.0,
+			ds->getHour(5) / 1000.0,
+			ds->getHour(6) / 1000.0,
+			ds->getHour(7) / 1000.0,
+			ds->getHour(8) / 1000.0,
+			ds->getHour(9) / 1000.0,
+			ds->getHour(10) / 1000.0,
+			ds->getHour(11) / 1000.0,
+			ds->getHour(12) / 1000.0,
+			ds->getHour(13) / 1000.0,
+			ds->getHour(14) / 1000.0,
+			ds->getHour(15) / 1000.0,
+			ds->getHour(16) / 1000.0,
+			ds->getHour(17) / 1000.0,
+			ds->getHour(18) / 1000.0,
+			ds->getHour(19) / 1000.0,
+			ds->getHour(20) / 1000.0,
+			ds->getHour(21) / 1000.0,
+			ds->getHour(22) / 1000.0,
+			ds->getHour(23) / 1000.0
+		);
 
-	char json[384];
-	snprintf_P(json, sizeof(json), DAYPLOT_JSON,
-		ds->getHour(0) / 1000.0,
-		ds->getHour(1) / 1000.0,
-		ds->getHour(2) / 1000.0,
-		ds->getHour(3) / 1000.0,
-		ds->getHour(4) / 1000.0,
-		ds->getHour(5) / 1000.0,
-		ds->getHour(6) / 1000.0,
-		ds->getHour(7) / 1000.0,
-		ds->getHour(8) / 1000.0,
-		ds->getHour(9) / 1000.0,
-		ds->getHour(10) / 1000.0,
-		ds->getHour(11) / 1000.0,
-		ds->getHour(12) / 1000.0,
-		ds->getHour(13) / 1000.0,
-		ds->getHour(14) / 1000.0,
-		ds->getHour(15) / 1000.0,
-		ds->getHour(16) / 1000.0,
-		ds->getHour(17) / 1000.0,
-		ds->getHour(18) / 1000.0,
-		ds->getHour(19) / 1000.0,
-		ds->getHour(20) / 1000.0,
-		ds->getHour(21) / 1000.0,
-		ds->getHour(22) / 1000.0,
-		ds->getHour(23) / 1000.0
-	);
+		server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+		server.sendHeader("Pragma", "no-cache");
+		server.sendHeader("Expires", "-1");
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-
-	server.setContentLength(strlen(json));
-	server.send(200, "application/json", json);
+		server.setContentLength(strlen(json));
+		server.send(200, "application/json", json);
+	}
 }
 
 void AmsWebServer::monthplotJson() {
 	printD("Serving /monthplot.json over http...");
 
-	char json[512];
-	snprintf_P(json, sizeof(json), MONTHPLOT_JSON,
-		ds->getDay(1) / 1000.0,
-		ds->getDay(2) / 1000.0,
-		ds->getDay(3) / 1000.0,
-		ds->getDay(4) / 1000.0,
-		ds->getDay(5) / 1000.0,
-		ds->getDay(6) / 1000.0,
-		ds->getDay(7) / 1000.0,
-		ds->getDay(8) / 1000.0,
-		ds->getDay(9) / 1000.0,
-		ds->getDay(10) / 1000.0,
-		ds->getDay(11) / 1000.0,
-		ds->getDay(12) / 1000.0,
-		ds->getDay(13) / 1000.0,
-		ds->getDay(14) / 1000.0,
-		ds->getDay(15) / 1000.0,
-		ds->getDay(16) / 1000.0,
-		ds->getDay(17) / 1000.0,
-		ds->getDay(18) / 1000.0,
-		ds->getDay(19) / 1000.0,
-		ds->getDay(20) / 1000.0,
-		ds->getDay(21) / 1000.0,
-		ds->getDay(22) / 1000.0,
-		ds->getDay(23) / 1000.0,
-		ds->getDay(24) / 1000.0,
-		ds->getDay(25) / 1000.0,
-		ds->getDay(26) / 1000.0,
-		ds->getDay(27) / 1000.0,
-		ds->getDay(28) / 1000.0,
-		ds->getDay(29) / 1000.0,
-		ds->getDay(30) / 1000.0,
-		ds->getDay(31) / 1000.0
-	);
+	if(ds == NULL) {
+		notFound();
+	} else {
+		char json[512];
+		snprintf_P(json, sizeof(json), MONTHPLOT_JSON,
+			ds->getDay(1) / 1000.0,
+			ds->getDay(2) / 1000.0,
+			ds->getDay(3) / 1000.0,
+			ds->getDay(4) / 1000.0,
+			ds->getDay(5) / 1000.0,
+			ds->getDay(6) / 1000.0,
+			ds->getDay(7) / 1000.0,
+			ds->getDay(8) / 1000.0,
+			ds->getDay(9) / 1000.0,
+			ds->getDay(10) / 1000.0,
+			ds->getDay(11) / 1000.0,
+			ds->getDay(12) / 1000.0,
+			ds->getDay(13) / 1000.0,
+			ds->getDay(14) / 1000.0,
+			ds->getDay(15) / 1000.0,
+			ds->getDay(16) / 1000.0,
+			ds->getDay(17) / 1000.0,
+			ds->getDay(18) / 1000.0,
+			ds->getDay(19) / 1000.0,
+			ds->getDay(20) / 1000.0,
+			ds->getDay(21) / 1000.0,
+			ds->getDay(22) / 1000.0,
+			ds->getDay(23) / 1000.0,
+			ds->getDay(24) / 1000.0,
+			ds->getDay(25) / 1000.0,
+			ds->getDay(26) / 1000.0,
+			ds->getDay(27) / 1000.0,
+			ds->getDay(28) / 1000.0,
+			ds->getDay(29) / 1000.0,
+			ds->getDay(30) / 1000.0,
+			ds->getDay(31) / 1000.0
+		);
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
+		server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+		server.sendHeader("Pragma", "no-cache");
+		server.sendHeader("Expires", "-1");
 
-	server.setContentLength(strlen(json));
-	server.send(200, "application/json", json);
+		server.setContentLength(strlen(json));
+		server.send(200, "application/json", json);
+	}
 }
 
 void AmsWebServer::energyPriceJson() {
@@ -1687,7 +1694,9 @@ void AmsWebServer::restartWaitHtml() {
 
 	yield();
 	if(performRestart) {
-		ds->save();
+		if(ds != NULL) {
+			ds->save();
+		}
 		printI("Rebooting");
 		delay(1000);
 #if defined(ESP8266)

@@ -960,10 +960,7 @@ void MQTT_connect() {
 				debugI("Found MQTT CA file");
 				file = LittleFS.open(FILE_MQTT_CA, "r");
 				#if defined(ESP8266)
-					char caStr[MAX_PEM_SIZE];
-					file.readBytes(caStr, file.size());
-					BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(caStr);
-					mqttSecureClient->setTrustAnchors(serverTrustedCA);
+				// Disabled for ESP8266
 				#elif defined(ESP32)
 					mqttSecureClient->loadCACert(file, file.size());
 				#endif
@@ -971,15 +968,7 @@ void MQTT_connect() {
 
 			if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
 				#if defined(ESP8266)
-					char certStr[MAX_PEM_SIZE];
-					file = LittleFS.open(FILE_MQTT_CERT, "r");
-					file.readBytes(certStr, file.size());
-				 	BearSSL::X509List *serverCertList = new BearSSL::X509List(certStr);
-					char keyStr[MAX_PEM_SIZE];
-					file = LittleFS.open(FILE_MQTT_KEY, "r");
-					file.readBytes(keyStr, file.size());
-  					BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(keyStr);
-					mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
+				// Disabled for ESP8266
 				#elif defined(ESP32)
 					debugI("Found MQTT certificate file");
 					file = LittleFS.open(FILE_MQTT_CERT, "r");

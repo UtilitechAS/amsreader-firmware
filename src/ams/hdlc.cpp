@@ -134,17 +134,18 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             // 1-byte payload length
             ptr++;
         } else if(((*ptr) & 0xFF) == 0x82) {
-            HDLCHeader* h = (HDLCHeader*) d;
+            HDLCHeader* h = (HDLCHeader*) ptr;
 
-            // Length field (11 lsb of format)
+            // Length field
             len = (ntohs(h->format) & 0xFFFF);
 
             ptr += 3;
             headersize += 3;
         }
-        len += preheadersize;
-        if(len > length)
+        if(len + preheadersize > length)
             return HDLC_FRAME_INCOMPLETE;
+
+        //Serial.printf("\nL: %d : %d, %d : %d\n", length, len, preheadersize, headersize);
 
         // TODO: FCS
 
@@ -167,7 +168,7 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             aadlen = 17;
             footersize += authkeylen;
             memcpy(config->additional_authenticated_data + 1, config->authentication_key, 16);
-            memcpy(config->authentication_tag, d + len - footersize, authkeylen);
+            memcpy(config->authentication_tag, ptr + len - footersize - 2, authkeylen);
         }
 
         #if defined(ESP8266)
@@ -180,13 +181,13 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
                 br_gcm_aad_inject(&gcmCtx, config->additional_authenticated_data, aadlen);
             }
             br_gcm_flip(&gcmCtx);
-            br_gcm_run(&gcmCtx, 0, (void*) ptr, (len - headersize - footersize));
-            if(authkeylen > 0  && br_gcm_check_tag_trunc(&gcmCtx, config->authentication_tag, authkeylen) != 1) {
+            br_gcm_run(&gcmCtx, 0, (void*) (ptr), len - footersize - 2);
+            if(authkeylen > 0 && br_gcm_check_tag_trunc(&gcmCtx, config->authentication_tag, authkeylen) != 1) {
                 return -91;
             }
         #elif defined(ESP32)
-            uint8_t cipher_text[len - headersize - footersize];
-            memcpy(cipher_text, ptr, len - headersize - footersize);
+            uint8_t cipher_text[len - authkeylen - footersize - 2];
+            memcpy(cipher_text, ptr, len - authkeylen - footersize - 2);
 
             mbedtls_gcm_context m_ctx;
             mbedtls_gcm_init(&m_ctx);

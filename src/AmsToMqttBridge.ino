@@ -68,6 +68,7 @@ AmsMqttHandler* mqttHandler = NULL;
 
 Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;
+HDLCConfig* hc = NULL;
 
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
@@ -482,6 +483,8 @@ void loop() {
 		config.getMeterConfig(meterConfig);
 		setupHanPort(gpioConfig.hanPin, meterConfig.baud, meterConfig.parity, meterConfig.invert);
 		config.ackMeterChanged();
+		delete hc;
+		hc = NULL;
 	}
 
 	delay(1); // Needed for auto modem sleep
@@ -656,7 +659,6 @@ void swapWifiMode() {
 
 int len = 0;
 uint8_t buf[BUF_SIZE];
-HDLCConfig* hc = NULL;
 int currentMeterType = -1;
 void readHanPort() {
 	if(!hanSerial->available()) return;
@@ -681,13 +683,14 @@ void readHanPort() {
 			delay(1);
 		}
 		if(len > 0) {
+			if(len >= BUF_SIZE) {
+				hanSerial->readBytes(buf, BUF_SIZE);
+				len = 0;
+				debugI("Buffer overflow, resetting");
+				return;
+			}
 			int pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
 			if(pos == HDLC_FRAME_INCOMPLETE) {
-				if(len >= BUF_SIZE) {
-					hanSerial->readBytes(buf, BUF_SIZE);
-					len = 0;
-					debugI("Buffer overflow, resetting");
-				}
 				return;
 			}
 			for(int i = len; i<BUF_SIZE; i++) {
@@ -709,7 +712,7 @@ void readHanPort() {
 					debugD("Additional authenticated data:");
 					debugPrint(hc->additional_authenticated_data, 0, 17);
 					debugD("Authentication tag:");
-					debugPrint(hc->authentication_tag, 0, 8);
+					debugPrint(hc->authentication_tag, 0, 12);
 				}
 			}
 			len = 0;

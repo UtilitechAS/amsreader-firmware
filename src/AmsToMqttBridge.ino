@@ -62,7 +62,7 @@ Timezone* tz;
 AmsWebServer ws(&Debug, &hw);
 
 MQTTClient *mqtt = NULL;
-WiFiClient *mqttClient = NULL;
+WiFiClient *mqttClient = new WiFiClient();
 WiFiClientSecure *mqttSecureClient = NULL;
 AmsMqttHandler* mqttHandler = NULL;
 
@@ -72,7 +72,6 @@ SoftwareSerial *swSerial = NULL;
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
 bool mqttEnabled = false;
-uint8_t payloadFormat = 0;
 String topic = "ams";
 AmsData meterState;
 bool ntpEnabled = false;
@@ -920,7 +919,6 @@ void MQTT_connect() {
 
 	mqttEnabled = true;
 	ws.setMqttEnabled(true);
-	payloadFormat = mqttConfig.payloadFormat;
 	topic = String(mqttConfig.publishTopic);
 
 	if(mqttHandler != NULL) {
@@ -1002,6 +1000,7 @@ void MQTT_connect() {
 	if(Debug.isActive(RemoteDebug::INFO)) {
 		debugI("Connecting to MQTT %s:%d", mqttConfig.host, mqttConfig.port);
 	}
+	
 	mqtt->begin(mqttConfig.host, mqttConfig.port, *mqttClient);
 
 	#if defined(ESP8266)

@@ -16,18 +16,21 @@ void mbus_hexdump(const uint8_t* buf, int len) {
 }
 
 int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTime* timestamp) {
-	HDLCHeader* h = (HDLCHeader*) d;
-
-	// Length field (11 lsb of format)
-    int len = (ntohs(h->format) & 0x7FF) + 2;
-    if(len > length)
+    if(length < 10)
         return HDLC_FRAME_INCOMPLETE;
 
+    int len;
     int headersize = 3;
     int footersize = 1;
+    HDLCHeader* h = (HDLCHeader*) d;
     uint8_t* ptr = (uint8_t*) &h[1];
     // Frame format type 3
     if((h->format & 0xF0) == 0xA0) {
+        // Length field (11 lsb of format)
+        len = (ntohs(h->format) & 0x7FF) + 2;
+        if(len > length)
+            return HDLC_FRAME_INCOMPLETE;
+
     	HDLCFooter* f = (HDLCFooter*) (d + len - sizeof *f);
         footersize = sizeof *f;
 
@@ -64,16 +67,11 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
 
         ptr += sizeof *t3;
     } else if((h->format & 0xF0) == 0x00) {
-    	MbusFooter* f = (MbusFooter*) (d + len - sizeof *f);
-        footersize = sizeof *f;
-
-        // First and last byte should be MBUS_HAN_TAG
-        if(h->flag != MBUS_START || f->flag != MBUS_END)
+        // First byte should be start byte
+        if(h->flag != MBUS_START)
             return HDLC_BOUNDRY_FLAG_MISSING;
 
-        // TODO: Verify FCS with crc8, not 16
-        //if(ntohs(f->fcs) != crc16_x25(d + 1, len - sizeof *f - 1))
-        //    return HDLC_FCS_ERROR;
+        // TODO: Check that the two next bytes are identical
 
         // Ignore: Flag + Control field + Address
         ptr += 3;
@@ -112,6 +110,11 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
 
         return ptr-d;
     } else if(((*ptr) & 0xFF) == 0xDB) {
+        if(length < headersize + 18)
+            return HDLC_FRAME_INCOMPLETE;
+
+        uint8_t preheadersize = headersize;
+
         ptr++;
         // Encrypted APDU
         // http://www.weigu.lu/tutorials/sensors2bus/04_encryption/index.html
@@ -127,15 +130,23 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
         ptr += systemTitleLength;
         if(((*ptr) & 0xFF) == 0x81) {
             ptr++;
+            len = *ptr;
             // 1-byte payload length
             ptr++;
         } else if(((*ptr) & 0xFF) == 0x82) {
-            ptr++;
-            headersize++;
-            // 2-byte payload length
-            ptr += 2;
-            headersize += 2;
+            HDLCHeader* h = (HDLCHeader*) d;
+
+            // Length field (11 lsb of format)
+            len = (ntohs(h->format) & 0xFFFF);
+
+            ptr += 3;
+            headersize += 3;
         }
+        len += preheadersize;
+        if(len > length)
+            return HDLC_FRAME_INCOMPLETE;
+
+        // TODO: FCS
 
         memcpy(config->additional_authenticated_data, ptr, 1);
 

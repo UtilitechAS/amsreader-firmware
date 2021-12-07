@@ -35,8 +35,12 @@ public:
 
 private:
     Timezone* tz;
-    DayDataPoints day;
-    MonthDataPoints month;
+    DayDataPoints day = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
+    MonthDataPoints month = {
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+    };
     RemoteDebug* debugger;
     void setHour(uint8_t, int16_t);
     void setDay(uint8_t, int32_t);

@@ -429,7 +429,7 @@ void loop() {
 				errorBlink();
 			}
 
-			if (mqttEnabled) {
+			if (mqttEnabled || config.isMqttChanged()) {
 				if(mqtt == NULL || !mqtt->connected() || config.isMqttChanged()) {
 					MQTT_connect();
 				}
@@ -670,7 +670,7 @@ void readHanPort() {
 	}
 	if(currentMeterType == 0) {
 		uint8_t flag = hanSerial->read();
-		if(flag == 0x7E) currentMeterType = 1;
+		if(flag == 0x7E || flag == 0x68) currentMeterType = 1;
 		else currentMeterType = 2;
 		hanSerial->readBytes(buf, BUF_SIZE);
 		return;
@@ -716,7 +716,8 @@ void readHanPort() {
 				}
 			}
 			len = 0;
-			if(pos >= 0) {
+			if(pos > 0) {
+				while(hanSerial->available()) hanSerial->read();
 				debugI("Valid HDLC, start at %d", pos);
 				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), timestamp);
 			} else {
@@ -774,11 +775,9 @@ void readHanPort() {
 
 		meterState.apply(data);
 
-		if(ds.update(&meterState)) {
+		if(ds.update(&data)) {
 			debugI("Saving day plot");
 			ds.save();
-		} else if(data.getListType() == 3) {
-			debugE("Unable to update day plot");
 		}
 	}
 	delay(1);
@@ -963,7 +962,8 @@ void MQTT_connect() {
 				debugI("Found MQTT CA file");
 				file = LittleFS.open(FILE_MQTT_CA, "r");
 				#if defined(ESP8266)
-				// Disabled for ESP8266
+					BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(file);
+                    mqttSecureClient->setTrustAnchors(serverTrustedCA);
 				#elif defined(ESP32)
 					mqttSecureClient->loadCACert(file, file.size());
 				#endif
@@ -971,7 +971,11 @@ void MQTT_connect() {
 
 			if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
 				#if defined(ESP8266)
-				// Disabled for ESP8266
+					file = LittleFS.open(FILE_MQTT_CERT, "r");
+				 	BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
+					file = LittleFS.open(FILE_MQTT_KEY, "r");
+  					BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
+					mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
 				#elif defined(ESP32)
 					debugI("Found MQTT certificate file");
 					file = LittleFS.open(FILE_MQTT_CERT, "r");

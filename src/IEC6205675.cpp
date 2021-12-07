@@ -217,7 +217,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
 
             int adiv = 1;
             int watt = (l1voltage * l1current) + (l2voltage * l2current) + (l3voltage * l3current);
-            while(watt / activeImportPower > 2) {
+            while(activeImportPower > 0 && watt / activeImportPower > 2) {
                 adiv *= 10;
                 watt /= 10;
             }

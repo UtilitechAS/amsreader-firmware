@@ -25,7 +25,7 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
     HDLCHeader* h = (HDLCHeader*) d;
     uint8_t* ptr = (uint8_t*) &h[1];
     // Frame format type 3
-    if((h->format & 0xF0) == 0xA0) {
+    if(h->flag == HDLC_FLAG && (h->format & 0xF0) == 0xA0) {
         // Length field (11 lsb of format)
         len = (ntohs(h->format) & 0x7FF) + 2;
         if(len > length)
@@ -66,16 +66,13 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             return HDLC_HCS_ERROR;
 
         ptr += sizeof *t3;
-    } else if((h->format & 0xF0) == 0x00) {
-        // First byte should be start byte
-        if(h->flag != MBUS_START)
-            return HDLC_BOUNDRY_FLAG_MISSING;
-
+    } else if(h->flag == MBUS_START) {
         // TODO: Check that the two next bytes are identical
 
-        // Ignore: Flag + Control field + Address
+        // Ignore: Control field + Address + Flag
         ptr += 3;
         headersize += 3;
+        footersize++;
     }
 
     // Extract LLC
@@ -113,8 +110,6 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
         if(length < headersize + 18)
             return HDLC_FRAME_INCOMPLETE;
 
-        uint8_t preheadersize = headersize;
-
         ptr++;
         // Encrypted APDU
         // http://www.weigu.lu/tutorials/sensors2bus/04_encryption/index.html
@@ -133,6 +128,7 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             len = *ptr;
             // 1-byte payload length
             ptr++;
+            headersize += 2;
         } else if(((*ptr) & 0xFF) == 0x82) {
             HDLCHeader* h = (HDLCHeader*) ptr;
 
@@ -142,10 +138,11 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             ptr += 3;
             headersize += 3;
         }
-        if(len + preheadersize > length)
+        len = ceil(len/16.0) * 16;
+        if(len + headersize + footersize > length)
             return HDLC_FRAME_INCOMPLETE;
 
-        //Serial.printf("\nL: %d : %d, %d : %d\n", length, len, preheadersize, headersize);
+        //Serial.printf("\nL: %d : %d, %d : %d\n", length, len, headersize, footersize);
 
         // TODO: FCS
 
@@ -181,25 +178,27 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
                 br_gcm_aad_inject(&gcmCtx, config->additional_authenticated_data, aadlen);
             }
             br_gcm_flip(&gcmCtx);
-            br_gcm_run(&gcmCtx, 0, (void*) (ptr), len - footersize - 2);
+            br_gcm_run(&gcmCtx, 0, (void*) (ptr), len - authkeylen - 5); // 5 == security tag and frame counter
             if(authkeylen > 0 && br_gcm_check_tag_trunc(&gcmCtx, config->authentication_tag, authkeylen) != 1) {
-                return -91;
+                return HDLC_ENCRYPTION_AUTH_FAILED;
             }
         #elif defined(ESP32)
-            uint8_t cipher_text[len - authkeylen - footersize - 2];
-            memcpy(cipher_text, ptr, len - authkeylen - footersize - 2);
+            uint8_t cipher_text[len - authkeylen - 5];
+            memcpy(cipher_text, ptr, len - authkeylen - 5);
 
             mbedtls_gcm_context m_ctx;
             mbedtls_gcm_init(&m_ctx);
             int success = mbedtls_gcm_setkey(&m_ctx, MBEDTLS_CIPHER_ID_AES, config->encryption_key, 128);
-            if (0 != success ) {
-                return -92;
+            if (0 != success) {
+                return HDLC_ENCRYPTION_KEY_FAILED;
             }
             success = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text), config->initialization_vector, sizeof(config->initialization_vector),
                 config->additional_authenticated_data, aadlen, config->authentication_tag, authkeylen,
                 cipher_text, (unsigned char*)(ptr));
-            if (0 != success) {
-                return -91;
+            if (authkeylen > 0 && success == MBEDTLS_ERR_GCM_AUTH_FAILED) {
+                return HDLC_ENCRYPTION_AUTH_FAILED;
+            } else if(success == MBEDTLS_ERR_GCM_BAD_INPUT) {
+                return HDLC_ENCRYPTION_DECRYPT_FAILED;
             }
             mbedtls_gcm_free(&m_ctx);
         #endif
@@ -229,5 +228,5 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
     }    
 
     // Unknown payload
-	return 0;
+	return HDLC_UNKNOWN_DATA;
 }

@@ -21,9 +21,16 @@ bool AmsDataStorage::update(AmsData* data) {
         debugger->printf("(AmsDataStorage) Time is: %d\n", now);
     }
     if(now < EPOCH_2021_01_01) {
-        now = data->getMeterTimestamp();
-        if(debugger->isActive(RemoteDebug::DEBUG)) {
-            debugger->printf("(AmsDataStorage) Using meter timestamp, which is: %d\n", now);
+        if(data->getMeterTimestamp() > 0) {
+            now = data->getMeterTimestamp();
+            if(debugger->isActive(RemoteDebug::DEBUG)) {
+                debugger->printf("(AmsDataStorage) Using meter timestamp, which is: %d\n", now);
+            }
+        } else if(data->getPackageTimestamp() > 0) {
+            now = data->getPackageTimestamp();
+            if(debugger->isActive(RemoteDebug::DEBUG)) {
+                debugger->printf("(AmsDataStorage) Using package timestamp, which is: %d\n", now);
+            }
         }
     }
     if(now-day.lastMeterReadTime < 3595) {

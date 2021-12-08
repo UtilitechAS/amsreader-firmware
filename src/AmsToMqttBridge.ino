@@ -299,7 +299,7 @@ void setup() {
 			ds.setTimezone(tz);
 		}
 
-		ds.load(&meterState);
+		ds.load();
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI("No configuration, booting AP");
@@ -752,25 +752,29 @@ void readHanPort() {
 				if(data.getListType() >= 2) {
 					mqttHandler->publishSystem(&hw);
 				}
-				time_t now = time(nullptr);
-				if(now < EPOCH_2021_01_01 && data.getListType() == 3 && !ntpEnabled) {
-					if(data.getMeterTimestamp() > EPOCH_2021_01_01) {
-						debugI("Using timestamp from meter");
-						now = data.getMeterTimestamp();
-					} else if(data.getPackageTimestamp() > EPOCH_2021_01_01) {
-						debugI("Using timestamp from meter (DLMS)");
-						now = data.getPackageTimestamp();
-					}
-					if(now > EPOCH_2021_01_01) {
-						timeval tv { now, 0};
-						settimeofday(&tv, nullptr);
-					}
-				}
 			}
 			if(mqtt != NULL) {
 				mqtt->loop();
 				delay(10);
 			}
+		}
+
+		time_t now = time(nullptr);
+		if(now < EPOCH_2021_01_01 && data.getListType() == 3 && !ntpEnabled) {
+			if(data.getMeterTimestamp() > EPOCH_2021_01_01) {
+				debugI("Using timestamp from meter");
+				now = data.getMeterTimestamp();
+			} else if(data.getPackageTimestamp() > EPOCH_2021_01_01) {
+				debugI("Using timestamp from meter (DLMS)");
+				now = data.getPackageTimestamp();
+			}
+			if(now > EPOCH_2021_01_01) {
+				timeval tv { now, 0};
+				settimeofday(&tv, nullptr);
+			}
+		}
+		if(meterState.getListType() < 3 && now > EPOCH_2021_01_01) {
+			// TODO: Load an estimated value from dayplot
 		}
 
 		meterState.apply(data);

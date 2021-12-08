@@ -30,7 +30,7 @@ public:
     bool update(AmsData*);
     int16_t getHour(uint8_t);
     int32_t getDay(uint8_t);
-    bool load(AmsData*);
+    bool load();
     bool save();
 
 private:

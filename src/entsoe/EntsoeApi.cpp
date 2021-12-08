@@ -77,7 +77,7 @@ float EntsoeApi::getValueForHour(time_t cur, uint8_t hour) {
 }
 
 bool EntsoeApi::loop() {
-    if(strlen(config->token) == 0)
+    if(strlen(getToken()) == 0)
         return false;
     bool ret = false;
 
@@ -116,7 +116,7 @@ bool EntsoeApi::loop() {
 
             char url[256];
             snprintf(url, sizeof(url), "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-            "https://transparency.entsoe.eu/api", config->token, 
+            "https://transparency.entsoe.eu/api", getToken(), 
             d1.Year+1970, d1.Month, d1.Day, 23, 00,
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
             config->area, config->area);
@@ -146,7 +146,7 @@ bool EntsoeApi::loop() {
 
             char url[256];
             snprintf(url, sizeof(url), "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-            "https://transparency.entsoe.eu/api", config->token, 
+            "https://transparency.entsoe.eu/api", getToken(), 
             d1.Year+1970, d1.Month, d1.Day, 23, 00,
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
             config->area, config->area);

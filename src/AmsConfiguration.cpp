@@ -563,6 +563,14 @@ bool AmsConfiguration::hasConfig() {
 				configVersion = 0;
 				return false;
 			}
+		case 89:
+			configVersion = -1; // Prevent loop
+			if(relocateConfig89()) {
+				configVersion = 90;
+			} else {
+				configVersion = 0;
+				return false;
+			}
 		case EEPROM_CHECK_SUM:
 			return true;
 		default:
@@ -794,6 +802,30 @@ bool AmsConfiguration::relocateConfig88() {
 	};
 	EEPROM.put(CONFIG_GPIO_START, gpio);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 89);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig89() {
+	EntsoeConfig89 entose89;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_ENTSOE_START_89, entose89);
+
+	uint32_t multiplier = entose89.multiplier;
+
+	EntsoeConfig entsoe = {
+		0x0,
+		0x0,
+		0x0,
+		multiplier
+	};
+	strcpy(entsoe.token, entose89.token);
+	strcpy(entsoe.area, entose89.area);
+	strcpy(entsoe.currency, entose89.currency);
+
+	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 90);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;

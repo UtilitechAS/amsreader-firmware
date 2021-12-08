@@ -10,10 +10,6 @@
  * @author Gunnar Skjold (@gskjold)
  * Maintainer of current code
  * https://github.com/gskjold/AmsToMqttBridge
- * 
- * @author Roar Fredriksen (@roarfred)
- * The original developer for this project
- * https://github.com/roarfred/AmsToMqttBridge
  */
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);

@@ -3,14 +3,14 @@
 #include "Timezone.h"
 
 IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packageTimestamp) {
-    uint32_t u32;
-    int32_t s32;
+    uint32_t ui;
+    double val;
     char str[64];
 
     this->packageTimestamp = getTimestamp(packageTimestamp);
 
-    u32 = getUnsignedNumber(AMS_OBIS_ACTIVE_IMPORT, sizeof(AMS_OBIS_ACTIVE_IMPORT), ((char *) (d)));
-    if(u32 == 0xFFFFFFFF) {
+    ui = getNumber(AMS_OBIS_ACTIVE_IMPORT, sizeof(AMS_OBIS_ACTIVE_IMPORT), ((char *) (d)));
+    if(ui == 0xFFFFFFFF) {
         CosemData* data = getCosemDataAt(1, ((char *) (d)));
         
         // Kaifa special case...
@@ -124,7 +124,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
         // Kaifa end
     } else {
         listType = 1;
-        activeImportPower = u32;
+        activeImportPower = ui;
 
         meterType = AmsTypeUnknown;
         CosemData* version = findObis(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), d);
@@ -151,119 +151,95 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
             this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
         }
 
-        u32 = getString(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), ((char *) (d)), str);
-        if(u32 > 0) {
+        ui = getString(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), ((char *) (d)), str);
+        if(ui > 0) {
             listId = String(str);
         }
 
-        u32 = getUnsignedNumber(AMS_OBIS_ACTIVE_EXPORT, sizeof(AMS_OBIS_ACTIVE_EXPORT), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
-            activeExportPower = u32;
+        ui = getNumber(AMS_OBIS_ACTIVE_EXPORT, sizeof(AMS_OBIS_ACTIVE_EXPORT), ((char *) (d)));
+        if(ui != 0xFFFFFFFF) {
+            activeExportPower = ui;
         }
 
-        u32 = getUnsignedNumber(AMS_OBIS_REACTIVE_IMPORT, sizeof(AMS_OBIS_REACTIVE_IMPORT), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
-            reactiveImportPower = u32;
+        ui = getNumber(AMS_OBIS_REACTIVE_IMPORT, sizeof(AMS_OBIS_REACTIVE_IMPORT), ((char *) (d)));
+        if(ui != 0xFFFFFFFF) {
+            reactiveImportPower = ui;
         }
 
-        u32 = getUnsignedNumber(AMS_OBIS_REACTIVE_EXPORT, sizeof(AMS_OBIS_REACTIVE_EXPORT), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
-            reactiveExportPower = u32;
+        ui = getNumber(AMS_OBIS_REACTIVE_EXPORT, sizeof(AMS_OBIS_REACTIVE_EXPORT), ((char *) (d)));
+        if(ui != 0xFFFFFFFF) {
+            reactiveExportPower = ui;
         }
 
-        u32 = getUnsignedNumber(AMS_OBIS_VOLTAGE_L1, sizeof(AMS_OBIS_VOLTAGE_L1), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
+        val = getNumber(AMS_OBIS_VOLTAGE_L1, sizeof(AMS_OBIS_VOLTAGE_L1), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
             listType = 2;
-            l1voltage = u32;
+            l1voltage = val;
         }
-        u32 = getUnsignedNumber(AMS_OBIS_VOLTAGE_L2, sizeof(AMS_OBIS_VOLTAGE_L2), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
+        val = getNumber(AMS_OBIS_VOLTAGE_L2, sizeof(AMS_OBIS_VOLTAGE_L2), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
             listType = 2;
-            l2voltage = u32;
+            l2voltage = val;
         }
-        u32 = getUnsignedNumber(AMS_OBIS_VOLTAGE_L3, sizeof(AMS_OBIS_VOLTAGE_L3), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
+        val = getNumber(AMS_OBIS_VOLTAGE_L3, sizeof(AMS_OBIS_VOLTAGE_L3), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
             listType = 2;
-            l3voltage = u32;
+            l3voltage = val;
         }
 
-        s32 = getSignedNumber(AMS_OBIS_CURRENT_L1, sizeof(AMS_OBIS_CURRENT_L1), ((char *) (d)));
-        if(s32 != 0xFFFFFFFF) {
+        val = getNumber(AMS_OBIS_CURRENT_L1, sizeof(AMS_OBIS_CURRENT_L1), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
             listType = 2;
-            l1current = s32;
+            l1current = val;
         }
-        s32 = getSignedNumber(AMS_OBIS_CURRENT_L2, sizeof(AMS_OBIS_CURRENT_L2), ((char *) (d)));
-        if(s32 != 0xFFFFFFFF) {
+        val = getNumber(AMS_OBIS_CURRENT_L2, sizeof(AMS_OBIS_CURRENT_L2), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
             listType = 2;
-            l2current = s32;
+            l2current = val;
         }
-        s32 = getSignedNumber(AMS_OBIS_CURRENT_L3, sizeof(AMS_OBIS_CURRENT_L3), ((char *) (d)));
-        if(s32 != 0xFFFFFFFF) {
+        val = getNumber(AMS_OBIS_CURRENT_L3, sizeof(AMS_OBIS_CURRENT_L3), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
             listType = 2;
-            l3current = s32;
+            l3current = val;
         }
 
-        if(listType == 2) {
-            int vdiv = 1;
-            int voltage = l1voltage == 0 ? l2voltage == 0 ? l3voltage == 0 ? 0 : l3voltage : l2voltage : l1voltage;
-            while(voltage > 1000) {
-                vdiv *= 10;
-                voltage /= 10;
-            }
-
-            l1voltage = l1voltage != 0 ? l1voltage / vdiv : 0;
-            l2voltage = l2voltage != 0 ? l2voltage / vdiv : 0;
-            l3voltage = l3voltage != 0 ? l3voltage / vdiv : 0;
-
-            int adiv = 1;
-            int watt = (l1voltage * l1current) + (l2voltage * l2current) + (l3voltage * l3current);
-            while(activeImportPower > 0 && watt / activeImportPower > 2) {
-                adiv *= 10;
-                watt /= 10;
-            }
-
-            l1current = l1current != 0 ? l1current / adiv : 0;
-            l2current = l2current != 0 ? l2current / adiv : 0;
-            l3current = l3current != 0 ? l3current / adiv : 0;
-        }
-
-        u32 = getUnsignedNumber(AMS_OBIS_ACTIVE_IMPORT_COUNT, sizeof(AMS_OBIS_ACTIVE_IMPORT_COUNT), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_COUNT, sizeof(AMS_OBIS_ACTIVE_IMPORT_COUNT), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
             listType = 3;
-            activeImportCounter = u32 / 100.0;
+            activeImportCounter = val / 1000.0;
         }
-        u32 = getUnsignedNumber(AMS_OBIS_ACTIVE_EXPORT_COUNT, sizeof(AMS_OBIS_ACTIVE_EXPORT_COUNT), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_COUNT, sizeof(AMS_OBIS_ACTIVE_EXPORT_COUNT), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
             listType = 3;
-            activeExportCounter = u32 / 100.0;
+            activeExportCounter = val / 1000.0;
         }
-        u32 = getUnsignedNumber(AMS_OBIS_REACTIVE_IMPORT_COUNT, sizeof(AMS_OBIS_REACTIVE_IMPORT_COUNT), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
+        val = getNumber(AMS_OBIS_REACTIVE_IMPORT_COUNT, sizeof(AMS_OBIS_REACTIVE_IMPORT_COUNT), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
             listType = 3;
-            reactiveImportCounter = u32 / 100.0;
+            reactiveImportCounter = val / 1000.0;
         }
-        u32 = getUnsignedNumber(AMS_OBIS_REACTIVE_EXPORT_COUNT, sizeof(AMS_OBIS_REACTIVE_EXPORT_COUNT), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
+        val = getNumber(AMS_OBIS_REACTIVE_EXPORT_COUNT, sizeof(AMS_OBIS_REACTIVE_EXPORT_COUNT), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
             listType = 3;
-            reactiveExportCounter = u32 / 100.0;
+            reactiveExportCounter = val / 1000.0;
         }
 
-        u32 = getString(AMS_OBIS_METER_MODEL, sizeof(AMS_OBIS_METER_MODEL), ((char *) (d)), str);
-        if(u32 > 0) {
+        ui = getString(AMS_OBIS_METER_MODEL, sizeof(AMS_OBIS_METER_MODEL), ((char *) (d)), str);
+        if(ui > 0) {
             meterModel = String(str);
         } else {
-            u32 = getString(AMS_OBIS_METER_MODEL_2, sizeof(AMS_OBIS_METER_MODEL_2), ((char *) (d)), str);
-            if(u32 > 0) {
+            ui = getString(AMS_OBIS_METER_MODEL_2, sizeof(AMS_OBIS_METER_MODEL_2), ((char *) (d)), str);
+            if(ui > 0) {
                 meterModel = String(str);
             }
         }
 
-        u32 = getString(AMS_OBIS_METER_ID, sizeof(AMS_OBIS_METER_ID), ((char *) (d)), str);
-        if(u32 > 0) {
+        ui = getString(AMS_OBIS_METER_ID, sizeof(AMS_OBIS_METER_ID), ((char *) (d)), str);
+        if(ui > 0) {
             meterId = String(str);
         } else {
-            u32 = getString(AMS_OBIS_METER_ID_2, sizeof(AMS_OBIS_METER_ID_2), ((char *) (d)), str);
-            if(u32 > 0) {
+            ui = getString(AMS_OBIS_METER_ID_2, sizeof(AMS_OBIS_METER_ID_2), ((char *) (d)), str);
+            if(ui > 0) {
                 meterId = String(str);
             }
         }
@@ -279,21 +255,35 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
             }
         }
 
-        u32 = getUnsignedNumber(AMS_OBIS_POWER_FACTOR, sizeof(AMS_OBIS_POWER_FACTOR), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
-            powerFactor = u32 / 100.0;
+        val = getNumber(AMS_OBIS_POWER_FACTOR, sizeof(AMS_OBIS_POWER_FACTOR), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
+            powerFactor = val;
         }
-        u32 = getUnsignedNumber(AMS_OBIS_POWER_FACTOR_L1, sizeof(AMS_OBIS_POWER_FACTOR_L1), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
-            l1PowerFactor = u32 / 100.0;
+        val = getNumber(AMS_OBIS_POWER_FACTOR_L1, sizeof(AMS_OBIS_POWER_FACTOR_L1), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
+            l1PowerFactor = val;
         }
-        u32 = getUnsignedNumber(AMS_OBIS_POWER_FACTOR_L2, sizeof(AMS_OBIS_POWER_FACTOR_L2), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
-            l2PowerFactor = u32 / 100.0;
+        val = getNumber(AMS_OBIS_POWER_FACTOR_L2, sizeof(AMS_OBIS_POWER_FACTOR_L2), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
+            l2PowerFactor = val;
         }
-        u32 = getUnsignedNumber(AMS_OBIS_POWER_FACTOR_L3, sizeof(AMS_OBIS_POWER_FACTOR_L3), ((char *) (d)));
-        if(u32 != 0xFFFFFFFF) {
-            l3PowerFactor = u32 / 100.0;
+        val = getNumber(AMS_OBIS_POWER_FACTOR_L3, sizeof(AMS_OBIS_POWER_FACTOR_L3), ((char *) (d)));
+        if(val != 0xFFFFFFFF) {
+            l3PowerFactor = val;
+        }
+
+        if(meterType == AmsTypeKamstrup) {
+            activeImportCounter *= 10;
+            activeExportCounter *= 10;
+            reactiveImportCounter *= 10;
+            reactiveExportCounter *= 10;
+            l1current /= 100;
+            l2current /= 100;
+            l3current /= 100;
+            powerFactor /= 100;
+            l1PowerFactor /= 100;
+            l2PowerFactor /= 100;
+            l3PowerFactor /= 100;
         }
 
         lastUpdateMillis = millis();
@@ -403,32 +393,35 @@ uint8_t IEC6205675::getString(uint8_t* obis, int matchlength, const char* ptr, c
     return 0;
 }
 
-uint32_t IEC6205675::getSignedNumber(uint8_t* obis, int matchlength, const char* ptr) {
+double IEC6205675::getNumber(uint8_t* obis, int matchlength, const char* ptr) {
     CosemData* item = findObis(obis, matchlength, ptr);
-    if(item != NULL) {
-        switch(item->base.type) {
-            case CosemTypeLongUnsigned:
-                return ntohs(item->lu.data);
-            case CosemTypeDLongUnsigned:
-                return ntohl(item->dlu.data);
-            case CosemTypeLongSigned:
-                return ntohs(item->lu.data);
-        }
-    }
-    return 0xFFFFFFFF;
+    return getNumber(item);
 }
 
-uint32_t IEC6205675::getUnsignedNumber(uint8_t* obis, int matchlength, const char* ptr) {
-    CosemData* item = findObis(obis, matchlength, ptr);
+double IEC6205675::getNumber(CosemData* item) {
+    double val = 0xFFFFFFFF;
     if(item != NULL) {
+        char* pos = ((char*) item);
         switch(item->base.type) {
             case CosemTypeLongUnsigned:
-                return ntohs(item->lu.data);
+                val = ntohs(item->lu.data);
+                pos += 3;
+                break;
             case CosemTypeDLongUnsigned:
-                return ntohl(item->dlu.data);
+                val = ntohl(item->dlu.data);
+                pos += 5;
+                break;
+            case CosemTypeLongSigned:
+                val = ntohs(item->lu.data);
+                pos += 3;
+                break;
+        }
+        if(*pos++ == 0x02 && *pos++ == 0x02) {
+            int8_t scale = *++pos;
+            val *= pow(10, scale);
         }
     }
-    return 0xFFFFFFFF;
+    return val;
 }
 
 time_t IEC6205675::getTimestamp(uint8_t* obis, int matchlength, const char* ptr) {

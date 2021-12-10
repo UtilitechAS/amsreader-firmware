@@ -17,8 +17,8 @@ private:
     CosemData* getCosemDataAt(uint8_t index, const char* ptr);
     CosemData* findObis(uint8_t* obis, int matchlength, const char* ptr);
     uint8_t getString(uint8_t* obis, int matchlength, const char* ptr, char* target);
-    uint32_t getSignedNumber(uint8_t* obis, int matchlength, const char* ptr);
-    uint32_t getUnsignedNumber(uint8_t* obis, int matchlength, const char* ptr);
+    double getNumber(uint8_t* obis, int matchlength, const char* ptr);
+    double getNumber(CosemData*);
     time_t getTimestamp(uint8_t* obis, int matchlength, const char* ptr);
     time_t getTimestamp(CosemDateTime timestamp);
 

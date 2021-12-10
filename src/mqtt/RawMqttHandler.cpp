@@ -19,6 +19,18 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
             mqtt->publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 2), true, 0);
             mqtt->publish(topic + "/meter/export/reactive/accumulated", String(data->getReactiveExportCounter(), 2), true, 0);
             mqtt->publish(topic + "/meter/export/active/accumulated", String(data->getActiveExportCounter(), 2), true, 0);
+            if(full || meterState->getPowerFactor() != data->getPowerFactor()) {
+                mqtt->publish(topic + "/meter/powerfactor", String(data->getPowerFactor(), 2));
+            }
+            if(full || meterState->getL1PowerFactor() != data->getL1PowerFactor()) {
+                mqtt->publish(topic + "/meter/l1/powerfactor", String(data->getL1PowerFactor(), 2));
+            }
+            if(full || meterState->getL2PowerFactor() != data->getL2PowerFactor()) {
+                mqtt->publish(topic + "/meter/l1/powerfactor", String(data->getL1PowerFactor(), 2));
+            }
+            if(full || meterState->getL3PowerFactor() != data->getL3PowerFactor()) {
+                mqtt->publish(topic + "/meter/l1/powerfactor", String(data->getL1PowerFactor(), 2));
+            }
         case 2:
             // Only send data if changed. ID and Type is sent on the 10s interval only if changed
             if(full || meterState->getMeterId() != data->getMeterId()) {

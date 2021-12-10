@@ -1,0 +1,119 @@
+<GatewayRequest>
+  <NetworkId Value="231" />
+  <PhysicalDeviceAddress Value="" />
+  <DataNotification>
+    <LongInvokeIdAndPriority Value="40000000" />
+    <DateTime Value="" />
+    <NotificationBody>
+      <DataValue>
+        <Array Qty="0D" >
+          <Structure Qty="02" >
+            <!--1.1.0.2.129.255-->
+            <OctetString Value="0101000281FF" />
+            <String Value="AIDON_V0001" />
+          </Structure>
+          <Structure Qty="02" >
+            <!--0.0.96.1.0.255-->
+            <OctetString Value="0000600100FF" />
+            <String Value="0000000000000000" />
+          </Structure>
+          <Structure Qty="02" >
+            <!--0.0.96.1.7.255-->
+            <OctetString Value="0000600107FF" />
+            <String Value="6534" />
+          </Structure>
+          <Structure Qty="03" >
+            <!--1.0.1.7.0.255-->
+            <OctetString Value="0100010700FF" />
+            <UInt32 Value="00000339" />
+            <Structure Qty="02" >
+              <Int8 Value="00" />
+              <Enum Value="1B" />
+            </Structure>
+          </Structure>
+          <Structure Qty="03" >
+            <!--1.0.2.7.0.255-->
+            <OctetString Value="0100020700FF" />
+            <UInt32 Value="00000000" />
+            <Structure Qty="02" >
+              <Int8 Value="00" />
+              <Enum Value="1B" />
+            </Structure>
+          </Structure>
+          <Structure Qty="03" >
+            <!--1.0.3.7.0.255-->
+            <OctetString Value="0100030700FF" />
+            <UInt32 Value="00000000" />
+            <Structure Qty="02" >
+              <Int8 Value="00" />
+              <Enum Value="1D" />
+            </Structure>
+          </Structure>
+          <Structure Qty="03" >
+            <!--1.0.4.7.0.255-->
+            <OctetString Value="0100040700FF" />
+            <UInt32 Value="00000251" />
+            <Structure Qty="02" >
+              <Int8 Value="00" />
+              <Enum Value="1D" />
+            </Structure>
+          </Structure>
+          <Structure Qty="03" >
+            <!--1.0.31.7.0.255-->
+            <OctetString Value="01001F0700FF" />
+            <Int16 Value="0012" />
+            <Structure Qty="02" >
+              <Int8 Value="FF" />
+              <Enum Value="21" />
+            </Structure>
+          </Structure>
+          <Structure Qty="03" >
+            <!--1.0.51.7.0.255-->
+            <OctetString Value="0100330700FF" />
+            <Int16 Value="0003" />
+            <Structure Qty="02" >
+              <Int8 Value="FF" />
+              <Enum Value="21" />
+            </Structure>
+          </Structure>
+          <Structure Qty="03" >
+            <!--1.0.71.7.0.255-->
+            <OctetString Value="0100470700FF" />
+            <Int16 Value="0016" />
+            <Structure Qty="02" >
+              <Int8 Value="FF" />
+              <Enum Value="21" />
+            </Structure>
+          </Structure>
+          <Structure Qty="03" >
+            <!--1.0.32.7.0.255-->
+            <OctetString Value="0100200700FF" />
+            <UInt16 Value="08FE" />
+            <Structure Qty="02" >
+              <Int8 Value="FF" />
+              <Enum Value="23" />
+            </Structure>
+          </Structure>
+          <Structure Qty="03" >
+            <!--1.0.52.7.0.255-->
+            <OctetString Value="0100340700FF" />
+            <UInt16 Value="08F8" />
+            <Structure Qty="02" >
+              <Int8 Value="FF" />
+              <Enum Value="23" />
+            </Structure>
+          </Structure>
+          <Structure Qty="03" >
+            <!--1.0.72.7.0.255-->
+            <OctetString Value="0100480700FF" />
+            <UInt16 Value="08F7" />
+            <Structure Qty="02" >
+              <Int8 Value="FF" />
+              <Enum Value="23" />
+            </Structure>
+          </Structure>
+        </Array>
+      </DataValue>
+    </NotificationBody>
+  </DataNotification>
+</GatewayRequest>

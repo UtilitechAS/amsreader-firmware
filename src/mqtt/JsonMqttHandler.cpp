@@ -80,6 +80,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
         );
         return mqtt->publish(topic, json);
     }
+    return false;
 }
 
 bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {
@@ -112,7 +113,7 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
 bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
-	if(strcmp(eapi->getToken(), "") == 0)
+	if(strlen(eapi->getToken()) == 0)
 		return false;
 
 	time_t now = time(nullptr);

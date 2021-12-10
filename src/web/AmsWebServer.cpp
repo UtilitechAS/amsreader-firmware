@@ -2,8 +2,18 @@
 #include "version.h"
 #include "AmsStorage.h"
 #include "hexutils.h"
+#include "AmsData.h"
 
-#include "root/head_html.h"
+#if defined(ESP8266)
+	#include "root/head8266_html.h"
+	#define HEAD_HTML HEAD8266_HTML
+	#define HEAD_HTML_LEN HEAD8266_HTML_LEN
+#elif defined(ESP32) 
+	#include "root/head32_html.h"
+	#define HEAD_HTML HEAD32_HTML
+	#define HEAD_HTML_LEN HEAD32_HTML_LEN
+#endif
+
 #include "root/foot_html.h"
 #include "root/index_html.h"
 #include "root/application_js.h"
@@ -20,9 +30,9 @@
 #include "root/restart_html.h"
 #include "root/restartwait_html.h"
 #include "root/boot_css.h"
-#include "root/gaugemeter_js.h"
 #include "root/github_svg.h"
 #include "root/upload_html.h"
+#include "root/firmware_html.h"
 #include "root/delete_html.h"
 #include "root/reset_html.h"
 #include "root/temperature_html.h"
@@ -31,6 +41,9 @@
 #include "root/data_json.h"
 #include "root/tempsensor_json.h"
 #include "root/lowmem_html.h"
+#include "root/dayplot_json.h"
+#include "root/monthplot_json.h"
+#include "root/energyprice_json.h"
 
 #include "base64.h"
 
@@ -39,12 +52,12 @@ AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw) {
 	this->hw = hw;
 }
 
-void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, MQTTClient* mqtt) {
+void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds) {
     this->config = config;
 	this->gpioConfig = gpioConfig;
 	this->meterConfig = meterConfig;
 	this->meterState = meterState;
-	this->mqtt = mqtt;
+	this->ds = ds;
 
 	char jsuri[32];
 	snprintf(jsuri, 32, "/application-%s.js", VERSION);
@@ -63,9 +76,11 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/domoticz",HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
 	server.on("/entsoe",HTTP_GET, std::bind(&AmsWebServer::configEntsoeHtml, this));
 	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
-	server.on("/gaugemeter.js", HTTP_GET, std::bind(&AmsWebServer::gaugemeterJs, this)); 
 	server.on("/github.svg", HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
 	server.on("/data.json", HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
+	server.on("/dayplot.json", HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
+	server.on("/monthplot.json", HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
+	server.on("/energyprice.json", HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
 
 	server.on("/save", HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
 
@@ -99,6 +114,10 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	MqttConfig mqttConfig;
 	config->getMqttConfig(mqttConfig);
 	mqttEnabled = strlen(mqttConfig.host) > 0;
+}
+
+void AmsWebServer::setMqtt(MQTTClient* mqtt) {
+	this->mqtt = mqtt;
 }
 
 void AmsWebServer::setTimezone(Timezone* tz) {
@@ -198,7 +217,7 @@ void AmsWebServer::temperaturePost() {
 		server.send (302, "text/plain", "");
 	} else {
 		printE("Error saving configuration");
-		String html = "<html><body><h1>Error saving configuration!</h1></form>";
+		String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
 		server.send(500, "text/html", html);
 	}
 }
@@ -335,6 +354,8 @@ void AmsWebServer::indexHtml() {
 
 		html.replace("{P}", String(meterState->getActiveImportPower()));
 		html.replace("{PO}", String(meterState->getActiveExportPower()));
+		html.replace("{Q}", String(meterState->getReactiveImportPower()));
+		html.replace("{QO}", String(meterState->getReactiveExportPower()));
 		html.replace("{de}", meterConfig->productionCapacity > 0 ? "" : "none");
 		html.replace("{dn}", meterConfig->productionCapacity > 0 ? "none" : "");
 		html.replace("{ti}", meterConfig->productionCapacity > 0 ? "Import" : "Use");
@@ -364,6 +385,8 @@ void AmsWebServer::indexHtml() {
 		int rssi = hw->getWifiRssi();
 		html.replace("{rssi}", String(rssi));
 
+		html.replace("{mem}", String(ESP.getFreeHeap()/1000, 1));
+
 		html.replace("{cs}", String((uint32_t)(millis64()/1000), 10));
 
 		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
@@ -391,10 +414,44 @@ void AmsWebServer::configMeterHtml() {
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
-	html.replace("{m}", String(meterConfig->mainFuse));
-	for(int i = 0; i<5; i++) {
-		html.replace("{m" + String(i) + "}", meterConfig->type == i ? "selected"  : "");
+	String manufacturer;
+	switch(meterState->getMeterType()) {
+		case AmsTypeAidon:
+			manufacturer = "Aidon";
+			break;
+		case AmsTypeKaifa:
+			manufacturer = "Kaifa";
+			break;
+		case AmsTypeKamstrup:
+			manufacturer = "Kamstrup";
+			break;
+		case AmsTypeIskra:
+			manufacturer = "Iskra";
+			break;
+		case AmsTypeLandis:
+			manufacturer = "Landis + Gyro";
+			break;
+		case AmsTypeSagemcom:
+			manufacturer = "Sagemcom";
+			break;
+		default:
+			manufacturer = "Unknown";
+			break;
 	}
+
+	html.replace("{maf}", manufacturer);
+	html.replace("{mod}", meterState->getMeterModel());
+	html.replace("{mid}", meterState->getMeterId());
+	html.replace("{b}", String(meterConfig->baud));
+	html.replace("{b2400}", meterConfig->baud == 2400 ? "selected"  : "");
+	html.replace("{b9600}", meterConfig->baud == 9600 ? "selected"  : "");
+	html.replace("{b115200}", meterConfig->baud == 115200 ? "selected"  : "");
+	html.replace("{c}", String(meterConfig->baud));
+	html.replace("{c2}", meterConfig->parity == 2 ? "selected"  : "");
+	html.replace("{c3}", meterConfig->parity == 3 ? "selected"  : "");
+	html.replace("{c10}", meterConfig->parity == 10 ? "selected"  : "");
+	html.replace("{c11}", meterConfig->parity == 11 ? "selected"  : "");
+	html.replace("{i}", meterConfig->invert ? "checked"  : "");
 	html.replace("{d}", String(meterConfig->distributionSystem));
 	for(int i = 0; i<3; i++) {
 		html.replace("{d" + String(i) + "}", meterConfig->distributionSystem == i ? "selected"  : "");
@@ -405,7 +462,7 @@ void AmsWebServer::configMeterHtml() {
 	}
 	html.replace("{p}", String(meterConfig->productionCapacity));
 
-	if(meterConfig->type == METER_TYPE_OMNIPOWER) {
+	if(meterConfig->encryptionKey[0] != 0x00) {
 		String encryptionKeyHex = "0x";
 		encryptionKeyHex += toHex(meterConfig->encryptionKey, 16);
 		html.replace("{e}", encryptionKeyHex);
@@ -417,8 +474,6 @@ void AmsWebServer::configMeterHtml() {
 		html.replace("{e}", "");
 		html.replace("{a}", "");
 	}
-
-	html.replace("{s}", meterConfig->substituteMissing ? "checked" : "");
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
@@ -490,14 +545,14 @@ void AmsWebServer::configMqttHtml() {
 
 	html.replace("{s}", mqtt.ssl ? "checked" : "");
 
-	if(SPIFFS.begin()) {
-		html.replace("{dcu}", SPIFFS.exists(FILE_MQTT_CA) ? "none" : "");
-		html.replace("{dcf}", SPIFFS.exists(FILE_MQTT_CA) ? "" : "none");
-		html.replace("{deu}", SPIFFS.exists(FILE_MQTT_CERT) ? "none" : "");
-		html.replace("{def}", SPIFFS.exists(FILE_MQTT_CERT) ? "" : "none");
-		html.replace("{dku}", SPIFFS.exists(FILE_MQTT_KEY) ? "none" : "");
-		html.replace("{dkf}", SPIFFS.exists(FILE_MQTT_KEY) ? "" : "none");
-		SPIFFS.end();
+	if(LittleFS.begin()) {
+		html.replace("{dcu}", LittleFS.exists(FILE_MQTT_CA) ? "none" : "");
+		html.replace("{dcf}", LittleFS.exists(FILE_MQTT_CA) ? "" : "none");
+		html.replace("{deu}", LittleFS.exists(FILE_MQTT_CERT) ? "none" : "");
+		html.replace("{def}", LittleFS.exists(FILE_MQTT_CERT) ? "" : "none");
+		html.replace("{dku}", LittleFS.exists(FILE_MQTT_KEY) ? "none" : "");
+		html.replace("{dkf}", LittleFS.exists(FILE_MQTT_KEY) ? "" : "none");
+		LittleFS.end();
 	} else {
 		html.replace("{dcu}", "");
 		html.replace("{dcf}", "none");
@@ -568,10 +623,10 @@ void AmsWebServer::configEntsoeHtml() {
 		html.replace("{eaDk1}", strcmp(entsoe.area, "10YDK-1--------W") == 0 ? "selected" : "");
 		html.replace("{eaDk2}", strcmp(entsoe.area, "10YDK-2--------M") == 0 ? "selected" : "");
 
-		html.replace("{ecNOK}", strcmp(entsoe.area, "NOK") == 0 ? "selected" : "");
-		html.replace("{ecSEK}", strcmp(entsoe.area, "SEK") == 0 ? "selected" : "");
-		html.replace("{ecDKK}", strcmp(entsoe.area, "DKK") == 0 ? "selected" : "");
-		html.replace("{ecEUR}", strcmp(entsoe.area, "EUR") == 0 ? "selected" : "");
+		html.replace("{ecNOK}", strcmp(entsoe.currency, "NOK") == 0 ? "selected" : "");
+		html.replace("{ecSEK}", strcmp(entsoe.currency, "SEK") == 0 ? "selected" : "");
+		html.replace("{ecDKK}", strcmp(entsoe.currency, "DKK") == 0 ? "selected" : "");
+		html.replace("{ecEUR}", strcmp(entsoe.currency, "EUR") == 0 ? "selected" : "");
 
 		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 		server.send_P(200, "text/html", HEAD_HTML);
@@ -616,13 +671,6 @@ void AmsWebServer::bootCss() {
 	server.send_P(200, "text/css", BOOT_CSS);
 }
 
-void AmsWebServer::gaugemeterJs() {
-	printD("Serving /gaugemeter.js over http...");
-
-	server.sendHeader("Cache-Control", "public, max-age=3600");
-	server.send_P(200, "application/javascript", GAUGEMETER_JS);
-}
-
 void AmsWebServer::githubSvg() {
 	printD("Serving /github.svg over http...");
 
@@ -665,7 +713,7 @@ void AmsWebServer::dataJson() {
 
 
 	uint8_t hanStatus;
-	if(meterConfig->type == 0) {
+	if(meterConfig->baud == 0) {
 		hanStatus = 0;
 	} else if(now - meterState->getLastUpdateMillis() < 15000) {
 		hanStatus = 1;
@@ -687,15 +735,19 @@ void AmsWebServer::dataJson() {
 	uint8_t mqttStatus;
 	if(!mqttEnabled) {
 		mqttStatus = 0;
-	} else if(mqtt->connected()) {
+	} else if(mqtt != NULL && mqtt->connected()) {
 		mqttStatus = 1;
-	} else if(mqtt->lastError() == 0) {
+	} else if(mqtt != NULL && mqtt->lastError() == 0) {
 		mqttStatus = 2;
 	} else {
 		mqttStatus = 3;
 	}
 
-	char json[290];
+	float price = ENTSOE_NO_VALUE;
+	if(eapi != NULL && strlen(eapi->getToken()) > 0)
+		price = eapi->getValueForHour(0);
+
+	char json[340];
 	snprintf_P(json, sizeof(json), DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		meterConfig->productionCapacity,
@@ -714,6 +766,10 @@ void AmsWebServer::dataJson() {
 		meterState->getL1Current(),
 		meterState->getL2Current(),
 		meterState->getL3Current(),
+		meterState->getPowerFactor(),
+		meterState->getL1PowerFactor(),
+		meterState->getL2PowerFactor(),
+		meterState->getL3PowerFactor(),
 		vcc,
 		rssi,
 		hw->getTemperature(),
@@ -723,7 +779,157 @@ void AmsWebServer::dataJson() {
 		hanStatus,
 		wifiStatus,
 		mqttStatus,
-		(int) mqtt->lastError()
+		mqtt == NULL ? 0 : (int) mqtt->lastError(),
+		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str()
+	);
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+
+	server.setContentLength(strlen(json));
+	server.send(200, "application/json", json);
+}
+
+void AmsWebServer::dayplotJson() {
+	printD("Serving /dayplot.json over http...");
+	if(ds == NULL) {
+		notFound();
+	} else {
+		char json[384];
+		snprintf_P(json, sizeof(json), DAYPLOT_JSON,
+			ds->getHour(0) / 1000.0,
+			ds->getHour(1) / 1000.0,
+			ds->getHour(2) / 1000.0,
+			ds->getHour(3) / 1000.0,
+			ds->getHour(4) / 1000.0,
+			ds->getHour(5) / 1000.0,
+			ds->getHour(6) / 1000.0,
+			ds->getHour(7) / 1000.0,
+			ds->getHour(8) / 1000.0,
+			ds->getHour(9) / 1000.0,
+			ds->getHour(10) / 1000.0,
+			ds->getHour(11) / 1000.0,
+			ds->getHour(12) / 1000.0,
+			ds->getHour(13) / 1000.0,
+			ds->getHour(14) / 1000.0,
+			ds->getHour(15) / 1000.0,
+			ds->getHour(16) / 1000.0,
+			ds->getHour(17) / 1000.0,
+			ds->getHour(18) / 1000.0,
+			ds->getHour(19) / 1000.0,
+			ds->getHour(20) / 1000.0,
+			ds->getHour(21) / 1000.0,
+			ds->getHour(22) / 1000.0,
+			ds->getHour(23) / 1000.0
+		);
+
+		server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+		server.sendHeader("Pragma", "no-cache");
+		server.sendHeader("Expires", "-1");
+
+		server.setContentLength(strlen(json));
+		server.send(200, "application/json", json);
+	}
+}
+
+void AmsWebServer::monthplotJson() {
+	printD("Serving /monthplot.json over http...");
+
+	if(ds == NULL) {
+		notFound();
+	} else {
+		char json[512];
+		snprintf_P(json, sizeof(json), MONTHPLOT_JSON,
+			ds->getDay(1) / 1000.0,
+			ds->getDay(2) / 1000.0,
+			ds->getDay(3) / 1000.0,
+			ds->getDay(4) / 1000.0,
+			ds->getDay(5) / 1000.0,
+			ds->getDay(6) / 1000.0,
+			ds->getDay(7) / 1000.0,
+			ds->getDay(8) / 1000.0,
+			ds->getDay(9) / 1000.0,
+			ds->getDay(10) / 1000.0,
+			ds->getDay(11) / 1000.0,
+			ds->getDay(12) / 1000.0,
+			ds->getDay(13) / 1000.0,
+			ds->getDay(14) / 1000.0,
+			ds->getDay(15) / 1000.0,
+			ds->getDay(16) / 1000.0,
+			ds->getDay(17) / 1000.0,
+			ds->getDay(18) / 1000.0,
+			ds->getDay(19) / 1000.0,
+			ds->getDay(20) / 1000.0,
+			ds->getDay(21) / 1000.0,
+			ds->getDay(22) / 1000.0,
+			ds->getDay(23) / 1000.0,
+			ds->getDay(24) / 1000.0,
+			ds->getDay(25) / 1000.0,
+			ds->getDay(26) / 1000.0,
+			ds->getDay(27) / 1000.0,
+			ds->getDay(28) / 1000.0,
+			ds->getDay(29) / 1000.0,
+			ds->getDay(30) / 1000.0,
+			ds->getDay(31) / 1000.0
+		);
+
+		server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+		server.sendHeader("Pragma", "no-cache");
+		server.sendHeader("Expires", "-1");
+
+		server.setContentLength(strlen(json));
+		server.send(200, "application/json", json);
+	}
+}
+
+void AmsWebServer::energyPriceJson() {
+	printD("Serving /energyprice.json over http...");
+
+	float prices[36];
+	for(int i = 0; i < 36; i++) {
+		prices[i] = eapi == NULL ? ENTSOE_NO_VALUE : eapi->getValueForHour(i);
+	}
+
+	char json[768];
+	snprintf_P(json, sizeof(json), ENERGYPRICE_JSON, 
+		eapi == NULL ? "" : eapi->getCurrency(),
+		prices[0] == ENTSOE_NO_VALUE ? "null" : String(prices[0], 2).c_str(),
+		prices[1] == ENTSOE_NO_VALUE ? "null" : String(prices[1], 2).c_str(),
+		prices[2] == ENTSOE_NO_VALUE ? "null" : String(prices[2], 2).c_str(),
+		prices[3] == ENTSOE_NO_VALUE ? "null" : String(prices[3], 2).c_str(),
+		prices[4] == ENTSOE_NO_VALUE ? "null" : String(prices[4], 2).c_str(),
+		prices[5] == ENTSOE_NO_VALUE ? "null" : String(prices[5], 2).c_str(),
+		prices[6] == ENTSOE_NO_VALUE ? "null" : String(prices[6], 2).c_str(),
+		prices[7] == ENTSOE_NO_VALUE ? "null" : String(prices[7], 2).c_str(),
+		prices[8] == ENTSOE_NO_VALUE ? "null" : String(prices[8], 2).c_str(),
+		prices[9] == ENTSOE_NO_VALUE ? "null" : String(prices[9], 2).c_str(),
+		prices[10] == ENTSOE_NO_VALUE ? "null" : String(prices[10], 2).c_str(),
+		prices[11] == ENTSOE_NO_VALUE ? "null" : String(prices[11], 2).c_str(),
+		prices[12] == ENTSOE_NO_VALUE ? "null" : String(prices[12], 2).c_str(),
+		prices[13] == ENTSOE_NO_VALUE ? "null" : String(prices[13], 2).c_str(),
+		prices[14] == ENTSOE_NO_VALUE ? "null" : String(prices[14], 2).c_str(),
+		prices[15] == ENTSOE_NO_VALUE ? "null" : String(prices[15], 2).c_str(),
+		prices[16] == ENTSOE_NO_VALUE ? "null" : String(prices[16], 2).c_str(),
+		prices[17] == ENTSOE_NO_VALUE ? "null" : String(prices[17], 2).c_str(),
+		prices[18] == ENTSOE_NO_VALUE ? "null" : String(prices[18], 2).c_str(),
+		prices[19] == ENTSOE_NO_VALUE ? "null" : String(prices[19], 2).c_str(),
+		prices[20] == ENTSOE_NO_VALUE ? "null" : String(prices[20], 2).c_str(),
+		prices[21] == ENTSOE_NO_VALUE ? "null" : String(prices[21], 2).c_str(),
+		prices[22] == ENTSOE_NO_VALUE ? "null" : String(prices[22], 2).c_str(),
+		prices[23] == ENTSOE_NO_VALUE ? "null" : String(prices[23], 2).c_str(),
+		prices[24] == ENTSOE_NO_VALUE ? "null" : String(prices[24], 2).c_str(),
+		prices[25] == ENTSOE_NO_VALUE ? "null" : String(prices[25], 2).c_str(),
+		prices[26] == ENTSOE_NO_VALUE ? "null" : String(prices[26], 2).c_str(),
+		prices[27] == ENTSOE_NO_VALUE ? "null" : String(prices[27], 2).c_str(),
+		prices[28] == ENTSOE_NO_VALUE ? "null" : String(prices[28], 2).c_str(),
+		prices[29] == ENTSOE_NO_VALUE ? "null" : String(prices[29], 2).c_str(),
+		prices[30] == ENTSOE_NO_VALUE ? "null" : String(prices[30], 2).c_str(),
+		prices[31] == ENTSOE_NO_VALUE ? "null" : String(prices[31], 2).c_str(),
+		prices[32] == ENTSOE_NO_VALUE ? "null" : String(prices[32], 2).c_str(),
+		prices[33] == ENTSOE_NO_VALUE ? "null" : String(prices[33], 2).c_str(),
+		prices[34] == ENTSOE_NO_VALUE ? "null" : String(prices[34], 2).c_str(),
+		prices[35] == ENTSOE_NO_VALUE ? "null" : String(prices[35], 2).c_str()
 	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -747,9 +953,6 @@ void AmsWebServer::handleSetup() {
 		config->getDebugConfig(debugConfig);
 
 		config->clear();
-
-		config->clearGpio(*gpioConfig);
-		config->clearMeter(*meterConfig);
 
 		switch(sys.boardType) {
 			case 0: // roarfred
@@ -874,10 +1077,6 @@ void AmsWebServer::handleSetup() {
 			printD("Unable to set web config");
 			success = false;
 		}
-		if(!config->setMeterConfig(*meterConfig)) {
-			printD("Unable to set meter config");
-			success = false;
-		}
 		if(!config->setGpioConfig(*gpioConfig)) {
 			printD("Unable to set GPIO config");
 			success = false;
@@ -895,7 +1094,7 @@ void AmsWebServer::handleSetup() {
 			server.send(303);
 		} else {
 			printE("Error saving configuration");
-			String html = "<html><body><h1>Error saving configuration!</h1></form>";
+			String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
 			server.send(500, "text/html", html);
 		}
 	}
@@ -910,7 +1109,9 @@ void AmsWebServer::handleSave() {
 
 	if(server.hasArg("mc") && server.arg("mc") == "true") {
 		printD("Received meter config");
-		meterConfig->type = server.arg("m").toInt();
+		meterConfig->baud = server.arg("b").toInt();
+		meterConfig->parity = server.arg("c").toInt();
+		meterConfig->invert = server.hasArg("i") && server.arg("i") == "true";
 		meterConfig->distributionSystem = server.arg("d").toInt();
 		meterConfig->mainFuse = server.arg("f").toInt();
 		meterConfig->productionCapacity = server.arg("p").toInt();
@@ -926,7 +1127,6 @@ void AmsWebServer::handleSave() {
 			authenticationKeyHex.replace("0x", "");
 			fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
 		}
-		meterConfig->substituteMissing = server.hasArg("s") && server.arg("s") == "true";
 		config->setMeterConfig(*meterConfig);
 	}
 
@@ -1017,6 +1217,8 @@ void AmsWebServer::handleSave() {
 		gpioConfig->vccOffset = server.hasArg("vccOffset") && !server.arg("vccOffset").isEmpty() ? server.arg("vccOffset").toFloat() * 100 : 0;
 		gpioConfig->vccMultiplier = server.hasArg("vccMultiplier") && !server.arg("vccMultiplier").isEmpty() ? server.arg("vccMultiplier").toFloat() * 1000 : 1000;
 		gpioConfig->vccBootLimit = server.hasArg("vccBootLimit") && !server.arg("vccBootLimit").isEmpty() ? server.arg("vccBootLimit").toFloat() * 10 : 0;
+		gpioConfig->vccResistorGnd = server.hasArg("vccResistorGnd") && !server.arg("vccResistorGnd").isEmpty() ? server.arg("vccResistorGnd").toInt() : 0;
+		gpioConfig->vccResistorVcc = server.hasArg("vccResistorVcc") && !server.arg("vccResistorVcc").isEmpty() ? server.arg("vccResistorVcc").toInt() : 0;
 		config->setGpioConfig(*gpioConfig);
 	}
 
@@ -1083,7 +1285,7 @@ void AmsWebServer::handleSave() {
 		}
 	} else {
 		printE("Error saving configuration");
-		String html = "<html><body><h1>Error saving configuration!</h1></form>";
+		String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
 		server.send(500, "text/html", html);
 	}
 }
@@ -1151,6 +1353,9 @@ void AmsWebServer::configGpioHtml() {
 	html.replace("${config.vccOffset}", gpioConfig->vccOffset > 0 ? String(gpioConfig->vccOffset / 100.0, 2) : "");
 	html.replace("${config.vccMultiplier}", gpioConfig->vccMultiplier > 0 ? String(gpioConfig->vccMultiplier / 1000.0, 2) : "");
 	html.replace("${config.vccBootLimit}", gpioConfig->vccBootLimit > 0 ? String(gpioConfig->vccBootLimit / 10.0, 1) : "");
+
+	html.replace("${config.vccResistorGnd}", gpioConfig->vccResistorGnd > 0 ? String(gpioConfig->vccResistorGnd) : "");
+	html.replace("${config.vccResistorVcc}", gpioConfig->vccResistorVcc > 0 ? String(gpioConfig->vccResistorVcc) : "");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -1240,31 +1445,75 @@ void AmsWebServer::uploadFile(const char* path) {
     if(upload.status == UPLOAD_FILE_START){
 		if(uploading) {
 			printE("Upload already in progress");
-			String html = "<html><body><h1>Upload already in progress!</h1></form>";
+			String html = "<html><body><h1>Upload already in progress!</h1></body></html>";
 			server.send(500, "text/html", html);
-		} else if (!SPIFFS.begin()) {
-			printE("An Error has occurred while mounting SPIFFS");
-			String html = "<html><body><h1>Unable to mount SPIFFS!</h1></form>";
+		} else if (!LittleFS.begin()) {
+			printE("An Error has occurred while mounting LittleFS");
+			String html = "<html><body><h1>Unable to mount LittleFS!</h1></body></html>";
 			server.send(500, "text/html", html);
 		} else {
 			uploading = true;
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf("handleFileUpload file: %s\n", path);
 			}
-		    file = SPIFFS.open(path, "w");
-            file.write(upload.buf, upload.currentSize);
+			#if defined(ESP32)
+				if(debugger->isActive(RemoteDebug::DEBUG)) {
+					debugger->printf("handleFileUpload Free heap: %lu\n", ESP.getFreeHeap());
+					debugger->printf("handleFileUpload LittleFS size: %lu\n", LittleFS.totalBytes());
+					debugger->printf("handleFileUpload LittleFS used: %lu\n", LittleFS.usedBytes());
+					debugger->printf("handleFileUpload LittleFS free: %lu\n", LittleFS.totalBytes()-LittleFS.usedBytes());
+				}
+			#endif
+		    file = LittleFS.open(path, "w");
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf("handleFileUpload Open file and write: %lu\n", upload.currentSize);
+			}
+            size_t written = file.write(upload.buf, upload.currentSize);
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf("handleFileUpload Written: %lu\n", written);
+			}
 	    } 
     } else if(upload.status == UPLOAD_FILE_WRITE) {
-        if(file)
-            file.write(upload.buf, upload.currentSize);
+		if(debugger->isActive(RemoteDebug::DEBUG)) {
+			debugger->printf("handleFileUpload Writing: %lu\n", upload.currentSize);
+		}
+        if(file) {
+            size_t written = file.write(upload.buf, upload.currentSize);
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf("handleFileUpload Written: %lu\n", written);
+			}
+			delay(1);
+			if(written != upload.currentSize) {
+				#if defined(ESP32)
+					if(debugger->isActive(RemoteDebug::DEBUG)) {
+						debugger->printf("handleFileUpload Free heap: %lu\n", ESP.getFreeHeap());
+						debugger->printf("handleFileUpload LittleFS size: %lu\n", LittleFS.totalBytes());
+						debugger->printf("handleFileUpload LittleFS used: %lu\n", LittleFS.usedBytes());
+						debugger->printf("handleFileUpload LittleFS free: %lu\n", LittleFS.totalBytes()-LittleFS.usedBytes());
+					}
+				#endif
+
+				file.flush();
+				file.close();
+				LittleFS.remove(path);
+				LittleFS.end();
+
+				printE("An Error has occurred while writing file");
+				String html = "<html><body><h1>Unable to write file!</h1></body></html>";
+				server.send(500, "text/html", html);
+			}
+		}
     } else if(upload.status == UPLOAD_FILE_END) {
         if(file) {
 			file.flush();
             file.close();
-			SPIFFS.end();
+		    file = LittleFS.open(path, "r");
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf("handleFileUpload Size: %lu\n", upload.totalSize);
+				debugger->printf("handleFileUpload File size: %lu\n", file.size());
 			}
+            file.close();
+			LittleFS.end();
         } else {
             server.send(500, "text/plain", "500: couldn't create file");
         }
@@ -1272,9 +1521,9 @@ void AmsWebServer::uploadFile(const char* path) {
 }
 
 void AmsWebServer::deleteFile(const char* path) {
-	if(SPIFFS.begin()) {
-		SPIFFS.remove(path);
-		SPIFFS.end();
+	if(LittleFS.begin()) {
+		LittleFS.remove(path);
+		LittleFS.end();
 	}
 }
 
@@ -1284,7 +1533,21 @@ void AmsWebServer::firmwareHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	uploadHtml("Firmware", "/firmware", "system");
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	String html = String((const __FlashStringHelper*) FIRMWARE_HTML);
+
+	#if defined(ESP8266)
+	html.replace("{chipset}", "ESP8266");
+	#elif defined(ESP32)
+	html.replace("{chipset}", "ESP32");
+	#endif
+	
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::firmwareUpload() {
@@ -1320,32 +1583,31 @@ void AmsWebServer::firmwareDownload() {
 		WiFiClientSecure client;
 #if defined(ESP8266)
 		client.setBufferSizes(512, 512);
+		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp8266-" + versionStripped + ".bin";
+#elif defined(ESP32)
+		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32-" + versionStripped + ".bin";
+#endif
 		client.setInsecure();
-#endif
-		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp12e-" + versionStripped + ".bin";
 		HTTPClient https;
-#if defined(ESP8266)
-		https.setFollowRedirects(true);
-#endif
+		https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
+		https.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 		if(https.begin(client, url)) {
-			https.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 			printD("HTTP client setup successful");
 			int status = https.GET();
 			if(status == HTTP_CODE_OK) {
 				printD("Received OK from server");
-				if(SPIFFS.begin()) {
-					printI("Downloading firmware to SPIFFS");
-					file = SPIFFS.open(FILE_FIRMWARE, "w");
-					// The following does not work... Maybe someone will make it work in the future? It seems to be disconnected at this point.
+				if(LittleFS.begin()) {
+					printI("Downloading firmware to LittleFS");
+					file = LittleFS.open(FILE_FIRMWARE, "w");
 					int len = https.writeToStream(&file);
 					file.close();
-					SPIFFS.end();
+					LittleFS.end();
 					performRestart = true;
 					server.sendHeader("Location","/restart-wait");
 					server.send(303);
 				} else {
-					printE("Unable to open SPIFFS for writing");
+					printE("Unable to open LittleFS for writing");
 					server.sendHeader("Location","/");
 					server.send(303);
 				}
@@ -1370,6 +1632,7 @@ void AmsWebServer::firmwareDownload() {
 			server.send(303);
 		}
 		https.end();
+		client.stop();
 	} else {
 		printI("No firmware version specified...");
 		server.sendHeader("Location","/");
@@ -1431,7 +1694,9 @@ void AmsWebServer::restartWaitHtml() {
 
 	yield();
 	if(performRestart) {
-		SPIFFS.end();
+		if(ds != NULL) {
+			ds->save();
+		}
 		printI("Rebooting");
 		delay(1000);
 #if defined(ESP8266)
@@ -1474,13 +1739,13 @@ void AmsWebServer::mqttCa() {
 	if(!checkSecurity(1))
 		return;
 
-	if(SPIFFS.begin()) {
-		if(SPIFFS.exists(FILE_MQTT_CA)) {
+	if(LittleFS.begin()) {
+		if(LittleFS.exists(FILE_MQTT_CA)) {
 			deleteHtml("CA file", "/mqtt-ca/delete", "mqtt");
 		} else {
 			uploadHtml("CA file", "/mqtt-ca", "mqtt");
 		}
-		SPIFFS.end();
+		LittleFS.end();
 	} else {
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
@@ -1528,13 +1793,13 @@ void AmsWebServer::mqttCert() {
 	if(!checkSecurity(1))
 		return;
 
-	if(SPIFFS.begin()) {
-		if(SPIFFS.exists(FILE_MQTT_CERT)) {
+	if(LittleFS.begin()) {
+		if(LittleFS.exists(FILE_MQTT_CERT)) {
 			deleteHtml("Certificate", "/mqtt-cert/delete", "mqtt");
 		} else {
 			uploadHtml("Certificate", "/mqtt-cert", "mqtt");
 		}
-		SPIFFS.end();
+		LittleFS.end();
 	} else {
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
@@ -1581,13 +1846,13 @@ void AmsWebServer::mqttKey() {
 	if(!checkSecurity(1))
 		return;
 
-	if(SPIFFS.begin()) {
-		if(SPIFFS.exists(FILE_MQTT_KEY)) {
+	if(LittleFS.begin()) {
+		if(LittleFS.exists(FILE_MQTT_KEY)) {
 			deleteHtml("Private key", "/mqtt-key/delete", "mqtt");
 		} else {
 			uploadHtml("Private key", "/mqtt-key", "mqtt");
 		}
-		SPIFFS.end();
+		LittleFS.end();
 	} else {
 		server.sendHeader("Location","/config-mqtt");
 		server.send(303);
@@ -1646,8 +1911,8 @@ void AmsWebServer::factoryResetPost() {
 
 	printD("Performing factory reset");
 	if(server.hasArg("perform") && server.arg("perform") == "true") {
-		printD("Formatting SPIFFS");
-		SPIFFS.format();
+		printD("Formatting LittleFS");
+		LittleFS.format();
 		printD("Clearing configuration");
 		config->clear();
 		printD("Setting restart flag and redirecting");

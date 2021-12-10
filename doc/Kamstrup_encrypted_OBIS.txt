@@ -1,0 +1,32 @@
+1.1.1.8.0.255 - Active+ Energy
+1.1.2.8.0.255 - Active- Energy
+1.1.3.8.0.255 - Reactive+ Energy
+1.1.4.8.0.255 - Reactive- Energy
+1.1.0.0.1.255 - Electricity ID?
+1.1.1.7.0.255 - Active+ Instantaneous value
+1.1.2.7.0.255 - Active- Instantaneous value
+1.1.3.7.0.255 - Reactive+ Instantaneous value
+1.1.4.7.0.255 - Reactive- Instantaneous value
+0.1.1.0.0.255 - Current date/time
+1.1.32.7.0.255 - L1 Voltage Instantaneous value
+1.1.52.7.0.255 - L2 Voltage Instantaneous value
+1.1.72.7.0.255 - L3 Voltage Instantaneous value
+1.1.31.7.0.255 - L1 Current Instantaneous value
+1.1.51.7.0.255 - L2 Current Instantaneous value
+1.1.71.7.0.255 - L3 Current Instantaneous value
+1.1.21.7.0.255 - L1 Active+ Instantaneous value
+1.1.41.7.0.255 - L2 Active+ Instantaneous value
+1.1.61.7.0.255 - L3 Active+ Instantaneous value
+1.1.33.7.0.255 - L1 (cos.phi) (PF) Instantaneous value
+1.1.53.7.0.255 - L2 (cos.phi) (PF) Instantaneous value
+1.1.73.7.0.255 - L3 (cos.phi) (PF) Instantaneous value
+1.1.13.7.0.255 - Avegage (cos.phi) (PF) Inst. value
+1.1.22.7.0.255 - L1 Active- Instantaneous value
+1.1.42.7.0.255 - L2 Active- Instantaneous value
+1.1.62.7.0.255 - L3 Active- Instantaneous value
+1.1.22.8.0.255 - L1 Active- Energy
+1.1.42.8.0.255 - L2 Active- Energy
+1.1.62.8.0.255 - L3 Active- Energy
+1.1.21.8.0.255 - L1 Active+ Energy
+1.1.41.8.0.255 - L2 Active+ Energy
+1.1.61.8.0.255 - L3 Active+ Energy

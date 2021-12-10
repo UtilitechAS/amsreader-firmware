@@ -6,23 +6,67 @@
             <div class="col-lg-3 col-md-4 col-sm-6">
                 <div class="m-2 input-group input-group-sm">
                     <div class="input-group-prepend">
-                        <span class="input-group-text">Meter type</span>
+                        <span class="input-group-text">Manufacturer</span>
                     </div>
-                    <select id="mt" class="form-control sd" name="m">
-                        <option value="0" {m0}>Autodetect</option>
-                        <option value="1" {m1}>Kaifa</option>
-                        <option value="2" {m2}>Aidon</option>
-                        <option value="3" {m3}>Kamstrup non-encrypted</option>
-                        <option value="4" {m4}>Kamstrup encrypted</option>
+                    <input class="form-control" value="{maf}" disabled/>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Model</span>
+                    </div>
+                    <input class="form-control" value="{mod}" disabled/>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">ID</span>
+                    </div>
+                    <input class="form-control" value="{mid}" disabled/>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-3 col-md-4 col-sm-5">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Baud rate</span>
+                    </div>
+                    <select class="form-control sd" name="b">
+                        <option value="2400" {b2400}>2400</option>
+                        <option value="9600" {b9600}>9600</option>
+                        <option value="115200" {b115200}>115200</option>
                     </select>
                 </div>
             </div>
+            <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Parity</span>
+                    </div>
+                    <select class="form-control sd" name="c">
+                        <option value="2" {c2}>7N1</option>
+                        <option value="3" {c3}>8N1</option>
+                        <option value="10" {c10}>7E1</option>
+                        <option value="11" {c11}>8E1</option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-lg-3 col-md-4 col-sm-3 col-6">
+                <div class="m-2">
+                    <label class="small"><input type="checkbox" name="i" value="true" {i}/> Invert <span class="d-none d-md-inline">signal</span></label>
+                </div>
+            </div>
+        </div>
+        <div class="row">
             <div class="col-xl-3 col-lg-4 col-md-5 col-sm-6">
                 <div class="m-2 input-group input-group-sm">
                     <div class="input-group-prepend">
                         <span class="input-group-text">Distribution system</span>
                     </div>
-                    <select id="d" class="form-control sd" name="d">
+                    <select class="form-control sd" name="d">
                         <option value="0" {d0}></option>
                         <option value="1" {d1}>IT (230V)</option>
                         <option value="2" {d2}>TN (400V)</option>
@@ -36,6 +80,8 @@
                     </div>
                     <select class="form-control" name="f">
                         <option value="0" {f0}></option>
+                        <option value="16" {f16}>16A</option>
+                        <option value="20" {f20}>20A</option>
                         <option value="25" {f25}>25A</option>
                         <option value="32" {f32}>32A</option>
                         <option value="35" {f35}>35A</option>
@@ -56,25 +102,22 @@
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6 enc">
+        </div>
+        <div class="row">
+            <div class="col-lg-6">
                 <div class="m-2 input-group input-group-sm">
                     <div class="input-group-prepend">
                         <span class="input-group-text">Encryption key</span>
                     </div>
-                    <input class="form-control" name="e" type="text" value="{e}"/>
+                    <input class="form-control" name="e" type="text" value="{e}" placeholder="If applicable"/>
                 </div>
             </div>
-            <div class="col-lg-6 enc">
+            <div class="col-lg-6">
                 <div class="m-2 input-group input-group-sm">
                     <div class="input-group-prepend">
                         <span class="input-group-text">Authentication key</span>
                     </div>
-                    <input class="form-control" name="a" type="text" value="{a}"/>
-                </div>
-            </div>
-            <div id="ss" class="col-lg-3 col-md-4 col-sm-5">
-                <div class="m-2">
-                    <label class="small"><input type="checkbox" name="s" value="true" {s}/> Substitute missing values</label>
+                    <input class="form-control" name="a" type="text" value="{a}" placeholder="If applicable"/>
                 </div>
             </div>
         </div>

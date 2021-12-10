@@ -1,3 +1,11 @@
+<div class="alert alert-danger">
+    WARNING: Units powered over M-bus must be connected to an external power supply during firmware upload. Failure to do so may cause power-down during upload resulting in non-functioning unit.
+</div>
+<div class="alert alert-warning">
+    Your board is using {chipset} chipset. Only upload firmware designed for this chipset. Failure to do so may result in non-functioning unit.
+    <span id="fwDownload" style="display: none;"><br/>Download latest firmware file <a  id="fwLink" href="#" data-chipset="{chipset}">here</a></span>
+</div>
+
 <form method="post" enctype="multipart/form-data" class="upload-form">
     <div class="my-3 p-3 bg-white rounded shadow">
         <div class="row">
@@ -11,12 +19,6 @@
                         <label class="custom-file-label" for="fileUploadField">Choose file</label>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div id="firmware-warn" style="display: none;">
-            <br/>
-            <div class="alert alert-danger">
-                WARNING: Units powered over M-bus must be connected to an external power supply during firmware upload. Failure to do so may cause power-down during upload resulting in non-functioning unit.
             </div>
         </div>
     </div>

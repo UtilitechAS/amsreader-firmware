@@ -1,0 +1,18 @@
+1.1.0.2.129.255 - List version identifier
+0.0.96.1.0.255 - Meter ID
+0.0.96.1.7.255 - Meter Model
+1.0.1.7.0.255 - Active+ Instantaneous value 
+1.0.2.7.0.255 - Active- Instantaneous value
+1.0.3.7.0.255 - Reactive+ Instantaneous value
+1.0.4.7.0.255 - Reactive- Instantaneous value
+1.0.31.7.0.255 - L1 Current Instantaneous value
+1.0.51.7.0.255 - L2 Current Instantaneous value
+1.0.71.7.0.255 - L3 Current Instantaneous value
+1.0.32.7.0.255 - L1 Voltage Instantaneous value
+1.0.52.7.0.255 - L2 Voltage Instantaneous value
+1.0.72.7.0.255 - L3 Voltage Instantaneous value
+0.0.1.0.0.255 - Current date/time 
+1.0.1.8.0.255 - Active+ Energy
+1.0.2.8.0.255 - Active- Energy
+1.0.3.8.0.255 - Reactive+ Energy
+1.0.4.8.0.255 - Reactive- Energy

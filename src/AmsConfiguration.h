@@ -3,23 +3,26 @@
 #include <EEPROM.h>
 #include "Arduino.h"
 
-#define EEPROM_SIZE 1024 * 3
-#define EEPROM_CHECK_SUM 87 // Used to check if config is stored. Change if structure changes
+#define EEPROM_SIZE 1024*3
+#define EEPROM_CHECK_SUM 90 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
 #define CONFIG_SYSTEM_START 8
 #define CONFIG_WIFI_START 16
+#define CONFIG_METER_START 224
+#define CONFIG_GPIO_START 266
+#define CONFIG_ENTSOE_START 286
 #define CONFIG_WEB_START 648
-#define CONFIG_METER_START 784
 #define CONFIG_DEBUG_START 824
-#define CONFIG_GPIO_START 832
 #define CONFIG_DOMOTICZ_START 856 
 #define CONFIG_NTP_START 872
-#define CONFIG_ENTSOE_START 944
 #define CONFIG_MQTT_START 1004
 
 #define CONFIG_MQTT_START_86 224
+#define CONFIG_METER_START_87 784
+#define CONFIG_GPIO_START_88 832
+#define CONFIG_ENTSOE_START_89 944
 
 
 struct SystemConfig {
@@ -69,6 +72,17 @@ struct WebConfig {
 }; // 129
 
 struct MeterConfig {
+	uint32_t baud;
+	uint8_t parity;
+	bool invert;
+	uint8_t distributionSystem;
+	uint8_t mainFuse;
+	uint8_t productionCapacity;
+	uint8_t encryptionKey[16];
+	uint8_t authenticationKey[16];
+}; // 41
+
+struct MeterConfig87 {
 	uint8_t type;
 	uint8_t distributionSystem;
 	uint8_t mainFuse;
@@ -85,6 +99,25 @@ struct DebugConfig {
 }; // 3
 
 struct GpioConfig {
+	uint8_t hanPin;
+	uint8_t apPin;
+	uint8_t ledPin;
+	bool ledInverted;
+	uint8_t ledPinRed;
+	uint8_t ledPinGreen;
+	uint8_t ledPinBlue;
+	bool ledRgbInverted;
+	uint8_t tempSensorPin;
+	uint8_t tempAnalogSensorPin;
+	uint8_t vccPin;
+	int16_t vccOffset;
+	uint16_t vccMultiplier;
+	uint8_t vccBootLimit;
+	uint16_t vccResistorGnd;
+	uint16_t vccResistorVcc;
+}; // 20
+
+struct GpioConfig88 {
 	uint8_t hanPin;
 	uint8_t apPin;
 	uint8_t ledPin;
@@ -117,12 +150,19 @@ struct NtpConfig {
 	char server[64];
 }; // 70
 
-struct EntsoeConfig {
+struct EntsoeConfig89 {
 	char token[37];
 	char area[17];
 	char currency[4];
 	uint16_t multiplier;
 }; // 60
+
+struct EntsoeConfig {
+	char token[37];
+	char area[17];
+	char currency[4];
+	uint32_t multiplier;
+}; // 62
 
 struct ConfigObject83 {
 	uint8_t boardType;
@@ -188,60 +228,6 @@ struct ConfigObject83 {
 	char ntpServer[64];
 
 	uint8_t tempAnalogSensorPin;
-};
-
-struct ConfigObject82 {
-	uint8_t boardType;
-	char wifiSsid[32];
-	char wifiPassword[64];
-    char wifiIp[15];
-    char wifiGw[15];
-    char wifiSubnet[15];
-	char wifiDns1[15];
-	char wifiDns2[15];
-	char wifiHostname[32];
-	char mqttHost[128];
-	uint16_t mqttPort;
-	char mqttClientId[32];
-	char mqttPublishTopic[64];
-	char mqttSubscribeTopic[64];
-	char mqttUser[64];
-	char mqttPassword[64];
-	uint8_t mqttPayloadFormat;
-	bool mqttSsl;
-	uint8_t authSecurity;
-	char authUser[64];
-	char authPassword[64];
-
-	uint8_t meterType;
-	uint8_t distributionSystem;
-	uint8_t mainFuse;
-	uint8_t productionCapacity;
-	bool substituteMissing;
-	bool sendUnknown;
-
-	bool debugTelnet;
-	bool debugSerial;
-	uint8_t debugLevel;
-
-	uint8_t hanPin;
-	uint8_t apPin;
-	uint8_t ledPin;
-	bool ledInverted;
-	uint8_t ledPinRed;
-	uint8_t ledPinGreen;
-	uint8_t ledPinBlue;
-	bool ledRgbInverted;
-	uint8_t tempSensorPin;
-	uint8_t vccPin;
-	uint16_t vccMultiplier;
-	uint8_t vccBootLimit;
-
-	uint16_t domoELIDX;
-	uint16_t domoVL1IDX;
-	uint16_t domoVL2IDX;
-	uint16_t domoVL3IDX;
-	uint16_t domoCL1IDX;
 };
 
 struct TempSensorConfig {
@@ -334,9 +320,11 @@ private:
 	uint8_t tempSensorCount = 0;
 	TempSensorConfig** tempSensors;
 
-	bool loadConfig82(int address);
 	bool loadConfig83(int address);
 	bool relocateConfig86();
+	bool relocateConfig87();
+	bool relocateConfig88(); // dev 1.6
+	bool relocateConfig89(); // dev 1.6
 
 	int readString(int pAddress, char* pString[]);
 	int readInt(int pAddress, int *pValue);

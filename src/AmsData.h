@@ -3,17 +3,22 @@
 
 #include "Arduino.h"
 #include <Timezone.h>
-#include "HanReader.h"
 
-#define METER_TYPE_KAIFA 1
-#define METER_TYPE_AIDON 2
-#define METER_TYPE_KAMSTRUP 3
-#define METER_TYPE_OMNIPOWER 4
+enum AmsType {
+    AmsTypeAutodetect = 0x00,
+    AmsTypeAidon = 0x01,
+    AmsTypeKaifa = 0x02,
+    AmsTypeKamstrup = 0x03,
+    AmsTypeIskra = 0x08,
+    AmsTypeLandis = 0x09,
+    AmsTypeSagemcom = 0x0A,
+    AmsTypeCustom = 0x88,
+    AmsTypeUnknown = 0xFF
+};
 
 class AmsData {
 public:
     AmsData();
-    AmsData(uint8_t meterType, bool substituteMissing, HanReader& hanReader);
 
     void apply(AmsData& other);
 
@@ -25,6 +30,7 @@ public:
 
     String getListId();
     String getMeterId();
+    uint8_t getMeterType();
     String getMeterModel();
 
     time_t getMeterTimestamp();
@@ -42,6 +48,11 @@ public:
     float getL2Current();
     float getL3Current();
 
+    float getPowerFactor();
+    float getL1PowerFactor();
+    float getL2PowerFactor();
+    float getL3PowerFactor();
+
     float getActiveImportCounter();
     float getReactiveImportCounter();
     float getActiveExportCounter();
@@ -50,21 +61,17 @@ public:
     bool isThreePhase();
     bool isTwoPhase();
 
-private:
+protected:
     unsigned long lastUpdateMillis = 0;
-    uint8_t listType = 0;
+    uint8_t listType = 0, meterType = AmsTypeUnknown;
     time_t packageTimestamp = 0;
     String listId, meterId, meterModel;
     time_t meterTimestamp = 0;
     uint16_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
     float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
+    float powerFactor = 0, l1PowerFactor = 0, l2PowerFactor = 0, l3PowerFactor = 0;
     float activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
     bool threePhase = false, twoPhase = false, counterEstimated = false;
-
-    void extractFromKaifa(HanReader& hanReader, uint8_t listSize);
-    void extractFromAidon(HanReader& hanReader, uint8_t listSize);
-    void extractFromKamstrup(HanReader& hanReader, uint8_t listSize);
-    void extractFromOmnipower(HanReader& hanReader, uint8_t listSize);
 };
 
 #endif

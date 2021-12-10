@@ -182,7 +182,12 @@ bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
 bool AmsConfiguration::setMeterConfig(MeterConfig& config) {
 	MeterConfig existing;
 	if(getMeterConfig(existing)) {
-		meterChanged |= config.type != existing.type;
+		meterChanged |= config.baud != existing.baud;
+		meterChanged |= config.parity != existing.parity;
+		meterChanged |= config.invert != existing.invert;
+		meterChanged |= config.distributionSystem != existing.distributionSystem;
+		meterChanged |= config.mainFuse != existing.mainFuse;
+		meterChanged |= config.productionCapacity != existing.productionCapacity;
 		meterChanged |= strcmp((char*) config.encryptionKey, (char*) existing.encryptionKey);
 		meterChanged |= strcmp((char*) config.authenticationKey, (char*) existing.authenticationKey);
 	} else {
@@ -196,13 +201,14 @@ bool AmsConfiguration::setMeterConfig(MeterConfig& config) {
 }
 
 void AmsConfiguration::clearMeter(MeterConfig& config) {
-	config.type = 0;
+	config.baud = 2400;
+	config.parity = 11; // 8E1
+	config.invert = false;
 	config.distributionSystem = 0;
 	config.mainFuse = 0;
 	config.productionCapacity = 0;
 	memset(config.encryptionKey, 0, 16);
 	memset(config.authenticationKey, 0, 16);
-	config.substituteMissing = false;
 }
 
 bool AmsConfiguration::isMeterChanged() {
@@ -382,6 +388,8 @@ void AmsConfiguration::clearGpio(GpioConfig& config) {
 	config.vccOffset = 0;
 	config.vccMultiplier = 1000;
 	config.vccBootLimit = 0;
+	config.vccResistorGnd = 0;
+	config.vccResistorVcc = 0;
 }
 
 bool AmsConfiguration::getNtpConfig(NtpConfig& config) {
@@ -521,16 +529,6 @@ bool AmsConfiguration::hasConfig() {
 		EEPROM.end();
 	}
 	switch(configVersion) {
-		case 82:
-			configVersion = -1; // Prevent loop
-			if(loadConfig82(EEPROM_CONFIG_ADDRESS+1)) {
-				configVersion = EEPROM_CHECK_SUM;
-				return true;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-			break;
 		case 83:
 			configVersion = -1; // Prevent loop
 			if(loadConfig83(EEPROM_CONFIG_ADDRESS+1)) {
@@ -544,20 +542,42 @@ bool AmsConfiguration::hasConfig() {
 		case 86:
 			configVersion = -1; // Prevent loop
 			if(relocateConfig86()) {
-				configVersion = EEPROM_CHECK_SUM;
-				return true;
+				configVersion = 87;
 			} else {
 				configVersion = 0;
 				return false;
 			}
-			break;
-		    break;
+		case 87:
+			configVersion = -1; // Prevent loop
+			if(relocateConfig87()) {
+				configVersion = 88;
+			} else {
+				configVersion = 0;
+				return false;
+			}
+		case 88:
+			configVersion = -1; // Prevent loop
+			if(relocateConfig88()) {
+				configVersion = 89;
+			} else {
+				configVersion = 0;
+				return false;
+			}
+		case 89:
+			configVersion = -1; // Prevent loop
+			if(relocateConfig89()) {
+				configVersion = 90;
+			} else {
+				configVersion = 0;
+				return false;
+			}
 		case EEPROM_CHECK_SUM:
 			return true;
 		default:
 			configVersion = 0;
 			return false;
 	}
+	return configVersion == EEPROM_CHECK_SUM;
 }
 
 int AmsConfiguration::getConfigVersion() {
@@ -602,107 +622,6 @@ void AmsConfiguration::saveTempSensors() {
 	}
 }
 
-bool AmsConfiguration::loadConfig82(int address) {
-	ConfigObject82 c;
-	EEPROM.begin(EEPROM_SIZE);
-	EEPROM.get(address, c);
-
-	EntsoeConfig entsoe;
-	clearEntsoe(entsoe);
-	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
-
-	NtpConfig ntp;
-	clearNtp(ntp);
-	EEPROM.put(CONFIG_NTP_START, ntp);
-
-	DomoticzConfig domo {
-		c.domoELIDX,
-		c.domoVL1IDX,
-		c.domoVL2IDX,
-		c.domoVL3IDX,
-		c.domoCL1IDX
-	};
-	EEPROM.put(CONFIG_DOMOTICZ_START, domo);
-
-	GpioConfig gpio {
-		c.hanPin,
-		c.apPin,
-		c.ledPin,
-		c.ledInverted,
-		c.ledPinRed,
-		c.ledPinGreen,
-		c.ledPinBlue,
-		c.ledRgbInverted,
-		c.tempSensorPin,
-		0xFF,
-		c.vccPin,
-		0,
-		c.vccMultiplier,
-		c.vccBootLimit
-	};
-	EEPROM.put(CONFIG_GPIO_START, gpio);
-
-	DebugConfig debug {
-		c.debugTelnet,
-		c.debugSerial,
-		c.debugLevel
-	};
-	EEPROM.put(CONFIG_DEBUG_START, debug);
-
-	MeterConfig meter {
-		c.meterType,
-		c.distributionSystem,
-		c.mainFuse,
-		c.productionCapacity,
-		{0},
-		{0},
-		c.substituteMissing
-	};
-	EEPROM.put(CONFIG_METER_START, meter);
-
-	WebConfig web {
-		c.authSecurity
-	};
-	strcpy(web.username, c.authUser);
-	strcpy(web.password, c.authPassword);
-	EEPROM.put(CONFIG_WEB_START, web);
-
-	MqttConfig mqtt;
-	strcpy(mqtt.host, c.mqttHost);
-	mqtt.port = c.mqttPort;
-	strcpy(mqtt.clientId, c.mqttClientId);
-	strcpy(mqtt.publishTopic, c.mqttPublishTopic);
-	strcpy(mqtt.subscribeTopic, c.mqttSubscribeTopic);
-	strcpy(mqtt.username, c.mqttUser);
-	strcpy(mqtt.password, c.mqttPassword);
-	mqtt.payloadFormat = c.mqttPayloadFormat;
-	mqtt.ssl = c.mqttSsl;
-	EEPROM.put(CONFIG_MQTT_START, mqtt);
-
-	WiFiConfig wifi;
-	strcpy(wifi.ssid, c.wifiSsid);
-	strcpy(wifi.psk, c.wifiPassword);
-    strcpy(wifi.ip, c.wifiIp);
-    strcpy(wifi.gateway, c.wifiGw);
-    strcpy(wifi.subnet, c.wifiSubnet);
-	strcpy(wifi.dns1, c.wifiDns1);
-	strcpy(wifi.dns2, c.wifiDns2);
-	strcpy(wifi.hostname, c.wifiHostname);
-	wifi.mdns = true;
-	EEPROM.put(CONFIG_WIFI_START, wifi);
-
-	SystemConfig sys  {
-		c.boardType
-	};
-	EEPROM.put(CONFIG_SYSTEM_START, sys);
-
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-
-	return ret;
-}
-
 bool AmsConfiguration::loadConfig83(int address) {
 	ConfigObject83 c;
 	EEPROM.begin(EEPROM_SIZE);
@@ -743,7 +662,9 @@ bool AmsConfiguration::loadConfig83(int address) {
 		c.vccPin,
 		c.vccOffset,
 		c.vccMultiplier,
-		c.vccBootLimit
+		c.vccBootLimit,
+		0,
+		0
 	};
 	EEPROM.put(CONFIG_GPIO_START, gpio);
 
@@ -755,13 +676,14 @@ bool AmsConfiguration::loadConfig83(int address) {
 	EEPROM.put(CONFIG_DEBUG_START, debug);
 
 	MeterConfig meter {
-		c.meterType,
+		2400,
+		c.meterType == 3 || c.meterType == 4 ? 3 : 11,
+		false,
 		c.distributionSystem,
 		c.mainFuse,
 		c.productionCapacity,
 		{0},
-		{0},
-		c.substituteMissing
+		{0}
 	};
 	memcpy(meter.encryptionKey, c.meterEncryptionKey, 16);
 	memcpy(meter.authenticationKey, c.meterAuthenticationKey, 16);
@@ -825,6 +747,85 @@ bool AmsConfiguration::relocateConfig86() {
 	mqtt.payloadFormat = mqtt86.payloadFormat;
 	mqtt.ssl = mqtt86.ssl;
 	EEPROM.put(CONFIG_MQTT_START, mqtt);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 87);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig87() {
+	MeterConfig87 meter87;
+	MeterConfig meter;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_METER_START_87, meter87);
+	if(meter87.type < 5) {
+		meter.baud = 2400;
+		meter.parity = meter87.type == 3 || meter87.type == 4 ? 3 : 11;
+		meter.invert = false;
+	} else {
+		meter.baud = 115200;
+		meter.parity = 3;
+		meter.invert = meter87.type == 6;
+	}
+	meter.distributionSystem = meter87.distributionSystem;
+	meter.mainFuse = meter87.mainFuse;
+	meter.productionCapacity = meter87.productionCapacity;
+	EEPROM.put(CONFIG_METER_START, meter);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 88);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig88() {
+	GpioConfig88 gpio88;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_GPIO_START_88, gpio88);
+
+	GpioConfig gpio {
+		gpio88.hanPin,
+		gpio88.apPin,
+		gpio88.ledPin,
+		gpio88.ledInverted,
+		gpio88.ledPinRed,
+		gpio88.ledPinGreen,
+		gpio88.ledPinBlue,
+		gpio88.ledRgbInverted,
+		gpio88.tempSensorPin,
+		gpio88.tempAnalogSensorPin,
+		gpio88.vccPin,
+		gpio88.vccOffset,
+		gpio88.vccMultiplier,
+		gpio88.vccBootLimit,
+		0,
+		0
+	};
+	EEPROM.put(CONFIG_GPIO_START, gpio);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 89);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig89() {
+	EntsoeConfig89 entose89;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_ENTSOE_START_89, entose89);
+
+	uint32_t multiplier = entose89.multiplier;
+
+	EntsoeConfig entsoe = {
+		0x0,
+		0x0,
+		0x0,
+		multiplier
+	};
+	strcpy(entsoe.token, entose89.token);
+	strcpy(entsoe.area, entose89.area);
+	strcpy(entsoe.currency, entose89.currency);
+
+	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 90);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;
@@ -986,11 +987,12 @@ void AmsConfiguration::print(Print* debugger)
 	MeterConfig meter;
 	if(getMeterConfig(meter)) {
 		debugger->println("--Meter configuration--");
-		debugger->printf("Type:                 %i\r\n", meter.type);
+		debugger->printf("Baud:                 %i\r\n", meter.baud);
+		debugger->printf("Parity:               %i\r\n", meter.parity);
+		debugger->printf("Invert serial:        %s\r\n", meter.invert ? "Yes" : "No");
 		debugger->printf("Distribution system:  %i\r\n", meter.distributionSystem);
 		debugger->printf("Main fuse:            %i\r\n", meter.mainFuse);
 		debugger->printf("Production Capacity:  %i\r\n", meter.productionCapacity);
-		debugger->printf("Substitute missing:   %s\r\n", meter.substituteMissing ? "Yes" : "No");
 		debugger->println("");
 		delay(10);
 		Serial.flush();
@@ -1010,9 +1012,17 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf("Temperature pin:      %i\r\n", gpio.tempSensorPin);
 		debugger->printf("Temp analog pin:      %i\r\n", gpio.tempAnalogSensorPin);
 		debugger->printf("Vcc pin:              %i\r\n", gpio.vccPin);
+		if(gpio.vccMultiplier > 0) {
 		debugger->printf("Vcc multiplier:       %f\r\n", gpio.vccMultiplier / 1000.0);
+		}
+		if(gpio.vccOffset > 0) {
 		debugger->printf("Vcc offset:           %f\r\n", gpio.vccOffset / 100.0);
+		}
+		if(gpio.vccBootLimit > 0) {
 		debugger->printf("Vcc boot limit:       %f\r\n", gpio.vccBootLimit / 10.0);
+		}
+		debugger->printf("GND resistor:         %i\r\n", gpio.vccResistorGnd);
+		debugger->printf("Vcc resistor:         %i\r\n", gpio.vccResistorVcc);
 		debugger->println("");
 		delay(10);
 		Serial.flush();

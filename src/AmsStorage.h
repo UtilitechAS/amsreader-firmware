@@ -7,4 +7,7 @@
 #define FILE_MQTT_CERT "/mqtt-cert.pem"
 #define FILE_MQTT_KEY "/mqtt-key.pem"
 
+#define FILE_DAYPLOT "/dayplot.bin"
+#define FILE_MONTHPLOT "/monthplot.bin"
+
 #endif

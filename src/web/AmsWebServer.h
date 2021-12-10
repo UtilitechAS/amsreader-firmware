@@ -8,6 +8,7 @@
 #include "AmsConfiguration.h"
 #include "HwTools.h"
 #include "AmsData.h"
+#include "AmsDataStorage.h"
 #include "Uptime.h"
 #include "RemoteDebug.h"
 #include "entsoe/EntsoeApi.h"
@@ -20,16 +21,18 @@
 	#include <WiFi.h>
 	#include <WebServer.h>
 	#include <HTTPClient.h>
-	#include "SPIFFS.h"
 #else
 	#warning "Unsupported board type"
 #endif
 
+#include "LittleFS.h"
+
 class AmsWebServer {
 public:
 	AmsWebServer(RemoteDebug* Debug, HwTools* hw);
-    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, MQTTClient*);
+    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage*);
     void loop();
+	void setMqtt(MQTTClient* mqtt);
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
 	void setEntsoeApi(EntsoeApi* eapi);
@@ -46,7 +49,8 @@ private:
 	MeterConfig* meterConfig;
 	WebConfig webConfig;
 	AmsData* meterState;
-	MQTTClient* mqtt;
+	AmsDataStorage* ds;
+	MQTTClient* mqtt = NULL;
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
@@ -75,9 +79,11 @@ private:
 	void configGpioHtml();
 	void configDebugHtml();
 	void bootCss();
-	void gaugemeterJs();
 	void githubSvg();
     void dataJson();
+	void dayplotJson();
+	void monthplotJson();
+	void energyPriceJson();
 
 	void handleSetup();
 	void handleSave();

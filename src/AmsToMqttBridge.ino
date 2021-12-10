@@ -456,7 +456,6 @@ void loop() {
 				config.ackEntsoeChange();
 			}
 			ws.loop();
-			readHanPort(); // TODO: Move to bottom
 		}
 		if(mqtt != NULL) { // Run loop regardless, to let MQTT do its work.
 			mqtt->loop();
@@ -483,6 +482,7 @@ void loop() {
 		hc = NULL;
 	}
 
+	readHanPort();
 	delay(1); // Needed for auto modem sleep
 }
 

@@ -86,6 +86,9 @@ bool AmsDataStorage::update(AmsData* data) {
         day.activeImport = data->getActiveImportCounter() * 1000;
         day.activeExport = data->getActiveExportCounter() * 1000;
         day.lastMeterReadTime = now;
+        if(debugger->isActive(RemoteDebug::WARNING)) {
+            debugger->printf("(AmsDataStorage) Too long since last day update, clearing data\n");
+        }
         for(int i = 0; i<24; i++) {
             setHour(i, 0);
         }
@@ -148,7 +151,7 @@ bool AmsDataStorage::update(AmsData* data) {
             month.activeExport = data->getActiveExportCounter() * 1000;
             month.lastMeterReadTime = now;
             if(debugger->isActive(RemoteDebug::WARNING)) {
-                debugger->printf("(AmsDataStorage) Too long since last update, clearing data\n");
+                debugger->printf("(AmsDataStorage) Too long since last month update, clearing data\n");
             }
             for(int i = 0; i<31; i++) {
                 setDay(i, 0);
@@ -217,7 +220,7 @@ bool AmsDataStorage::update(AmsData* data) {
     return true;
 }
 
-void AmsDataStorage::setHour(uint8_t hour, int16_t val) {
+void AmsDataStorage::setHour(uint8_t hour, int32_t val) {
     if(hour < 0) return;
     day.points[hour] = val / 10;
 }

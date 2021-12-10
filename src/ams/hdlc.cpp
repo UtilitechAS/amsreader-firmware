@@ -138,7 +138,7 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             ptr += 3;
             headersize += 3;
         }
-        len = ceil(len/16.0) * 16;
+        //len = ceil(len/16.0) * 16; // Technically GCM is 128bit blocks. This works for Austrian meters, but not Danish...
         if(len + headersize + footersize > length)
             return HDLC_FRAME_INCOMPLETE;
 

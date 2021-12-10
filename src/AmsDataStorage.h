@@ -42,7 +42,7 @@ private:
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
     };
     RemoteDebug* debugger;
-    void setHour(uint8_t, int16_t);
+    void setHour(uint8_t, int32_t);
     void setDay(uint8_t, int32_t);
 };
 

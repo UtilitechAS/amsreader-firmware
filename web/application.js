@@ -265,9 +265,7 @@ $(function() {
             url: swv.data('url'),
             dataType: 'json'
         }).done(function(releases) {
-            if(!swv.text().match("^v\d{1,2}\.\d{1,2}\.\d{1,2}$")) {
-                nextVersion = releases[0];
-            } else {
+            if(/^v\d{1,2}\.\d{1,2}\.\d{1,2}$/.test(swv.text()) && fwl.length == 0) {
                 releases.reverse();
                 var next_patch;
                 var next_minor;
@@ -308,7 +306,8 @@ $(function() {
                 } else if(next_patch) {
                     nextVersion = next_patch;
                 }
-                                
+            } else {
+                nextVersion = releases[0];
             }
             if(nextVersion) {
                 if(fwl.length > 0) {

@@ -63,6 +63,7 @@ public:
 
 protected:
     unsigned long lastUpdateMillis = 0;
+    unsigned long lastList2 = 0;
     uint8_t listType = 0, meterType = AmsTypeUnknown;
     time_t packageTimestamp = 0;
     String listId, meterId, meterModel;

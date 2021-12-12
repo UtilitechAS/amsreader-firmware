@@ -8,21 +8,27 @@ void AmsData::apply(AmsData& other) {
 
         if(ms > 0) {
             if(other.getActiveImportPower() > 0)
-                activeImportCounter += (((float) ms) * other.getActiveImportPower()) / 3600000000;
+                activeImportCounter += (((float) ms) * other.getActiveImportPower()) / 3600000000.0;
 
             if(other.getListType() > 1) {
+                ms = this->lastUpdateMillis > other.getLastUpdateMillis() ? 0 : other.getLastUpdateMillis() - this->lastList2;
                 if(other.getActiveExportPower() > 0)
-                    activeExportCounter += (((float) ms*2) * other.getActiveExportPower()) / 3600000000;
+                    activeExportCounter += (((float) ms) * other.getActiveExportPower()) / 3600000000.0;
                 if(other.getReactiveImportPower() > 0)
-                    reactiveImportCounter += (((float) ms*2) * other.getReactiveImportPower()) / 3600000000;
+                    reactiveImportCounter += (((float) ms) * other.getReactiveImportPower()) / 3600000000.0;
                 if(other.getReactiveExportPower() > 0)
-                    reactiveExportCounter += (((float) ms*2) * other.getReactiveExportPower()) / 3600000000;
+                    reactiveExportCounter += (((float) ms) * other.getReactiveExportPower()) / 3600000000.0;
             }
             counterEstimated = true;
         }
+    } else {
+        Serial.printf("\nDeviation: %.4f\n", other.getActiveImportCounter() - activeImportCounter);
     }
 
     this->lastUpdateMillis = other.getLastUpdateMillis();
+    if(other.getListType() > 1) {
+        this->lastList2 = this->lastUpdateMillis;
+    }
     this->packageTimestamp = other.getPackageTimestamp();
     if(other.getListType() > this->listType)
         this->listType = other.getListType();

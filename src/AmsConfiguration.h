@@ -4,7 +4,7 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 90 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 91 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
@@ -12,7 +12,7 @@
 #define CONFIG_WIFI_START 16
 #define CONFIG_METER_START 224
 #define CONFIG_GPIO_START 266
-#define CONFIG_ENTSOE_START 286
+#define CONFIG_ENTSOE_START 290
 #define CONFIG_WEB_START 648
 #define CONFIG_DEBUG_START 824
 #define CONFIG_DOMOTICZ_START 856 
@@ -23,6 +23,7 @@
 #define CONFIG_METER_START_87 784
 #define CONFIG_GPIO_START_88 832
 #define CONFIG_ENTSOE_START_89 944
+#define CONFIG_ENTSOE_START_90 286
 
 
 struct SystemConfig {
@@ -325,6 +326,7 @@ private:
 	bool relocateConfig87();
 	bool relocateConfig88(); // dev 1.6
 	bool relocateConfig89(); // dev 1.6
+	bool relocateConfig90(); // 2.0.0
 
 	int readString(int pAddress, char* pString[]);
 	int readInt(int pAddress, int *pValue);

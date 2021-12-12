@@ -571,6 +571,14 @@ bool AmsConfiguration::hasConfig() {
 				configVersion = 0;
 				return false;
 			}
+		case 90:
+			configVersion = -1; // Prevent loop
+			if(relocateConfig90()) {
+				configVersion = 91;
+			} else {
+				configVersion = 0;
+				return false;
+			}
 		case EEPROM_CHECK_SUM:
 			return true;
 		default:
@@ -831,6 +839,17 @@ bool AmsConfiguration::relocateConfig89() {
 	return ret;
 }
 
+bool AmsConfiguration::relocateConfig90() {
+	EntsoeConfig entsoe;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_ENTSOE_START_90, entsoe);
+	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 91);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
 bool AmsConfiguration::save() {
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
@@ -1013,13 +1032,13 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf("Temp analog pin:      %i\r\n", gpio.tempAnalogSensorPin);
 		debugger->printf("Vcc pin:              %i\r\n", gpio.vccPin);
 		if(gpio.vccMultiplier > 0) {
-		debugger->printf("Vcc multiplier:       %f\r\n", gpio.vccMultiplier / 1000.0);
+			debugger->printf("Vcc multiplier:       %f\r\n", gpio.vccMultiplier / 1000.0);
 		}
 		if(gpio.vccOffset > 0) {
-		debugger->printf("Vcc offset:           %f\r\n", gpio.vccOffset / 100.0);
+			debugger->printf("Vcc offset:           %f\r\n", gpio.vccOffset / 100.0);
 		}
 		if(gpio.vccBootLimit > 0) {
-		debugger->printf("Vcc boot limit:       %f\r\n", gpio.vccBootLimit / 10.0);
+			debugger->printf("Vcc boot limit:       %f\r\n", gpio.vccBootLimit / 10.0);
 		}
 		debugger->printf("GND resistor:         %i\r\n", gpio.vccResistorGnd);
 		debugger->printf("Vcc resistor:         %i\r\n", gpio.vccResistorVcc);

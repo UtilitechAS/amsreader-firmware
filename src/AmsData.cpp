@@ -22,7 +22,7 @@ void AmsData::apply(AmsData& other) {
             counterEstimated = true;
         }
     } else {
-        Serial.printf("\nDeviation: %.4f\n", other.getActiveImportCounter() - activeImportCounter);
+        //Serial.printf("\nDeviation: %.4f\n", other.getActiveImportCounter() - activeImportCounter);
     }
 
     this->lastUpdateMillis = other.getLastUpdateMillis();

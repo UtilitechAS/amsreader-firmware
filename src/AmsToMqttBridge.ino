@@ -343,17 +343,6 @@ void loop() {
 		}
 	}
 
-	if(now - lastTemperatureRead > 15000) {
-		unsigned long start = millis();
-		hw.updateTemperatures();
-		lastTemperatureRead = now;
-
-		if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-			mqttHandler->publishTemperatures(&config, &hw);
-		}
-		debugD("Used %d ms to update temperature", millis()-start);
-	}
-
 	// Only do normal stuff if we're not booted as AP
 	if (WiFi.getMode() != WIFI_AP) {
 		if (WiFi.status() != WL_CONNECTED) {
@@ -482,7 +471,18 @@ void loop() {
 		hc = NULL;
 	}
 
-	readHanPort();
+	if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
+		if(now - lastTemperatureRead > 15000) {
+			unsigned long start = millis();
+			hw.updateTemperatures();
+			lastTemperatureRead = now;
+
+			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
+				mqttHandler->publishTemperatures(&config, &hw);
+			}
+			debugD("Used %d ms to update temperature", millis()-start);
+		}
+	}
 	delay(1); // Needed for auto modem sleep
 }
 
@@ -656,20 +656,20 @@ void swapWifiMode() {
 int len = 0;
 uint8_t buf[BUF_SIZE];
 int currentMeterType = -1;
-void readHanPort() {
-	if(!hanSerial->available()) return;
+bool readHanPort() {
+	if(!hanSerial->available()) return false;
 
 	if(currentMeterType == -1) {
 		hanSerial->readBytes(buf, BUF_SIZE);
 		currentMeterType = 0;
-		return;
+		return false;
 	}
 	if(currentMeterType == 0) {
 		uint8_t flag = hanSerial->read();
 		if(flag == 0x7E || flag == 0x68) currentMeterType = 1;
 		else currentMeterType = 2;
 		hanSerial->readBytes(buf, BUF_SIZE);
-		return;
+		return false;
 	}
 	CosemDateTime timestamp = {0};
 	AmsData data;
@@ -683,11 +683,11 @@ void readHanPort() {
 				hanSerial->readBytes(buf, BUF_SIZE);
 				len = 0;
 				debugI("Buffer overflow, resetting");
-				return;
+				return false;
 			}
 			int pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
 			if(pos == HDLC_FRAME_INCOMPLETE) {
-				return;
+				return false;
 			}
 			for(int i = len; i<BUF_SIZE; i++) {
 				buf[i] = 0x00;
@@ -719,16 +719,17 @@ void readHanPort() {
 			} else {
 				debugW("Invalid HDLC, returned with %d", pos);
 				currentMeterType = 0;
-				return;
+				return false;
 			}
 		} else {
-			return;
+			return false;
 		}
 	} else if(currentMeterType == 2) {
 		String payload = hanSerial->readString();
 		data = IEC6205621(payload);
 		if(data.getListType() == 0) {
 			currentMeterType = 1;
+			return false;
 		} else {
 			if(Debug.isActive(RemoteDebug::DEBUG)) {
 				debugD("Frame dump: %d", payload.length());
@@ -781,6 +782,7 @@ void readHanPort() {
 		}
 	}
 	delay(1);
+	return true;
 }
 
 void debugPrint(byte *buffer, int start, int length) {

@@ -4,6 +4,7 @@
 #include "web/root/json1_json.h"
 #include "web/root/json2_json.h"
 #include "web/root/json3_json.h"
+#include "web/root/json3pf_json.h"
 #include "web/root/jsonsys_json.h"
 #include "web/root/jsonprices_json.h"
 
@@ -50,35 +51,71 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
         );
         return mqtt->publish(topic, json);
     } else if(data->getListType() == 3) {
-        char json[512];
-        snprintf_P(json, sizeof(json), JSON3_JSON,
-            WiFi.macAddress().c_str(),
-            clientId.c_str(),
-            (uint32_t) (millis64()/1000),
-            data->getPackageTimestamp(),
-            hw->getVcc(),
-            hw->getWifiRssi(),
-            hw->getTemperature(),
-            data->getListId().c_str(),
-            data->getMeterId().c_str(),
-            data->getMeterModel().c_str(),
-            data->getActiveImportPower(),
-            data->getReactiveImportPower(),
-            data->getActiveExportPower(),
-            data->getReactiveExportPower(),
-            data->getL1Current(),
-            data->getL2Current(),
-            data->getL3Current(),
-            data->getL1Voltage(),
-            data->getL2Voltage(),
-            data->getL3Voltage(),
-            data->getActiveImportCounter(),
-            data->getActiveExportCounter(),
-            data->getReactiveImportCounter(),
-            data->getReactiveExportCounter(),
-            data->getMeterTimestamp()
-        );
-        return mqtt->publish(topic, json);
+        if(data->getPowerFactor() == 0) {
+            char json[512];
+            snprintf_P(json, sizeof(json), JSON3_JSON,
+                WiFi.macAddress().c_str(),
+                clientId.c_str(),
+                (uint32_t) (millis64()/1000),
+                data->getPackageTimestamp(),
+                hw->getVcc(),
+                hw->getWifiRssi(),
+                hw->getTemperature(),
+                data->getListId().c_str(),
+                data->getMeterId().c_str(),
+                data->getMeterModel().c_str(),
+                data->getActiveImportPower(),
+                data->getReactiveImportPower(),
+                data->getActiveExportPower(),
+                data->getReactiveExportPower(),
+                data->getL1Current(),
+                data->getL2Current(),
+                data->getL3Current(),
+                data->getL1Voltage(),
+                data->getL2Voltage(),
+                data->getL3Voltage(),
+                data->getActiveImportCounter(),
+                data->getActiveExportCounter(),
+                data->getReactiveImportCounter(),
+                data->getReactiveExportCounter(),
+                data->getMeterTimestamp()
+            );
+            return mqtt->publish(topic, json);
+        } else {
+            char json[768];
+            snprintf_P(json, sizeof(json), JSON3PF_JSON,
+                WiFi.macAddress().c_str(),
+                clientId.c_str(),
+                (uint32_t) (millis64()/1000),
+                data->getPackageTimestamp(),
+                hw->getVcc(),
+                hw->getWifiRssi(),
+                hw->getTemperature(),
+                data->getListId().c_str(),
+                data->getMeterId().c_str(),
+                data->getMeterModel().c_str(),
+                data->getActiveImportPower(),
+                data->getReactiveImportPower(),
+                data->getActiveExportPower(),
+                data->getReactiveExportPower(),
+                data->getL1Current(),
+                data->getL2Current(),
+                data->getL3Current(),
+                data->getL1Voltage(),
+                data->getL2Voltage(),
+                data->getL3Voltage(),
+                data->getPowerFactor(),
+                data->getL1PowerFactor(),
+                data->getL2PowerFactor(),
+                data->getL3PowerFactor(),
+                data->getActiveImportCounter(),
+                data->getActiveExportCounter(),
+                data->getReactiveImportCounter(),
+                data->getReactiveExportCounter(),
+                data->getMeterTimestamp()
+            );
+            return mqtt->publish(topic, json);
+        }
     }
     return false;
 }

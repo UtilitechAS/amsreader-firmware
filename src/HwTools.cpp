@@ -17,7 +17,7 @@ void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
     if(config->vccPin > 0 && config->vccPin < 40) {
         getAdcChannel(config->vccPin, voltAdc);
         if(voltAdc.unit != 0xFF) {
-            #if defined(ESP32)
+            #if defined(CONFIG_IDF_TARGET_ESP32)
                 if(voltAdc.unit == ADC_UNIT_1) {
                     voltAdcChar = (esp_adc_cal_characteristics_t*) calloc(1, sizeof(esp_adc_cal_characteristics_t));
                     esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_6, ADC_WIDTH_BIT_12, 1100, voltAdcChar);
@@ -156,13 +156,7 @@ void HwTools::getAdcChannel(uint8_t pin, AdcConfig& config) {
 double HwTools::getVcc() {
     double volts = 0.0;
     if(config->vccPin != 0xFF) {
-        #if defined(ESP8266)
-            uint32_t x = 0;
-            for (int i = 0; i < 10; i++) {
-                x += analogRead(config->vccPin);
-            }
-            volts = x / 10240;
-        #elif defined(ESP32)
+        #if defined(CONFIG_IDF_TARGET_ESP32)
             if(voltAdc.unit != 0xFF) {
                 uint32_t x = 0;
                 for (int i = 0; i < 10; i++) {
@@ -184,6 +178,12 @@ double HwTools::getVcc() {
                 }
                 volts = x / 40950;
             }
+        #else
+            uint32_t x = 0;
+            for (int i = 0; i < 10; i++) {
+                x += analogRead(config->vccPin);
+            }
+            volts = x / 10240;
         #endif
     } else {
         #if defined(ESP8266)

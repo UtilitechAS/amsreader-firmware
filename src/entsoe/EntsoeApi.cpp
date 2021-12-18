@@ -1,7 +1,7 @@
 #include "EntsoeApi.h"
 #include <EEPROM.h>
 #include "Uptime.h"
-#include "Time.h"
+#include "TimeLib.h"
 #include "DnbCurrParser.h"
 
 #if defined(ESP8266)

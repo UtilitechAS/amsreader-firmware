@@ -691,7 +691,7 @@ void AmsWebServer::dataJson() {
 	uint8_t espStatus;
 	#if defined(ESP8266)
 	if(vcc == 0) {
-		espStatus = 0;
+		espStatus = 1;
 	} else if(vcc > 3.1 && vcc < 3.5) {
 		espStatus = 1;
 	} else if(vcc > 3.0 && vcc < 3.6) {
@@ -701,7 +701,7 @@ void AmsWebServer::dataJson() {
 	}
 	#elif defined(ESP32)
 	if(vcc == 0) {
-		espStatus = 0;
+		espStatus = 1;
 	} else if(vcc > 2.8 && vcc < 3.5) {
 		espStatus = 1;
 	} else if(vcc > 2.2 && vcc < 3.6) {
@@ -780,7 +780,8 @@ void AmsWebServer::dataJson() {
 		wifiStatus,
 		mqttStatus,
 		mqtt == NULL ? 0 : (int) mqtt->lastError(),
-		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str()
+		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
+		time(nullptr)
 	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");

@@ -670,7 +670,28 @@ var fetch = function() {
         var temp = parseInt(json.t);
         if(temp == -127) {
             $('.jt').html("N/A");
+            $('.rt').hide();
+        } else {
+            $('.rt').show();
         }
+
+        var vcc = parseFloat(json.v);
+        if(vcc > 0.0) {
+            $('.rv').show();
+        } else {
+            $('.rv').hide();
+        }
+
+        var unixtime = moment().unix();
+        var ts = parseInt(json.c);
+        if(Math.abs(unixtime-ts) < 300) {
+            $('.jc').html(moment(ts * 1000).format('DD. MMM HH:mm'));
+            $('.jc').removeClass('text-danger');
+        } else  {
+            $('.jc').html(moment(ts * 1000).format('DD.MM.YYYY HH:mm'));
+            $('.jc').addClass('text-danger');
+        }
+
         setTimeout(fetch, interval);
 
         var price = parseFloat(json.p);

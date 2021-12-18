@@ -1,4 +1,4 @@
-#include "hexutils.h";
+#include "hexutils.h"
 
 String toHex(uint8_t* in) {
 	return toHex(in, sizeof(in)*2);

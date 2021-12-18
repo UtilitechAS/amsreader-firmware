@@ -7,7 +7,7 @@ IEC6205621::IEC6205621(String payload) {
 	lastUpdateMillis = millis();
 	listId = payload.substring(payload.startsWith("/") ? 1 : 0, payload.indexOf("\n"));
 	if(listId.startsWith("ADN")) {
-		meterType == AmsTypeAidon;
+		meterType = AmsTypeAidon;
 		listId = listId.substring(0,4);
 	} else if(listId.startsWith("KFM")) {
 		meterType = AmsTypeKaifa;

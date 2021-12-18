@@ -9,6 +9,8 @@
 #define DOCPOS_POSITION 3
 #define DOCPOS_AMOUNT 4
 
+#define ENTSOE_NO_VALUE -127
+
 class EntsoeA44Parser: public Stream {
 public:
     EntsoeA44Parser();

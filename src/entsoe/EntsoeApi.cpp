@@ -93,14 +93,13 @@ bool EntsoeApi::loop() {
         tmElements_t tm;
         breakTime(epoch, tm);
         if(tm.Year > 50) { // Make sure we are in 2021 or later (years after 1970)
-            uint64_t curDeviceMillis = millis64();
             uint32_t curDayMillis = (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000);
 
-            midnightMillis = curDeviceMillis + (SECS_PER_DAY * 1000) - curDayMillis;
-            printI("Setting midnight millis " + String((uint32_t) midnightMillis));
+            midnightMillis = now + (SECS_PER_DAY * 1000) - curDayMillis + 1000; // Adding 1s to ensure we have passed midnight
+            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Setting midnight millis %lu\n", midnightMillis);
         }
     } else if(now > midnightMillis) {
-        printI("Rotating price objects");
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Rotating price objects at %lu\n", now);
         delete today;
         today = tomorrow;
         tomorrow = NULL;
@@ -121,21 +120,21 @@ bool EntsoeApi::loop() {
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
             config->area, config->area);
 
-            printI("Fetching prices for today");
-            printD(url);
+            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for today\n");
+            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", url);
             EntsoeA44Parser* a44 = new EntsoeA44Parser();
-            if(retrieve(url, a44)) {
+            if(retrieve(url, a44) && a44->getPoint(0) != ENTSOE_NO_VALUE) {
                 today = a44;
                 ret = true;
-            } else {
+            } else if(a44 != NULL) {
                 delete a44;
                 today = NULL;
             }
         }
 
         if(tomorrow == NULL
-            && midnightMillis - now < 39600000
-            && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 60000)
+            && midnightMillis - now < 39600000 // Fetch 11hrs before midnight (13:00 CE(S)T)
+            && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 300000) // Retry every 5min
         ) {
             lastTomorrowFetch = now;
             time_t e1 = time(nullptr);
@@ -151,13 +150,13 @@ bool EntsoeApi::loop() {
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
             config->area, config->area);
 
-            printI("Fetching prices for tomorrow");
-            printD(url);
+            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for tomorrow\n");
+            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", url);
             EntsoeA44Parser* a44 = new EntsoeA44Parser();
-            if(retrieve(url, a44)) {
+            if(retrieve(url, a44) && a44->getPoint(0) != ENTSOE_NO_VALUE) {
                 tomorrow = a44;
                 ret = true;
-            } else {
+            } else if(a44 != NULL) {
                 delete a44;
                 tomorrow = NULL;
             }
@@ -259,20 +258,6 @@ void EntsoeApi::printD(String fmt, ...) {
 	va_list args;
  	va_start(args, fmt);
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(String("(EntsoeApi)" + fmt + "\n").c_str(), args);
-	va_end(args);
-}
-
-void EntsoeApi::printI(String fmt, ...) {
-	va_list args;
- 	va_start(args, fmt);
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(String("(EntsoeApi)" + fmt + "\n").c_str(), args);
-	va_end(args);
-}
-
-void EntsoeApi::printW(String fmt, ...) {
-	va_list args;
- 	va_start(args, fmt);
-	if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf(String("(EntsoeApi)" + fmt + "\n").c_str(), args);
 	va_end(args);
 }
 

@@ -2,7 +2,7 @@
 #include "HardwareSerial.h"
 
 EntsoeA44Parser::EntsoeA44Parser() {
-    for(int i = 0; i < 24; i++) points[i] = 0.0;
+    for(int i = 0; i < 24; i++) points[i] = ENTSOE_NO_VALUE;
 }
 
 char* EntsoeA44Parser::getCurrency() {

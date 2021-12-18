@@ -7,7 +7,6 @@
 #include "EntsoeA44Parser.h"
 #include "AmsConfiguration.h"
 
-#define ENTSOE_NO_VALUE -127
 #define ENTSOE_DEFAULT_MULTIPLIER 1.00
 #define SSL_BUF_SIZE 512
 
@@ -41,8 +40,6 @@ private:
     float getCurrencyMultiplier(const char* from, const char* to);
 
 	void printD(String fmt, ...);
-	void printI(String fmt, ...);
-	void printW(String fmt, ...);
 	void printE(String fmt, ...);
 };
 #endif

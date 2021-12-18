@@ -514,6 +514,7 @@ var ampcol = function(pct) {
     else return '#32d900';
 };
 
+var retrycount = 0;
 var interval = 5000;
 var fetch = function() {
     $.ajax({
@@ -521,6 +522,7 @@ var fetch = function() {
         timeout: 10000,
         dataType: 'json',
     }).done(function(json) {
+        retrycount = 0;
         if(im) {
             $(".SimpleMeter").hide();
             im.show();
@@ -700,15 +702,20 @@ var fetch = function() {
             drawPrices();
         }
     }).fail(function(x, text, error) {
-        console.log("Failed request");
-        console.log(text);
-        console.log(error);
-        setTimeout(fetch, interval*4);
-
-        setStatus("mqtt", 0);
-        setStatus("wifi", 0);
-        setStatus("han", 0);
-        setStatus("esp", 3);
+        if(retrycount > 2) {
+            console.log("Failed request");
+            console.log(text);
+            console.log(error);
+            setTimeout(fetch, interval*4);
+    
+            setStatus("mqtt", 0);
+            setStatus("wifi", 0);
+            setStatus("han", 0);
+            setStatus("esp", 3);
+        } else {
+            setTimeout(fetch, interval);
+        }
+        retrycount++;
     });
 }
 

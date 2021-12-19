@@ -866,6 +866,8 @@ uint8_t AmsConfiguration::getTempSensorCount() {
 }
 
 TempSensorConfig* AmsConfiguration::getTempSensorConfig(uint8_t address[8]) {
+	if(tempSensors == NULL)
+		return NULL;
     for(int x = 0; x < tempSensorCount; x++) {
         TempSensorConfig *conf = tempSensors[x];
         if(isSensorAddressEqual(conf->address, address)) {
@@ -877,14 +879,16 @@ TempSensorConfig* AmsConfiguration::getTempSensorConfig(uint8_t address[8]) {
 
 void AmsConfiguration::updateTempSensorConfig(uint8_t address[8], const char name[32], bool common) {
     bool found = false;
-    for(int x = 0; x < tempSensorCount; x++) {
-        TempSensorConfig *data = tempSensors[x];
-        if(isSensorAddressEqual(data->address, address)) {
-            found = true;
-            strcpy(data->name, name);
-            data->common = common;
-        }
-    }
+	if(tempSensors != NULL) {
+		for(int x = 0; x < tempSensorCount; x++) {
+			TempSensorConfig *data = tempSensors[x];
+			if(isSensorAddressEqual(data->address, address)) {
+				found = true;
+				strcpy(data->name, name);
+				data->common = common;
+			}
+		}
+	}
     if(!found) {
 		TempSensorConfig** tempSensors = new TempSensorConfig*[tempSensorCount+1];
 		if(this->tempSensors != NULL) {

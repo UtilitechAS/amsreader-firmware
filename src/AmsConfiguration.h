@@ -319,7 +319,7 @@ private:
 	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged = true, entsoeChanged = false;
 
 	uint8_t tempSensorCount = 0;
-	TempSensorConfig** tempSensors;
+	TempSensorConfig** tempSensors = NULL;
 
 	bool loadConfig83(int address);
 	bool relocateConfig86();

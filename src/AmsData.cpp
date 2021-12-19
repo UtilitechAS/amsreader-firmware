@@ -7,22 +7,29 @@ void AmsData::apply(AmsData& other) {
         unsigned long ms = this->lastUpdateMillis > other.getLastUpdateMillis() ? 0 : other.getLastUpdateMillis() - this->lastUpdateMillis;
 
         if(ms > 0) {
-            if(other.getActiveImportPower() > 0)
-                activeImportCounter += (((float) ms) * other.getActiveImportPower()) / 3600000000.0;
+            if(other.getActiveImportPower() > 0) {
+                float add = other.getActiveImportPower() * (((float) ms) / 3600000.0);
+                activeImportCounter += add / 1000.0;
+                //Serial.printf("%dW, %dms, %.6fkWh added\n", other.getActiveImportPower(), ms, add);
+            }
 
             if(other.getListType() > 1) {
                 ms = this->lastUpdateMillis > other.getLastUpdateMillis() ? 0 : other.getLastUpdateMillis() - this->lastList2;
-                if(other.getActiveExportPower() > 0)
-                    activeExportCounter += (((float) ms) * other.getActiveExportPower()) / 3600000000.0;
-                if(other.getReactiveImportPower() > 0)
-                    reactiveImportCounter += (((float) ms) * other.getReactiveImportPower()) / 3600000000.0;
-                if(other.getReactiveExportPower() > 0)
-                    reactiveExportCounter += (((float) ms) * other.getReactiveExportPower()) / 3600000000.0;
+                if(other.getActiveExportPower() > 0) {
+                    float add = other.getActiveExportPower() * (((float) ms) / 3600000.0);
+                    activeExportCounter += add / 1000.0;
+                }
+                if(other.getReactiveImportPower() > 0) {
+                    float add = other.getReactiveImportPower() * (((float) ms) / 3600000.0);
+                    reactiveImportCounter += add / 1000.0;
+                }
+                if(other.getReactiveExportPower() > 0) {
+                    float add = other.getReactiveExportPower() * (((float) ms) / 3600000.0);
+                    reactiveExportCounter += add / 1000.0;
+                }
             }
             counterEstimated = true;
         }
-    } else {
-        //Serial.printf("\nDeviation: %.4f\n", other.getActiveImportCounter() - activeImportCounter);
     }
 
     this->lastUpdateMillis = other.getLastUpdateMillis();

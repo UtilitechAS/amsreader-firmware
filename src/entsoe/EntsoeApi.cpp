@@ -99,7 +99,8 @@ bool EntsoeApi::loop() {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Setting midnight millis %lu\n", midnightMillis);
         }
     } else if(now > midnightMillis) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Rotating price objects at %lu\n", now);
+        time_t t = time(nullptr);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Rotating price objects at %lu\n", t);
         delete today;
         today = tomorrow;
         tomorrow = NULL;

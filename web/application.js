@@ -18,6 +18,7 @@ var po = {
     enableInteractivity: false,
 };
 var pl = null; // Last price
+var tl = null; // Last temperature
 
 // Day plot
 var ep;
@@ -148,6 +149,25 @@ var xo = {
         width: '100%',
         height: '100%'
     }
+};
+
+// Temperature plot
+var td = false; // Disable temperature
+var tp;
+var ta;
+var to = {
+    title: 'Temperature sensors',
+    titleTextStyle: {
+        fontSize: 14
+    },
+    bar: { groupWidth: '90%' },
+    legend: { position: 'none' },
+    vAxis: {
+        title: '°C',
+        viewWindowMode: 'maximized'
+    },
+    tooltip: { trigger: 'none'},
+    enableInteractivity: false,
 };
 
 $(function() {
@@ -364,6 +384,7 @@ var setupChart = function() {
     ap = new google.visualization.ColumnChart(document.getElementById('ap'));
     ip = new google.visualization.PieChart(document.getElementById('ip'));
     xp = new google.visualization.PieChart(document.getElementById('xp'));
+    tp = new google.visualization.ColumnChart(document.getElementById('tp'));
     fetch();
     drawDay();
     drawMonth();
@@ -379,6 +400,10 @@ var redraw = function() {
     ap.draw(aa, ao);
     ip.draw(ia, io);
     xp.draw(xa, xo);
+    tp.draw(ta, to);
+    if(tl != null) {
+        tp.draw(ta, to);
+    }
 };
 
 var drawPrices = function() {
@@ -472,6 +497,36 @@ var drawMonth = function() {
         mp.draw(ma, mo);
 
         setTimeout(drawMonth, (24-moment().hour())*60000);
+    });
+};
+
+var drawTemperature = function() {
+    if(td) return;
+
+    $.ajax({
+        url: '/temperature.json',
+        timeout: 30000,
+        dataType: 'json',
+    }).done(function(json) {
+        if(json.c > 1) {
+            $('#tpc').show();
+
+            var r = 1;
+            var min = 0;
+            data = [['Sensor','°C', { role: 'style' }, { role: 'annotation' }]];
+            $.each(json.s, function(i, o) {
+                var name = o.n ? o.n : o.a;
+                data[r++] = [name, o.v, "color: #6f42c1;opacity: 0.9;", o.v.toFixed(1)];
+                Math.min(0, o.v);
+            });
+            if(min == 0)
+                to.vAxis.minValue = 0;
+            ta = google.visualization.arrayToDataTable(data);
+            tp.draw(ta, to);
+            td = false;
+        } else {
+            td = true;
+        }
     });
 };
 
@@ -669,12 +724,16 @@ var fetch = function() {
             $('#ml').html(json.me);
         }
 
-        var temp = parseInt(json.t);
-        if(temp == -127) {
+        var temp = parseFloat(json.t);
+        if(temp == -127.0) {
             $('.jt').html("N/A");
             $('.rt').hide();
         } else {
             $('.rt').show();
+            if(tl != temp) {
+                drawTemperature();
+            }
+            tl = temp;
         }
 
         var vcc = parseFloat(json.v);

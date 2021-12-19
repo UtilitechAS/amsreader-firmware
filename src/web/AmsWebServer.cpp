@@ -247,7 +247,7 @@ void AmsWebServer::temperatureJson() {
 			conf == NULL || conf->common ? 1 : 0,
 			data->lastRead
 		);
-		delay(1);
+		delay(10);
 	}
 	char* pos = buf+strlen(buf);
 	snprintf(count == 0 ? pos : pos-1, 8, "]}");

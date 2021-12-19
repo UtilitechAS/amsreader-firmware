@@ -522,6 +522,7 @@ var drawTemperature = function() {
             if(min == 0)
                 to.vAxis.minValue = 0;
             ta = google.visualization.arrayToDataTable(data);
+            ta.sort("Sensor");
             tp.draw(ta, to);
             td = false;
         } else {

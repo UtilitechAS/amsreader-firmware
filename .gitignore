@@ -13,3 +13,4 @@ platformio-user.ini
 /test
 /web/test.html
 /sdkconfig
+/.tmp

@@ -1,10 +1,10 @@
 #include "HomeAssistantMqttHandler.h"
 #include "hexutils.h"
 #include "Uptime.h"
-#include "web/root/json1_json.h"
-#include "web/root/json2_json.h"
-#include "web/root/json3_json.h"
-#include "web/root/json3pf_json.h"
+#include "web/root/json1ha_json.h"
+#include "web/root/json2ha_json.h"
+#include "web/root/json3ha_json.h"
+#include "web/root/json3hapf_json.h"
 #include "web/root/jsonsys_json.h"
 #include "web/root/jsonprices_json.h"
 
@@ -14,27 +14,13 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
 
     if(data->getListType() == 1) {
         char json[192];
-        snprintf_P(json, sizeof(json), JSON1_JSON,
-            WiFi.macAddress().c_str(),
-            clientId.c_str(),
-            (uint32_t) (millis64()/1000),
-            data->getPackageTimestamp(),
-            hw->getVcc(),
-            hw->getWifiRssi(),
-            hw->getTemperature(),
+        snprintf_P(json, sizeof(json), JSON1HA_JSON,
             data->getActiveImportPower()
         );
-        return mqtt->publish(topic, json);
+        return mqtt->publish(topic + "/data1", json);
     } else if(data->getListType() == 2) {
         char json[384];
-        snprintf_P(json, sizeof(json), JSON2_JSON,
-            WiFi.macAddress().c_str(),
-            clientId.c_str(),
-            (uint32_t) (millis64()/1000),
-            data->getPackageTimestamp(),
-            hw->getVcc(),
-            hw->getWifiRssi(),
-            hw->getTemperature(),
+        snprintf_P(json, sizeof(json), JSON2HA_JSON,
             data->getListId().c_str(),
             data->getMeterId().c_str(),
             data->getMeterModel().c_str(),
@@ -49,18 +35,11 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
             data->getL2Voltage(),
             data->getL3Voltage()
         );
-        return mqtt->publish(topic, json);
+        return mqtt->publish(topic + "/data2", json);
     } else if(data->getListType() == 3) {
         if(data->getPowerFactor() == 0) {
             char json[512];
-            snprintf_P(json, sizeof(json), JSON3_JSON,
-                WiFi.macAddress().c_str(),
-                clientId.c_str(),
-                (uint32_t) (millis64()/1000),
-                data->getPackageTimestamp(),
-                hw->getVcc(),
-                hw->getWifiRssi(),
-                hw->getTemperature(),
+            snprintf_P(json, sizeof(json), JSON3HA_JSON,
                 data->getListId().c_str(),
                 data->getMeterId().c_str(),
                 data->getMeterModel().c_str(),
@@ -80,17 +59,10 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
                 data->getReactiveExportCounter(),
                 data->getMeterTimestamp()
             );
-            return mqtt->publish(topic, json);
+            return mqtt->publish(topic + "/data3", json);
         } else {
             char json[768];
-            snprintf_P(json, sizeof(json), JSON3PF_JSON,
-                WiFi.macAddress().c_str(),
-                clientId.c_str(),
-                (uint32_t) (millis64()/1000),
-                data->getPackageTimestamp(),
-                hw->getVcc(),
-                hw->getWifiRssi(),
-                hw->getTemperature(),
+            snprintf_P(json, sizeof(json), JSON3HAPF_JSON,
                 data->getListId().c_str(),
                 data->getMeterId().c_str(),
                 data->getMeterModel().c_str(),
@@ -114,7 +86,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
                 data->getReactiveExportCounter(),
                 data->getMeterTimestamp()
             );
-            return mqtt->publish(topic, json);
+            return mqtt->publish(topic + "/data3pf", json);
         }
     }
     return false;
@@ -144,7 +116,7 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 	}
 	char* pos = buf+strlen(buf);
 	snprintf(count == 0 ? pos : pos-1, 8, "}}");
-    return mqtt->publish(topic, buf);
+    return mqtt->publish(topic + "/temperatures", buf);
 }
 
 bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
@@ -250,13 +222,13 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         ts3hr,
         ts6hr
     );
-    return mqtt->publish(topic, json);
+    return mqtt->publish(topic + "/prices", json);
 }
 
 bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
 	if(init || topic.isEmpty() || !mqtt->connected())
 		return false;
-    if(!topic.endsWith("/")) topic += "/";
+    //if(!topic.endsWith("/")) topic += "/";
 
     char json[192];
     snprintf_P(json, sizeof(json), JSONSYS_JSON,
@@ -267,6 +239,6 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
         hw->getWifiRssi(),
         hw->getTemperature()
     );
-    init = mqtt->publish(topic, json);
+    init = mqtt->publish(topic + "/state", json);
     return init;
 }

@@ -315,7 +315,6 @@ bool longPressActive = false;
 bool wifiConnected = false;
 
 unsigned long lastTemperatureRead = 0;
-unsigned long lastSystemMessage = 0;
 unsigned long lastErrorBlink = 0; 
 int lastError = 0;
 
@@ -474,12 +473,6 @@ void loop() {
 	}
 
 	if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
-		if(now - lastSystemMessage > 15000) {
-			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-				lastSystemMessage = now;
-				mqttHandler->publishSystem(&hw);
-			}
-		}
 		if(now - lastTemperatureRead > 15000) {
 			unsigned long start = millis();
 			hw.updateTemperatures();

@@ -1,0 +1,15 @@
+{
+    "name" : "%s",
+    "stat_t" : "%s",
+    "json_attr_t" : "%s",
+    "unit_of_meas" : "%s",
+    "val_tpl" : "{{value_json['%s']}}",
+    "uniq_id" : "%s",
+    "dev" : {
+        "ids" : [ "%s" ],
+        "name" : "AMS reader",
+        "mdl" : "ESP32",
+        "sw" : "2.0.0",
+        "mf" : "AmsToMqttBridge"
+    }
+ }

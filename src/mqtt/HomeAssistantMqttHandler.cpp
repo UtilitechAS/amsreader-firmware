@@ -1,10 +1,10 @@
 #include "HomeAssistantMqttHandler.h"
 #include "hexutils.h"
 #include "Uptime.h"
-#include "web/root/json1ha_json.h"
-#include "web/root/json2ha_json.h"
-#include "web/root/json3ha_json.h"
-#include "web/root/json3hapf_json.h"
+#include "web/root/ha1_json.h"
+#include "web/root/ha2_json.h"
+#include "web/root/ha3_json.h"
+#include "web/root/ha3pf_json.h"
 #include "web/root/jsonsys_json.h"
 #include "web/root/jsonprices_json.h"
 
@@ -12,21 +12,22 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 
+    listType = data->getListType(); // for discovery stuff in publishSystem()
     if(data->getListType() == 1) {
         char json[192];
-        snprintf_P(json, sizeof(json), JSON1HA_JSON,
+        snprintf_P(json, sizeof(json), HA1_JSON,
             data->getActiveImportPower()
         );
-        return mqtt->publish(topic + "/power", json);
+        return mqtt->publish(topic + "/sensor", json);
     } else if(data->getListType() == 2) {
         char json[384];
-        snprintf_P(json, sizeof(json), JSON2HA_JSON,
+        snprintf_P(json, sizeof(json), HA2_JSON,
             data->getListId().c_str(),
             data->getMeterId().c_str(),
             data->getMeterModel().c_str(),
             data->getActiveImportPower(),
             data->getReactiveImportPower(),
-            data->getActiveExportPower(),
+            sequence, //data->getActiveExportPower(),
             data->getReactiveExportPower(),
             data->getL1Current(),
             data->getL2Current(),
@@ -39,7 +40,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
     } else if(data->getListType() == 3) {
         if(data->getPowerFactor() == 0) {
             char json[512];
-            snprintf_P(json, sizeof(json), JSON3HA_JSON,
+            snprintf_P(json, sizeof(json), HA3_JSON,
                 data->getListId().c_str(),
                 data->getMeterId().c_str(),
                 data->getMeterModel().c_str(),
@@ -62,7 +63,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
             return mqtt->publish(topic + "/sensor", json);
         } else {
             char json[768];
-            snprintf_P(json, sizeof(json), JSON3HAPF_JSON,
+            snprintf_P(json, sizeof(json), HA3PF_JSON,
                 data->getListId().c_str(),
                 data->getMeterId().c_str(),
                 data->getMeterModel().c_str(),
@@ -226,19 +227,26 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 }
 
 bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
-	if(init || topic.isEmpty() || !mqtt->connected())
+	if(topic.isEmpty() || !mqtt->connected()){
+        sequence = 0;
 		return false;
-    //if(!topic.endsWith("/")) topic += "/";
+    }
 
-    char json[192];
-    snprintf_P(json, sizeof(json), JSONSYS_JSON,
-        WiFi.macAddress().c_str(),
-        clientId.c_str(),
-        (uint32_t) (millis64()/1000),
-        hw->getVcc(),
-        hw->getWifiRssi(),
-        hw->getTemperature()
-    );
-    init = mqtt->publish(topic + "/state", json);
-    return init;
+    if(sequence % 3 == 0){
+        char json[192];
+        snprintf_P(json, sizeof(json), JSONSYS_JSON,
+            WiFi.macAddress().c_str(),
+            clientId.c_str(),
+            (uint32_t) (millis64()/1000),
+            hw->getVcc(),
+            hw->getWifiRssi(),
+            hw->getTemperature()
+        );
+        mqtt->publish(topic + "/state", json);
+    }
+    if(sequence % 6 == 1 && listType > 0){ // every 60 ams message, publish mqtt discovery
+        mqtt->publish(topic + "/discovery", "{\"discovery\":1}"); // test
+    }
+    if(listType>0) sequence++;
+    return true;
 }

@@ -7,6 +7,8 @@
 #include "web/root/ha3pf_json.h"
 #include "web/root/jsonsys_json.h"
 #include "web/root/jsonprices_json.h"
+#include "web/root/hadiscover1_json.h"
+#include "web/root/hadiscover2_json.h"
 
 bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
 	if(topic.isEmpty() || !mqtt->connected())
@@ -27,7 +29,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
             data->getMeterModel().c_str(),
             data->getActiveImportPower(),
             data->getReactiveImportPower(),
-            sequence, //data->getActiveExportPower(),
+            data->getActiveExportPower(),
             data->getReactiveExportPower(),
             data->getL1Current(),
             data->getL2Current(),
@@ -244,8 +246,53 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
         );
         mqtt->publish(topic + "/state", json);
     }
-    if(sequence % 6 == 1 && listType > 0){ // every 60 ams message, publish mqtt discovery
-        mqtt->publish(topic + "/discovery", "{\"discovery\":1}"); // test
+    if(sequence % 60 == 1 && listType > 0){ // every 60 ams message, publish mqtt discovery
+        char json[512];
+        String haTopic = "homeassistant/sensor/";
+        String haUID = "ams-3a08";
+
+        snprintf_P(json, sizeof(json), HADISCOVER1_JSON,
+            "AMS reader status",
+            (topic + "/state").c_str(),
+            (topic + "/state").c_str(),
+            (haUID + "_status").c_str(),
+            (haUID + "_status").c_str(),
+            "dB",
+            "rssi",
+            haUID.c_str(),
+            "AMS reader",
+            "ESP32",
+            "2.0.0",
+            "AmsToMqttBridge"
+        );
+        mqtt->publish(haTopic + haUID + "_status/config", json);
+
+        snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
+            "AMS active import",
+            (topic + "/sensor").c_str(),
+            (haUID + "_activeI").c_str(),
+            (haUID + "_activeI").c_str(),
+            "W",
+            "P",
+            "power",
+            "measurement",
+            haUID.c_str()
+        );
+        mqtt->publish(haTopic + haUID + "_activeI/config", json);
+
+        snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
+            "AMS accumulated active energy",
+            (topic + "/sensor").c_str(),
+            (haUID + "_accumI").c_str(),
+            (haUID + "_accumI").c_str(),
+            "kWh",
+            "tPI",
+            "energy",
+            "total_increasing",
+            haUID.c_str()
+        );
+        mqtt->publish(haTopic + haUID + "_accumI/config", json);
+
     }
     if(listType>0) sequence++;
     return true;

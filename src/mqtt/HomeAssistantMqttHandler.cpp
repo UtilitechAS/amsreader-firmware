@@ -17,7 +17,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
         snprintf_P(json, sizeof(json), JSON1HA_JSON,
             data->getActiveImportPower()
         );
-        return mqtt->publish(topic + "/data1", json);
+        return mqtt->publish(topic + "/power", json);
     } else if(data->getListType() == 2) {
         char json[384];
         snprintf_P(json, sizeof(json), JSON2HA_JSON,
@@ -35,7 +35,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
             data->getL2Voltage(),
             data->getL3Voltage()
         );
-        return mqtt->publish(topic + "/data2", json);
+        return mqtt->publish(topic + "/sensor", json);
     } else if(data->getListType() == 3) {
         if(data->getPowerFactor() == 0) {
             char json[512];
@@ -59,7 +59,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
                 data->getReactiveExportCounter(),
                 data->getMeterTimestamp()
             );
-            return mqtt->publish(topic + "/data3", json);
+            return mqtt->publish(topic + "/sensor", json);
         } else {
             char json[768];
             snprintf_P(json, sizeof(json), JSON3HAPF_JSON,
@@ -86,7 +86,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
                 data->getReactiveExportCounter(),
                 data->getMeterTimestamp()
             );
-            return mqtt->publish(topic + "/data3pf", json);
+            return mqtt->publish(topic + "/sensor", json);
         }
     }
     return false;

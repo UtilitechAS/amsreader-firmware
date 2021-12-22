@@ -878,7 +878,7 @@ void WiFi_connect() {
 			}
 			if(strlen(wifi.dns2) > 0) {
 				dns2.fromString(wifi.dns2);
-			} else if(dns1.isSet()) {
+			} else if(dns1.toString().isEmpty()) {
 				dns2.fromString("208.67.220.220"); // Add OpenDNS as second by default if nothing is configured
 			}
 			WiFi.config(ip, gw, sn, dns1, dns2);

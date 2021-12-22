@@ -8,6 +8,7 @@
 #include "web/root/jsonprices_json.h"
 #include "web/root/hadiscover1_json.h"
 #include "web/root/hadiscover2_json.h"
+#include "web/root/hadiscover3_json.h"
 
 bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
 	if(topic.isEmpty() || !mqtt->connected())
@@ -15,17 +16,15 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
 
     listType = data->getListType(); // for discovery stuff in publishSystem()
     if(data->getListType() == 3) { // publish energy counts
-       if(data->getActiveExportCounter() > 0){
-            char json[256];
-            snprintf_P(json, sizeof(json), HA2_JSON,
-                data->getActiveImportCounter(),
-                data->getActiveExportCounter(),
-                data->getReactiveImportCounter(),
-                data->getReactiveExportCounter(),
-                data->getMeterTimestamp()
-            );
-            mqtt->publish(topic + "/energy", json);
-        }
+        char json[256];
+        snprintf_P(json, sizeof(json), HA2_JSON,
+            data->getActiveImportCounter(),
+            data->getActiveExportCounter(),
+            data->getReactiveImportCounter(),
+            data->getReactiveExportCounter(),
+            data->getMeterTimestamp()
+        );
+        mqtt->publish(topic + "/energy", json);
     }
     if(data->getListType() == 1) { // publish power counts
         char json[192];
@@ -33,7 +32,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
             data->getActiveImportPower()
         );
         return mqtt->publish(topic + "/power", json);
-    } else if(data->getListType() == 2 || data->getListType() == 3) {
+    } else if(data->getListType() == 2 || data->getListType() == 3) { // publish power counts and volts/amps
         char json[768];
         snprintf_P(json, sizeof(json), HA3_JSON,
             data->getListId().c_str(),
@@ -209,17 +208,17 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
         );
         mqtt->publish(topic + "/state", json);
     }
-    if(sequence % 60 == 1 && listType > 0){ // every 60 ams message, publish mqtt discovery
+    if(sequence % 60 == 1 && listType > 1){ // every 60 ams message, publish mqtt discovery
         char json[512];
         String haTopic = "homeassistant/sensor/";
         String haUID = "ams-3a08";
-
+        String param = "status";
         snprintf_P(json, sizeof(json), HADISCOVER1_JSON,
             "AMS reader status",
             (topic + "/state").c_str(),
             (topic + "/state").c_str(),
-            (haUID + "_status").c_str(),
-            (haUID + "_status").c_str(),
+            (haUID + "_" + param).c_str(),
+            (haUID + "_" + param).c_str(),
             "dB",
             "rssi",
             haUID.c_str(),
@@ -228,34 +227,56 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
             "2.0.0",
             "AmsToMqttBridge"
         );
-        mqtt->publish(haTopic + haUID + "_status/config", json);
+        mqtt->publish(haTopic + haUID + "_" + param + "/config", json);
 
-        snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
-            "AMS active import",
-            (topic + "/power").c_str(),
-            (haUID + "_activeI").c_str(),
-            (haUID + "_activeI").c_str(),
-            "W",
-            "P",
-            "power",
-            "measurement",
-            haUID.c_str()
-        );
-        mqtt->publish(haTopic + haUID + "_activeI/config", json);
+        String names[14] = {"Active import", "Reactive import", "Active export", "Reactive export", "L1 current", "L2 current", "L3 current", "L1 voltage", "L2 voltage", "L3 voltage",
+                            "Accumulated active import", "Accumulated active export", "Accumulated reactive import", "Accumulated reactive export"};
+        String params[14] = {"P", "Q", "PO", "QO", "I1", "I2", "I3", "U1", "U2", "U3", "tPI", "tPO", "tQI", "tQO"};
+        String uom[14] = {"W", "W", "W", "W", "A", "A", "A", "V", "V", "V", "kWh", "kWh", "kWh", "kWh"};
+        String devcl[14] = {"power", "power", "power", "power", "current", "current", "current", "voltage", "voltage", "voltage", "energy", "energy", "energy", "energy"};
+        for(int i=0;i<4;i++){
+            snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
+                names[i].c_str(),                   // name
+                (topic + "/power").c_str(),         // state_topic
+                (haUID + "_" + params[i]).c_str(),  // unique_id
+                (haUID + "_" + params[i]).c_str(),  // object_id
+                uom[i].c_str(),                     // unit_of_measurement
+                params[i].c_str(),                  // value_template
+                devcl[i].c_str(),                   // device_class
+                "measurement",                      // state_class
+                haUID.c_str()                       // dev ids
+            );
+            mqtt->publish(haTopic + haUID + "_" + params[i] + "/config", json);
+        }
 
-        snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
-            "AMS accumulated active energy",
-            (topic + "/energy").c_str(),
-            (haUID + "_accumI").c_str(),
-            (haUID + "_accumI").c_str(),
-            "kWh",
-            "tPI",
-            "energy",
-            "total_increasing",
-            haUID.c_str()
-        );
-        mqtt->publish(haTopic + haUID + "_accumI/config", json);
+        for(int i=4;i<10;i++){
+            snprintf_P(json, sizeof(json), HADISCOVER3_JSON,
+                names[i].c_str(),                   // name
+                (topic + "/power").c_str(),         // state_topic
+                (haUID + "_" + params[i]).c_str(),  // unique_id
+                (haUID + "_" + params[i]).c_str(),  // object_id
+                uom[i].c_str(),                             // unit_of_measurement
+                params[i].c_str(),                          // value_template
+                devcl[i].c_str(),                           // device_class
+                haUID.c_str()                       // dev ids
+            );
+            mqtt->publish(haTopic + haUID + "_" + params[i] + "/config", json);
+        }
 
+        for(int i=10;i<14;i++){
+            snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
+                names[i].c_str(),                   // name
+                (topic + "/energy").c_str(),         // state_topic
+                (haUID + "_" + params[i]).c_str(),  // unique_id
+                (haUID + "_" + params[i]).c_str(),  // object_id
+                uom[i].c_str(),                     // unit_of_measurement
+                params[i].c_str(),                  // value_template
+                devcl[i].c_str(),                   // device_class
+                "total_increasing",                 // state_class
+                haUID.c_str()                       // dev ids
+            );
+            mqtt->publish(haTopic + haUID + "_" + params[i] + "/config", json);
+        }
     }
     if(listType>0) sequence++;
     return true;

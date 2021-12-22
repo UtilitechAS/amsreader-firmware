@@ -1,0 +1,12 @@
+{
+    "name" : "%s",
+    "stat_t" : "%s",
+    "uniq_id" : "%s",
+    "obj_id" : "%s",
+    "unit_of_meas" : "%s",
+    "val_tpl" : "{{value_json['%s']}}",
+    "dev_cla" : "%s",
+    "dev" : {
+      "ids" : [ "%s" ]
+    }
+}

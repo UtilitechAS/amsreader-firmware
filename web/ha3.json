@@ -12,13 +12,8 @@
     "U1" : %.2f,
     "U2" : %.2f,
     "U3" : %.2f,
-    "PF" : null,
-    "PF1" : null,
-    "PF2" : null,
-    "PF3" : null,
-    "tPI" : %.2f,
-    "tPO" : %.2f,
-    "tQI" : %.2f,
-    "tQO" : %.2f,
-    "rtc" : %lu
+    "PF" : %.2f,
+    "PF1" : %.2f,
+    "PF2" : %.2f,
+    "PF3" : %.2f
 }

@@ -4,7 +4,6 @@
 #include "web/root/ha1_json.h"
 #include "web/root/ha2_json.h"
 #include "web/root/ha3_json.h"
-#include "web/root/ha3pf_json.h"
 #include "web/root/jsonsys_json.h"
 #include "web/root/jsonprices_json.h"
 #include "web/root/hadiscover1_json.h"
@@ -15,15 +14,28 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
 		return false;
 
     listType = data->getListType(); // for discovery stuff in publishSystem()
-    if(data->getListType() == 1) {
+    if(data->getListType() == 3) { // publish energy counts
+       if(data->getActiveExportCounter() > 0){
+            char json[256];
+            snprintf_P(json, sizeof(json), HA2_JSON,
+                data->getActiveImportCounter(),
+                data->getActiveExportCounter(),
+                data->getReactiveImportCounter(),
+                data->getReactiveExportCounter(),
+                data->getMeterTimestamp()
+            );
+            mqtt->publish(topic + "/energy", json);
+        }
+    }
+    if(data->getListType() == 1) { // publish power counts
         char json[192];
         snprintf_P(json, sizeof(json), HA1_JSON,
             data->getActiveImportPower()
         );
-        return mqtt->publish(topic + "/sensor", json);
-    } else if(data->getListType() == 2) {
-        char json[384];
-        snprintf_P(json, sizeof(json), HA2_JSON,
+        return mqtt->publish(topic + "/power", json);
+    } else if(data->getListType() == 2 || data->getListType() == 3) {
+        char json[768];
+        snprintf_P(json, sizeof(json), HA3_JSON,
             data->getListId().c_str(),
             data->getMeterId().c_str(),
             data->getMeterModel().c_str(),
@@ -36,69 +48,20 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
             data->getL3Current(),
             data->getL1Voltage(),
             data->getL2Voltage(),
-            data->getL3Voltage()
+            data->getL3Voltage(),
+            data->getPowerFactor() == 0 ? 1 : data->getPowerFactor(),
+            data->getPowerFactor() == 0 ? 1 : data->getL1PowerFactor(),
+            data->getPowerFactor() == 0 ? 1 : data->getL2PowerFactor(),
+            data->getPowerFactor() == 0 ? 1 : data->getL3PowerFactor()
         );
-        return mqtt->publish(topic + "/sensor", json);
-    } else if(data->getListType() == 3) {
-        if(data->getPowerFactor() == 0) {
-            char json[512];
-            snprintf_P(json, sizeof(json), HA3_JSON,
-                data->getListId().c_str(),
-                data->getMeterId().c_str(),
-                data->getMeterModel().c_str(),
-                data->getActiveImportPower(),
-                data->getReactiveImportPower(),
-                data->getActiveExportPower(),
-                data->getReactiveExportPower(),
-                data->getL1Current(),
-                data->getL2Current(),
-                data->getL3Current(),
-                data->getL1Voltage(),
-                data->getL2Voltage(),
-                data->getL3Voltage(),
-                data->getActiveImportCounter(),
-                data->getActiveExportCounter(),
-                data->getReactiveImportCounter(),
-                data->getReactiveExportCounter(),
-                data->getMeterTimestamp()
-            );
-            return mqtt->publish(topic + "/sensor", json);
-        } else {
-            char json[768];
-            snprintf_P(json, sizeof(json), HA3PF_JSON,
-                data->getListId().c_str(),
-                data->getMeterId().c_str(),
-                data->getMeterModel().c_str(),
-                data->getActiveImportPower(),
-                data->getReactiveImportPower(),
-                data->getActiveExportPower(),
-                data->getReactiveExportPower(),
-                data->getL1Current(),
-                data->getL2Current(),
-                data->getL3Current(),
-                data->getL1Voltage(),
-                data->getL2Voltage(),
-                data->getL3Voltage(),
-                data->getPowerFactor(),
-                data->getL1PowerFactor(),
-                data->getL2PowerFactor(),
-                data->getL3PowerFactor(),
-                data->getActiveImportCounter(),
-                data->getActiveExportCounter(),
-                data->getReactiveImportCounter(),
-                data->getReactiveExportCounter(),
-                data->getMeterTimestamp()
-            );
-            return mqtt->publish(topic + "/sensor", json);
-        }
+        return mqtt->publish(topic + "/power", json);
     }
     return false;
 }
 
 bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {
 	int count = hw->getTempSensorCount();
-    if(count == 0)
-        return false;
+    if(count == 0) return false;
 
 	int size = 32 + (count * 26);
 
@@ -269,7 +232,7 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
 
         snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
             "AMS active import",
-            (topic + "/sensor").c_str(),
+            (topic + "/power").c_str(),
             (haUID + "_activeI").c_str(),
             (haUID + "_activeI").c_str(),
             "W",
@@ -282,7 +245,7 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
 
         snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
             "AMS accumulated active energy",
-            (topic + "/sensor").c_str(),
+            (topic + "/energy").c_str(),
             (haUID + "_accumI").c_str(),
             (haUID + "_accumI").c_str(),
             "kWh",

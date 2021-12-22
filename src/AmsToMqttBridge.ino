@@ -285,7 +285,7 @@ void setup() {
 		
 		NtpConfig ntp;
 		if(config.getNtpConfig(ntp)) {
-			configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? ntp.server : "");
+			configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : "pool.ntp.org" : ""); // Add NTP server by default if none is configured
 			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
 			ntpEnabled = ntp.enable;
 			TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
@@ -348,7 +348,7 @@ void loop() {
 		if (WiFi.status() != WL_CONNECTED) {
 			wifiConnected = false;
 			Debug.stop();
-			//WiFi_connect();
+			//WiFi_connect(); Should not be necessary, handled by WiFi stack
 		} else {
 			wifiReconnectCount = 0;
 			if(!wifiConnected) {
@@ -761,7 +761,7 @@ bool readHanPort() {
 		}
 
 		time_t now = time(nullptr);
-		if(now < EPOCH_2021_01_01 && data.getListType() == 3 && !ntpEnabled) {
+		if(now < EPOCH_2021_01_01 && data.getListType() == 3) {
 			if(data.getMeterTimestamp() > EPOCH_2021_01_01) {
 				debugI("Using timestamp from meter");
 				now = data.getMeterTimestamp();
@@ -871,8 +871,16 @@ void WiFi_connect() {
 			ip.fromString(wifi.ip);
 			gw.fromString(wifi.gateway);
 			sn.fromString(wifi.subnet);
-			dns1.fromString(wifi.dns1);
-			dns2.fromString(wifi.dns2);
+			if(strlen(wifi.dns1) > 0) {
+				dns1.fromString(wifi.dns1);
+			} else if(strlen(wifi.gateway) > 0) {
+				dns1.fromString(wifi.gateway); // If no DNS, set gateway by default
+			}
+			if(strlen(wifi.dns2) > 0) {
+				dns2.fromString(wifi.dns2);
+			} else if(dns1.isSet()) {
+				dns2.fromString("208.67.220.220"); // Add OpenDNS as second by default if nothing is configured
+			}
 			WiFi.config(ip, gw, sn, dns1, dns2);
 		} else {
 			#if defined(ESP32)

@@ -1,17 +1,16 @@
 {
     "name" : "%s",
     "stat_t" : "%s",
-    "json_attr_t" : "%s",
     "uniq_id" : "%s",
     "obj_id" : "%s",
     "unit_of_meas" : "%s",
     "val_tpl" : "{{value_json['%s']}}",
-    "json_attr_tpl" : "{{ value_json }}",
     "dev" : {
         "ids" : [ "%s" ],
         "name" : "%s",
         "mdl" : "%s",
         "sw" : "%s",
-        "mf" : "%s"
+        "mf" : "%s",
+        "cu" : "%s"
     }
 }

@@ -8,7 +8,7 @@ assignees: ''
 ---
 
 **Describe the bug**
-A clear and concise description of what the bug is.
+A clear description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
@@ -18,7 +18,7 @@ Steps to reproduce the behavior:
 4. See error
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
+A clear description of what you expected to happen.
 
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
@@ -32,6 +32,7 @@ If applicable, add screenshots to help explain your problem.
  - Version: [e.g. 1.5.0]
  - MQTT: [yes/no]
  - HAN GPIO: [e.g. GPIO5]
+ - HAN baud and parity: [e.g. 2400 8E1]
  - Temperature sensors [e.g. 3xDS18B20]
 
 **Additional context**

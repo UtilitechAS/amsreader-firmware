@@ -19,6 +19,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
         
         // Kaifa special case...
         if(data->base.type == CosemTypeOctetString) {
+            this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
+
             memcpy(str, data->oct.data, data->oct.length);
             str[data->oct.length] = 0x00;
             String listId = String(str);
@@ -126,6 +128,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
                 lastUpdateMillis = millis();
             }
         } else if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {
+            this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
             listType = 1;
             meterType = AmsTypeKaifa;
             activeImportPower = ntohl(data->dlu.data);

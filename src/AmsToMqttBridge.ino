@@ -39,6 +39,7 @@ ADC_MODE(ADC_VCC);
 
 #define BUF_SIZE (1024)
 #include "ams/hdlc.h"
+#include "MbusAssembler.h"
 
 #include "IEC6205621.h"
 #include "IEC6205675.h"
@@ -659,6 +660,7 @@ void swapWifiMode() {
 
 int len = 0;
 uint8_t buf[BUF_SIZE];
+MbusAssembler* ma = NULL;
 int currentMeterType = -1;
 bool readHanPort() {
 	if(!hanSerial->available()) return false;
@@ -678,8 +680,10 @@ bool readHanPort() {
 	CosemDateTime timestamp = {0};
 	AmsData data;
 	if(currentMeterType == 1) {
-		while(hanSerial->available()) {
+		int pos = HDLC_FRAME_INCOMPLETE;
+		while(hanSerial->available() && pos == HDLC_FRAME_INCOMPLETE) {
 			buf[len++] = hanSerial->read();
+			pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
 			delay(1);
 		}
 		if(len > 0) {
@@ -689,7 +693,33 @@ bool readHanPort() {
 				debugI("Buffer overflow, resetting");
 				return false;
 			}
-			int pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
+			pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
+			if(pos == MBUS_FRAME_INTERMEDIATE_SEGMENT) {
+				debugI("Intermediate segment");
+				if(ma == NULL) {
+					ma = new MbusAssembler();
+				}
+				if(ma->append((uint8_t *) buf, len) < 0)
+					pos = -77;
+				if(Debug.isActive(RemoteDebug::DEBUG)) {
+					debugD("Frame dump (%db):", len);
+					debugPrint(buf, 0, len);
+				}
+				len = 0;
+				return false;
+			} else if(pos == MBUS_FRAME_LAST_SEGMENT) {
+				debugI("Final segment");
+				if(Debug.isActive(RemoteDebug::DEBUG)) {
+					debugD("Frame dump (%db):", len);
+					debugPrint(buf, 0, len);
+				}
+				if(ma->append((uint8_t *) buf, len) >= 0) {
+					len = ma->write((uint8_t *) buf);
+					pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
+				} else {
+					pos = -77;
+				}
+			}
 			if(pos == HDLC_FRAME_INCOMPLETE) {
 				return false;
 			}
@@ -716,13 +746,55 @@ bool readHanPort() {
 				}
 			}
 			len = 0;
+			while(hanSerial->available()) hanSerial->read();
 			if(pos > 0) {
-				while(hanSerial->available()) hanSerial->read();
-				debugI("Valid HDLC, start at %d", pos);
-				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), timestamp);
+				debugI("Valid data, start at byte %d", pos);
+				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), timestamp, hc);
 			} else {
-				debugW("Invalid HDLC, returned with %d", pos);
-				currentMeterType = 0;
+				if(Debug.isActive(RemoteDebug::WARNING)) {
+					switch(pos) {
+						case HDLC_BOUNDRY_FLAG_MISSING:
+							debugW("Boundry flag missing");
+							break;
+						case HDLC_HCS_ERROR:
+							debugW("Header checksum error");
+							break;
+						case HDLC_FCS_ERROR:
+							debugW("Frame checksum error");
+							break;
+						case HDLC_FRAME_INCOMPLETE:
+							debugW("Received frame is incomplete");
+							break;
+						case HDLC_ENCRYPTION_CONFIG_MISSING:
+							debugI("Encryption configuration requested, initializing");
+							break;
+						case HDLC_ENCRYPTION_AUTH_FAILED:
+							debugW("Decrypt authentication failed");
+							break;
+						case HDLC_ENCRYPTION_KEY_FAILED:
+							debugW("Setting decryption key failed");
+							break;
+						case HDLC_ENCRYPTION_DECRYPT_FAILED:
+							debugW("Decryption failed");
+							break;
+						case MBUS_FRAME_LENGTH_NOT_EQUAL:
+							debugW("Frame length mismatch");
+							break;
+						case MBUS_FRAME_INTERMEDIATE_SEGMENT:
+						case MBUS_FRAME_LAST_SEGMENT:
+							debugW("Partial frame dropped");
+							break;
+						case HDLC_TIMESTAMP_UNKNOWN:
+							debugW("Frame timestamp is not correctly formatted");
+							break;
+						case HDLC_UNKNOWN_DATA:
+							debugW("Unknown data format %02X", buf[0]);
+							currentMeterType = 0;
+							break;
+						default:
+							debugW("Unspecified error while reading data: %d", pos);
+					}
+				}
 				return false;
 			}
 		} else {

@@ -11,7 +11,7 @@ struct AmsOctetTimestamp {
 
 class IEC6205675 : public AmsData {
 public:
-    IEC6205675(const char* payload, uint8_t useMeterType, CosemDateTime packageTimestamp);
+    IEC6205675(const char* payload, uint8_t useMeterType, CosemDateTime packageTimestamp, HDLCConfig* hc);
 
 private:
     CosemData* getCosemDataAt(uint8_t index, const char* ptr);

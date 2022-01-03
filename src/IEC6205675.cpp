@@ -2,7 +2,7 @@
 #include "lwip/def.h"
 #include "Timezone.h"
 
-IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packageTimestamp) {
+IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packageTimestamp, HDLCConfig* hc) {
     uint32_t ui;
     double val;
     char str[64];
@@ -140,6 +140,12 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
                 if(memcmp(version->str.data, "Kamstrup", 8) == 0) {
                     meterType = AmsTypeKamstrup;
                 }
+            } 
+        }
+        // Try system title
+        if(meterType == AmsTypeUnknown && hc != NULL) {
+            if(memcmp(hc->system_title, "SAGY", 4)) {
+                meterType = AmsTypeSagemcom;
             }
         }
 
@@ -284,6 +290,31 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
             l1PowerFactor /= 100;
             l2PowerFactor /= 100;
             l3PowerFactor /= 100;
+        } else if(meterType == AmsTypeSagemcom) {
+            CosemData* meterTs = getCosemDataAt(1, ((char *) (d)));
+            if(meterTs != NULL) {
+                AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
+                time_t ts = getTimestamp(amst->dt);
+                if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
+                    this->meterTimestamp = tz.toUTC(ts);
+                } else {
+                    meterTimestamp = ts;
+                }
+            }
+
+            CosemData* mid = getCosemDataAt(58, ((char *) (d))); // TODO: Get last item
+            if(mid != NULL) {
+                switch(mid->base.type) {
+                    case CosemTypeString:
+                        memcpy(&meterId, mid->str.data, mid->str.length);
+                        meterId[mid->str.length] = 0;
+                        break;
+                    case CosemTypeOctetString:
+                        memcpy(&meterId, mid->oct.data, mid->oct.length);
+                        meterId[mid->oct.length] = 0;
+                        break;
+                }
+            }
         }
 
         lastUpdateMillis = millis();

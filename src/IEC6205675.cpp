@@ -95,6 +95,11 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
                     l1voltage = ntohl(data->dlu.data) / 10.0;
                 }
 
+                if(listType >= 2 && memcmp(meterModel.c_str(), "MA304T3", 7) == 0) {
+                    l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                    l2voltage = sqrt(pow(l1voltage - l3voltage * cos(60 * (PI/180)), 2) + pow(l3voltage * sin(60 * (PI/180)),2));
+                }
+
                 if(listType == 3) {
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     switch(data->base.type) {
@@ -324,6 +329,9 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
         if(l2current == 0 && l1current > 0 && l3current > 0) {
             l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
         }
+    } else if(twoPhase && l1current > 0 && l2current > 0 && l3current > 0) {
+        l2voltage = sqrt(pow(l1voltage - l3voltage * cos(60 * (PI/180)), 2) + pow(l3voltage * sin(60 * (PI/180)),2));
+        threePhase = true;
     }
 }
 

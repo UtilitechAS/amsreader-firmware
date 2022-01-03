@@ -15,10 +15,10 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
             mqtt->publish(topic + "/meter/id", data->getMeterId(), true, 0);
             mqtt->publish(topic + "/meter/type", data->getMeterModel(), true, 0);
             mqtt->publish(topic + "/meter/clock", String(data->getMeterTimestamp()));
-            mqtt->publish(topic + "/meter/import/reactive/accumulated", String(data->getReactiveImportCounter(), 2), true, 0);
-            mqtt->publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 2), true, 0);
-            mqtt->publish(topic + "/meter/export/reactive/accumulated", String(data->getReactiveExportCounter(), 2), true, 0);
-            mqtt->publish(topic + "/meter/export/active/accumulated", String(data->getActiveExportCounter(), 2), true, 0);
+            mqtt->publish(topic + "/meter/import/reactive/accumulated", String(data->getReactiveImportCounter(), 3), true, 0);
+            mqtt->publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 3), true, 0);
+            mqtt->publish(topic + "/meter/export/reactive/accumulated", String(data->getReactiveExportCounter(), 3), true, 0);
+            mqtt->publish(topic + "/meter/export/active/accumulated", String(data->getActiveExportCounter(), 3), true, 0);
             if(full || meterState->getPowerFactor() != data->getPowerFactor()) {
                 mqtt->publish(topic + "/meter/powerfactor", String(data->getPowerFactor(), 2));
             }

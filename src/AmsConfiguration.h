@@ -4,15 +4,15 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 91 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 92 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
 #define CONFIG_SYSTEM_START 8
-#define CONFIG_WIFI_START 16
 #define CONFIG_METER_START 224
 #define CONFIG_GPIO_START 266
 #define CONFIG_ENTSOE_START 290
+#define CONFIG_WIFI_START 360
 #define CONFIG_WEB_START 648
 #define CONFIG_DEBUG_START 824
 #define CONFIG_DOMOTICZ_START 856 
@@ -21,16 +21,15 @@
 
 #define CONFIG_MQTT_START_86 224
 #define CONFIG_METER_START_87 784
-#define CONFIG_GPIO_START_88 832
-#define CONFIG_ENTSOE_START_89 944
 #define CONFIG_ENTSOE_START_90 286
+#define CONFIG_WIFI_START_91 16
 
 
 struct SystemConfig {
 	uint8_t boardType;
 }; // 1
 
-struct WiFiConfig {
+struct WiFiConfig91 {
 	char ssid[32];
 	char psk[64];
     char ip[15];
@@ -41,6 +40,18 @@ struct WiFiConfig {
 	char hostname[32];
 	bool mdns;
 }; // 204 
+
+struct WiFiConfig {
+	char ssid[32];
+	char psk[64];
+    char ip[16];
+    char gateway[16];
+    char subnet[16];
+	char dns1[16];
+	char dns2[16];
+	char hostname[32];
+	bool mdns;
+}; // 209
 
 struct MqttConfig86 {
 	char host[128];
@@ -118,23 +129,6 @@ struct GpioConfig {
 	uint16_t vccResistorVcc;
 }; // 20
 
-struct GpioConfig88 {
-	uint8_t hanPin;
-	uint8_t apPin;
-	uint8_t ledPin;
-	bool ledInverted;
-	uint8_t ledPinRed;
-	uint8_t ledPinGreen;
-	uint8_t ledPinBlue;
-	bool ledRgbInverted;
-	uint8_t tempSensorPin;
-	uint8_t tempAnalogSensorPin;
-	uint8_t vccPin;
-	int16_t vccOffset;
-	uint16_t vccMultiplier;
-	uint8_t vccBootLimit;
-}; // 16
-
 struct DomoticzConfig {
 	uint16_t elidx;
 	uint16_t vl1idx;
@@ -150,13 +144,6 @@ struct NtpConfig {
 	int16_t summerOffset;
 	char server[64];
 }; // 70
-
-struct EntsoeConfig89 {
-	char token[37];
-	char area[17];
-	char currency[4];
-	uint16_t multiplier;
-}; // 60
 
 struct EntsoeConfig {
 	char token[37];
@@ -324,9 +311,8 @@ private:
 	bool loadConfig83(int address);
 	bool relocateConfig86();
 	bool relocateConfig87();
-	bool relocateConfig88(); // dev 1.6
-	bool relocateConfig89(); // dev 1.6
 	bool relocateConfig90(); // 2.0.0
+	bool relocateConfig91(); // 2.0.2
 
 	int readString(int pAddress, char* pString[]);
 	int readInt(int pAddress, int *pValue);

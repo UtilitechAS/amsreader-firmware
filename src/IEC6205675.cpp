@@ -7,6 +7,10 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
     double val;
     char str[64];
 
+    TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
+    TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
+    Timezone tz(CEST, CET);
+
     this->packageTimestamp = getTimestamp(packageTimestamp);
 
     ui = getNumber(AMS_OBIS_ACTIVE_IMPORT, sizeof(AMS_OBIS_ACTIVE_IMPORT), ((char *) (d)));
@@ -96,8 +100,13 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
                     switch(data->base.type) {
                         case CosemTypeOctetString: {
                             if(data->oct.length == 0x0C) {
-                                AmsOctetTimestamp* ts = (AmsOctetTimestamp*) data;
-                                meterTimestamp = getTimestamp(ts->dt);
+                                AmsOctetTimestamp* amst = (AmsOctetTimestamp*) data;
+                                time_t ts = getTimestamp(amst->dt);
+                                if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
+                                    this->meterTimestamp = tz.toUTC(ts);
+                                } else {
+                                    meterTimestamp = ts;
+                                }
                             }
                         }
                     }
@@ -148,10 +157,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
                 meterType = AmsTypeSagemcom;
             }
         }
-
-        TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
-        TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
-        Timezone tz(CEST, CET);
 
         if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
             this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
@@ -295,11 +300,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
             if(meterTs != NULL) {
                 AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
                 time_t ts = getTimestamp(amst->dt);
-                if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
-                    this->meterTimestamp = tz.toUTC(ts);
-                } else {
-                    meterTimestamp = ts;
-                }
+                meterTimestamp = ts;
             }
 
             CosemData* mid = getCosemDataAt(58, ((char *) (d))); // TODO: Get last item

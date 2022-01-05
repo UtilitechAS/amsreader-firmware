@@ -693,7 +693,6 @@ bool readHanPort() {
 				debugI("Buffer overflow, resetting");
 				return false;
 			}
-			pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
 			if(pos == MBUS_FRAME_INTERMEDIATE_SEGMENT) {
 				debugI("Intermediate segment");
 				if(ma == NULL) {

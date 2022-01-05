@@ -22,7 +22,7 @@
 #define MBUS_FRAME_LENGTH_NOT_EQUAL -40
 #define MBUS_FRAME_INTERMEDIATE_SEGMENT -41
 #define MBUS_FRAME_LAST_SEGMENT -42
-#define MBUS_CHECKSUM_ERROR -3
+#define MBUS_CHECKSUM_ERROR -2
 
 struct HDLCConfig {
     uint8_t encryption_key[32];

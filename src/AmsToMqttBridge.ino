@@ -493,7 +493,9 @@ void loop() {
 		}
 	}
 	delay(1); // Needed for auto modem sleep
-	esp_task_wdt_reset();
+	#if defined(ESP32)
+		esp_task_wdt_reset();
+	#endif
 }
 
 void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert) {

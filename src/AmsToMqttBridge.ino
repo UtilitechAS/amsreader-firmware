@@ -13,6 +13,9 @@
  */
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);
+#else if defined(ESP32)
+#include <esp_task_wdt.h>
+#define WDT_TIMEOUT 10
 #endif
 
 #include "AmsToMqttBridge.h"
@@ -305,6 +308,11 @@ void setup() {
 	}
 
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds);
+
+	#if defined(ESP32)
+		esp_task_wdt_init(WDT_TIMEOUT, true);
+ 		esp_task_wdt_add(NULL);
+	#endif
 }
 
 int buttonTimer = 0;
@@ -349,7 +357,7 @@ void loop() {
 		if (WiFi.status() != WL_CONNECTED) {
 			wifiConnected = false;
 			Debug.stop();
-			//WiFi_connect(); Should not be necessary, handled by WiFi stack
+			WiFi_connect();
 		} else {
 			wifiReconnectCount = 0;
 			if(!wifiConnected) {
@@ -485,6 +493,7 @@ void loop() {
 		}
 	}
 	delay(1); // Needed for auto modem sleep
+	esp_task_wdt_reset();
 }
 
 void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert) {
@@ -700,7 +709,7 @@ bool readHanPort() {
 				}
 				if(ma->append((uint8_t *) buf, len) < 0)
 					pos = -77;
-				if(Debug.isActive(RemoteDebug::DEBUG)) {
+				if(Debug.isActive(RemoteDebug::VERBOSE)) {
 					debugD("Frame dump (%db):", len);
 					debugPrint(buf, 0, len);
 				}
@@ -708,7 +717,7 @@ bool readHanPort() {
 				return false;
 			} else if(pos == MBUS_FRAME_LAST_SEGMENT) {
 				debugI("Final segment");
-				if(Debug.isActive(RemoteDebug::DEBUG)) {
+				if(Debug.isActive(RemoteDebug::VERBOSE)) {
 					debugD("Frame dump (%db):", len);
 					debugPrint(buf, 0, len);
 				}
@@ -730,19 +739,19 @@ bool readHanPort() {
 				memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);
 				memcpy(hc->authentication_key, meterConfig.authenticationKey, 16);
 			}
-			if(Debug.isActive(RemoteDebug::DEBUG)) {
+			if(Debug.isActive(RemoteDebug::VERBOSE)) {
 				debugD("Frame dump (%db):", len);
 				debugPrint(buf, 0, len);
-				if(hc != NULL) {
-					debugD("System title:");
-					debugPrint(hc->system_title, 0, 8);
-					debugD("Initialization vector:");
-					debugPrint(hc->initialization_vector, 0, 12);
-					debugD("Additional authenticated data:");
-					debugPrint(hc->additional_authenticated_data, 0, 17);
-					debugD("Authentication tag:");
-					debugPrint(hc->authentication_tag, 0, 12);
-				}
+			}
+			if(hc != NULL && Debug.isActive(RemoteDebug::DEBUG)) {
+				debugD("System title:");
+				debugPrint(hc->system_title, 0, 8);
+				debugD("Initialization vector:");
+				debugPrint(hc->initialization_vector, 0, 12);
+				debugD("Additional authenticated data:");
+				debugPrint(hc->additional_authenticated_data, 0, 17);
+				debugD("Authentication tag:");
+				debugPrint(hc->authentication_tag, 0, 12);
 			}
 			len = 0;
 			while(hanSerial->available()) hanSerial->read();

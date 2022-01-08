@@ -754,6 +754,30 @@ var fetch = function() {
             $('.jc').addClass('text-danger');
         }
 
+        var mt = parseInt(json.mt);
+        switch(mt) {
+            case 1:
+                $('.jmt').html("Aidon");
+                break;
+            case 2:
+                $('.jmt').html("Kaifa");
+                break;
+            case 3:
+                $('.jmt').html("Kamstrup");
+                break;
+            case 8:
+                $('.jmt').html("Iskra");
+                break;
+            case 9:
+                $('.jmt').html("Landis");
+                break;
+            case 10:
+                $('.jmt').html("Sagecom");
+                break;
+            default:
+                $('.jmt').html("");
+        }
+
         setTimeout(fetch, interval);
 
         var price = parseFloat(json.p);

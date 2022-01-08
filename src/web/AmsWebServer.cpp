@@ -781,7 +781,8 @@ void AmsWebServer::dataJson() {
 		mqttStatus,
 		mqtt == NULL ? 0 : (int) mqtt->lastError(),
 		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
-		time(nullptr)
+		time(nullptr),
+		meterState->getMeterType()
 	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");

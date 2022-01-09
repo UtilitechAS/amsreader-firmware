@@ -15,8 +15,8 @@
 ADC_MODE(ADC_VCC);
 #else if defined(ESP32)
 #include <esp_task_wdt.h>
-#define WDT_TIMEOUT 10
 #endif
+#define WDT_TIMEOUT 10
 
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
@@ -312,6 +312,8 @@ void setup() {
 	#if defined(ESP32)
 		esp_task_wdt_init(WDT_TIMEOUT, true);
  		esp_task_wdt_add(NULL);
+    #elif defined(ESP8266)
+		ESP.wdtEnable(WDT_TIMEOUT);
 	#endif
 }
 
@@ -495,6 +497,8 @@ void loop() {
 	delay(1); // Needed for auto modem sleep
 	#if defined(ESP32)
 		esp_task_wdt_reset();
+	#elif defined(ESP8266)
+		ESP.wdtFeed();
 	#endif
 }
 
@@ -759,7 +763,7 @@ bool readHanPort() {
 			while(hanSerial->available()) hanSerial->read();
 			if(pos > 0) {
 				debugI("Valid data, start at byte %d", pos);
-				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), timestamp, hc);
+				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), meterConfig.distributionSystem, timestamp, hc);
 			} else {
 				if(Debug.isActive(RemoteDebug::WARNING)) {
 					switch(pos) {

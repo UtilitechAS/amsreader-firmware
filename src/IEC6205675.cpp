@@ -2,7 +2,7 @@
 #include "lwip/def.h"
 #include "Timezone.h"
 
-IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packageTimestamp, HDLCConfig* hc) {
+IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, uint8_t distributionSystem, CosemDateTime packageTimestamp, HDLCConfig* hc) {
     uint32_t ui;
     double val;
     char str[64];
@@ -288,17 +288,26 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
         }
 
         if(meterType == AmsTypeKamstrup) {
-            activeImportCounter *= 10;
-            activeExportCounter *= 10;
-            reactiveImportCounter *= 10;
-            reactiveExportCounter *= 10;
-            l1current /= 100;
-            l2current /= 100;
-            l3current /= 100;
-            powerFactor /= 100;
-            l1PowerFactor /= 100;
-            l2PowerFactor /= 100;
-            l3PowerFactor /= 100;
+            if(listType >= 3) {
+                activeImportCounter *= 10;
+                activeExportCounter *= 10;
+                reactiveImportCounter *= 10;
+                reactiveExportCounter *= 10;
+            }
+            if(l1current != 0)
+                l1current /= 100;
+            if(l2current != 0)
+                l2current /= 100;
+            if(l3current != 0)
+                l3current /= 100;
+            if(powerFactor != 0)
+                powerFactor /= 100;
+            if(l1PowerFactor != 0)
+                l1PowerFactor /= 100;
+            if(l2PowerFactor != 0)
+                l2PowerFactor /= 100;
+            if(l3PowerFactor != 0)
+                l3PowerFactor /= 100;
         } else if(meterType == AmsTypeSagemcom) {
             CosemData* meterTs = getCosemDataAt(1, ((char *) (d)));
             if(meterTs != NULL) {
@@ -328,13 +337,19 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, CosemDateTime packag
     threePhase = l1voltage > 0 && l2voltage > 0 && l3voltage > 0;
     twoPhase = (l1voltage > 0 && l2voltage > 0) || (l2voltage > 0 && l3voltage > 0) || (l3voltage > 0  && l1voltage > 0);
 
-    if(threePhase) {
-        if(l2current == 0 && l1current > 0 && l3current > 0) {
-            l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+    // Special case for Norwegian IT/TT meters that does not report all values
+    if(distributionSystem == 1) {
+        if(threePhase) {
+            if(l2current == 0.0 && l1current > 0.0 && l3current > 0.0) {
+                l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                if(activeExportPower == 0) {
+                    l2current = max((float) 0.0, l2current);
+                }
+            }
+        } else if(twoPhase && l1current > 0.0 && l2current > 0.0 && l3current > 0.0) {
+            l2voltage = sqrt(pow(l1voltage - l3voltage * cos(60.0 * (PI/180.0)), 2) + pow(l3voltage * sin(60.0 * (PI/180.0)),2));
+            threePhase = true;
         }
-    } else if(twoPhase && l1current > 0 && l2current > 0 && l3current > 0) {
-        l2voltage = sqrt(pow(l1voltage - l3voltage * cos(60 * (PI/180)), 2) + pow(l3voltage * sin(60 * (PI/180)),2));
-        threePhase = true;
     }
 }
 
@@ -455,9 +470,11 @@ double IEC6205675::getNumber(CosemData* item) {
                 pos += 3;
                 break;
         }
-        if(*pos++ == 0x02 && *pos++ == 0x02) {
-            int8_t scale = *++pos;
-            val *= pow(10, scale);
+        if(pos != NULL) {
+            if(*pos++ == 0x02 && *pos++ == 0x02) {
+                int8_t scale = *++pos;
+                val *= pow(10, scale);
+            }
         }
     }
     return val;

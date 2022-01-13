@@ -6,8 +6,13 @@
     "unit_of_meas" : "%s",
     "val_tpl" : "{{value_json['%s']}}",
     "dev_cla" : "%s",
-    "stat_cla" : "%s",
     "dev" : {
-      "ids" : [ "%s" ]
-    }
+      "ids" : [ "%s" ],
+      "name" : "%s",
+      "mdl" : "%s",
+      "sw" : "%s",
+      "mf" : "%s",
+      "cu" : "%s"
+    },
+    "stat_cla" : "%s"
 }

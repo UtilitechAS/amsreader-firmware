@@ -8,7 +8,6 @@
 #include "web/root/jsonprices_json.h"
 #include "web/root/hadiscover1_json.h"
 #include "web/root/hadiscover2_json.h"
-#include "web/root/hadiscover3_json.h"
 
 bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
 	if(topic.isEmpty() || !mqtt->connected())
@@ -208,88 +207,63 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
         );
         mqtt->publish(topic + "/state", json);
     }
-    if(sequence % 60 == 1 && listType > 1){ // every 60 ams message, publish mqtt discovery
+
+    if(sequence % 60 == 1 && listType > 1){ // every 60 ams message, publish mqtt discovery. TODO: publish once with retain
         char json[512];
         String haTopic = "homeassistant/sensor/";   // home-assistant discovery topic
         String haUID = "ams-3a08";                  // unit identity (wifi hostname)
 
-        String names[17] = {"Status", "Active import", "Reactive import", "Active export", "Reactive export", "L1 current", "L2 current", "L3 current", "L1 voltage", "L2 voltage", "L3 voltage",
-                            "Accumulated active import", "Accumulated active export", "Accumulated reactive import", "Accumulated reactive export", "Supply volt", "Temperature"};
-        String params[17] = {"rssi", "P", "Q", "PO", "QO", "I1", "I2", "I3", "U1", "U2", "U3", "tPI", "tPO", "tQI", "tQO", "vcc", "temp"};
-        String uom[17] = {"dB", "W", "W", "W", "W", "A", "A", "A", "V", "V", "V", "kWh", "kWh", "kWh", "kWh", "V", "C"};
-        String devcl[17] = {"", "power", "power", "power", "power", "current", "current", "current", "voltage", "voltage", "voltage", "energy", "energy", "energy", "energy", "voltage", "temperature"};
+        int sensors = 17;
+        String topics[sensors] = {"/state", "/state", "/state", "/power", "/power", "/power", "/power", "/power", "/power", "/power", "/power", "/power", "/power", "/energy", "/energy", "/energy", "/energy"};
+        String names[sensors] = {"Status", "Supply volt", "Temperature", "Active import", "Reactive import", "Active export", "Reactive export", "L1 current", "L2 current", "L3 current",
+                                 "L1 voltage", "L2 voltage", "L3 voltage", "Accumulated active import", "Accumulated active export", "Accumulated reactive import", "Accumulated reactive export"};
+        String params[sensors] = {"rssi", "vcc", "temp", "P", "Q", "PO", "QO", "I1", "I2", "I3", "U1", "U2", "U3", "tPI", "tPO", "tQI", "tQO"};
+        String uom[sensors] = {"dBm", "V", "C", "W", "W", "W", "W", "A", "A", "A", "V", "V", "V", "kWh", "kWh", "kWh", "kWh"};
+        String devcl[sensors] = {"signal_strength", "voltage", "temperature", "power", "power", "power", "power", "current", "current", "current", "voltage", "voltage", "voltage", "energy", "energy", "energy", "energy"};
+        String stacl[sensors] = {"", "", "", "measurement", "measurement", "measurement", "measurement", "", "", "", "", "", "", "total_increasing", "total_increasing", "total_increasing", "total_increasing"};
+        //String category[sensors] = {"Diagnostic", "Diagnostic", "Diagnostic", "Power", "Power", "Power", "Power", "Voltage", "Voltage", "Voltage", "Current", "Current", "Current", "Energy", "Energy", "Energy", "Energy"};
 
-        snprintf_P(json, sizeof(json), HADISCOVER1_JSON,
-            names[0].c_str(),                       // name
-            (topic + "/state").c_str(),             // state_topic
-            (haUID + "_" + params[0]).c_str(),      // unique_id
-            (haUID + "_" + params[0]).c_str(),      // object_id
-            uom[0].c_str(),                         // unit_of_measurement
-            params[0].c_str(),                      // value_template
-            haUID.c_str(),                          // ids
-            "AMS reader",                           // name
-            "ESP32",                                // model
-            "2.0.0",                                // fw version
-            "AmsToMqttBridge",                      // manufacturer
-            ("http://" + haUID + ".local/").c_str() // configuration_url
-        );
-        mqtt->publish(haTopic + haUID + "_" + params[0] + "/config", json);
+        String haName = "AMS reader";
+        String haModel = "ESP32";
+        String haVersion = "2.0.0";
+        String haManuf = "AmsToMqttBridge";
+        String haUrl = "http://" + haUID + ".local/";
 
-        for(int i=1;i<5;i++){
-            snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
-                names[i].c_str(),                   // name
-                (topic + "/power").c_str(),         // state_topic
-                (haUID + "_" + params[i]).c_str(),  // unique_id
-                (haUID + "_" + params[i]).c_str(),  // object_id
-                uom[i].c_str(),                     // unit_of_measurement
-                params[i].c_str(),                  // value_template
-                devcl[i].c_str(),                   // device_class
-                "measurement",                      // state_class
-                haUID.c_str()                       // dev ids
-            );
-            mqtt->publish(haTopic + haUID + "_" + params[i] + "/config", json);
-        }
-
-        for(int i=5;i<11;i++){
-            snprintf_P(json, sizeof(json), HADISCOVER3_JSON,
-                names[i].c_str(),                   // name
-                (topic + "/power").c_str(),         // state_topic
-                (haUID + "_" + params[i]).c_str(),  // unique_id
-                (haUID + "_" + params[i]).c_str(),  // object_id
-                uom[i].c_str(),                     // unit_of_measurement
-                params[i].c_str(),                  // value_template
-                devcl[i].c_str(),                   // device_class
-                haUID.c_str()                       // dev ids
-            );
-            mqtt->publish(haTopic + haUID + "_" + params[i] + "/config", json);
-        }
-
-        for(int i=11;i<15;i++){
-            snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
-                names[i].c_str(),                   // name
-                (topic + "/energy").c_str(),        // state_topic
-                (haUID + "_" + params[i]).c_str(),  // unique_id
-                (haUID + "_" + params[i]).c_str(),  // object_id
-                uom[i].c_str(),                     // unit_of_measurement
-                params[i].c_str(),                  // value_template
-                devcl[i].c_str(),                   // device_class
-                "total_increasing",                 // state_class
-                haUID.c_str()                       // dev ids
-            );
-            mqtt->publish(haTopic + haUID + "_" + params[i] + "/config", json);
-        }
-
-        for(int i=15;i<17;i++){
-            snprintf_P(json, sizeof(json), HADISCOVER3_JSON,
-                names[i].c_str(),                   // name
-                (topic + "/state").c_str(),         // state_topic
-                (haUID + "_" + params[i]).c_str(),  // unique_id
-                (haUID + "_" + params[i]).c_str(),  // object_id
-                uom[i].c_str(),                     // unit_of_measurement
-                params[i].c_str(),                  // value_template
-                devcl[i].c_str(),                   // device_class
-                haUID.c_str()                       // dev ids
-            );
+        for(int i=0;i<sensors;i++){
+            if(stacl[i].length() > 0) {  // TODO: reduce to single JSON, state_class: null (witout quotation). or make it some extra optional string that us appended
+                snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
+                    names[i].c_str(),                   // name
+                    (topic + topics[i]).c_str(),        // state_topic
+                    (haUID + "_" + params[i]).c_str(),  // unique_id
+                    (haUID + "_" + params[i]).c_str(),  // object_id
+                    uom[i].c_str(),                     // unit_of_measurement
+                    params[i].c_str(),                  // value_template
+                    devcl[i].c_str(),                   // device_class
+                    haUID.c_str(),                      // dev ids
+                    haName.c_str(),                     // name
+                    haModel.c_str(),                    // model
+                    haVersion.c_str(),                  // fw version
+                    haManuf.c_str(),                    // manufacturer
+                    haUrl.c_str(),                      // configuration_url
+                    stacl[i].c_str()                    // state_class
+                );
+            } else {
+                snprintf_P(json, sizeof(json), HADISCOVER1_JSON,
+                    names[i].c_str(),                   // name
+                    (topic + topics[i]).c_str(),        // state_topic
+                    (haUID + "_" + params[i]).c_str(),  // unique_id
+                    (haUID + "_" + params[i]).c_str(),  // object_id
+                    uom[i].c_str(),                     // unit_of_measurement
+                    params[i].c_str(),                  // value_template
+                    devcl[i].c_str(),                   // device_class
+                    haUID.c_str(),                      // dev ids
+                    haName.c_str(),                     // name
+                    haModel.c_str(),                    // model
+                    haVersion.c_str(),                  // fw version
+                    haManuf.c_str(),                    // manufacturer
+                    haUrl.c_str()                       // configuration_url
+                );
+            }
             mqtt->publish(haTopic + haUID + "_" + params[i] + "/config", json);
         }
     }

@@ -555,26 +555,18 @@ bool AmsConfiguration::hasConfig() {
 				configVersion = 0;
 				return false;
 			}
-		case 88:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig88()) {
-				configVersion = 89;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-		case 89:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig89()) {
-				configVersion = 90;
-			} else {
-				configVersion = 0;
-				return false;
-			}
 		case 90:
 			configVersion = -1; // Prevent loop
 			if(relocateConfig90()) {
 				configVersion = 91;
+			} else {
+				configVersion = 0;
+				return false;
+			}
+		case 91:
+			configVersion = -1; // Prevent loop
+			if(relocateConfig91()) {
+				configVersion = 92;
 			} else {
 				configVersion = 0;
 				return false;
@@ -785,66 +777,33 @@ bool AmsConfiguration::relocateConfig87() {
 	return ret;
 }
 
-bool AmsConfiguration::relocateConfig88() {
-	GpioConfig88 gpio88;
-	EEPROM.begin(EEPROM_SIZE);
-    EEPROM.get(CONFIG_GPIO_START_88, gpio88);
-
-	GpioConfig gpio {
-		gpio88.hanPin,
-		gpio88.apPin,
-		gpio88.ledPin,
-		gpio88.ledInverted,
-		gpio88.ledPinRed,
-		gpio88.ledPinGreen,
-		gpio88.ledPinBlue,
-		gpio88.ledRgbInverted,
-		gpio88.tempSensorPin,
-		gpio88.tempAnalogSensorPin,
-		gpio88.vccPin,
-		gpio88.vccOffset,
-		gpio88.vccMultiplier,
-		gpio88.vccBootLimit,
-		0,
-		0
-	};
-	EEPROM.put(CONFIG_GPIO_START, gpio);
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 89);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
-}
-
-bool AmsConfiguration::relocateConfig89() {
-	EntsoeConfig89 entose89;
-	EEPROM.begin(EEPROM_SIZE);
-    EEPROM.get(CONFIG_ENTSOE_START_89, entose89);
-
-	uint32_t multiplier = entose89.multiplier;
-
-	EntsoeConfig entsoe = {
-		0x0,
-		0x0,
-		0x0,
-		multiplier
-	};
-	strcpy(entsoe.token, entose89.token);
-	strcpy(entsoe.area, entose89.area);
-	strcpy(entsoe.currency, entose89.currency);
-
-	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 90);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
-}
-
 bool AmsConfiguration::relocateConfig90() {
 	EntsoeConfig entsoe;
 	EEPROM.begin(EEPROM_SIZE);
     EEPROM.get(CONFIG_ENTSOE_START_90, entsoe);
 	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 91);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig91() {
+	WiFiConfig91 wifi91;
+	WiFiConfig wifi;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_WIFI_START_91, wifi91);
+	strcpy(wifi.ssid, wifi91.ssid);
+	strcpy(wifi.psk, wifi91.psk);
+	strcpy(wifi.ip, wifi91.ip);
+	strcpy(wifi.gateway, wifi91.gateway);
+	strcpy(wifi.subnet, wifi91.subnet);
+	strcpy(wifi.dns1, wifi91.dns1);
+	strcpy(wifi.dns2, wifi91.dns2);
+	strcpy(wifi.hostname, wifi91.hostname);
+	wifi.mdns = wifi91.mdns;
+	EEPROM.put(CONFIG_WIFI_START, wifi);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 92);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;

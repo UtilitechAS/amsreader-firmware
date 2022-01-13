@@ -16,73 +16,125 @@ void mbus_hexdump(const uint8_t* buf, int len) {
 }
 
 int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTime* timestamp) {
-    if(length < 10)
-        return HDLC_FRAME_INCOMPLETE;
-
     int len;
     int headersize = 3;
     int footersize = 1;
-    HDLCHeader* h = (HDLCHeader*) d;
-    uint8_t* ptr = (uint8_t*) &h[1];
-    // Frame format type 3
-    if(h->flag == HDLC_FLAG && (h->format & 0xF0) == 0xA0) {
-        // Length field (11 lsb of format)
-        len = (ntohs(h->format) & 0x7FF) + 2;
-        if(len > length)
+
+    uint8_t flag = *d;
+
+    uint8_t* ptr;
+    if(flag == HDLC_FLAG) {
+        if(length < 3)
             return HDLC_FRAME_INCOMPLETE;
 
-    	HDLCFooter* f = (HDLCFooter*) (d + len - sizeof *f);
-        footersize = sizeof *f;
+        HDLCHeader* h = (HDLCHeader*) d;
+        ptr = (uint8_t*) &h[1];
 
-        // First and last byte should be MBUS_HAN_TAG
-        if(h->flag != HDLC_FLAG || f->flag != HDLC_FLAG)
-            return HDLC_BOUNDRY_FLAG_MISSING;
+        // Frame format type 3
+        if((h->format & 0xF0) == 0xA0) {
+            // Length field (11 lsb of format)
+            len = (ntohs(h->format) & 0x7FF) + 2;
+            if(len > length)
+                return HDLC_FRAME_INCOMPLETE;
 
-        // Verify FCS
-        if(ntohs(f->fcs) != crc16_x25(d + 1, len - sizeof *f - 1))
-            return HDLC_FCS_ERROR;
+            HDLCFooter* f = (HDLCFooter*) (d + len - sizeof *f);
+            footersize = sizeof *f;
 
-        // Skip destination address, LSB marks last byte
-        while(((*ptr) & 0x01) == 0x00) {
-            ptr++;
+            // First and last byte should be MBUS_HAN_TAG
+            if(h->flag != HDLC_FLAG || f->flag != HDLC_FLAG)
+                return HDLC_BOUNDRY_FLAG_MISSING;
+
+            // Verify FCS
+            if(ntohs(f->fcs) != crc16_x25(d + 1, len - sizeof *f - 1))
+                return HDLC_FCS_ERROR;
+
+            // Skip destination address, LSB marks last byte
+            while(((*ptr) & 0x01) == 0x00) {
+                ptr++;
+                headersize++;
+            }
             headersize++;
-        }
-        headersize++;
-        ptr++;
-
-        // Skip source address, LSB marks last byte
-        while(((*ptr) & 0x01) == 0x00) {
             ptr++;
+
+            // Skip source address, LSB marks last byte
+            while(((*ptr) & 0x01) == 0x00) {
+                ptr++;
+                headersize++;
+            }
             headersize++;
+            ptr++;
+
+            HDLC3CtrlHcs* t3 = (HDLC3CtrlHcs*) (ptr);
+            headersize += 3;
+
+            // Verify HCS
+            if(ntohs(t3->hcs) != crc16_x25(d + 1, ptr-d))
+                return HDLC_HCS_ERROR;
+
+            ptr += sizeof *t3;
+
+            // Extract LLC
+            HDLCLLC* llc = (HDLCLLC*) ptr;
+            ptr += sizeof *llc;
+            headersize += sizeof *llc;
+        } else {
+            return HDLC_UNKNOWN_DATA;
         }
-        headersize++;
-        ptr++;
+    } else if(flag == MBUS_START) {
+        // https://m-bus.com/documentation-wired/06-application-layer
+        if(length < 4)
+            return HDLC_FRAME_INCOMPLETE;
 
-        HDLC3CtrlHcs* t3 = (HDLC3CtrlHcs*) (ptr);
-        headersize += 3;
+        MbusHeader* mh = (MbusHeader*) d;
+        if(mh->flag1 != MBUS_START || mh->flag2 != MBUS_START)
+            return MBUS_BOUNDRY_FLAG_MISSING;
 
-        // Verify HCS
-        if(ntohs(t3->hcs) != crc16_x25(d + 1, ptr-d))
-            return HDLC_HCS_ERROR;
+        // First two bytes is 1-byte length value repeated. Only used for last segment
+        if(mh->len1 != mh->len2)
+            return MBUS_FRAME_LENGTH_NOT_EQUAL;
+        len = mh->len1;
+        ptr = (uint8_t*) &mh[1];
+        headersize = 4;
+        footersize = 2;
 
-        ptr += sizeof *t3;
-    } else if(h->flag == MBUS_START) {
-        // TODO: Check that the two next bytes are identical
+        if(len == 0x00)
+            len = length - headersize - footersize;
+        // Payload can max be 255 bytes, so I think the following case is only valid for austrian meters
+        if(len < headersize)
+            len += 256;
 
-        // Ignore: Control field + Address + Flag
+        if((headersize + footersize + len) > length)
+            return HDLC_FRAME_INCOMPLETE;
+
+        MbusFooter* mf = (MbusFooter*) (d + len + headersize);
+        if(mf->flag != MBUS_END)
+            return MBUS_BOUNDRY_FLAG_MISSING;
+        if(mbusChecksum(d + headersize, len) != mf->fcs)
+            return MBUS_CHECKSUM_ERROR;
+
+        ptr += 2;
+
+        // Control information field
+        uint8_t ci = *ptr;
+
+        // Bits 7 6 5 4         3 2 1 0
+        //      0 0 0 Finished  Sequence number
+        uint8_t sequenceNumber = (ci & 0x0F);
+        if((ci & 0x10) == 0x00) { // Not finished yet
+            return MBUS_FRAME_INTERMEDIATE_SEGMENT;
+        } else if(sequenceNumber > 0) { // This is the last frame of multiple, assembly needed
+            return MBUS_FRAME_LAST_SEGMENT;
+        }
+
+        // Skip CI, STSAP and DTSAP
         ptr += 3;
-        headersize += 3;
-        footersize++;
+        headersize += 5; // And also control and address that we didn't skip earlier, needed these for checksum.
+    } else {
+        return HDLC_UNKNOWN_DATA;
     }
-
-    // Extract LLC
-    HDLCLLC* llc = (HDLCLLC*) ptr;
-    ptr += sizeof *llc;
-    headersize += 3;
 
     if(((*ptr) & 0xFF) == 0x0F) {
         // Unencrypted APDU
-        int i = 0;
         HDLCADPU* adpu = (HDLCADPU*) (ptr);
         ptr += sizeof *adpu;
 
@@ -90,7 +142,7 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
         CosemData* dateTime = (CosemData*) ptr;
         if(dateTime->base.type == CosemTypeOctetString) {
             if(dateTime->base.length == 0x0C) {
-                memcpy(timestamp, ptr+1, dateTime->base.length);
+                memcpy(timestamp, ptr+1, dateTime->base.length+1);
             }
             ptr += 2 + dateTime->base.length;
         } else if(dateTime->base.type == CosemTypeNull) {
@@ -99,10 +151,10 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
         } else if(dateTime->base.type == CosemTypeDateTime) {
             memcpy(timestamp, ptr, dateTime->base.length);
         } else if(dateTime->base.type == 0x0C) { // Kamstrup bug...
-            memcpy(timestamp, ptr, 0x0C);
+            memcpy(timestamp, ptr, 13);
             ptr += 13;
         } else {
-            return -99;
+            return HDLC_TIMESTAMP_UNKNOWN;
         }
 
         return ptr-d;
@@ -132,19 +184,16 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
         } else if(((*ptr) & 0xFF) == 0x82) {
             HDLCHeader* h = (HDLCHeader*) ptr;
 
-            // Length field
+            // 2-byte payload length
             len = (ntohs(h->format) & 0xFFFF);
 
             ptr += 3;
             headersize += 3;
         }
-        //len = ceil(len/16.0) * 16; // Technically GCM is 128bit blocks. This works for Austrian meters, but not Danish...
         if(len + headersize + footersize > length)
             return HDLC_FRAME_INCOMPLETE;
 
         //Serial.printf("\nL: %d : %d, %d : %d\n", length, len, headersize, footersize);
-
-        // TODO: FCS
 
         memcpy(config->additional_authenticated_data, ptr, 1);
 
@@ -203,7 +252,8 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             mbedtls_gcm_free(&m_ctx);
         #endif
 
-        ptr += 5; // TODO: Come to this number in a proper way...
+        HDLCADPU* adpu = (HDLCADPU*) (ptr);
+        ptr += sizeof *adpu;
 
         // ADPU timestamp
         CosemData* dateTime = (CosemData*) ptr;
@@ -221,7 +271,7 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             memcpy(timestamp, ptr, 0x0C);
             ptr += 13;
         } else {
-            return -99;
+            return HDLC_TIMESTAMP_UNKNOWN;
         }
 
         return ptr-d;
@@ -229,4 +279,11 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
 
     // Unknown payload
 	return HDLC_UNKNOWN_DATA;
+}
+
+uint8_t mbusChecksum(const uint8_t* p, int len) {
+    uint8_t ret = 0;
+    while(len--)
+        ret += *p++;
+    return ret;
 }

@@ -1,21 +1,21 @@
 <div class="bg-white rounded shadow p-1 mb-3">
-    <div class="row">
-        <div class="col-md-2 col-6">
+    <div class="d-flex flex-wrap">
+        <div class="flex-fill">
             <div class="text-center">Up <span class="ju">{cs}</span></div>
         </div>
-        <div class="col-md-3 col-6 rt ">
+        <div class="flex-fill rt">
             <div class="text-center">Temperature: <span class="jt">{temp}</span>&deg;C</div>
         </div>
-        <div class="col-md-2 col-6 rv">
+        <div class="flex-fill rv">
             <div class="text-center">ESP volt: <span class="jv">{vcc}</span>V</div>
         </div>
-        <div class="col-md-3 col-6">
+        <div class="flex-fill">
             <div class="text-center">WiFi RSSI: <span class="jr">{rssi}</span>dBm</div>
         </div>
-        <div class="col-md-2 col-6">
+        <div class="flex-fill">
             <div class="text-center">Free mem: <span class="jm">{mem}</span>kb</div>
         </div>
-        <div class="col-md-3 col-6 rc">
+        <div class="flex-fill  rc">
             <div class="text-center"><span class="jc"></span></div>
         </div>
     </div>
@@ -34,7 +34,8 @@
                 </span>
             </div>
             <div class="row ric" style="display: {da};">
-                <div class="col-12 text-right"><span class="jic">{tPI}</span> kWh</div>
+                <div class="col-5"><span class="jmt"></span></div>
+                <div class="col-7 text-right"><span class="jic">{tPI}</span> kWh</div>
             </div>
         </div>
     </div>

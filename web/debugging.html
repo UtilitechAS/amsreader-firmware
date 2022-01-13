@@ -1,4 +1,10 @@
-<div class="alert alert-warning">!!NOTE!!<br/>Telnet debugging is not considered safe and should be switched off when not in use</div>
+<div class="alert alert-danger">
+    !!WARNING!!<br/>
+    Telnet debugging is not considered safe and should be switched off when not in use.<br/>
+    <br/>
+    !!WARNING!!<br/>
+    Enabling debugging can cause sudden reboots. Do not leave this on unless you are debugging!
+</div>
 <form method="post" action="/save">
     <input type="hidden" name="debugConfig" value="true"/>
     <div class="my-3 p-3 bg-white rounded shadow">
@@ -15,6 +21,7 @@
                     <label class="col-6">Debug level</label>
                     <div class="col-6">
                         <select class="form-control form-control-sm" name="debugLevel">
+                            <option value="1" ${config.debugLevel1}>Verbose</option>
                             <option value="2" ${config.debugLevel2}>Debug</option>
                             <option value="3" ${config.debugLevel3}>Info</option>
                             <option value="4" ${config.debugLevel4}>Warning</option>

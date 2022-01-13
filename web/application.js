@@ -9,6 +9,7 @@ var po = {
     titleTextStyle: {
         fontSize: 14
     },
+    backgroundColor: { fill:'transparent' },
     bar: { groupWidth: '90%' },
     legend: { position: 'none' },
     vAxis: {
@@ -28,6 +29,7 @@ var eo = {
     titleTextStyle: {
         fontSize: 14
     },
+    backgroundColor: { fill:'transparent' },
     bar: { groupWidth: '90%' },
     legend: { position: 'none' },
     vAxis: {
@@ -46,6 +48,7 @@ var mo = {
     titleTextStyle: {
         fontSize: 14
     },
+    backgroundColor: { fill:'transparent' },
     bar: { groupWidth: '90%' },
     legend: { position: 'none' },
     vAxis: {
@@ -64,6 +67,7 @@ var vo = {
     titleTextStyle: {
         fontSize: 14
     },
+    backgroundColor: { fill:'transparent' },
     bar: { groupWidth: '90%' },
     vAxis: {
         minValue: 200,
@@ -87,6 +91,7 @@ var ao = {
     titleTextStyle: {
         fontSize: 14
     },
+    backgroundColor: { fill:'transparent' },
     bar: { groupWidth: '90%' },
     vAxis: {
         minValue: 0,
@@ -108,9 +113,14 @@ var ip;
 var ia;
 var io = {
     legend: 'none',
+    backgroundColor: { 
+        fill:'transparent',
+        stroke: 'transparent'
+    },
     pieHole: 0.6,
     pieSliceText: 'none',
     pieStartAngle: 216,
+    pieSliceBorderColor: 'transparent',
     slices: {
         0: { color: 'green' },
         1: { color: '#eee' },
@@ -123,7 +133,8 @@ var io = {
         left: 0,
         top: 0,
         width: '100%',
-        height: '100%'
+        height: '100%',
+        backgroundColor: 'transparent'
     }
 };
 
@@ -132,9 +143,14 @@ var xp;
 var xa;
 var xo = {
     legend: 'none',
+    backgroundColor: { 
+        fill:'transparent',
+        stroke: 'transparent'
+    },
     pieHole: 0.6,
     pieSliceText: 'none',
     pieStartAngle: 216,
+    pieSliceBorderColor: 'transparent',
     slices: {
         0: { color: 'green' },
         1: { color: '#eee' },
@@ -147,7 +163,8 @@ var xo = {
         left: 0,
         top: 0,
         width: '100%',
-        height: '100%'
+        height: '100%',
+        backgroundColor: 'transparent'
     }
 };
 
@@ -160,6 +177,7 @@ var to = {
     titleTextStyle: {
         fontSize: 14
     },
+    backgroundColor: { fill:'transparent' },
     bar: { groupWidth: '90%' },
     legend: { position: 'none' },
     vAxis: {
@@ -752,6 +770,30 @@ var fetch = function() {
         } else  {
             $('.jc').html(moment(ts * 1000).format('DD.MM.YYYY HH:mm'));
             $('.jc').addClass('text-danger');
+        }
+
+        var mt = parseInt(json.mt);
+        switch(mt) {
+            case 1:
+                $('.jmt').html("Aidon");
+                break;
+            case 2:
+                $('.jmt').html("Kaifa");
+                break;
+            case 3:
+                $('.jmt').html("Kamstrup");
+                break;
+            case 8:
+                $('.jmt').html("Iskra");
+                break;
+            case 9:
+                $('.jmt').html("Landis");
+                break;
+            case 10:
+                $('.jmt').html("Sagecom");
+                break;
+            default:
+                $('.jmt').html("");
         }
 
         setTimeout(fetch, interval);

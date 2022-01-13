@@ -13,7 +13,10 @@
  */
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);
+#else if defined(ESP32)
+#include <esp_task_wdt.h>
 #endif
+#define WDT_TIMEOUT 10
 
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
@@ -40,6 +43,7 @@ ADC_MODE(ADC_VCC);
 
 #define BUF_SIZE (1024)
 #include "ams/hdlc.h"
+#include "MbusAssembler.h"
 
 #include "IEC6205621.h"
 #include "IEC6205675.h"
@@ -286,7 +290,7 @@ void setup() {
 		
 		NtpConfig ntp;
 		if(config.getNtpConfig(ntp)) {
-			configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? ntp.server : "");
+			configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : "pool.ntp.org" : ""); // Add NTP server by default if none is configured
 			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
 			ntpEnabled = ntp.enable;
 			TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
@@ -305,6 +309,13 @@ void setup() {
 	}
 
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds);
+
+	#if defined(ESP32)
+		esp_task_wdt_init(WDT_TIMEOUT, true);
+ 		esp_task_wdt_add(NULL);
+    #elif defined(ESP8266)
+		ESP.wdtEnable(WDT_TIMEOUT);
+	#endif
 }
 
 int buttonTimer = 0;
@@ -349,7 +360,7 @@ void loop() {
 		if (WiFi.status() != WL_CONNECTED) {
 			wifiConnected = false;
 			Debug.stop();
-			//WiFi_connect();
+			WiFi_connect();
 		} else {
 			wifiReconnectCount = 0;
 			if(!wifiConnected) {
@@ -485,6 +496,11 @@ void loop() {
 		}
 	}
 	delay(1); // Needed for auto modem sleep
+	#if defined(ESP32)
+		esp_task_wdt_reset();
+	#elif defined(ESP8266)
+		ESP.wdtFeed();
+	#endif
 }
 
 void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert) {
@@ -660,6 +676,7 @@ void swapWifiMode() {
 
 int len = 0;
 uint8_t buf[BUF_SIZE];
+MbusAssembler* ma = NULL;
 int currentMeterType = -1;
 bool readHanPort() {
 	if(!hanSerial->available()) return false;
@@ -679,8 +696,10 @@ bool readHanPort() {
 	CosemDateTime timestamp = {0};
 	AmsData data;
 	if(currentMeterType == 1) {
-		while(hanSerial->available()) {
+		int pos = HDLC_FRAME_INCOMPLETE;
+		while(hanSerial->available() && pos == HDLC_FRAME_INCOMPLETE) {
 			buf[len++] = hanSerial->read();
+			pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
 			delay(1);
 		}
 		if(len > 0) {
@@ -690,7 +709,32 @@ bool readHanPort() {
 				debugI("Buffer overflow, resetting");
 				return false;
 			}
-			int pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
+			if(pos == MBUS_FRAME_INTERMEDIATE_SEGMENT) {
+				debugI("Intermediate segment");
+				if(ma == NULL) {
+					ma = new MbusAssembler();
+				}
+				if(ma->append((uint8_t *) buf, len) < 0)
+					pos = -77;
+				if(Debug.isActive(RemoteDebug::VERBOSE)) {
+					debugD("Frame dump (%db):", len);
+					debugPrint(buf, 0, len);
+				}
+				len = 0;
+				return false;
+			} else if(pos == MBUS_FRAME_LAST_SEGMENT) {
+				debugI("Final segment");
+				if(Debug.isActive(RemoteDebug::VERBOSE)) {
+					debugD("Frame dump (%db):", len);
+					debugPrint(buf, 0, len);
+				}
+				if(ma->append((uint8_t *) buf, len) >= 0) {
+					len = ma->write((uint8_t *) buf);
+					pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
+				} else {
+					pos = -77;
+				}
+			}
 			if(pos == HDLC_FRAME_INCOMPLETE) {
 				return false;
 			}
@@ -702,28 +746,70 @@ bool readHanPort() {
 				memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);
 				memcpy(hc->authentication_key, meterConfig.authenticationKey, 16);
 			}
-			if(Debug.isActive(RemoteDebug::DEBUG)) {
+			if(Debug.isActive(RemoteDebug::VERBOSE)) {
 				debugD("Frame dump (%db):", len);
 				debugPrint(buf, 0, len);
-				if(hc != NULL) {
-					debugD("System title:");
-					debugPrint(hc->system_title, 0, 8);
-					debugD("Initialization vector:");
-					debugPrint(hc->initialization_vector, 0, 12);
-					debugD("Additional authenticated data:");
-					debugPrint(hc->additional_authenticated_data, 0, 17);
-					debugD("Authentication tag:");
-					debugPrint(hc->authentication_tag, 0, 12);
-				}
+			}
+			if(hc != NULL && Debug.isActive(RemoteDebug::DEBUG)) {
+				debugD("System title:");
+				debugPrint(hc->system_title, 0, 8);
+				debugD("Initialization vector:");
+				debugPrint(hc->initialization_vector, 0, 12);
+				debugD("Additional authenticated data:");
+				debugPrint(hc->additional_authenticated_data, 0, 17);
+				debugD("Authentication tag:");
+				debugPrint(hc->authentication_tag, 0, 12);
 			}
 			len = 0;
+			while(hanSerial->available()) hanSerial->read();
 			if(pos > 0) {
-				while(hanSerial->available()) hanSerial->read();
-				debugI("Valid HDLC, start at %d", pos);
-				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), timestamp);
+				debugI("Valid data, start at byte %d", pos);
+				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), meterConfig.distributionSystem, timestamp, hc);
 			} else {
-				debugW("Invalid HDLC, returned with %d", pos);
-				currentMeterType = 0;
+				if(Debug.isActive(RemoteDebug::WARNING)) {
+					switch(pos) {
+						case HDLC_BOUNDRY_FLAG_MISSING:
+							debugW("Boundry flag missing");
+							break;
+						case HDLC_HCS_ERROR:
+							debugW("Header checksum error");
+							break;
+						case HDLC_FCS_ERROR:
+							debugW("Frame checksum error");
+							break;
+						case HDLC_FRAME_INCOMPLETE:
+							debugW("Received frame is incomplete");
+							break;
+						case HDLC_ENCRYPTION_CONFIG_MISSING:
+							debugI("Encryption configuration requested, initializing");
+							break;
+						case HDLC_ENCRYPTION_AUTH_FAILED:
+							debugW("Decrypt authentication failed");
+							break;
+						case HDLC_ENCRYPTION_KEY_FAILED:
+							debugW("Setting decryption key failed");
+							break;
+						case HDLC_ENCRYPTION_DECRYPT_FAILED:
+							debugW("Decryption failed");
+							break;
+						case MBUS_FRAME_LENGTH_NOT_EQUAL:
+							debugW("Frame length mismatch");
+							break;
+						case MBUS_FRAME_INTERMEDIATE_SEGMENT:
+						case MBUS_FRAME_LAST_SEGMENT:
+							debugW("Partial frame dropped");
+							break;
+						case HDLC_TIMESTAMP_UNKNOWN:
+							debugW("Frame timestamp is not correctly formatted");
+							break;
+						case HDLC_UNKNOWN_DATA:
+							debugW("Unknown data format %02X", buf[0]);
+							currentMeterType = 0;
+							break;
+						default:
+							debugW("Unspecified error while reading data: %d", pos);
+					}
+				}
 				return false;
 			}
 		} else {
@@ -762,7 +848,7 @@ bool readHanPort() {
 		}
 
 		time_t now = time(nullptr);
-		if(now < EPOCH_2021_01_01 && data.getListType() == 3 && !ntpEnabled) {
+		if(now < EPOCH_2021_01_01 && data.getListType() == 3) {
 			if(data.getMeterTimestamp() > EPOCH_2021_01_01) {
 				debugI("Using timestamp from meter");
 				now = data.getMeterTimestamp();
@@ -872,8 +958,16 @@ void WiFi_connect() {
 			ip.fromString(wifi.ip);
 			gw.fromString(wifi.gateway);
 			sn.fromString(wifi.subnet);
-			dns1.fromString(wifi.dns1);
-			dns2.fromString(wifi.dns2);
+			if(strlen(wifi.dns1) > 0) {
+				dns1.fromString(wifi.dns1);
+			} else if(strlen(wifi.gateway) > 0) {
+				dns1.fromString(wifi.gateway); // If no DNS, set gateway by default
+			}
+			if(strlen(wifi.dns2) > 0) {
+				dns2.fromString(wifi.dns2);
+			} else if(dns1.toString().isEmpty()) {
+				dns2.fromString("208.67.220.220"); // Add OpenDNS as second by default if nothing is configured
+			}
 			WiFi.config(ip, gw, sn, dns1, dns2);
 		} else {
 			#if defined(ESP32)

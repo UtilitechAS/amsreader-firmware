@@ -158,9 +158,9 @@ bool AmsDataStorage::update(AmsData* data) {
     }
 
     if(month.lastMeterReadTime > now) {
-        if(debugger->isActive(RemoteDebug::WARNING)) {
+//        if(debugger->isActive(RemoteDebug::WARNING)) {
             debugger->printf("(AmsDataStorage) Invalid future timestamp for month plot, resetting\n");
-        }
+//        }
         month.activeImport = data->getActiveImportCounter() * 1000;
         month.activeExport = data->getActiveExportCounter() * 1000;
         month.lastMeterReadTime = now;
@@ -171,18 +171,18 @@ bool AmsDataStorage::update(AmsData* data) {
             month.activeImport = data->getActiveImportCounter() * 1000;
             month.activeExport = data->getActiveExportCounter() * 1000;
             month.lastMeterReadTime = now;
-            if(debugger->isActive(RemoteDebug::WARNING)) {
+//            if(debugger->isActive(RemoteDebug::WARNING)) {
                 debugger->printf("(AmsDataStorage) Too long since last month update, clearing data\n");
-            }
+//            }
             for(int i = 1; i<=31; i++) {
                 setDay(i, 0);
             }
         } else if(now - month.lastMeterReadTime < 87000) {
             int32_t val = (month.activeImport == 0 ? 0 : ((data->getActiveImportCounter() * 1000) - month.activeImport) - ((data->getActiveExportCounter() * 1000) - month.activeExport));
 
-            if(debugger->isActive(RemoteDebug::INFO)) {
+//            if(debugger->isActive(RemoteDebug::INFO)) {
                 debugger->printf("(AmsDataStorage) Usage for day %d: %d\n", tm.Day, val);
-            }
+//            }
 
             time_t yesterday = now - 3600;
             breakTime(yesterday, tm);
@@ -198,9 +198,12 @@ bool AmsDataStorage::update(AmsData* data) {
             float iph = im / hrs;
             float eph = ex / hrs;
 
-            if(debugger->isActive(RemoteDebug::DEBUG)) {
+            // There is something wacky going on when it ends up here. The total value (im) is way way lower than it should be, which in 
+            // turn causes low values for all estimates. And then when it returns to the normal case above, the value is waaay higher.
+
+//            if(debugger->isActive(RemoteDebug::DEBUG)) {
                 debugger->printf("(AmsDataStorage) Since last month update, hours: %.1f, import: %d (%.2f/hr), export: %d (%.2f/hr)\n", hrs, im, iph, ex, eph);
-            }
+//            }
 
             // Make sure last month read is at midnight
             if(tz != NULL) {
@@ -209,9 +212,9 @@ bool AmsDataStorage::update(AmsData* data) {
                 breakTime(month.lastMeterReadTime, tm);
             }
             month.lastMeterReadTime = month.lastMeterReadTime - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second;
-            if(debugger->isActive(RemoteDebug::DEBUG)) {
-                debugger->printf("(AmsDataStorage) Last month read after resetting to midnight: %lu", month.lastMeterReadTime);
-            }
+//            if(debugger->isActive(RemoteDebug::DEBUG)) {
+                debugger->printf("(AmsDataStorage) Last month read after resetting to midnight: %lu\n", month.lastMeterReadTime);
+//            }
 
             if(tz != NULL) {
                 breakTime(tz->toLocal(now), tm);
@@ -232,9 +235,9 @@ bool AmsDataStorage::update(AmsData* data) {
                 float val = ((iph * hours) - (eph * hours));
                 setDay(last.Day, val);
 
-                if(debugger->isActive(RemoteDebug::INFO)) {
+//                if(debugger->isActive(RemoteDebug::INFO)) {
                     debugger->printf("(AmsDataStorage) Estimated usage for day %u: %.1f (%lu)\n", last.Day, val, cur);
-                }
+//                }
 
                 month.activeImport += iph * hours;
                 month.activeExport += eph * hours;

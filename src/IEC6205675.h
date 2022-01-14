@@ -4,6 +4,8 @@
 #include "AmsData.h"
 #include "ams/hdlc.h"
 
+#define NOVALUE 0xFFFFFFFF
+
 struct AmsOctetTimestamp {
     uint8_t type;
     CosemDateTime dt;

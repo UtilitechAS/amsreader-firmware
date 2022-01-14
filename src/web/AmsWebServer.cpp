@@ -14,6 +14,10 @@
 	#define HEAD_HTML_LEN HEAD32_HTML_LEN
 #endif
 
+#if defined(ESP32)
+#include <esp_task_wdt.h>
+#endif
+
 #include "root/foot_html.h"
 #include "root/index_html.h"
 #include "root/application_js.h"
@@ -321,9 +325,6 @@ void AmsWebServer::indexHtml() {
 		String html = String((const __FlashStringHelper*) SETUP_HTML);
 		for(int i = 0; i<255; i++) {
 			html.replace("${config.boardType" + String(i) + "}", sys.boardType == i ? "selected"  : "");
-		}
-		for(int i = 0; i<5; i++) {
-			html.replace("${config.meterType" + String(i) + "}", sys.boardType == i ? "selected"  : "");
 		}
 		html.replace("${config.wifiSsid}", wifi.ssid);
 		html.replace("${config.wifiPassword}", wifi.psk);
@@ -1561,6 +1562,12 @@ void AmsWebServer::firmwareUpload() {
         String filename = upload.filename;
         if(!filename.endsWith(".bin")) {
             server.send(500, "text/plain", "500: couldn't create file");
+		} else {
+			#if defined(ESP32)
+				esp_task_wdt_deinit();
+			#elif defined(ESP8266)
+				ESP.wdtDisable();
+			#endif
 		}
 	}
 	uploadFile(FILE_FIRMWARE);

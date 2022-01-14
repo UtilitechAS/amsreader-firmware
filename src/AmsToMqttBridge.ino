@@ -13,7 +13,9 @@
  */
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);
-#else if defined(ESP32)
+#endif
+
+#if defined(ESP32)
 #include <esp_task_wdt.h>
 #endif
 #define WDT_TIMEOUT 10

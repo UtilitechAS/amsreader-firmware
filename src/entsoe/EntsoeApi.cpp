@@ -265,7 +265,7 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
         return 1.00;
 
     uint64_t now = millis64();
-    if(lastCurrencyFetch == 0 || lastCurrencyFetch < midnightMillis) {
+    if(lastCurrencyFetch < midnightMillis) {
         char url[256];
         DnbCurrParser p;
 
@@ -292,7 +292,7 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
             }
         }
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi) Resulting currency multiplier: %.4f\n", currencyMultiplier);
-        lastCurrencyFetch = now;
+        lastCurrencyFetch = midnightMillis;
     }
     return currencyMultiplier;
 }

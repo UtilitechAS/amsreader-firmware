@@ -18,6 +18,8 @@ EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
     TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
 	TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
 	tz = new Timezone(CEST, CET);
+
+    tomorrowFetchMillis = random(3600000,3780000); // Random between 13:30 and 14:00
 }
 
 void EntsoeApi::setup(EntsoeConfig& config) {
@@ -140,9 +142,11 @@ bool EntsoeApi::loop() {
             }
         }
 
+        // Prices for next day are published at 13:00 CE(S)T, but to avoid heavy server traffic at that time, we will 
+        // fetch 1 hr after that (with some random delay) and retry every 15 minutes
         if(tomorrow == NULL
-            && midnightMillis - now < 39600000 // Fetch 11hrs before midnight (13:00 CE(S)T)
-            && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 300000) // Retry every 5min
+            && midnightMillis - now < tomorrowFetchMillis
+            && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 900000)
         ) {
             lastTomorrowFetch = now;
             time_t e1 = time(nullptr);
@@ -261,9 +265,15 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
         return 1.00;
 
     uint64_t now = millis64();
-    if(lastCurrencyFetch == 0 || now - lastCurrencyFetch > (SECS_PER_HOUR * 1000)) {
+    if(lastCurrencyFetch == 0 || lastCurrencyFetch < midnightMillis) {
         char url[256];
         DnbCurrParser p;
+
+        #if defined(ESP32)
+            esp_task_wdt_reset();
+        #elif defined(ESP8266)
+            ESP.wdtFeed();
+        #endif
 
         snprintf(url, sizeof(url), "https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1", from);
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Retrieving %s to NOK conversion\n", from);

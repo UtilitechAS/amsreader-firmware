@@ -717,7 +717,7 @@ var fetch = function() {
         if(ap && json.mf) {
             switch(ds) {
                 case 1:
-                    ao.title = 'Current between';
+                    ao.title = 'Line current';
                     break;
                 case 2:
                     ao.title = 'Phase current';
@@ -730,19 +730,19 @@ var fetch = function() {
                 var i1 = parseFloat(json.i1);
                 a = Math.max(a, i1);
                 var pct = (parseFloat(json.i1)/parseInt(json.mf))*100;
-                arr[r++] = [ds == 1 ? 'L1-L2' : 'L1', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i1 + "A"];
+                arr[r++] = ['L1', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i1 + "A"];
             }
             if(json.i2) {
                 var i2 = parseFloat(json.i2);
                 a = Math.max(a, i2);
                 var pct = (parseFloat(json.i2)/parseInt(json.mf))*100;
-                arr[r++] = [ds == 1 ? 'L1-L3' : 'L2', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i2 + "A"];
+                arr[r++] = ['L2', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i2 + "A"];
             }
             if(json.i3) {
                 var i3 = parseFloat(json.i3);
                 a = Math.max(a, i3);
                 var pct = (parseFloat(json.i3)/parseInt(json.mf))*100;
-                arr[r++] = [ds == 1 ? 'L2-L3' : 'L3', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i3 + "A"];
+                arr[r++] = ['L3', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i3 + "A"];
             }
             if(a > 0) {
                 aa = google.visualization.arrayToDataTable(arr);

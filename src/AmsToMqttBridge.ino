@@ -751,7 +751,7 @@ bool readHanPort() {
 				debugD("Frame dump (%db):", len);
 				debugPrint(buf, 0, len);
 			}
-			if(hc != NULL && Debug.isActive(RemoteDebug::DEBUG)) {
+			if(hc != NULL && Debug.isActive(RemoteDebug::VERBOSE)) {
 				debugD("System title:");
 				debugPrint(hc->system_title, 0, 8);
 				debugD("Initialization vector:");
@@ -764,7 +764,7 @@ bool readHanPort() {
 			len = 0;
 			while(hanSerial->available()) hanSerial->read();
 			if(pos > 0) {
-				debugI("Valid data, start at byte %d", pos);
+				debugD("Valid data, start at byte %d", pos);
 				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), meterConfig.distributionSystem, timestamp, hc);
 			} else {
 				if(Debug.isActive(RemoteDebug::WARNING)) {

@@ -4,16 +4,15 @@
 #include "TimeLib.h"
 #include "DnbCurrParser.h"
 
-#if defined(ESP8266)
-	#include <ESP8266HTTPClient.h>
-#elif defined(ESP32) // ARDUINO_ARCH_ESP32
-	#include <HTTPClient.h>
-#else
-	#warning "Unsupported board type"
+#if defined(ESP32)
+#include <esp_task_wdt.h>
 #endif
 
 EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
     debugger = Debug;
+
+    client.setInsecure();
+    https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 
     // Entso-E uses CET/CEST
     TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
@@ -26,6 +25,7 @@ void EntsoeApi::setup(EntsoeConfig& config) {
         this->config = new EntsoeConfig();
     }
     memcpy(this->config, &config, sizeof(config));
+    lastCurrencyFetch = 0;
 }
 
 char* EntsoeApi::getToken() {
@@ -79,7 +79,6 @@ float EntsoeApi::getValueForHour(time_t cur, uint8_t hour) {
 bool EntsoeApi::loop() {
     if(strlen(getToken()) == 0)
         return false;
-    bool ret = false;
 
     uint64_t now = millis64();
     if(now < 10000) return false; // Grace period
@@ -121,15 +120,23 @@ bool EntsoeApi::loop() {
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
             config->area, config->area);
 
+            #if defined(ESP32)
+                esp_task_wdt_reset();
+            #elif defined(ESP8266)
+                ESP.wdtFeed();
+            #endif
+
+
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for today\n");
             if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", url);
             EntsoeA44Parser* a44 = new EntsoeA44Parser();
             if(retrieve(url, a44) && a44->getPoint(0) != ENTSOE_NO_VALUE) {
                 today = a44;
-                ret = true;
+                return true;
             } else if(a44 != NULL) {
                 delete a44;
                 today = NULL;
+                return false;
             }
         }
 
@@ -151,23 +158,29 @@ bool EntsoeApi::loop() {
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
             config->area, config->area);
 
+            #if defined(ESP32)
+                esp_task_wdt_reset();
+            #elif defined(ESP8266)
+                ESP.wdtFeed();
+            #endif
+
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for tomorrow\n");
             if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", url);
             EntsoeA44Parser* a44 = new EntsoeA44Parser();
             if(retrieve(url, a44) && a44->getPoint(0) != ENTSOE_NO_VALUE) {
                 tomorrow = a44;
-                ret = true;
+                return true;
             } else if(a44 != NULL) {
                 delete a44;
                 tomorrow = NULL;
+                return false;
             }
         }
     }
-    return ret;
+    return false;
 }
 
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {
-    WiFiClientSecure client;
     #if defined(ESP8266)
         // https://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/bearssl-client-secure-class.html#mfln-or-maximum-fragment-length-negotiation-saving-ram
         /* Rumor has it that a client cannot request a lower max_fragment_length, so I guess thats why the following does not work.
@@ -185,13 +198,15 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
         */
     #endif
 
-    client.setInsecure();
-    
-    HTTPClient https;
-    https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-
     if(https.begin(client, url)) {
         printD("Connection established");
+
+        #if defined(ESP32)
+            esp_task_wdt_reset();
+        #elif defined(ESP8266)
+            ESP.wdtFeed();
+        #endif
+
         /*
         #if defined(ESP8266)
             if(!client.getMFLNStatus()) {
@@ -204,6 +219,13 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
         */
 
         int status = https.GET();
+
+        #if defined(ESP32)
+            esp_task_wdt_reset();
+        #elif defined(ESP8266)
+            ESP.wdtFeed();
+        #endif
+
         if(status == HTTP_CODE_OK) {
             printD("Receiving data");
             https.writeToStream(doc);
@@ -241,15 +263,25 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
     uint64_t now = millis64();
     if(lastCurrencyFetch == 0 || now - lastCurrencyFetch > (SECS_PER_HOUR * 1000)) {
         char url[256];
-        snprintf(url, sizeof(url), "https://data.norges-bank.no/api/data/EXR/M.%s.%s.SP?lastNObservations=1", 
-            from,
-            to
-        );
-
         DnbCurrParser p;
+
+        snprintf(url, sizeof(url), "https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1", from);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Retrieving %s to NOK conversion\n", from);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", url);
         if(retrieve(url, &p)) {
+            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  got exchange rate %.4f\n", p.getValue());
             currencyMultiplier = p.getValue();
+            if(strncmp(to, "NOK", 3) != 0) {
+                snprintf(url, sizeof(url), "https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1", to);
+                if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Retrieving %s to NOK conversion\n", to);
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", url);
+                if(retrieve(url, &p)) {
+                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  got exchange rate %.4f\n", p.getValue());
+                    currencyMultiplier /= p.getValue();
+                }
+            }
         }
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi) Resulting currency multiplier: %.4f\n", currencyMultiplier);
         lastCurrencyFetch = now;
     }
     return currencyMultiplier;

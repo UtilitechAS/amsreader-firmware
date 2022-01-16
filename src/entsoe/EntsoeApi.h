@@ -7,6 +7,14 @@
 #include "EntsoeA44Parser.h"
 #include "AmsConfiguration.h"
 
+#if defined(ESP8266)
+	#include <ESP8266HTTPClient.h>
+#elif defined(ESP32) // ARDUINO_ARCH_ESP32
+	#include <HTTPClient.h>
+#else
+	#warning "Unsupported board type"
+#endif
+
 #define ENTSOE_DEFAULT_MULTIPLIER 1.00
 #define SSL_BUF_SIZE 512
 
@@ -24,6 +32,8 @@ public:
 private:
     RemoteDebug* debugger;
     EntsoeConfig* config = NULL;
+    WiFiClientSecure client;
+    HTTPClient https;
 
     uint64_t midnightMillis = 0;
     uint64_t lastTodayFetch = 0;

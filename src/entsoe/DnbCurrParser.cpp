@@ -1,4 +1,5 @@
 #include "DnbCurrParser.h"
+#include "Arduino.h"
 #include "HardwareSerial.h"
 
 float DnbCurrParser::getValue() {
@@ -35,7 +36,22 @@ size_t DnbCurrParser::write(uint8_t byte) {
         }
     } else if(byte == '>') {
         buf[pos++] = byte;
-        if(strncmp(buf, "<Obs", 4) == 0) {
+        if(strncmp(buf, "<Series", 7) == 0) {
+            for(int i = 0; i < pos; i++) {
+                if(strncmp(buf+i, "UNIT_MULT=\"", 11) == 0) {
+                    pos = i + 11;
+                    break;
+                }
+            }
+            for(int i = 0; i < 16; i++) {
+                uint8_t b = buf[pos+i];
+                if(b == '"') {
+                    buf[pos+i] = '\0';
+                    break;
+                }
+            }
+            scale = String(buf+pos).toInt();
+        } else if(strncmp(buf, "<Obs", 4) == 0) {
             for(int i = 0; i < pos; i++) {
                 if(strncmp(buf+i, "OBS_VALUE=\"", 11) == 0) {
                     pos = i + 11;
@@ -49,7 +65,7 @@ size_t DnbCurrParser::write(uint8_t byte) {
                     break;
                 }
             }
-            value = String(buf+pos).toFloat();
+            value = String(buf+pos).toFloat() / pow(10, scale);
         }
         pos = 0;
     } else {

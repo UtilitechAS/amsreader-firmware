@@ -15,6 +15,7 @@ public:
     size_t write(uint8_t);
 
 private:
+    uint8_t scale = 0;
     float value = 1.0;
 
     char buf[64];

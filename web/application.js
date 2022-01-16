@@ -1,5 +1,6 @@
 var nextVersion;
 var im, em;
+var ds = 0;
 
 // Price plot
 var pp;
@@ -231,9 +232,9 @@ $(function() {
     // For wifi
     $('#st').on('change', function() {
         if($(this).is(':checked')) {
-            $('#i').show();
+            $('.sip').prop('disabled', false);
         } else {
-            $('#i').hide();
+            $('.sip').prop('disabled', true);
         }
     });
     $('#st').trigger('change');
@@ -597,12 +598,6 @@ var fetch = function() {
         dataType: 'json',
     }).done(function(json) {
         retrycount = 0;
-        if(im) {
-            $(".SimpleMeter").hide();
-            im.show();
-            em.show();
-
-        }
 
         for(var id in json) {
             var str = json[id];
@@ -621,6 +616,8 @@ var fetch = function() {
         if(window.moment) {
             $('.ju').html(moment.duration(parseInt(json.u), 'seconds').humanize());
         }
+
+        ds = parseInt(json.ds);
 
         var kib = parseInt(json.m)/1000;
         $('.jm').html(kib.toFixed(1));
@@ -677,6 +674,14 @@ var fetch = function() {
         }
 
         if(vp) {
+            switch(ds) {
+                case 1:
+                    vo.title = 'Voltage between';
+                    break;
+                case 2:
+                    vo.title = 'Phase voltage';
+                    break;
+            }
             var c = 0;
             var t = 0;
             var r = 1;
@@ -686,21 +691,21 @@ var fetch = function() {
                 t += u1;
                 c++;
                 var pct = (Math.max(parseFloat(json.u1)-195.5, 1)*100/69);
-                arr[r++] = ['L1', u1, "color: " + voltcol(pct) + ";opacity: 0.9;", u1 + "V"];
+                arr[r++] = [ds == 1 ? 'L1-L2' : 'L1', u1, "color: " + voltcol(pct) + ";opacity: 0.9;", u1 + "V"];
             }
             if(json.u2) {
                 var u2 = parseFloat(json.u2);
                 t += u2;
                 c++;
                 var pct = (Math.max(parseFloat(json.u2)-195.5, 1)*100/69);
-                arr[r++] = ['L2', u2, "color: " + voltcol(pct) + ";opacity: 0.9;", u2 + "V"];
+                arr[r++] = [ds == 1 ? 'L1-L3' : 'L2', u2, "color: " + voltcol(pct) + ";opacity: 0.9;", u2 + "V"];
             }
             if(json.u3) {
                 var u3 = parseFloat(json.u3);
                 t += u3;
                 c++;
                 var pct = (Math.max(parseFloat(json.u3)-195.5, 1)*100/69);
-                arr[r++] = ['L3', u3, "color: " + voltcol(pct) + ";opacity: 0.9;", u3 + "V"];
+                arr[r++] = [ds == 1 ? 'L2-L3' : 'L3', u3, "color: " + voltcol(pct) + ";opacity: 0.9;", u3 + "V"];
             }
             v = t/c;
             if(v > 0) {
@@ -710,6 +715,14 @@ var fetch = function() {
         }
 
         if(ap && json.mf) {
+            switch(ds) {
+                case 1:
+                    ao.title = 'Current between';
+                    break;
+                case 2:
+                    ao.title = 'Phase current';
+                    break;
+            }
             var a = 0;
             var r = 1;
             var arr = [['Phase', 'Amperage', { role: 'style' }, { role: 'annotation' }]];
@@ -717,19 +730,19 @@ var fetch = function() {
                 var i1 = parseFloat(json.i1);
                 a = Math.max(a, i1);
                 var pct = (parseFloat(json.i1)/parseInt(json.mf))*100;
-                arr[r++] = ['L1', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i1 + "A"];
+                arr[r++] = [ds == 1 ? 'L1-L2' : 'L1', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i1 + "A"];
             }
             if(json.i2) {
                 var i2 = parseFloat(json.i2);
                 a = Math.max(a, i2);
                 var pct = (parseFloat(json.i2)/parseInt(json.mf))*100;
-                arr[r++] = ['L2', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i2 + "A"];
+                arr[r++] = [ds == 1 ? 'L1-L3' : 'L2', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i2 + "A"];
             }
             if(json.i3) {
                 var i3 = parseFloat(json.i3);
                 a = Math.max(a, i3);
                 var pct = (parseFloat(json.i3)/parseInt(json.mf))*100;
-                arr[r++] = ['L3', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i3 + "A"];
+                arr[r++] = [ds == 1 ? 'L2-L3' : 'L3', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i3 + "A"];
             }
             if(a > 0) {
                 aa = google.visualization.arrayToDataTable(arr);

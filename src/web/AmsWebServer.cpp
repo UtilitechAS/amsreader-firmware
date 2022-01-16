@@ -498,12 +498,21 @@ void AmsWebServer::configWifiHtml() {
 
 	html.replace("{s}", wifi.ssid);
 	html.replace("{p}", wifi.psk);
-	html.replace("{st}", strlen(wifi.ip) > 0 ? "checked" : "");
-	html.replace("{i}", wifi.ip);
-	html.replace("{g}", wifi.gateway);
-	html.replace("{sn}", wifi.subnet);
-	html.replace("{d1}", wifi.dns1);
-	html.replace("{d2}", wifi.dns2);
+	if(strlen(wifi.ip) > 0) {
+		html.replace("{st}", "checked");
+		html.replace("{i}", wifi.ip);
+		html.replace("{g}", wifi.gateway);
+		html.replace("{sn}", wifi.subnet);
+		html.replace("{d1}", wifi.dns1);
+		html.replace("{d2}", wifi.dns2);
+	} else {
+		html.replace("{st}", "");
+		html.replace("{i}", WiFi.localIP().toString());
+		html.replace("{g}", WiFi.gatewayIP().toString());
+		html.replace("{sn}", WiFi.subnetMask().toString());
+		html.replace("{d1}", WiFi.dnsIP().toString());
+		html.replace("{d2}", "");
+	}
 	html.replace("{h}", wifi.hostname);
 	html.replace("{m}", wifi.mdns ? "checked" : "");
 
@@ -783,7 +792,8 @@ void AmsWebServer::dataJson() {
 		mqtt == NULL ? 0 : (int) mqtt->lastError(),
 		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
 		time(nullptr),
-		meterState->getMeterType()
+		meterState->getMeterType(),
+		meterConfig->distributionSystem
 	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -1269,6 +1279,7 @@ void AmsWebServer::handleSave() {
 		strcpy(entsoe.currency, server.arg("ecu").c_str());
 		entsoe.multiplier = server.arg("em").toFloat() * 1000;
 		config->setEntsoeConfig(entsoe);
+		eapi->setup(entsoe);
 	}
 
 	printI("Saving configuration now...");
@@ -1564,6 +1575,7 @@ void AmsWebServer::firmwareUpload() {
             server.send(500, "text/plain", "500: couldn't create file");
 		} else {
 			#if defined(ESP32)
+				esp_task_wdt_delete(NULL);
 				esp_task_wdt_deinit();
 			#elif defined(ESP8266)
 				ESP.wdtDisable();

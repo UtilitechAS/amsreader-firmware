@@ -19,7 +19,7 @@ EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
 	TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
 	tz = new Timezone(CEST, CET);
 
-    tomorrowFetchMillis = random(3600000,3780000); // Random between 13:30 and 14:00
+    tomorrowFetchMillis = 36000000 + (random(1800) * 1000); // Random between 13:30 and 14:00
 }
 
 void EntsoeApi::setup(EntsoeConfig& config) {
@@ -64,7 +64,7 @@ float EntsoeApi::getValueForHour(time_t cur, uint8_t hour) {
             return ENTSOE_NO_VALUE;
         }
         multiplier *= getCurrencyMultiplier(tomorrow->getCurrency(), config->currency);
-    } else {
+    } else if(pos > 0) {
         if(today == NULL)
             return ENTSOE_NO_VALUE;
         value = today->getPoint(pos);

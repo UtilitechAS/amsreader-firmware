@@ -35,7 +35,7 @@ private:
     WiFiClientSecure client;
     HTTPClient https;
 
-    uint32_t tomorrowFetchMillis = 3600000; // Number of ms before midnight. Default fetch 10hrs before midnight (14:00 CE(S)T)
+    uint32_t tomorrowFetchMillis = 36000000; // Number of ms before midnight. Default fetch 10hrs before midnight (14:00 CE(S)T)
     uint64_t midnightMillis = 0;
     uint64_t lastTodayFetch = 0;
     uint64_t lastTomorrowFetch = 0;

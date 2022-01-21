@@ -1040,7 +1040,6 @@ void AmsWebServer::handleSetup() {
 				break;
 			case 200: // ESP32
 				gpioConfig->hanPin = 16;
-				gpioConfig->apPin = 0;
 				gpioConfig->ledPin = 2;
 				gpioConfig->ledInverted = false;
 				break;

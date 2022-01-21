@@ -15,7 +15,7 @@
         <div class="flex-fill">
             <div class="text-center">Free mem: <span class="jm">{mem}</span>kb</div>
         </div>
-        <div class="flex-fill  rc">
+        <div class="flex-fill rc">
             <div class="text-center"><span class="jc"></span></div>
         </div>
     </div>
@@ -107,6 +107,47 @@
                 <div class="col-8 col-sm-3 text-right"><span class="jric">{tQI}</span> kVArh</div>
                 <div class="col-4 col-sm-1">Out</div>
                 <div class="col-8 col-sm-3 text-right"><span class="jrec">{tQO}</span> kVArh</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-12 mb-3">
+        <div class="bg-white rounded shadow pt-3 pb-3" style="font-size: 14px;">
+            <strong class="mr-3 ml-3">Current use and cost</strong><br/>
+            <div class="row">
+                <div class="col-lg-3 col-sm-6">
+                    <div class="mr-3 ml-3 d-flex">
+                        <div>Hour</div>
+                        <div class="flex-fill text-right">
+                            <span id="each"></span> kWh
+                            <span class="sp text-nowrap">(<span id="eachc"></span> <span class="cr"></span>)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-sm-6">
+                    <div class="mr-3 ml-3 d-flex">
+                        <div>Day</div>
+                        <div class="flex-fill text-right">
+                            <span id="eacd"></span> kWh
+                            <span class="sp text-nowrap">(<span id="eacdc"></span> <span class="cr"></span>)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-sm-6">
+                    <div class="mr-3 ml-3 d-flex">
+                        <div>Month</div>
+                        <div class="flex-fill text-right">
+                            <span id="eacm"></span> kWh
+                            <span class="sp text-nowrap">(<span id="eacmc"></span> <span class="cr"></span>)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-sm-6">
+                    <div class="row mr-3 ml-3">
+                        <div class="col-3">Max</div>
+                        <div class="col-9 text-right"><span id="eax"></span> / <span id="eat"></span> kWh</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

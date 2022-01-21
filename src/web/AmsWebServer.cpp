@@ -1,6 +1,5 @@
 #include "AmsWebServer.h"
 #include "version.h"
-#include "AmsStorage.h"
 #include "hexutils.h"
 #include "AmsData.h"
 
@@ -56,12 +55,13 @@ AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw) {
 	this->hw = hw;
 }
 
-void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds) {
+void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea) {
     this->config = config;
 	this->gpioConfig = gpioConfig;
 	this->meterConfig = meterConfig;
 	this->meterState = meterState;
 	this->ds = ds;
+	this->ea = ea;
 
 	char jsuri[32];
 	snprintf(jsuri, 32, "/application-%s.js", VERSION);
@@ -757,7 +757,7 @@ void AmsWebServer::dataJson() {
 	if(eapi != NULL && strlen(eapi->getToken()) > 0)
 		price = eapi->getValueForHour(0);
 
-	char json[384];
+	char json[512];
 	snprintf_P(json, sizeof(json), DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		meterConfig->productionCapacity,
@@ -793,7 +793,15 @@ void AmsWebServer::dataJson() {
 		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
 		time(nullptr),
 		meterState->getMeterType(),
-		meterConfig->distributionSystem
+		meterConfig->distributionSystem,
+		ea->getMonthMax(),
+		ea->getCurrentThreshold(),
+		ea->getUseThisHour(),
+		ea->getCostThisHour(),
+		ea->getUseToday(),
+		ea->getCostToday(),
+		ea->getUseThisMonth(),
+		ea->getCostThisMonth()
 	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -1040,7 +1048,7 @@ void AmsWebServer::handleSetup() {
 				break;
 			case 200: // ESP32
 				gpioConfig->hanPin = 16;
-				gpioConfig->apPin = 0;
+				gpioConfig->apPin = 4;
 				gpioConfig->ledPin = 2;
 				gpioConfig->ledInverted = false;
 				break;

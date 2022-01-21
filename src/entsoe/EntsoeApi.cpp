@@ -38,12 +38,12 @@ char* EntsoeApi::getCurrency() {
     return this->config->currency;
 }
 
-float EntsoeApi::getValueForHour(uint8_t hour) {
+float EntsoeApi::getValueForHour(int8_t hour) {
     time_t cur = time(nullptr);
     return getValueForHour(cur, hour);
 }
 
-float EntsoeApi::getValueForHour(time_t cur, uint8_t hour) {
+float EntsoeApi::getValueForHour(time_t cur, int8_t hour) {
     tmElements_t tm;
     if(tz != NULL)
         cur = tz->toLocal(cur);

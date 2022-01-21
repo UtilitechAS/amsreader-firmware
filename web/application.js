@@ -1,6 +1,7 @@
 var nextVersion;
 var im, em;
 var ds = 0;
+var currency = "";
 
 // Price plot
 var pp;
@@ -432,6 +433,7 @@ var drawPrices = function() {
         timeout: 30000,
         dataType: 'json',
     }).done(function(json) {
+        currency = json.currency;
         data = [['Hour',json.currency + '/kWh', { role: 'style' }, { role: 'annotation' }]];
         var r = 1;
         var hour = moment.utc().hours();
@@ -748,6 +750,18 @@ var fetch = function() {
                 aa = google.visualization.arrayToDataTable(arr);
                 ap.draw(aa, ao);
             }
+        }
+
+        if(json.ea) {
+            $('#each').html(json.ea.h.u.toFixed(2));
+            $('#eachc').html(json.ea.h.c.toFixed(2));
+            $('#eacd').html(json.ea.d.u.toFixed(2));
+            $('#eacdc').html(json.ea.d.c.toFixed(2));
+            $('#eacm').html(json.ea.m.u.toFixed(2));
+            $('#eacmc').html(json.ea.m.c.toFixed(2));
+            $('#eax').html(json.ea.x.toFixed(2));
+            $('#eat').html(json.ea.t.toFixed(2));
+            $('.cr').html(currency);
         }
 
         if(json.me) {

@@ -122,7 +122,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
 
 bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {
 	int count = hw->getTempSensorCount();
-    if(count == 0)
+    if(count < 2)
         return false;
 
 	int size = 32 + (count * 26);

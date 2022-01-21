@@ -8,7 +8,9 @@
 #include "AmsConfiguration.h"
 #include "HwTools.h"
 #include "AmsData.h"
+#include "AmsStorage.h"
 #include "AmsDataStorage.h"
+#include "EnergyAccounting.h"
 #include "Uptime.h"
 #include "RemoteDebug.h"
 #include "entsoe/EntsoeApi.h"
@@ -30,7 +32,7 @@
 class AmsWebServer {
 public:
 	AmsWebServer(RemoteDebug* Debug, HwTools* hw);
-    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage*);
+    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*);
     void loop();
 	void setMqtt(MQTTClient* mqtt);
 	void setTimezone(Timezone* tz);
@@ -50,6 +52,7 @@ private:
 	WebConfig webConfig;
 	AmsData* meterState;
 	AmsDataStorage* ds;
+    EnergyAccounting* ea = NULL;
 	MQTTClient* mqtt = NULL;
 	bool uploading = false;
 	File file;

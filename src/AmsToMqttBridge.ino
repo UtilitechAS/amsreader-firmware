@@ -23,6 +23,7 @@ ADC_MODE(ADC_VCC);
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
 #include "AmsDataStorage.h"
+#include "EnergyAccounting.h"
 #include <MQTT.h>
 #include <DNSServer.h>
 #include <lwip/apps/sntp.h>
@@ -80,6 +81,7 @@ AmsData meterState;
 bool ntpEnabled = false;
 
 AmsDataStorage ds(&Debug);
+EnergyAccounting ea(&Debug);
 
 uint8_t wifiReconnectCount = 0;
 
@@ -309,7 +311,8 @@ void setup() {
 		swapWifiMode();
 	}
 
-	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds);
+	ea.setup(&ds, eapi);
+	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
 
 	#if defined(ESP32)
 		esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -871,6 +874,10 @@ bool readHanPort() {
 		if(ds.update(&data)) {
 			debugI("Saving day plot");
 			ds.save();
+		}
+		if(ea.update(&data)) {
+			debugI("Saving energy accounting");
+			ea.save();
 		}
 	}
 	delay(1);

@@ -26,8 +26,8 @@ public:
 
     char* getToken();
     char* getCurrency();
-    float getValueForHour(uint8_t);
-    float getValueForHour(time_t, uint8_t);
+    float getValueForHour(int8_t);
+    float getValueForHour(time_t, int8_t);
 
 private:
     RemoteDebug* debugger;

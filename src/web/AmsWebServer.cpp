@@ -757,7 +757,7 @@ void AmsWebServer::dataJson() {
 	if(eapi != NULL && strlen(eapi->getToken()) > 0)
 		price = eapi->getValueForHour(0);
 
-	char json[384];
+	char json[512];
 	snprintf_P(json, sizeof(json), DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		meterConfig->productionCapacity,
@@ -791,9 +791,9 @@ void AmsWebServer::dataJson() {
 		mqttStatus,
 		mqtt == NULL ? 0 : (int) mqtt->lastError(),
 		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
-		time(nullptr),
 		meterState->getMeterType(),
-		meterConfig->distributionSystem
+		meterConfig->distributionSystem,
+		(uint32_t) time(nullptr)
 	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");

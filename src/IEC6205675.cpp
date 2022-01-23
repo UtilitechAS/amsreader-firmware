@@ -471,9 +471,8 @@ double IEC6205675::getNumber(CosemData* item) {
                 break;
             }
             case CosemTypeLongSigned: {
-                uint16_t u16 = ntohs(item->lu.data); // ntohs only works for uint16 ?
-                int16_t i16 = u16; // Cast to int16 before use?
-                ret = i16; // Who knows, got to try it all...
+                int16_t i16 = ntohs(item->ls.data);
+                ret = i16;
                 pos += 3;
                 break;
             }

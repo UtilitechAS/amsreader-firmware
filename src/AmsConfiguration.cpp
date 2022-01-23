@@ -451,6 +451,9 @@ bool AmsConfiguration::getEntsoeConfig(EntsoeConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_ENTSOE_START, config);
 		EEPROM.end();
+		if(strlen(config.token) != 0 && strlen(config.token) != 36) {
+			clearEntsoe(config);
+		}
 		return true;
 	} else {
 		return false;

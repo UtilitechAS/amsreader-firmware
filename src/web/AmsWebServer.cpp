@@ -791,7 +791,6 @@ void AmsWebServer::dataJson() {
 		mqttStatus,
 		mqtt == NULL ? 0 : (int) mqtt->lastError(),
 		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
-		time(nullptr),
 		meterState->getMeterType(),
 		meterConfig->distributionSystem,
 		ea->getMonthMax(),
@@ -801,7 +800,8 @@ void AmsWebServer::dataJson() {
 		ea->getUseToday(),
 		ea->getCostToday(),
 		ea->getUseThisMonth(),
-		ea->getCostThisMonth()
+		ea->getCostThisMonth(),
+		(uint32_t) time(nullptr)
 	);
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -1048,7 +1048,6 @@ void AmsWebServer::handleSetup() {
 				break;
 			case 200: // ESP32
 				gpioConfig->hanPin = 16;
-				gpioConfig->apPin = 4;
 				gpioConfig->ledPin = 2;
 				gpioConfig->ledInverted = false;
 				break;
@@ -1287,7 +1286,6 @@ void AmsWebServer::handleSave() {
 		strcpy(entsoe.currency, server.arg("ecu").c_str());
 		entsoe.multiplier = server.arg("em").toFloat() * 1000;
 		config->setEntsoeConfig(entsoe);
-		eapi->setup(entsoe);
 	}
 
 	printI("Saving configuration now...");

@@ -14,6 +14,7 @@ char* EntsoeA44Parser::getMeasurementUnit() {
 }
 
 float EntsoeA44Parser::getPoint(uint8_t position) {
+    if(position >= 24) return ENTSOE_NO_VALUE;
     return points[position];
 }
 
@@ -41,6 +42,7 @@ size_t EntsoeA44Parser::write(const uint8_t *buffer, size_t size) {
 }
 
 size_t EntsoeA44Parser::write(uint8_t byte) {
+    if(pos >= 64) pos = 0;
     if(docPos == DOCPOS_CURRENCY) {
         buf[pos++] = byte;
         if(pos == 3) {

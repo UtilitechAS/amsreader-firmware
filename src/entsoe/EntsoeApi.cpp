@@ -13,6 +13,7 @@ EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
 
     client.setInsecure();
     https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    https.setTimeout(5000);
 
     // Entso-E uses CET/CEST
     TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
@@ -63,8 +64,10 @@ float EntsoeApi::getValueForHour(time_t cur, uint8_t hour) {
         } else {
             return ENTSOE_NO_VALUE;
         }
-        multiplier *= getCurrencyMultiplier(tomorrow->getCurrency(), config->currency);
-    } else if(pos > 0) {
+        float mult = getCurrencyMultiplier(tomorrow->getCurrency(), config->currency);
+        if(mult == 0) return ENTSOE_NO_VALUE;
+        multiplier *= mult;
+    } else if(pos >= 0) {
         if(today == NULL)
             return ENTSOE_NO_VALUE;
         value = today->getPoint(pos);
@@ -73,7 +76,9 @@ float EntsoeApi::getValueForHour(time_t cur, uint8_t hour) {
         } else {
             return ENTSOE_NO_VALUE;
         }
-        multiplier *= getCurrencyMultiplier(today->getCurrency(), config->currency);
+        float mult = getCurrencyMultiplier(today->getCurrency(), config->currency);
+        if(mult == 0) return ENTSOE_NO_VALUE;
+        multiplier *= mult;
     }
     return value * multiplier;
 }
@@ -288,8 +293,12 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
                 if(retrieve(url, &p)) {
                     if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  got exchange rate %.4f\n", p.getValue());
                     currencyMultiplier /= p.getValue();
+                } else {
+                    return 0;
                 }
             }
+        } else {
+            return 0;
         }
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi) Resulting currency multiplier: %.4f\n", currencyMultiplier);
         lastCurrencyFetch = midnightMillis;

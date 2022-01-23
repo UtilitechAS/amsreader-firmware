@@ -1278,7 +1278,6 @@ void AmsWebServer::handleSave() {
 		strcpy(entsoe.currency, server.arg("ecu").c_str());
 		entsoe.multiplier = server.arg("em").toFloat() * 1000;
 		config->setEntsoeConfig(entsoe);
-		eapi->setup(entsoe);
 	}
 
 	printI("Saving configuration now...");

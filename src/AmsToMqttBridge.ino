@@ -18,7 +18,7 @@ ADC_MODE(ADC_VCC);
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #endif
-#define WDT_TIMEOUT 10
+#define WDT_TIMEOUT 30
 
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
@@ -137,12 +137,14 @@ void setup() {
 	hw.ledBlink(LED_GREEN, 1);
 	hw.ledBlink(LED_BLUE, 1);
 
+	#if defined(ESP32)
 	EntsoeConfig entsoe;
 	if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
 		eapi = new EntsoeApi(&Debug);
 		eapi->setup(entsoe);
 		ws.setEntsoeApi(eapi);
 	}
+	#endif
 
 	bool shared = false;
 	config.getMeterConfig(meterConfig);
@@ -436,6 +438,7 @@ void loop() {
 				mqtt->disconnect();
 			}
 
+			#if defined(ESP32)
 			if(eapi != NULL && ntpEnabled) {
 				if(eapi->loop() && mqtt != NULL && mqttHandler != NULL && mqtt->connected()) {
 					mqttHandler->publishPrices(eapi);
@@ -453,10 +456,11 @@ void loop() {
 				} else if(eapi != NULL) {
 					delete eapi;
 					eapi = NULL;
-					ws.setEntsoeApi(eapi);
+					ws.setEntsoeApi(NULL);
 				}
 				config.ackEntsoeChange();
 			}
+			#endif
 			ws.loop();
 		}
 		if(mqtt != NULL) { // Run loop regardless, to let MQTT do its work.

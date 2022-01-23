@@ -30,6 +30,7 @@ size_t DnbCurrParser::write(const uint8_t *buffer, size_t size) {
 }
 
 size_t DnbCurrParser::write(uint8_t byte) {
+    if(pos >= 64) pos = 0;
     if(pos == 0) {
         if(byte == '<') {
             buf[pos++] = byte;

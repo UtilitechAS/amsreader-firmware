@@ -562,8 +562,10 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 
 		#if defined(ESP32)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
+			hwSerial->setRxBufferSize(768);
 		#else
 			hwSerial->begin(baud, serialConfig, SERIAL_FULL, 1, invert);
+			hwSerial->setRxBufferSize(768);
 		#endif
 		
 		#if defined(ESP8266)
@@ -708,7 +710,6 @@ bool readHanPort() {
 		while(hanSerial->available() && pos == HDLC_FRAME_INCOMPLETE) {
 			buf[len++] = hanSerial->read();
 			pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
-			delay(1);
 		}
 		if(len > 0) {
 			if(len >= BUF_SIZE) {
@@ -980,7 +981,9 @@ void WiFi_connect() {
 			} else if(dns1.toString().isEmpty()) {
 				dns2.fromString("208.67.220.220"); // Add OpenDNS as second by default if nothing is configured
 			}
-			WiFi.config(ip, gw, sn, dns1, dns2);
+			if(!WiFi.config(ip, gw, sn, dns1, dns2)) {
+				debugE("Static IP configuration is invalid, not using");
+			}
 		} else {
 			#if defined(ESP32)
 			// This trick does not work anymore...

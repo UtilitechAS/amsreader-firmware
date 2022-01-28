@@ -458,9 +458,6 @@ void AmsWebServer::configMeterHtml() {
 		html.replace("{d" + String(i) + "}", meterConfig->distributionSystem == i ? "selected"  : "");
 	}
 	html.replace("{f}", String(meterConfig->mainFuse));
-	for(int i = 0; i<64; i++) {
-		html.replace("{f" + String(i) + "}", meterConfig->mainFuse == i ? "selected"  : "");
-	}
 	html.replace("{p}", String(meterConfig->productionCapacity));
 
 	if(meterConfig->encryptionKey[0] != 0x00) {
@@ -1135,6 +1132,7 @@ void AmsWebServer::handleSave() {
 		meterConfig->distributionSystem = server.arg("d").toInt();
 		meterConfig->mainFuse = server.arg("f").toInt();
 		meterConfig->productionCapacity = server.arg("p").toInt();
+		maxPwr = 0;
 
 		String encryptionKeyHex = server.arg("e");
 		if(!encryptionKeyHex.isEmpty()) {
@@ -1609,6 +1607,7 @@ void AmsWebServer::firmwareDownload() {
 		printI("Downloading firmware...");
 		HTTPClient httpClient;
 		httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+		httpClient.setTimeout(20000);
 		httpClient.addHeader("User-Agent", "ams2mqtt/" + String(VERSION));
 
 #if defined(ESP8266)
@@ -1627,6 +1626,13 @@ void AmsWebServer::firmwareDownload() {
 			if(status == HTTP_CODE_OK) {
 				printD("Received OK from server");
 				if(LittleFS.begin()) {
+					#if defined(ESP32)
+						esp_task_wdt_delete(NULL);
+						esp_task_wdt_deinit();
+					#elif defined(ESP8266)
+						ESP.wdtDisable();
+					#endif
+
 					printI("Downloading firmware to LittleFS");
 					file = LittleFS.open(FILE_FIRMWARE, "w");
 					int len = httpClient.writeToStream(&file);

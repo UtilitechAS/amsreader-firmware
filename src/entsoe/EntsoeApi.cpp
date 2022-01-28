@@ -13,7 +13,7 @@ EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
 
     client.setInsecure();
     https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-    https.setTimeout(5000);
+    https.setTimeout(20000);
 
     // Entso-E uses CET/CEST
     TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
@@ -270,7 +270,9 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
         return 1.00;
 
     uint64_t now = millis64();
-    if(lastCurrencyFetch < midnightMillis) {
+    if(now > lastCurrencyFetch && (now - lastCurrencyFetch) < 900000) {
+        lastCurrencyFetch = now;
+        
         char url[256];
         DnbCurrParser p;
 

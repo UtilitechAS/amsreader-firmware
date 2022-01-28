@@ -61,7 +61,7 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-xl-3 col-lg-4 col-md-5 col-sm-6">
+            <div class="col-xl-3 col-lg-4 col-md-5 col-sm-7">
                 <div class="m-2 input-group input-group-sm">
                     <div class="input-group-prepend">
                         <span class="input-group-text">Distribution system</span>
@@ -73,22 +73,15 @@
                     </select>
                 </div>
             </div>
-            <div class="col-xl-2 col-md-3 col-sm-5">
+            <div class="col-lg-3 col-md-4 col-sm-5">
                 <div class="m-2 input-group input-group-sm">
                     <div class="input-group-prepend">
                         <span class="input-group-text">Main fuse</span>
                     </div>
-                    <select class="form-control" name="f">
-                        <option value="0" {f0}></option>
-                        <option value="16" {f16}>16A</option>
-                        <option value="20" {f20}>20A</option>
-                        <option value="25" {f25}>25A</option>
-                        <option value="32" {f32}>32A</option>
-                        <option value="35" {f35}>35A</option>
-                        <option value="40" {f40}>40A</option>
-                        <option value="50" {f50}>50A</option>
-                        <option value="63" {f63}>63A</option>
-                    </select>
+                    <input class="form-control text-right" name="f" type="number" min="5" max="255" step="1" value="{f}"/>
+                    <div class="input-group-append">
+                        <span class="input-group-text">A</span>
+                    </div>
                 </div>
             </div>
             <div class="col-xl-3 col-lg-4 col-md-5 col-sm-7">
@@ -96,7 +89,7 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Production capacity</span>
                     </div>
-                    <input class="form-control" name="p" type="number" min="0" max="50" value="{p}"/>
+                    <input class="form-control text-right" name="p" type="number" min="0" max="255" step="1" value="{p}"/>
                     <div class="input-group-append">
                         <span class="input-group-text">kWp</span>
                     </div>

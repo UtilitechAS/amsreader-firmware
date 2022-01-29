@@ -514,6 +514,12 @@ void AmsWebServer::configWifiHtml() {
 	}
 	html.replace("{h}", wifi.hostname);
 	html.replace("{m}", wifi.mdns ? "checked" : "");
+	html.replace("{w}", String(wifi.power / 10.0, 1));
+	#if defined(ESP32)
+		html.replace("{wm}", "19.5");
+	#elif defined(ESP8266)
+		html.replace("{wm}", "20.5");
+	#endif
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, "text/html", HEAD_HTML);
@@ -1187,6 +1193,7 @@ void AmsWebServer::handleSave() {
 		if(server.hasArg("h") && !server.arg("h").isEmpty()) {
 			strcpy(wifi.hostname, server.arg("h").c_str());
 		}
+		wifi.power = server.arg("w").toFloat() * 10;
 		config->setWiFiConfig(wifi);
 	}
 

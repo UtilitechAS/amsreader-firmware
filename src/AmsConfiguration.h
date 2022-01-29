@@ -4,7 +4,7 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 92 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 93 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
@@ -13,7 +13,7 @@
 #define CONFIG_GPIO_START 266
 #define CONFIG_ENTSOE_START 290
 #define CONFIG_WIFI_START 360
-#define CONFIG_ENERGYACCOUNTING_START 520
+#define CONFIG_ENERGYACCOUNTING_START 576
 #define CONFIG_WEB_START 648
 #define CONFIG_DEBUG_START 824
 #define CONFIG_DOMOTICZ_START 856 
@@ -52,7 +52,8 @@ struct WiFiConfig {
 	char dns2[16];
 	char hostname[32];
 	bool mdns;
-}; // 209
+	uint8_t power;
+}; // 210
 
 struct MqttConfig86 {
 	char host[128];
@@ -257,6 +258,7 @@ private:
 	bool relocateConfig87(); // 1.5.4
 	bool relocateConfig90(); // 2.0.0
 	bool relocateConfig91(); // 2.0.2
+	bool relocateConfig92(); // 2.0.3
 
 	int readString(int pAddress, char* pString[]);
 	int readInt(int pAddress, int *pValue);

@@ -37,11 +37,14 @@ bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 		wifiChanged |= strcmp(config.ssid, existing.ssid) != 0;
 		wifiChanged |= strcmp(config.psk, existing.psk) != 0;
 		wifiChanged |= strcmp(config.ip, existing.ip) != 0;
-		wifiChanged |= strcmp(config.gateway, existing.gateway) != 0;
-		wifiChanged |= strcmp(config.subnet, existing.subnet) != 0;
-		wifiChanged |= strcmp(config.dns1, existing.dns1) != 0;
-		wifiChanged |= strcmp(config.dns2, existing.dns2) != 0;
+		if(strlen(config.ip) > 0) {
+			wifiChanged |= strcmp(config.gateway, existing.gateway) != 0;
+			wifiChanged |= strcmp(config.subnet, existing.subnet) != 0;
+			wifiChanged |= strcmp(config.dns1, existing.dns1) != 0;
+			wifiChanged |= strcmp(config.dns2, existing.dns2) != 0;
+		}
 		wifiChanged |= strcmp(config.hostname, existing.hostname) != 0;
+		wifiChanged |= config.power != existing.power;
 	} else {
 		wifiChanged = true;
 	}
@@ -627,6 +630,14 @@ bool AmsConfiguration::hasConfig() {
 				configVersion = 0;
 				return false;
 			}
+		case 92:
+			configVersion = -1; // Prevent loop
+			if(relocateConfig92()) {
+				configVersion = 93;
+			} else {
+				configVersion = 0;
+				return false;
+			}
 		case EEPROM_CHECK_SUM:
 			return true;
 		default:
@@ -750,6 +761,27 @@ bool AmsConfiguration::relocateConfig91() {
 	wifi.mdns = wifi91.mdns;
 	EEPROM.put(CONFIG_WIFI_START, wifi);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 92);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig92() {
+	WiFiConfig wifi;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_WIFI_START, wifi);
+	#if defined(ESP32)
+		wifi.power = 195;
+	#elif defined(ESP8266)
+		wifi.power = 205;
+	#endif
+	EEPROM.put(CONFIG_WIFI_START, wifi);
+
+	EnergyAccountingConfig eac;
+	clearEnergyAccountingConfig(eac);
+	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
+
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 93);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;

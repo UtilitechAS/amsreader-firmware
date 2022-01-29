@@ -551,6 +551,7 @@ void AmsWebServer::configMqttHtml() {
 	for(int i = 0; i<4; i++) {
 		html.replace("{f" + String(i) + "}", mqtt.payloadFormat == i ? "selected"  : "");
 	}
+	html.replace("{f255}", mqtt.payloadFormat == 255 ? "selected"  : "");
 
 	html.replace("{s}", mqtt.ssl ? "checked" : "");
 

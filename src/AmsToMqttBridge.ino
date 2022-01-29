@@ -28,6 +28,7 @@ ADC_MODE(ADC_VCC);
 #include <DNSServer.h>
 #include <lwip/apps/sntp.h>
 
+#include "hexutils.h"
 #include "HwTools.h"
 #include "entsoe/EntsoeApi.h"
 
@@ -785,8 +786,10 @@ bool readHanPort() {
 				debugD("Authentication tag:");
 				debugPrint(hc->authentication_tag, 0, 12);
 			}
+			if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
+				mqtt->publish(topic.c_str(), toHex(buf, len));
+			}
 			len = 0;
-			while(hanSerial->available()) hanSerial->read();
 			if(pos > 0) {
 				debugD("Valid data, start at byte %d", pos);
 				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), meterConfig.distributionSystem, timestamp, hc);
@@ -842,6 +845,9 @@ bool readHanPort() {
 		}
 	} else if(currentMeterType == 2) {
 		String payload = hanSerial->readString();
+		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
+			mqtt->publish(topic.c_str(), payload);
+		}
 		data = IEC6205621(payload);
 		if(data.getListType() == 0) {
 			currentMeterType = 1;
@@ -1047,7 +1053,20 @@ void MQTT_connect() {
 		mqtt->disconnect();
 		yield();
 	} else {
-		mqtt = new MQTTClient(512);
+		uint16_t size = 128;
+		switch(mqttConfig.payloadFormat) {
+			case 0: // JSON
+				size = 768;
+				break;
+			case 3: // Domoticz
+				size = 256;
+				break;
+			case 255: // Raw frame
+				size = 1024;
+				break;
+		}
+
+		mqtt = new MQTTClient(size);
 		ws.setMqtt(mqtt);
 	}
 

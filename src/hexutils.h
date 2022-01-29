@@ -5,7 +5,7 @@
 #include "Arduino.h"
 
 String toHex(uint8_t* in);
-String toHex(uint8_t* in, uint8_t size);
-void fromHex(uint8_t *out, String in, uint8_t size);
+String toHex(uint8_t* in, uint16_t size);
+void fromHex(uint8_t *out, String in, uint16_t size);
 
 #endif

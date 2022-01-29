@@ -2,7 +2,7 @@
 #include "hexutils.h"
 #include "Uptime.h"
 
-bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
+bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
         
@@ -71,6 +71,8 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
                 mqtt->publish(topic + "/meter/import/active", String(data->getActiveImportPower()));
             }
     }
+    mqtt->publish(topic + "/realtime/import/hour", String(ea->getUseThisHour(), 3));
+    mqtt->publish(topic + "/realtime/import/threshold", String(ea->getCurrentThreshold(), 10), true, 0);
     return true;
 }
 

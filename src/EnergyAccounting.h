@@ -18,7 +18,9 @@ struct EnergyAccountingData {
 class EnergyAccounting {
 public:
     EnergyAccounting(RemoteDebug*);
-    void setup(AmsDataStorage *ds, EntsoeApi *eapi);
+    void setup(AmsDataStorage *ds, EntsoeApi *eapi, EnergyAccountingConfig *config);
+    void setTimezone(Timezone*);
+    EnergyAccountingConfig* getConfig();
     bool update(AmsData* amsData);
     bool save();
 
@@ -32,7 +34,7 @@ public:
     double getCostLastMonth();
 
     float getMonthMax();
-    float getCurrentThreshold();
+    uint8_t getCurrentThreshold();
 
 private:
     RemoteDebug* debugger = NULL;
@@ -40,12 +42,15 @@ private:
     bool init = false, initPrice = false;
     AmsDataStorage *ds = NULL;
     EntsoeApi *eapi = NULL;
-    uint8_t thresholds[5] = {50, 100, 150, 200, 250};
+    EnergyAccountingConfig *config = NULL;
+    Timezone *tz = NULL;
     uint8_t currentHour = 0, currentDay = 0, currentThresholdIdx = 0;
     double use, costHour, costDay;
-    EnergyAccountingData data;
+    EnergyAccountingData data = { 0, 0, 0, 0, 0, 0 };
 
     bool load();
+    bool calcDayUse();
+    void calcDayCost();
 };
 
 #endif

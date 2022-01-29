@@ -8,5 +8,9 @@
     "temp": %.2f,
     "data" : {
         "P" : %d
+    },
+    "realtime" : {
+        "h" : %.2f,
+        "t" : %d
     }
 }

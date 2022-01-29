@@ -492,6 +492,63 @@ void AmsConfiguration::ackEntsoeChange() {
 	entsoeChanged = false;
 }
 
+
+bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_ENERGYACCOUNTING_START, config);
+		EEPROM.end();
+		if(config.thresholds[9] != 255) {
+			clearEnergyAccountingConfig(config);
+		}
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool AmsConfiguration::setEnergyAccountingConfig(EnergyAccountingConfig& config) {
+	EnergyAccountingConfig existing;
+	if(getEnergyAccountingConfig(existing)) {
+		for(int i = 0; i < 9; i++) {
+			if(existing.thresholds[i] != config.thresholds[i]) {
+				energyAccountingChanged = true;
+			}
+		}
+		config.thresholds[9] = 255;
+	} else {
+		energyAccountingChanged = true;
+	}
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+
+}
+
+void AmsConfiguration::clearEnergyAccountingConfig(EnergyAccountingConfig& config) {
+	config.thresholds[0] = 5;
+	config.thresholds[1] = 10;
+	config.thresholds[2] = 15;
+	config.thresholds[3] = 20;
+	config.thresholds[4] = 25;
+	config.thresholds[5] = 50;
+	config.thresholds[6] = 75;
+	config.thresholds[7] = 100;
+	config.thresholds[8] = 150;
+	config.thresholds[9] = 255;
+}
+
+bool AmsConfiguration::isEnergyAccountingChanged() {
+	return energyAccountingChanged;
+}
+
+void AmsConfiguration::ackEnergyAccountingChange() {
+	energyAccountingChanged = false;
+}
+
+
 void AmsConfiguration::clear() {
 	EEPROM.begin(EEPROM_SIZE);
 	MeterConfig meter;
@@ -522,6 +579,10 @@ void AmsConfiguration::clear() {
 	clearEntsoe(entsoe);
 	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
 
+	EnergyAccountingConfig eac;
+	clearEnergyAccountingConfig(eac);
+	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
+
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, -1);
 	EEPROM.commit();
 	EEPROM.end();
@@ -534,16 +595,6 @@ bool AmsConfiguration::hasConfig() {
 		EEPROM.end();
 	}
 	switch(configVersion) {
-		case 83:
-			configVersion = -1; // Prevent loop
-			if(loadConfig83(EEPROM_CONFIG_ADDRESS+1)) {
-				configVersion = EEPROM_CHECK_SUM;
-				return true;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-			break;
 		case 86:
 			configVersion = -1; // Prevent loop
 			if(relocateConfig86()) {
@@ -625,116 +676,6 @@ void AmsConfiguration::saveTempSensors() {
 			address += sizeof(*tsc);
 		}
 	}
-}
-
-bool AmsConfiguration::loadConfig83(int address) {
-	ConfigObject83 c;
-	EEPROM.begin(EEPROM_SIZE);
-	EEPROM.get(address, c);
-
-	EntsoeConfig entsoe {"", "", "", 1000};
-	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
-
-	NtpConfig ntp {
-		c.ntpEnable,
-		c.ntpDhcp,
-		c.ntpOffset,
-		c.ntpSummerOffset
-	};
-	strcpy(ntp.server, c.ntpServer);
-	EEPROM.put(CONFIG_NTP_START, ntp);
-
-	DomoticzConfig domo {
-		c.domoELIDX,
-		c.domoVL1IDX,
-		c.domoVL2IDX,
-		c.domoVL3IDX,
-		c.domoCL1IDX
-	};
-	EEPROM.put(CONFIG_DOMOTICZ_START, domo);
-
-	GpioConfig gpio {
-		c.hanPin,
-		c.apPin,
-		c.ledPin,
-		c.ledInverted,
-		c.ledPinRed,
-		c.ledPinGreen,
-		c.ledPinBlue,
-		c.ledRgbInverted,
-		c.tempSensorPin,
-		c.tempAnalogSensorPin,
-		c.vccPin,
-		c.vccOffset,
-		c.vccMultiplier,
-		c.vccBootLimit,
-		0,
-		0
-	};
-	EEPROM.put(CONFIG_GPIO_START, gpio);
-
-	DebugConfig debug {
-		c.debugTelnet,
-		c.debugSerial,
-		c.debugLevel
-	};
-	EEPROM.put(CONFIG_DEBUG_START, debug);
-
-	MeterConfig meter {
-		2400,
-		c.meterType == 3 || c.meterType == 4 ? 3 : 11,
-		false,
-		c.distributionSystem,
-		c.mainFuse,
-		c.productionCapacity,
-		{0},
-		{0}
-	};
-	memcpy(meter.encryptionKey, c.meterEncryptionKey, 16);
-	memcpy(meter.authenticationKey, c.meterAuthenticationKey, 16);
-	EEPROM.put(CONFIG_METER_START, meter);
-
-	WebConfig web {
-		c.authSecurity
-	};
-	strcpy(web.username, c.authUser);
-	strcpy(web.password, c.authPassword);
-	EEPROM.put(CONFIG_WEB_START, web);
-
-	MqttConfig mqtt;
-	strcpy(mqtt.host, c.mqttHost);
-	mqtt.port = c.mqttPort;
-	strcpy(mqtt.clientId, c.mqttClientId);
-	strcpy(mqtt.publishTopic, c.mqttPublishTopic);
-	strcpy(mqtt.subscribeTopic, c.mqttSubscribeTopic);
-	strcpy(mqtt.username, c.mqttUser);
-	strcpy(mqtt.password, c.mqttPassword);
-	mqtt.payloadFormat = c.mqttPayloadFormat;
-	mqtt.ssl = c.mqttSsl;
-	EEPROM.put(CONFIG_MQTT_START, mqtt);
-
-	WiFiConfig wifi;
-	strcpy(wifi.ssid, c.wifiSsid);
-	strcpy(wifi.psk, c.wifiPassword);
-    strcpy(wifi.ip, c.wifiIp);
-    strcpy(wifi.gateway, c.wifiGw);
-    strcpy(wifi.subnet, c.wifiSubnet);
-	strcpy(wifi.dns1, c.wifiDns1);
-	strcpy(wifi.dns2, c.wifiDns2);
-	strcpy(wifi.hostname, c.wifiHostname);
-	wifi.mdns = c.mDnsEnable;
-	EEPROM.put(CONFIG_WIFI_START, wifi);
-
-	SystemConfig sys  {
-		c.boardType
-	};
-	EEPROM.put(CONFIG_SYSTEM_START, sys);
-	
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-
-	return ret;
 }
 
 bool AmsConfiguration::relocateConfig86() {

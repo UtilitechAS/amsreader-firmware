@@ -755,13 +755,16 @@ var fetch = function() {
         if(json.ea) {
             $('#each').html(json.ea.h.u.toFixed(2));
             $('#eachc').html(json.ea.h.c.toFixed(2));
-            $('#eacd').html(json.ea.d.u.toFixed(2));
-            $('#eacdc').html(json.ea.d.c.toFixed(2));
-            $('#eacm').html(json.ea.m.u.toFixed(2));
-            $('#eacmc').html(json.ea.m.c.toFixed(2));
-            $('#eax').html(json.ea.x.toFixed(2));
-            $('#eat').html(json.ea.t.toFixed(2));
+            $('#eacd').html(json.ea.d.u.toFixed(1));
+            $('#eacdc').html(json.ea.d.c.toFixed(1));
+            $('#eacm').html(json.ea.m.u.toFixed(0));
+            $('#eacmc').html(json.ea.m.c.toFixed(0));
+            $('#eax').html(json.ea.x.toFixed(1));
+            $('#eat').html(json.ea.t.toFixed(0));
             $('.cr').html(currency);
+            if(currency) {
+                $('.sp').show();
+            }
         }
 
         if(json.me) {

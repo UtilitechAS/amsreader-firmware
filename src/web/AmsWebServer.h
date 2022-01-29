@@ -81,6 +81,7 @@ private:
 	void configNtpHtml();
 	void configGpioHtml();
 	void configDebugHtml();
+	void configEnergyAccountingHtml();
 	void bootCss();
 	void githubSvg();
     void dataJson();

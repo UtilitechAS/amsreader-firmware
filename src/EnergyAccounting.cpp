@@ -1,94 +1,83 @@
 #include "EnergyAccounting.h"
+#include "LittleFS.h"
+#include "AmsStorage.h"
 
 EnergyAccounting::EnergyAccounting(RemoteDebug* debugger) {
+    data.version = 1;
     this->debugger = debugger;
 }
 
-void EnergyAccounting::setup(AmsDataStorage *ds, EntsoeApi *eapi) {
+void EnergyAccounting::setup(AmsDataStorage *ds, EntsoeApi *eapi, EnergyAccountingConfig *config) {
     this->ds = ds;
     this->eapi = eapi;
+    this->config = config;
+    this->currentThresholdIdx = 0;
+}
+
+EnergyAccountingConfig* EnergyAccounting::getConfig() {
+    return config;
+}
+
+void EnergyAccounting::setTimezone(Timezone* tz) {
+    this->tz = tz;
 }
 
 bool EnergyAccounting::update(AmsData* amsData) {
     time_t now = time(nullptr);
     if(now < EPOCH_2021_01_01) return false;
+    if(tz == NULL) {
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting) Timezone is missing\n");
+        return false;
+    }
 
     bool ret = false;
-    tmElements_t tm;
-    breakTime(now, tm);
+    tmElements_t local;
+    breakTime(tz->toLocal(now), local);
 
     if(!init) {
+        currentHour = local.Hour;
+        currentDay = local.Day;
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Initializing data at %lu\n", now);
         if(!load()) {
-            data = { 1, tm.Month, 0, 0, 0, 0 };
-            currentHour = tm.Hour;
-            currentDay = tm.Day;
-
-            for(int i = 0; i < tm.Hour; i++) {
-                int16_t val = ds->getHour(i) / 10.0;
-                if(val > data.maxHour) {
-                    data.maxHour = val;
-                    ret = true;
-                }
-            }
+            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Unable to load existing data");
+            data = { 1, local.Month, 0, 0, 0, 0 };
+            if(calcDayUse()) ret = true;
         }
         init = true;
     }
 
     if(!initPrice && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Initializing prices at %lu\n", now);
-        for(int i = 0; i < tm.Hour; i++) {
-            float price = eapi->getValueForHour(i-tm.Hour);
-            if(price == ENTSOE_NO_VALUE) break;
-            int16_t wh = ds->getHour(i);
-            double kwh = wh / 1000.0;
-            costDay += price * kwh;
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("  Hour: %d, wh: %d, kwh; %.2f, price: %.2f, costDay: %.4f\n", i, wh, kwh, price, costDay);
-        }
-        initPrice = true;
+        calcDayCost();
     }
 
-    if(amsData->getListType() >= 3 && tm.Hour != currentHour) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New hour %d\n", tm.Hour);
-        if(tm.Hour > 0) {
-            if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
-                costDay = 0;
-                for(int i = 0; i < tm.Hour; i++) {
-                    float price = eapi->getValueForHour(i-tm.Hour);
-                    if(price == ENTSOE_NO_VALUE) break;
-                    int16_t wh = ds->getHour(i);
-                    costDay += price * (wh / 1000.0);
-                }
-            }
-        }
+    if(amsData->getListType() >= 3 && local.Hour != currentHour) {
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New local hour %d\n", local.Hour);
 
-        for(int i = 0; i < tm.Hour; i++) {
-            int16_t val = ds->getHour(i) / 10.0;
-            if(val > data.maxHour) {
-                data.maxHour = val;
-                ret = true;
-            }
+        if(calcDayUse()) ret = true;
+        if(local.Hour > 0) {
+            calcDayCost();
         }
 
         use = 0;
         costHour = 0;
-        currentHour = tm.Hour;
+        currentHour = local.Hour;
 
-        if(tm.Day != currentDay) {
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New day %d\n", tm.Day);
+        if(local.Day != currentDay) {
+            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New day %d\n", local.Day);
             data.costYesterday = costDay * 100;
             data.costThisMonth += costDay * 100;
             costDay = 0;
-            currentDay = tm.Day;
+            currentDay = local.Day;
             ret = true;
         }
 
-        if(tm.Month != data.month) {
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New month %d\n", tm.Month);
+        if(local.Month != data.month) {
+            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New month %d\n", local.Month);
             data.costLastMonth = data.costThisMonth;
             data.costThisMonth = 0;
             data.maxHour = 0;
-            data.month = tm.Month;
+            data.month = local.Month;
             currentThresholdIdx = 0;
             ret = true;
         }
@@ -98,23 +87,60 @@ bool EnergyAccounting::update(AmsData* amsData) {
     float kwh = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
     lastUpdateMillis = amsData->getLastUpdateMillis();
     if(kwh > 0) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Adding %.4f kWh\n", kwh);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting) Adding %.4f kWh\n", kwh);
         use += kwh;
         if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
             float price = eapi->getValueForHour(0);
             float cost = price * kwh;
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting)  and %.4f %s\n", cost / 100.0, eapi->getCurrency());
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  and %.4f %s\n", cost / 100.0, eapi->getCurrency());
             costHour += cost;
             costDay += cost;
         }
     }
 
-    if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  calculating threshold, currently at %d\n", currentThresholdIdx);
-    while(getMonthMax() > thresholds[currentThresholdIdx] / 10.0 && currentThresholdIdx < 5) currentThresholdIdx++;
-    while(use > thresholds[currentThresholdIdx] / 10.0 && currentThresholdIdx < 5) currentThresholdIdx++;
-    if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  new threshold %d\n", currentThresholdIdx);
+    if(config != NULL) {
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  calculating threshold, currently at %d\n", currentThresholdIdx);
+        while(getMonthMax() > config->thresholds[currentThresholdIdx] && currentThresholdIdx < 10) currentThresholdIdx++;
+        while(use > config->thresholds[currentThresholdIdx] && currentThresholdIdx < 10) currentThresholdIdx++;
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  new threshold %d\n", currentThresholdIdx);
+    }
 
     return ret;
+}
+
+bool EnergyAccounting::calcDayUse() {
+    time_t now = time(nullptr);
+    tmElements_t local, utc;
+    breakTime(tz->toLocal(now), local);
+
+    bool ret = false;
+    for(int i = 0; i < local.Hour; i++) {
+        breakTime(now - ((local.Hour - i) * 3600), utc);
+        int16_t val = ds->getHour(utc.Hour) / 10.0;
+        if(val > data.maxHour) {
+            data.maxHour = val;
+            ret = true;
+        }
+    }
+    return ret;
+}
+
+void EnergyAccounting::calcDayCost() {
+    time_t now = time(nullptr);
+    tmElements_t local, utc;
+    breakTime(tz->toLocal(now), local);
+
+    if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
+        if(!initPrice) costDay = 0;
+        for(int i = 0; i < local.Hour; i++) {
+            float price = eapi->getValueForHour(i - local.Hour);
+            if(price == ENTSOE_NO_VALUE) break;
+            breakTime(now - ((local.Hour - i) * 3600), utc);
+            int16_t wh = ds->getHour(utc.Hour);
+            costDay += price * (wh / 1000.0);
+        }
+        initPrice = true;
+    }
 }
 
 double EnergyAccounting::getUseThisHour() {
@@ -129,10 +155,11 @@ double EnergyAccounting::getUseToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
     if(now < EPOCH_2021_01_01) return 0;
-    tmElements_t tm;
-    breakTime(now, tm);
-    for(int i = 0; i < tm.Hour; i++) {
-        ret += ds->getHour(i) / 1000.0;
+    tmElements_t local, utc;
+    breakTime(tz->toLocal(now), local);
+    for(int i = 0; i < local.Hour; i++) {
+        breakTime(now - ((local.Hour - i) * 3600), utc);
+        ret += ds->getHour(utc.Hour) / 1000.0;
     }
     return ret + getUseThisHour();
 }
@@ -149,7 +176,10 @@ double EnergyAccounting::getUseThisMonth() {
     time_t now = time(nullptr);
     if(now < EPOCH_2021_01_01) return 0;
     tmElements_t tm;
-    breakTime(now, tm);
+    if(tz != NULL)
+        breakTime(tz->toLocal(now), tm);
+    else
+        breakTime(now, tm);
     float ret = 0;
     for(int i = 0; i < tm.Day; i++) {
         ret += ds->getDay(i) / 1000.0;
@@ -165,8 +195,10 @@ double EnergyAccounting::getCostLastMonth() {
     return data.costLastMonth / 100.0;
 }
 
-float EnergyAccounting::getCurrentThreshold() {
-    return thresholds[currentThresholdIdx] / 10.0;
+uint8_t EnergyAccounting::getCurrentThreshold() {
+    if(config == NULL)
+        return 0;
+    return config->thresholds[currentThresholdIdx];
 }
 
 float EnergyAccounting::getMonthMax() {
@@ -174,9 +206,51 @@ float EnergyAccounting::getMonthMax() {
 }
 
 bool EnergyAccounting::load() {
-    return false; // TODO
+    if(!LittleFS.begin()) {
+        if(debugger->isActive(RemoteDebug::ERROR)) {
+            debugger->printf("(EnergyAccounting) Unable to load LittleFS\n");
+        }
+        return false;
+    }
+
+    bool ret = false;
+    if(LittleFS.exists(FILE_ENERGYACCOUNTING)) {
+        File file = LittleFS.open(FILE_ENERGYACCOUNTING, "r");
+        char buf[file.size()];
+        file.readBytes(buf, file.size());
+        EnergyAccountingData* data = (EnergyAccountingData*) buf;
+        file.close();
+
+        if(data->version == 1) {
+            memcpy(&this->data, data, sizeof(this->data));
+            ret = true;
+        } else {
+            ret = false;
+        }
+    }
+
+    LittleFS.end();
+
+    return ret;
 }
 
 bool EnergyAccounting::save() {
-    return false; // TODO
+    if(!LittleFS.begin()) {
+        if(debugger->isActive(RemoteDebug::ERROR)) {
+            debugger->printf("(EnergyAccounting) Unable to load LittleFS\n");
+        }
+        return false;
+    }
+    {
+        File file = LittleFS.open(FILE_ENERGYACCOUNTING, "w");
+        char buf[sizeof(data)];
+        memcpy(buf, &data, sizeof(data));
+        for(int i = 0; i < sizeof(data); i++) {
+            file.write(buf[i]);
+        }
+        file.close();
+    }
+
+    LittleFS.end();
+    return true;
 }

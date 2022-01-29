@@ -303,6 +303,7 @@ void setup() {
 			tz = new Timezone(dst, std);
 			ws.setTimezone(tz);
 			ds.setTimezone(tz);
+			ea.setTimezone(tz);
 		}
 
 		ds.load();
@@ -313,7 +314,13 @@ void setup() {
 		swapWifiMode();
 	}
 
-	ea.setup(&ds, eapi);
+	EnergyAccountingConfig *eac = new EnergyAccountingConfig();
+	if(!config.getEnergyAccountingConfig(*eac)) {
+		config.clearEnergyAccountingConfig(*eac);
+		config.setEnergyAccountingConfig(*eac);
+		config.ackEnergyAccountingChange();
+	}
+	ea.setup(&ds, eapi, eac);
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
 
 	#if defined(ESP32)
@@ -420,6 +427,8 @@ void loop() {
 					TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
 					tz = new Timezone(dst, std);
 					ws.setTimezone(tz);
+					ds.setTimezone(tz);
+					ea.setTimezone(tz);
 				}
 
 				config.ackNtpChange();
@@ -489,6 +498,13 @@ void loop() {
 		config.ackMeterChanged();
 		delete hc;
 		hc = NULL;
+	}
+
+	if(config.isEnergyAccountingChanged()) {
+		EnergyAccountingConfig *eac = ea.getConfig();
+		config.getEnergyAccountingConfig(*eac);
+		ea.setup(&ds, eapi, eac);
+		config.ackEnergyAccountingChange();
 	}
 
 	if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
@@ -842,7 +858,7 @@ bool readHanPort() {
 		if(!hw.ledBlink(LED_GREEN, 1))
 			hw.ledBlink(LED_INTERNAL, 1);
 		if(mqttEnabled && mqttHandler != NULL && mqtt != NULL) {
-			if(mqttHandler->publish(&data, &meterState)) {
+			if(mqttHandler->publish(&data, &meterState, &ea)) {
 				if(data.getListType() == 3 && eapi != NULL) {
 					mqttHandler->publishPrices(eapi);
 				}

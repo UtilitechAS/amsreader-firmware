@@ -113,14 +113,14 @@
 
     <div class="col-xl-12 mb-3">
         <div class="bg-white rounded shadow pt-3 pb-3" style="font-size: 14px;">
-            <strong class="mr-3 ml-3">Current use and cost</strong><br/>
+            <strong class="mr-3 ml-3">Real time calculation</strong><br/>
             <div class="row">
                 <div class="col-lg-3 col-sm-6">
                     <div class="mr-3 ml-3 d-flex">
                         <div>Hour</div>
                         <div class="flex-fill text-right">
                             <span id="each"></span> kWh
-                            <span class="sp text-nowrap">(<span id="eachc"></span> <span class="cr"></span>)</span>
+                            <span class="sp text-nowrap" style="display: none;">(<span id="eachc"></span> <span class="cr"></span>)</span>
                         </div>
                     </div>
                 </div>
@@ -129,7 +129,7 @@
                         <div>Day</div>
                         <div class="flex-fill text-right">
                             <span id="eacd"></span> kWh
-                            <span class="sp text-nowrap">(<span id="eacdc"></span> <span class="cr"></span>)</span>
+                            <span class="sp text-nowrap" style="display: none;">(<span id="eacdc"></span> <span class="cr"></span>)</span>
                         </div>
                     </div>
                 </div>
@@ -138,14 +138,16 @@
                         <div>Month</div>
                         <div class="flex-fill text-right">
                             <span id="eacm"></span> kWh
-                            <span class="sp text-nowrap">(<span id="eacmc"></span> <span class="cr"></span>)</span>
+                            <span class="sp text-nowrap" style="display: none;">(<span id="eacmc"></span> <span class="cr"></span>)</span>
                         </div>
                     </div>
                 </div>
                 <div class="col-lg-3 col-sm-6">
-                    <div class="row mr-3 ml-3">
-                        <div class="col-3">Max</div>
-                        <div class="col-9 text-right"><span id="eax"></span> / <span id="eat"></span> kWh</div>
+                    <div class="mr-3 ml-3 d-flex">
+                        <div>Max</div>
+                        <div class="flex-fill text-right">
+                            <span id="eax"></span> / <span id="eat"></span> kWh
+                        </div>
                     </div>
                 </div>
             </div>

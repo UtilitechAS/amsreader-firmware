@@ -29,5 +29,9 @@
         "tQI" : %.2f,
         "tQO" : %.2f,
         "rtc" : %lu
+    },
+    "realtime" : {
+        "h" : %.2f,
+        "t" : %d
     }
 }

@@ -47,6 +47,7 @@
 #include "root/dayplot_json.h"
 #include "root/monthplot_json.h"
 #include "root/energyprice_json.h"
+#include "root/energyaccounting_html.h"
 
 #include "base64.h"
 
@@ -79,6 +80,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/web", HTTP_GET, std::bind(&AmsWebServer::configWebHtml, this));
 	server.on("/domoticz",HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
 	server.on("/entsoe",HTTP_GET, std::bind(&AmsWebServer::configEntsoeHtml, this));
+	server.on("/accounting",HTTP_GET, std::bind(&AmsWebServer::configEnergyAccountingHtml, this));
 	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
 	server.on("/github.svg", HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
 	server.on("/data.json", HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
@@ -645,6 +647,25 @@ void AmsWebServer::configEntsoeHtml() {
 		server.sendContent_P(LOWMEM_HTML);
 		server.sendContent_P(FOOT_HTML);
 	}
+}
+
+void AmsWebServer::configEnergyAccountingHtml() {
+	printD("Serving /accounting.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	EnergyAccountingConfig* config = ea->getConfig();
+
+	String html = String((const __FlashStringHelper*) ENERGYACCOUNTING_HTML);
+	for(int i = 0; i < 9; i++) {
+		html.replace("{t" + String(i) + "}", String(config->thresholds[i]));
+	}
+
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::configWebHtml() {
@@ -1284,6 +1305,21 @@ void AmsWebServer::handleSave() {
 		strcpy(entsoe.currency, server.arg("ecu").c_str());
 		entsoe.multiplier = server.arg("em").toFloat() * 1000;
 		config->setEntsoeConfig(entsoe);
+	}
+
+	if(server.hasArg("cc") && server.arg("cc") == "true") {
+		printD("Received energy accounting config");
+		EnergyAccountingConfig eac;
+		eac.thresholds[0] = server.arg("t0").toInt();
+		eac.thresholds[1] = server.arg("t1").toInt();
+		eac.thresholds[2] = server.arg("t2").toInt();
+		eac.thresholds[3] = server.arg("t3").toInt();
+		eac.thresholds[4] = server.arg("t4").toInt();
+		eac.thresholds[5] = server.arg("t5").toInt();
+		eac.thresholds[6] = server.arg("t6").toInt();
+		eac.thresholds[7] = server.arg("t7").toInt();
+		eac.thresholds[8] = server.arg("t8").toInt();
+		config->setEnergyAccountingConfig(eac);
 	}
 
 	printI("Saving configuration now...");

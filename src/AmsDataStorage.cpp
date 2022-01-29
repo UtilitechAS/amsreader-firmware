@@ -1,6 +1,5 @@
 #include "AmsDataStorage.h"
 #include <lwip/apps/sntp.h>
-#include "EEPROM.h"
 #include "LittleFS.h"
 #include "AmsStorage.h"
 
@@ -16,8 +15,10 @@ void AmsDataStorage::setTimezone(Timezone* tz) {
 
 bool AmsDataStorage::update(AmsData* data) {
     time_t now = time(nullptr);
-    if(debugger->isActive(RemoteDebug::VERBOSE)) {
-        debugger->printf("(AmsDataStorage) Time is: %d\n", now);
+    if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Time is: %d\n", now);
+    if(tz == NULL) {
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Timezone is missing\n");
+        return false;
     }
     if(now < EPOCH_2021_01_01) {
         if(data->getMeterTimestamp() > 0) {
@@ -38,22 +39,26 @@ bool AmsDataStorage::update(AmsData* data) {
         }
         return false;
     }
-    if(now-day.lastMeterReadTime < 3595) {
+    if(now-day.lastMeterReadTime < 3500) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) {
             debugger->printf("(AmsDataStorage) It is only %d seconds since last update, ignoring\n", (now-day.lastMeterReadTime));
         }
         return false;
     }
 
-    tmElements_t tm, last;
-    breakTime(now, tm);
+    tmElements_t utc, ltz, utcYesterday, ltzYesterDay;
+    breakTime(now, utc);
+    breakTime(tz->toLocal(now), ltz);
+    breakTime(now-3600, utcYesterday);
+    breakTime(tz->toLocal(now-3600), ltzYesterDay);
 
     if(day.lastMeterReadTime > EPOCH_2021_01_01) {
         if(debugger->isActive(RemoteDebug::DEBUG)) {
             debugger->printf("(AmsDataStorage) Last day update: %d\n", day.lastMeterReadTime);
         }
+        tmElements_t last;
         breakTime(day.lastMeterReadTime, last);
-        for(int i = last.Hour; i < tm.Hour; i++) {
+        for(int i = last.Hour; i < utc.Hour; i++) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) {
                 debugger->printf("(AmsDataStorage) Clearing hour: %d\n", i);
             }
@@ -65,15 +70,9 @@ bool AmsDataStorage::update(AmsData* data) {
         if(debugger->isActive(RemoteDebug::DEBUG)) {
             debugger->printf("(AmsDataStorage) Last month update: %d\n", month.lastMeterReadTime);
         }
-        if(tz != NULL) {
-            breakTime(tz->toLocal(now), tm);
-            breakTime(tz->toLocal(month.lastMeterReadTime), last);
-        } else {
-            breakTime(now, tm);
-            breakTime(month.lastMeterReadTime, last);
-        }
-
-        for(int i = last.Day; i < tm.Day; i++) {
+        tmElements_t last;
+        breakTime(tz->toLocal(month.lastMeterReadTime), last);
+        for(int i = last.Day; i < ltz.Day; i++) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) {
                 debugger->printf("(AmsDataStorage) Clearing day: %d\n", i);
             }
@@ -88,10 +87,11 @@ bool AmsDataStorage::update(AmsData* data) {
         day.activeImport = data->getActiveImportCounter() * 1000;
         day.activeExport = data->getActiveExportCounter() * 1000;
         day.lastMeterReadTime = now;
+        return true;
     }
 
     if(data->getListType() != 3) return false;
-    else if(tm.Minute > 5) return false;
+    else if(ltz.Minute > 1) return false;
 
     // Update day plot
     if(day.activeImport == 0 || now - day.lastMeterReadTime > 86400) {
@@ -105,13 +105,10 @@ bool AmsDataStorage::update(AmsData* data) {
             setHour(i, 0);
         }
     } else if(now - day.lastMeterReadTime < 4000) {
-        breakTime(now - 3600, tm);
         int16_t val = (((data->getActiveImportCounter() * 1000) - day.activeImport) - ((data->getActiveExportCounter() * 1000) - day.activeExport));
-        setHour(tm.Hour, val);
+        setHour(utcYesterday.Hour, val);
 
-        if(debugger->isActive(RemoteDebug::INFO)) {
-            debugger->printf("(AmsDataStorage) Usage for hour %d: %d\n", tm.Hour, val);
-        }
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(AmsDataStorage) Usage for hour %d: %d\n", ltzYesterDay.Hour, val);
 
         day.activeImport = data->getActiveImportCounter() * 1000;
         day.activeExport = data->getActiveExportCounter() * 1000;
@@ -127,10 +124,10 @@ bool AmsDataStorage::update(AmsData* data) {
             debugger->printf("(AmsDataStorage) Since last day update, minutes: %.1f, import: %d (%.2f/min), export: %d (%.2f/min)\n", mins, im, ipm, ex, epm);
         }
 
-        breakTime(day.lastMeterReadTime, tm);
-        day.lastMeterReadTime = day.lastMeterReadTime - (tm.Minute * 60) - tm.Second;
-        breakTime(now, tm);
-        time_t stopAt = now - (tm.Minute * 60) - tm.Second;
+        tmElements_t last;
+        breakTime(day.lastMeterReadTime, last);
+        day.lastMeterReadTime = day.lastMeterReadTime - (last.Minute * 60) - last.Second;
+        time_t stopAt = now - (utc.Minute * 60) - utc.Second;
         while(day.lastMeterReadTime < stopAt) {
             time_t cur = min(day.lastMeterReadTime + 3600, stopAt);
             uint8_t minutes = round((cur - day.lastMeterReadTime) / 60.0);
@@ -151,12 +148,6 @@ bool AmsDataStorage::update(AmsData* data) {
     }
 
     // Update month plot
-    if(tz != NULL) {
-        breakTime(tz->toLocal(now), tm);
-    } else {
-        breakTime(now, tm);
-    }
-
     if(month.lastMeterReadTime > now) {
         if(debugger->isActive(RemoteDebug::WARNING)) {
             debugger->printf("(AmsDataStorage) Invalid future timestamp for month plot, resetting\n");
@@ -164,9 +155,7 @@ bool AmsDataStorage::update(AmsData* data) {
         month.activeImport = data->getActiveImportCounter() * 1000;
         month.activeExport = data->getActiveExportCounter() * 1000;
         month.lastMeterReadTime = now;
-    }
-
-    if(tm.Hour == 0 && now - month.lastMeterReadTime > 86300) {
+    } else if(ltz.Hour == 0) {
         if(month.activeImport == 0 || now - month.lastMeterReadTime > 2678400) {
             month.activeImport = data->getActiveImportCounter() * 1000;
             month.activeExport = data->getActiveExportCounter() * 1000;
@@ -177,17 +166,14 @@ bool AmsDataStorage::update(AmsData* data) {
             for(int i = 1; i<=31; i++) {
                 setDay(i, 0);
             }
-        } else if(now - month.lastMeterReadTime < 87000) {
+        } else if(now - month.lastMeterReadTime < 86500 && now - month.lastMeterReadTime > 86300) {
             int32_t val = (month.activeImport == 0 ? 0 : ((data->getActiveImportCounter() * 1000) - month.activeImport) - ((data->getActiveExportCounter() * 1000) - month.activeExport));
 
             if(debugger->isActive(RemoteDebug::INFO)) {
-                debugger->printf("(AmsDataStorage) Usage for day %d: %d\n", tm.Day, val);
+                debugger->printf("(AmsDataStorage) Usage for day %d: %d\n", ltzYesterDay.Day, val);
             }
 
-            time_t yesterday = now - 3600;
-            breakTime(yesterday, tm);
-            setDay(tm.Day, val);
-
+            setDay(ltzYesterDay.Day, val);
             month.activeImport = data->getActiveImportCounter() * 1000;
             month.activeExport = data->getActiveExportCounter() * 1000;
             month.lastMeterReadTime = now;
@@ -206,32 +192,19 @@ bool AmsDataStorage::update(AmsData* data) {
             }
 
             // Make sure last month read is at midnight
-            if(tz != NULL) {
-                breakTime(tz->toLocal(month.lastMeterReadTime), tm);
-            } else {
-                breakTime(month.lastMeterReadTime, tm);
-            }
-            month.lastMeterReadTime = month.lastMeterReadTime - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second;
+            tmElements_t last;
+            breakTime(tz->toLocal(month.lastMeterReadTime), last);
+            month.lastMeterReadTime = month.lastMeterReadTime - (last.Hour * 3600) - (last.Minute * 60) - last.Second;
             if(debugger->isActive(RemoteDebug::DEBUG)) {
                 debugger->printf("(AmsDataStorage) Last month read after resetting to midnight: %lu\n", month.lastMeterReadTime);
             }
 
-            if(tz != NULL) {
-                breakTime(tz->toLocal(now), tm);
-            } else {
-                breakTime(now, tm);
-            }
-            time_t stopAt = now - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second;
+            time_t stopAt = now - (ltz.Hour * 3600) - (ltz.Minute * 60) - ltz.Second;
             while(month.lastMeterReadTime < stopAt) {
                 time_t cur = min(month.lastMeterReadTime + 86400, stopAt);
                 uint8_t hours = round((cur - month.lastMeterReadTime) / 3600.0);
 
-                if(tz != NULL) {
-                    breakTime(tz->toLocal(month.lastMeterReadTime), last);
-                } else {
-                    breakTime(month.lastMeterReadTime, last);
-                }
-
+                breakTime(tz->toLocal(month.lastMeterReadTime), last);
                 float val = ((iph * hours) - (eph * hours));
                 setDay(last.Day, val);
 

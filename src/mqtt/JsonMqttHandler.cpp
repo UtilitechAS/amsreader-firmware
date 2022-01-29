@@ -8,7 +8,7 @@
 #include "web/root/jsonsys_json.h"
 #include "web/root/jsonprices_json.h"
 
-bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
+bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 
@@ -22,7 +22,9 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
             hw->getVcc(),
             hw->getWifiRssi(),
             hw->getTemperature(),
-            data->getActiveImportPower()
+            data->getActiveImportPower(),
+            ea->getUseThisHour(),
+            ea->getCurrentThreshold()
         );
         return mqtt->publish(topic, json);
     } else if(data->getListType() == 2) {
@@ -47,7 +49,9 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
             data->getL3Current(),
             data->getL1Voltage(),
             data->getL2Voltage(),
-            data->getL3Voltage()
+            data->getL3Voltage(),
+            ea->getUseThisHour(),
+            ea->getCurrentThreshold()
         );
         return mqtt->publish(topic, json);
     } else if(data->getListType() == 3) {
@@ -78,7 +82,9 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
                 data->getActiveExportCounter(),
                 data->getReactiveImportCounter(),
                 data->getReactiveExportCounter(),
-                data->getMeterTimestamp()
+                data->getMeterTimestamp(),
+                ea->getUseThisHour(),
+                ea->getCurrentThreshold()
             );
             return mqtt->publish(topic, json);
         } else {
@@ -112,7 +118,9 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
                 data->getActiveExportCounter(),
                 data->getReactiveImportCounter(),
                 data->getReactiveExportCounter(),
-                data->getMeterTimestamp()
+                data->getMeterTimestamp(),
+                ea->getUseThisHour(),
+                ea->getCurrentThreshold()
             );
             return mqtt->publish(topic, json);
         }

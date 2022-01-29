@@ -10,7 +10,7 @@ public:
         this->topic = String(topic);
         this->hw = hw;
     };
-    bool publish(AmsData* data, AmsData* previousState);
+    bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools*);

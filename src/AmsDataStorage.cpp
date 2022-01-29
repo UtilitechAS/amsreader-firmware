@@ -90,7 +90,7 @@ bool AmsDataStorage::update(AmsData* data) {
         return true;
     }
 
-    if(data->getListType() != 3) return false;
+    if(data->getListType() < 3) return false;
     else if(ltz.Minute > 1) return false;
 
     // Update day plot

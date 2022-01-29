@@ -865,7 +865,7 @@ bool readHanPort() {
 			hw.ledBlink(LED_INTERNAL, 1);
 		if(mqttEnabled && mqttHandler != NULL && mqtt != NULL) {
 			if(mqttHandler->publish(&data, &meterState, &ea)) {
-				if(data.getListType() == 3 && eapi != NULL) {
+				if(data.getListType() >= 3 && eapi != NULL) {
 					mqttHandler->publishPrices(eapi);
 				}
 				if(data.getListType() >= 2) {
@@ -879,7 +879,7 @@ bool readHanPort() {
 		}
 
 		time_t now = time(nullptr);
-		if(now < EPOCH_2021_01_01 && data.getListType() == 3) {
+		if(now < EPOCH_2021_01_01 && data.getListType() >= 3) {
 			if(data.getMeterTimestamp() > EPOCH_2021_01_01) {
 				debugI("Using timestamp from meter");
 				now = data.getMeterTimestamp();

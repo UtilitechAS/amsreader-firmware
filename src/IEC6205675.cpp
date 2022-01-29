@@ -272,18 +272,22 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, uint8_t distribution
 
         val = getNumber(AMS_OBIS_POWER_FACTOR, sizeof(AMS_OBIS_POWER_FACTOR), ((char *) (d)));
         if(val != NOVALUE) {
+            listType = 4;
             powerFactor = val;
         }
         val = getNumber(AMS_OBIS_POWER_FACTOR_L1, sizeof(AMS_OBIS_POWER_FACTOR_L1), ((char *) (d)));
         if(val != NOVALUE) {
+            listType = 4;
             l1PowerFactor = val;
         }
         val = getNumber(AMS_OBIS_POWER_FACTOR_L2, sizeof(AMS_OBIS_POWER_FACTOR_L2), ((char *) (d)));
         if(val != NOVALUE) {
+            listType = 4;
             l2PowerFactor = val;
         }
         val = getNumber(AMS_OBIS_POWER_FACTOR_L3, sizeof(AMS_OBIS_POWER_FACTOR_L3), ((char *) (d)));
         if(val != NOVALUE) {
+            listType = 4;
             l3PowerFactor = val;
         }
 

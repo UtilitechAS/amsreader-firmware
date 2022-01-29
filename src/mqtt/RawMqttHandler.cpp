@@ -10,15 +10,7 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccountin
         mqtt->publish(topic + "/meter/dlms/timestamp", String(data->getPackageTimestamp()));
     }
     switch(data->getListType()) {
-        case 3:
-            // ID and type belongs to List 2, but I see no need to send that every 10s
-            mqtt->publish(topic + "/meter/id", data->getMeterId(), true, 0);
-            mqtt->publish(topic + "/meter/type", data->getMeterModel(), true, 0);
-            mqtt->publish(topic + "/meter/clock", String(data->getMeterTimestamp()));
-            mqtt->publish(topic + "/meter/import/reactive/accumulated", String(data->getReactiveImportCounter(), 3), true, 0);
-            mqtt->publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 3), true, 0);
-            mqtt->publish(topic + "/meter/export/reactive/accumulated", String(data->getReactiveExportCounter(), 3), true, 0);
-            mqtt->publish(topic + "/meter/export/active/accumulated", String(data->getActiveExportCounter(), 3), true, 0);
+        case 4:
             if(full || meterState->getPowerFactor() != data->getPowerFactor()) {
                 mqtt->publish(topic + "/meter/powerfactor", String(data->getPowerFactor(), 2));
             }
@@ -31,6 +23,15 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccountin
             if(full || meterState->getL3PowerFactor() != data->getL3PowerFactor()) {
                 mqtt->publish(topic + "/meter/l3/powerfactor", String(data->getL3PowerFactor(), 2));
             }
+        case 3:
+            // ID and type belongs to List 2, but I see no need to send that every 10s
+            mqtt->publish(topic + "/meter/id", data->getMeterId(), true, 0);
+            mqtt->publish(topic + "/meter/type", data->getMeterModel(), true, 0);
+            mqtt->publish(topic + "/meter/clock", String(data->getMeterTimestamp()));
+            mqtt->publish(topic + "/meter/import/reactive/accumulated", String(data->getReactiveImportCounter(), 3), true, 0);
+            mqtt->publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 3), true, 0);
+            mqtt->publish(topic + "/meter/export/reactive/accumulated", String(data->getReactiveExportCounter(), 3), true, 0);
+            mqtt->publish(topic + "/meter/export/active/accumulated", String(data->getActiveExportCounter(), 3), true, 0);
         case 2:
             // Only send data if changed. ID and Type is sent on the 10s interval only if changed
             if(full || meterState->getMeterId() != data->getMeterId()) {

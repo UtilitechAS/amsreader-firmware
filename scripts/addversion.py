@@ -1,9 +1,11 @@
 import os
+import subprocess
 
 FILENAME_VERSION_H = 'src/version.h'
 version = os.environ.get('GITHUB_TAG')
 if version == None:
-    version = "SNAPSHOT"
+    result = subprocess.run(['git','rev-parse','--short','HEAD'], stdout=subprocess.PIPE)
+    version = result.stdout.decode('utf-8').strip()
 
 import datetime
 

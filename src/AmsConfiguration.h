@@ -260,9 +260,8 @@ private:
 	bool relocateConfig91(); // 2.0.2
 	bool relocateConfig92(); // 2.0.3
 
-	int readString(int pAddress, char* pString[]);
-	int readInt(int pAddress, int *pValue);
-	int readBool(int pAddress, bool *pValue);
-	int readByte(int pAddress, byte *pValue);
+	void saveToFs();
+	bool loadFromFs(uint8_t version);
+	void deleteFromFs(uint8_t version);
 };
 #endif

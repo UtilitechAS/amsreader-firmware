@@ -597,52 +597,60 @@ bool AmsConfiguration::hasConfig() {
 		configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
 		EEPROM.end();
 	}
-	switch(configVersion) {
-		case 86:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig86()) {
-				configVersion = 87;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-		case 87:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig87()) {
-				configVersion = 88;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-		case 90:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig90()) {
-				configVersion = 91;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-		case 91:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig91()) {
-				configVersion = 92;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-		case 92:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig92()) {
-				configVersion = 93;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-		case EEPROM_CHECK_SUM:
-			return true;
-		default:
+	if(configVersion > EEPROM_CHECK_SUM) {
+		if(loadFromFs(EEPROM_CHECK_SUM)) {
+			configVersion = EEPROM_CHECK_SUM;
+		} else {
 			configVersion = 0;
-			return false;
+		}
+	} else {
+		switch(configVersion) {
+			case 86:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig86()) {
+					configVersion = 87;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 87:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig87()) {
+					configVersion = 88;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 90:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig90()) {
+					configVersion = 91;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 91:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig91()) {
+					configVersion = 92;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 92:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig92()) {
+					configVersion = 93;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case EEPROM_CHECK_SUM:
+				return true;
+			default:
+				configVersion = 0;
+				return false;
+		}
 	}
 	return configVersion == EEPROM_CHECK_SUM;
 }
@@ -767,6 +775,8 @@ bool AmsConfiguration::relocateConfig91() {
 }
 
 bool AmsConfiguration::relocateConfig92() {
+	saveToFs();
+
 	WiFiConfig wifi;
 	EEPROM.begin(EEPROM_SIZE);
     EEPROM.get(CONFIG_WIFI_START, wifi);
@@ -852,37 +862,16 @@ bool AmsConfiguration::isSensorAddressEqual(uint8_t a[8], uint8_t b[8]) {
     return true;
 }
 
-
-int AmsConfiguration::readString(int pAddress, char* pString[]) {
-	int address = 0;
-	byte length = EEPROM.read(pAddress + address);
-	address++;
-
-	char* buffer = new char[length];
-	for (int i = 0; i<length; i++)
-	{
-		buffer[i] = EEPROM.read(pAddress + address++);
-	}
-	*pString = buffer;
-	return address;
+void AmsConfiguration::saveToFs() {
+	
 }
 
-int AmsConfiguration::readInt(int address, int *value) {
-	int lower = EEPROM.read(address);
-	int higher = EEPROM.read(address + 1);
-	*value = lower + (higher << 8);
-	return 2;
+bool AmsConfiguration::loadFromFs(uint8_t version) {
+	return false;
 }
 
-int AmsConfiguration::readBool(int address, bool *value) {
-	byte y = EEPROM.read(address);
-	*value = (bool)y;
-	return 1;
-}
+void AmsConfiguration::deleteFromFs(uint8_t version) {
 
-int AmsConfiguration::readByte(int address, byte *value) {
-	*value = EEPROM.read(address);
-	return 1;
 }
 
 void AmsConfiguration::print(Print* debugger)

@@ -131,7 +131,7 @@ void EnergyAccounting::calcDayCost() {
     breakTime(tz->toLocal(now), local);
 
     if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
-        if(!initPrice) costDay = 0;
+        if(initPrice) costDay = 0;
         for(int i = 0; i < local.Hour; i++) {
             float price = eapi->getValueForHour(i - local.Hour);
             if(price == ENTSOE_NO_VALUE) break;

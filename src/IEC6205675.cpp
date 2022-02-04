@@ -312,6 +312,17 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, uint8_t distribution
                 l2PowerFactor /= 100;
             if(l3PowerFactor != 0)
                 l3PowerFactor /= 100;
+
+            int adiv = 1;
+            int watt = abs((l1voltage * l1current) + (l2voltage * l2current) + (l3voltage * l3current));
+            while(watt / (activeImportPower + activeExportPower  + reactiveImportPower + reactiveExportPower) > 2) {
+                adiv *= 10;
+                watt /= 10;
+            }
+
+            l1current = l1current != 0 ? l1current / adiv : 0;
+            l2current = l2current != 0 ? l2current / adiv : 0;
+            l3current = l3current != 0 ? l3current / adiv : 0;
         } else if(meterType == AmsTypeSagemcom) {
             CosemData* meterTs = getCosemDataAt(1, ((char *) (d)));
             if(meterTs != NULL) {
@@ -348,7 +359,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, uint8_t distribution
             if(l2current == 0.0 && l1current > 0.0 && l3current > 0.0) {
                 l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
                 if(activeExportPower == 0.0) {
-                    l2current = max((float) 0.0, l2current);
+                    l2current = max((double) 0.0, l2current);
                 }
             }
         } else if(twoPhase && l1current > 0.0 && l2current > 0.0 && l3current > 0.0) {

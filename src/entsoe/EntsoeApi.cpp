@@ -13,7 +13,7 @@ EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
 
     client.setInsecure();
     https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-    https.setTimeout(20000);
+    https.setTimeout(50000);
 
     // Entso-E uses CET/CEST
     TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};

@@ -268,7 +268,7 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
         } else if(dateTime->base.type == CosemTypeDateTime) {
             memcpy(timestamp, ptr, dateTime->base.length);
         } else if(dateTime->base.type == 0x0C) { // Kamstrup bug...
-            memcpy(timestamp, ptr, 0x0C);
+            memcpy(timestamp, ptr, 13);
             ptr += 13;
         } else {
             return HDLC_TIMESTAMP_UNKNOWN;

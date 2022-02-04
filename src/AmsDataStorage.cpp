@@ -253,7 +253,7 @@ void AmsDataStorage::setHour(uint8_t hour, int32_t val) {
     day.points[hour] = val / 10;
 }
 
-int16_t AmsDataStorage::getHour(uint8_t hour) {
+int32_t AmsDataStorage::getHour(uint8_t hour) {
     if(hour < 0 || hour > 24) return 0;
     return day.points[hour] * 10;
 }

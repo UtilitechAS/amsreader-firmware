@@ -2,7 +2,7 @@
 1.1.2.8.0.255 - Active- Energy
 1.1.3.8.0.255 - Reactive+ Energy
 1.1.4.8.0.255 - Reactive- Energy
-1.1.0.0.1.255 - Electricity ID?
+1.1.0.0.1.255 - Meter number 1
 1.1.1.7.0.255 - Active+ Instantaneous value
 1.1.2.7.0.255 - Active- Instantaneous value
 1.1.3.7.0.255 - Reactive+ Instantaneous value

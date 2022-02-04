@@ -18,7 +18,7 @@ ADC_MODE(ADC_VCC);
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #endif
-#define WDT_TIMEOUT 30
+#define WDT_TIMEOUT 60
 
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"

@@ -434,7 +434,8 @@ CosemData* IEC6205675::findObis(uint8_t* obis, int matchlength, const char* ptr)
                 pos += 5;
                 break;
             case CosemTypeNull:
-                return NULL;
+                pos += 1;
+                break;
             default:
                 pos += 2;
         }

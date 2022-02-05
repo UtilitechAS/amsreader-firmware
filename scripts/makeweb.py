@@ -1,6 +1,7 @@
 import os
 import re
 import shutil
+import subprocess
 
 try:
     from css_html_js_minify import html_minify, js_minify, css_minify
@@ -29,7 +30,14 @@ srcroot = "src/web/root"
 
 version = os.environ.get('GITHUB_TAG')
 if version == None:
-    version = "SNAPSHOT"
+    try:
+      result = subprocess.run(['git','rev-parse','--short','HEAD'], capture_output=True, check=False)
+      if result.returncode == 0:
+        version = result.stdout.decode('utf-8').strip()
+      else:
+        version = "SNAPSHOT"
+    except:
+      version = "SNAPSHOT"
 
 if os.path.exists(srcroot):
     shutil.rmtree(srcroot)

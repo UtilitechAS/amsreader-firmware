@@ -48,6 +48,7 @@
 #include "root/monthplot_json.h"
 #include "root/energyprice_json.h"
 #include "root/energyaccounting_html.h"
+#include "root/configfile_html.h"
 
 #include "base64.h"
 
@@ -87,6 +88,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/dayplot.json", HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
 	server.on("/monthplot.json", HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
 	server.on("/energyprice.json", HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
+	server.on("/configfile",HTTP_GET, std::bind(&AmsWebServer::configFileHtml, this));
+	server.on("/configfile", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::configFileUpload, this));
+	server.on("/configfile.cfg",HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
 
 	server.on("/save", HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
 
@@ -839,6 +843,10 @@ void AmsWebServer::dataJson() {
 
 void AmsWebServer::dayplotJson() {
 	printD("Serving /dayplot.json over http...");
+
+	if(!checkSecurity(2))
+		return;
+
 	if(ds == NULL) {
 		notFound();
 	} else {
@@ -881,6 +889,9 @@ void AmsWebServer::dayplotJson() {
 
 void AmsWebServer::monthplotJson() {
 	printD("Serving /monthplot.json over http...");
+
+	if(!checkSecurity(2))
+		return;
 
 	if(ds == NULL) {
 		notFound();
@@ -931,6 +942,9 @@ void AmsWebServer::monthplotJson() {
 
 void AmsWebServer::energyPriceJson() {
 	printD("Serving /energyprice.json over http...");
+
+	if(!checkSecurity(2))
+		return;
 
 	float prices[36];
 	for(int i = 0; i < 36; i++) {
@@ -2034,4 +2048,518 @@ void AmsWebServer::printE(String fmt, ...) {
  	va_start(args, fmt);
 	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(String("(AmsWebServer)" + fmt + "\n").c_str(), args);
 	va_end(args);
+}
+
+void AmsWebServer::configFileHtml() {
+	printD("Serving /configfile.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	uploadHtml("CFG file", "/configfile", "cfg");
+	/*
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+
+	server.setContentLength(CONFIGFILE_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, "text/html", HEAD_HTML);
+	server.sendContent_P(CONFIGFILE_HTML);
+	server.sendContent_P(FOOT_HTML);
+	*/
+}
+
+void AmsWebServer::configFileDownload() {
+	printD("Serving /configfile.cfg over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	bool includeSecrets = true;
+	bool includeWifi = true;
+	bool includeMqtt = true;
+	bool includeWeb = true;
+	bool includeMeter = true;
+	bool includeGpio = true;
+	bool includeDomo = true;
+	bool includeNtp = true;
+	bool includeEntsoe = true;
+	bool includeThresholds = true;
+	
+	SystemConfig sys;
+	config->getSystemConfig(sys);
+	WiFiConfig wifi;
+	config->getWiFiConfig(wifi);
+	MqttConfig mqtt;
+	config->getMqttConfig(mqtt);
+	WebConfig web;
+	config->getWebConfig(web);
+	MeterConfig meter;
+	config->getMeterConfig(meter);
+	GpioConfig gpio;
+	config->getGpioConfig(gpio);
+	DomoticzConfig domo;
+	config->getDomoticzConfig(domo);
+	NtpConfig ntp;
+	config->getNtpConfig(ntp);
+	EntsoeConfig entsoe;
+	config->getEntsoeConfig(entsoe);
+	EnergyAccountingConfig eac;
+	config->getEnergyAccountingConfig(eac);
+
+	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader("Expires", "-1");
+	server.sendHeader("Content-Disposition", "attachment; filename=configfile.cfg");
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+
+	char buf[256];
+	snprintf(buf, sizeof(buf), "version %s\n", VERSION);
+	server.send(200, "text/plain", buf);
+	server.sendContent(buf, snprintf(buf, sizeof(buf), "boardType %d\n", sys.boardType));
+	
+	if(includeSecrets) server.sendContent(buf, snprintf(buf, sizeof(buf), "hostname %s\n", wifi.hostname));
+
+	if(includeWifi) {
+		if(includeSecrets) server.sendContent(buf, snprintf(buf, sizeof(buf), "ssid %s\n", wifi.ssid));
+		if(includeSecrets) server.sendContent(buf, snprintf(buf, sizeof(buf), "psk %s\n", wifi.psk));
+		if(strlen(wifi.ip) > 0) {
+			server.sendContent(buf, snprintf(buf, sizeof(buf), "ip %s\n", wifi.ip));
+			if(strlen(wifi.gateway) > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "gateway %s\n", wifi.gateway));
+			if(strlen(wifi.subnet) > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "subnet %s\n", wifi.subnet));
+			if(strlen(wifi.dns1) > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "dns1 %s\n", wifi.dns1));
+			if(strlen(wifi.dns2) > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "dns2 %s\n", wifi.dns2));
+		}
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "mdns %d\n", wifi.mdns ? 1 : 0));
+	}
+	
+	if(includeMqtt && strlen(mqtt.host) > 0) {
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "mqttHost %s\n", mqtt.host));
+		if(mqtt.port > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "mqttPort %d\n", mqtt.port));
+		if(strlen(mqtt.clientId) > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "mqttClientId %s\n", mqtt.clientId));
+		if(strlen(mqtt.publishTopic) > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "mqttPublishTopic %s\n", mqtt.publishTopic));
+		if(includeSecrets) server.sendContent(buf, snprintf(buf, sizeof(buf), "mqttUsername %s\n", mqtt.username));
+		if(includeSecrets) server.sendContent(buf, snprintf(buf, sizeof(buf), "mqttPassword %s\n", mqtt.password));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "mqttPayloadFormat %d\n", mqtt.payloadFormat));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "mqttSsl %d\n", mqtt.ssl ? 1 : 0));
+	}
+
+	if(includeWeb  && includeSecrets) {
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "webSecurity %d\n", web.security));
+		if(web.security > 0) {
+			server.sendContent(buf, snprintf(buf, sizeof(buf), "webUsername %s\n", web.username));
+			server.sendContent(buf, snprintf(buf, sizeof(buf), "webPassword %s\n", web.password));
+		}
+	}
+
+	if(includeMeter) {
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterBaud %d\n", meter.baud));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterParity %d\n", meter.parity));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterInvert %d\n", meter.invert ? 1 : 0));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterDistributionSystem %d\n", meter.distributionSystem));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterMainFuse %d\n", meter.mainFuse));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterProductionCapacity %d\n", meter.productionCapacity));
+		if(includeSecrets) {
+			if(meter.encryptionKey[0] != 0x00) server.sendContent(buf, snprintf(buf, sizeof(buf), "meterEncryptionKey %s\n", toHex(meter.encryptionKey, 16).c_str()));
+			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf(buf, sizeof(buf), "meterAuthenticationKey %s\n", toHex(meter.authenticationKey, 16).c_str()));
+		}
+	}
+
+	if(includeGpio) {
+		if(gpio.hanPin != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioHanPin %d\n", gpio.hanPin));
+		if(gpio.apPin != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioApPin %d\n", gpio.apPin));
+		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioLedPin %d\n", gpio.ledPin));
+		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioLedInverted %d\n", gpio.ledInverted ? 1 : 0));
+		if(gpio.ledPinRed != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioLedPinRed %d\n", gpio.ledPinRed));
+		if(gpio.ledPinGreen != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioLedPinGreen %d\n", gpio.ledPinGreen));
+		if(gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioLedPinBlue %d\n", gpio.ledPinBlue));
+		if(gpio.ledPinRed != 0xFF || gpio.ledPinGreen != 0xFF || gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioLedRgbInverted %d\n", gpio.ledRgbInverted ? 1 : 0));
+		if(gpio.tempSensorPin != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioTempSensorPin %d\n", gpio.tempSensorPin));
+		if(gpio.tempAnalogSensorPin != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioTempAnalogSensorPin %d\n", gpio.tempAnalogSensorPin));
+		if(gpio.vccPin != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccPin %d\n", gpio.vccPin));
+		if(gpio.vccOffset != 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccOffset %.2f\n", gpio.vccOffset / 100.0));
+		if(gpio.vccMultiplier != 1000) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccMultiplier %.3f\n", gpio.vccMultiplier / 1000.0));
+		if(gpio.vccBootLimit != 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccBootLimit %.1f\n", gpio.vccBootLimit / 10.0));
+		if(gpio.vccPin != 0xFF && gpio.vccResistorGnd != 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccResistorGnd %d\n", gpio.vccResistorGnd));
+		if(gpio.vccPin != 0xFF && gpio.vccResistorVcc != 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccResistorVcc %d\n", gpio.vccResistorVcc));
+	}
+
+	if(includeDomo) {
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "domoticzElidx %d\n", domo.elidx));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "domoticzVl1idx %d\n", domo.vl1idx));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "domoticzVl2idx %d\n", domo.vl2idx));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "domoticzVl3idx %d\n", domo.vl3idx));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "domoticzCl1idx %d\n", domo.cl1idx));
+	}
+
+	if(includeNtp) {
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "ntpEnable %d\n", ntp.enable ? 1 : 0));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "ntpDhcp %d\n", ntp.dhcp ? 1 : 0));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "ntpOffset %d\n", ntp.offset * 10));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "ntpSummerOffset %d\n", ntp.summerOffset * 10));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "ntpServer %s\n", ntp.server));
+	}
+
+	if(includeEntsoe) {
+		if(strlen(entsoe.token) == 36 && includeSecrets) server.sendContent(buf, snprintf(buf, sizeof(buf), "entsoeToken %s\n", entsoe.token));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "entsoeArea %s\n", entsoe.area));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "entsoeCurrency %s\n", entsoe.currency));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "entsoeMultiplier %.3f\n", entsoe.multiplier / 1000.0));
+	}
+
+	if(includeThresholds && eac.thresholds[9] > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "thresholds %d %d %d %d %d %d %d %d %d %d\n", 
+		eac.thresholds[0],
+		eac.thresholds[1],
+		eac.thresholds[2],
+		eac.thresholds[3],
+		eac.thresholds[4],
+		eac.thresholds[5],
+		eac.thresholds[6],
+		eac.thresholds[7],
+		eac.thresholds[8],
+		eac.thresholds[9]
+	));
+
+	if(ds != NULL) {
+		DayDataPoints day = ds->getDayData();
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "dayplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", 
+			day.version,
+			day.lastMeterReadTime,
+			day.activeImport,
+			day.points[0],
+			day.points[1],
+			day.points[2],
+			day.points[3],
+			day.points[4],
+			day.points[5],
+			day.points[6],
+			day.points[7],
+			day.points[8],
+			day.points[9],
+			day.points[10],
+			day.points[11],
+			day.points[12],
+			day.points[13],
+			day.points[14],
+			day.points[15],
+			day.points[16],
+			day.points[17],
+			day.points[18],
+			day.points[19],
+			day.points[20],
+			day.points[21],
+			day.points[22],
+			day.points[23]
+		));
+		if(day.activeExport > 0) {
+			server.sendContent(buf, snprintf(buf, sizeof(buf), " %lu\n", 
+				day.activeExport
+			));
+		} else {
+			server.sendContent("\n");
+		}
+
+		MonthDataPoints month = ds->getMonthData();
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "monthplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", 
+			month.version,
+			month.lastMeterReadTime,
+			month.activeImport,
+			month.points[0],
+			month.points[1],
+			month.points[2],
+			month.points[3],
+			month.points[4],
+			month.points[5],
+			month.points[6],
+			month.points[7],
+			month.points[8],
+			month.points[9],
+			month.points[10],
+			month.points[11],
+			month.points[12],
+			month.points[13],
+			month.points[14],
+			month.points[15],
+			month.points[16],
+			month.points[17],
+			month.points[18],
+			month.points[19],
+			month.points[20],
+			month.points[21],
+			month.points[22],
+			month.points[23],
+			month.points[24],
+			month.points[25],
+			month.points[26],
+			month.points[27],
+			month.points[28],
+			month.points[29],
+			month.points[30]
+		));
+		if(month.activeExport > 0) {
+			server.sendContent(buf, snprintf(buf, sizeof(buf), " %lu\n", 
+				month.activeExport
+			));
+		} else {
+			server.sendContent("\n");
+		}
+	}
+}
+
+void AmsWebServer::configFileUpload() {
+	if(!checkSecurity(1))
+		return;
+
+	uploadFile(FILE_CFG);
+    HTTPUpload& upload = server.upload();
+    if(upload.status == UPLOAD_FILE_END) {
+		configFileParse();
+	}
+}
+
+void AmsWebServer::configFileParse() {
+	printD("Reading /configfile.cfg from http...");
+
+	if(!checkSecurity(1))
+		return;
+	
+	if(!LittleFS.begin()) {
+		printE("Cannot start LittleFS");
+		return notFound();
+	}
+
+	if(!LittleFS.exists(FILE_CFG)) {
+		printW("Config file does not exist");
+		return notFound();
+	}
+
+	File file = LittleFS.open(FILE_CFG, "r");
+
+	SystemConfig sys;
+	config->getSystemConfig(sys);
+	WiFiConfig wifi;
+	config->getWiFiConfig(wifi);
+	MqttConfig mqtt;
+	config->getMqttConfig(mqtt);
+	WebConfig web;
+	config->getWebConfig(web);
+	MeterConfig meter;
+	config->getMeterConfig(meter);
+	GpioConfig gpio;
+	config->getGpioConfig(gpio);
+	DomoticzConfig domo;
+	config->getDomoticzConfig(domo);
+	NtpConfig ntp;
+	config->getNtpConfig(ntp);
+	EntsoeConfig entsoe;
+	config->getEntsoeConfig(entsoe);
+
+	size_t size;
+	char buf[256];
+	while(size = file.readBytesUntil('\n', buf, 256) > 0) {
+		buf[size] = '\0';
+		if(strncmp(buf, "boardType ", 10) == 0) {
+			sys.boardType = String(buf+10).toInt();
+		} else if(strncmp(buf, "ssid ", 5) == 0) {
+			memcpy(wifi.ssid, buf+5, size-5);
+		} else if(strncmp(buf, "psk ", 4) == 0) {
+			memcpy(wifi.psk, buf+4, size-4);
+		} else if(strncmp(buf, "ip ", 3) == 0) {
+			memcpy(wifi.ip, buf+3, size-3);
+		} else if(strncmp(buf, "gateway ", 8) == 0) {
+			memcpy(wifi.gateway, buf+8, size-8);
+		} else if(strncmp(buf, "subnet ", 7) == 0) {
+			memcpy(wifi.subnet, buf+7, size-7);
+		} else if(strncmp(buf, "dns1 ", 5) == 0) {
+			memcpy(wifi.dns1, buf+5, size-5);
+		} else if(strncmp(buf, "dns2 ", 5) == 0) {
+			memcpy(wifi.dns2, buf+5, size-5);
+		} else if(strncmp(buf, "hostname ", 9) == 0) {
+			memcpy(wifi.hostname, buf+9, size-9);
+		} else if(strncmp(buf, "mdns ", 5) == 0) {
+			wifi.mdns = buf[5] == 1;
+		} else if(strncmp(buf, "mqttHost ", 9) == 0) {
+			memcpy(mqtt.host, buf+9, size-9);
+		} else if(strncmp(buf, "mqttPort ", 9) == 0) {
+			mqtt.port = String(buf+9).toInt();
+		} else if(strncmp(buf, "mqttClientId ", 13) == 0) {
+			memcpy(mqtt.clientId, buf+13, size-13);
+		} else if(strncmp(buf, "mqttPublishTopic ", 17) == 0) {
+			memcpy(mqtt.publishTopic, buf+17, size-17);
+		} else if(strncmp(buf, "mqttUsername ", 13) == 0) {
+			memcpy(mqtt.username, buf+13, size-13);
+		} else if(strncmp(buf, "mqttPassword ", 13) == 0) {
+			memcpy(mqtt.password, buf+13, size-13);
+		} else if(strncmp(buf, "mqttPayloadFormat ", 18) == 0) {
+			mqtt.payloadFormat = String(buf+18).toInt();
+		} else if(strncmp(buf, "mqttSsl ", 8) == 0) {
+			mqtt.ssl = buf[8] == 1;
+		} else if(strncmp(buf, "webSecurity ", 12) == 0) {
+			web.security = String(buf+12).toInt();
+		} else if(strncmp(buf, "webUsername ", 12) == 0) {
+			memcpy(web.username, buf+12, size-12);
+		} else if(strncmp(buf, "webPassword ", 12) == 0) {
+			memcpy(web.username, buf+12, size-12);
+		} else if(strncmp(buf, "meterBaud ", 10) == 0) {
+			meter.baud = String(buf+10).toInt();
+		} else if(strncmp(buf, "meterParity ", 12) == 0) {
+			meter.parity = String(buf+12).toInt();
+		} else if(strncmp(buf, "meterInvert ", 12) == 0) {
+			meter.invert = buf[12] == 1;
+		} else if(strncmp(buf, "meterDistributionSystem ", 24) == 0) {
+			meter.distributionSystem = String(buf+24).toInt();
+		} else if(strncmp(buf, "meterMainFuse ", 14) == 0) {
+			meter.mainFuse = String(buf+14).toInt();
+		} else if(strncmp(buf, "meterProductionCapacity ", 24) == 0) {
+			meter.productionCapacity = String(buf+24).toInt();
+		} else if(strncmp(buf, "meterEncryptionKey ", 19) == 0) {
+			fromHex(meter.encryptionKey, String(buf+19), 16);
+		} else if(strncmp(buf, "meterAuthenticationKey ", 23) == 0) {
+			fromHex(meter.authenticationKey, String(buf+19), 16);
+		} else if(strncmp(buf, "gpioHanPin ", 11) == 0) {
+			gpio.hanPin = String(buf+11).toInt();
+		} else if(strncmp(buf, "gpioApPin ", 10) == 0) {
+			gpio.apPin = String(buf+10).toInt();
+		} else if(strncmp(buf, "gpioLedPin ", 11) == 0) {
+			gpio.ledPin = String(buf+11).toInt();
+		} else if(strncmp(buf, "gpioLedInverted ", 16) == 0) {
+			gpio.ledInverted = buf[16] == 1;
+		} else if(strncmp(buf, "gpioLedPinRed ", 14) == 0) {
+			gpio.ledPinRed = String(buf+14).toInt();
+		} else if(strncmp(buf, "gpioLedPinGreen ", 16) == 0) {
+			gpio.ledPinGreen = String(buf+16).toInt();
+		} else if(strncmp(buf, "gpioLedPinBlue ", 15) == 0) {
+			gpio.ledPinBlue = String(buf+15).toInt();
+		} else if(strncmp(buf, "gpioLedRgbInverted ", 19) == 0) {
+			gpio.ledRgbInverted = buf[19] == 1;
+		} else if(strncmp(buf, "gpioTempSensorPin ", 18) == 0) {
+			gpio.tempSensorPin = String(buf+18).toInt();
+		} else if(strncmp(buf, "gpioTempAnalogSensorPin ", 24) == 0) {
+			gpio.tempAnalogSensorPin = String(buf+24).toInt();
+		} else if(strncmp(buf, "gpioVccPin ", 11) == 0) {
+			gpio.vccPin = String(buf+11).toInt();
+		} else if(strncmp(buf, "gpioVccOffset ", 14) == 0) {
+			gpio.vccOffset = String(buf+14).toInt() / 100;
+		} else if(strncmp(buf, "gpioVccMultiplier ", 18) == 0) {
+			gpio.vccMultiplier = String(buf+18).toInt() / 1000;
+		} else if(strncmp(buf, "gpioVccBootLimit ", 17) == 0) {
+			gpio.vccBootLimit = String(buf+17).toInt() / 10;
+		} else if(strncmp(buf, "gpioVccResistorGnd ", 19) == 0) {
+			gpio.vccResistorGnd = String(buf+19).toInt();
+		} else if(strncmp(buf, "gpioVccResistorVcc ", 19) == 0) {
+			gpio.vccResistorVcc = String(buf+19).toInt();
+		} else if(strncmp(buf, "domoticzElidx ", 14) == 0) {
+			domo.elidx = String(buf+14).toInt();
+		} else if(strncmp(buf, "domoticzVl1idx ", 15) == 0) {
+			domo.vl1idx = String(buf+15).toInt();
+		} else if(strncmp(buf, "domoticzVl2idx ", 15) == 0) {
+			domo.vl2idx = String(buf+15).toInt();
+		} else if(strncmp(buf, "domoticzVl3idx ", 15) == 0) {
+			domo.vl3idx = String(buf+15).toInt();
+		} else if(strncmp(buf, "domoticzCl1idx ", 15) == 0) {
+			domo.cl1idx = String(buf+15).toInt();
+		} else if(strncmp(buf, "ntpEnable ", 10) == 0) {
+			ntp.enable = buf[10] == 1;
+		} else if(strncmp(buf, "ntpDhcp ", 8) == 0) {
+			ntp.dhcp = buf[8] == 1;
+		} else if(strncmp(buf, "ntpOffset ", 10) == 0) {
+			ntp.offset = String(buf+10).toInt() / 10;
+		} else if(strncmp(buf, "ntpSummerOffset ", 16) == 0) {
+			ntp.summerOffset = String(buf+16).toInt() / 10;
+		} else if(strncmp(buf, "ntpServer ", 10) == 0) {
+			memcpy(ntp.server, buf+10, size-10);
+		} else if(strncmp(buf, "entsoeToken ", 12) == 0) {
+			memcpy(entsoe.token, buf+12, size-12);
+		} else if(strncmp(buf, "entsoeArea ", 11) == 0) {
+			memcpy(entsoe.area, buf+11, size-11);
+		} else if(strncmp(buf, "entsoeCurrency ", 15) == 0) {
+			memcpy(entsoe.currency, buf+15, size-15);
+		} else if(strncmp(buf, "entsoeMultiplier ", 17) == 0) {
+			entsoe.multiplier = String(buf+17).toInt() * 1000;
+		} else if(strncmp(buf, "thresholds ", 11) == 0) {
+			// TODO
+		} else if(strncmp(buf, "dayplot ", 8) == 0) {
+			// TODO
+		} else if(strncmp(buf, "monthplot ", 10) == 0) {
+			// TODO
+		}
+	}
+
+	debugger->printf("boardType: %d\n", sys.boardType);
+	debugger->printf("ssid: %s\n", wifi.ssid);
+	debugger->printf("psk: %s\n", wifi.psk);
+	debugger->printf("ip: %s\n", wifi.ip);
+	debugger->printf("gateway: %s\n", wifi.gateway);
+	debugger->printf("subnet: %s\n", wifi.subnet);
+	debugger->printf("dns1: %s\n", wifi.dns1);
+	debugger->printf("dns2: %s\n", wifi.dns2);
+	debugger->printf("mdns: %d\n", wifi.mdns ? 1 : 0);
+	debugger->printf("mqttHost: %s\n", mqtt.host);
+	debugger->printf("mqttPort: %d\n", mqtt.port);
+	debugger->printf("mqttClientId: %s\n", mqtt.clientId);
+	debugger->printf("mqttPublishTopic: %s\n", mqtt.publishTopic);
+	debugger->printf("mqttUsername: %s\n", mqtt.username);
+	debugger->printf("mqttPassword: %s\n", mqtt.password);
+	debugger->printf("mqttPayloadFormat: %d\n", mqtt.payloadFormat);
+	debugger->printf("mqttSsl: %d\n", mqtt.ssl ? 1 : 0);
+	debugger->printf("webSecurity: %d\n", web.security);
+	debugger->printf("webUsername: %s\n", web.username);
+	debugger->printf("webPassword: %s\n", web.password);
+	debugger->printf("meterBaud: %d\n", meter.baud);
+	debugger->printf("meterParity: %d\n", meter.parity);
+	debugger->printf("meterInvert: %d\n", meter.invert ? 1 : 0);
+	debugger->printf("meterDistributionSystem: %d\n", meter.distributionSystem);
+	debugger->printf("meterMainFuse: %d\n", meter.mainFuse);
+	debugger->printf("meterProductionCapacity: %d\n", meter.productionCapacity);
+	debugger->printf("meterEncryptionKey: %s\n", toHex(meter.encryptionKey, 16).c_str());
+	debugger->printf("meterAuthenticationKey: %s\n", toHex(meter.authenticationKey, 16).c_str());
+	debugger->printf("gpioHanPin: %d\n", gpio.hanPin);
+	debugger->printf("gpioApPin: %d\n", gpio.apPin);
+	debugger->printf("gpioLedPin: %d\n", gpio.ledPin);
+	debugger->printf("gpioLedInverted: %d\n", gpio.ledInverted ? 1 : 0);
+	debugger->printf("gpioLedPinRed: %d\n", gpio.ledPinRed);
+	debugger->printf("gpioLedPinGreen: %d\n", gpio.ledPinGreen);
+	debugger->printf("gpioLedPinBlue: %d\n", gpio.ledPinBlue);
+	debugger->printf("gpioLedRgbInverted: %d\n", gpio.ledRgbInverted);
+	debugger->printf("gpioTempSensorPin: %d\n", gpio.tempSensorPin);
+	debugger->printf("gpioTempAnalogSensorPin: %d\n", gpio.tempAnalogSensorPin);
+	debugger->printf("gpioVccPin: %d\n", gpio.vccPin);
+	debugger->printf("gpioVccOffset: %d\n", gpio.vccOffset);
+	debugger->printf("gpioVccMultiplier: %d\n", gpio.vccMultiplier);
+	debugger->printf("gpioVccBootLimit: %d\n", gpio.vccBootLimit);
+	debugger->printf("gpioVccResistorGnd: %d\n", gpio.vccResistorGnd);
+	debugger->printf("gpioVccResistorVcc: %d\n", gpio.vccResistorVcc);
+	debugger->printf("domoticzElidx: %d\n", domo.elidx);
+	debugger->printf("domoticzVl1idx: %d\n", domo.vl1idx);
+	debugger->printf("domoticzVl2idx: %d\n", domo.vl2idx);
+	debugger->printf("domoticzVl3idx: %d\n", domo.vl3idx);
+	debugger->printf("domoticzCl1idx: %d\n", domo.cl1idx);
+	debugger->printf("ntpEnable: %d\n", ntp.enable ? 1 : 0);
+	debugger->printf("ntpDhcp: %d\n", ntp.dhcp ? 1 : 0);
+	debugger->printf("ntpOffset: %d\n", ntp.offset);
+	debugger->printf("ntpSummerOffset: %d\n", ntp.summerOffset);
+	debugger->printf("ntpServer: %s\n", ntp.server);
+	debugger->printf("entsoeToken: %s\n", entsoe.token);
+	debugger->printf("entsoeArea: %s\n", entsoe.area);
+	debugger->printf("entsoeCurrency: %s\n", entsoe.currency);
+	debugger->printf("entsoeMultiplier: %d\n", entsoe.multiplier);
+
+	printI("Saving configuration now...");
+
+	if (config->save()) {
+		printI("Successfully saved.");
+		if(config->isWifiChanged()) {
+			performRestart = true;
+            server.sendHeader("Location","/restart-wait");
+            server.send(303);
+		} else {
+			server.sendHeader("Location", String("/"), true);
+			server.send (302, "text/plain", "");
+
+			hw->setup(gpioConfig, config);
+		}
+	} else {
+		printE("Error saving configuration");
+		String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
+		server.send(500, "text/html", html);
+	}
 }

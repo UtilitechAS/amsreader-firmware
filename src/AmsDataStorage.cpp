@@ -314,3 +314,11 @@ bool AmsDataStorage::save() {
     LittleFS.end();
     return true;
 }
+
+DayDataPoints AmsDataStorage::getDayData() {
+    return day;
+}
+
+MonthDataPoints AmsDataStorage::getMonthData() {
+    return month;
+}

@@ -33,6 +33,9 @@ public:
     bool load();
     bool save();
 
+    DayDataPoints getDayData();
+    MonthDataPoints getMonthData();
+
 private:
     Timezone* tz;
     DayDataPoints day = {

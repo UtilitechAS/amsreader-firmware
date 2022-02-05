@@ -88,6 +88,10 @@ private:
 	void dayplotJson();
 	void monthplotJson();
 	void energyPriceJson();
+	void configFileHtml();
+	void configFileDownload();
+	void configFileUpload();
+	void configFileParse();
 
 	void handleSetup();
 	void handleSave();

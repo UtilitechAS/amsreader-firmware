@@ -286,6 +286,7 @@ $(function() {
             break;
         case '/gpio':
         case '/debugging':
+        case '/configfile':
         case '/firmware':
             $('#firmware-warn').show();
         case '/reset':

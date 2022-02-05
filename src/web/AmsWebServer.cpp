@@ -2056,8 +2056,6 @@ void AmsWebServer::configFileHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	uploadHtml("CFG file", "/configfile", "cfg");
-	/*
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
@@ -2065,7 +2063,6 @@ void AmsWebServer::configFileHtml() {
 	server.send_P(200, "text/html", HEAD_HTML);
 	server.sendContent_P(CONFIGFILE_HTML);
 	server.sendContent_P(FOOT_HTML);
-	*/
 }
 
 void AmsWebServer::configFileDownload() {
@@ -2074,16 +2071,16 @@ void AmsWebServer::configFileDownload() {
 	if(!checkSecurity(1))
 		return;
 
-	bool includeSecrets = true;
-	bool includeWifi = true;
-	bool includeMqtt = true;
-	bool includeWeb = true;
-	bool includeMeter = true;
-	bool includeGpio = true;
-	bool includeDomo = true;
-	bool includeNtp = true;
-	bool includeEntsoe = true;
-	bool includeThresholds = true;
+	bool includeSecrets = server.hasArg("ic") && server.arg("ic") == "true";
+	bool includeWifi = server.hasArg("iw") && server.arg("iw") == "true";
+	bool includeMqtt = server.hasArg("im") && server.arg("im") == "true";
+	bool includeWeb = server.hasArg("ie") && server.arg("ie") == "true";
+	bool includeMeter = server.hasArg("it") && server.arg("it") == "true";
+	bool includeGpio = server.hasArg("ig") && server.arg("ig") == "true";
+	bool includeDomo = server.hasArg("id") && server.arg("id") == "true";
+	bool includeNtp = server.hasArg("in") && server.arg("in") == "true";
+	bool includeEntsoe = server.hasArg("is") && server.arg("is") == "true";
+	bool includeThresholds = server.hasArg("nh") && server.arg("nh") == "true";
 	
 	SystemConfig sys;
 	config->getSystemConfig(sys);
@@ -2176,9 +2173,9 @@ void AmsWebServer::configFileDownload() {
 		if(gpio.tempSensorPin != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioTempSensorPin %d\n", gpio.tempSensorPin));
 		if(gpio.tempAnalogSensorPin != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioTempAnalogSensorPin %d\n", gpio.tempAnalogSensorPin));
 		if(gpio.vccPin != 0xFF) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccPin %d\n", gpio.vccPin));
-		if(gpio.vccOffset != 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccOffset %.2f\n", gpio.vccOffset / 100.0));
-		if(gpio.vccMultiplier != 1000) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccMultiplier %.3f\n", gpio.vccMultiplier / 1000.0));
-		if(gpio.vccBootLimit != 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccBootLimit %.1f\n", gpio.vccBootLimit / 10.0));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccOffset %.2f\n", gpio.vccOffset / 100.0));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccMultiplier %.3f\n", gpio.vccMultiplier / 1000.0));
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccBootLimit %.1f\n", gpio.vccBootLimit / 10.0));
 		if(gpio.vccPin != 0xFF && gpio.vccResistorGnd != 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccResistorGnd %d\n", gpio.vccResistorGnd));
 		if(gpio.vccPin != 0xFF && gpio.vccResistorVcc != 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "gpioVccResistorVcc %d\n", gpio.vccResistorVcc));
 	}
@@ -2225,30 +2222,30 @@ void AmsWebServer::configFileDownload() {
 			day.version,
 			day.lastMeterReadTime,
 			day.activeImport,
-			day.points[0],
-			day.points[1],
-			day.points[2],
-			day.points[3],
-			day.points[4],
-			day.points[5],
-			day.points[6],
-			day.points[7],
-			day.points[8],
-			day.points[9],
-			day.points[10],
-			day.points[11],
-			day.points[12],
-			day.points[13],
-			day.points[14],
-			day.points[15],
-			day.points[16],
-			day.points[17],
-			day.points[18],
-			day.points[19],
-			day.points[20],
-			day.points[21],
-			day.points[22],
-			day.points[23]
+			day.points[0] * 10,
+			day.points[1] * 10,
+			day.points[2] * 10,
+			day.points[3] * 10,
+			day.points[4] * 10,
+			day.points[5] * 10,
+			day.points[6] * 10,
+			day.points[7] * 10,
+			day.points[8] * 10,
+			day.points[9] * 10,
+			day.points[10] * 10,
+			day.points[11] * 10,
+			day.points[12] * 10,
+			day.points[13] * 10,
+			day.points[14] * 10,
+			day.points[15] * 10,
+			day.points[16] * 10,
+			day.points[17] * 10,
+			day.points[18] * 10,
+			day.points[19] * 10,
+			day.points[20] * 10,
+			day.points[21] * 10,
+			day.points[22] * 10,
+			day.points[23] * 10
 		));
 		if(day.activeExport > 0) {
 			server.sendContent(buf, snprintf(buf, sizeof(buf), " %lu\n", 
@@ -2259,41 +2256,41 @@ void AmsWebServer::configFileDownload() {
 		}
 
 		MonthDataPoints month = ds->getMonthData();
-		server.sendContent(buf, snprintf(buf, sizeof(buf), "monthplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", 
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "monthplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", 
 			month.version,
 			month.lastMeterReadTime,
 			month.activeImport,
-			month.points[0],
-			month.points[1],
-			month.points[2],
-			month.points[3],
-			month.points[4],
-			month.points[5],
-			month.points[6],
-			month.points[7],
-			month.points[8],
-			month.points[9],
-			month.points[10],
-			month.points[11],
-			month.points[12],
-			month.points[13],
-			month.points[14],
-			month.points[15],
-			month.points[16],
-			month.points[17],
-			month.points[18],
-			month.points[19],
-			month.points[20],
-			month.points[21],
-			month.points[22],
-			month.points[23],
-			month.points[24],
-			month.points[25],
-			month.points[26],
-			month.points[27],
-			month.points[28],
-			month.points[29],
-			month.points[30]
+			month.points[0] * 10,
+			month.points[1] * 10,
+			month.points[2] * 10,
+			month.points[3] * 10,
+			month.points[4] * 10,
+			month.points[5] * 10,
+			month.points[6] * 10,
+			month.points[7] * 10,
+			month.points[8] * 10,
+			month.points[9] * 10,
+			month.points[10] * 10,
+			month.points[11] * 10,
+			month.points[12] * 10,
+			month.points[13] * 10,
+			month.points[14] * 10,
+			month.points[15] * 10,
+			month.points[16] * 10,
+			month.points[17] * 10,
+			month.points[18] * 10,
+			month.points[19] * 10,
+			month.points[20] * 10,
+			month.points[21] * 10,
+			month.points[22] * 10,
+			month.points[23] * 10,
+			month.points[24] * 10,
+			month.points[25] * 10,
+			month.points[26] * 10,
+			month.points[27] * 10,
+			month.points[28] * 10,
+			month.points[29] * 10,
+			month.points[30] * 10
 		));
 		if(month.activeExport > 0) {
 			server.sendContent(buf, snprintf(buf, sizeof(buf), " %lu\n", 
@@ -2318,6 +2315,7 @@ void AmsWebServer::configFileUpload() {
 
 void AmsWebServer::configFileParse() {
 	printD("Reading /configfile.cfg from http...");
+	uploading = false;
 
 	if(!checkSecurity(1))
 		return;
@@ -2352,11 +2350,13 @@ void AmsWebServer::configFileParse() {
 	config->getNtpConfig(ntp);
 	EntsoeConfig entsoe;
 	config->getEntsoeConfig(entsoe);
+	EnergyAccountingConfig eac;
+	config->getEnergyAccountingConfig(eac);
 
 	size_t size;
 	char buf[256];
-	while(size = file.readBytesUntil('\n', buf, 256) > 0) {
-		buf[size] = '\0';
+	memset(buf, 0, 256);
+	while((size = file.readBytesUntil('\n', buf, 256)) > 0) {
 		if(strncmp(buf, "boardType ", 10) == 0) {
 			sys.boardType = String(buf+10).toInt();
 		} else if(strncmp(buf, "ssid ", 5) == 0) {
@@ -2376,7 +2376,7 @@ void AmsWebServer::configFileParse() {
 		} else if(strncmp(buf, "hostname ", 9) == 0) {
 			memcpy(wifi.hostname, buf+9, size-9);
 		} else if(strncmp(buf, "mdns ", 5) == 0) {
-			wifi.mdns = buf[5] == 1;
+			wifi.mdns = String(buf+5).toInt() == 1;;
 		} else if(strncmp(buf, "mqttHost ", 9) == 0) {
 			memcpy(mqtt.host, buf+9, size-9);
 		} else if(strncmp(buf, "mqttPort ", 9) == 0) {
@@ -2392,7 +2392,7 @@ void AmsWebServer::configFileParse() {
 		} else if(strncmp(buf, "mqttPayloadFormat ", 18) == 0) {
 			mqtt.payloadFormat = String(buf+18).toInt();
 		} else if(strncmp(buf, "mqttSsl ", 8) == 0) {
-			mqtt.ssl = buf[8] == 1;
+			mqtt.ssl = String(buf+8).toInt() == 1;;
 		} else if(strncmp(buf, "webSecurity ", 12) == 0) {
 			web.security = String(buf+12).toInt();
 		} else if(strncmp(buf, "webUsername ", 12) == 0) {
@@ -2404,7 +2404,7 @@ void AmsWebServer::configFileParse() {
 		} else if(strncmp(buf, "meterParity ", 12) == 0) {
 			meter.parity = String(buf+12).toInt();
 		} else if(strncmp(buf, "meterInvert ", 12) == 0) {
-			meter.invert = buf[12] == 1;
+			meter.invert = String(buf+12).toInt() == 1;;
 		} else if(strncmp(buf, "meterDistributionSystem ", 24) == 0) {
 			meter.distributionSystem = String(buf+24).toInt();
 		} else if(strncmp(buf, "meterMainFuse ", 14) == 0) {
@@ -2422,7 +2422,7 @@ void AmsWebServer::configFileParse() {
 		} else if(strncmp(buf, "gpioLedPin ", 11) == 0) {
 			gpio.ledPin = String(buf+11).toInt();
 		} else if(strncmp(buf, "gpioLedInverted ", 16) == 0) {
-			gpio.ledInverted = buf[16] == 1;
+			gpio.ledInverted = String(buf+16).toInt() == 1;
 		} else if(strncmp(buf, "gpioLedPinRed ", 14) == 0) {
 			gpio.ledPinRed = String(buf+14).toInt();
 		} else if(strncmp(buf, "gpioLedPinGreen ", 16) == 0) {
@@ -2438,11 +2438,11 @@ void AmsWebServer::configFileParse() {
 		} else if(strncmp(buf, "gpioVccPin ", 11) == 0) {
 			gpio.vccPin = String(buf+11).toInt();
 		} else if(strncmp(buf, "gpioVccOffset ", 14) == 0) {
-			gpio.vccOffset = String(buf+14).toInt() / 100;
+			gpio.vccOffset = String(buf+14).toDouble() * 100;
 		} else if(strncmp(buf, "gpioVccMultiplier ", 18) == 0) {
-			gpio.vccMultiplier = String(buf+18).toInt() / 1000;
+			gpio.vccMultiplier = String(buf+18).toDouble() * 1000;
 		} else if(strncmp(buf, "gpioVccBootLimit ", 17) == 0) {
-			gpio.vccBootLimit = String(buf+17).toInt() / 10;
+			gpio.vccBootLimit = String(buf+17).toDouble() * 10;
 		} else if(strncmp(buf, "gpioVccResistorGnd ", 19) == 0) {
 			gpio.vccResistorGnd = String(buf+19).toInt();
 		} else if(strncmp(buf, "gpioVccResistorVcc ", 19) == 0) {
@@ -2458,9 +2458,9 @@ void AmsWebServer::configFileParse() {
 		} else if(strncmp(buf, "domoticzCl1idx ", 15) == 0) {
 			domo.cl1idx = String(buf+15).toInt();
 		} else if(strncmp(buf, "ntpEnable ", 10) == 0) {
-			ntp.enable = buf[10] == 1;
+			ntp.enable = String(buf+10).toInt() == 1;
 		} else if(strncmp(buf, "ntpDhcp ", 8) == 0) {
-			ntp.dhcp = buf[8] == 1;
+			ntp.dhcp = String(buf+8).toInt() == 1;
 		} else if(strncmp(buf, "ntpOffset ", 10) == 0) {
 			ntp.offset = String(buf+10).toInt() / 10;
 		} else if(strncmp(buf, "ntpSummerOffset ", 16) == 0) {
@@ -2474,76 +2474,78 @@ void AmsWebServer::configFileParse() {
 		} else if(strncmp(buf, "entsoeCurrency ", 15) == 0) {
 			memcpy(entsoe.currency, buf+15, size-15);
 		} else if(strncmp(buf, "entsoeMultiplier ", 17) == 0) {
-			entsoe.multiplier = String(buf+17).toInt() * 1000;
+			entsoe.multiplier = String(buf+17).toDouble() * 1000;
 		} else if(strncmp(buf, "thresholds ", 11) == 0) {
-			// TODO
+			int i = 0;
+			char * pch = strtok (buf+11," ");
+			while (pch != NULL) {
+				eac.thresholds[i++] = String(pch).toInt();
+				pch = strtok (NULL, " ");
+			}
 		} else if(strncmp(buf, "dayplot ", 8) == 0) {
-			// TODO
+			int i = 0;
+			DayDataPoints day;
+			char * pch = strtok (buf+8," ");
+			while (pch != NULL) {
+				long val = String(pch).toInt();
+				if(i == 0) {
+					day.version = val;
+				} else if(i == 1) {
+					day.lastMeterReadTime = val;
+				} else if(i == 2) {
+					day.activeImport = val;
+				} else if(i > 2 && i < 27) {
+					day.points[i-3] = val / 10;
+				} else if(i == 27) {
+					day.activeExport = val;
+				} else if(i > 27 && i < 52) {
+					// TODO: Export points
+				}
+
+				pch = strtok (NULL, " ");
+				i++;
+			}
+			ds->setDayData(day);
 		} else if(strncmp(buf, "monthplot ", 10) == 0) {
-			// TODO
+			int i = 0;
+			MonthDataPoints month;
+			char * pch = strtok (buf+10," ");
+			while (pch != NULL) {
+				long val = String(pch).toInt();
+				if(i == 0) {
+					month.version = val;
+				} else if(i == 1) {
+					month.lastMeterReadTime = val;
+				} else if(i == 2) {
+					month.activeImport = val;
+				} else if(i > 2 && i < 34) {
+					month.points[i-3] = val / 10;
+				} else if(i == 34) {
+					month.activeExport = val;
+				} else if(i > 34 && i < 66) {
+					// TODO: Export points
+				}
+
+				pch = strtok (NULL, " ");
+				i++;
+			}
+			ds->setMonthData(month);
 		}
+		memset(buf, 0, 256);
 	}
 
-	debugger->printf("boardType: %d\n", sys.boardType);
-	debugger->printf("ssid: %s\n", wifi.ssid);
-	debugger->printf("psk: %s\n", wifi.psk);
-	debugger->printf("ip: %s\n", wifi.ip);
-	debugger->printf("gateway: %s\n", wifi.gateway);
-	debugger->printf("subnet: %s\n", wifi.subnet);
-	debugger->printf("dns1: %s\n", wifi.dns1);
-	debugger->printf("dns2: %s\n", wifi.dns2);
-	debugger->printf("mdns: %d\n", wifi.mdns ? 1 : 0);
-	debugger->printf("mqttHost: %s\n", mqtt.host);
-	debugger->printf("mqttPort: %d\n", mqtt.port);
-	debugger->printf("mqttClientId: %s\n", mqtt.clientId);
-	debugger->printf("mqttPublishTopic: %s\n", mqtt.publishTopic);
-	debugger->printf("mqttUsername: %s\n", mqtt.username);
-	debugger->printf("mqttPassword: %s\n", mqtt.password);
-	debugger->printf("mqttPayloadFormat: %d\n", mqtt.payloadFormat);
-	debugger->printf("mqttSsl: %d\n", mqtt.ssl ? 1 : 0);
-	debugger->printf("webSecurity: %d\n", web.security);
-	debugger->printf("webUsername: %s\n", web.username);
-	debugger->printf("webPassword: %s\n", web.password);
-	debugger->printf("meterBaud: %d\n", meter.baud);
-	debugger->printf("meterParity: %d\n", meter.parity);
-	debugger->printf("meterInvert: %d\n", meter.invert ? 1 : 0);
-	debugger->printf("meterDistributionSystem: %d\n", meter.distributionSystem);
-	debugger->printf("meterMainFuse: %d\n", meter.mainFuse);
-	debugger->printf("meterProductionCapacity: %d\n", meter.productionCapacity);
-	debugger->printf("meterEncryptionKey: %s\n", toHex(meter.encryptionKey, 16).c_str());
-	debugger->printf("meterAuthenticationKey: %s\n", toHex(meter.authenticationKey, 16).c_str());
-	debugger->printf("gpioHanPin: %d\n", gpio.hanPin);
-	debugger->printf("gpioApPin: %d\n", gpio.apPin);
-	debugger->printf("gpioLedPin: %d\n", gpio.ledPin);
-	debugger->printf("gpioLedInverted: %d\n", gpio.ledInverted ? 1 : 0);
-	debugger->printf("gpioLedPinRed: %d\n", gpio.ledPinRed);
-	debugger->printf("gpioLedPinGreen: %d\n", gpio.ledPinGreen);
-	debugger->printf("gpioLedPinBlue: %d\n", gpio.ledPinBlue);
-	debugger->printf("gpioLedRgbInverted: %d\n", gpio.ledRgbInverted);
-	debugger->printf("gpioTempSensorPin: %d\n", gpio.tempSensorPin);
-	debugger->printf("gpioTempAnalogSensorPin: %d\n", gpio.tempAnalogSensorPin);
-	debugger->printf("gpioVccPin: %d\n", gpio.vccPin);
-	debugger->printf("gpioVccOffset: %d\n", gpio.vccOffset);
-	debugger->printf("gpioVccMultiplier: %d\n", gpio.vccMultiplier);
-	debugger->printf("gpioVccBootLimit: %d\n", gpio.vccBootLimit);
-	debugger->printf("gpioVccResistorGnd: %d\n", gpio.vccResistorGnd);
-	debugger->printf("gpioVccResistorVcc: %d\n", gpio.vccResistorVcc);
-	debugger->printf("domoticzElidx: %d\n", domo.elidx);
-	debugger->printf("domoticzVl1idx: %d\n", domo.vl1idx);
-	debugger->printf("domoticzVl2idx: %d\n", domo.vl2idx);
-	debugger->printf("domoticzVl3idx: %d\n", domo.vl3idx);
-	debugger->printf("domoticzCl1idx: %d\n", domo.cl1idx);
-	debugger->printf("ntpEnable: %d\n", ntp.enable ? 1 : 0);
-	debugger->printf("ntpDhcp: %d\n", ntp.dhcp ? 1 : 0);
-	debugger->printf("ntpOffset: %d\n", ntp.offset);
-	debugger->printf("ntpSummerOffset: %d\n", ntp.summerOffset);
-	debugger->printf("ntpServer: %s\n", ntp.server);
-	debugger->printf("entsoeToken: %s\n", entsoe.token);
-	debugger->printf("entsoeArea: %s\n", entsoe.area);
-	debugger->printf("entsoeCurrency: %s\n", entsoe.currency);
-	debugger->printf("entsoeMultiplier: %d\n", entsoe.multiplier);
-
 	printI("Saving configuration now...");
+	config->setSystemConfig(sys);
+	config->setWiFiConfig(wifi);
+	config->setMqttConfig(mqtt);
+	config->setWebConfig(web);
+	config->setMeterConfig(meter);
+	config->setGpioConfig(gpio);
+	config->setDomoticzConfig(domo);
+	config->setNtpConfig(ntp);
+	config->setEntsoeConfig(entsoe);
+	config->setEnergyAccountingConfig(eac);
+	ds->save();
 
 	if (config->save()) {
 		printI("Successfully saved.");

@@ -256,13 +256,7 @@ bool AmsDataStorage::load() {
         file.readBytes(buf, file.size());
         DayDataPoints* day = (DayDataPoints*) buf;
         file.close();
-
-        if(day->version == 3) {
-            memcpy(&this->day, day, sizeof(this->day));
-            ret = true;
-        } else {
-            ret = false;
-        }
+        ret = setDayData(*day);
     }
 
     if(LittleFS.exists(FILE_MONTHPLOT)) {
@@ -271,13 +265,7 @@ bool AmsDataStorage::load() {
         file.readBytes(buf, file.size());
         MonthDataPoints* month = (MonthDataPoints*) buf;
         file.close();
-
-        if(month->version == 4) {
-            memcpy(&this->month, month, sizeof(this->month));
-            ret = ret && true;
-        } else {
-            ret = false;
-        }
+        ret = ret && setMonthData(*month);
     }
 
     LittleFS.end();
@@ -321,4 +309,20 @@ DayDataPoints AmsDataStorage::getDayData() {
 
 MonthDataPoints AmsDataStorage::getMonthData() {
     return month;
+}
+
+bool AmsDataStorage::setDayData(DayDataPoints& day) {
+    if(day.version == 3) {
+        this->day = day;
+        return true;
+    }
+    return false;
+}
+
+bool AmsDataStorage::setMonthData(MonthDataPoints& month) {
+    if(month.version == 4) {
+        this->month = month;
+        return true;
+    }
+    return false;
 }

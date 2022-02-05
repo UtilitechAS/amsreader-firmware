@@ -34,7 +34,9 @@ public:
     bool save();
 
     DayDataPoints getDayData();
+    bool setDayData(DayDataPoints&);
     MonthDataPoints getMonthData();
+    bool setMonthData(MonthDataPoints&);
 
 private:
     Timezone* tz;

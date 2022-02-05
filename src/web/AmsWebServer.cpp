@@ -2150,7 +2150,22 @@ void AmsWebServer::configFileDownload() {
 
 	if(includeMeter) {
 		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterBaud %d\n", meter.baud));
-		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterParity %d\n", meter.parity));
+		char parity[4] = "";
+		switch(meter.parity) {
+			case 2:
+				strcpy(parity, "7N1");
+				break;
+			case 3:
+				strcpy(parity, "8N1");
+				break;
+			case 10:
+				strcpy(parity, "7E1");
+				break;
+			case 11:
+				strcpy(parity, "8E1");
+				break;
+		}
+		if(strlen(parity) > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "meterParity %d\n", parity));
 		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterInvert %d\n", meter.invert ? 1 : 0));
 		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterDistributionSystem %d\n", meter.distributionSystem));
 		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterMainFuse %d\n", meter.mainFuse));
@@ -2402,7 +2417,10 @@ void AmsWebServer::configFileParse() {
 		} else if(strncmp(buf, "meterBaud ", 10) == 0) {
 			meter.baud = String(buf+10).toInt();
 		} else if(strncmp(buf, "meterParity ", 12) == 0) {
-			meter.parity = String(buf+12).toInt();
+			if(strncmp(buf+12, "7N1", 3) == 0) meter.parity = 2;
+			if(strncmp(buf+12, "8N1", 3) == 0) meter.parity = 3;
+			if(strncmp(buf+12, "7E1", 3) == 0) meter.parity = 10;
+			if(strncmp(buf+12, "8E1", 3) == 0) meter.parity = 11;
 		} else if(strncmp(buf, "meterInvert ", 12) == 0) {
 			meter.invert = String(buf+12).toInt() == 1;;
 		} else if(strncmp(buf, "meterDistributionSystem ", 24) == 0) {

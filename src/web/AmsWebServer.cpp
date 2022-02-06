@@ -743,7 +743,7 @@ void AmsWebServer::dataJson() {
 		espStatus = 1;
 	} else if(vcc > 2.8 && vcc < 3.5) {
 		espStatus = 1;
-	} else if(vcc > 2.2 && vcc < 3.6) {
+	} else if(vcc > 2.7 && vcc < 3.6) {
 		espStatus = 2;
 	} else {
 		espStatus = 3;

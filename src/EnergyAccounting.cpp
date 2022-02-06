@@ -254,3 +254,11 @@ bool EnergyAccounting::save() {
     LittleFS.end();
     return true;
 }
+
+EnergyAccountingData EnergyAccounting::getData() {
+    return this->data;
+}
+
+void EnergyAccounting::setData(EnergyAccountingData& data) {
+    this->data = data;
+}

@@ -2165,7 +2165,7 @@ void AmsWebServer::configFileDownload() {
 				strcpy(parity, "8E1");
 				break;
 		}
-		if(strlen(parity) > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "meterParity %d\n", parity));
+		if(strlen(parity) > 0) server.sendContent(buf, snprintf(buf, sizeof(buf), "meterParity %s\n", parity));
 		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterInvert %d\n", meter.invert ? 1 : 0));
 		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterDistributionSystem %d\n", meter.distributionSystem));
 		server.sendContent(buf, snprintf(buf, sizeof(buf), "meterMainFuse %d\n", meter.mainFuse));
@@ -2237,30 +2237,30 @@ void AmsWebServer::configFileDownload() {
 			day.version,
 			day.lastMeterReadTime,
 			day.activeImport,
-			day.points[0] * 10,
-			day.points[1] * 10,
-			day.points[2] * 10,
-			day.points[3] * 10,
-			day.points[4] * 10,
-			day.points[5] * 10,
-			day.points[6] * 10,
-			day.points[7] * 10,
-			day.points[8] * 10,
-			day.points[9] * 10,
-			day.points[10] * 10,
-			day.points[11] * 10,
-			day.points[12] * 10,
-			day.points[13] * 10,
-			day.points[14] * 10,
-			day.points[15] * 10,
-			day.points[16] * 10,
-			day.points[17] * 10,
-			day.points[18] * 10,
-			day.points[19] * 10,
-			day.points[20] * 10,
-			day.points[21] * 10,
-			day.points[22] * 10,
-			day.points[23] * 10
+			ds->getHour(0),
+			ds->getHour(1),
+			ds->getHour(2),
+			ds->getHour(3),
+			ds->getHour(4),
+			ds->getHour(5),
+			ds->getHour(6),
+			ds->getHour(7),
+			ds->getHour(8),
+			ds->getHour(9),
+			ds->getHour(10),
+			ds->getHour(11),
+			ds->getHour(12),
+			ds->getHour(13),
+			ds->getHour(14),
+			ds->getHour(15),
+			ds->getHour(16),
+			ds->getHour(17),
+			ds->getHour(18),
+			ds->getHour(19),
+			ds->getHour(20),
+			ds->getHour(21),
+			ds->getHour(22),
+			ds->getHour(23)
 		));
 		if(day.activeExport > 0) {
 			server.sendContent(buf, snprintf(buf, sizeof(buf), " %lu\n", 
@@ -2275,37 +2275,37 @@ void AmsWebServer::configFileDownload() {
 			month.version,
 			month.lastMeterReadTime,
 			month.activeImport,
-			month.points[0] * 10,
-			month.points[1] * 10,
-			month.points[2] * 10,
-			month.points[3] * 10,
-			month.points[4] * 10,
-			month.points[5] * 10,
-			month.points[6] * 10,
-			month.points[7] * 10,
-			month.points[8] * 10,
-			month.points[9] * 10,
-			month.points[10] * 10,
-			month.points[11] * 10,
-			month.points[12] * 10,
-			month.points[13] * 10,
-			month.points[14] * 10,
-			month.points[15] * 10,
-			month.points[16] * 10,
-			month.points[17] * 10,
-			month.points[18] * 10,
-			month.points[19] * 10,
-			month.points[20] * 10,
-			month.points[21] * 10,
-			month.points[22] * 10,
-			month.points[23] * 10,
-			month.points[24] * 10,
-			month.points[25] * 10,
-			month.points[26] * 10,
-			month.points[27] * 10,
-			month.points[28] * 10,
-			month.points[29] * 10,
-			month.points[30] * 10
+			ds->getDay(1),
+			ds->getDay(2),
+			ds->getDay(3),
+			ds->getDay(4),
+			ds->getDay(5),
+			ds->getDay(6),
+			ds->getDay(7),
+			ds->getDay(8),
+			ds->getDay(9),
+			ds->getDay(10),
+			ds->getDay(11),
+			ds->getDay(12),
+			ds->getDay(13),
+			ds->getDay(14),
+			ds->getDay(15),
+			ds->getDay(16),
+			ds->getDay(17),
+			ds->getDay(18),
+			ds->getDay(19),
+			ds->getDay(20),
+			ds->getDay(21),
+			ds->getDay(22),
+			ds->getDay(23),
+			ds->getDay(24),
+			ds->getDay(25),
+			ds->getDay(26),
+			ds->getDay(27),
+			ds->getDay(28),
+			ds->getDay(29),
+			ds->getDay(30),
+			ds->getDay(31)
 		));
 		if(month.activeExport > 0) {
 			server.sendContent(buf, snprintf(buf, sizeof(buf), " %lu\n", 
@@ -2314,6 +2314,18 @@ void AmsWebServer::configFileDownload() {
 		} else {
 			server.sendContent("\n");
 		}
+	}
+
+	if(ea != NULL) {
+		EnergyAccountingData ead = ea->getData();
+		server.sendContent(buf, snprintf(buf, sizeof(buf), "energyaccounting %d %d %.2f %.2f %.2f %.2f", 
+			ead.version,
+			ead.month,
+			ead.maxHour / 100.0,
+			ead.costYesterday / 100.0,
+			ead.costThisMonth / 100.0,
+			ead.costLastMonth / 100.0
+		));
 	}
 }
 
@@ -2448,7 +2460,7 @@ void AmsWebServer::configFileParse() {
 		} else if(strncmp(buf, "gpioLedPinBlue ", 15) == 0) {
 			gpio.ledPinBlue = String(buf+15).toInt();
 		} else if(strncmp(buf, "gpioLedRgbInverted ", 19) == 0) {
-			gpio.ledRgbInverted = buf[19] == 1;
+			gpio.ledRgbInverted = String(buf+19).toInt() == 1;
 		} else if(strncmp(buf, "gpioTempSensorPin ", 18) == 0) {
 			gpio.tempSensorPin = String(buf+18).toInt();
 		} else if(strncmp(buf, "gpioTempAnalogSensorPin ", 24) == 0) {
@@ -2500,15 +2512,13 @@ void AmsWebServer::configFileParse() {
 				eac.thresholds[i++] = String(pch).toInt();
 				pch = strtok (NULL, " ");
 			}
-		} else if(strncmp(buf, "dayplot ", 8) == 0) {
+		} else if(strncmp(buf, "dayplot ", 8) == 0 && ds != NULL) {
 			int i = 0;
-			DayDataPoints day;
+			DayDataPoints day = { 3 }; // Use a version we know the multiplier of the data points
 			char * pch = strtok (buf+8," ");
 			while (pch != NULL) {
 				long val = String(pch).toInt();
-				if(i == 0) {
-					day.version = val;
-				} else if(i == 1) {
+				if(i == 1) {
 					day.lastMeterReadTime = val;
 				} else if(i == 2) {
 					day.activeImport = val;
@@ -2524,15 +2534,13 @@ void AmsWebServer::configFileParse() {
 				i++;
 			}
 			ds->setDayData(day);
-		} else if(strncmp(buf, "monthplot ", 10) == 0) {
+		} else if(strncmp(buf, "monthplot ", 10) == 0 && ds != NULL) {
 			int i = 0;
-			MonthDataPoints month;
+			MonthDataPoints month = { 4 }; // Use a version we know the multiplier of the data points
 			char * pch = strtok (buf+10," ");
 			while (pch != NULL) {
 				long val = String(pch).toInt();
-				if(i == 0) {
-					month.version = val;
-				} else if(i == 1) {
+				if(i == 1) {
 					month.lastMeterReadTime = val;
 				} else if(i == 2) {
 					month.activeImport = val;
@@ -2548,6 +2556,31 @@ void AmsWebServer::configFileParse() {
 				i++;
 			}
 			ds->setMonthData(month);
+		} else if(strncmp(buf, "energyaccounting ", 17) == 0 && ea != NULL) {
+			int i = 0;
+			EnergyAccountingData ead = { 1 };
+			char * pch = strtok (buf+10," ");
+			while (pch != NULL) {
+				if(i == 1) {
+					long val = String(pch).toInt();
+					ead.month = val;
+				} else if(i == 2) {
+					long val = String(pch).toInt();
+					ead.maxHour = val;
+				} else if(i == 3) {
+					double val = String(pch).toDouble();
+					ead.costYesterday = val * 100;
+				} else if(i == 4) {
+					double val = String(pch).toDouble();
+					ead.costThisMonth = val * 100;
+				} else if(i == 5) {
+					double val = String(pch).toDouble();
+					ead.costLastMonth = val * 100;
+				}
+				pch = strtok (NULL, " ");
+				i++;
+			}
+			ea->setData(ead);
 		}
 		memset(buf, 0, 256);
 	}
@@ -2563,7 +2596,8 @@ void AmsWebServer::configFileParse() {
 	config->setNtpConfig(ntp);
 	config->setEntsoeConfig(entsoe);
 	config->setEnergyAccountingConfig(eac);
-	ds->save();
+	if(ds != NULL) ds->save();
+	if(ea != NULL) ea->save();
 
 	if (config->save()) {
 		printI("Successfully saved.");

@@ -36,6 +36,9 @@ public:
     float getMonthMax();
     uint8_t getCurrentThreshold();
 
+    EnergyAccountingData getData();
+    void setData(EnergyAccountingData&);
+
 private:
     RemoteDebug* debugger = NULL;
     unsigned long lastUpdateMillis = 0;

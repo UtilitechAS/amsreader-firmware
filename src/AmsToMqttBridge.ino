@@ -1024,7 +1024,7 @@ void MQTT_connect() {
 		mqtt->disconnect();
 		yield();
 	} else {
-		mqtt = new MQTTClient(512);
+		mqtt = new MQTTClient(1024);
 		ws.setMqtt(mqtt);
 	}
 

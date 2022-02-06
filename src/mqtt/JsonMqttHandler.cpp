@@ -13,7 +13,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
 		return false;
 
     if(data->getListType() == 1) {
-        char json[192];
+        char json[256];
         snprintf_P(json, sizeof(json), JSON1_JSON,
             WiFi.macAddress().c_str(),
             clientId.c_str(),
@@ -26,7 +26,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
         );
         return mqtt->publish(topic, json);
     } else if(data->getListType() == 2) {
-        char json[384];
+        char json[512];
         snprintf_P(json, sizeof(json), JSON2_JSON,
             WiFi.macAddress().c_str(),
             clientId.c_str(),
@@ -52,7 +52,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
         return mqtt->publish(topic, json);
     } else if(data->getListType() == 3) {
         if(data->getPowerFactor() == 0) {
-            char json[512];
+            char json[768];
             snprintf_P(json, sizeof(json), JSON3_JSON,
                 WiFi.macAddress().c_str(),
                 clientId.c_str(),

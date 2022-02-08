@@ -333,11 +333,7 @@ unsigned long lastErrorBlink = 0;
 int lastError = 0;
 
 void loop() {
-	try {
-		Debug.handle();
-	} catch(const std::exception& e) {
-		Serial.printf("Exception in Debug loop (%s)\n", e.what());
-	}
+	Debug.handle();
 	unsigned long now = millis();
 	if(gpioConfig.apPin != 0xFF) {
 		if (digitalRead(gpioConfig.apPin) == LOW) {
@@ -367,11 +363,7 @@ void loop() {
 		if (WiFi.status() != WL_CONNECTED) {
 			wifiConnected = false;
 			Debug.stop();
-			try {
-				WiFi_connect();
-			} catch(const std::exception& e) {
-				debugE("Exception in WiFi connect (%s)", e.what());
-			}
+			WiFi_connect();
 		} else {
 			wifiReconnectCount = 0;
 			if(!wifiConnected) {
@@ -385,14 +377,10 @@ void loop() {
 					}
 					DebugConfig debug;
 					if(config.getDebugConfig(debug)) {
-						try {
-							Debug.begin(wifi.hostname, (uint8_t) debug.level);
-							Debug.setSerialEnabled(debug.serial);
-							if(!debug.telnet) {
-								Debug.stop();
-							}
-						} catch(const std::exception& e) {
-							Serial.printf("Exception in Debug setup (%s)\n", e.what());
+						Debug.begin(wifi.hostname, (uint8_t) debug.level);
+						Debug.setSerialEnabled(debug.serial);
+						if(!debug.telnet) {
+							Debug.stop();
 						}
 					}
 					if(Debug.isActive(RemoteDebug::INFO)) {
@@ -477,19 +465,11 @@ void loop() {
 				debugE("Exception in ENTSO-E loop (%s)", e.what());
 			}
 			#endif
-			try {
-				ws.loop();
-			} catch(const std::exception& e) {
-				debugE("Exception in Web server loop (%s)", e.what());
-			}
+			ws.loop();
 		}
 		if(mqtt != NULL) {
-			try {
-				mqtt->loop();
-				delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
-			} catch(const std::exception& e) {
-				debugE("Exception in MQTT loop (%s)", e.what());
-			}
+			mqtt->loop();
+			delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
 		}
 	} else {
 		if(dnsServer != NULL) {
@@ -512,29 +492,17 @@ void loop() {
 		hc = NULL;
 	}
 
-	try {
-		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
-			if(now - lastTemperatureRead > 15000) {
-				try {
-					unsigned long start = millis();
-					hw.updateTemperatures();
-					lastTemperatureRead = now;
+	if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
+		if(now - lastTemperatureRead > 15000) {
+			unsigned long start = millis();
+			hw.updateTemperatures();
+			lastTemperatureRead = now;
 
-					try {
-						if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-							mqttHandler->publishTemperatures(&config, &hw);
-						}
-					} catch(const std::exception& e) {
-						debugE("Exception while publishing temperatures to MQTT (%s)", e.what());
-					}
-					debugD("Used %d ms to update temperature", millis()-start);
-				} catch(const std::exception& e) {
-					debugE("Exception while updating temperatures (%s)", e.what());
-				}
+			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
+				mqttHandler->publishTemperatures(&config, &hw);
 			}
+			debugD("Used %d ms to update temperature", millis()-start);
 		}
-	} catch(const std::exception& e) {
-		debugE("Exception in readHanPort (%s)", e.what());
 	}
 	delay(1); // Needed for auto modem sleep
 	#if defined(ESP32)
@@ -742,11 +710,7 @@ bool readHanPort() {
 		int pos = HDLC_FRAME_INCOMPLETE;
 		while(hanSerial->available() && pos == HDLC_FRAME_INCOMPLETE) {
 			buf[len++] = hanSerial->read();
-			try {
-				pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
-			} catch(const std::exception& e) {
-				debugE("Exception while parsing validating HDLC (%s)", e.what());
-			}
+			pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
 		}
 		if(len > 0) {
 			if(len >= BUF_SIZE) {
@@ -810,11 +774,7 @@ bool readHanPort() {
 			while(hanSerial->available()) hanSerial->read();
 			if(pos > 0) {
 				debugD("Valid data, start at byte %d", pos);
-				try {
-					data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), meterConfig.distributionSystem, timestamp, hc);
-				} catch(const std::exception& e) {
-					debugE("Exception while parsing IEC62056-7-5 (%s)", e.what());
-				}
+				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), meterConfig.distributionSystem, timestamp, hc);
 			} else {
 				if(Debug.isActive(RemoteDebug::WARNING)) {
 					switch(pos) {
@@ -867,11 +827,7 @@ bool readHanPort() {
 		}
 	} else if(currentMeterType == 2) {
 		String payload = hanSerial->readString();
-		try {
-			data = IEC6205621(payload);
-		} catch(const std::exception& e) {
-			debugE("Exception while parsing IEC62056-21 (%s)", e.what());
-		}
+		data = IEC6205621(payload);
 		if(data.getListType() == 0) {
 			currentMeterType = 1;
 			return false;
@@ -887,29 +843,17 @@ bool readHanPort() {
 		if(!hw.ledBlink(LED_GREEN, 1))
 			hw.ledBlink(LED_INTERNAL, 1);
 		if(mqttEnabled && mqttHandler != NULL && mqtt != NULL) {
-			try {
-				if(mqttHandler->publish(&data, &meterState)) {
-					if(data.getListType() == 3 && eapi != NULL) {
-						try {
-							mqttHandler->publishPrices(eapi);
-						} catch(const std::exception& e) {
-							debugE("Exception while publishing prices to MQTT (%s)", e.what());
-						}
-					}
-					if(data.getListType() >= 2) {
-						try {
-							mqttHandler->publishSystem(&hw);
-						} catch(const std::exception& e) {
-							debugE("Exception while publishing system info to MQTT (%s)", e.what());
-						}
-					}
+			if(mqttHandler->publish(&data, &meterState)) {
+				if(data.getListType() == 3 && eapi != NULL) {
+					mqttHandler->publishPrices(eapi);
 				}
-				if(mqtt != NULL) {
-					mqtt->loop();
-					delay(10);
+				if(data.getListType() >= 2) {
+					mqttHandler->publishSystem(&hw);
 				}
-			} catch(const std::exception& e) {
-				debugE("Exception while publishing AMS data to MQTT (%s)", e.what());
+			}
+			if(mqtt != NULL) {
+				mqtt->loop();
+				delay(10);
 			}
 		}
 
@@ -1183,11 +1127,7 @@ void MQTT_connect() {
 		config.ackMqttChange();
 		
 		if(mqttHandler != NULL) {
-			try {
-				mqttHandler->publishSystem(&hw);
-			} catch(const std::exception& e) {
-				debugE("Exception while publishing system info to MQTT (%s)", e.what());
-			}
+			mqttHandler->publishSystem(&hw);
 		}
 	} else {
 		if (Debug.isActive(RemoteDebug::ERROR)) {

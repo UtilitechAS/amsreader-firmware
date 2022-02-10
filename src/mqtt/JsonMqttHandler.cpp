@@ -13,8 +13,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
 		return false;
 
     if(data->getListType() == 1) {
-        char json[256];
-        snprintf_P(json, sizeof(json), JSON1_JSON,
+        snprintf_P(json, BufferSize, JSON1_JSON,
             WiFi.macAddress().c_str(),
             clientId.c_str(),
             (uint32_t) (millis64()/1000),
@@ -26,8 +25,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
         );
         return mqtt->publish(topic, json);
     } else if(data->getListType() == 2) {
-        char json[512];
-        snprintf_P(json, sizeof(json), JSON2_JSON,
+        snprintf_P(json, BufferSize, JSON2_JSON,
             WiFi.macAddress().c_str(),
             clientId.c_str(),
             (uint32_t) (millis64()/1000),
@@ -52,8 +50,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
         return mqtt->publish(topic, json);
     } else if(data->getListType() == 3) {
         if(data->getPowerFactor() == 0) {
-            char json[768];
-            snprintf_P(json, sizeof(json), JSON3_JSON,
+            snprintf_P(json, BufferSize, JSON3_JSON,
                 WiFi.macAddress().c_str(),
                 clientId.c_str(),
                 (uint32_t) (millis64()/1000),
@@ -82,8 +79,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState) {
             );
             return mqtt->publish(topic, json);
         } else {
-            char json[768];
-            snprintf_P(json, sizeof(json), JSON3PF_JSON,
+            snprintf_P(json, BufferSize, JSON3PF_JSON,
                 WiFi.macAddress().c_str(),
                 clientId.c_str(),
                 (uint32_t) (millis64()/1000),
@@ -229,8 +225,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
-    char json[384];
-    snprintf_P(json, sizeof(json), JSONPRICES_JSON,
+    snprintf_P(json, BufferSize, JSONPRICES_JSON,
         WiFi.macAddress().c_str(),
         values[0],
         values[1],
@@ -257,8 +252,7 @@ bool JsonMqttHandler::publishSystem(HwTools* hw) {
 	if(init || topic.isEmpty() || !mqtt->connected())
 		return false;
 
-    char json[192];
-    snprintf_P(json, sizeof(json), JSONSYS_JSON,
+    snprintf_P(json, BufferSize, JSONSYS_JSON,
         WiFi.macAddress().c_str(),
         clientId.c_str(),
         (uint32_t) (millis64()/1000),

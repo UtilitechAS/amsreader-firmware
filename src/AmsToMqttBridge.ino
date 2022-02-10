@@ -686,11 +686,12 @@ void swapWifiMode() {
 }
 
 int len = 0;
-uint8_t buf[BUF_SIZE];
+uint8_t* buf = NULL;
 MbusAssembler* ma = NULL;
 int currentMeterType = -1;
 bool readHanPort() {
 	if(!hanSerial->available()) return false;
+	if(buf == NULL) buf = (uint8_t*) malloc(BUF_SIZE);
 
 	if(currentMeterType == -1) {
 		hanSerial->readBytes(buf, BUF_SIZE);
@@ -844,16 +845,18 @@ bool readHanPort() {
 			hw.ledBlink(LED_INTERNAL, 1);
 		if(mqttEnabled && mqttHandler != NULL && mqtt != NULL) {
 			if(mqttHandler->publish(&data, &meterState)) {
+				mqtt->loop();
+				delay(10);
 				if(data.getListType() == 3 && eapi != NULL) {
 					mqttHandler->publishPrices(eapi);
+					mqtt->loop();
+					delay(10);
 				}
 				if(data.getListType() >= 2) {
 					mqttHandler->publishSystem(&hw);
+					mqtt->loop();
+					delay(10);
 				}
-			}
-			if(mqtt != NULL) {
-				mqtt->loop();
-				delay(10);
 			}
 		}
 

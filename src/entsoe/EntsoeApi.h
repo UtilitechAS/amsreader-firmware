@@ -45,6 +45,9 @@ private:
 
     Timezone* tz = NULL;
 
+    static const uint16_t BufferSize = 256;
+    char* buf;
+
     float currencyMultiplier = ENTSOE_DEFAULT_MULTIPLIER;
 
     bool retrieve(const char* url, Stream* doc);

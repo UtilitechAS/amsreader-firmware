@@ -54,6 +54,7 @@
 AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw) {
 	this->debugger = Debug;
 	this->hw = hw;
+	this->json = (char*) malloc(JsonSize);
 }
 
 void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds) {
@@ -754,8 +755,7 @@ void AmsWebServer::dataJson() {
 	if(eapi != NULL && strlen(eapi->getToken()) > 0)
 		price = eapi->getValueForHour(0);
 
-	char json[512];
-	snprintf_P(json, sizeof(json), DATA_JSON,
+	snprintf_P(json, JsonSize, DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		meterConfig->productionCapacity,
 		meterConfig->mainFuse == 0 ? 32 : meterConfig->mainFuse,
@@ -806,8 +806,7 @@ void AmsWebServer::dayplotJson() {
 	if(ds == NULL) {
 		notFound();
 	} else {
-		char json[384];
-		snprintf_P(json, sizeof(json), DAYPLOT_JSON,
+		snprintf_P(json, JsonSize, DAYPLOT_JSON,
 			ds->getHour(0) / 1000.0,
 			ds->getHour(1) / 1000.0,
 			ds->getHour(2) / 1000.0,
@@ -849,8 +848,7 @@ void AmsWebServer::monthplotJson() {
 	if(ds == NULL) {
 		notFound();
 	} else {
-		char json[512];
-		snprintf_P(json, sizeof(json), MONTHPLOT_JSON,
+		snprintf_P(json, JsonSize, MONTHPLOT_JSON,
 			ds->getDay(1) / 1000.0,
 			ds->getDay(2) / 1000.0,
 			ds->getDay(3) / 1000.0,
@@ -901,8 +899,7 @@ void AmsWebServer::energyPriceJson() {
 		prices[i] = eapi == NULL ? ENTSOE_NO_VALUE : eapi->getValueForHour(i);
 	}
 
-	char json[768];
-	snprintf_P(json, sizeof(json), ENERGYPRICE_JSON, 
+	snprintf_P(json, JsonSize, ENERGYPRICE_JSON, 
 		eapi == NULL ? "" : eapi->getCurrency(),
 		prices[0] == ENTSOE_NO_VALUE ? "null" : String(prices[0], 2).c_str(),
 		prices[1] == ENTSOE_NO_VALUE ? "null" : String(prices[1], 2).c_str(),

@@ -9,16 +9,20 @@ public:
         this->clientId = clientId;
         this->topic = String(topic);
         this->hw = hw;
+        this->json = (char*) malloc(BufferSize);
     };
     bool publish(AmsData* data, AmsData* previousState);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools*);
 
+    static const uint16_t BufferSize = 768;
+
 private:
     String clientId;
     String topic;
     HwTools* hw;
     bool init = false;
+    char* json;
 };
 #endif

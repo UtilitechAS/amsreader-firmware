@@ -1,5 +1,6 @@
 import os
 import subprocess
+from time import time
 
 FILENAME_VERSION_H = 'src/version.h'
 version = os.environ.get('GITHUB_TAG')
@@ -13,12 +14,11 @@ if version == None:
     except:
       version = "SNAPSHOT"
 
-import datetime
-
 hf = """
 #ifndef VERSION
   #define VERSION "{}"
 #endif
-""".format(version)
+#define BUILD_EPOCH {}
+""".format(version, time())
 with open(FILENAME_VERSION_H, 'w+') as f:
     f.write(hf)

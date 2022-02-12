@@ -5,8 +5,6 @@
 #include "RemoteDebug.h"
 #include "Timezone.h"
 
-#define EPOCH_2021_01_01 1609459200
-
 struct DayDataPoints {
     uint8_t version;
     int16_t points[24];
@@ -37,6 +35,8 @@ public:
     bool setDayData(DayDataPoints&);
     MonthDataPoints getMonthData();
     bool setMonthData(MonthDataPoints&);
+
+    bool isHappy();
 
 private:
     Timezone* tz;

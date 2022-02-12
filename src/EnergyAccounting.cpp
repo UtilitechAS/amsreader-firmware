@@ -1,6 +1,7 @@
 #include "EnergyAccounting.h"
 #include "LittleFS.h"
 #include "AmsStorage.h"
+#include "version.h"
 
 EnergyAccounting::EnergyAccounting(RemoteDebug* debugger) {
     data.version = 1;
@@ -24,7 +25,7 @@ void EnergyAccounting::setTimezone(Timezone* tz) {
 
 bool EnergyAccounting::update(AmsData* amsData) {
     time_t now = time(nullptr);
-    if(now < EPOCH_2021_01_01) return false;
+    if(now < BUILD_EPOCH) return false;
     if(tz == NULL) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting) Timezone is missing\n");
         return false;
@@ -154,7 +155,7 @@ double EnergyAccounting::getCostThisHour() {
 double EnergyAccounting::getUseToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
-    if(now < EPOCH_2021_01_01) return 0;
+    if(now < BUILD_EPOCH) return 0;
     tmElements_t local, utc;
     breakTime(tz->toLocal(now), local);
     for(int i = 0; i < local.Hour; i++) {
@@ -174,7 +175,7 @@ double EnergyAccounting::getCostYesterday() {
 
 double EnergyAccounting::getUseThisMonth() {
     time_t now = time(nullptr);
-    if(now < EPOCH_2021_01_01) return 0;
+    if(now < BUILD_EPOCH) return 0;
     tmElements_t tm;
     if(tz != NULL)
         breakTime(tz->toLocal(now), tm);

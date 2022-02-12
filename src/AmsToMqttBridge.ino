@@ -20,6 +20,8 @@ ADC_MODE(ADC_VCC);
 #endif
 #define WDT_TIMEOUT 60
 
+#include "version.h"
+
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
 #include "AmsDataStorage.h"
@@ -886,32 +888,43 @@ bool readHanPort() {
 		}
 
 		time_t now = time(nullptr);
-		if(now < EPOCH_2021_01_01 && data.getListType() >= 3) {
-			if(data.getMeterTimestamp() > EPOCH_2021_01_01) {
+		if(now < BUILD_EPOCH && data.getListType() >= 3) {
+			if(data.getMeterTimestamp() > BUILD_EPOCH) {
 				debugI("Using timestamp from meter");
 				now = data.getMeterTimestamp();
-			} else if(data.getPackageTimestamp() > EPOCH_2021_01_01) {
+			} else if(data.getPackageTimestamp() > BUILD_EPOCH) {
 				debugI("Using timestamp from meter (DLMS)");
 				now = data.getPackageTimestamp();
 			}
-			if(now > EPOCH_2021_01_01) {
+			if(now > BUILD_EPOCH) {
 				timeval tv { now, 0};
 				settimeofday(&tv, nullptr);
 			}
 		}
-		if(meterState.getListType() < 3 && now > EPOCH_2021_01_01) {
+		if(meterState.getListType() < 3 && now > BUILD_EPOCH) {
 			// TODO: Load an estimated value from dayplot
 		}
 
 		meterState.apply(data);
 
-		if(ds.update(&data)) {
-			debugI("Saving day plot");
-			ds.save();
-		}
 		if(ea.update(&data)) {
 			debugI("Saving energy accounting");
 			ea.save();
+		}
+
+		bool saveData = false;
+		if(!ds.isHappy() && now > BUILD_EPOCH) {
+			tmElements_t tm;
+			breakTime(now, tm);
+			if(tm.Minute == 0) {
+				saveData = ds.update(&data);
+			} else if(tm.Minute == 1) {
+				saveData = ds.update(&meterState);
+			}
+			if(saveData) {
+				debugI("Saving day plot");
+				ds.save();
+			}
 		}
 	}
 	delay(1);

@@ -1,6 +1,7 @@
 #include "HomeAssistantMqttHandler.h"
 #include "hexutils.h"
 #include "Uptime.h"
+#include "version.h"
 #include "web/root/ha1_json.h"
 #include "web/root/ha2_json.h"
 #include "web/root/ha3_json.h"
@@ -14,9 +15,8 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
 		return false;
 
     listType = data->getListType(); // for discovery stuff in publishSystem()
-    if(data->getListType() == 3) { // publish energy counts
-        char json[256];
-        snprintf_P(json, sizeof(json), HA2_JSON,
+    if(data->getListType() >= 3) { // publish energy counts
+        snprintf_P(json, BufferSize, HA2_JSON,
             data->getActiveImportCounter(),
             data->getActiveExportCounter(),
             data->getReactiveImportCounter(),
@@ -26,14 +26,12 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
         mqtt->publish(topic + "/energy", json);
     }
     if(data->getListType() == 1) { // publish power counts
-        char json[192];
-        snprintf_P(json, sizeof(json), HA1_JSON,
+        snprintf_P(json, BufferSize, HA1_JSON,
             data->getActiveImportPower()
         );
         return mqtt->publish(topic + "/power", json);
-    } else if(data->getListType() == 2 || data->getListType() == 3) { // publish power counts and volts/amps
-        char json[768];
-        snprintf_P(json, sizeof(json), HA3_JSON,
+    } else if(data->getListType() >= 2) { // publish power counts and volts/amps
+        snprintf_P(json, BufferSize, HA3_JSON,
             data->getListId().c_str(),
             data->getMeterId().c_str(),
             data->getMeterModel().c_str(),
@@ -165,8 +163,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
-    char json[384];
-    snprintf_P(json, sizeof(json), JSONPRICES_JSON,
+    snprintf_P(json, BufferSize, JSONPRICES_JSON,
         WiFi.macAddress().c_str(),
         values[0],
         values[1],
@@ -196,8 +193,7 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
     }
 
     if(sequence % 3 == 0){
-        char json[192];
-        snprintf_P(json, sizeof(json), JSONSYS_JSON,
+        snprintf_P(json, BufferSize, JSONSYS_JSON,
             WiFi.macAddress().c_str(),
             clientId.c_str(),
             (uint32_t) (millis64()/1000),
@@ -208,30 +204,13 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
         mqtt->publish(topic + "/state", json);
     }
 
-    if(sequence % 60 == 1 && listType > 1){ // every 60 ams message, publish mqtt discovery. TODO: publish once with retain
-        char json[512];
-        String haTopic = "homeassistant/sensor/";   // home-assistant discovery topic
-        String haUID = "ams-3a08";                  // unit identity (wifi hostname)
-
-        int sensors = 17;
-        String topics[sensors] = {"/state", "/state", "/state", "/power", "/power", "/power", "/power", "/power", "/power", "/power", "/power", "/power", "/power", "/energy", "/energy", "/energy", "/energy"};
-        String names[sensors] = {"Status", "Supply volt", "Temperature", "Active import", "Reactive import", "Active export", "Reactive export", "L1 current", "L2 current", "L3 current",
-                                 "L1 voltage", "L2 voltage", "L3 voltage", "Accumulated active import", "Accumulated active export", "Accumulated reactive import", "Accumulated reactive export"};
-        String params[sensors] = {"rssi", "vcc", "temp", "P", "Q", "PO", "QO", "I1", "I2", "I3", "U1", "U2", "U3", "tPI", "tPO", "tQI", "tQO"};
-        String uom[sensors] = {"dBm", "V", "C", "W", "W", "W", "W", "A", "A", "A", "V", "V", "V", "kWh", "kWh", "kWh", "kWh"};
-        String devcl[sensors] = {"signal_strength", "voltage", "temperature", "power", "power", "power", "power", "current", "current", "current", "voltage", "voltage", "voltage", "energy", "energy", "energy", "energy"};
-        String stacl[sensors] = {"", "", "", "measurement", "measurement", "measurement", "measurement", "", "", "", "", "", "", "total_increasing", "total_increasing", "total_increasing", "total_increasing"};
-        //String category[sensors] = {"Diagnostic", "Diagnostic", "Diagnostic", "Power", "Power", "Power", "Power", "Voltage", "Voltage", "Voltage", "Current", "Current", "Current", "Energy", "Energy", "Energy", "Energy"};
-
-        String haName = "AMS reader";
-        String haModel = "ESP32";
-        String haVersion = "2.0.0";
-        String haManuf = "AmsToMqttBridge";
+    if(!autodiscoverInit) {
+        String haUID = WiFi.hostname();             // unit identity (wifi hostname)
         String haUrl = "http://" + haUID + ".local/";
 
         for(int i=0;i<sensors;i++){
             if(stacl[i].length() > 0) {  // TODO: reduce to single JSON, state_class: null (witout quotation). or make it some extra optional string that us appended
-                snprintf_P(json, sizeof(json), HADISCOVER2_JSON,
+                snprintf_P(json, BufferSize, HADISCOVER2_JSON,
                     names[i].c_str(),                   // name
                     (topic + topics[i]).c_str(),        // state_topic
                     (haUID + "_" + params[i]).c_str(),  // unique_id
@@ -242,13 +221,13 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
                     haUID.c_str(),                      // dev ids
                     haName.c_str(),                     // name
                     haModel.c_str(),                    // model
-                    haVersion.c_str(),                  // fw version
+                    VERSION,                            // fw version
                     haManuf.c_str(),                    // manufacturer
                     haUrl.c_str(),                      // configuration_url
                     stacl[i].c_str()                    // state_class
                 );
             } else {
-                snprintf_P(json, sizeof(json), HADISCOVER1_JSON,
+                snprintf_P(json, BufferSize, HADISCOVER1_JSON,
                     names[i].c_str(),                   // name
                     (topic + topics[i]).c_str(),        // state_topic
                     (haUID + "_" + params[i]).c_str(),  // unique_id
@@ -259,13 +238,14 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
                     haUID.c_str(),                      // dev ids
                     haName.c_str(),                     // name
                     haModel.c_str(),                    // model
-                    haVersion.c_str(),                  // fw version
+                    VERSION,                            // fw version
                     haManuf.c_str(),                    // manufacturer
                     haUrl.c_str()                       // configuration_url
                 );
             }
-            mqtt->publish(haTopic + haUID + "_" + params[i] + "/config", json);
+            mqtt->publish(haTopic + haUID + "_" + params[i] + "/config", json, true, 0);
         }
+        autodiscoverInit = true;
     }
     if(listType>0) sequence++;
     return true;

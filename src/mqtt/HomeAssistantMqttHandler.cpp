@@ -205,7 +205,11 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
     }
 
     if(!autodiscoverInit) {
-        String haUID = WiFi.hostname();             // unit identity (wifi hostname)
+        #if defined(ESP8266)
+			String haUID = WiFi.hostname();
+        #elif defined(ESP32)
+			String haUID = WiFi.getHostname();
+        #endif
         String haUrl = "http://" + haUID + ".local/";
 
         for(int i=0;i<sensors;i++){

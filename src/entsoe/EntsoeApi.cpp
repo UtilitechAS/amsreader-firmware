@@ -9,6 +9,8 @@
 #endif
 
 EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
+    this->buf = (char*) malloc(BufferSize);
+
     debugger = Debug;
 
     client.setInsecure();
@@ -120,8 +122,7 @@ bool EntsoeApi::loop() {
             breakTime(e1, d1);
             breakTime(e2, d2);
 
-            char url[256];
-            snprintf(url, sizeof(url), "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
+            snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
             "https://transparency.entsoe.eu/api", getToken(), 
             d1.Year+1970, d1.Month, d1.Day, 23, 00,
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
@@ -135,9 +136,9 @@ bool EntsoeApi::loop() {
 
 
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for today\n");
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", url);
+            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", buf);
             EntsoeA44Parser* a44 = new EntsoeA44Parser();
-            if(retrieve(url, a44) && a44->getPoint(0) != ENTSOE_NO_VALUE) {
+            if(retrieve(buf, a44) && a44->getPoint(0) != ENTSOE_NO_VALUE) {
                 today = a44;
                 return true;
             } else if(a44 != NULL) {
@@ -160,8 +161,7 @@ bool EntsoeApi::loop() {
             breakTime(e1, d1);
             breakTime(e2, d2);
 
-            char url[256];
-            snprintf(url, sizeof(url), "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
+            snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
             "https://transparency.entsoe.eu/api", getToken(), 
             d1.Year+1970, d1.Month, d1.Day, 23, 00,
             d2.Year+1970, d2.Month, d2.Day, 23, 00,
@@ -174,9 +174,9 @@ bool EntsoeApi::loop() {
             #endif
 
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for tomorrow\n");
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", url);
+            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", buf);
             EntsoeA44Parser* a44 = new EntsoeA44Parser();
-            if(retrieve(url, a44) && a44->getPoint(0) != ENTSOE_NO_VALUE) {
+            if(retrieve(buf, a44) && a44->getPoint(0) != ENTSOE_NO_VALUE) {
                 tomorrow = a44;
                 return true;
             } else if(a44 != NULL) {
@@ -273,7 +273,6 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
     if(now > lastCurrencyFetch && (now - lastCurrencyFetch) < 900000) {
         lastCurrencyFetch = now;
         
-        char url[256];
         DnbCurrParser p;
 
         #if defined(ESP32)
@@ -282,17 +281,17 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
             ESP.wdtFeed();
         #endif
 
-        snprintf(url, sizeof(url), "https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1", from);
+        snprintf(buf, BufferSize, "https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1", from);
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Retrieving %s to NOK conversion\n", from);
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", url);
-        if(retrieve(url, &p)) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", buf);
+        if(retrieve(buf, &p)) {
             if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  got exchange rate %.4f\n", p.getValue());
             currencyMultiplier = p.getValue();
             if(strncmp(to, "NOK", 3) != 0) {
-                snprintf(url, sizeof(url), "https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1", to);
+                snprintf(buf, BufferSize, "https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1", to);
                 if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Retrieving %s to NOK conversion\n", to);
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", url);
-                if(retrieve(url, &p)) {
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", buf);
+                if(retrieve(buf, &p)) {
                     if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  got exchange rate %.4f\n", p.getValue());
                     currencyMultiplier /= p.getValue();
                 } else {

@@ -10,8 +10,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
         if(energy > 0.0) {
             char val[16];
             snprintf(val, 16, "%.1f;%.1f", (data->getActiveImportPower()/1.0), energy*1000.0);
-            char json[192];
-            snprintf_P(json, sizeof(json), DOMOTICZ_JSON,
+            snprintf_P(json, BufferSize, DOMOTICZ_JSON,
                 config.elidx,
                 val
             );
@@ -25,8 +24,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
     if (config.vl1idx > 0){				
         char val[16];
         snprintf(val, 16, "%.2f", data->getL1Voltage());
-        char json[192];
-        snprintf_P(json, sizeof(json), DOMOTICZ_JSON,
+        snprintf_P(json, BufferSize, DOMOTICZ_JSON,
             config.vl1idx,
             val
         );
@@ -36,8 +34,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
     if (config.vl2idx > 0){				
         char val[16];
         snprintf(val, 16, "%.2f", data->getL2Voltage());
-        char json[192];
-        snprintf_P(json, sizeof(json), DOMOTICZ_JSON,
+        snprintf_P(json, BufferSize, DOMOTICZ_JSON,
             config.vl2idx,
             val
         );
@@ -47,8 +44,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
     if (config.vl3idx > 0){				
         char val[16];
         snprintf(val, 16, "%.2f", data->getL3Voltage());
-        char json[192];
-        snprintf_P(json, sizeof(json), DOMOTICZ_JSON,
+        snprintf_P(json, BufferSize, DOMOTICZ_JSON,
             config.vl3idx,
             val
         );
@@ -58,8 +54,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
     if (config.cl1idx > 0){				
         char val[16];
         snprintf(val, 16, "%.1f;%.1f;%.1f", data->getL1Current(), data->getL2Current(), data->getL3Current());
-        char json[192];
-        snprintf_P(json, sizeof(json), DOMOTICZ_JSON,
+        snprintf_P(json, BufferSize, DOMOTICZ_JSON,
             config.cl1idx,
             val
         );

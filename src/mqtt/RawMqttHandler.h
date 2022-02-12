@@ -14,6 +14,8 @@ public:
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools*);
 
+    static const uint16_t BufferSize = 128;
+
 private:
     String topic;
     bool full;

@@ -58,6 +58,9 @@ private:
 	File file;
 	bool performRestart = false;
 
+    static const uint16_t JsonSize = 768;
+    char* json;
+
 #if defined(ESP8266)
 	ESP8266WebServer server;
 #elif defined(ESP32) // ARDUINO_ARCH_ESP32

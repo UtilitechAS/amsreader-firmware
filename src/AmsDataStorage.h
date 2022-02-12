@@ -37,6 +37,8 @@ public:
     bool setMonthData(MonthDataPoints&);
 
     bool isHappy();
+    bool isDayHappy();
+    bool isMonthHappy();
 
 private:
     Timezone* tz;

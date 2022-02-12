@@ -914,15 +914,18 @@ bool readHanPort() {
 
 		bool saveData = false;
 		if(!ds.isHappy() && now > BUILD_EPOCH) {
+			debugD("Its time to update data storage");
 			tmElements_t tm;
 			breakTime(now, tm);
 			if(tm.Minute == 0) {
+				debugD(" using actual data");
 				saveData = ds.update(&data);
-			} else if(tm.Minute == 1) {
+			} else if(meterState.getListType() >= 3) {
+				debugD(" using estimated data");
 				saveData = ds.update(&meterState);
 			}
 			if(saveData) {
-				debugI("Saving day plot");
+				debugI("Saving data");
 				ds.save();
 			}
 		}

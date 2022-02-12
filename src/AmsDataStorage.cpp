@@ -102,7 +102,7 @@ bool AmsDataStorage::update(AmsData* data) {
     bool ret = false;
 
     // Update day plot
-    if(ltz.Minute > 0) {
+    if(!isDayHappy()) {
         if(day.activeImport == 0 || now - day.lastMeterReadTime > 86400) {
             day.activeImport = data->getActiveImportCounter() * 1000;
             day.activeExport = data->getActiveExportCounter() * 1000;
@@ -159,7 +159,7 @@ bool AmsDataStorage::update(AmsData* data) {
     }
 
     // Update month plot
-    if(ltz.Hour == 0) {
+    if(ltz.Hour == 0 && !isMonthHappy()) {
         if(month.activeImport == 0 || now - month.lastMeterReadTime > 2678400) {
             month.activeImport = data->getActiveImportCounter() * 1000;
             month.activeExport = data->getActiveExportCounter() * 1000;
@@ -333,21 +333,56 @@ bool AmsDataStorage::setMonthData(MonthDataPoints& month) {
 }
 
 bool AmsDataStorage::isHappy() {
+    return isDayHappy() && isMonthHappy();
+}
+
+bool AmsDataStorage::isDayHappy() {
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return false;
     tmElements_t tm, last;
 
-    if(now < day.lastMeterReadTime) return false;
-    if(now-day.lastMeterReadTime > 3600) return false;
-    breakTime(now, tm);
-    breakTime(day.lastMeterReadTime, last);
-    if(tm.Hour > last.Hour) return false;
+    if(now < day.lastMeterReadTime) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Day %lu < %lu\n", now, day.lastMeterReadTime);
+        return false;
+    }
+    if(now-day.lastMeterReadTime > 3600) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Day %lu - %lu > 3600\n", now, day.lastMeterReadTime);
+        return false;
+    }
+    breakTime(tz->toLocal(now), tm);
+    breakTime(tz->toLocal(day.lastMeterReadTime), last);
+    if(tm.Hour > last.Hour) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Day %d > %d\n", tm.Hour, last.Hour);
+        return false;
+    }
+
+    return true;
+}
+
+bool AmsDataStorage::isMonthHappy() {
+    if(tz == NULL) {
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Timezone is missing\n");
+        return false;
+    }
+
+    time_t now = time(nullptr);
+    if(now < BUILD_EPOCH) return false;
+    tmElements_t tm, last;
     
-    if(now < month.lastMeterReadTime) return false;
-    if(now-month.lastMeterReadTime > 86400) return false;
-    breakTime(now, tm);
-    breakTime(month.lastMeterReadTime, last);
-    if(tm.Day > last.Day) return false;
+    if(now < month.lastMeterReadTime) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Month %lu < %lu\n", now, month.lastMeterReadTime);
+        return false;
+    }
+    if(now-month.lastMeterReadTime > 86400) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Month %lu - %lu > 3600\n", now, month.lastMeterReadTime);
+        return false;
+    }
+    breakTime(tz->toLocal(now), tm);
+    breakTime(tz->toLocal(month.lastMeterReadTime), last);
+    if(tm.Day > last.Day) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Month %d > %d\n", tm.Day, last.Day);
+        return false;
+    }
 
     return true;
 }

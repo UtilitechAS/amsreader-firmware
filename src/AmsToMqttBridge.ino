@@ -12,16 +12,15 @@
  *  GNU Affero General Public License for more details.
  *
  *  You should have received a copy of the GNU Affero General Public License
- *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *  along with this program. If not, see <https://www.gnu.org/licenses/>.
  *
+ * @author Gunnar Skjold (@gskjold) gunnar.skjold@gmail.com
+ * 
  * @brief Program for ESP32 and ESP8266 to receive data from AMS electric meters and send to MQTT
  * 
  * @details This program was created to receive data from AMS electric meters via M-Bus, decode 
  * and send to a MQTT broker. The data packet structure supported by this software is specific 
  * to Norwegian meters, but may also support data from electricity providers in other countries. 
- * 
- * @author Gunnar Skjold (@gskjold) gunnar.skjold@gmail.com
- * 
  */
 
 #if defined(ESP8266)

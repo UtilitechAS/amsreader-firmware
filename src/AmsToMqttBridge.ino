@@ -131,11 +131,36 @@ void setup() {
 		#endif
 	}
 	delay(1);
-	if(gpioConfig.apPin >= 0)
-		pinMode(gpioConfig.apPin, INPUT_PULLUP);
-
 	config.loadTempSensors();
 	hw.setup(&gpioConfig, &config);
+
+	if(gpioConfig.apPin >= 0) {
+		pinMode(gpioConfig.apPin, INPUT_PULLUP);
+
+		if(!hw.ledOn(LED_GREEN)) {
+			hw.ledOn(LED_INTERNAL);
+		}
+		delay(1000);
+		if(digitalRead(gpioConfig.apPin) == LOW) {
+			if(!hw.ledOn(LED_RED)) {
+				hw.ledBlink(LED_INTERNAL, 4);
+			}
+			delay(2000);
+			if(digitalRead(gpioConfig.apPin) == LOW) {
+				if(!hw.ledOff(LED_GREEN)) {
+					hw.ledOn(LED_INTERNAL);
+				}
+				delay(2000);
+				if(digitalRead(gpioConfig.apPin) == HIGH) {
+					config.clear();
+					if(!hw.ledBlink(LED_RED, 6)) {
+						hw.ledBlink(LED_INTERNAL, 6);
+					}
+				}
+			}
+		}
+	}
+
 	hw.ledBlink(LED_INTERNAL, 1);
 	hw.ledBlink(LED_RED, 1);
 	hw.ledBlink(LED_YELLOW, 1);

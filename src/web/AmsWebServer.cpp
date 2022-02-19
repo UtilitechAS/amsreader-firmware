@@ -1237,18 +1237,22 @@ void AmsWebServer::handleSave() {
 		debug.level = server.arg("debugLevel").toInt();
 
 		debugger->stop();
-		if(webConfig.security > 0) {
-			debugger->setPassword(webConfig.password);
-		} else {
-			debugger->setPassword("");
-		}
-		debugger->setSerialEnabled(debug.serial);
-		WiFiConfig wifi;
-		if(config->getWiFiConfig(wifi) && strlen(wifi.hostname) > 0) {
-			debugger->begin(wifi.hostname, (uint8_t) debug.level);
-			if(!debug.telnet) {
-				debugger->stop();
+		if(debug.telnet || debug.serial) {
+			if(webConfig.security > 0) {
+				debugger->setPassword(webConfig.password);
+			} else {
+				debugger->setPassword("");
 			}
+			debugger->setSerialEnabled(debug.serial);
+			WiFiConfig wifi;
+			if(config->getWiFiConfig(wifi) && strlen(wifi.hostname) > 0) {
+				debugger->begin(wifi.hostname, (uint8_t) debug.level);
+				if(!debug.telnet) {
+					debugger->stop();
+				}
+			}
+		} else {
+			debugger->stop();
 		}
 		config->setDebugConfig(debug);
 	}

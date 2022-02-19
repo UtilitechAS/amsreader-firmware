@@ -47,7 +47,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         init = true;
     }
 
-    if(!initPrice && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
+    if(!initPrice && eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Initializing prices at %lu\n", now);
         calcDayCost();
     }

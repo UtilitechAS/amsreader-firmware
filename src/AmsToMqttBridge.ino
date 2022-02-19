@@ -213,7 +213,7 @@ void setup() {
 	}
 
 	DebugConfig debug;
-	if(config.getDebugConfig(debug)) {
+	if(config.getDebugConfig(debug) && (debug.serial || debug.telnet)) {
 		Debug.setSerialEnabled(debug.serial);
 	}
 	#if DEBUG_MODE
@@ -391,6 +391,7 @@ void loop() {
 					longPressActive = false;
 				} else {
 					// Single press action
+					debugD("Button was clicked, no action configured");
 				}
 				buttonActive = false;
 			}
@@ -415,12 +416,14 @@ void loop() {
 						Debug.setPassword(web.password);
 					}
 					DebugConfig debug;
-					if(config.getDebugConfig(debug)) {
+					if(config.getDebugConfig(debug) && (debug.serial || debug.telnet)) {
 						Debug.begin(wifi.hostname, (uint8_t) debug.level);
 						Debug.setSerialEnabled(debug.serial);
 						if(!debug.telnet) {
 							Debug.stop();
 						}
+					} else {
+						Debug.stop();
 					}
 					if(Debug.isActive(RemoteDebug::INFO)) {
 						debugI("Successfully connected to WiFi!");

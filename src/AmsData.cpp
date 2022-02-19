@@ -160,19 +160,19 @@ float AmsData::getL3PowerFactor() {
     return this->l3PowerFactor;
 }
 
-float AmsData::getActiveImportCounter() {
+double AmsData::getActiveImportCounter() {
     return this->activeImportCounter;
 }
 
-float AmsData::getReactiveImportCounter() {
+double AmsData::getReactiveImportCounter() {
     return this->reactiveImportCounter;
 }
 
-float AmsData::getActiveExportCounter() {
+double AmsData::getActiveExportCounter() {
     return this->activeExportCounter;
 }
 
-float AmsData::getReactiveExportCounter() {
+double AmsData::getReactiveExportCounter() {
     return this->reactiveExportCounter;
 }
 

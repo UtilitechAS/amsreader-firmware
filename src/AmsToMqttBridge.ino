@@ -367,6 +367,7 @@ bool longPressActive = false;
 bool wifiConnected = false;
 
 unsigned long lastTemperatureRead = 0;
+unsigned long lastSysupdate = 0;
 unsigned long lastErrorBlink = 0; 
 int lastError = 0;
 
@@ -549,6 +550,12 @@ void loop() {
 				mqttHandler->publishTemperatures(&config, &hw);
 			}
 			debugD("Used %d ms to update temperature", millis()-start);
+		}
+		if(now - lastSysupdate > 10000) {
+			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
+				mqttHandler->publishSystem(&hw);
+			}
+			lastSysupdate = now;
 		}
 	}
 	delay(1); // Needed for auto modem sleep
@@ -899,16 +906,6 @@ bool readHanPort() {
 			if(mqttHandler->publish(&data, &meterState, &ea)) {
 				mqtt->loop();
 				delay(10);
-				if(data.getListType() == 3 && eapi != NULL) {
-					mqttHandler->publishPrices(eapi);
-					mqtt->loop();
-					delay(10);
-				}
-				if(data.getListType() >= 2) {
-					mqttHandler->publishSystem(&hw);
-					mqtt->loop();
-					delay(10);
-				}
 			}
 		}
 

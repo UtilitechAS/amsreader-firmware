@@ -47,7 +47,7 @@
 #include "root/dayplot_json.h"
 #include "root/monthplot_json.h"
 #include "root/energyprice_json.h"
-#include "root/energyaccounting_html.h"
+#include "root/thresholds_html.h"
 #include "root/configfile_html.h"
 
 #include "base64.h"
@@ -82,7 +82,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/web", HTTP_GET, std::bind(&AmsWebServer::configWebHtml, this));
 	server.on("/domoticz",HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
 	server.on("/entsoe",HTTP_GET, std::bind(&AmsWebServer::configEntsoeHtml, this));
-	server.on("/accounting",HTTP_GET, std::bind(&AmsWebServer::configEnergyAccountingHtml, this));
+	server.on("/thresholds",HTTP_GET, std::bind(&AmsWebServer::configThresholdsHtml, this));
 	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
 	server.on("/github.svg", HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
 	server.on("/data.json", HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
@@ -661,15 +661,15 @@ void AmsWebServer::configEntsoeHtml() {
 	}
 }
 
-void AmsWebServer::configEnergyAccountingHtml() {
-	printD("Serving /accounting.html over http...");
+void AmsWebServer::configThresholdsHtml() {
+	printD("Serving /thresholds.html over http...");
 
 	if(!checkSecurity(1))
 		return;
 
 	EnergyAccountingConfig* config = ea->getConfig();
 
-	String html = String((const __FlashStringHelper*) ENERGYACCOUNTING_HTML);
+	String html = String((const __FlashStringHelper*) THRESHOLDS_HTML);
 	for(int i = 0; i < 9; i++) {
 		html.replace("{t" + String(i) + "}", String(config->thresholds[i]));
 	}

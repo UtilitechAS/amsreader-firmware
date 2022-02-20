@@ -1283,11 +1283,13 @@ void AmsWebServer::handleSave() {
 	if(server.hasArg("debugConfig") && server.arg("debugConfig") == "true") {
 		printD("Received Debug config");
 		DebugConfig debug;
+		config->getDebugConfig(debug);
+		bool active = debug.serial || debug.telnet;
+
 		debug.telnet = server.hasArg("debugTelnet") && server.arg("debugTelnet") == "true";
 		debug.serial = server.hasArg("debugSerial") && server.arg("debugSerial") == "true";
 		debug.level = server.arg("debugLevel").toInt();
 
-		debugger->stop();
 		if(debug.telnet || debug.serial) {
 			if(webConfig.security > 0) {
 				debugger->setPassword(webConfig.password);
@@ -1302,8 +1304,8 @@ void AmsWebServer::handleSave() {
 					debugger->stop();
 				}
 			}
-		} else {
-			debugger->stop();
+		} else if(active) {
+			performRestart = true;
 		}
 		config->setDebugConfig(debug);
 	}
@@ -1350,7 +1352,7 @@ void AmsWebServer::handleSave() {
 	//if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
 	if (config->save()) {
 		printI("Successfully saved.");
-		if(config->isWifiChanged()) {
+		if(config->isWifiChanged() || performRestart) {
 			performRestart = true;
             server.sendHeader("Location","/restart-wait");
             server.send(303);

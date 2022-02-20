@@ -1125,6 +1125,7 @@ void MQTT_connect() {
 		uint16_t size = 128;
 		switch(mqttConfig.payloadFormat) {
 			case 0: // JSON
+			case 4: // Home Assistant
 				size = 768;
 				break;
 			case 3: // Domoticz

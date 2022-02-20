@@ -10,7 +10,7 @@
 #include "web/root/hadiscover1_json.h"
 #include "web/root/hadiscover2_json.h"
 
-bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState) {
+bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 

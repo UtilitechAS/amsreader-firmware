@@ -11,7 +11,7 @@ public:
         this->hw = hw;
         this->json = (char*) malloc(BufferSize);
     };
-    bool publish(AmsData* data, AmsData* previousState);
+    bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools*);

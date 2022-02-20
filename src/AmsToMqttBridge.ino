@@ -41,6 +41,7 @@ ADC_MODE(ADC_VCC);
 #include "mqtt/JsonMqttHandler.h"
 #include "mqtt/RawMqttHandler.h"
 #include "mqtt/DomoticzMqttHandler.h"
+#include "mqtt/HomeAssistantMqttHandler.h"
 
 #include "Uptime.h"
 
@@ -1159,6 +1160,9 @@ void MQTT_connect() {
 			DomoticzConfig domo;
 			config.getDomoticzConfig(domo);
 			mqttHandler = new DomoticzMqttHandler(mqtt, domo);
+			break;
+		case 4:
+			mqttHandler = new HomeAssistantMqttHandler(mqtt, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
 			break;
 	}
 

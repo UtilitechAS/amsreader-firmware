@@ -559,7 +559,7 @@ void AmsWebServer::configMqttHtml() {
 	html.replace("{u}", mqtt.username);
 	html.replace("{pw}", mqtt.password);
 	html.replace("{f}", String(mqtt.payloadFormat));
-	for(int i = 0; i<4; i++) {
+	for(int i = 0; i<5; i++) {
 		html.replace("{f" + String(i) + "}", mqtt.payloadFormat == i ? "selected"  : "");
 	}
 	html.replace("{f255}", mqtt.payloadFormat == 255 ? "selected"  : "");

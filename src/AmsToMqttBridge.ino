@@ -182,13 +182,8 @@ void setup() {
 		Serial.begin(115200);
 	}
 
+	Debug.setSerialEnabled(true);
 	DebugConfig debug;
-	if(config.getDebugConfig(debug) && (debug.serial || debug.telnet)) {
-		Debug.setSerialEnabled(debug.serial);
-	}
-	#if DEBUG_MODE
-		Debug.setSerialEnabled(true);
-	#endif
 	delay(1);
 
 	float vcc = hw.getVcc();
@@ -377,9 +372,8 @@ void loop() {
 						Debug.setPassword(web.password);
 					}
 					DebugConfig debug;
-					if(config.getDebugConfig(debug) && (debug.serial || debug.telnet)) {
-						Debug.begin(wifi.hostname, (uint8_t) debug.level);
-						Debug.setSerialEnabled(debug.serial);
+					if(config.getDebugConfig(debug)) {
+						Debug.begin(wifi.hostname, debug.serial || debug.telnet ? (uint8_t) debug.level : RemoteDebug::WARNING); // I don't know why, but ESP8266 stops working after a while if ERROR level is set
 						if(!debug.telnet) {
 							Debug.stop();
 						}

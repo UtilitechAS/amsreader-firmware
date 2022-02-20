@@ -233,7 +233,7 @@ bool AmsConfiguration::getDebugConfig(DebugConfig& config) {
 
 bool AmsConfiguration::setDebugConfig(DebugConfig& config) {
 	if(!config.serial && !config.telnet)
-		config.level = 5; // Force error level when debug is disabled
+		config.level = 4; // Force warning level when debug is disabled
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_DEBUG_START, config);
 	bool ret = EEPROM.commit();

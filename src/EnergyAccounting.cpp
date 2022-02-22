@@ -106,6 +106,10 @@ bool EnergyAccounting::update(AmsData* amsData) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  new threshold %d\n", currentThresholdIdx);
     }
 
+    if(use > data.maxHour) {
+        data.maxHour = use; // Not really a good idea to use calculated value, but when you pass midnight and have the highest use at hour 23, it will not be included through 'calcDayUse'
+    }
+
     return ret;
 }
 

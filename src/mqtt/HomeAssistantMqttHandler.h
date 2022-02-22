@@ -5,18 +5,15 @@
 
 class HomeAssistantMqttHandler : public AmsMqttHandler {
 public:
-    HomeAssistantMqttHandler(MQTTClient* mqtt, const char* clientId, const char* topic, HwTools* hw) : AmsMqttHandler(mqtt) {
+    HomeAssistantMqttHandler(MQTTClient* mqtt, char* buf, const char* clientId, const char* topic, HwTools* hw) : AmsMqttHandler(mqtt, buf) {
         this->clientId = clientId;
         this->topic = String(topic);
         this->hw = hw;
-        this->json = (char*) malloc(BufferSize);
     };
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools*);
-
-    static const uint16_t BufferSize = 768;
 
 private:
     static const uint8_t sensors = 17;
@@ -44,7 +41,5 @@ private:
     String topic;
     HwTools* hw;
     uint8_t sequence = 0, listType = 0;
-    char* json;
-
 };
 #endif

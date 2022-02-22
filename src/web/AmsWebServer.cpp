@@ -52,10 +52,10 @@
 
 #include "base64.h"
 
-AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw) {
+AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw) {
 	this->debugger = Debug;
 	this->hw = hw;
-	this->json = (char*) malloc(JsonSize);
+	this->json = (char*) buf;
 }
 
 void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea) {
@@ -66,12 +66,11 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	this->ds = ds;
 	this->ea = ea;
 
-	char jsuri[32];
-	snprintf(jsuri, 32, "/application-%s.js", VERSION);
+	snprintf(json, 32, "/application-%s.js", VERSION);
 
 	server.on("/", HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on("/", HTTP_POST, std::bind(&AmsWebServer::handleSetup, this));
-	server.on(jsuri, HTTP_GET, std::bind(&AmsWebServer::applicationJs, this));
+	server.on(json, HTTP_GET, std::bind(&AmsWebServer::applicationJs, this));
 	server.on("/temperature", HTTP_GET, std::bind(&AmsWebServer::temperature, this));
 	server.on("/temperature", HTTP_POST, std::bind(&AmsWebServer::temperaturePost, this));
 	server.on("/temperature.json", HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
@@ -240,17 +239,14 @@ void AmsWebServer::temperatureJson() {
 		return;
 
 	int count = hw->getTempSensorCount();
-	int size = 16 + (count * 72);
-
-	char buf[size];
-	snprintf(buf, 16, "{\"c\":%d,\"s\":[", count);
+	snprintf(json, 16, "{\"c\":%d,\"s\":[", count);
 
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
 		if(data == NULL) continue;
 
 		TempSensorConfig* conf = config->getTempSensorConfig(data->address);
-		char* pos = buf+strlen(buf);
+		char* pos = json+strlen(json);
 		snprintf_P(pos, 72, TEMPSENSOR_JSON, 
 			i,
 			toHex(data->address, 8).c_str(),
@@ -260,15 +256,15 @@ void AmsWebServer::temperatureJson() {
 		);
 		delay(10);
 	}
-	char* pos = buf+strlen(buf);
+	char* pos = json+strlen(json);
 	snprintf(count == 0 ? pos : pos-1, 8, "]}");
 
 	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 	server.sendHeader("Expires", "-1");
 
-	server.setContentLength(strlen(buf));
-	server.send(200, "application/json", buf);
+	server.setContentLength(strlen(json));
+	server.send(200, "application/json", json);
 }
 
 void AmsWebServer::price() {

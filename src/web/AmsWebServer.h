@@ -31,7 +31,7 @@
 
 class AmsWebServer {
 public:
-	AmsWebServer(RemoteDebug* Debug, HwTools* hw);
+	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw);
     void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*);
     void loop();
 	void setMqtt(MQTTClient* mqtt);

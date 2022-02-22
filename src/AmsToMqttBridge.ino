@@ -54,6 +54,8 @@ ADC_MODE(ADC_VCC);
 #include "IEC6205621.h"
 #include "IEC6205675.h"
 
+uint8_t buf[BUF_SIZE];
+
 HwTools hw;
 
 DNSServer* dnsServer = NULL;
@@ -66,7 +68,7 @@ EntsoeApi* eapi = NULL;
 
 Timezone* tz;
 
-AmsWebServer ws(&Debug, &hw);
+AmsWebServer ws(buf, &Debug, &hw);
 
 MQTTClient *mqtt = NULL;
 WiFiClient *mqttClient = new WiFiClient();
@@ -738,12 +740,10 @@ void swapWifiMode() {
 }
 
 int len = 0;
-uint8_t* buf = NULL;
 MbusAssembler* ma = NULL;
 int currentMeterType = -1;
 bool readHanPort() {
 	if(!hanSerial->available()) return false;
-	if(buf == NULL) buf = (uint8_t*) malloc(BUF_SIZE);
 
 	if(currentMeterType == -1) {
 		hanSerial->readBytes(buf, BUF_SIZE);
@@ -1151,19 +1151,19 @@ void MQTT_connect() {
 
 	switch(mqttConfig.payloadFormat) {
 		case 0:
-			mqttHandler = new JsonMqttHandler(mqtt, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
+			mqttHandler = new JsonMqttHandler(mqtt, (char*) buf, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
 			break;
 		case 1:
 		case 2:
-			mqttHandler = new RawMqttHandler(mqtt, mqttConfig.publishTopic, mqttConfig.payloadFormat == 2);
+			mqttHandler = new RawMqttHandler(mqtt, (char*) buf, mqttConfig.publishTopic, mqttConfig.payloadFormat == 2);
 			break;
 		case 3:
 			DomoticzConfig domo;
 			config.getDomoticzConfig(domo);
-			mqttHandler = new DomoticzMqttHandler(mqtt, domo);
+			mqttHandler = new DomoticzMqttHandler(mqtt, (char*) buf, domo);
 			break;
 		case 4:
-			mqttHandler = new HomeAssistantMqttHandler(mqtt, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
+			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) buf, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
 			break;
 	}
 
@@ -1245,9 +1245,8 @@ void MQTT_connect() {
 			debugE("Failed to connect to MQTT: %d", mqtt->lastError());
 			#if defined(ESP8266)
 				if(mqttSecureClient) {
-					char buf[64];
-					mqttSecureClient->getLastSSLError(buf,64);
-					Debug.println(buf);
+					mqttSecureClient->getLastSSLError((char*) buf, BUF_SIZE);
+					Debug.println((char*) buf);
 				}
 			#endif
 		}

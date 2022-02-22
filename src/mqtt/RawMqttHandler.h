@@ -5,7 +5,7 @@
 
 class RawMqttHandler : public AmsMqttHandler {
 public:
-    RawMqttHandler(MQTTClient* mqtt, const char* topic, bool full) : AmsMqttHandler(mqtt) {
+    RawMqttHandler(MQTTClient* mqtt, char* buf, const char* topic, bool full) : AmsMqttHandler(mqtt, buf) {
         this->topic = String(topic);
         this->full = full;
     };
@@ -13,8 +13,6 @@ public:
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools*);
-
-    static const uint16_t BufferSize = 128;
 
 private:
     String topic;

@@ -38,7 +38,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     if(!init) {
         currentHour = local.Hour;
         currentDay = local.Day;
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Initializing data at %lu\n", now);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Initializing data at %lld\n", (int64_t) now);
         if(!load()) {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Unable to load existing data");
             data = { 1, local.Month, 0, 0, 0, 0 };
@@ -48,7 +48,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     }
 
     if(!initPrice && eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Initializing prices at %lu\n", now);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Initializing prices at %lld\n", (int64_t) now);
         calcDayCost();
     }
 
@@ -246,7 +246,7 @@ bool EnergyAccounting::save() {
         File file = LittleFS.open(FILE_ENERGYACCOUNTING, "w");
         char buf[sizeof(data)];
         memcpy(buf, &data, sizeof(data));
-        for(int i = 0; i < sizeof(data); i++) {
+        for(unsigned long i = 0; i < sizeof(data); i++) {
             file.write(buf[i]);
         }
         file.close();

@@ -11,8 +11,9 @@
 
 class AmsMqttHandler {
 public:
-    AmsMqttHandler(MQTTClient* mqtt) {
+    AmsMqttHandler(MQTTClient* mqtt, char* buf) {
         this->mqtt = mqtt;
+        this->json = buf;
     };
 
     virtual bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea);
@@ -22,6 +23,8 @@ public:
 
 protected:
     MQTTClient* mqtt;
+    char* json;
+    uint16_t BufferSize = 1024;
 };
 
 #endif

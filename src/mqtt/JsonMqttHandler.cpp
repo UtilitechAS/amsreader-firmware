@@ -127,15 +127,12 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
     if(count < 2)
         return false;
 
-	int size = 32 + (count * 26);
-
-	char buf[size];
-	snprintf(buf, 24, "{\"temperatures\":{");
+	snprintf(json, 24, "{\"temperatures\":{");
 
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
         if(data != NULL) {
-            char* pos = buf+strlen(buf);
+            char* pos = json+strlen(json);
             snprintf(pos, 26, "\"%s\":%.2f,", 
                 toHex(data->address, 8).c_str(),
                 data->lastRead
@@ -144,9 +141,9 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
             delay(1);
         }
 	}
-	char* pos = buf+strlen(buf);
+	char* pos = json+strlen(json);
 	snprintf(count == 0 ? pos : pos-1, 8, "}}");
-    return mqtt->publish(topic, buf);
+    return mqtt->publish(topic, json);
 }
 
 bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {

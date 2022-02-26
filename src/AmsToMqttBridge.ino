@@ -48,7 +48,7 @@ ADC_MODE(ADC_VCC);
 
 #include "RemoteDebug.h"
 
-#define BUF_SIZE (1024)
+#define BUF_SIZE (2048)
 #include "ams/hdlc.h"
 #include "MbusAssembler.h"
 

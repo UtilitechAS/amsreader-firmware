@@ -58,8 +58,8 @@ private:
 	File file;
 	bool performRestart = false;
 
-    static const uint16_t JsonSize = 1024;
-    char* json;
+    static const uint16_t BufferSize = 2048;
+    char* buf;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;
@@ -74,7 +74,6 @@ private:
 	void temperature();
 	void temperaturePost();
 	void temperatureJson();
-	void price();
 	void configMeterHtml();
 	void configWifiHtml();
 	void configMqttHtml();

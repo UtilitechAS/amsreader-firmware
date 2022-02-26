@@ -655,25 +655,34 @@ var fetch = function() {
             ip.draw(ia, io);
         }
 
-        if(xp) {
-            var v = parseInt(json.e);
-            var pct = (v*100)/(parseInt(json.om)*1000);
-            var append = "W";
-            if(v > 1000) {
-                v = (v/1000).toFixed(1);
-                append = "kW";
+        var om = parseInt(json.om);
+
+        if(om > 0) {
+            $('.rex').show();
+            $('.rim').hide();
+            if(xp) {
+                var v = parseInt(json.e);
+                var pct = (v*100)/(om*1000);
+                var append = "W";
+                if(v > 1000) {
+                    v = (v/1000).toFixed(1);
+                    append = "kW";
+                }
+                $('.epo').html(v);
+                $('.epoa').html(append);
+                var arr = [
+                    ['Slice', 'Value'],
+                    ['', (pct*2.88)],
+                    ['', ((100-pct)*2.88)],
+                    ['', 72],
+                ];
+                xo.slices[0].color = ampcol(pct);
+                xa = google.visualization.arrayToDataTable(arr);
+                xp.draw(xa, xo);
             }
-            $('.epo').html(v);
-            $('.epoa').html(append);
-            var arr = [
-                ['Slice', 'Value'],
-                ['', (pct*2.88)],
-                ['', ((100-pct)*2.88)],
-                ['', 72],
-            ];
-            xo.slices[0].color = ampcol(pct);
-            xa = google.visualization.arrayToDataTable(arr);
-            xp.draw(xa, xo);
+        } else {
+            $('.rex').hide();
+            $('.rim').show();
         }
 
         if(vp) {

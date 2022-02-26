@@ -1996,16 +1996,13 @@ void AmsWebServer::configFileDownload() {
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
-	server.sendHeader(F("Content-Disposition"), F("attachment; filename=configfile.cfg"));
+	server.sendHeader("Content-Disposition", "attachment; filename=configfile.cfg");
 	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
 
-	char* buf = buf;
-
-	snprintf_P(buf, BufferSize, (char*) F("version %s\n"), VERSION);
-	server.send(200, MIME_PLAIN, buf);
+	server.send(200, MIME_PLAIN, "amsconfig\n");
+	server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("version %s\n"), VERSION));
 	server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("boardType %d\n"), sys.boardType));
 	
-
 	if(includeWifi) {
 		WiFiConfig wifi;
 		config->getWiFiConfig(wifi);
@@ -2045,7 +2042,6 @@ void AmsWebServer::configFileDownload() {
 			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("webUsername %s\n"), web.username));
 			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("webPassword %s\n"), web.password));
 		}
-		delay(10);
 	}
 
 	if(includeMeter) {
@@ -2076,7 +2072,6 @@ void AmsWebServer::configFileDownload() {
 			if(meter.encryptionKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterEncryptionKey %s\n"), toHex(meter.encryptionKey, 16).c_str()));
 			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterAuthenticationKey %s\n"), toHex(meter.authenticationKey, 16).c_str()));
 		}
-		delay(10);
 	}
 
 	if(includeGpio) {
@@ -2098,7 +2093,6 @@ void AmsWebServer::configFileDownload() {
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccBootLimit %.1f\n"), gpio.vccBootLimit / 10.0));
 		if(gpio.vccPin != 0xFF && gpio.vccResistorGnd != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccResistorGnd %d\n"), gpio.vccResistorGnd));
 		if(gpio.vccPin != 0xFF && gpio.vccResistorVcc != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccResistorVcc %d\n"), gpio.vccResistorVcc));
-		delay(10);
 	}
 
 	if(includeDomo) {
@@ -2109,7 +2103,6 @@ void AmsWebServer::configFileDownload() {
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzVl2idx %d\n"), domo.vl2idx));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzVl3idx %d\n"), domo.vl3idx));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzCl1idx %d\n"), domo.cl1idx));
-		delay(10);
 	}
 
 	if(includeNtp) {
@@ -2120,7 +2113,6 @@ void AmsWebServer::configFileDownload() {
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpOffset %d\n"), ntp.offset * 10));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpSummerOffset %d\n"), ntp.summerOffset * 10));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpServer %s\n"), ntp.server));
-		delay(10);
 	}
 
 	if(includeEntsoe) {
@@ -2130,7 +2122,6 @@ void AmsWebServer::configFileDownload() {
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeArea %s\n"), entsoe.area));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeCurrency %s\n"), entsoe.currency));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeMultiplier %.3f\n"), entsoe.multiplier / 1000.0));
-		delay(10);
 	}
 
 	if(includeThresholds) {
@@ -2235,7 +2226,6 @@ void AmsWebServer::configFileDownload() {
 		} else {
 			server.sendContent("\n");
 		}
-		delay(10);
 	}
 
 	if(ea != NULL) {
@@ -2248,7 +2238,6 @@ void AmsWebServer::configFileDownload() {
 			ead.costThisMonth / 100.0,
 			ead.costLastMonth / 100.0
 		));
-		delay(10);
 	}
 }
 

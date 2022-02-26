@@ -58,7 +58,7 @@ private:
 	File file;
 	bool performRestart = false;
 
-    static const uint16_t JsonSize = 768;
+    static const uint16_t JsonSize = 1024;
     char* json;
 
 #if defined(ESP8266)

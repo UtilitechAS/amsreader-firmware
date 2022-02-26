@@ -67,7 +67,7 @@ for filename in os.listdir(webroot):
         print("WARN: Unable to minify")
 
     with open(dstfile, "w") as dst:
-        dst.write("const char ")
+        dst.write("static const char ")
         dst.write(varname)
         dst.write("[] PROGMEM = R\"==\"==(")
         dst.write(content)

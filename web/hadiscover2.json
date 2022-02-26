@@ -1,8 +1,8 @@
 {
     "name" : "%s",
-    "stat_t" : "%s",
-    "uniq_id" : "%s",
-    "obj_id" : "%s",
+    "stat_t" : "%s%s",
+    "uniq_id" : "%s_%s",
+    "obj_id" : "%s_%s",
     "unit_of_meas" : "%s",
     "val_tpl" : "{{value_json['%s']}}",
     "dev_cla" : "%s",

@@ -214,41 +214,41 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
         String haUrl = "http://" + haUID + ".local/";
 
         for(int i=0;i<sensors;i++){
-            if(strlen(HA_STACL[i]) > 0) {  // TODO: reduce to single JSON, state_class: null (witout quotation). or make it some extra optional string that us appended
+            if(strlen_P(HA_STACL[i]) > 0) {  // TODO: reduce to single JSON, state_class: null (witout quotation). or make it some extra optional string that us appended
                 snprintf_P(json, BufferSize, HADISCOVER2_JSON,
-                    HA_NAMES[i],                   // name
-                    (topic + HA_TOPICS[i]),        // state_topic
-                    (haUID + "_" + HA_PARAMS[i]),  // unique_id
-                    (haUID + "_" + HA_PARAMS[i]),  // object_id
-                    HA_UOM[i],                     // unit_of_measurement
-                    HA_PARAMS[i],                  // value_template
-                    HA_DEVCL[i],                   // device_class
-                    haUID.c_str(),                      // dev ids
-                    haName.c_str(),                     // name
-                    haModel.c_str(),                    // model
-                    VERSION,                            // fw version
-                    haManuf.c_str(),                    // manufacturer
-                    haUrl.c_str(),                      // configuration_url
-                    HA_STACL[i]                    // state_class
+                    FPSTR(HA_NAMES[i]),
+                    topic, FPSTR(HA_TOPICS[i]),
+                    haUID, FPSTR(HA_PARAMS[i]),
+                    haUID, FPSTR(HA_PARAMS[i]),
+                    FPSTR(HA_UOM[i]),
+                    FPSTR(HA_PARAMS[i]),
+                    FPSTR(HA_DEVCL[i]),
+                    haUID.c_str(),
+                    haName.c_str(),
+                    haModel.c_str(),
+                    VERSION,
+                    haManuf.c_str(),
+                    haUrl.c_str(),
+                    FPSTR(HA_STACL[i])
                 );
             } else {
                 snprintf_P(json, BufferSize, HADISCOVER1_JSON,
-                    HA_NAMES[i],                   // name
-                    (topic + HA_TOPICS[i]).c_str(),        // state_topic
-                    (haUID + "_" + HA_PARAMS[i]).c_str(),  // unique_id
-                    (haUID + "_" + HA_PARAMS[i]).c_str(),  // object_id
-                    HA_UOM[i],                     // unit_of_measurement
-                    HA_PARAMS[i],                  // value_template
-                    HA_DEVCL[i],                   // device_class
-                    haUID.c_str(),                      // dev ids
-                    haName.c_str(),                     // name
-                    haModel.c_str(),                    // model
-                    VERSION,                            // fw version
-                    haManuf.c_str(),                    // manufacturer
-                    haUrl.c_str()                       // configuration_url
+                    FPSTR(HA_NAMES[i]),
+                    topic, FPSTR(HA_TOPICS[i]),
+                    haUID, FPSTR(HA_PARAMS[i]),
+                    haUID, FPSTR(HA_PARAMS[i]),
+                    FPSTR(HA_UOM[i]),
+                    FPSTR(HA_PARAMS[i]),
+                    FPSTR(HA_DEVCL[i]),
+                    haUID.c_str(),
+                    haName.c_str(),
+                    haModel.c_str(),
+                    VERSION,
+                    haManuf.c_str(),
+                    haUrl.c_str()
                 );
             }
-            mqtt->publish(haTopic + haUID + "_" + HA_PARAMS[i] + "/config", json, true, 0);
+            mqtt->publish(haTopic + haUID + "_" + FPSTR(HA_PARAMS[i]) + "/config", json, true, 0);
         }
         autodiscoverInit = true;
     }

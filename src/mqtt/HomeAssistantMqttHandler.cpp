@@ -8,8 +8,7 @@
 #include "web/root/ha3_json.h"
 #include "web/root/jsonsys_json.h"
 #include "web/root/jsonprices_json.h"
-#include "web/root/hadiscover1_json.h"
-#include "web/root/hadiscover2_json.h"
+#include "web/root/hadiscover_json.h"
 
 bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected())
@@ -214,40 +213,22 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
         String haUrl = "http://" + haUID + ".local/";
 
         for(int i=0;i<sensors;i++){
-            if(strlen_P(HA_STACL[i]) > 0) {  // TODO: reduce to single JSON, state_class: null (witout quotation). or make it some extra optional string that us appended
-                snprintf_P(json, BufferSize, HADISCOVER2_JSON,
-                    FPSTR(HA_NAMES[i]),
-                    topic, FPSTR(HA_TOPICS[i]),
-                    haUID, FPSTR(HA_PARAMS[i]),
-                    haUID, FPSTR(HA_PARAMS[i]),
-                    FPSTR(HA_UOM[i]),
-                    FPSTR(HA_PARAMS[i]),
-                    FPSTR(HA_DEVCL[i]),
-                    haUID.c_str(),
-                    haName.c_str(),
-                    haModel.c_str(),
-                    VERSION,
-                    haManuf.c_str(),
-                    haUrl.c_str(),
-                    FPSTR(HA_STACL[i])
-                );
-            } else {
-                snprintf_P(json, BufferSize, HADISCOVER1_JSON,
-                    FPSTR(HA_NAMES[i]),
-                    topic, FPSTR(HA_TOPICS[i]),
-                    haUID, FPSTR(HA_PARAMS[i]),
-                    haUID, FPSTR(HA_PARAMS[i]),
-                    FPSTR(HA_UOM[i]),
-                    FPSTR(HA_PARAMS[i]),
-                    FPSTR(HA_DEVCL[i]),
-                    haUID.c_str(),
-                    haName.c_str(),
-                    haModel.c_str(),
-                    VERSION,
-                    haManuf.c_str(),
-                    haUrl.c_str()
-                );
-            }
+            snprintf_P(json, BufferSize, HADISCOVER_JSON,
+                FPSTR(HA_NAMES[i]),
+                topic, FPSTR(HA_TOPICS[i]),
+                haUID, FPSTR(HA_PARAMS[i]),
+                haUID, FPSTR(HA_PARAMS[i]),
+                FPSTR(HA_UOM[i]),
+                FPSTR(HA_PARAMS[i]),
+                FPSTR(HA_DEVCL[i]),
+                haUID.c_str(),
+                haName.c_str(),
+                haModel.c_str(),
+                VERSION,
+                haManuf.c_str(),
+                haUrl.c_str(),
+                strlen_P(HA_STACL[i]) > 0 ? (char *) FPSTR(HA_STACL[i]) : "null"
+            );
             mqtt->publish(haTopic + haUID + "_" + FPSTR(HA_PARAMS[i]) + "/config", json, true, 0);
         }
         autodiscoverInit = true;

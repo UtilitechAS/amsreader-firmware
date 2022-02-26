@@ -9,6 +9,6 @@ const char* HA_NAMES[17] PROGMEM = {"Status", "Supply volt", "Temperature", "Act
 const char* HA_PARAMS[17] PROGMEM = {"rssi", "vcc", "temp", "P", "Q", "PO", "QO", "I1", "I2", "I3", "U1", "U2", "U3", "tPI", "tPO", "tQI", "tQO"};
 const char* HA_UOM[17] PROGMEM = {"dBm", "V", "C", "W", "W", "W", "W", "A", "A", "A", "V", "V", "V", "kWh", "kWh", "kWh", "kWh"};
 const char* HA_DEVCL[17] PROGMEM = {"signal_strength", "voltage", "temperature", "power", "power", "power", "power", "current", "current", "current", "voltage", "voltage", "voltage", "energy", "energy", "energy", "energy"};
-const char* HA_STACL[17] PROGMEM = {"", "", "", "measurement", "measurement", "measurement", "measurement", "", "", "", "", "", "", "total_increasing", "total_increasing", "total_increasing", "total_increasing"};
+const char* HA_STACL[17] PROGMEM = {"", "", "", "\"measurement\"", "\"measurement\"", "\"measurement\"", "\"measurement\"", "", "", "", "", "", "", "\"total_increasing\"", "\"total_increasing\"", "\"total_increasing\"", "\"total_increasing\""};
 
 #endif

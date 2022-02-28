@@ -97,7 +97,10 @@ bool AmsDataStorage::update(AmsData* data) {
         }
     }
 
-    if(data->getListType() < 3) return false;
+    if(data->getListType() < 3) {
+        debugger->printf("(AmsDataStorage) Not enough data in list type: %d\n", data->getListType());
+        return false;
+    }
 
     bool ret = false;
 

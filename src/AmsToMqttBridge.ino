@@ -1031,6 +1031,11 @@ void WiFi_connect() {
 
 		wifiReconnectCount++;
 
+		#if defined(ESP32)
+			if(strlen(wifi.hostname) > 0) {
+				WiFi.setHostname(wifi.hostname);
+			}	
+		#endif
 		WiFi.mode(WIFI_STA);
 		#if defined(ESP32)
 			if(wifi.power >= 195)
@@ -1082,13 +1087,11 @@ void WiFi_connect() {
 			// WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // Workaround to make DHCP hostname work for ESP32. See: https://github.com/espressif/arduino-esp32/issues/2537
 			#endif
 		}
-		if(strlen(wifi.hostname) > 0) {
-			#if defined(ESP8266)
-			WiFi.hostname(wifi.hostname);
-			#elif defined(ESP32)
-			WiFi.setHostname(wifi.hostname);
-			#endif
-		}	
+		#if defined(ESP8266)
+			if(strlen(wifi.hostname) > 0) {
+				WiFi.hostname(wifi.hostname);
+			}	
+		#endif
 		WiFi.setAutoReconnect(true);
 		WiFi.persistent(true);
 		if(WiFi.begin(wifi.ssid, wifi.psk)) {

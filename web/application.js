@@ -735,28 +735,28 @@ var fetch = function() {
                     ao.title = 'Phase current';
                     break;
             }
-            var a = 0;
+            var dA = false;
             var r = 1;
             var arr = [['Phase', 'Amperage', { role: 'style' }, { role: 'annotation' }]];
             if(json.i1 || json.u1) {
                 var i1 = parseFloat(json.i1);
-                a = Math.max(a, i1);
+                dA = true;
                 var pct = (parseFloat(json.i1)/parseInt(json.mf))*100;
                 arr[r++] = ['L1', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i1 + "A"];
             }
             if(json.i2 || json.u2) {
                 var i2 = parseFloat(json.i2);
-                a = Math.max(a, i2);
+                dA = true;
                 var pct = (parseFloat(json.i2)/parseInt(json.mf))*100;
                 arr[r++] = ['L2', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i2 + "A"];
             }
             if(json.i3 || json.u3) {
                 var i3 = parseFloat(json.i3);
-                a = Math.max(a, i3);
+                dA = true;
                 var pct = (parseFloat(json.i3)/parseInt(json.mf))*100;
                 arr[r++] = ['L3', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i3 + "A"];
             }
-            if(a > 0) {
+            if(dA) {
                 aa = google.visualization.arrayToDataTable(arr);
                 ap.draw(aa, ao);
             }

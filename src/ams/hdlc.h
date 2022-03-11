@@ -3,6 +3,7 @@
 
 #include "Arduino.h"
 #include <stdint.h>
+#include "lwip/def.h"
 
 #define HDLC_FLAG 0x7E
 #define HDLC_BOUNDRY_FLAG_MISSING -1
@@ -79,9 +80,12 @@ enum CosemType {
     CosemTypeStructure = 0x02,
     CosemTypeOctetString = 0x09,
     CosemTypeString = 0x0A,
+    CosemTypeDLongSigned = 0x05,
     CosemTypeDLongUnsigned = 0x06,
     CosemTypeLongSigned = 0x10,
     CosemTypeLongUnsigned = 0x12,
+    CosemTypeLong64Signed = 0x14,
+    CosemTypeLong64Unsigned = 0x15,
     CosemTypeDateTime = 0x19
 };
 
@@ -96,9 +100,19 @@ struct CosemString {
     uint8_t data[];
 } __attribute__((packed));
 
+struct CosemLongSigned {
+    uint8_t type;
+	int16_t data;
+} __attribute__((packed));
+
 struct CosemLongUnsigned {
     uint8_t type;
     uint16_t data;
+} __attribute__((packed));
+
+struct CosemDLongSigned {
+    uint8_t type;
+    int32_t data;
 } __attribute__((packed));
 
 struct CosemDLongUnsigned {
@@ -106,9 +120,14 @@ struct CosemDLongUnsigned {
     uint32_t data;
 } __attribute__((packed));
 
-struct CosemLongSigned {
+struct CosemLong64Signed {
     uint8_t type;
-	int16_t data;
+    int64_t data;
+} __attribute__((packed));
+
+struct CosemLong64Unsigned {
+    uint8_t type;
+    uint64_t data;
 } __attribute__((packed));
 
 struct CosemDateTime {
@@ -129,9 +148,12 @@ typedef union {
     struct CosemBasic base;
 	struct CosemString str;
 	struct CosemString oct;
-	struct CosemLongUnsigned lu;
-    struct CosemDLongUnsigned dlu;
     struct CosemLongSigned ls;
+	struct CosemLongUnsigned lu;
+    struct CosemDLongSigned dls;
+    struct CosemDLongUnsigned dlu;
+    struct CosemLong64Signed l64s;
+    struct CosemLong64Unsigned l64u;
     struct CosemDateTime dt;
 } CosemData; 
 
@@ -139,5 +161,7 @@ void mbus_hexdump(const uint8_t* buf, int len);
 int HDLC_validate(const uint8_t* d, int len, HDLCConfig* config, CosemDateTime* timestamp);
 
 uint8_t mbusChecksum(const uint8_t* p, int len);
+
+uint64_t ntohll(uint64_t x);
 
 #endif

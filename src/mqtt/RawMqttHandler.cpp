@@ -214,6 +214,7 @@ bool RawMqttHandler::publishSystem(HwTools* hw) {
 	if(vcc > 0) {
 		mqtt->publish(topic + "/vcc", String(vcc, 2));
 	}
+	mqtt->publish(topic + "/mem", String(ESP.getFreeHeap()));
 	mqtt->publish(topic + "/rssi", String(hw->getWifiRssi()));
     if(hw->getTemperature() > -85) {
 		mqtt->publish(topic + "/temperature", String(hw->getTemperature(), 2));

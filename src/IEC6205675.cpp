@@ -140,11 +140,13 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, uint8_t distribution
 
         meterType = AmsTypeUnknown;
         CosemData* version = findObis(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), d);
-        if(version != NULL && version->base.type == CosemTypeString) {
+        if(version != NULL && (version->base.type == CosemTypeString || version->base.type == CosemTypeOctetString)) {
             if(memcmp(version->str.data, "AIDON", 5) == 0) {
                 meterType = AmsTypeAidon;
             } else if(memcmp(version->str.data, "Kamstrup", 8) == 0) {
                 meterType = AmsTypeKamstrup;
+            } else if(memcmp(version->str.data, "KFM", 3) == 0) {
+                meterType = AmsTypeKaifa;
             }
         } else {
             version = getCosemDataAt(1, ((char *) (d)));
@@ -315,7 +317,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, uint8_t distribution
                 l2current = l2current != 0 ? l2current / 10 : 0;
                 l3current = l3current != 0 ? l3current / 10 : 0;
             }
-
         } else if(meterType == AmsTypeSagemcom) {
             CosemData* meterTs = getCosemDataAt(1, ((char *) (d)));
             if(meterTs != NULL) {
@@ -337,6 +338,19 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, uint8_t distribution
                         break;
                 }
             }
+        } else if(meterType == AmsTypeKaifa) {
+            if(l1current != 0)
+                l1current /= 1000;
+            if(l2current != 0)
+                l2current /= 1000;
+            if(l3current != 0)
+                l3current /= 1000;
+            if(l1voltage != 0)
+                l1voltage /= 10;
+            if(l2voltage != 0)
+                l2voltage /= 10;
+            if(l3voltage != 0)
+                l3voltage /= 10;
         }
 
         lastUpdateMillis = millis();
@@ -379,13 +393,16 @@ CosemData* IEC6205675::getCosemDataAt(uint8_t index, const char* ptr) {
                 pos += 2 + item->base.length;
                 break;
             case CosemTypeLongSigned:
-                pos += 5;
-                break;
             case CosemTypeLongUnsigned:
                 pos += 3;
                 break;
+            case CosemTypeDLongSigned:
             case CosemTypeDLongUnsigned:
                 pos += 5;
+                break;
+            case CosemTypeLong64Signed:
+            case CosemTypeLong64Unsigned:
+                pos += 9;
                 break;
             case CosemTypeNull:
                 pos += 1;
@@ -424,13 +441,16 @@ CosemData* IEC6205675::findObis(uint8_t* obis, int matchlength, const char* ptr)
                 break;
             }
             case CosemTypeLongSigned:
-                pos += 5;
-                break;
             case CosemTypeLongUnsigned:
                 pos += 3;
                 break;
+            case CosemTypeDLongSigned:
             case CosemTypeDLongUnsigned:
                 pos += 5;
+                break;
+            case CosemTypeLong64Signed:
+            case CosemTypeLong64Unsigned:
+                pos += 9;
                 break;
             case CosemTypeNull:
                 pos += 1;
@@ -470,10 +490,22 @@ double IEC6205675::getNumber(CosemData* item) {
         double ret = 0.0;
         char* pos = ((char*) item);
         switch(item->base.type) {
+            case CosemTypeLongSigned: {
+                int16_t i16 = ntohs(item->ls.data);
+                ret = i16;
+                pos += 3;
+                break;
+            }
             case CosemTypeLongUnsigned: {
                 uint16_t u16 = ntohs(item->lu.data);
                 ret = u16;
                 pos += 3;
+                break;
+            }
+            case CosemTypeDLongSigned: {
+                int32_t i32 = ntohl(item->dlu.data);
+                ret = i32;
+                pos += 5;
                 break;
             }
             case CosemTypeDLongUnsigned: {
@@ -482,10 +514,16 @@ double IEC6205675::getNumber(CosemData* item) {
                 pos += 5;
                 break;
             }
-            case CosemTypeLongSigned: {
-                int16_t i16 = ntohs(item->ls.data);
-                ret = i16;
-                pos += 3;
+            case CosemTypeLong64Signed: {
+                int64_t i64 = ntohll(item->l64s.data);
+                ret = i64;
+                pos += 9;
+                break;
+            }
+            case CosemTypeLong64Unsigned: {
+                uint64_t u64 = ntohll(item->l64u.data);
+                ret = u64;
+                pos += 9;
                 break;
             }
         }

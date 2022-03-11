@@ -24,7 +24,7 @@ private:
     time_t getTimestamp(uint8_t* obis, int matchlength, const char* ptr);
     time_t getTimestamp(CosemDateTime timestamp);
 
-    uint8_t AMS_OBIS_VERSION[6]                 = { 1, 1,  0, 2, 129, 255 };
+    uint8_t AMS_OBIS_VERSION[4]                 = {  0, 2, 129, 255 };
     uint8_t AMS_OBIS_METER_MODEL[4]             = { 96, 1, 1, 255 };
     uint8_t AMS_OBIS_METER_MODEL_2[4]           = { 96, 1, 7, 255 };
     uint8_t AMS_OBIS_METER_ID[4]                = { 96, 1, 0, 255 };

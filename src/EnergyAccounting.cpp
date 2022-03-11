@@ -119,8 +119,9 @@ bool EnergyAccounting::calcDayUse() {
     breakTime(tz->toLocal(now), local);
 
     bool ret = false;
-    for(int i = 0; i < local.Hour; i++) {
-        breakTime(now - ((local.Hour - i) * 3600), utc);
+    uint8_t lim = local.Day == 1 ? local.Hour : 24;
+    for(int i = 0; i < lim; i++) {
+        breakTime(now - ((lim - i) * 3600), utc);
         int16_t val = ds->getHour(utc.Hour) / 10.0;
         if(val > data.maxHour) {
             data.maxHour = val;

@@ -219,7 +219,7 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
                 haUID, FPSTR(HA_PARAMS[i]),
                 haUID, FPSTR(HA_PARAMS[i]),
                 FPSTR(HA_UOM[i]),
-                FPSTR(HA_PARAMS[i]),
+                FPSTR(HA_PARAMS[i]), FPSTR(HA_PARAMS[i]), haUID, FPSTR(HA_PARAMS[i]),
                 FPSTR(HA_DEVCL[i]),
                 haUID.c_str(),
                 haName.c_str(),

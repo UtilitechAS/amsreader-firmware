@@ -755,30 +755,54 @@ void AmsWebServer::dayplotJson() {
 		notFound();
 	} else {
 		snprintf_P(buf, BufferSize, DAYPLOT_JSON,
-			ds->getHour(0) / 1000.0,
-			ds->getHour(1) / 1000.0,
-			ds->getHour(2) / 1000.0,
-			ds->getHour(3) / 1000.0,
-			ds->getHour(4) / 1000.0,
-			ds->getHour(5) / 1000.0,
-			ds->getHour(6) / 1000.0,
-			ds->getHour(7) / 1000.0,
-			ds->getHour(8) / 1000.0,
-			ds->getHour(9) / 1000.0,
-			ds->getHour(10) / 1000.0,
-			ds->getHour(11) / 1000.0,
-			ds->getHour(12) / 1000.0,
-			ds->getHour(13) / 1000.0,
-			ds->getHour(14) / 1000.0,
-			ds->getHour(15) / 1000.0,
-			ds->getHour(16) / 1000.0,
-			ds->getHour(17) / 1000.0,
-			ds->getHour(18) / 1000.0,
-			ds->getHour(19) / 1000.0,
-			ds->getHour(20) / 1000.0,
-			ds->getHour(21) / 1000.0,
-			ds->getHour(22) / 1000.0,
-			ds->getHour(23) / 1000.0
+			ds->getHourImport(0) / 1000.0,
+			ds->getHourImport(1) / 1000.0,
+			ds->getHourImport(2) / 1000.0,
+			ds->getHourImport(3) / 1000.0,
+			ds->getHourImport(4) / 1000.0,
+			ds->getHourImport(5) / 1000.0,
+			ds->getHourImport(6) / 1000.0,
+			ds->getHourImport(7) / 1000.0,
+			ds->getHourImport(8) / 1000.0,
+			ds->getHourImport(9) / 1000.0,
+			ds->getHourImport(10) / 1000.0,
+			ds->getHourImport(11) / 1000.0,
+			ds->getHourImport(12) / 1000.0,
+			ds->getHourImport(13) / 1000.0,
+			ds->getHourImport(14) / 1000.0,
+			ds->getHourImport(15) / 1000.0,
+			ds->getHourImport(16) / 1000.0,
+			ds->getHourImport(17) / 1000.0,
+			ds->getHourImport(18) / 1000.0,
+			ds->getHourImport(19) / 1000.0,
+			ds->getHourImport(20) / 1000.0,
+			ds->getHourImport(21) / 1000.0,
+			ds->getHourImport(22) / 1000.0,
+			ds->getHourImport(23) / 1000.0,
+			ds->getHourExport(0) / 1000.0,
+			ds->getHourExport(1) / 1000.0,
+			ds->getHourExport(2) / 1000.0,
+			ds->getHourExport(3) / 1000.0,
+			ds->getHourExport(4) / 1000.0,
+			ds->getHourExport(5) / 1000.0,
+			ds->getHourExport(6) / 1000.0,
+			ds->getHourExport(7) / 1000.0,
+			ds->getHourExport(8) / 1000.0,
+			ds->getHourExport(9) / 1000.0,
+			ds->getHourExport(10) / 1000.0,
+			ds->getHourExport(11) / 1000.0,
+			ds->getHourExport(12) / 1000.0,
+			ds->getHourExport(13) / 1000.0,
+			ds->getHourExport(14) / 1000.0,
+			ds->getHourExport(15) / 1000.0,
+			ds->getHourExport(16) / 1000.0,
+			ds->getHourExport(17) / 1000.0,
+			ds->getHourExport(18) / 1000.0,
+			ds->getHourExport(19) / 1000.0,
+			ds->getHourExport(20) / 1000.0,
+			ds->getHourExport(21) / 1000.0,
+			ds->getHourExport(22) / 1000.0,
+			ds->getHourExport(23) / 1000.0
 		);
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -800,37 +824,68 @@ void AmsWebServer::monthplotJson() {
 		notFound();
 	} else {
 		snprintf_P(buf, BufferSize, MONTHPLOT_JSON,
-			ds->getDay(1) / 1000.0,
-			ds->getDay(2) / 1000.0,
-			ds->getDay(3) / 1000.0,
-			ds->getDay(4) / 1000.0,
-			ds->getDay(5) / 1000.0,
-			ds->getDay(6) / 1000.0,
-			ds->getDay(7) / 1000.0,
-			ds->getDay(8) / 1000.0,
-			ds->getDay(9) / 1000.0,
-			ds->getDay(10) / 1000.0,
-			ds->getDay(11) / 1000.0,
-			ds->getDay(12) / 1000.0,
-			ds->getDay(13) / 1000.0,
-			ds->getDay(14) / 1000.0,
-			ds->getDay(15) / 1000.0,
-			ds->getDay(16) / 1000.0,
-			ds->getDay(17) / 1000.0,
-			ds->getDay(18) / 1000.0,
-			ds->getDay(19) / 1000.0,
-			ds->getDay(20) / 1000.0,
-			ds->getDay(21) / 1000.0,
-			ds->getDay(22) / 1000.0,
-			ds->getDay(23) / 1000.0,
-			ds->getDay(24) / 1000.0,
-			ds->getDay(25) / 1000.0,
-			ds->getDay(26) / 1000.0,
-			ds->getDay(27) / 1000.0,
-			ds->getDay(28) / 1000.0,
-			ds->getDay(29) / 1000.0,
-			ds->getDay(30) / 1000.0,
-			ds->getDay(31) / 1000.0
+			ds->getDayImport(1) / 1000.0,
+			ds->getDayImport(2) / 1000.0,
+			ds->getDayImport(3) / 1000.0,
+			ds->getDayImport(4) / 1000.0,
+			ds->getDayImport(5) / 1000.0,
+			ds->getDayImport(6) / 1000.0,
+			ds->getDayImport(7) / 1000.0,
+			ds->getDayImport(8) / 1000.0,
+			ds->getDayImport(9) / 1000.0,
+			ds->getDayImport(10) / 1000.0,
+			ds->getDayImport(11) / 1000.0,
+			ds->getDayImport(12) / 1000.0,
+			ds->getDayImport(13) / 1000.0,
+			ds->getDayImport(14) / 1000.0,
+			ds->getDayImport(15) / 1000.0,
+			ds->getDayImport(16) / 1000.0,
+			ds->getDayImport(17) / 1000.0,
+			ds->getDayImport(18) / 1000.0,
+			ds->getDayImport(19) / 1000.0,
+			ds->getDayImport(20) / 1000.0,
+			ds->getDayImport(21) / 1000.0,
+			ds->getDayImport(22) / 1000.0,
+			ds->getDayImport(23) / 1000.0,
+			ds->getDayImport(24) / 1000.0,
+			ds->getDayImport(25) / 1000.0,
+			ds->getDayImport(26) / 1000.0,
+			ds->getDayImport(27) / 1000.0,
+			ds->getDayImport(28) / 1000.0,
+			ds->getDayImport(29) / 1000.0,
+			ds->getDayImport(30) / 1000.0,
+			ds->getDayImport(31) / 1000.0,
+			ds->getDayExport(1) / 1000.0,
+			ds->getDayExport(2) / 1000.0,
+			ds->getDayExport(3) / 1000.0,
+			ds->getDayExport(4) / 1000.0,
+			ds->getDayExport(5) / 1000.0,
+			ds->getDayExport(6) / 1000.0,
+			ds->getDayExport(7) / 1000.0,
+			ds->getDayExport(8) / 1000.0,
+			ds->getDayExport(9) / 1000.0,
+			ds->getDayExport(10) / 1000.0,
+			ds->getDayExport(11) / 1000.0,
+			ds->getDayExport(12) / 1000.0,
+			ds->getDayExport(13) / 1000.0,
+			ds->getDayExport(14) / 1000.0,
+			ds->getDayExport(15) / 1000.0,
+			ds->getDayExport(16) / 1000.0,
+			ds->getDayExport(17) / 1000.0,
+			ds->getDayExport(18) / 1000.0,
+			ds->getDayExport(19) / 1000.0,
+			ds->getDayExport(20) / 1000.0,
+			ds->getDayExport(21) / 1000.0,
+			ds->getDayExport(22) / 1000.0,
+			ds->getDayExport(23) / 1000.0,
+			ds->getDayExport(24) / 1000.0,
+			ds->getDayExport(25) / 1000.0,
+			ds->getDayExport(26) / 1000.0,
+			ds->getDayExport(27) / 1000.0,
+			ds->getDayExport(28) / 1000.0,
+			ds->getDayExport(29) / 1000.0,
+			ds->getDayExport(30) / 1000.0,
+			ds->getDayExport(31) / 1000.0
 		);
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -2155,83 +2210,138 @@ void AmsWebServer::configFileDownload() {
 
 	if(ds != NULL) {
 		DayDataPoints day = ds->getDayData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("dayplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("dayplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			day.version,
 			day.lastMeterReadTime,
 			day.activeImport,
-			ds->getHour(0),
-			ds->getHour(1),
-			ds->getHour(2),
-			ds->getHour(3),
-			ds->getHour(4),
-			ds->getHour(5),
-			ds->getHour(6),
-			ds->getHour(7),
-			ds->getHour(8),
-			ds->getHour(9),
-			ds->getHour(10),
-			ds->getHour(11),
-			ds->getHour(12),
-			ds->getHour(13),
-			ds->getHour(14),
-			ds->getHour(15),
-			ds->getHour(16),
-			ds->getHour(17),
-			ds->getHour(18),
-			ds->getHour(19),
-			ds->getHour(20),
-			ds->getHour(21),
-			ds->getHour(22),
-			ds->getHour(23)
+			ds->getHourImport(0),
+			ds->getHourImport(1),
+			ds->getHourImport(2),
+			ds->getHourImport(3),
+			ds->getHourImport(4),
+			ds->getHourImport(5),
+			ds->getHourImport(6),
+			ds->getHourImport(7),
+			ds->getHourImport(8),
+			ds->getHourImport(9),
+			ds->getHourImport(10),
+			ds->getHourImport(11),
+			ds->getHourImport(12),
+			ds->getHourImport(13),
+			ds->getHourImport(14),
+			ds->getHourImport(15),
+			ds->getHourImport(16),
+			ds->getHourImport(17),
+			ds->getHourImport(18),
+			ds->getHourImport(19),
+			ds->getHourImport(20),
+			ds->getHourImport(21),
+			ds->getHourImport(22),
+			ds->getHourImport(23)
 		));
 		if(day.activeExport > 0) {
-			server.sendContent(buf, snprintf(buf, BufferSize, " %lu\n", 
-				day.activeExport
+			server.sendContent(buf, snprintf(buf, BufferSize, " %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
+				day.activeExport,
+				ds->getHourExport(0),
+				ds->getHourExport(1),
+				ds->getHourExport(2),
+				ds->getHourExport(3),
+				ds->getHourExport(4),
+				ds->getHourExport(5),
+				ds->getHourExport(6),
+				ds->getHourExport(7),
+				ds->getHourExport(8),
+				ds->getHourExport(9),
+				ds->getHourExport(10),
+				ds->getHourExport(11),
+				ds->getHourExport(12),
+				ds->getHourExport(13),
+				ds->getHourExport(14),
+				ds->getHourExport(15),
+				ds->getHourExport(16),
+				ds->getHourExport(17),
+				ds->getHourExport(18),
+				ds->getHourExport(19),
+				ds->getHourExport(20),
+				ds->getHourExport(21),
+				ds->getHourExport(22),
+				ds->getHourExport(23)
 			));
 		} else {
 			server.sendContent("\n");
 		}
 
 		MonthDataPoints month = ds->getMonthData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("monthplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("monthplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			month.version,
 			month.lastMeterReadTime,
 			month.activeImport,
-			ds->getDay(1),
-			ds->getDay(2),
-			ds->getDay(3),
-			ds->getDay(4),
-			ds->getDay(5),
-			ds->getDay(6),
-			ds->getDay(7),
-			ds->getDay(8),
-			ds->getDay(9),
-			ds->getDay(10),
-			ds->getDay(11),
-			ds->getDay(12),
-			ds->getDay(13),
-			ds->getDay(14),
-			ds->getDay(15),
-			ds->getDay(16),
-			ds->getDay(17),
-			ds->getDay(18),
-			ds->getDay(19),
-			ds->getDay(20),
-			ds->getDay(21),
-			ds->getDay(22),
-			ds->getDay(23),
-			ds->getDay(24),
-			ds->getDay(25),
-			ds->getDay(26),
-			ds->getDay(27),
-			ds->getDay(28),
-			ds->getDay(29),
-			ds->getDay(30),
-			ds->getDay(31)
+			ds->getDayImport(1),
+			ds->getDayImport(2),
+			ds->getDayImport(3),
+			ds->getDayImport(4),
+			ds->getDayImport(5),
+			ds->getDayImport(6),
+			ds->getDayImport(7),
+			ds->getDayImport(8),
+			ds->getDayImport(9),
+			ds->getDayImport(10),
+			ds->getDayImport(11),
+			ds->getDayImport(12),
+			ds->getDayImport(13),
+			ds->getDayImport(14),
+			ds->getDayImport(15),
+			ds->getDayImport(16),
+			ds->getDayImport(17),
+			ds->getDayImport(18),
+			ds->getDayImport(19),
+			ds->getDayImport(20),
+			ds->getDayImport(21),
+			ds->getDayImport(22),
+			ds->getDayImport(23),
+			ds->getDayImport(24),
+			ds->getDayImport(25),
+			ds->getDayImport(26),
+			ds->getDayImport(27),
+			ds->getDayImport(28),
+			ds->getDayImport(29),
+			ds->getDayImport(30),
+			ds->getDayImport(31)
 		));
 		if(month.activeExport > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, " %lu\n", 
-				month.activeExport
+			server.sendContent(buf, snprintf_P(buf, BufferSize, " %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
+				month.activeExport,
+				ds->getDayExport(1),
+				ds->getDayExport(2),
+				ds->getDayExport(3),
+				ds->getDayExport(4),
+				ds->getDayExport(5),
+				ds->getDayExport(6),
+				ds->getDayExport(7),
+				ds->getDayExport(8),
+				ds->getDayExport(9),
+				ds->getDayExport(10),
+				ds->getDayExport(11),
+				ds->getDayExport(12),
+				ds->getDayExport(13),
+				ds->getDayExport(14),
+				ds->getDayExport(15),
+				ds->getDayExport(16),
+				ds->getDayExport(17),
+				ds->getDayExport(18),
+				ds->getDayExport(19),
+				ds->getDayExport(20),
+				ds->getDayExport(21),
+				ds->getDayExport(22),
+				ds->getDayExport(23),
+				ds->getDayExport(24),
+				ds->getDayExport(25),
+				ds->getDayExport(26),
+				ds->getDayExport(27),
+				ds->getDayExport(28),
+				ds->getDayExport(29),
+				ds->getDayExport(30),
+				ds->getDayExport(31)
 			));
 		} else {
 			server.sendContent("\n");
@@ -2436,7 +2546,7 @@ void AmsWebServer::configFileParse() {
 			}
 		} else if(strncmp(buf, "dayplot ", 8) == 0 && ds != NULL) {
 			int i = 0;
-			DayDataPoints day = { 3 }; // Use a version we know the multiplier of the data points
+			DayDataPoints day = { 4 }; // Use a version we know the multiplier of the data points
 			char * pch = strtok (buf+8," ");
 			while (pch != NULL) {
 				long val = String(pch).toInt();
@@ -2445,11 +2555,11 @@ void AmsWebServer::configFileParse() {
 				} else if(i == 2) {
 					day.activeImport = val;
 				} else if(i > 2 && i < 27) {
-					day.points[i-3] = val / 10;
+					day.hImport[i-3] = val / 10;
 				} else if(i == 27) {
 					day.activeExport = val;
 				} else if(i > 27 && i < 52) {
-					// TODO: Export points
+					day.hExport[i-28] = val / 10;
 				}
 
 				pch = strtok (NULL, " ");
@@ -2458,7 +2568,7 @@ void AmsWebServer::configFileParse() {
 			ds->setDayData(day);
 		} else if(strncmp(buf, "monthplot ", 10) == 0 && ds != NULL) {
 			int i = 0;
-			MonthDataPoints month = { 4 }; // Use a version we know the multiplier of the data points
+			MonthDataPoints month = { 5 }; // Use a version we know the multiplier of the data points
 			char * pch = strtok (buf+10," ");
 			while (pch != NULL) {
 				long val = String(pch).toInt();
@@ -2467,11 +2577,11 @@ void AmsWebServer::configFileParse() {
 				} else if(i == 2) {
 					month.activeImport = val;
 				} else if(i > 2 && i < 34) {
-					month.points[i-3] = val / 10;
+					month.dImport[i-3] = val / 10;
 				} else if(i == 34) {
 					month.activeExport = val;
 				} else if(i > 34 && i < 66) {
-					// TODO: Export points
+					month.dExport[i-35] = val / 10;
 				}
 
 				pch = strtok (NULL, " ");

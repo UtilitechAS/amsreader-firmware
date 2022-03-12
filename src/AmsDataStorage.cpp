@@ -5,8 +5,8 @@
 #include "version.h"
 
 AmsDataStorage::AmsDataStorage(RemoteDebug* debugger) {
-    day.version = 3;
-    month.version = 4;
+    day.version = 4;
+    month.version = 5;
     this->debugger = debugger;
 }
 
@@ -71,7 +71,8 @@ bool AmsDataStorage::update(AmsData* data) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) {
                 debugger->printf("(AmsDataStorage) Clearing hour: %d\n", i);
             }
-            setHour(i, 0);
+            setHourImport(i, 0);
+            setHourExport(i, 0);
         }
     }
 
@@ -93,7 +94,8 @@ bool AmsDataStorage::update(AmsData* data) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) {
                 debugger->printf("(AmsDataStorage) Clearing day: %d\n", i);
             }
-            setDay(i, 0);
+            setDayImport(i, 0);
+            setDayExport(i, 0);
         }
     }
 
@@ -114,21 +116,24 @@ bool AmsDataStorage::update(AmsData* data) {
                 debugger->printf("(AmsDataStorage) Too long since last day update, clearing data\n");
             }
             for(int i = 0; i<24; i++) {
-                setHour(i, 0);
+                setHourImport(i, 0);
+                setHourExport(i, 0);
             }
         } else if(now - day.lastMeterReadTime < 4000) {
-            int16_t val = (((data->getActiveImportCounter() * 1000) - day.activeImport) - ((data->getActiveExportCounter() * 1000) - day.activeExport));
-            setHour(utcYesterday.Hour, val);
+            uint32_t imp = (data->getActiveImportCounter() * 1000) - day.activeImport;
+            uint32_t exp = (data->getActiveExportCounter() * 1000) - day.activeExport;
+            setHourImport(utcYesterday.Hour, imp);
+            setHourExport(utcYesterday.Hour, exp);
 
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(AmsDataStorage) Usage for hour %d: %d\n", ltzYesterDay.Hour, val);
+            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(AmsDataStorage) Usage for hour %d: %d - %d\n", ltzYesterDay.Hour, imp, exp);
 
             day.activeImport = data->getActiveImportCounter() * 1000;
             day.activeExport = data->getActiveExportCounter() * 1000;
             day.lastMeterReadTime = now;
         } else {
             float mins = (now - day.lastMeterReadTime) / 60.0;
-            uint16_t im = ((data->getActiveImportCounter() * 1000) - day.activeImport);
-            uint16_t ex = ((data->getActiveExportCounter() * 1000) - day.activeExport);
+            uint32_t im = (data->getActiveImportCounter() * 1000) - day.activeImport;
+            uint32_t ex = (data->getActiveExportCounter() * 1000) - day.activeExport;
             float ipm = im / mins;
             float epm = ex / mins;
 
@@ -146,15 +151,17 @@ bool AmsDataStorage::update(AmsData* data) {
                 if(minutes < 1) break;
 
                 breakTime(day.lastMeterReadTime, last);
-                float val = ((ipm * minutes) - (epm * minutes));
-                setHour(last.Hour, val);
+                float imp = (ipm * minutes);
+                float exp = (epm * minutes);
+                setHourImport(last.Hour, imp);
+                setHourExport(last.Hour, exp);
 
                 if(debugger->isActive(RemoteDebug::INFO)) {
-                    debugger->printf("(AmsDataStorage) Estimated usage for hour %u: %.1f (%lld)\n", last.Hour, val, (int64_t) cur);
+                    debugger->printf("(AmsDataStorage) Estimated usage for hour %u: %.1f - %.1f (%lld)\n", last.Hour, imp, exp, (int64_t) cur);
                 }
 
-                day.activeImport += ipm * minutes;
-                day.activeExport += epm * minutes;
+                day.activeImport += imp;
+                day.activeExport += exp;
                 day.lastMeterReadTime = cur;
             }
         }
@@ -171,33 +178,23 @@ bool AmsDataStorage::update(AmsData* data) {
                 debugger->printf("(AmsDataStorage) Too long since last month update, clearing data\n");
             }
             for(int i = 1; i<=31; i++) {
-                setDay(i, 0);
+                setDayImport(i, 0);
+                setDayExport(i, 0);
             }
         } else if(now - month.lastMeterReadTime < 86500 && now - month.lastMeterReadTime > 86300) {
-            int32_t val = (month.activeImport == 0 ? 0 : ((data->getActiveImportCounter() * 1000) - month.activeImport) - ((data->getActiveExportCounter() * 1000) - month.activeExport));
+            int32_t imp = (data->getActiveImportCounter() * 1000) - month.activeImport;
+            int32_t exp = (data->getActiveExportCounter() * 1000) - month.activeExport;
 
             if(debugger->isActive(RemoteDebug::INFO)) {
-                debugger->printf("(AmsDataStorage) Usage for day %d: %d\n", ltzYesterDay.Day, val);
+                debugger->printf("(AmsDataStorage) Usage for day %d: %d - %d\n", ltzYesterDay.Day, imp, exp);
             }
 
-            setDay(ltzYesterDay.Day, val);
+            setDayImport(ltzYesterDay.Day, imp);
+            setDayExport(ltzYesterDay.Day, exp);
             month.activeImport = data->getActiveImportCounter() * 1000;
             month.activeExport = data->getActiveExportCounter() * 1000;
             month.lastMeterReadTime = now;
         } else {
-            float hrs = (now - month.lastMeterReadTime) / 3600.0;
-            uint16_t im = ((data->getActiveImportCounter() * 1000) - month.activeImport);
-            uint16_t ex = ((data->getActiveExportCounter() * 1000) - month.activeExport);
-            float iph = im / hrs;
-            float eph = ex / hrs;
-
-            // There is something wacky going on when it ends up here. The total value (im) is way way lower than it should be, which in 
-            // turn causes low values for all estimates. And then when it returns to the normal case above, the value is waaay higher.
-
-            if(debugger->isActive(RemoteDebug::DEBUG)) {
-                debugger->printf("(AmsDataStorage) Since last month update, hours: %.1f, import: %d (%.2f/hr), export: %d (%.2f/hr)\n", hrs, im, iph, ex, eph);
-            }
-
             // Make sure last month read is at midnight
             tmElements_t last;
             breakTime(tz->toLocal(month.lastMeterReadTime), last);
@@ -206,21 +203,33 @@ bool AmsDataStorage::update(AmsData* data) {
                 debugger->printf("(AmsDataStorage) Last month read after resetting to midnight: %lld\n", (int64_t) month.lastMeterReadTime);
             }
 
+            float hrs = (now - month.lastMeterReadTime) / 3600.0;
+            uint32_t im = (data->getActiveImportCounter() * 1000) - month.activeImport;
+            uint32_t ex = (data->getActiveExportCounter() * 1000) - month.activeExport;
+            float iph = im / hrs;
+            float eph = ex / hrs;
+
+            if(debugger->isActive(RemoteDebug::DEBUG)) {
+                debugger->printf("(AmsDataStorage) Since last month update, hours: %.1f, import: %d (%.2f/hr), export: %d (%.2f/hr)\n", hrs, im, iph, ex, eph);
+            }
+
             time_t stopAt = now - (ltz.Hour * 3600) - (ltz.Minute * 60) - ltz.Second;
             while(month.lastMeterReadTime < stopAt) {
                 time_t cur = min(month.lastMeterReadTime + 86400, stopAt);
                 uint8_t hours = round((cur - month.lastMeterReadTime) / 3600.0);
 
                 breakTime(tz->toLocal(month.lastMeterReadTime), last);
-                float val = ((iph * hours) - (eph * hours));
-                setDay(last.Day, val);
+                float imp = (iph * hours);
+                float exp = (eph * hours);
+                setDayImport(last.Day, imp);
+                setDayExport(last.Day, exp);
 
                 if(debugger->isActive(RemoteDebug::INFO)) {
-                    debugger->printf("(AmsDataStorage) Estimated usage for day %u: %.1f (%lld)\n", last.Day, val, (int64_t) cur);
+                    debugger->printf("(AmsDataStorage) Estimated usage for day %u: %.1f - %.1f (%lld)\n", last.Day, imp, exp, (int64_t) cur);
                 }
 
-                month.activeImport += iph * hours;
-                month.activeExport += eph * hours;
+                month.activeImport += imp;
+                month.activeExport += exp;
                 month.lastMeterReadTime = cur;
             }
         }
@@ -229,24 +238,44 @@ bool AmsDataStorage::update(AmsData* data) {
     return ret;
 }
 
-void AmsDataStorage::setHour(uint8_t hour, int32_t val) {
+void AmsDataStorage::setHourImport(uint8_t hour, int32_t val) {
     if(hour < 0 || hour > 24) return;
-    day.points[hour] = val / 10;
+    day.hImport[hour] = val / 10;
 }
 
-int32_t AmsDataStorage::getHour(uint8_t hour) {
+int32_t AmsDataStorage::getHourImport(uint8_t hour) {
     if(hour < 0 || hour > 24) return 0;
-    return day.points[hour] * 10;
+    return day.hImport[hour] * 10;
 }
 
-void AmsDataStorage::setDay(uint8_t day, int32_t val) {
+void AmsDataStorage::setHourExport(uint8_t hour, int32_t val) {
+    if(hour < 0 || hour > 24) return;
+    day.hExport[hour] = val / 10;
+}
+
+int32_t AmsDataStorage::getHourExport(uint8_t hour) {
+    if(hour < 0 || hour > 24) return 0;
+    return day.hExport[hour] * 10;
+}
+
+void AmsDataStorage::setDayImport(uint8_t day, int32_t val) {
     if(day < 1 || day > 31) return;
-    month.points[day-1] = val / 10;
+    month.dImport[day-1] = val / 10;
 }
 
-int32_t AmsDataStorage::getDay(uint8_t day) {
+int32_t AmsDataStorage::getDayImport(uint8_t day) {
     if(day < 1 || day > 31) return 0;
-    return (month.points[day-1] * 10);
+    return (month.dImport[day-1] * 10);
+}
+
+void AmsDataStorage::setDayExport(uint8_t day, int32_t val) {
+    if(day < 1 || day > 31) return;
+    month.dExport[day-1] = val / 10;
+}
+
+int32_t AmsDataStorage::getDayExport(uint8_t day) {
+    if(day < 1 || day > 31) return 0;
+    return (month.dExport[day-1] * 10);
 }
 
 bool AmsDataStorage::load() {
@@ -320,16 +349,26 @@ MonthDataPoints AmsDataStorage::getMonthData() {
 }
 
 bool AmsDataStorage::setDayData(DayDataPoints& day) {
-    if(day.version == 3) {
+    if(day.version == 4) {
         this->day = day;
+        return true;
+    } else if(day.version == 3) {
+        this->day = day;
+        for(uint8_t i = 0; i < 24; i++) this->day.hExport[i] = 0;
+        this->day.version = 4;
         return true;
     }
     return false;
 }
 
 bool AmsDataStorage::setMonthData(MonthDataPoints& month) {
-    if(month.version == 4) {
+    if(month.version == 5) {
         this->month = month;
+        return true;
+    } else if(month.version == 4) {
+        this->month = month;
+        for(uint8_t i = 0; i < 31; i++) this->month.dExport[i] = 0;
+        this->month.version = 5;
         return true;
     }
     return false;

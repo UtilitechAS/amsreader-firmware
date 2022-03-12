@@ -31,6 +31,7 @@ var eo = {
     titleTextStyle: {
         fontSize: 14
     },
+    colors: ['#6f42c1', '#6f42c1'],
     backgroundColor: { fill:'transparent' },
     bar: { groupWidth: '90%' },
     legend: { position: 'none' },
@@ -40,6 +41,7 @@ var eo = {
     },
     tooltip: { trigger: 'none'},
     enableInteractivity: false,
+    isStacked: true
 };
 
 // Month plot
@@ -50,6 +52,7 @@ var mo = {
     titleTextStyle: {
         fontSize: 14
     },
+    colors: ['#6f42c1', '#6f42c1'],
     backgroundColor: { fill:'transparent' },
     bar: { groupWidth: '90%' },
     legend: { position: 'none' },
@@ -59,6 +62,7 @@ var mo = {
     },
     tooltip: { trigger: 'none'},
     enableInteractivity: false,
+    isStacked: true
 };
 
 // Voltage plot
@@ -468,24 +472,27 @@ var drawDay = function() {
         timeout: 30000,
         dataType: 'json',
     }).done(function(json) {
-        data = [['Hour','kWh', { role: 'style' }, { role: 'annotation' }]];
+        data = [['Hour', 'Import', { role: 'style' }, { role: 'annotation' }, 'Export', { role: 'style' }]];
         var r = 1;
         var hour = moment.utc().hours();
         var offset = moment().utcOffset()/60;
         var min = 0;
         for(var i = hour; i<24; i++) {
-            var val = json["h"+zeropad(i)];
-            data[r++] = [zeropad((i+offset)%24), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(1)];
-            Math.min(0, val);
+            var imp = json["i"+zeropad(i)];
+            var exp = json["e"+zeropad(i)];
+            data[r++] = [zeropad((i+offset)%24), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(1) : imp.toFixed(1) + '\n' + -exp.toFixed(1), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            min = Math.min(0, -exp);
         };
         for(var i = 0; i < hour; i++) {
-            var val = json["h"+zeropad(i)];
-            data[r++] = [zeropad((i+offset)%24), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(1)];
-            Math.min(0, val);
+            var imp = json["i"+zeropad(i)];
+            var exp = json["e"+zeropad(i)];
+            data[r++] = [zeropad((i+offset)%24), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(1) : imp.toFixed(1) + '\n' + -exp.toFixed(1), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            min = Math.min(0, -exp);
         };
         ea = google.visualization.arrayToDataTable(data);
         if(min == 0)
             eo.vAxis.minValue = 0;
+
         ep.draw(ea, eo);
 
         setTimeout(drawDay, (61-moment().minute())*60000);
@@ -498,20 +505,22 @@ var drawMonth = function() {
         timeout: 30000,
         dataType: 'json',
     }).done(function(json) {
-        data = [['Day','kWh', { role: 'style' }, { role: 'annotation' }]];
+        data = [['Hour', 'Import', { role: 'style' }, { role: 'annotation' }, 'Export', { role: 'style' }]];
         var r = 1;
         var day = moment().date();
         var eom = moment().subtract(1, 'months').endOf('month').date();
         var min = 0;
         for(var i = day; i<=eom; i++) {
-            var val = json["d"+zeropad(i)];
-            data[r++] = [zeropad((i)), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(0)];
-            Math.min(0, val);
+            var imp = json["i"+zeropad(i)];
+            var exp = json["e"+zeropad(i)];
+            data[r++] = [zeropad(i), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(0) : imp.toFixed(0) + '\n' + -exp.toFixed(0), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            min = Math.min(0, -exp);
         }
         for(var i = 1; i < day; i++) {
-            var val = json["d"+zeropad(i)];
-            data[r++] = [zeropad((i)), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(0)];
-            Math.min(0, val);
+            var imp = json["i"+zeropad(i)];
+            var exp = json["e"+zeropad(i)];
+            data[r++] = [zeropad(i), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(0) : imp.toFixed(0) + '\n' + -exp.toFixed(0), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            min = Math.min(0, -exp);
         }
         ma = google.visualization.arrayToDataTable(data);
         if(min == 0)

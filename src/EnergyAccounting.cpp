@@ -122,7 +122,7 @@ bool EnergyAccounting::calcDayUse() {
     uint8_t lim = local.Day == 1 ? local.Hour : 24;
     for(int i = 0; i < lim; i++) {
         breakTime(now - ((lim - i) * 3600), utc);
-        int16_t val = ds->getHour(utc.Hour) / 10.0;
+        int16_t val = ds->getHourImport(utc.Hour) / 10.0;
         if(val > data.maxHour) {
             data.maxHour = val;
             ret = true;
@@ -142,7 +142,7 @@ void EnergyAccounting::calcDayCost() {
             float price = eapi->getValueForHour(i - local.Hour);
             if(price == ENTSOE_NO_VALUE) break;
             breakTime(now - ((local.Hour - i) * 3600), utc);
-            int16_t wh = ds->getHour(utc.Hour);
+            int16_t wh = ds->getHourImport(utc.Hour);
             costDay += price * (wh / 1000.0);
         }
         initPrice = true;
@@ -165,7 +165,7 @@ double EnergyAccounting::getUseToday() {
     breakTime(tz->toLocal(now), local);
     for(int i = 0; i < local.Hour; i++) {
         breakTime(now - ((local.Hour - i) * 3600), utc);
-        ret += ds->getHour(utc.Hour) / 1000.0;
+        ret += ds->getHourImport(utc.Hour) / 1000.0;
     }
     return ret + getUseThisHour();
 }
@@ -188,7 +188,7 @@ double EnergyAccounting::getUseThisMonth() {
         breakTime(now, tm);
     float ret = 0;
     for(int i = 0; i < tm.Day; i++) {
-        ret += ds->getDay(i) / 1000.0;
+        ret += ds->getDayImport(i) / 1000.0;
     }
     return ret + getUseToday();
 }

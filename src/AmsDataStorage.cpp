@@ -118,8 +118,8 @@ bool AmsDataStorage::update(AmsData* data) {
         day.lastMeterReadTime = now;
     } else {
         float mins = (now - day.lastMeterReadTime) / 60.0;
-        uint16_t im = ((data->getActiveImportCounter() * 1000) - day.activeImport);
-        uint16_t ex = ((data->getActiveExportCounter() * 1000) - day.activeExport);
+        uint32_t im = ((data->getActiveImportCounter() * 1000) - day.activeImport);
+        uint32_t ex = ((data->getActiveExportCounter() * 1000) - day.activeExport);
         float ipm = im / mins;
         float epm = ex / mins;
 
@@ -193,8 +193,8 @@ bool AmsDataStorage::update(AmsData* data) {
             month.lastMeterReadTime = now;
         } else {
             float hrs = (now - month.lastMeterReadTime) / 3600.0;
-            uint16_t im = ((data->getActiveImportCounter() * 1000) - month.activeImport);
-            uint16_t ex = ((data->getActiveExportCounter() * 1000) - month.activeExport);
+            uint32_t im = ((data->getActiveImportCounter() * 1000) - month.activeImport);
+            uint32_t ex = ((data->getActiveExportCounter() * 1000) - month.activeExport);
             float iph = im / hrs;
             float eph = ex / hrs;
 

@@ -2235,7 +2235,7 @@ void AmsWebServer::configFileDownload() {
 		DayDataPoints day = ds->getDayData();
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("dayplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			day.version,
-			day.lastMeterReadTime,
+			(int64_t) day.lastMeterReadTime,
 			day.activeImport,
 			ds->getHourImport(0),
 			ds->getHourImport(1),
@@ -2297,7 +2297,7 @@ void AmsWebServer::configFileDownload() {
 		MonthDataPoints month = ds->getMonthData();
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("monthplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			month.version,
-			month.lastMeterReadTime,
+			(int64_t) month.lastMeterReadTime,
 			month.activeImport,
 			ds->getDayImport(1),
 			ds->getDayImport(2),
@@ -2572,7 +2572,7 @@ void AmsWebServer::configFileParse() {
 			DayDataPoints day = { 4 }; // Use a version we know the multiplier of the data points
 			char * pch = strtok (buf+8," ");
 			while (pch != NULL) {
-				long val = String(pch).toInt();
+				int64_t val = String(pch).toInt();
 				if(i == 1) {
 					day.lastMeterReadTime = val;
 				} else if(i == 2) {
@@ -2594,7 +2594,7 @@ void AmsWebServer::configFileParse() {
 			MonthDataPoints month = { 5 }; // Use a version we know the multiplier of the data points
 			char * pch = strtok (buf+10," ");
 			while (pch != NULL) {
-				long val = String(pch).toInt();
+				int64_t val = String(pch).toInt();
 				if(i == 1) {
 					month.lastMeterReadTime = val;
 				} else if(i == 2) {
@@ -2614,14 +2614,14 @@ void AmsWebServer::configFileParse() {
 		} else if(strncmp(buf, "energyaccounting ", 17) == 0 && ea != NULL) {
 			int i = 0;
 			EnergyAccountingData ead = { 1 };
-			char * pch = strtok (buf+10," ");
+			char * pch = strtok (buf+17," ");
 			while (pch != NULL) {
 				if(i == 1) {
 					long val = String(pch).toInt();
 					ead.month = val;
 				} else if(i == 2) {
-					long val = String(pch).toInt();
-					ead.maxHour = val;
+					double val = String(pch).toDouble();
+					ead.maxHour = val * 100;
 				} else if(i == 3) {
 					double val = String(pch).toDouble();
 					ead.costYesterday = val * 100;

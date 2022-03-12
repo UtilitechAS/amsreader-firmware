@@ -126,7 +126,6 @@ bool AmsDataStorage::update(AmsData* data) {
             setHourExport(utcYesterday.Hour, exp);
 
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(AmsDataStorage) Usage for hour %d: %d - %d\n", ltzYesterDay.Hour, imp, exp);
-
             day.activeImport = data->getActiveImportCounter() * 1000;
             day.activeExport = data->getActiveExportCounter() * 1000;
             day.lastMeterReadTime = now;

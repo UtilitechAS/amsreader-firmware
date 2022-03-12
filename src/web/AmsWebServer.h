@@ -19,6 +19,7 @@
 	#include <ESP8266WiFi.h>
 	#include <ESP8266WebServer.h>
 	#include <ESP8266HTTPClient.h>
+	#include <ESP8266httpUpdate.h>
 #elif defined(ESP32) // ARDUINO_ARCH_ESP32
 	#include <WiFi.h>
 	#include <WebServer.h>

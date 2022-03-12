@@ -1636,15 +1636,38 @@ void AmsWebServer::firmwareDownload() {
 		httpClient.setTimeout(20000);
 		httpClient.addHeader("User-Agent", "ams2mqtt/" + String(VERSION));
 
-#if defined(ESP8266)
-		WiFiClient client;
-		String url = "http://0.0.0.0/releases/download/" + version + "/ams2mqtt-esp8266-" + versionStripped + ".bin";
-#elif defined(ESP32)
-		WiFiClientSecure client;
-		client.setInsecure();
-		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32-" + versionStripped + ".bin";
-		httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
-#endif
+		#if defined(ESP8266)
+			WiFiClient client;
+			String url = "http://ams2mqtt.no23.cc/releases/download/" + version + "/ams2mqtt-esp8266-" + versionStripped + ".bin";
+			/*
+			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
+			switch(ret) {
+				case HTTP_UPDATE_FAILED:
+					printE("[update] Update failed.");
+					server.sendHeader("Location","/");
+					server.send(303);
+					break;
+				case HTTP_UPDATE_NO_UPDATES:
+					printI("[update] Update no Update.");
+					server.sendHeader("Location","/");
+					server.send(303);
+					break;
+				case HTTP_UPDATE_OK:
+					printI("[update] Update ok."); // may not be called since we reboot the ESP
+					performRestart = true;
+					server.sendHeader("Location","/restart-wait");
+					server.send(303);
+					break;
+			}
+			
+			return;
+			*/
+		#elif defined(ESP32)
+			WiFiClientSecure client;
+			client.setInsecure();
+			String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32-" + versionStripped + ".bin";
+			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
+		#endif
 
 		if(httpClient.begin(client, url)) {
 			printD("HTTP client setup successful");

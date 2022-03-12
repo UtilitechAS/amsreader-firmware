@@ -354,7 +354,7 @@ void setup() {
 		esp_task_wdt_init(WDT_TIMEOUT, true);
  		esp_task_wdt_add(NULL);
     #elif defined(ESP8266)
-		ESP.wdtEnable(WDT_TIMEOUT);
+		ESP.wdtEnable(WDT_TIMEOUT * 1000);
 	#endif
 }
 

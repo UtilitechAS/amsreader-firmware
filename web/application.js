@@ -594,10 +594,10 @@ var voltcol = function(pct) {
 };
 
 var ampcol = function(pct) {
-    if(pct > 85) return '#d90000';
-    else if(pct > 75) return'#e32100';
-    else if(pct > 70) return '#ffb800';
-    else if(pct > 65) return '#dcd800';
+    if(pct > 90) return '#d90000';
+    else if(pct > 85) return'#e32100';
+    else if(pct > 80) return '#ffb800';
+    else if(pct > 75) return '#dcd800';
     else return '#32d900';
 };
 

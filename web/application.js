@@ -2,6 +2,7 @@ var nextVersion;
 var im, em;
 var ds = 0;
 var currency = "";
+var swatt = false;
 
 // Price plot
 var pp;
@@ -267,6 +268,11 @@ $(function() {
         inputs.prop('disabled', !$(this).is(':checked'));
     });
     $('#n').trigger('change');
+
+    $('.ipo,.epo').on('click', function() {
+        swatt = !swatt;
+        $('.ipo,.epo').html('wait');
+    });
 
     // Navbar
     switch(window.location.pathname) {
@@ -647,7 +653,7 @@ var fetch = function() {
             var v = parseInt(json.i);
             var pct = (v*100)/parseInt(json.im);
             var append = "W";
-            if(v > 1000) {
+            if(v > 1000 && !swatt) {
                 v = (v/1000).toFixed(1);
                 append = "kW";
             }
@@ -673,7 +679,7 @@ var fetch = function() {
                 var v = parseInt(json.e);
                 var pct = (v*100)/(om*1000);
                 var append = "W";
-                if(v > 1000) {
+                if(v > 1000 && !swatt) {
                     v = (v/1000).toFixed(1);
                     append = "kW";
                 }

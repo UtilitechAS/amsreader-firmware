@@ -40,11 +40,12 @@ void AmsData::apply(AmsData& other) {
     if(other.getListType() > this->listType)
         this->listType = other.getListType();
     switch(other.getListType()) {
-        case 3:
+        case 4:
             this->powerFactor = other.getPowerFactor();
             this->l1PowerFactor = other.getL1PowerFactor();
             this->l2PowerFactor = other.getL2PowerFactor();
             this->l3PowerFactor = other.getL3PowerFactor();
+        case 3:
             this->meterTimestamp = other.getMeterTimestamp();
             this->activeImportCounter = other.getActiveImportCounter();
             this->activeExportCounter = other.getActiveExportCounter();

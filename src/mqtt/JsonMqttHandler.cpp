@@ -23,6 +23,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             hw->getTemperature(),
             data->getActiveImportPower(),
             ea->getUseThisHour(),
+            ea->getUseToday(),
             ea->getCurrentThreshold()
         );
         return mqtt->publish(topic, json);
@@ -49,6 +50,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             data->getL2Voltage(),
             data->getL3Voltage(),
             ea->getUseThisHour(),
+            ea->getUseToday(),
             ea->getCurrentThreshold()
         );
         return mqtt->publish(topic, json);
@@ -80,6 +82,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             data->getReactiveExportCounter(),
             data->getMeterTimestamp(),
             ea->getUseThisHour(),
+            ea->getUseToday(),
             ea->getCurrentThreshold()
         );
         return mqtt->publish(topic, json);
@@ -115,6 +118,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             data->getReactiveExportCounter(),
             data->getMeterTimestamp(),
             ea->getUseThisHour(),
+            ea->getUseToday(),
             ea->getCurrentThreshold()
         );
         return mqtt->publish(topic, json);

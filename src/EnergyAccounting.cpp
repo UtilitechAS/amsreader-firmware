@@ -202,10 +202,6 @@ uint8_t EnergyAccounting::getCurrentThreshold() {
     return config->thresholds[currentThresholdIdx];
 }
 
-uint8_t EnergyAccounting::getCurrentHour() {
-    return currentHour;
-}
-
 float EnergyAccounting::getMonthMax() {
     return data.maxHour / 100.0;
 }

@@ -930,11 +930,6 @@ bool readHanPort() {
 
 		meterState.apply(data);
 
-		if(ea.update(&data)) {
-			debugI("Saving energy accounting");
-			ea.save();
-		}
-
 		bool saveData = false;
 		if(!ds.isHappy() && now > BUILD_EPOCH) {
 			debugD("Its time to update data storage");
@@ -951,6 +946,11 @@ bool readHanPort() {
 				debugI("Saving data");
 				ds.save();
 			}
+		}
+
+		if(ea.update(&data)) {
+			debugI("Saving energy accounting");
+			ea.save();
 		}
 	}
 	delay(1);

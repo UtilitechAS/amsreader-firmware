@@ -35,6 +35,7 @@ public:
 
     float getMonthMax();
     uint8_t getCurrentThreshold();
+    uint8_t getCurrentHour();
 
     EnergyAccountingData getData();
     void setData(EnergyAccountingData&);

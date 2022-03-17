@@ -52,7 +52,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         calcDayCost();
     }
 
-    if(amsData->getListType() >= 3 && local.Hour != currentHour) {
+    if(local.Hour != currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New local hour %d\n", local.Hour);
 
         if(calcDayUse()) ret = true;
@@ -102,12 +102,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     if(config != NULL) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  calculating threshold, currently at %d\n", currentThresholdIdx);
         while(getMonthMax() > config->thresholds[currentThresholdIdx] && currentThresholdIdx < 10) currentThresholdIdx++;
-        while(use > config->thresholds[currentThresholdIdx] && currentThresholdIdx < 10) currentThresholdIdx++;
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  new threshold %d\n", currentThresholdIdx);
-    }
-
-    if(use > data.maxHour) {
-        data.maxHour = use; // Not really a good idea to use calculated value, but when you pass midnight and have the highest use at hour 23, it will not be included through 'calcDayUse'
     }
 
     return ret;
@@ -205,6 +200,10 @@ uint8_t EnergyAccounting::getCurrentThreshold() {
     if(config == NULL)
         return 0;
     return config->thresholds[currentThresholdIdx];
+}
+
+uint8_t EnergyAccounting::getCurrentHour() {
+    return currentHour;
 }
 
 float EnergyAccounting::getMonthMax() {

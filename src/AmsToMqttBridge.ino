@@ -48,14 +48,16 @@ ADC_MODE(ADC_VCC);
 
 #include "RemoteDebug.h"
 
-#define BUF_SIZE (2048)
+#define BUF_SIZE_COMMON (2048)
+#define BUF_SIZE_HAN (1024)
 #include "ams/hdlc.h"
 #include "MbusAssembler.h"
 
 #include "IEC6205621.h"
 #include "IEC6205675.h"
 
-uint8_t buf[BUF_SIZE];
+uint8_t commonBuffer[BUF_SIZE_COMMON];
+uint8_t hanBuffer[BUF_SIZE_HAN];
 
 HwTools hw;
 
@@ -69,7 +71,7 @@ EntsoeApi* eapi = NULL;
 
 Timezone* tz;
 
-AmsWebServer ws(buf, &Debug, &hw);
+AmsWebServer ws(commonBuffer, &Debug, &hw);
 
 MQTTClient *mqtt = NULL;
 WiFiClient *mqttClient = new WiFiClient();
@@ -747,7 +749,7 @@ bool readHanPort() {
 	if(!hanSerial->available()) return false;
 
 	if(currentMeterType == -1) {
-		hanSerial->readBytes(buf, BUF_SIZE);
+		hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
 		currentMeterType = 0;
 		return false;
 	}
@@ -755,7 +757,7 @@ bool readHanPort() {
 		uint8_t flag = hanSerial->read();
 		if(flag == 0x7E || flag == 0x68) currentMeterType = 1;
 		else currentMeterType = 2;
-		hanSerial->readBytes(buf, BUF_SIZE);
+		hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
 		return false;
 	}
 	CosemDateTime timestamp = {0};
@@ -763,12 +765,12 @@ bool readHanPort() {
 	if(currentMeterType == 1) {
 		int pos = HDLC_FRAME_INCOMPLETE;
 		while(hanSerial->available() && pos == HDLC_FRAME_INCOMPLETE) {
-			buf[len++] = hanSerial->read();
-			pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
+			hanBuffer[len++] = hanSerial->read();
+			pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp);
 		}
 		if(len > 0) {
-			if(len >= BUF_SIZE) {
-				hanSerial->readBytes(buf, BUF_SIZE);
+			if(len >= BUF_SIZE_HAN) {
+				hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
 				len = 0;
 				debugI("Buffer overflow, resetting");
 				return false;
@@ -778,11 +780,11 @@ bool readHanPort() {
 				if(ma == NULL) {
 					ma = new MbusAssembler();
 				}
-				if(ma->append((uint8_t *) buf, len) < 0)
+				if(ma->append((uint8_t *) hanBuffer, len) < 0)
 					pos = -77;
 				if(Debug.isActive(RemoteDebug::VERBOSE)) {
 					debugD("Frame dump (%db):", len);
-					debugPrint(buf, 0, len);
+					debugPrint(hanBuffer, 0, len);
 				}
 				len = 0;
 				return false;
@@ -790,11 +792,11 @@ bool readHanPort() {
 				debugI("Final segment");
 				if(Debug.isActive(RemoteDebug::VERBOSE)) {
 					debugD("Frame dump (%db):", len);
-					debugPrint(buf, 0, len);
+					debugPrint(hanBuffer, 0, len);
 				}
-				if(ma->append((uint8_t *) buf, len) >= 0) {
-					len = ma->write((uint8_t *) buf);
-					pos = HDLC_validate((uint8_t *) buf, len, hc, &timestamp);
+				if(ma->append((uint8_t *) hanBuffer, len) >= 0) {
+					len = ma->write((uint8_t *) hanBuffer);
+					pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp);
 				} else {
 					pos = -77;
 				}
@@ -802,8 +804,8 @@ bool readHanPort() {
 			if(pos == HDLC_FRAME_INCOMPLETE) {
 				return false;
 			}
-			for(int i = len; i<BUF_SIZE; i++) {
-				buf[i] = 0x00;
+			for(int i = len; i<BUF_SIZE_HAN; i++) {
+				hanBuffer[i] = 0x00;
 			}
 			if(pos == HDLC_ENCRYPTION_CONFIG_MISSING) {
 				hc = new HDLCConfig();
@@ -812,7 +814,7 @@ bool readHanPort() {
 			}
 			if(Debug.isActive(RemoteDebug::VERBOSE)) {
 				debugD("Frame dump (%db):", len);
-				debugPrint(buf, 0, len);
+				debugPrint(hanBuffer, 0, len);
 			}
 			if(hc != NULL && Debug.isActive(RemoteDebug::VERBOSE)) {
 				debugD("System title:");
@@ -825,12 +827,12 @@ bool readHanPort() {
 				debugPrint(hc->authentication_tag, 0, 12);
 			}
 			if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
-				mqtt->publish(topic.c_str(), toHex(buf, len));
+				mqtt->publish(topic.c_str(), toHex(hanBuffer, len));
 			}
 			len = 0;
 			if(pos > 0) {
 				debugD("Valid data, start at byte %d", pos);
-				data = IEC6205675(((char *) (buf)) + pos, meterState.getMeterType(), meterConfig.distributionSystem, timestamp, hc);
+				data = IEC6205675(((char *) (hanBuffer)) + pos, meterState.getMeterType(), meterConfig.distributionSystem, timestamp, hc);
 			} else {
 				if(Debug.isActive(RemoteDebug::WARNING)) {
 					switch(pos) {
@@ -869,7 +871,7 @@ bool readHanPort() {
 							debugW("Frame timestamp is not correctly formatted");
 							break;
 						case HDLC_UNKNOWN_DATA:
-							debugW("Unknown data format %02X", buf[0]);
+							debugW("Unknown data format %02X", hanBuffer[0]);
 							currentMeterType = 0;
 							break;
 						default:
@@ -1155,19 +1157,19 @@ void MQTT_connect() {
 
 	switch(mqttConfig.payloadFormat) {
 		case 0:
-			mqttHandler = new JsonMqttHandler(mqtt, (char*) buf, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
+			mqttHandler = new JsonMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
 			break;
 		case 1:
 		case 2:
-			mqttHandler = new RawMqttHandler(mqtt, (char*) buf, mqttConfig.publishTopic, mqttConfig.payloadFormat == 2);
+			mqttHandler = new RawMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.publishTopic, mqttConfig.payloadFormat == 2);
 			break;
 		case 3:
 			DomoticzConfig domo;
 			config.getDomoticzConfig(domo);
-			mqttHandler = new DomoticzMqttHandler(mqtt, (char*) buf, domo);
+			mqttHandler = new DomoticzMqttHandler(mqtt, (char*) commonBuffer, domo);
 			break;
 		case 4:
-			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) buf, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
+			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
 			break;
 	}
 
@@ -1249,8 +1251,8 @@ void MQTT_connect() {
 			debugE("Failed to connect to MQTT: %d", mqtt->lastError());
 			#if defined(ESP8266)
 				if(mqttSecureClient) {
-					mqttSecureClient->getLastSSLError((char*) buf, BUF_SIZE);
-					Debug.println((char*) buf);
+					mqttSecureClient->getLastSSLError((char*) commonBuffer, BUF_SIZE_COMMON);
+					Debug.println((char*) commonBuffer);
 				}
 			#endif
 		}

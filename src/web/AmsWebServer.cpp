@@ -49,6 +49,7 @@
 #include "root/energyprice_json.h"
 #include "root/thresholds_html.h"
 #include "root/configfile_html.h"
+#include "root/meteradvanced_html.h"
 
 #include "base64.h"
 
@@ -75,6 +76,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/temperature", HTTP_POST, std::bind(&AmsWebServer::temperaturePost, this));
 	server.on("/temperature.json", HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
 	server.on("/meter", HTTP_GET, std::bind(&AmsWebServer::configMeterHtml, this));
+	server.on("/meteradvanced", HTTP_GET, std::bind(&AmsWebServer::configMeterAdvancedHtml, this));
 	server.on("/wifi", HTTP_GET, std::bind(&AmsWebServer::configWifiHtml, this));
 	server.on("/mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
 	server.on("/web", HTTP_GET, std::bind(&AmsWebServer::configWebHtml, this));
@@ -385,6 +387,29 @@ void AmsWebServer::configMeterHtml() {
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
+}
+
+void AmsWebServer::configMeterAdvancedHtml() {
+	printD("Serving /meteradvanced.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	snprintf_P(buf, BufferSize, METERADVANCED_HTML,
+		meterConfig->wattageMultiplier / 1000.0,
+		meterConfig->voltageMultiplier / 1000.0,
+		meterConfig->amperageMultiplier / 1000.0,
+		meterConfig->accumulatedMultiplier / 1000.0
+	);
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(strlen(buf) + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
+	server.sendContent(buf);
 	server.sendContent_P(FOOT_HTML);
 }
 
@@ -1134,6 +1159,7 @@ void AmsWebServer::handleSave() {
 
 	if(server.hasArg("mc") && server.arg("mc") == "true") {
 		printD("Received meter config");
+		config->getMeterConfig(*meterConfig);
 		meterConfig->baud = server.arg("b").toInt();
 		meterConfig->parity = server.arg("c").toInt();
 		meterConfig->invert = server.hasArg("i") && server.arg("i") == "true";
@@ -1153,6 +1179,16 @@ void AmsWebServer::handleSave() {
 			authenticationKeyHex.replace("0x", "");
 			fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
 		}
+		config->setMeterConfig(*meterConfig);
+	}
+
+	if(server.hasArg("ma") && server.arg("ma") == "true") {
+		printD("Received meter advanced config");
+		config->getMeterConfig(*meterConfig);
+		meterConfig->wattageMultiplier = server.arg("wm").toDouble() * 1000;
+		meterConfig->voltageMultiplier = server.arg("vm").toDouble() * 1000;
+		meterConfig->amperageMultiplier = server.arg("am").toDouble() * 1000;
+		meterConfig->accumulatedMultiplier = server.arg("cm").toDouble() * 1000;
 		config->setMeterConfig(*meterConfig);
 	}
 

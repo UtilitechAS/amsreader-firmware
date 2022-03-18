@@ -76,6 +76,7 @@ private:
 	void temperaturePost();
 	void temperatureJson();
 	void configMeterHtml();
+	void configMeterAdvancedHtml();
 	void configWifiHtml();
 	void configMqttHtml();
 	void configWebHtml();

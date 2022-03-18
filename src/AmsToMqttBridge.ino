@@ -832,7 +832,7 @@ bool readHanPort() {
 			len = 0;
 			if(pos > 0) {
 				debugD("Valid data, start at byte %d", pos);
-				data = IEC6205675(((char *) (hanBuffer)) + pos, meterState.getMeterType(), meterConfig.distributionSystem, timestamp, hc);
+				data = IEC6205675(((char *) (hanBuffer)) + pos, meterState.getMeterType(), &meterConfig, timestamp, hc);
 			} else {
 				if(Debug.isActive(RemoteDebug::WARNING)) {
 					switch(pos) {

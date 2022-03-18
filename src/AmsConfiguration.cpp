@@ -645,6 +645,14 @@ bool AmsConfiguration::hasConfig() {
 					configVersion = 0;
 					return false;
 				}
+			case 93:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig93()) {
+					configVersion = 94;
+				} else {
+					configVersion = 0;
+					return false;
+				}
 			case EEPROM_CHECK_SUM:
 				return true;
 			default:
@@ -775,8 +783,6 @@ bool AmsConfiguration::relocateConfig91() {
 }
 
 bool AmsConfiguration::relocateConfig92() {
-	saveToFs();
-
 	WiFiConfig wifi;
 	EEPROM.begin(EEPROM_SIZE);
     EEPROM.get(CONFIG_WIFI_START, wifi);
@@ -792,6 +798,21 @@ bool AmsConfiguration::relocateConfig92() {
 	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 93);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig93() {
+	MeterConfig meter;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_METER_START_93, meter);
+	meter.wattageMultiplier = 0;
+	meter.voltageMultiplier = 0;
+	meter.amperageMultiplier = 0;
+	meter.accumulatedMultiplier = 0;
+	EEPROM.put(CONFIG_METER_START, meter);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 94);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;

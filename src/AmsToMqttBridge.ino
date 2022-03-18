@@ -258,7 +258,9 @@ void setup() {
 	if(hasFs) {
 		bool flashed = false;
 		if(LittleFS.exists(FILE_FIRMWARE)) {
-			if (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH) {
+			if (!config.hasConfig()) {
+				debugI("Device has no config, yet a firmware file exists, deleting file.");
+			} else if (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH) {
 				if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
 				#if defined(ESP8266)
 					WiFi.setSleepMode(WIFI_LIGHT_SLEEP);

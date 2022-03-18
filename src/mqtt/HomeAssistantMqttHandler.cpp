@@ -227,7 +227,8 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
                 VERSION,
                 haManuf.c_str(),
                 haUrl.c_str(),
-                strlen_P(HA_STACL[i]) > 0 ? (char *) FPSTR(HA_STACL[i]) : "null"
+                strlen_P(HA_STACL[i]) > 0 ? ", \"stat_cla\" :" : "",
+                strlen_P(HA_STACL[i]) > 0 ? (char *) FPSTR(HA_STACL[i]) : ""
             );
             mqtt->publish(haTopic + haUID + "_" + FPSTR(HA_PARAMS[i]) + "/config", json, true, 0);
         }

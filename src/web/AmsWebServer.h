@@ -95,7 +95,6 @@ private:
 	void configFileHtml();
 	void configFileDownload();
 	void configFileUpload();
-	void configFileParse();
 
 	void handleSetup();
 	void handleSave();
@@ -111,7 +110,7 @@ private:
 
 	void uploadHtml(const char* label, const char* action, const char* menu);
 	void deleteHtml(const char* label, const char* action, const char* menu);
-	void uploadFile(const char* path);
+	HTTPUpload& uploadFile(const char* path);
 	void deleteFile(const char* path);
 	void uploadPost();
 	void mqttCa();

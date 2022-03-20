@@ -1519,7 +1519,7 @@ void AmsWebServer::uploadPost() {
 	server.send(200);
 }
 
-void AmsWebServer::uploadFile(const char* path) {
+HTTPUpload& AmsWebServer::uploadFile(const char* path) {
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START){
 		if(uploading) {
@@ -1535,14 +1535,9 @@ void AmsWebServer::uploadFile(const char* path) {
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf("handleFileUpload file: %s\n", path);
 			}
-			#if defined(ESP32)
-				if(debugger->isActive(RemoteDebug::DEBUG)) {
-					debugger->printf("handleFileUpload Free heap: %lu\n", ESP.getFreeHeap());
-					debugger->printf("handleFileUpload LittleFS size: %lu\n", LittleFS.totalBytes());
-					debugger->printf("handleFileUpload LittleFS used: %lu\n", LittleFS.usedBytes());
-					debugger->printf("handleFileUpload LittleFS free: %lu\n", LittleFS.totalBytes()-LittleFS.usedBytes());
-				}
-			#endif
+			if(LittleFS.exists(path)) {
+				LittleFS.remove(path);
+			}
 		    file = LittleFS.open(path, "w");
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf("handleFileUpload Open file and write: %lu\n", upload.currentSize);
@@ -1563,15 +1558,6 @@ void AmsWebServer::uploadFile(const char* path) {
 			}
 			delay(1);
 			if(written != upload.currentSize) {
-				#if defined(ESP32)
-					if(debugger->isActive(RemoteDebug::DEBUG)) {
-						debugger->printf("handleFileUpload Free heap: %lu\n", ESP.getFreeHeap());
-						debugger->printf("handleFileUpload LittleFS size: %lu\n", LittleFS.totalBytes());
-						debugger->printf("handleFileUpload LittleFS used: %lu\n", LittleFS.usedBytes());
-						debugger->printf("handleFileUpload LittleFS free: %lu\n", LittleFS.totalBytes()-LittleFS.usedBytes());
-					}
-				#endif
-
 				file.flush();
 				file.close();
 				LittleFS.remove(path);
@@ -1586,17 +1572,12 @@ void AmsWebServer::uploadFile(const char* path) {
         if(file) {
 			file.flush();
             file.close();
-		    file = LittleFS.open(path, "r");
-			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf("handleFileUpload Size: %lu\n", upload.totalSize);
-				debugger->printf("handleFileUpload File size: %lu\n", file.size());
-			}
-            file.close();
-			LittleFS.end();
+//			LittleFS.end();
         } else {
             server.send(500, MIME_PLAIN, "500: couldn't create file");
         }
     }
+	return upload;
 }
 
 void AmsWebServer::deleteFile(const char* path) {
@@ -2424,287 +2405,10 @@ void AmsWebServer::configFileUpload() {
 	if(!checkSecurity(1))
 		return;
 
-	uploadFile(FILE_CFG);
-    HTTPUpload& upload = server.upload();
+	HTTPUpload& upload = uploadFile(FILE_CFG);
     if(upload.status == UPLOAD_FILE_END) {
-		configFileParse();
-	}
-}
-
-void AmsWebServer::configFileParse() {
-	printD("Reading /configfile.cfg from http...");
-	uploading = false;
-
-	if(!checkSecurity(1))
-		return;
-	
-	if(!LittleFS.begin()) {
-		printE("Cannot start LittleFS");
-		return notFound();
-	}
-
-	if(!LittleFS.exists(FILE_CFG)) {
-		printW("Config file does not exist");
-		return notFound();
-	}
-
-	File file = LittleFS.open(FILE_CFG, "r");
-
-	SystemConfig sys;
-	config->getSystemConfig(sys);
-	WiFiConfig wifi;
-	config->getWiFiConfig(wifi);
-	MqttConfig mqtt;
-	config->getMqttConfig(mqtt);
-	WebConfig web;
-	config->getWebConfig(web);
-	MeterConfig meter;
-	config->getMeterConfig(meter);
-	GpioConfig gpio;
-	config->getGpioConfig(gpio);
-	DomoticzConfig domo;
-	config->getDomoticzConfig(domo);
-	NtpConfig ntp;
-	config->getNtpConfig(ntp);
-	EntsoeConfig entsoe;
-	config->getEntsoeConfig(entsoe);
-	EnergyAccountingConfig eac;
-	config->getEnergyAccountingConfig(eac);
-
-	size_t size;
-	char buf[256];
-	memset(buf, 0, 256);
-	while((size = file.readBytesUntil('\n', buf, 256)) > 0) {
-		if(strncmp(buf, "boardType ", 10) == 0) {
-			sys.boardType = String(buf+10).toInt();
-		} else if(strncmp(buf, "ssid ", 5) == 0) {
-			memcpy(wifi.ssid, buf+5, size-5);
-		} else if(strncmp(buf, "psk ", 4) == 0) {
-			memcpy(wifi.psk, buf+4, size-4);
-		} else if(strncmp(buf, "ip ", 3) == 0) {
-			memcpy(wifi.ip, buf+3, size-3);
-		} else if(strncmp(buf, "gateway ", 8) == 0) {
-			memcpy(wifi.gateway, buf+8, size-8);
-		} else if(strncmp(buf, "subnet ", 7) == 0) {
-			memcpy(wifi.subnet, buf+7, size-7);
-		} else if(strncmp(buf, "dns1 ", 5) == 0) {
-			memcpy(wifi.dns1, buf+5, size-5);
-		} else if(strncmp(buf, "dns2 ", 5) == 0) {
-			memcpy(wifi.dns2, buf+5, size-5);
-		} else if(strncmp(buf, "hostname ", 9) == 0) {
-			memcpy(wifi.hostname, buf+9, size-9);
-		} else if(strncmp(buf, "mdns ", 5) == 0) {
-			wifi.mdns = String(buf+5).toInt() == 1;;
-		} else if(strncmp(buf, "mqttHost ", 9) == 0) {
-			memcpy(mqtt.host, buf+9, size-9);
-		} else if(strncmp(buf, "mqttPort ", 9) == 0) {
-			mqtt.port = String(buf+9).toInt();
-		} else if(strncmp(buf, "mqttClientId ", 13) == 0) {
-			memcpy(mqtt.clientId, buf+13, size-13);
-		} else if(strncmp(buf, "mqttPublishTopic ", 17) == 0) {
-			memcpy(mqtt.publishTopic, buf+17, size-17);
-		} else if(strncmp(buf, "mqttUsername ", 13) == 0) {
-			memcpy(mqtt.username, buf+13, size-13);
-		} else if(strncmp(buf, "mqttPassword ", 13) == 0) {
-			memcpy(mqtt.password, buf+13, size-13);
-		} else if(strncmp(buf, "mqttPayloadFormat ", 18) == 0) {
-			mqtt.payloadFormat = String(buf+18).toInt();
-		} else if(strncmp(buf, "mqttSsl ", 8) == 0) {
-			mqtt.ssl = String(buf+8).toInt() == 1;;
-		} else if(strncmp(buf, "webSecurity ", 12) == 0) {
-			web.security = String(buf+12).toInt();
-		} else if(strncmp(buf, "webUsername ", 12) == 0) {
-			memcpy(web.username, buf+12, size-12);
-		} else if(strncmp(buf, "webPassword ", 12) == 0) {
-			memcpy(web.username, buf+12, size-12);
-		} else if(strncmp(buf, "meterBaud ", 10) == 0) {
-			meter.baud = String(buf+10).toInt();
-		} else if(strncmp(buf, "meterParity ", 12) == 0) {
-			if(strncmp(buf+12, "7N1", 3) == 0) meter.parity = 2;
-			if(strncmp(buf+12, "8N1", 3) == 0) meter.parity = 3;
-			if(strncmp(buf+12, "7E1", 3) == 0) meter.parity = 10;
-			if(strncmp(buf+12, "8E1", 3) == 0) meter.parity = 11;
-		} else if(strncmp(buf, "meterInvert ", 12) == 0) {
-			meter.invert = String(buf+12).toInt() == 1;;
-		} else if(strncmp(buf, "meterDistributionSystem ", 24) == 0) {
-			meter.distributionSystem = String(buf+24).toInt();
-		} else if(strncmp(buf, "meterMainFuse ", 14) == 0) {
-			meter.mainFuse = String(buf+14).toInt();
-		} else if(strncmp(buf, "meterProductionCapacity ", 24) == 0) {
-			meter.productionCapacity = String(buf+24).toInt();
-		} else if(strncmp(buf, "meterEncryptionKey ", 19) == 0) {
-			fromHex(meter.encryptionKey, String(buf+19), 16);
-		} else if(strncmp(buf, "meterAuthenticationKey ", 23) == 0) {
-			fromHex(meter.authenticationKey, String(buf+19), 16);
-		} else if(strncmp(buf, "gpioHanPin ", 11) == 0) {
-			gpio.hanPin = String(buf+11).toInt();
-		} else if(strncmp(buf, "gpioApPin ", 10) == 0) {
-			gpio.apPin = String(buf+10).toInt();
-		} else if(strncmp(buf, "gpioLedPin ", 11) == 0) {
-			gpio.ledPin = String(buf+11).toInt();
-		} else if(strncmp(buf, "gpioLedInverted ", 16) == 0) {
-			gpio.ledInverted = String(buf+16).toInt() == 1;
-		} else if(strncmp(buf, "gpioLedPinRed ", 14) == 0) {
-			gpio.ledPinRed = String(buf+14).toInt();
-		} else if(strncmp(buf, "gpioLedPinGreen ", 16) == 0) {
-			gpio.ledPinGreen = String(buf+16).toInt();
-		} else if(strncmp(buf, "gpioLedPinBlue ", 15) == 0) {
-			gpio.ledPinBlue = String(buf+15).toInt();
-		} else if(strncmp(buf, "gpioLedRgbInverted ", 19) == 0) {
-			gpio.ledRgbInverted = String(buf+19).toInt() == 1;
-		} else if(strncmp(buf, "gpioTempSensorPin ", 18) == 0) {
-			gpio.tempSensorPin = String(buf+18).toInt();
-		} else if(strncmp(buf, "gpioTempAnalogSensorPin ", 24) == 0) {
-			gpio.tempAnalogSensorPin = String(buf+24).toInt();
-		} else if(strncmp(buf, "gpioVccPin ", 11) == 0) {
-			gpio.vccPin = String(buf+11).toInt();
-		} else if(strncmp(buf, "gpioVccOffset ", 14) == 0) {
-			gpio.vccOffset = String(buf+14).toDouble() * 100;
-		} else if(strncmp(buf, "gpioVccMultiplier ", 18) == 0) {
-			gpio.vccMultiplier = String(buf+18).toDouble() * 1000;
-		} else if(strncmp(buf, "gpioVccBootLimit ", 17) == 0) {
-			gpio.vccBootLimit = String(buf+17).toDouble() * 10;
-		} else if(strncmp(buf, "gpioVccResistorGnd ", 19) == 0) {
-			gpio.vccResistorGnd = String(buf+19).toInt();
-		} else if(strncmp(buf, "gpioVccResistorVcc ", 19) == 0) {
-			gpio.vccResistorVcc = String(buf+19).toInt();
-		} else if(strncmp(buf, "domoticzElidx ", 14) == 0) {
-			domo.elidx = String(buf+14).toInt();
-		} else if(strncmp(buf, "domoticzVl1idx ", 15) == 0) {
-			domo.vl1idx = String(buf+15).toInt();
-		} else if(strncmp(buf, "domoticzVl2idx ", 15) == 0) {
-			domo.vl2idx = String(buf+15).toInt();
-		} else if(strncmp(buf, "domoticzVl3idx ", 15) == 0) {
-			domo.vl3idx = String(buf+15).toInt();
-		} else if(strncmp(buf, "domoticzCl1idx ", 15) == 0) {
-			domo.cl1idx = String(buf+15).toInt();
-		} else if(strncmp(buf, "ntpEnable ", 10) == 0) {
-			ntp.enable = String(buf+10).toInt() == 1;
-		} else if(strncmp(buf, "ntpDhcp ", 8) == 0) {
-			ntp.dhcp = String(buf+8).toInt() == 1;
-		} else if(strncmp(buf, "ntpOffset ", 10) == 0) {
-			ntp.offset = String(buf+10).toInt() / 10;
-		} else if(strncmp(buf, "ntpSummerOffset ", 16) == 0) {
-			ntp.summerOffset = String(buf+16).toInt() / 10;
-		} else if(strncmp(buf, "ntpServer ", 10) == 0) {
-			memcpy(ntp.server, buf+10, size-10);
-		} else if(strncmp(buf, "entsoeToken ", 12) == 0) {
-			memcpy(entsoe.token, buf+12, size-12);
-		} else if(strncmp(buf, "entsoeArea ", 11) == 0) {
-			memcpy(entsoe.area, buf+11, size-11);
-		} else if(strncmp(buf, "entsoeCurrency ", 15) == 0) {
-			memcpy(entsoe.currency, buf+15, size-15);
-		} else if(strncmp(buf, "entsoeMultiplier ", 17) == 0) {
-			entsoe.multiplier = String(buf+17).toDouble() * 1000;
-		} else if(strncmp(buf, "thresholds ", 11) == 0) {
-			int i = 0;
-			char * pch = strtok (buf+11," ");
-			while (pch != NULL) {
-				eac.thresholds[i++] = String(pch).toInt();
-				pch = strtok (NULL, " ");
-			}
-		} else if(strncmp(buf, "dayplot ", 8) == 0 && ds != NULL) {
-			int i = 0;
-			DayDataPoints day = { 4 }; // Use a version we know the multiplier of the data points
-			char * pch = strtok (buf+8," ");
-			while (pch != NULL) {
-				int64_t val = String(pch).toInt();
-				if(i == 1) {
-					day.lastMeterReadTime = val;
-				} else if(i == 2) {
-					day.activeImport = val;
-				} else if(i > 2 && i < 27) {
-					day.hImport[i-3] = val / 10;
-				} else if(i == 27) {
-					day.activeExport = val;
-				} else if(i > 27 && i < 52) {
-					day.hExport[i-28] = val / 10;
-				}
-
-				pch = strtok (NULL, " ");
-				i++;
-			}
-			ds->setDayData(day);
-		} else if(strncmp(buf, "monthplot ", 10) == 0 && ds != NULL) {
-			int i = 0;
-			MonthDataPoints month = { 5 }; // Use a version we know the multiplier of the data points
-			char * pch = strtok (buf+10," ");
-			while (pch != NULL) {
-				int64_t val = String(pch).toInt();
-				if(i == 1) {
-					month.lastMeterReadTime = val;
-				} else if(i == 2) {
-					month.activeImport = val;
-				} else if(i > 2 && i < 34) {
-					month.dImport[i-3] = val / 10;
-				} else if(i == 34) {
-					month.activeExport = val;
-				} else if(i > 34 && i < 66) {
-					month.dExport[i-35] = val / 10;
-				}
-
-				pch = strtok (NULL, " ");
-				i++;
-			}
-			ds->setMonthData(month);
-		} else if(strncmp(buf, "energyaccounting ", 17) == 0 && ea != NULL) {
-			int i = 0;
-			EnergyAccountingData ead = { 1 };
-			char * pch = strtok (buf+17," ");
-			while (pch != NULL) {
-				if(i == 1) {
-					long val = String(pch).toInt();
-					ead.month = val;
-				} else if(i == 2) {
-					double val = String(pch).toDouble();
-					ead.maxHour = val * 100;
-				} else if(i == 3) {
-					double val = String(pch).toDouble();
-					ead.costYesterday = val * 100;
-				} else if(i == 4) {
-					double val = String(pch).toDouble();
-					ead.costThisMonth = val * 100;
-				} else if(i == 5) {
-					double val = String(pch).toDouble();
-					ead.costLastMonth = val * 100;
-				}
-				pch = strtok (NULL, " ");
-				i++;
-			}
-			ea->setData(ead);
-		}
-		memset(buf, 0, 256);
-	}
-
-	printI("Saving configuration now...");
-	config->setSystemConfig(sys);
-	config->setWiFiConfig(wifi);
-	config->setMqttConfig(mqtt);
-	config->setWebConfig(web);
-	config->setMeterConfig(meter);
-	config->setGpioConfig(gpio);
-	config->setDomoticzConfig(domo);
-	config->setNtpConfig(ntp);
-	config->setEntsoeConfig(entsoe);
-	config->setEnergyAccountingConfig(eac);
-	if(ds != NULL) ds->save();
-	if(ea != NULL) ea->save();
-
-	if (config->save()) {
-		printI("Successfully saved.");
-		if(config->isWifiChanged()) {
-			performRestart = true;
-            server.sendHeader("Location","/restart-wait");
-            server.send(303);
-		} else {
-			server.sendHeader("Location", String("/"), true);
-			server.send (302, MIME_PLAIN, "");
-
-			hw->setup(gpioConfig, config);
-		}
-	} else {
-		printE("Error saving configuration");
-		String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
-		server.send(500, MIME_HTML, html);
+		performRestart = true;
+		server.sendHeader("Location","/restart-wait");
+		server.send(303);
 	}
 }

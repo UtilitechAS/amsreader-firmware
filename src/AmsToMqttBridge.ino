@@ -256,7 +256,9 @@ void setup() {
 	delay(1);
 
 	if(hasFs) {
-		LittleFS.gc();
+		#if defined(ESP8266)
+			LittleFS.gc();
+		#endif
 		bool flashed = false;
 		if(LittleFS.exists(FILE_FIRMWARE)) {
 			if (!config.hasConfig()) {

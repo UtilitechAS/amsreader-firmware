@@ -210,6 +210,7 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
         #elif defined(ESP32)
 			String haUID = WiFi.getHostname();
         #endif
+        haUID.replace("-", "_");
         String haUrl = "http://" + haUID + ".local/";
 
         for(int i=0;i<sensors;i++){

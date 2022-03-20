@@ -210,8 +210,8 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
         #elif defined(ESP32)
 			String haUID = WiFi.getHostname();
         #endif
-        haUID.replace("-", "_");
         String haUrl = "http://" + haUID + ".local/";
+        // Could this be necessary? haUID.replace("-", "_");
 
         for(int i=0;i<sensors;i++){
             snprintf_P(json, BufferSize, HADISCOVER_JSON,

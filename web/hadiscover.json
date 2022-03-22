@@ -4,7 +4,7 @@
     "uniq_id" : "%s_%s",
     "obj_id" : "%s_%s",
     "unit_of_meas" : "%s",
-    "val_tpl" : "{%% if value_json.%s is defined %%} {{ value_json.%s }} {%% else %%} {{(states.sensor.%s_%s|float)}} {%% endif %%}",
+    "val_tpl" : "{{ value_json.%s | is_defined }}",
     "dev_cla" : "%s",
     "dev" : {
       "ids" : [ "%s" ],

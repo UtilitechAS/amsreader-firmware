@@ -1411,7 +1411,9 @@ void AmsWebServer::configGpioHtml() {
 
 	String html = String((const __FlashStringHelper*) GPIO_HTML);
 
-	#if defined(ESP32)
+	#if defined(CONFIG_IDF_TARGET_ESP32S2)
+		html.replace("${gpio.max}", "44");
+	#elif defined(ESP32)
 		html.replace("${gpio.max}", "39");
 	#else
 		html.replace("${gpio.max}", "16");
@@ -1479,7 +1481,10 @@ String AmsWebServer::getSerialSelectOptions(int selected) {
 	} else {
 		gpioOptions += "<option value=\"3\">UART0 (GPIO3)</option>";
 	}
-	#if defined(ESP32)
+	#if defined(CONFIG_IDF_TARGET_ESP32S2)
+		int numGpio = 31;
+		int gpios[] = {4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,21,22,23,25,32,33,34,35,36,39,40,41,42,43,44};
+	#elif defined(ESP32)
 		int numGpio = 24;
 		int gpios[] = {4,5,6,7,8,10,11,12,13,14,15,17,18,19,21,22,23,25,32,33,34,35,36,39};
 		if(selected == 9) {

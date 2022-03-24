@@ -845,7 +845,7 @@ var fetch = function() {
                 $('.jmt').html("Landis");
                 break;
             case 10:
-                $('.jmt').html("Sagecom");
+                $('.jmt').html("Sagemcom");
                 break;
             default:
                 $('.jmt').html("");

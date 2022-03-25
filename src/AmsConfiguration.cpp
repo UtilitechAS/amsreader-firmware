@@ -212,6 +212,10 @@ void AmsConfiguration::clearMeter(MeterConfig& config) {
 	config.productionCapacity = 0;
 	memset(config.encryptionKey, 0, 16);
 	memset(config.authenticationKey, 0, 16);
+	config.wattageMultiplier = 0;
+	config.voltageMultiplier = 0;
+	config.amperageMultiplier = 0;
+	config.accumulatedMultiplier = 0;
 }
 
 bool AmsConfiguration::isMeterChanged() {

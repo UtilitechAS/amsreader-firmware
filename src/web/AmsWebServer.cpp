@@ -1606,6 +1606,8 @@ void AmsWebServer::firmwareHtml() {
 
 	#if defined(ESP8266)
 	html.replace("{chipset}", "ESP8266");
+	#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+	html.replace("{chipset}", "ESP32S2");
 	#elif defined(ESP32)
 	html.replace("{chipset}", "ESP32");
 	#endif
@@ -1684,6 +1686,11 @@ void AmsWebServer::firmwareDownload() {
 			
 			return;
 			*/
+		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+			WiFiClientSecure client;
+			client.setInsecure();
+			String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32s2-" + versionStripped + ".bin";
+			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 		#elif defined(ESP32)
 			WiFiClientSecure client;
 			client.setInsecure();

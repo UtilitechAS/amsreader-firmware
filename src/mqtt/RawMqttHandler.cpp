@@ -104,6 +104,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[34] = {0};
+	memset(values, ENTSOE_NO_VALUE, 34);
 	for(uint8_t i = 0; i < 34; i++) {
 		float val = eapi->getValueForHour(now, i);
 		values[i] = val;

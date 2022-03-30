@@ -194,39 +194,42 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     https.setReuse(false);
     https.setTimeout(50000);
     https.setUserAgent("ams2mqtt/" + String(VERSION));
-    if(https.begin(url)) {
-        printD("Connection established");
+    #if defined(ESP32)
+        if(https.begin(url)) {
+            printD("Connection established");
 
-        #if defined(ESP32)
-            esp_task_wdt_reset();
-        #elif defined(ESP8266)
-            ESP.wdtFeed();
-        #endif
+            #if defined(ESP32)
+                esp_task_wdt_reset();
+            #elif defined(ESP8266)
+                ESP.wdtFeed();
+            #endif
 
-        int status = https.GET();
+            int status = https.GET();
 
-        #if defined(ESP32)
-            esp_task_wdt_reset();
-        #elif defined(ESP8266)
-            ESP.wdtFeed();
-        #endif
+            #if defined(ESP32)
+                esp_task_wdt_reset();
+            #elif defined(ESP8266)
+                ESP.wdtFeed();
+            #endif
 
-        if(status == HTTP_CODE_OK) {
-            printD("Receiving data");
-            https.writeToStream(doc);
-            https.end();
-            return true;
+            if(status == HTTP_CODE_OK) {
+                printD("Receiving data");
+                https.writeToStream(doc);
+                https.end();
+                return true;
+            } else {
+                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Communication error, returned status: %d\n", status);
+                printE(https.errorToString(status));
+                printD(https.getString());
+
+                https.end();
+                return false;
+            }
         } else {
-            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Communication error, returned status: %d\n", status);
-            printE(https.errorToString(status));
-            printD(https.getString());
-
-            https.end();
             return false;
         }
-    } else {
-        return false;
-    }
+    #endif
+    return false;
 }
 
 float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {

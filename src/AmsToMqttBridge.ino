@@ -1,16 +1,28 @@
 /**
- * @brief ESP8266 based program to receive data from AMS electric meters and send to MQTT
+ *  Copyright (C) 2022  Gunnar Skjold
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as published
+ *  by the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * @author Gunnar Skjold (@gskjold) gunnar.skjold@gmail.com
  * 
- * @details Originally developed by Roar Fredriksen, this program was created to receive data from
- * AMS electric meters via M-Bus, decode and send to a MQTT broker. The data packet structure 
- * supported by this software is specific to Norwegian meters, but may also support data from
- * electricity providers in other countries. It was originally based on ESP8266, but have also been 
- * adapted to work with ESP32.
+ * @brief Program for ESP32 and ESP8266 to receive data from AMS electric meters and send to MQTT
  * 
- * @author Gunnar Skjold (@gskjold)
- * Maintainer of current code
- * https://github.com/gskjold/AmsToMqttBridge
+ * @details This program was created to receive data from AMS electric meters via M-Bus, decode 
+ * and send to a MQTT broker. The data packet structure supported by this software is specific 
+ * to Norwegian meters, but may also support data from electricity providers in other countries. 
  */
+
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);
 #endif

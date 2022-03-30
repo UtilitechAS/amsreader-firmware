@@ -15,7 +15,6 @@
 	#warning "Unsupported board type"
 #endif
 
-#define ENTSOE_DEFAULT_MULTIPLIER 1.00
 #define SSL_BUF_SIZE 512
 
 class EntsoeApi {
@@ -32,8 +31,6 @@ public:
 private:
     RemoteDebug* debugger;
     EntsoeConfig* config = NULL;
-    WiFiClientSecure client;
-    HTTPClient https;
 
     uint32_t tomorrowFetchMillis = 36000000; // Number of ms before midnight. Default fetch 10hrs before midnight (14:00 CE(S)T)
     uint64_t midnightMillis = 0;
@@ -48,7 +45,7 @@ private:
     static const uint16_t BufferSize = 256;
     char* buf;
 
-    float currencyMultiplier = ENTSOE_DEFAULT_MULTIPLIER;
+    float currencyMultiplier = 0;
 
     bool retrieve(const char* url, Stream* doc);
     float getCurrencyMultiplier(const char* from, const char* to);

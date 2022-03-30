@@ -3,6 +3,7 @@
 #include "Uptime.h"
 #include "TimeLib.h"
 #include "DnbCurrParser.h"
+#include "version.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
@@ -12,10 +13,6 @@ EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
     this->buf = (char*) malloc(BufferSize);
 
     debugger = Debug;
-
-    client.setInsecure();
-    https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-    https.setTimeout(50000);
 
     // Entso-E uses CET/CEST
     TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
@@ -92,13 +89,15 @@ bool EntsoeApi::loop() {
     uint64_t now = millis64();
     if(now < 10000) return false; // Grace period
 
+    time_t t = time(nullptr);
+    if(t < BUILD_EPOCH) return false;
+    tmElements_t tm;
+
     if(midnightMillis == 0) {
-        time_t t = time(nullptr);
         if(t <= 0) return false; // NTP not ready
 
         time_t epoch = tz->toLocal(t);
         
-        tmElements_t tm;
         breakTime(epoch, tm);
         if(tm.Year > 50) { // Make sure we are in 2021 or later (years after 1970)
             uint32_t curDayMillis = (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000);
@@ -107,25 +106,25 @@ bool EntsoeApi::loop() {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Setting midnight millis %lu\n", midnightMillis);
         }
     } else if(now > midnightMillis) {
-        time_t t = time(nullptr);
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Rotating price objects at %lu\n", t);
         delete today;
         today = tomorrow;
         tomorrow = NULL;
         midnightMillis = 0; // Force new midnight millis calculation
     } else {
+        breakTime(t, tm);
         if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > 60000)) {
             lastTodayFetch = now;
-            time_t e1 = time(nullptr) - (SECS_PER_DAY * 1);
+            time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second;
             time_t e2 = e1 + SECS_PER_DAY;
             tmElements_t d1, d2;
-            breakTime(e1, d1);
-            breakTime(e2, d2);
+            breakTime(tz->toUTC(e1), d1);
+            breakTime(tz->toUTC(e2), d2);
 
             snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
             "https://transparency.entsoe.eu/api", getToken(), 
-            d1.Year+1970, d1.Month, d1.Day, 23, 00,
-            d2.Year+1970, d2.Month, d2.Day, 23, 00,
+            d1.Year+1970, d1.Month, d1.Day, d1.Hour, 00,
+            d2.Year+1970, d2.Month, d2.Day, d2.Hour, 00,
             config->area, config->area);
 
             #if defined(ESP32)
@@ -155,16 +154,16 @@ bool EntsoeApi::loop() {
             && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 900000)
         ) {
             lastTomorrowFetch = now;
-            time_t e1 = time(nullptr);
+            time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second + (SECS_PER_DAY);
             time_t e2 = e1 + SECS_PER_DAY;
             tmElements_t d1, d2;
-            breakTime(e1, d1);
-            breakTime(e2, d2);
+            breakTime(tz->toUTC(e1), d1);
+            breakTime(tz->toUTC(e2), d2);
 
             snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
             "https://transparency.entsoe.eu/api", getToken(), 
-            d1.Year+1970, d1.Month, d1.Day, 23, 00,
-            d2.Year+1970, d2.Month, d2.Day, 23, 00,
+            d1.Year+1970, d1.Month, d1.Day, d1.Hour, 00,
+            d2.Year+1970, d2.Month, d2.Day, d2.Hour, 00,
             config->area, config->area);
 
             #if defined(ESP32)
@@ -190,24 +189,12 @@ bool EntsoeApi::loop() {
 }
 
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {
-    #if defined(ESP8266)
-        // https://arduino-esp8266.readthedocs.io/en/latest/esp8266wifi/bearssl-client-secure-class.html#mfln-or-maximum-fragment-length-negotiation-saving-ram
-        /* Rumor has it that a client cannot request a lower max_fragment_length, so I guess thats why the following does not work.
-           And there is currently not enough heap space to go around in this project to do a full HTTPS request on ESP8266
-
-        int bufSize = 512;
-        while(!client.probeMaxFragmentLength("transparency.entsoe.eu", 443, bufSize) && bufSize <= 4096) {
-            bufSize += 512;
-        }
-        if(client.probeMaxFragmentLength("transparency.entsoe.eu", 443, bufSize)) {
-            printD("Negotiated MFLN size");
-            printD(String(bufSize));
-            client.setBufferSizes(bufSize, bufSize);
-        }
-        */
-    #endif
-
-    if(https.begin(client, url)) {
+    HTTPClient https;
+    https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    https.setReuse(false);
+    https.setTimeout(50000);
+    https.setUserAgent("ams2mqtt/" + String(VERSION));
+    if(https.begin(url)) {
         printD("Connection established");
 
         #if defined(ESP32)
@@ -215,17 +202,6 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
         #elif defined(ESP8266)
             ESP.wdtFeed();
         #endif
-
-        /*
-        #if defined(ESP8266)
-            if(!client.getMFLNStatus()) {
-                printE("Negotiated MFLN was not respected");
-                https.end();
-                client.stop();
-                return false;
-            }
-        #endif
-        */
 
         int status = https.GET();
 
@@ -241,28 +217,16 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
             https.end();
             return true;
         } else {
-            printE("Communication error: ");
+            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Communication error, returned status: %d\n", status);
             printE(https.errorToString(status));
             printD(https.getString());
-
-            #if defined(ESP8266)
-            char buf[64];
-            client.getLastSSLError(buf,64);
-            printE(buf);
-            #endif
 
             https.end();
             return false;
         }
     } else {
-        #if defined(ESP8266)
-        char buf[64];
-        client.getLastSSLError(buf,64);
-        printE(buf);
-        #endif
         return false;
     }
-    client.stop();
 }
 
 float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
@@ -270,7 +234,7 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
         return 1.00;
 
     uint64_t now = millis64();
-    if(now > lastCurrencyFetch && (now - lastCurrencyFetch) < 900000) {
+    if(now > lastCurrencyFetch && (lastCurrencyFetch == 0 || (now - lastCurrencyFetch) > 60000)) {
         lastCurrencyFetch = now;
         
         DnbCurrParser p;

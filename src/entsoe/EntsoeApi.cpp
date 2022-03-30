@@ -41,12 +41,12 @@ char* EntsoeApi::getCurrency() {
     return this->config->currency;
 }
 
-float EntsoeApi::getValueForHour(uint8_t hour) {
+float EntsoeApi::getValueForHour(int8_t hour) {
     time_t cur = time(nullptr);
     return getValueForHour(cur, hour);
 }
 
-float EntsoeApi::getValueForHour(time_t cur, uint8_t hour) {
+float EntsoeApi::getValueForHour(time_t cur, int8_t hour) {
     tmElements_t tm;
     if(tz != NULL)
         cur = tz->toLocal(cur);
@@ -61,7 +61,7 @@ float EntsoeApi::getValueForHour(time_t cur, uint8_t hour) {
         if(tomorrow == NULL)
             return ENTSOE_NO_VALUE;
         value = tomorrow->getPoint(pos-24);
-        if(strcmp(tomorrow->getMeasurementUnit(), "MWH") == 0) {
+        if(value != ENTSOE_NO_VALUE && strcmp(tomorrow->getMeasurementUnit(), "MWH") == 0) {
             multiplier *= 0.001;
         } else {
             return ENTSOE_NO_VALUE;
@@ -73,7 +73,7 @@ float EntsoeApi::getValueForHour(time_t cur, uint8_t hour) {
         if(today == NULL)
             return ENTSOE_NO_VALUE;
         value = today->getPoint(pos);
-        if(strcmp(today->getMeasurementUnit(), "MWH") == 0) {
+        if(value != ENTSOE_NO_VALUE && strcmp(today->getMeasurementUnit(), "MWH") == 0) {
             multiplier *= 0.001;
         } else {
             return ENTSOE_NO_VALUE;

@@ -1,6 +1,6 @@
 #include "AmsWebServer.h"
+#include "AmsWebHeaders.h"
 #include "version.h"
-#include "AmsStorage.h"
 #include "hexutils.h"
 #include "AmsData.h"
 
@@ -40,7 +40,6 @@
 #include "root/delete_html.h"
 #include "root/reset_html.h"
 #include "root/temperature_html.h"
-#include "root/price_html.h"
 #include "root/notfound_html.h"
 #include "root/data_json.h"
 #include "root/tempsensor_json.h"
@@ -48,44 +47,51 @@
 #include "root/dayplot_json.h"
 #include "root/monthplot_json.h"
 #include "root/energyprice_json.h"
+#include "root/thresholds_html.h"
+#include "root/configfile_html.h"
+#include "root/meteradvanced_html.h"
 
 #include "base64.h"
 
-AmsWebServer::AmsWebServer(RemoteDebug* Debug, HwTools* hw) {
+AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw) {
 	this->debugger = Debug;
 	this->hw = hw;
-	this->json = (char*) malloc(JsonSize);
+	this->buf = (char*) buf;
 }
 
-void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds) {
+void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea) {
     this->config = config;
 	this->gpioConfig = gpioConfig;
 	this->meterConfig = meterConfig;
 	this->meterState = meterState;
 	this->ds = ds;
+	this->ea = ea;
 
-	char jsuri[32];
-	snprintf(jsuri, 32, "/application-%s.js", VERSION);
+	snprintf(buf, 32, "/application-%s.js", VERSION);
 
 	server.on("/", HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on("/", HTTP_POST, std::bind(&AmsWebServer::handleSetup, this));
-	server.on(jsuri, HTTP_GET, std::bind(&AmsWebServer::applicationJs, this));
+	server.on(buf, HTTP_GET, std::bind(&AmsWebServer::applicationJs, this));
 	server.on("/temperature", HTTP_GET, std::bind(&AmsWebServer::temperature, this));
 	server.on("/temperature", HTTP_POST, std::bind(&AmsWebServer::temperaturePost, this));
 	server.on("/temperature.json", HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
-	server.on("/price", HTTP_GET, std::bind(&AmsWebServer::price, this));
 	server.on("/meter", HTTP_GET, std::bind(&AmsWebServer::configMeterHtml, this));
+	server.on("/meteradvanced", HTTP_GET, std::bind(&AmsWebServer::configMeterAdvancedHtml, this));
 	server.on("/wifi", HTTP_GET, std::bind(&AmsWebServer::configWifiHtml, this));
 	server.on("/mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
 	server.on("/web", HTTP_GET, std::bind(&AmsWebServer::configWebHtml, this));
 	server.on("/domoticz",HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
 	server.on("/entsoe",HTTP_GET, std::bind(&AmsWebServer::configEntsoeHtml, this));
+	server.on("/thresholds",HTTP_GET, std::bind(&AmsWebServer::configThresholdsHtml, this));
 	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
 	server.on("/github.svg", HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
 	server.on("/data.json", HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
 	server.on("/dayplot.json", HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
 	server.on("/monthplot.json", HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
 	server.on("/energyprice.json", HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
+	server.on("/configfile",HTTP_GET, std::bind(&AmsWebServer::configFileHtml, this));
+	server.on("/configfile", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::configFileUpload, this));
+	server.on("/configfile.cfg",HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
 
 	server.on("/save", HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
 
@@ -173,9 +179,9 @@ bool AmsWebServer::checkSecurity(byte level) {
 	}
 
 	if(!access) {
-		server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure Area\"");
+		server.sendHeader(HEADER_AUTHENTICATE, AUTHENTICATE_BASIC);
 		server.setContentLength(0);
-		server.send(401, "text/html", "");
+		server.send(401, MIME_HTML, "");
 	}
 	return access;
 }
@@ -186,12 +192,12 @@ void AmsWebServer::temperature() {
 	if(!checkSecurity(2))
 		return;
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	server.setContentLength(HEAD_HTML_LEN + TEMPERATURE_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent_P(TEMPERATURE_HTML);
 	server.sendContent_P(FOOT_HTML);
 }
@@ -219,11 +225,11 @@ void AmsWebServer::temperaturePost() {
 	if(config->save()) {
 		printD("Successfully saved temperature sensors");
 		server.sendHeader("Location", String("/temperature"), true);
-		server.send (302, "text/plain", "");
+		server.send (302, MIME_PLAIN, "");
 	} else {
 		printE("Error saving configuration");
 		String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
-		server.send(500, "text/html", html);
+		server.send(500, MIME_HTML, html);
 	}
 }
 
@@ -234,9 +240,6 @@ void AmsWebServer::temperatureJson() {
 		return;
 
 	int count = hw->getTempSensorCount();
-	int size = 16 + (count * 72);
-
-	char buf[size];
 	snprintf(buf, 16, "{\"c\":%d,\"s\":[", count);
 
 	for(int i = 0; i < count; i++) {
@@ -257,64 +260,20 @@ void AmsWebServer::temperatureJson() {
 	char* pos = buf+strlen(buf);
 	snprintf(count == 0 ? pos : pos-1, 8, "]}");
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	server.setContentLength(strlen(buf));
-	server.send(200, "application/json", buf);
-}
-
-void AmsWebServer::price() {
-	printD("Serving /price.html over http...");
-
-	if(!checkSecurity(2))
-		return;
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
-
-	if(ESP.getFreeHeap() > 25000) {
-		String html = String((const __FlashStringHelper*) PRICE_HTML);
-		for(int i = 0; i < 24; i++) {
-			tmElements_t tm;
-			breakTime(tz->toLocal(time(nullptr)) + (SECS_PER_HOUR * i), tm);
-			char ts[5];
-			sprintf(ts, "%02d:00", tm.Hour);
-			html.replace("${time" + String(i) + "}", String(ts));
-
-			if(eapi != NULL) {
-				double price = eapi->getValueForHour(i);
-				if(price == ENTSOE_NO_VALUE) {
-					html.replace("${price" + String(i) + "}", "--");
-				} else {
-					html.replace("${price" + String(i) + "}", String(price, 4));
-				}
-			} else {
-				html.replace("${price" + String(i) + "}", "--");
-			}
-		}
-
-		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-		server.send_P(200, "text/html", HEAD_HTML);
-		server.sendContent(html);
-		server.sendContent_P(FOOT_HTML);
-	} else {
-		server.setContentLength(LOWMEM_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
-		server.send_P(200, "text/html", HEAD_HTML);
-		server.sendContent_P(LOWMEM_HTML);
-		server.sendContent_P(FOOT_HTML);
-	}
-
+	server.send(200, MIME_JSON, buf);
 }
 
 void AmsWebServer::indexHtml() {
 	printD("Serving /index.html over http...");
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	if(WiFi.getMode() == WIFI_AP) {
 		SystemConfig sys;
@@ -336,64 +295,14 @@ void AmsWebServer::indexHtml() {
 		html.replace("${config.wifiDns1}", wifi.dns1);
 		html.replace("${config.wifiDns2}", wifi.dns2);
 		html.replace("${config.wifiHostname}", wifi.hostname);
-		server.send(200, "text/html", html);
+		server.send(200, MIME_HTML, html);
 	} else {
 		if(!checkSecurity(2))
 			return;
-
-		String html = String((const __FlashStringHelper*) INDEX_HTML);
-
-		double u1 = meterState->getL1Voltage();
-		double u2 = meterState->getL2Voltage();
-		double u3 = meterState->getL3Voltage();
-		double i1 = meterState->getL1Current();
-		double i2 = meterState->getL2Current();
-		double i3 = meterState->getL3Current();
-		double tpi = meterState->getActiveImportCounter();
-		double tpo = meterState->getActiveExportCounter();
-		double tqi = meterState->getReactiveImportCounter();
-		double tqo = meterState->getReactiveExportCounter();
-
-		html.replace("{P}", String(meterState->getActiveImportPower()));
-		html.replace("{PO}", String(meterState->getActiveExportPower()));
-		html.replace("{Q}", String(meterState->getReactiveImportPower()));
-		html.replace("{QO}", String(meterState->getReactiveExportPower()));
-		html.replace("{de}", meterConfig->productionCapacity > 0 ? "" : "none");
-		html.replace("{dn}", meterConfig->productionCapacity > 0 ? "none" : "");
-		html.replace("{ti}", meterConfig->productionCapacity > 0 ? "Import" : "Use");
-		html.replace("{3p}", meterState->isThreePhase() ? "" : "none");
-
-		html.replace("{U1}", u1 > 0 ? String(u1, 1) : "");
-		html.replace("{I1}", u1 > 0 ? String(i1, 1) : "");
-
-		html.replace("{U2}", u2 > 0 ? String(u2, 1) : "");
-		html.replace("{I2}", u2 > 0 ? String(i2, 1) : "");
-
-		html.replace("{U3}", u3 > 0 ? String(u3, 1) : "");
-		html.replace("{I3}", u3 > 0 ? String(i3, 1) : "");
-
-		html.replace("{tPI}", tpi > 0 ? String(tpi, 1) : "");
-		html.replace("{tPO}", tpi > 0 ? String(tpo, 1) : "");
-		html.replace("{tQI}", tpi > 0 ? String(tqi, 1) : "");
-		html.replace("{tQO}", tpi > 0 ? String(tqo, 1) : "");
-		html.replace("{da}", tpi > 0 ? "" : "none");
-
-		double vcc = hw->getVcc();
-		html.replace("{vcc}", vcc > 0 ? String(vcc, 2) : "");
-
-		double temp = hw->getTemperature();
-		html.replace("{temp}", temp > 0 ? String(temp, 1) : "");
-
-		int rssi = hw->getWifiRssi();
-		html.replace("{rssi}", String(rssi));
-
-		html.replace("{mem}", String(ESP.getFreeHeap()/1000, 1));
-
-		html.replace("{cs}", String((uint32_t)(millis64()/1000), 10));
-
-		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-		server.send_P(200, "text/html", HEAD_HTML);
-		server.sendContent(html);
+		server.setContentLength(INDEX_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
+		server.send_P(200, MIME_HTML, HEAD_HTML);
+		
+		server.sendContent_P(INDEX_HTML);
 		server.sendContent_P(FOOT_HTML);
 	}
 }
@@ -401,7 +310,7 @@ void AmsWebServer::indexHtml() {
 void AmsWebServer::applicationJs() {
 	printD("Serving /application.js over http...");
 
-	server.sendHeader("Cache-Control", "public, max-age=3600");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	server.send_P(200, "application/javascript", APPLICATION_JS);
 }
 
@@ -413,8 +322,9 @@ void AmsWebServer::configMeterHtml() {
 
 	String html = String((const __FlashStringHelper*) METER_HTML);
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	String manufacturer;
 	switch(meterState->getMeterType()) {
@@ -475,8 +385,31 @@ void AmsWebServer::configMeterHtml() {
 	}
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
+}
+
+void AmsWebServer::configMeterAdvancedHtml() {
+	printD("Serving /meteradvanced.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	snprintf_P(buf, BufferSize, METERADVANCED_HTML,
+		meterConfig->wattageMultiplier / 1000.0,
+		meterConfig->voltageMultiplier / 1000.0,
+		meterConfig->amperageMultiplier / 1000.0,
+		meterConfig->accumulatedMultiplier / 1000.0
+	);
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(strlen(buf) + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
+	server.sendContent(buf);
 	server.sendContent_P(FOOT_HTML);
 }
 
@@ -488,8 +421,9 @@ void AmsWebServer::configWifiHtml() {
 
 	String html = String((const __FlashStringHelper*) WIFI_HTML);
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	WiFiConfig wifi;
 	config->getWiFiConfig(wifi);
@@ -513,9 +447,15 @@ void AmsWebServer::configWifiHtml() {
 	}
 	html.replace("{h}", wifi.hostname);
 	html.replace("{m}", wifi.mdns ? "checked" : "");
+	html.replace("{w}", String(wifi.power / 10.0, 1));
+	#if defined(ESP32)
+		html.replace("{wm}", "19.5");
+	#elif defined(ESP8266)
+		html.replace("{wm}", "20.5");
+	#endif
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent(html);
 	server.sendContent_P(FOOT_HTML);
 }
@@ -528,8 +468,9 @@ void AmsWebServer::configMqttHtml() {
 
 	String html = String((const __FlashStringHelper*) MQTT_HTML);
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	MqttConfig mqtt;
 	config->getMqttConfig(mqtt);
@@ -547,9 +488,10 @@ void AmsWebServer::configMqttHtml() {
 	html.replace("{u}", mqtt.username);
 	html.replace("{pw}", mqtt.password);
 	html.replace("{f}", String(mqtt.payloadFormat));
-	for(int i = 0; i<4; i++) {
+	for(int i = 0; i<5; i++) {
 		html.replace("{f" + String(i) + "}", mqtt.payloadFormat == i ? "selected"  : "");
 	}
+	html.replace("{f255}", mqtt.payloadFormat == 255 ? "selected"  : "");
 
 	html.replace("{s}", mqtt.ssl ? "checked" : "");
 
@@ -571,7 +513,7 @@ void AmsWebServer::configMqttHtml() {
 	}
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent(html);
 	server.sendContent_P(FOOT_HTML);
 }
@@ -582,23 +524,23 @@ void AmsWebServer::configDomoticzHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	String html = String((const __FlashStringHelper*) DOMOTICZ_HTML);
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	DomoticzConfig domo;
 	config->getDomoticzConfig(domo);
+	snprintf_P(buf, BufferSize, DOMOTICZ_HTML,
+		domo.elidx,
+		domo.cl1idx,
+		domo.vl1idx,
+		domo.vl2idx,
+		domo.vl3idx
+	);
 
-	html.replace("{elidx}", domo.elidx ? String(domo.elidx, 10) : "");
-	html.replace("{vl1idx}", domo.vl1idx ? String(domo.vl1idx, 10) : "");
-	html.replace("{vl2idx}", domo.vl2idx ? String(domo.vl2idx, 10) : "");
-	html.replace("{vl3idx}", domo.vl3idx ? String(domo.vl3idx, 10) : "");
-	html.replace("{cl1idx}", domo.cl1idx ? String(domo.cl1idx, 10) : "");
-
-	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
-	server.sendContent(html);
+	server.setContentLength(strlen(buf) + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
+	server.sendContent(buf);
 	server.sendContent_P(FOOT_HTML);
 }
 
@@ -637,15 +579,34 @@ void AmsWebServer::configEntsoeHtml() {
 		html.replace("{ecEUR}", strcmp(entsoe.currency, "EUR") == 0 ? "selected" : "");
 
 		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-		server.send_P(200, "text/html", HEAD_HTML);
+		server.send_P(200, MIME_HTML, HEAD_HTML);
 		server.sendContent(html);
 		server.sendContent_P(FOOT_HTML);
 	} else {
 		server.setContentLength(LOWMEM_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
-		server.send_P(200, "text/html", HEAD_HTML);
+		server.send_P(200, MIME_HTML, HEAD_HTML);
 		server.sendContent_P(LOWMEM_HTML);
 		server.sendContent_P(FOOT_HTML);
 	}
+}
+
+void AmsWebServer::configThresholdsHtml() {
+	printD("Serving /thresholds.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	EnergyAccountingConfig* config = ea->getConfig();
+
+	String html = String((const __FlashStringHelper*) THRESHOLDS_HTML);
+	for(int i = 0; i < 9; i++) {
+		html.replace("{t" + String(i) + "}", String(config->thresholds[i]));
+	}
+
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::configWebHtml() {
@@ -654,35 +615,35 @@ void AmsWebServer::configWebHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	String html = String((const __FlashStringHelper*) WEB_HTML);
+	snprintf_P(buf, BufferSize, WEB_HTML,
+		webConfig.security == 0 ? "selected"  : "",
+		webConfig.security == 1 ? "selected"  : "",
+		webConfig.security == 2 ? "selected"  : "",
+		webConfig.username,
+		webConfig.password
+	);
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-	html.replace("{as}", String(webConfig.security));
-	for(int i = 0; i<3; i++) {
-		html.replace("{as" + String(i) + "}", webConfig.security == i ? "selected"  : "");
-	}
-	html.replace("{au}", webConfig.username);
-	html.replace("{ap}", webConfig.password);
-
-	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
-	server.sendContent(html);
+	server.setContentLength(strlen(buf) + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
+	server.sendContent(buf);
 	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::bootCss() {
 	printD("Serving /boot.css over http...");
 
-	server.sendHeader("Cache-Control", "public, max-age=3600");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	server.send_P(200, "text/css", BOOT_CSS);
 }
 
 void AmsWebServer::githubSvg() {
 	printD("Serving /github.svg over http...");
 
-	server.sendHeader("Cache-Control", "public, max-age=3600");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	server.send_P(200, "image/svg+xml", GITHUB_SVG);
 }
 
@@ -712,7 +673,7 @@ void AmsWebServer::dataJson() {
 		espStatus = 1;
 	} else if(vcc > 2.8 && vcc < 3.5) {
 		espStatus = 1;
-	} else if(vcc > 2.2 && vcc < 3.6) {
+	} else if(vcc > 2.7 && vcc < 3.6) {
 		espStatus = 2;
 	} else {
 		espStatus = 3;
@@ -755,7 +716,7 @@ void AmsWebServer::dataJson() {
 	if(eapi != NULL && strlen(eapi->getToken()) > 0)
 		price = eapi->getValueForHour(0);
 
-	snprintf_P(json, JsonSize, DATA_JSON,
+	snprintf_P(buf, BufferSize, DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		meterConfig->productionCapacity,
 		meterConfig->mainFuse == 0 ? 32 : meterConfig->mainFuse,
@@ -790,116 +751,189 @@ void AmsWebServer::dataJson() {
 		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
 		meterState->getMeterType(),
 		meterConfig->distributionSystem,
+		ea->getMonthMax(),
+		ea->getCurrentThreshold(),
+		ea->getUseThisHour(),
+		ea->getCostThisHour(),
+		ea->getUseToday(),
+		ea->getCostToday(),
+		ea->getUseThisMonth(),
+		ea->getCostThisMonth(),
 		(uint32_t) time(nullptr)
 	);
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-	server.setContentLength(strlen(json));
-	server.send(200, "application/json", json);
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
 }
 
 void AmsWebServer::dayplotJson() {
 	printD("Serving /dayplot.json over http...");
+
+	if(!checkSecurity(2))
+		return;
+
 	if(ds == NULL) {
 		notFound();
 	} else {
-		snprintf_P(json, JsonSize, DAYPLOT_JSON,
-			ds->getHour(0) / 1000.0,
-			ds->getHour(1) / 1000.0,
-			ds->getHour(2) / 1000.0,
-			ds->getHour(3) / 1000.0,
-			ds->getHour(4) / 1000.0,
-			ds->getHour(5) / 1000.0,
-			ds->getHour(6) / 1000.0,
-			ds->getHour(7) / 1000.0,
-			ds->getHour(8) / 1000.0,
-			ds->getHour(9) / 1000.0,
-			ds->getHour(10) / 1000.0,
-			ds->getHour(11) / 1000.0,
-			ds->getHour(12) / 1000.0,
-			ds->getHour(13) / 1000.0,
-			ds->getHour(14) / 1000.0,
-			ds->getHour(15) / 1000.0,
-			ds->getHour(16) / 1000.0,
-			ds->getHour(17) / 1000.0,
-			ds->getHour(18) / 1000.0,
-			ds->getHour(19) / 1000.0,
-			ds->getHour(20) / 1000.0,
-			ds->getHour(21) / 1000.0,
-			ds->getHour(22) / 1000.0,
-			ds->getHour(23) / 1000.0
+		snprintf_P(buf, BufferSize, DAYPLOT_JSON,
+			ds->getHourImport(0) / 1000.0,
+			ds->getHourImport(1) / 1000.0,
+			ds->getHourImport(2) / 1000.0,
+			ds->getHourImport(3) / 1000.0,
+			ds->getHourImport(4) / 1000.0,
+			ds->getHourImport(5) / 1000.0,
+			ds->getHourImport(6) / 1000.0,
+			ds->getHourImport(7) / 1000.0,
+			ds->getHourImport(8) / 1000.0,
+			ds->getHourImport(9) / 1000.0,
+			ds->getHourImport(10) / 1000.0,
+			ds->getHourImport(11) / 1000.0,
+			ds->getHourImport(12) / 1000.0,
+			ds->getHourImport(13) / 1000.0,
+			ds->getHourImport(14) / 1000.0,
+			ds->getHourImport(15) / 1000.0,
+			ds->getHourImport(16) / 1000.0,
+			ds->getHourImport(17) / 1000.0,
+			ds->getHourImport(18) / 1000.0,
+			ds->getHourImport(19) / 1000.0,
+			ds->getHourImport(20) / 1000.0,
+			ds->getHourImport(21) / 1000.0,
+			ds->getHourImport(22) / 1000.0,
+			ds->getHourImport(23) / 1000.0,
+			ds->getHourExport(0) / 1000.0,
+			ds->getHourExport(1) / 1000.0,
+			ds->getHourExport(2) / 1000.0,
+			ds->getHourExport(3) / 1000.0,
+			ds->getHourExport(4) / 1000.0,
+			ds->getHourExport(5) / 1000.0,
+			ds->getHourExport(6) / 1000.0,
+			ds->getHourExport(7) / 1000.0,
+			ds->getHourExport(8) / 1000.0,
+			ds->getHourExport(9) / 1000.0,
+			ds->getHourExport(10) / 1000.0,
+			ds->getHourExport(11) / 1000.0,
+			ds->getHourExport(12) / 1000.0,
+			ds->getHourExport(13) / 1000.0,
+			ds->getHourExport(14) / 1000.0,
+			ds->getHourExport(15) / 1000.0,
+			ds->getHourExport(16) / 1000.0,
+			ds->getHourExport(17) / 1000.0,
+			ds->getHourExport(18) / 1000.0,
+			ds->getHourExport(19) / 1000.0,
+			ds->getHourExport(20) / 1000.0,
+			ds->getHourExport(21) / 1000.0,
+			ds->getHourExport(22) / 1000.0,
+			ds->getHourExport(23) / 1000.0
 		);
 
-		server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-		server.sendHeader("Pragma", "no-cache");
-		server.sendHeader("Expires", "-1");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-		server.setContentLength(strlen(json));
-		server.send(200, "application/json", json);
+		server.setContentLength(strlen(buf));
+		server.send(200, MIME_JSON, buf);
 	}
 }
 
 void AmsWebServer::monthplotJson() {
 	printD("Serving /monthplot.json over http...");
 
+	if(!checkSecurity(2))
+		return;
+
 	if(ds == NULL) {
 		notFound();
 	} else {
-		snprintf_P(json, JsonSize, MONTHPLOT_JSON,
-			ds->getDay(1) / 1000.0,
-			ds->getDay(2) / 1000.0,
-			ds->getDay(3) / 1000.0,
-			ds->getDay(4) / 1000.0,
-			ds->getDay(5) / 1000.0,
-			ds->getDay(6) / 1000.0,
-			ds->getDay(7) / 1000.0,
-			ds->getDay(8) / 1000.0,
-			ds->getDay(9) / 1000.0,
-			ds->getDay(10) / 1000.0,
-			ds->getDay(11) / 1000.0,
-			ds->getDay(12) / 1000.0,
-			ds->getDay(13) / 1000.0,
-			ds->getDay(14) / 1000.0,
-			ds->getDay(15) / 1000.0,
-			ds->getDay(16) / 1000.0,
-			ds->getDay(17) / 1000.0,
-			ds->getDay(18) / 1000.0,
-			ds->getDay(19) / 1000.0,
-			ds->getDay(20) / 1000.0,
-			ds->getDay(21) / 1000.0,
-			ds->getDay(22) / 1000.0,
-			ds->getDay(23) / 1000.0,
-			ds->getDay(24) / 1000.0,
-			ds->getDay(25) / 1000.0,
-			ds->getDay(26) / 1000.0,
-			ds->getDay(27) / 1000.0,
-			ds->getDay(28) / 1000.0,
-			ds->getDay(29) / 1000.0,
-			ds->getDay(30) / 1000.0,
-			ds->getDay(31) / 1000.0
+		snprintf_P(buf, BufferSize, MONTHPLOT_JSON,
+			ds->getDayImport(1) / 1000.0,
+			ds->getDayImport(2) / 1000.0,
+			ds->getDayImport(3) / 1000.0,
+			ds->getDayImport(4) / 1000.0,
+			ds->getDayImport(5) / 1000.0,
+			ds->getDayImport(6) / 1000.0,
+			ds->getDayImport(7) / 1000.0,
+			ds->getDayImport(8) / 1000.0,
+			ds->getDayImport(9) / 1000.0,
+			ds->getDayImport(10) / 1000.0,
+			ds->getDayImport(11) / 1000.0,
+			ds->getDayImport(12) / 1000.0,
+			ds->getDayImport(13) / 1000.0,
+			ds->getDayImport(14) / 1000.0,
+			ds->getDayImport(15) / 1000.0,
+			ds->getDayImport(16) / 1000.0,
+			ds->getDayImport(17) / 1000.0,
+			ds->getDayImport(18) / 1000.0,
+			ds->getDayImport(19) / 1000.0,
+			ds->getDayImport(20) / 1000.0,
+			ds->getDayImport(21) / 1000.0,
+			ds->getDayImport(22) / 1000.0,
+			ds->getDayImport(23) / 1000.0,
+			ds->getDayImport(24) / 1000.0,
+			ds->getDayImport(25) / 1000.0,
+			ds->getDayImport(26) / 1000.0,
+			ds->getDayImport(27) / 1000.0,
+			ds->getDayImport(28) / 1000.0,
+			ds->getDayImport(29) / 1000.0,
+			ds->getDayImport(30) / 1000.0,
+			ds->getDayImport(31) / 1000.0,
+			ds->getDayExport(1) / 1000.0,
+			ds->getDayExport(2) / 1000.0,
+			ds->getDayExport(3) / 1000.0,
+			ds->getDayExport(4) / 1000.0,
+			ds->getDayExport(5) / 1000.0,
+			ds->getDayExport(6) / 1000.0,
+			ds->getDayExport(7) / 1000.0,
+			ds->getDayExport(8) / 1000.0,
+			ds->getDayExport(9) / 1000.0,
+			ds->getDayExport(10) / 1000.0,
+			ds->getDayExport(11) / 1000.0,
+			ds->getDayExport(12) / 1000.0,
+			ds->getDayExport(13) / 1000.0,
+			ds->getDayExport(14) / 1000.0,
+			ds->getDayExport(15) / 1000.0,
+			ds->getDayExport(16) / 1000.0,
+			ds->getDayExport(17) / 1000.0,
+			ds->getDayExport(18) / 1000.0,
+			ds->getDayExport(19) / 1000.0,
+			ds->getDayExport(20) / 1000.0,
+			ds->getDayExport(21) / 1000.0,
+			ds->getDayExport(22) / 1000.0,
+			ds->getDayExport(23) / 1000.0,
+			ds->getDayExport(24) / 1000.0,
+			ds->getDayExport(25) / 1000.0,
+			ds->getDayExport(26) / 1000.0,
+			ds->getDayExport(27) / 1000.0,
+			ds->getDayExport(28) / 1000.0,
+			ds->getDayExport(29) / 1000.0,
+			ds->getDayExport(30) / 1000.0,
+			ds->getDayExport(31) / 1000.0
 		);
 
-		server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-		server.sendHeader("Pragma", "no-cache");
-		server.sendHeader("Expires", "-1");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-		server.setContentLength(strlen(json));
-		server.send(200, "application/json", json);
+		server.setContentLength(strlen(buf));
+		server.send(200, MIME_JSON, buf);
 	}
 }
 
 void AmsWebServer::energyPriceJson() {
 	printD("Serving /energyprice.json over http...");
 
+	if(!checkSecurity(2))
+		return;
+
 	float prices[36];
 	for(int i = 0; i < 36; i++) {
 		prices[i] = eapi == NULL ? ENTSOE_NO_VALUE : eapi->getValueForHour(i);
 	}
 
-	snprintf_P(json, JsonSize, ENERGYPRICE_JSON, 
+	snprintf_P(buf, BufferSize, ENERGYPRICE_JSON, 
 		eapi == NULL ? "" : eapi->getCurrency(),
 		prices[0] == ENTSOE_NO_VALUE ? "null" : String(prices[0], 2).c_str(),
 		prices[1] == ENTSOE_NO_VALUE ? "null" : String(prices[1], 2).c_str(),
@@ -939,12 +973,12 @@ void AmsWebServer::energyPriceJson() {
 		prices[35] == ENTSOE_NO_VALUE ? "null" : String(prices[35], 2).c_str()
 	);
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-	server.sendHeader("Expires", "-1");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-	server.setContentLength(strlen(json));
-	server.send(200, "application/json", json);
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
 }
 
 void AmsWebServer::handleSetup() {
@@ -952,7 +986,7 @@ void AmsWebServer::handleSetup() {
 
 	if(!server.hasArg("wifiSsid") || server.arg("wifiSsid").isEmpty() || !server.hasArg("wifiPassword") || server.arg("wifiPassword").isEmpty()) {
 		server.sendHeader("Location", String("/"), true);
-		server.send (302, "text/plain", "");
+		server.send (302, MIME_PLAIN, "");
 	} else {
 		SystemConfig sys { server.arg("board").toInt() };
 
@@ -1003,6 +1037,16 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->ledPinRed = 13;
 				gpioConfig->ledPinGreen = 14;
 				gpioConfig->ledRgbInverted = true;
+				break;
+			case 5: // Pow-K+ UART2
+				gpioConfig->hanPin = 16;
+				gpioConfig->apPin = 0;
+				gpioConfig->ledPinRed = 13;
+				gpioConfig->ledPinGreen = 14;
+				gpioConfig->ledRgbInverted = true;
+				gpioConfig->vccPin = 35;
+				gpioConfig->vccResistorGnd = 22;
+				gpioConfig->vccResistorVcc = 33;
 				break;
 			case 101: // D1
 				gpioConfig->hanPin = 5;
@@ -1101,7 +1145,7 @@ void AmsWebServer::handleSetup() {
 		} else {
 			printE("Error saving configuration");
 			String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
-			server.send(500, "text/html", html);
+			server.send(500, MIME_HTML, html);
 		}
 	}
 }
@@ -1115,6 +1159,7 @@ void AmsWebServer::handleSave() {
 
 	if(server.hasArg("mc") && server.arg("mc") == "true") {
 		printD("Received meter config");
+		config->getMeterConfig(*meterConfig);
 		meterConfig->baud = server.arg("b").toInt();
 		meterConfig->parity = server.arg("c").toInt();
 		meterConfig->invert = server.hasArg("i") && server.arg("i") == "true";
@@ -1137,6 +1182,16 @@ void AmsWebServer::handleSave() {
 		config->setMeterConfig(*meterConfig);
 	}
 
+	if(server.hasArg("ma") && server.arg("ma") == "true") {
+		printD("Received meter advanced config");
+		config->getMeterConfig(*meterConfig);
+		meterConfig->wattageMultiplier = server.arg("wm").toDouble() * 1000;
+		meterConfig->voltageMultiplier = server.arg("vm").toDouble() * 1000;
+		meterConfig->amperageMultiplier = server.arg("am").toDouble() * 1000;
+		meterConfig->accumulatedMultiplier = server.arg("cm").toDouble() * 1000;
+		config->setMeterConfig(*meterConfig);
+	}
+
 	if(server.hasArg("wc") && server.arg("wc") == "true") {
 		printD("Received WiFi config");
 		WiFiConfig wifi;
@@ -1154,6 +1209,7 @@ void AmsWebServer::handleSave() {
 		if(server.hasArg("h") && !server.arg("h").isEmpty()) {
 			strcpy(wifi.hostname, server.arg("h").c_str());
 		}
+		wifi.power = server.arg("w").toFloat() * 10;
 		config->setWiFiConfig(wifi);
 	}
 
@@ -1281,6 +1337,21 @@ void AmsWebServer::handleSave() {
 		config->setEntsoeConfig(entsoe);
 	}
 
+	if(server.hasArg("cc") && server.arg("cc") == "true") {
+		printD("Received energy accounting config");
+		EnergyAccountingConfig eac;
+		eac.thresholds[0] = server.arg("t0").toInt();
+		eac.thresholds[1] = server.arg("t1").toInt();
+		eac.thresholds[2] = server.arg("t2").toInt();
+		eac.thresholds[3] = server.arg("t3").toInt();
+		eac.thresholds[4] = server.arg("t4").toInt();
+		eac.thresholds[5] = server.arg("t5").toInt();
+		eac.thresholds[6] = server.arg("t6").toInt();
+		eac.thresholds[7] = server.arg("t7").toInt();
+		eac.thresholds[8] = server.arg("t8").toInt();
+		config->setEnergyAccountingConfig(eac);
+	}
+
 	printI("Saving configuration now...");
 
 	//if (debugger->isActive(RemoteDebug::DEBUG)) config->print(debugger);
@@ -1292,14 +1363,14 @@ void AmsWebServer::handleSave() {
             server.send(303);
 		} else {
 			server.sendHeader("Location", String("/"), true);
-			server.send (302, "text/plain", "");
+			server.send (302, MIME_PLAIN, "");
 
 			hw->setup(gpioConfig, config);
 		}
 	} else {
 		printE("Error saving configuration");
 		String html = "<html><body><h1>Error saving configuration!</h1></body></html>";
-		server.send(500, "text/html", html);
+		server.send(500, MIME_HTML, html);
 	}
 }
 
@@ -1309,30 +1380,26 @@ void AmsWebServer::configNtpHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	String html = String((const __FlashStringHelper*) NTP_HTML);
-
 	NtpConfig ntp;
 	config->getNtpConfig(ntp);
+	snprintf_P(buf, BufferSize, NTP_HTML,
+		ntp.enable ? "checked" : "",
+		ntp.offset == 0 ? "selected" : "",
+		ntp.offset == 360 ? "selected" : "",
+		ntp.offset == 720 ? "selected" : "",
+		ntp.summerOffset == 0 ? "selected" : "",
+		ntp.summerOffset == 360 ? "selected" : "",
+		ntp.server,
+		ntp.dhcp ? "checked" : ""
+	);
 
-	html.replace("{n}", ntp.enable ? "checked" : "");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-	for(int i = (3600*-13); i<(3600*15); i+=3600) {
-		html.replace("{o" + String(i) + "}", ntp.offset * 10 == i ? "selected"  : "");
-	}
-
-	for(int i = 0; i<(3600*3); i+=3600) {
-		html.replace("{so" + String(i) + "}", ntp.summerOffset * 10 == i ? "selected"  : "");
-	}
-
-	html.replace("{ns}", ntp.server);
-	html.replace("{nd}", ntp.dhcp ? "checked" : "");
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
-
-	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
-	server.sendContent(html);
+	server.setContentLength(strlen(buf) + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
+	server.sendContent(buf);
 	server.sendContent_P(FOOT_HTML);
 }
 
@@ -1344,7 +1411,9 @@ void AmsWebServer::configGpioHtml() {
 
 	String html = String((const __FlashStringHelper*) GPIO_HTML);
 
-	#if defined(ESP32)
+	#if defined(CONFIG_IDF_TARGET_ESP32S2)
+		html.replace("${gpio.max}", "44");
+	#elif defined(ESP32)
 		html.replace("${gpio.max}", "39");
 	#else
 		html.replace("${gpio.max}", "16");
@@ -1370,11 +1439,11 @@ void AmsWebServer::configGpioHtml() {
 	html.replace("${config.vccResistorGnd}", gpioConfig->vccResistorGnd > 0 ? String(gpioConfig->vccResistorGnd) : "");
 	html.replace("${config.vccResistorVcc}", gpioConfig->vccResistorVcc > 0 ? String(gpioConfig->vccResistorVcc) : "");
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader(HEADER_CACHE_CONTROL, "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent(html);
 	server.sendContent_P(FOOT_HTML);
 }
@@ -1385,24 +1454,23 @@ void AmsWebServer::configDebugHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	String html = String((const __FlashStringHelper*) DEBUGGING_HTML);
-
 	DebugConfig debug;
 	config->getDebugConfig(debug);
+	snprintf_P(buf, BufferSize, DEBUGGING_HTML,
+		debug.telnet ? "checked" : "",
+		debug.serial ? "checked" : "",
+		debug.level == 1 ? "selected"  : "",
+		debug.level == 2 ? "selected"  : "",
+		debug.level == 3 ? "selected"  : "",
+		debug.level == 4 ? "selected"  : ""
+	);
 
-	html.replace("${config.debugTelnet}", debug.telnet ? "checked" : "");
-	html.replace("${config.debugSerial}", debug.serial ? "checked" : "");
-	html.replace("${config.debugLevel}", String(debug.level));
-	for(int i = 0; i<=RemoteDebug::ANY; i++) {
-		html.replace("${config.debugLevel" + String(i) + "}", debug.level == i ? "selected"  : "");
-	}
-
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+	server.sendHeader(HEADER_CACHE_CONTROL, "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
 
-	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
-	server.sendContent(html);
+	server.setContentLength(strlen(buf) + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
+	server.sendContent(buf);
 	server.sendContent_P(FOOT_HTML);
 }
 
@@ -1413,7 +1481,10 @@ String AmsWebServer::getSerialSelectOptions(int selected) {
 	} else {
 		gpioOptions += "<option value=\"3\">UART0 (GPIO3)</option>";
 	}
-	#if defined(ESP32)
+	#if defined(CONFIG_IDF_TARGET_ESP32S2)
+		int numGpio = 31;
+		int gpios[] = {4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,21,22,23,25,32,33,34,35,36,39,40,41,42,43,44};
+	#elif defined(ESP32)
 		int numGpio = 24;
 		int gpios[] = {4,5,6,7,8,10,11,12,13,14,15,17,18,19,21,22,23,25,32,33,34,35,36,39};
 		if(selected == 9) {
@@ -1453,30 +1524,25 @@ void AmsWebServer::uploadPost() {
 	server.send(200);
 }
 
-void AmsWebServer::uploadFile(const char* path) {
+HTTPUpload& AmsWebServer::uploadFile(const char* path) {
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START){
 		if(uploading) {
 			printE("Upload already in progress");
 			String html = "<html><body><h1>Upload already in progress!</h1></body></html>";
-			server.send(500, "text/html", html);
+			server.send(500, MIME_HTML, html);
 		} else if (!LittleFS.begin()) {
 			printE("An Error has occurred while mounting LittleFS");
 			String html = "<html><body><h1>Unable to mount LittleFS!</h1></body></html>";
-			server.send(500, "text/html", html);
+			server.send(500, MIME_HTML, html);
 		} else {
 			uploading = true;
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf("handleFileUpload file: %s\n", path);
 			}
-			#if defined(ESP32)
-				if(debugger->isActive(RemoteDebug::DEBUG)) {
-					debugger->printf("handleFileUpload Free heap: %lu\n", ESP.getFreeHeap());
-					debugger->printf("handleFileUpload LittleFS size: %lu\n", LittleFS.totalBytes());
-					debugger->printf("handleFileUpload LittleFS used: %lu\n", LittleFS.usedBytes());
-					debugger->printf("handleFileUpload LittleFS free: %lu\n", LittleFS.totalBytes()-LittleFS.usedBytes());
-				}
-			#endif
+			if(LittleFS.exists(path)) {
+				LittleFS.remove(path);
+			}
 		    file = LittleFS.open(path, "w");
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf("handleFileUpload Open file and write: %lu\n", upload.currentSize);
@@ -1497,15 +1563,6 @@ void AmsWebServer::uploadFile(const char* path) {
 			}
 			delay(1);
 			if(written != upload.currentSize) {
-				#if defined(ESP32)
-					if(debugger->isActive(RemoteDebug::DEBUG)) {
-						debugger->printf("handleFileUpload Free heap: %lu\n", ESP.getFreeHeap());
-						debugger->printf("handleFileUpload LittleFS size: %lu\n", LittleFS.totalBytes());
-						debugger->printf("handleFileUpload LittleFS used: %lu\n", LittleFS.usedBytes());
-						debugger->printf("handleFileUpload LittleFS free: %lu\n", LittleFS.totalBytes()-LittleFS.usedBytes());
-					}
-				#endif
-
 				file.flush();
 				file.close();
 				LittleFS.remove(path);
@@ -1513,24 +1570,19 @@ void AmsWebServer::uploadFile(const char* path) {
 
 				printE("An Error has occurred while writing file");
 				String html = "<html><body><h1>Unable to write file!</h1></body></html>";
-				server.send(500, "text/html", html);
+				server.send(500, MIME_HTML, html);
 			}
 		}
     } else if(upload.status == UPLOAD_FILE_END) {
         if(file) {
 			file.flush();
             file.close();
-		    file = LittleFS.open(path, "r");
-			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf("handleFileUpload Size: %lu\n", upload.totalSize);
-				debugger->printf("handleFileUpload File size: %lu\n", file.size());
-			}
-            file.close();
-			LittleFS.end();
+//			LittleFS.end();
         } else {
-            server.send(500, "text/plain", "500: couldn't create file");
+            server.send(500, MIME_PLAIN, "500: couldn't create file");
         }
     }
+	return upload;
 }
 
 void AmsWebServer::deleteFile(const char* path) {
@@ -1546,19 +1598,22 @@ void AmsWebServer::firmwareHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	String html = String((const __FlashStringHelper*) FIRMWARE_HTML);
 
 	#if defined(ESP8266)
 	html.replace("{chipset}", "ESP8266");
+	#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+	html.replace("{chipset}", "ESP32S2");
 	#elif defined(ESP32)
 	html.replace("{chipset}", "ESP32");
 	#endif
 	
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent(html);
 	server.sendContent_P(FOOT_HTML);
 }
@@ -1571,7 +1626,7 @@ void AmsWebServer::firmwareUpload() {
     if(upload.status == UPLOAD_FILE_START) {
         String filename = upload.filename;
         if(!filename.endsWith(".bin")) {
-            server.send(500, "text/plain", "500: couldn't create file");
+            server.send(500, MIME_PLAIN, "500: couldn't create file");
 		} else {
 			#if defined(ESP32)
 				esp_task_wdt_delete(NULL);
@@ -1605,15 +1660,43 @@ void AmsWebServer::firmwareDownload() {
 		httpClient.setTimeout(20000);
 		httpClient.addHeader("User-Agent", "ams2mqtt/" + String(VERSION));
 
-#if defined(ESP8266)
-		WiFiClient client;
-		String url = "http://0.0.0.0/releases/download/" + version + "/ams2mqtt-esp8266-" + versionStripped + ".bin";
-#elif defined(ESP32)
-		WiFiClientSecure client;
-		client.setInsecure();
-		String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32-" + versionStripped + ".bin";
-		httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
-#endif
+		#if defined(ESP8266)
+			WiFiClient client;
+			String url = "http://ams2mqtt.no23.cc/releases/download/" + version + "/ams2mqtt-esp8266-" + versionStripped + ".bin";
+			/*
+			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
+			switch(ret) {
+				case HTTP_UPDATE_FAILED:
+					printE("[update] Update failed.");
+					server.sendHeader("Location","/");
+					server.send(303);
+					break;
+				case HTTP_UPDATE_NO_UPDATES:
+					printI("[update] Update no Update.");
+					server.sendHeader("Location","/");
+					server.send(303);
+					break;
+				case HTTP_UPDATE_OK:
+					printI("[update] Update ok."); // may not be called since we reboot the ESP
+					performRestart = true;
+					server.sendHeader("Location","/restart-wait");
+					server.send(303);
+					break;
+			}
+			
+			return;
+			*/
+		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+			WiFiClientSecure client;
+			client.setInsecure();
+			String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32s2-" + versionStripped + ".bin";
+			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
+		#elif defined(ESP32)
+			WiFiClientSecure client;
+			client.setInsecure();
+			String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32-" + versionStripped + ".bin";
+			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
+		#endif
 
 		if(httpClient.begin(client, url)) {
 			printD("HTTP client setup successful");
@@ -1669,11 +1752,12 @@ void AmsWebServer::restartHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	server.setContentLength(RESTART_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent_P(RESTART_HTML);
 	server.sendContent_P(FOOT_HTML);
 }
@@ -1709,11 +1793,12 @@ void AmsWebServer::restartWaitHtml() {
 	}
 	html.replace("${hostname}", wifi.hostname);
 
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	server.setContentLength(html.length());
-	server.send(200, "text/html", html);
+	server.send(200, MIME_HTML, html);
 
 	yield();
 	if(performRestart) {
@@ -1737,21 +1822,23 @@ void AmsWebServer::isAliveCheck() {
 }
 
 void AmsWebServer::uploadHtml(const char* label, const char* action, const char* menu) {
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 	
 	server.setContentLength(UPLOAD_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent_P(UPLOAD_HTML);
 	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::deleteHtml(const char* label, const char* action, const char* menu) {
-	server.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-	server.sendHeader("Pragma", "no-cache");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 	
 	server.setContentLength(DELETE_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent_P(DELETE_HTML);
 	server.sendContent_P(FOOT_HTML);
 }
@@ -1920,10 +2007,10 @@ void AmsWebServer::factoryResetHtml() {
 	if(!checkSecurity(1))
 		return;
 
-	server.sendHeader("Cache-Control", "public, max-age=3600");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	
 	server.setContentLength(RESET_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(200, "text/html", HEAD_HTML);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
 	server.sendContent_P(RESET_HTML);
 	server.sendContent_P(FOOT_HTML);
 }
@@ -1950,10 +2037,10 @@ void AmsWebServer::factoryResetPost() {
 
 
 void AmsWebServer::notFound() {
-	server.sendHeader("Cache-Control", "public, max-age=3600");
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	
 	server.setContentLength(NOTFOUND_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
-	server.send_P(404, "text/html", HEAD_HTML);
+	server.send_P(404, MIME_HTML, HEAD_HTML);
 	server.sendContent_P(NOTFOUND_HTML);
 	server.sendContent_P(FOOT_HTML);
 }
@@ -1985,4 +2072,355 @@ void AmsWebServer::printE(String fmt, ...) {
  	va_start(args, fmt);
 	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(String("(AmsWebServer)" + fmt + "\n").c_str(), args);
 	va_end(args);
+}
+
+void AmsWebServer::configFileHtml() {
+	printD("Serving /configfile.html over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(CONFIGFILE_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
+	server.sendContent_P(CONFIGFILE_HTML);
+	server.sendContent_P(FOOT_HTML);
+}
+
+void AmsWebServer::configFileDownload() {
+	printD("Serving /configfile.cfg over http...");
+
+	if(!checkSecurity(1))
+		return;
+
+	bool includeSecrets = server.hasArg("ic") && server.arg("ic") == "true";
+	bool includeWifi = server.hasArg("iw") && server.arg("iw") == "true";
+	bool includeMqtt = server.hasArg("im") && server.arg("im") == "true";
+	bool includeWeb = server.hasArg("ie") && server.arg("ie") == "true";
+	bool includeMeter = server.hasArg("it") && server.arg("it") == "true";
+	bool includeGpio = server.hasArg("ig") && server.arg("ig") == "true";
+	bool includeDomo = server.hasArg("id") && server.arg("id") == "true";
+	bool includeNtp = server.hasArg("in") && server.arg("in") == "true";
+	bool includeEntsoe = server.hasArg("is") && server.arg("is") == "true";
+	bool includeThresholds = server.hasArg("nh") && server.arg("nh") == "true";
+	
+	SystemConfig sys;
+	config->getSystemConfig(sys);
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+	server.sendHeader("Content-Disposition", "attachment; filename=configfile.cfg");
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+
+	server.send(200, MIME_PLAIN, "amsconfig\n");
+	server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("version %s\n"), VERSION));
+	server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("boardType %d\n"), sys.boardType));
+	
+	if(includeWifi) {
+		WiFiConfig wifi;
+		config->getWiFiConfig(wifi);
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("hostname %s\n"), wifi.hostname));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ssid %s\n"), wifi.ssid));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("psk %s\n"), wifi.psk));
+		if(strlen(wifi.ip) > 0) {
+			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ip %s\n"), wifi.ip));
+			if(strlen(wifi.gateway) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gateway %s\n"), wifi.gateway));
+			if(strlen(wifi.subnet) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("subnet %s\n"), wifi.subnet));
+			if(strlen(wifi.dns1) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("dns1 %s\n"), wifi.dns1));
+			if(strlen(wifi.dns2) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("dns2 %s\n"), wifi.dns2));
+		}
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mdns %d\n"), wifi.mdns ? 1 : 0));
+	}
+	
+	if(includeMqtt) {
+		MqttConfig mqtt;
+		config->getMqttConfig(mqtt);
+		if(strlen(mqtt.host) > 0) {
+			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttHost %s\n"), mqtt.host));
+			if(mqtt.port > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttPort %d\n"), mqtt.port));
+			if(strlen(mqtt.clientId) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttClientId %s\n"), mqtt.clientId));
+			if(strlen(mqtt.publishTopic) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttPublishTopic %s\n"), mqtt.publishTopic));
+			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttUsername %s\n"), mqtt.username));
+			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttPassword %s\n"), mqtt.password));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttPayloadFormat %d\n"), mqtt.payloadFormat));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttSsl %d\n"), mqtt.ssl ? 1 : 0));
+		}
+	}
+
+	if(includeWeb && includeSecrets) {
+		WebConfig web;
+		config->getWebConfig(web);
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("webSecurity %d\n"), web.security));
+		if(web.security > 0) {
+			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("webUsername %s\n"), web.username));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("webPassword %s\n"), web.password));
+		}
+	}
+
+	if(includeMeter) {
+		MeterConfig meter;
+		config->getMeterConfig(meter);
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterBaud %d\n"), meter.baud));
+		char parity[4] = "";
+		switch(meter.parity) {
+			case 2:
+				strcpy(parity, "7N1");
+				break;
+			case 3:
+				strcpy(parity, "8N1");
+				break;
+			case 10:
+				strcpy(parity, "7E1");
+				break;
+			case 11:
+				strcpy(parity, "8E1");
+				break;
+		}
+		if(strlen(parity) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterParity %s\n"), parity));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterInvert %d\n"), meter.invert ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterDistributionSystem %d\n"), meter.distributionSystem));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterMainFuse %d\n"), meter.mainFuse));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterProductionCapacity %d\n"), meter.productionCapacity));
+		if(includeSecrets) {
+			if(meter.encryptionKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterEncryptionKey %s\n"), toHex(meter.encryptionKey, 16).c_str()));
+			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterAuthenticationKey %s\n"), toHex(meter.authenticationKey, 16).c_str()));
+		}
+	}
+
+	if(includeGpio) {
+		GpioConfig gpio;
+		config->getGpioConfig(gpio);
+		if(gpio.hanPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioHanPin %d\n"), gpio.hanPin));
+		if(gpio.apPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioApPin %d\n"), gpio.apPin));
+		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedPin %d\n"), gpio.ledPin));
+		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedInverted %d\n"), gpio.ledInverted ? 1 : 0));
+		if(gpio.ledPinRed != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedPinRed %d\n"), gpio.ledPinRed));
+		if(gpio.ledPinGreen != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedPinGreen %d\n"), gpio.ledPinGreen));
+		if(gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedPinBlue %d\n"), gpio.ledPinBlue));
+		if(gpio.ledPinRed != 0xFF || gpio.ledPinGreen != 0xFF || gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedRgbInverted %d\n"), gpio.ledRgbInverted ? 1 : 0));
+		if(gpio.tempSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioTempSensorPin %d\n"), gpio.tempSensorPin));
+		if(gpio.tempAnalogSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioTempAnalogSensorPin %d\n"), gpio.tempAnalogSensorPin));
+		if(gpio.vccPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccPin %d\n"), gpio.vccPin));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccOffset %.2f\n"), gpio.vccOffset / 100.0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccMultiplier %.3f\n"), gpio.vccMultiplier / 1000.0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccBootLimit %.1f\n"), gpio.vccBootLimit / 10.0));
+		if(gpio.vccPin != 0xFF && gpio.vccResistorGnd != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccResistorGnd %d\n"), gpio.vccResistorGnd));
+		if(gpio.vccPin != 0xFF && gpio.vccResistorVcc != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccResistorVcc %d\n"), gpio.vccResistorVcc));
+	}
+
+	if(includeDomo) {
+		DomoticzConfig domo;
+		config->getDomoticzConfig(domo);
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzElidx %d\n"), domo.elidx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzVl1idx %d\n"), domo.vl1idx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzVl2idx %d\n"), domo.vl2idx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzVl3idx %d\n"), domo.vl3idx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzCl1idx %d\n"), domo.cl1idx));
+	}
+
+	if(includeNtp) {
+		NtpConfig ntp;
+		config->getNtpConfig(ntp);
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpEnable %d\n"), ntp.enable ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpDhcp %d\n"), ntp.dhcp ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpOffset %d\n"), ntp.offset * 10));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpSummerOffset %d\n"), ntp.summerOffset * 10));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpServer %s\n"), ntp.server));
+	}
+
+	if(includeEntsoe) {
+		EntsoeConfig entsoe;
+		config->getEntsoeConfig(entsoe);
+		if(strlen(entsoe.token) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeToken %s\n"), entsoe.token));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeArea %s\n"), entsoe.area));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeCurrency %s\n"), entsoe.currency));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeMultiplier %.3f\n"), entsoe.multiplier / 1000.0));
+	}
+
+	if(includeThresholds) {
+		EnergyAccountingConfig eac;
+		config->getEnergyAccountingConfig(eac);
+
+		if(eac.thresholds[9] > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("thresholds %d %d %d %d %d %d %d %d %d %d\n"), 
+			eac.thresholds[0],
+			eac.thresholds[1],
+			eac.thresholds[2],
+			eac.thresholds[3],
+			eac.thresholds[4],
+			eac.thresholds[5],
+			eac.thresholds[6],
+			eac.thresholds[7],
+			eac.thresholds[8],
+			eac.thresholds[9]
+		));
+	}
+
+
+	if(ds != NULL) {
+		DayDataPoints day = ds->getDayData();
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("dayplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+			day.version,
+			(int64_t) day.lastMeterReadTime,
+			day.activeImport,
+			ds->getHourImport(0),
+			ds->getHourImport(1),
+			ds->getHourImport(2),
+			ds->getHourImport(3),
+			ds->getHourImport(4),
+			ds->getHourImport(5),
+			ds->getHourImport(6),
+			ds->getHourImport(7),
+			ds->getHourImport(8),
+			ds->getHourImport(9),
+			ds->getHourImport(10),
+			ds->getHourImport(11),
+			ds->getHourImport(12),
+			ds->getHourImport(13),
+			ds->getHourImport(14),
+			ds->getHourImport(15),
+			ds->getHourImport(16),
+			ds->getHourImport(17),
+			ds->getHourImport(18),
+			ds->getHourImport(19),
+			ds->getHourImport(20),
+			ds->getHourImport(21),
+			ds->getHourImport(22),
+			ds->getHourImport(23)
+		));
+		if(day.activeExport > 0) {
+			server.sendContent(buf, snprintf(buf, BufferSize, " %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
+				day.activeExport,
+				ds->getHourExport(0),
+				ds->getHourExport(1),
+				ds->getHourExport(2),
+				ds->getHourExport(3),
+				ds->getHourExport(4),
+				ds->getHourExport(5),
+				ds->getHourExport(6),
+				ds->getHourExport(7),
+				ds->getHourExport(8),
+				ds->getHourExport(9),
+				ds->getHourExport(10),
+				ds->getHourExport(11),
+				ds->getHourExport(12),
+				ds->getHourExport(13),
+				ds->getHourExport(14),
+				ds->getHourExport(15),
+				ds->getHourExport(16),
+				ds->getHourExport(17),
+				ds->getHourExport(18),
+				ds->getHourExport(19),
+				ds->getHourExport(20),
+				ds->getHourExport(21),
+				ds->getHourExport(22),
+				ds->getHourExport(23)
+			));
+		} else {
+			server.sendContent("\n");
+		}
+
+		MonthDataPoints month = ds->getMonthData();
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("monthplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+			month.version,
+			(int64_t) month.lastMeterReadTime,
+			month.activeImport,
+			ds->getDayImport(1),
+			ds->getDayImport(2),
+			ds->getDayImport(3),
+			ds->getDayImport(4),
+			ds->getDayImport(5),
+			ds->getDayImport(6),
+			ds->getDayImport(7),
+			ds->getDayImport(8),
+			ds->getDayImport(9),
+			ds->getDayImport(10),
+			ds->getDayImport(11),
+			ds->getDayImport(12),
+			ds->getDayImport(13),
+			ds->getDayImport(14),
+			ds->getDayImport(15),
+			ds->getDayImport(16),
+			ds->getDayImport(17),
+			ds->getDayImport(18),
+			ds->getDayImport(19),
+			ds->getDayImport(20),
+			ds->getDayImport(21),
+			ds->getDayImport(22),
+			ds->getDayImport(23),
+			ds->getDayImport(24),
+			ds->getDayImport(25),
+			ds->getDayImport(26),
+			ds->getDayImport(27),
+			ds->getDayImport(28),
+			ds->getDayImport(29),
+			ds->getDayImport(30),
+			ds->getDayImport(31)
+		));
+		if(month.activeExport > 0) {
+			server.sendContent(buf, snprintf_P(buf, BufferSize, " %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
+				month.activeExport,
+				ds->getDayExport(1),
+				ds->getDayExport(2),
+				ds->getDayExport(3),
+				ds->getDayExport(4),
+				ds->getDayExport(5),
+				ds->getDayExport(6),
+				ds->getDayExport(7),
+				ds->getDayExport(8),
+				ds->getDayExport(9),
+				ds->getDayExport(10),
+				ds->getDayExport(11),
+				ds->getDayExport(12),
+				ds->getDayExport(13),
+				ds->getDayExport(14),
+				ds->getDayExport(15),
+				ds->getDayExport(16),
+				ds->getDayExport(17),
+				ds->getDayExport(18),
+				ds->getDayExport(19),
+				ds->getDayExport(20),
+				ds->getDayExport(21),
+				ds->getDayExport(22),
+				ds->getDayExport(23),
+				ds->getDayExport(24),
+				ds->getDayExport(25),
+				ds->getDayExport(26),
+				ds->getDayExport(27),
+				ds->getDayExport(28),
+				ds->getDayExport(29),
+				ds->getDayExport(30),
+				ds->getDayExport(31)
+			));
+		} else {
+			server.sendContent("\n");
+		}
+	}
+
+	if(ea != NULL) {
+		EnergyAccountingData ead = ea->getData();
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("energyaccounting %d %d %.2f %.2f %.2f %.2f"), 
+			ead.version,
+			ead.month,
+			ead.maxHour / 100.0,
+			ead.costYesterday / 100.0,
+			ead.costThisMonth / 100.0,
+			ead.costLastMonth / 100.0
+		));
+	}
+}
+
+void AmsWebServer::configFileUpload() {
+	if(!checkSecurity(1))
+		return;
+
+	HTTPUpload& upload = uploadFile(FILE_CFG);
+    if(upload.status == UPLOAD_FILE_END) {
+		performRestart = true;
+		server.sendHeader("Location","/restart-wait");
+		server.send(303);
+	}
 }

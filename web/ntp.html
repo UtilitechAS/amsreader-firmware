@@ -2,7 +2,7 @@
     <input type="hidden" name="nc" value="true"/>
     <div class="my-3 p-3 bg-white rounded shadow">
         <h6>NTP</h6>
-        <label class="m-2"><input id="n" type="checkbox" name="n" value="true" {n}/> Enable</label>
+        <label class="m-2"><input id="n" type="checkbox" name="n" value="true" %s/> Enable</label>
         <div class="row">
             <div class="col-lg-3 col-md-4 col-sm-5">
                 <div class="m-2 input-group input-group-sm">
@@ -10,9 +10,9 @@
                         <span class="input-group-text">Timezone</span>
                     </div>
                     <select id="o" class="form-control nc" name="o">
-                        <option value="0" {o0}>UTC</option>
-                        <option value="3600" {o3600}>UTC+1</option>
-                        <option value="7200" {o7200}>UTC+2</option>
+                        <option value="0" %s>UTC</option>
+                        <option value="3600" %s>UTC+1</option>
+                        <option value="7200" %s>UTC+2</option>
                     </select>
                 </div>
             </div>
@@ -22,8 +22,8 @@
                         <span class="input-group-text">Summertime offset</span>
                     </div>
                     <select id="so" class="form-control nc" name="so">
-                        <option value="0" {so0}>Disabled</option>
-                        <option value="3600" {so3600}>+1hr</option>
+                        <option value="0" %s>Disabled</option>
+                        <option value="3600" %s>+1hr</option>
                     </select>
                 </div>
             </div>
@@ -32,12 +32,12 @@
                     <div class="input-group-prepend">
                         <span class="input-group-text">Server</span>
                     </div>
-                    <input type="text" class="form-control nc" name="ns" value="{ns}" maxlength="64"/>
+                    <input type="text" class="form-control nc" name="ns" value="%s" maxlength="64"/>
                 </div>
             </div>
             <div class="col-lg-4 col-md-5 col-sm-6">
                 <div class="m-2">
-                    <label class="small"><input type="checkbox" name="nd" value="true" {nd} class="nc"/> Obtain NTP server from DHCP</label>
+                    <label class="small"><input type="checkbox" name="nd" value="true" %s class="nc"/> Obtain NTP server from DHCP</label>
                 </div>
             </div>    
         </div>

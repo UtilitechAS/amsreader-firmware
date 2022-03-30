@@ -1,6 +1,8 @@
 var nextVersion;
 var im, em;
 var ds = 0;
+var currency = "";
+var swatt = false;
 
 // Price plot
 var pp;
@@ -30,6 +32,7 @@ var eo = {
     titleTextStyle: {
         fontSize: 14
     },
+    colors: ['#6f42c1', '#6f42c1'],
     backgroundColor: { fill:'transparent' },
     bar: { groupWidth: '90%' },
     legend: { position: 'none' },
@@ -39,6 +42,7 @@ var eo = {
     },
     tooltip: { trigger: 'none'},
     enableInteractivity: false,
+    isStacked: true
 };
 
 // Month plot
@@ -49,6 +53,7 @@ var mo = {
     titleTextStyle: {
         fontSize: 14
     },
+    colors: ['#6f42c1', '#6f42c1'],
     backgroundColor: { fill:'transparent' },
     bar: { groupWidth: '90%' },
     legend: { position: 'none' },
@@ -58,6 +63,7 @@ var mo = {
     },
     tooltip: { trigger: 'none'},
     enableInteractivity: false,
+    isStacked: true
 };
 
 // Voltage plot
@@ -263,6 +269,11 @@ $(function() {
     });
     $('#n').trigger('change');
 
+    $('.ipo,.epo').on('click', function() {
+        swatt = !swatt;
+        $('.ipo,.epo').html('wait');
+    });
+
     // Navbar
     switch(window.location.pathname) {
         case '/temperature':
@@ -285,6 +296,7 @@ $(function() {
             break;
         case '/gpio':
         case '/debugging':
+        case '/configfile':
         case '/firmware':
             $('#firmware-warn').show();
         case '/reset':
@@ -432,6 +444,7 @@ var drawPrices = function() {
         timeout: 30000,
         dataType: 'json',
     }).done(function(json) {
+        currency = json.currency;
         data = [['Hour',json.currency + '/kWh', { role: 'style' }, { role: 'annotation' }]];
         var r = 1;
         var hour = moment.utc().hours();
@@ -465,24 +478,27 @@ var drawDay = function() {
         timeout: 30000,
         dataType: 'json',
     }).done(function(json) {
-        data = [['Hour','kWh', { role: 'style' }, { role: 'annotation' }]];
+        data = [['Hour', 'Import', { role: 'style' }, { role: 'annotation' }, 'Export', { role: 'style' }]];
         var r = 1;
         var hour = moment.utc().hours();
         var offset = moment().utcOffset()/60;
         var min = 0;
         for(var i = hour; i<24; i++) {
-            var val = json["h"+zeropad(i)];
-            data[r++] = [zeropad((i+offset)%24), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(1)];
-            Math.min(0, val);
+            var imp = json["i"+zeropad(i)];
+            var exp = json["e"+zeropad(i)];
+            data[r++] = [zeropad((i+offset)%24), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(1) : imp.toFixed(1) + '\n' + -exp.toFixed(1), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            min = Math.min(0, -exp);
         };
         for(var i = 0; i < hour; i++) {
-            var val = json["h"+zeropad(i)];
-            data[r++] = [zeropad((i+offset)%24), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(1)];
-            Math.min(0, val);
+            var imp = json["i"+zeropad(i)];
+            var exp = json["e"+zeropad(i)];
+            data[r++] = [zeropad((i+offset)%24), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(1) : imp.toFixed(1) + '\n' + -exp.toFixed(1), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            min = Math.min(0, -exp);
         };
         ea = google.visualization.arrayToDataTable(data);
         if(min == 0)
             eo.vAxis.minValue = 0;
+
         ep.draw(ea, eo);
 
         setTimeout(drawDay, (61-moment().minute())*60000);
@@ -495,20 +511,22 @@ var drawMonth = function() {
         timeout: 30000,
         dataType: 'json',
     }).done(function(json) {
-        data = [['Day','kWh', { role: 'style' }, { role: 'annotation' }]];
+        data = [['Hour', 'Import', { role: 'style' }, { role: 'annotation' }, 'Export', { role: 'style' }]];
         var r = 1;
         var day = moment().date();
         var eom = moment().subtract(1, 'months').endOf('month').date();
         var min = 0;
         for(var i = day; i<=eom; i++) {
-            var val = json["d"+zeropad(i)];
-            data[r++] = [zeropad((i)), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(0)];
-            Math.min(0, val);
+            var imp = json["i"+zeropad(i)];
+            var exp = json["e"+zeropad(i)];
+            data[r++] = [zeropad(i), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(0) : imp.toFixed(0) + '\n' + -exp.toFixed(0), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            min = Math.min(0, -exp);
         }
         for(var i = 1; i < day; i++) {
-            var val = json["d"+zeropad(i)];
-            data[r++] = [zeropad((i)), val, "color: #6f42c1;opacity: 0.9;", val.toFixed(0)];
-            Math.min(0, val);
+            var imp = json["i"+zeropad(i)];
+            var exp = json["e"+zeropad(i)];
+            data[r++] = [zeropad(i), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(0) : imp.toFixed(0) + '\n' + -exp.toFixed(0), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            min = Math.min(0, -exp);
         }
         ma = google.visualization.arrayToDataTable(data);
         if(min == 0)
@@ -582,10 +600,10 @@ var voltcol = function(pct) {
 };
 
 var ampcol = function(pct) {
-    if(pct > 85) return '#d90000';
-    else if(pct > 75) return'#e32100';
-    else if(pct > 70) return '#ffb800';
-    else if(pct > 65) return '#dcd800';
+    if(pct > 90) return '#d90000';
+    else if(pct > 85) return'#e32100';
+    else if(pct > 80) return '#ffb800';
+    else if(pct > 75) return '#dcd800';
     else return '#32d900';
 };
 
@@ -635,7 +653,7 @@ var fetch = function() {
             var v = parseInt(json.i);
             var pct = (v*100)/parseInt(json.im);
             var append = "W";
-            if(v > 1000) {
+            if(v > 1000 && !swatt) {
                 v = (v/1000).toFixed(1);
                 append = "kW";
             }
@@ -652,25 +670,34 @@ var fetch = function() {
             ip.draw(ia, io);
         }
 
-        if(xp) {
-            var v = parseInt(json.e);
-            var pct = (v*100)/(parseInt(json.om)*1000);
-            var append = "W";
-            if(v > 1000) {
-                v = (v/1000).toFixed(1);
-                append = "kW";
+        var om = parseInt(json.om);
+
+        if(om > 0) {
+            $('.rex').show();
+            $('.rim').hide();
+            if(xp) {
+                var v = parseInt(json.e);
+                var pct = (v*100)/(om*1000);
+                var append = "W";
+                if(v > 1000 && !swatt) {
+                    v = (v/1000).toFixed(1);
+                    append = "kW";
+                }
+                $('.epo').html(v);
+                $('.epoa').html(append);
+                var arr = [
+                    ['Slice', 'Value'],
+                    ['', (pct*2.88)],
+                    ['', ((100-pct)*2.88)],
+                    ['', 72],
+                ];
+                xo.slices[0].color = ampcol(pct);
+                xa = google.visualization.arrayToDataTable(arr);
+                xp.draw(xa, xo);
             }
-            $('.epo').html(v);
-            $('.epoa').html(append);
-            var arr = [
-                ['Slice', 'Value'],
-                ['', (pct*2.88)],
-                ['', ((100-pct)*2.88)],
-                ['', 72],
-            ];
-            xo.slices[0].color = ampcol(pct);
-            xa = google.visualization.arrayToDataTable(arr);
-            xp.draw(xa, xo);
+        } else {
+            $('.rex').hide();
+            $('.rim').show();
         }
 
         if(vp) {
@@ -750,6 +777,21 @@ var fetch = function() {
             }
         }
 
+        if(json.ea) {
+            $('#each').html(json.ea.h.u.toFixed(2));
+            $('#eachc').html(json.ea.h.c.toFixed(2));
+            $('#eacd').html(json.ea.d.u.toFixed(1));
+            $('#eacdc').html(json.ea.d.c.toFixed(1));
+            $('#eacm').html(json.ea.m.u.toFixed(0));
+            $('#eacmc').html(json.ea.m.c.toFixed(0));
+            $('#eax').html(json.ea.x.toFixed(1));
+            $('#eat').html(json.ea.t.toFixed(0));
+            $('.cr').html(currency);
+            if(currency) {
+                $('.sp').show();
+            }
+        }
+
         if(json.me) {
             $('.me').addClass('d-none');
             $('.me'+json.me).removeClass('d-none');
@@ -803,7 +845,7 @@ var fetch = function() {
                 $('.jmt').html("Landis");
                 break;
             case 10:
-                $('.jmt').html("Sagecom");
+                $('.jmt').html("Sagemcom");
                 break;
             default:
                 $('.jmt').html("");

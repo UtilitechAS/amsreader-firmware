@@ -8,7 +8,9 @@
 #include "AmsConfiguration.h"
 #include "HwTools.h"
 #include "AmsData.h"
+#include "AmsStorage.h"
 #include "AmsDataStorage.h"
+#include "EnergyAccounting.h"
 #include "Uptime.h"
 #include "RemoteDebug.h"
 #include "entsoe/EntsoeApi.h"
@@ -17,6 +19,7 @@
 	#include <ESP8266WiFi.h>
 	#include <ESP8266WebServer.h>
 	#include <ESP8266HTTPClient.h>
+	#include <ESP8266httpUpdate.h>
 #elif defined(ESP32) // ARDUINO_ARCH_ESP32
 	#include <WiFi.h>
 	#include <WebServer.h>
@@ -29,8 +32,8 @@
 
 class AmsWebServer {
 public:
-	AmsWebServer(RemoteDebug* Debug, HwTools* hw);
-    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage*);
+	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw);
+    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*);
     void loop();
 	void setMqtt(MQTTClient* mqtt);
 	void setTimezone(Timezone* tz);
@@ -50,13 +53,14 @@ private:
 	WebConfig webConfig;
 	AmsData* meterState;
 	AmsDataStorage* ds;
+    EnergyAccounting* ea = NULL;
 	MQTTClient* mqtt = NULL;
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
 
-    static const uint16_t JsonSize = 768;
-    char* json;
+    static const uint16_t BufferSize = 2048;
+    char* buf;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;
@@ -71,8 +75,8 @@ private:
 	void temperature();
 	void temperaturePost();
 	void temperatureJson();
-	void price();
 	void configMeterHtml();
+	void configMeterAdvancedHtml();
 	void configWifiHtml();
 	void configMqttHtml();
 	void configWebHtml();
@@ -81,12 +85,16 @@ private:
 	void configNtpHtml();
 	void configGpioHtml();
 	void configDebugHtml();
+	void configThresholdsHtml();
 	void bootCss();
 	void githubSvg();
     void dataJson();
 	void dayplotJson();
 	void monthplotJson();
 	void energyPriceJson();
+	void configFileHtml();
+	void configFileDownload();
+	void configFileUpload();
 
 	void handleSetup();
 	void handleSave();
@@ -102,7 +110,7 @@ private:
 
 	void uploadHtml(const char* label, const char* action, const char* menu);
 	void deleteHtml(const char* label, const char* action, const char* menu);
-	void uploadFile(const char* path);
+	HTTPUpload& uploadFile(const char* path);
 	void deleteFile(const char* path);
 	void uploadPost();
 	void mqttCa();

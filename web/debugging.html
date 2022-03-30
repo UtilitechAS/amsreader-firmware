@@ -11,20 +11,20 @@
         <h6>Debugging</h6>
         <div class="row">
             <div class="col-xl-2 col-md-3">
-                <label><input type="checkbox" name="debugTelnet" value="true" ${config.debugTelnet}/> Telnet debugger</label>
+                <label><input type="checkbox" name="debugTelnet" value="true" %s/> Telnet debugger</label>
             </div>
             <div class="col-xl-2 col-md-3">
-                <label><input type="checkbox" name="debugSerial" value="true" ${config.debugSerial}/> Serial debugger</label>
+                <label><input type="checkbox" name="debugSerial" value="true" %s/> Serial debugger</label>
             </div>
             <div class="col-xl-3 col-md-4">
                 <div class="row form-group">
                     <label class="col-6">Debug level</label>
                     <div class="col-6">
                         <select class="form-control form-control-sm" name="debugLevel">
-                            <option value="1" ${config.debugLevel1}>Verbose</option>
-                            <option value="2" ${config.debugLevel2}>Debug</option>
-                            <option value="3" ${config.debugLevel3}>Info</option>
-                            <option value="4" ${config.debugLevel4}>Warning</option>
+                            <option value="1" %s>Verbose</option>
+                            <option value="2" %s>Debug</option>
+                            <option value="3" %s>Info</option>
+                            <option value="4" %s>Warning</option>
                         </select>
                     </div>
                 </div>

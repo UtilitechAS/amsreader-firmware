@@ -2,7 +2,7 @@
 #include "hexutils.h"
 #include "Uptime.h"
 
-bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
+bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
         
@@ -10,15 +10,7 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
         mqtt->publish(topic + "/meter/dlms/timestamp", String(data->getPackageTimestamp()));
     }
     switch(data->getListType()) {
-        case 3:
-            // ID and type belongs to List 2, but I see no need to send that every 10s
-            mqtt->publish(topic + "/meter/id", data->getMeterId(), true, 0);
-            mqtt->publish(topic + "/meter/type", data->getMeterModel(), true, 0);
-            mqtt->publish(topic + "/meter/clock", String(data->getMeterTimestamp()));
-            mqtt->publish(topic + "/meter/import/reactive/accumulated", String(data->getReactiveImportCounter(), 3), true, 0);
-            mqtt->publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 3), true, 0);
-            mqtt->publish(topic + "/meter/export/reactive/accumulated", String(data->getReactiveExportCounter(), 3), true, 0);
-            mqtt->publish(topic + "/meter/export/active/accumulated", String(data->getActiveExportCounter(), 3), true, 0);
+        case 4:
             if(full || meterState->getPowerFactor() != data->getPowerFactor()) {
                 mqtt->publish(topic + "/meter/powerfactor", String(data->getPowerFactor(), 2));
             }
@@ -31,6 +23,15 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
             if(full || meterState->getL3PowerFactor() != data->getL3PowerFactor()) {
                 mqtt->publish(topic + "/meter/l3/powerfactor", String(data->getL3PowerFactor(), 2));
             }
+        case 3:
+            // ID and type belongs to List 2, but I see no need to send that every 10s
+            mqtt->publish(topic + "/meter/id", data->getMeterId(), true, 0);
+            mqtt->publish(topic + "/meter/type", data->getMeterModel(), true, 0);
+            mqtt->publish(topic + "/meter/clock", String(data->getMeterTimestamp()));
+            mqtt->publish(topic + "/meter/import/reactive/accumulated", String(data->getReactiveImportCounter(), 3), true, 0);
+            mqtt->publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 3), true, 0);
+            mqtt->publish(topic + "/meter/export/reactive/accumulated", String(data->getReactiveExportCounter(), 3), true, 0);
+            mqtt->publish(topic + "/meter/export/active/accumulated", String(data->getActiveExportCounter(), 3), true, 0);
         case 2:
             // Only send data if changed. ID and Type is sent on the 10s interval only if changed
             if(full || meterState->getMeterId() != data->getMeterId()) {
@@ -71,6 +72,9 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState) {
                 mqtt->publish(topic + "/meter/import/active", String(data->getActiveImportPower()));
             }
     }
+    mqtt->publish(topic + "/realtime/import/hour", String(ea->getUseThisHour(), 3));
+    mqtt->publish(topic + "/realtime/import/day", String(ea->getUseToday(), 2));
+    mqtt->publish(topic + "/realtime/import/threshold", String(ea->getCurrentThreshold(), 10), true, 0);
     return true;
 }
 
@@ -100,6 +104,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[34] = {0};
+	memset(values, ENTSOE_NO_VALUE, 34);
 	for(uint8_t i = 0; i < 34; i++) {
 		float val = eapi->getValueForHour(now, i);
 		values[i] = val;

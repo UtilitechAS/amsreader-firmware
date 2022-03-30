@@ -3,6 +3,7 @@
 
 #include "AmsData.h"
 #include "ams/hdlc.h"
+#include "AmsConfiguration.h"
 
 #define NOVALUE 0xFFFFFFFF
 
@@ -13,7 +14,7 @@ struct AmsOctetTimestamp {
 
 class IEC6205675 : public AmsData {
 public:
-    IEC6205675(const char* payload, uint8_t useMeterType, uint8_t distributionSystem, CosemDateTime packageTimestamp, HDLCConfig* hc);
+    IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, CosemDateTime packageTimestamp, HDLCConfig* hc);
 
 private:
     CosemData* getCosemDataAt(uint8_t index, const char* ptr);

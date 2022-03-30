@@ -241,13 +241,28 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             if (0 != success) {
                 return HDLC_ENCRYPTION_KEY_FAILED;
             }
-            success = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text), config->initialization_vector, sizeof(config->initialization_vector),
-                config->additional_authenticated_data, aadlen, config->authentication_tag, authkeylen,
-                cipher_text, (unsigned char*)(ptr));
-            if (authkeylen > 0 && success == MBEDTLS_ERR_GCM_AUTH_FAILED) {
-                return HDLC_ENCRYPTION_AUTH_FAILED;
-            } else if(success == MBEDTLS_ERR_GCM_BAD_INPUT) {
-                return HDLC_ENCRYPTION_DECRYPT_FAILED;
+            if (0 < authkeylen) {
+                success = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text), config->initialization_vector, sizeof(config->initialization_vector),
+                    config->additional_authenticated_data, aadlen, config->authentication_tag, authkeylen,
+                    cipher_text, (unsigned char*)(ptr));
+                if (authkeylen > 0 && success == MBEDTLS_ERR_GCM_AUTH_FAILED) {
+                    mbedtls_gcm_free(&m_ctx);
+                    return HDLC_ENCRYPTION_AUTH_FAILED;
+                } else if(success == MBEDTLS_ERR_GCM_BAD_INPUT) {
+                    mbedtls_gcm_free(&m_ctx);
+                    return HDLC_ENCRYPTION_DECRYPT_FAILED;
+                }
+            } else {
+                success = mbedtls_gcm_starts(&m_ctx, MBEDTLS_GCM_DECRYPT, config->initialization_vector, sizeof(config->initialization_vector),NULL, 0);
+                if (0 != success) {
+                    mbedtls_gcm_free(&m_ctx);
+                    return HDLC_ENCRYPTION_DECRYPT_FAILED;
+                }
+                success = mbedtls_gcm_update(&m_ctx, sizeof(cipher_text), cipher_text, (unsigned char*)(ptr));
+                if (0 != success) {
+                    mbedtls_gcm_free(&m_ctx);
+                    return HDLC_ENCRYPTION_DECRYPT_FAILED;
+                }
             }
             mbedtls_gcm_free(&m_ctx);
         #endif

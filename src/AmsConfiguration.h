@@ -4,15 +4,16 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 92 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 94 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
 #define CONFIG_SYSTEM_START 8
-#define CONFIG_METER_START 224
+#define CONFIG_METER_START 32
 #define CONFIG_GPIO_START 266
 #define CONFIG_ENTSOE_START 290
 #define CONFIG_WIFI_START 360
+#define CONFIG_ENERGYACCOUNTING_START 576
 #define CONFIG_WEB_START 648
 #define CONFIG_DEBUG_START 824
 #define CONFIG_DOMOTICZ_START 856 
@@ -23,6 +24,7 @@
 #define CONFIG_METER_START_87 784
 #define CONFIG_ENTSOE_START_90 286
 #define CONFIG_WIFI_START_91 16
+#define CONFIG_METER_START_93 224
 
 
 struct SystemConfig {
@@ -51,7 +53,8 @@ struct WiFiConfig {
 	char dns2[16];
 	char hostname[32];
 	bool mdns;
-}; // 209
+	uint8_t power;
+}; // 210
 
 struct MqttConfig86 {
 	char host[128];
@@ -92,7 +95,11 @@ struct MeterConfig {
 	uint8_t productionCapacity;
 	uint8_t encryptionKey[16];
 	uint8_t authenticationKey[16];
-}; // 41
+	uint16_t wattageMultiplier;
+	uint16_t voltageMultiplier;
+	uint16_t amperageMultiplier;
+	uint16_t accumulatedMultiplier;
+}; // 49
 
 struct MeterConfig87 {
 	uint8_t type;
@@ -152,71 +159,9 @@ struct EntsoeConfig {
 	uint32_t multiplier;
 }; // 62
 
-struct ConfigObject83 {
-	uint8_t boardType;
-	char wifiSsid[32];
-	char wifiPassword[64];
-    char wifiIp[15];
-    char wifiGw[15];
-    char wifiSubnet[15];
-	char wifiDns1[15];
-	char wifiDns2[15];
-	char wifiHostname[32];
-	char mqttHost[128];
-	uint16_t mqttPort;
-	char mqttClientId[32];
-	char mqttPublishTopic[64];
-	char mqttSubscribeTopic[64];
-	char mqttUser[64];
-	char mqttPassword[64];
-	uint8_t mqttPayloadFormat;
-	bool mqttSsl;
-	uint8_t authSecurity;
-	char authUser[64];
-	char authPassword[64];
-
-	uint8_t meterType;
-	uint8_t distributionSystem;
-	uint8_t mainFuse;
-	uint8_t productionCapacity;
-	uint8_t meterEncryptionKey[16];
-	uint8_t meterAuthenticationKey[16];
-	bool substituteMissing;
-	bool sendUnknown;
-
-	bool debugTelnet;
-	bool debugSerial;
-	uint8_t debugLevel;
-
-	uint8_t hanPin;
-	uint8_t apPin;
-	uint8_t ledPin;
-	bool ledInverted;
-	uint8_t ledPinRed;
-	uint8_t ledPinGreen;
-	uint8_t ledPinBlue;
-	bool ledRgbInverted;
-	uint8_t tempSensorPin;
-	uint8_t vccPin;
-	int16_t vccOffset;
-	uint16_t vccMultiplier;
-	uint8_t vccBootLimit;
-
-	uint16_t domoELIDX;
-	uint16_t domoVL1IDX;
-	uint16_t domoVL2IDX;
-	uint16_t domoVL3IDX;
-	uint16_t domoCL1IDX;
-
-	bool mDnsEnable;
-	bool ntpEnable;
-	bool ntpDhcp;
-	int16_t ntpOffset;
-	int16_t ntpSummerOffset;
-	char ntpServer[64];
-
-	uint8_t tempAnalogSensorPin;
-};
+struct EnergyAccountingConfig {
+	uint8_t thresholds[10];
+}; // 10
 
 struct TempSensorConfig {
 	uint8_t address[8];
@@ -288,6 +233,12 @@ public:
 	bool isEntsoeChanged();
 	void ackEntsoeChange();
 
+	bool getEnergyAccountingConfig(EnergyAccountingConfig&);
+	bool setEnergyAccountingConfig(EnergyAccountingConfig&);
+	void clearEnergyAccountingConfig(EnergyAccountingConfig&);
+	bool isEnergyAccountingChanged();
+	void ackEnergyAccountingChange();
+
 	void loadTempSensors();
 	void saveTempSensors();
 	uint8_t getTempSensorCount();
@@ -303,20 +254,20 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged = true, entsoeChanged = false;
+	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged = true, entsoeChanged = false, energyAccountingChanged = true;
 
 	uint8_t tempSensorCount = 0;
 	TempSensorConfig** tempSensors = NULL;
 
-	bool loadConfig83(int address);
-	bool relocateConfig86();
-	bool relocateConfig87();
+	bool relocateConfig86(); // 1.5.0
+	bool relocateConfig87(); // 1.5.4
 	bool relocateConfig90(); // 2.0.0
 	bool relocateConfig91(); // 2.0.2
+	bool relocateConfig92(); // 2.0.3
+	bool relocateConfig93(); // 2.1 beta
 
-	int readString(int pAddress, char* pString[]);
-	int readInt(int pAddress, int *pValue);
-	int readBool(int pAddress, bool *pValue);
-	int readByte(int pAddress, byte *pValue);
+	void saveToFs();
+	bool loadFromFs(uint8_t version);
+	void deleteFromFs(uint8_t version);
 };
 #endif

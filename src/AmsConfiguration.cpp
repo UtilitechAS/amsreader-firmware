@@ -37,11 +37,14 @@ bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 		wifiChanged |= strcmp(config.ssid, existing.ssid) != 0;
 		wifiChanged |= strcmp(config.psk, existing.psk) != 0;
 		wifiChanged |= strcmp(config.ip, existing.ip) != 0;
-		wifiChanged |= strcmp(config.gateway, existing.gateway) != 0;
-		wifiChanged |= strcmp(config.subnet, existing.subnet) != 0;
-		wifiChanged |= strcmp(config.dns1, existing.dns1) != 0;
-		wifiChanged |= strcmp(config.dns2, existing.dns2) != 0;
+		if(strlen(config.ip) > 0) {
+			wifiChanged |= strcmp(config.gateway, existing.gateway) != 0;
+			wifiChanged |= strcmp(config.subnet, existing.subnet) != 0;
+			wifiChanged |= strcmp(config.dns1, existing.dns1) != 0;
+			wifiChanged |= strcmp(config.dns2, existing.dns2) != 0;
+		}
 		wifiChanged |= strcmp(config.hostname, existing.hostname) != 0;
+		wifiChanged |= config.power != existing.power;
 	} else {
 		wifiChanged = true;
 	}
@@ -209,6 +212,10 @@ void AmsConfiguration::clearMeter(MeterConfig& config) {
 	config.productionCapacity = 0;
 	memset(config.encryptionKey, 0, 16);
 	memset(config.authenticationKey, 0, 16);
+	config.wattageMultiplier = 0;
+	config.voltageMultiplier = 0;
+	config.amperageMultiplier = 0;
+	config.accumulatedMultiplier = 0;
 }
 
 bool AmsConfiguration::isMeterChanged() {
@@ -492,6 +499,63 @@ void AmsConfiguration::ackEntsoeChange() {
 	entsoeChanged = false;
 }
 
+
+bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_ENERGYACCOUNTING_START, config);
+		EEPROM.end();
+		if(config.thresholds[9] != 255) {
+			clearEnergyAccountingConfig(config);
+		}
+		return true;
+	} else {
+		return false;
+	}
+}
+
+bool AmsConfiguration::setEnergyAccountingConfig(EnergyAccountingConfig& config) {
+	EnergyAccountingConfig existing;
+	if(getEnergyAccountingConfig(existing)) {
+		for(int i = 0; i < 9; i++) {
+			if(existing.thresholds[i] != config.thresholds[i]) {
+				energyAccountingChanged = true;
+			}
+		}
+		config.thresholds[9] = 255;
+	} else {
+		energyAccountingChanged = true;
+	}
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+
+}
+
+void AmsConfiguration::clearEnergyAccountingConfig(EnergyAccountingConfig& config) {
+	config.thresholds[0] = 5;
+	config.thresholds[1] = 10;
+	config.thresholds[2] = 15;
+	config.thresholds[3] = 20;
+	config.thresholds[4] = 25;
+	config.thresholds[5] = 50;
+	config.thresholds[6] = 75;
+	config.thresholds[7] = 100;
+	config.thresholds[8] = 150;
+	config.thresholds[9] = 255;
+}
+
+bool AmsConfiguration::isEnergyAccountingChanged() {
+	return energyAccountingChanged;
+}
+
+void AmsConfiguration::ackEnergyAccountingChange() {
+	energyAccountingChanged = false;
+}
+
+
 void AmsConfiguration::clear() {
 	EEPROM.begin(EEPROM_SIZE);
 	MeterConfig meter;
@@ -522,6 +586,10 @@ void AmsConfiguration::clear() {
 	clearEntsoe(entsoe);
 	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
 
+	EnergyAccountingConfig eac;
+	clearEnergyAccountingConfig(eac);
+	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
+
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, -1);
 	EEPROM.commit();
 	EEPROM.end();
@@ -533,54 +601,68 @@ bool AmsConfiguration::hasConfig() {
 		configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
 		EEPROM.end();
 	}
-	switch(configVersion) {
-		case 83:
-			configVersion = -1; // Prevent loop
-			if(loadConfig83(EEPROM_CONFIG_ADDRESS+1)) {
-				configVersion = EEPROM_CHECK_SUM;
-				return true;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-			break;
-		case 86:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig86()) {
-				configVersion = 87;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-		case 87:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig87()) {
-				configVersion = 88;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-		case 90:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig90()) {
-				configVersion = 91;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-		case 91:
-			configVersion = -1; // Prevent loop
-			if(relocateConfig91()) {
-				configVersion = 92;
-			} else {
-				configVersion = 0;
-				return false;
-			}
-		case EEPROM_CHECK_SUM:
-			return true;
-		default:
+	if(configVersion > EEPROM_CHECK_SUM) {
+		if(loadFromFs(EEPROM_CHECK_SUM)) {
+			configVersion = EEPROM_CHECK_SUM;
+		} else {
 			configVersion = 0;
-			return false;
+		}
+	} else {
+		switch(configVersion) {
+			case 86:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig86()) {
+					configVersion = 87;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 87:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig87()) {
+					configVersion = 88;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 90:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig90()) {
+					configVersion = 91;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 91:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig91()) {
+					configVersion = 92;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 92:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig92()) {
+					configVersion = 93;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 93:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig93()) {
+					configVersion = 94;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case EEPROM_CHECK_SUM:
+				return true;
+			default:
+				configVersion = 0;
+				return false;
+		}
 	}
 	return configVersion == EEPROM_CHECK_SUM;
 }
@@ -625,116 +707,6 @@ void AmsConfiguration::saveTempSensors() {
 			address += sizeof(*tsc);
 		}
 	}
-}
-
-bool AmsConfiguration::loadConfig83(int address) {
-	ConfigObject83 c;
-	EEPROM.begin(EEPROM_SIZE);
-	EEPROM.get(address, c);
-
-	EntsoeConfig entsoe {"", "", "", 1000};
-	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
-
-	NtpConfig ntp {
-		c.ntpEnable,
-		c.ntpDhcp,
-		c.ntpOffset,
-		c.ntpSummerOffset
-	};
-	strcpy(ntp.server, c.ntpServer);
-	EEPROM.put(CONFIG_NTP_START, ntp);
-
-	DomoticzConfig domo {
-		c.domoELIDX,
-		c.domoVL1IDX,
-		c.domoVL2IDX,
-		c.domoVL3IDX,
-		c.domoCL1IDX
-	};
-	EEPROM.put(CONFIG_DOMOTICZ_START, domo);
-
-	GpioConfig gpio {
-		c.hanPin,
-		c.apPin,
-		c.ledPin,
-		c.ledInverted,
-		c.ledPinRed,
-		c.ledPinGreen,
-		c.ledPinBlue,
-		c.ledRgbInverted,
-		c.tempSensorPin,
-		c.tempAnalogSensorPin,
-		c.vccPin,
-		c.vccOffset,
-		c.vccMultiplier,
-		c.vccBootLimit,
-		0,
-		0
-	};
-	EEPROM.put(CONFIG_GPIO_START, gpio);
-
-	DebugConfig debug {
-		c.debugTelnet,
-		c.debugSerial,
-		c.debugLevel
-	};
-	EEPROM.put(CONFIG_DEBUG_START, debug);
-
-	MeterConfig meter {
-		2400,
-		c.meterType == 3 || c.meterType == 4 ? 3 : 11,
-		false,
-		c.distributionSystem,
-		c.mainFuse,
-		c.productionCapacity,
-		{0},
-		{0}
-	};
-	memcpy(meter.encryptionKey, c.meterEncryptionKey, 16);
-	memcpy(meter.authenticationKey, c.meterAuthenticationKey, 16);
-	EEPROM.put(CONFIG_METER_START, meter);
-
-	WebConfig web {
-		c.authSecurity
-	};
-	strcpy(web.username, c.authUser);
-	strcpy(web.password, c.authPassword);
-	EEPROM.put(CONFIG_WEB_START, web);
-
-	MqttConfig mqtt;
-	strcpy(mqtt.host, c.mqttHost);
-	mqtt.port = c.mqttPort;
-	strcpy(mqtt.clientId, c.mqttClientId);
-	strcpy(mqtt.publishTopic, c.mqttPublishTopic);
-	strcpy(mqtt.subscribeTopic, c.mqttSubscribeTopic);
-	strcpy(mqtt.username, c.mqttUser);
-	strcpy(mqtt.password, c.mqttPassword);
-	mqtt.payloadFormat = c.mqttPayloadFormat;
-	mqtt.ssl = c.mqttSsl;
-	EEPROM.put(CONFIG_MQTT_START, mqtt);
-
-	WiFiConfig wifi;
-	strcpy(wifi.ssid, c.wifiSsid);
-	strcpy(wifi.psk, c.wifiPassword);
-    strcpy(wifi.ip, c.wifiIp);
-    strcpy(wifi.gateway, c.wifiGw);
-    strcpy(wifi.subnet, c.wifiSubnet);
-	strcpy(wifi.dns1, c.wifiDns1);
-	strcpy(wifi.dns2, c.wifiDns2);
-	strcpy(wifi.hostname, c.wifiHostname);
-	wifi.mdns = c.mDnsEnable;
-	EEPROM.put(CONFIG_WIFI_START, wifi);
-
-	SystemConfig sys  {
-		c.boardType
-	};
-	EEPROM.put(CONFIG_SYSTEM_START, sys);
-	
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-
-	return ret;
 }
 
 bool AmsConfiguration::relocateConfig86() {
@@ -814,6 +786,42 @@ bool AmsConfiguration::relocateConfig91() {
 	return ret;
 }
 
+bool AmsConfiguration::relocateConfig92() {
+	WiFiConfig wifi;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_WIFI_START, wifi);
+	#if defined(ESP32)
+		wifi.power = 195;
+	#elif defined(ESP8266)
+		wifi.power = 205;
+	#endif
+	EEPROM.put(CONFIG_WIFI_START, wifi);
+
+	EnergyAccountingConfig eac;
+	clearEnergyAccountingConfig(eac);
+	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
+
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 93);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig93() {
+	MeterConfig meter;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_METER_START_93, meter);
+	meter.wattageMultiplier = 0;
+	meter.voltageMultiplier = 0;
+	meter.amperageMultiplier = 0;
+	meter.accumulatedMultiplier = 0;
+	EEPROM.put(CONFIG_METER_START, meter);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 94);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
 bool AmsConfiguration::save() {
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
@@ -879,37 +887,16 @@ bool AmsConfiguration::isSensorAddressEqual(uint8_t a[8], uint8_t b[8]) {
     return true;
 }
 
-
-int AmsConfiguration::readString(int pAddress, char* pString[]) {
-	int address = 0;
-	byte length = EEPROM.read(pAddress + address);
-	address++;
-
-	char* buffer = new char[length];
-	for (int i = 0; i<length; i++)
-	{
-		buffer[i] = EEPROM.read(pAddress + address++);
-	}
-	*pString = buffer;
-	return address;
+void AmsConfiguration::saveToFs() {
+	
 }
 
-int AmsConfiguration::readInt(int address, int *value) {
-	int lower = EEPROM.read(address);
-	int higher = EEPROM.read(address + 1);
-	*value = lower + (higher << 8);
-	return 2;
+bool AmsConfiguration::loadFromFs(uint8_t version) {
+	return false;
 }
 
-int AmsConfiguration::readBool(int address, bool *value) {
-	byte y = EEPROM.read(address);
-	*value = (bool)y;
-	return 1;
-}
+void AmsConfiguration::deleteFromFs(uint8_t version) {
 
-int AmsConfiguration::readByte(int address, byte *value) {
-	*value = EEPROM.read(address);
-	return 1;
 }
 
 void AmsConfiguration::print(Print* debugger)

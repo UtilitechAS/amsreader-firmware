@@ -33,10 +33,10 @@ jobs:
       with:
         path: ~/.pio/libdeps
         key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
-    - name: Set up Python 3.7
+    - name: Set up Python 3.9
       uses: actions/setup-python@v1
       with:
-        python-version: 3.7
+        python-version: 3.9
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -45,6 +45,8 @@ jobs:
       run: pio lib install
     - name: PlatformIO run
       run: pio run
+    - name: Create zip files
+      run: /bin/sh scripts/mkzip.sh
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1.0.0
@@ -55,6 +57,35 @@ jobs:
         release_name: Release ${{ github.ref }}
         draft: false
         prerelease: false
+
+    - name: Upload esp8266 zip to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: esp8266.zip
+        asset_name: ams2mqtt-esp8266-${{ steps.release_tag.outputs.tag }}.zip
+        asset_content_type: application/zip
+    - name: Upload esp32 zip to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: esp32.zip
+        asset_name: ams2mqtt-esp32-${{ steps.release_tag.outputs.tag }}.zip
+        asset_content_type: application/zip
+    - name: Upload esp32s2 zip to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: esp32s2.zip
+        asset_name: ams2mqtt-esp32s2-${{ steps.release_tag.outputs.tag }}.zip
+        asset_content_type: application/zip
+
     - name: Upload esp8266 binary to release
       uses: actions/upload-release-asset@v1
       env:
@@ -73,12 +104,12 @@ jobs:
         asset_path: .pio/build/esp32/firmware.bin
         asset_name: ams2mqtt-esp32-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream
-    - name: Upload esp32 partitions to release
+    - name: Upload esp32s2 binary to release
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/esp32/partitions.bin
-        asset_name: ams2mqtt-esp32-partitions-${{ steps.release_tag.outputs.tag }}.bin
+        asset_path: .pio/build/esp32s2/firmware.bin
+        asset_name: ams2mqtt-esp32s2-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream

@@ -9,5 +9,8 @@
 
 #define FILE_DAYPLOT "/dayplot.bin"
 #define FILE_MONTHPLOT "/monthplot.bin"
+#define FILE_ENERGYACCOUNTING "/energyaccounting.bin"
+
+#define FILE_CFG "/configfile.cfg"
 
 #endif

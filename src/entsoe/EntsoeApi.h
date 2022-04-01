@@ -32,6 +32,7 @@ private:
     RemoteDebug* debugger;
     EntsoeConfig* config = NULL;
 
+    uint8_t currentDay = 0, currentHour = 0;
     uint32_t tomorrowFetchMillis = 36000000; // Number of ms before midnight. Default fetch 10hrs before midnight (14:00 CE(S)T)
     uint64_t midnightMillis = 0;
     uint64_t lastTodayFetch = 0;

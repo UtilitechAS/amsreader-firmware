@@ -91,34 +91,39 @@ bool EntsoeApi::loop() {
 
     time_t t = time(nullptr);
     if(t < BUILD_EPOCH) return false;
+
+    bool ret = false;
     tmElements_t tm;
+    breakTime(tz->toLocal(t), tm);
+    if(currentHour != tm.Hour) {
+        currentHour = tm.Hour;
+        ret = today != NULL; // Only trigger MQTT publish if we have todays prices.
+    }
 
     if(midnightMillis == 0) {
-        if(t <= 0) return false; // NTP not ready
-
-        time_t epoch = tz->toLocal(t);
-        
-        breakTime(epoch, tm);
-        if(tm.Year > 50) { // Make sure we are in 2021 or later (years after 1970)
-            uint32_t curDayMillis = (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000);
-
-            midnightMillis = now + (SECS_PER_DAY * 1000) - curDayMillis + 1000; // Adding 1s to ensure we have passed midnight
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Setting midnight millis %lu\n", midnightMillis);
-        }
-    } else if(now > midnightMillis) {
+        uint32_t curDayMillis = (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000);
+        midnightMillis = now + (SECS_PER_DAY * 1000) - curDayMillis;
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Setting midnight millis %lu\n", midnightMillis);
+        currentDay = tm.Day;
+        return false;
+    } else if(now > midnightMillis && currentDay != tm.Day) {
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Rotating price objects at %lu\n", t);
-        delete today;
-        today = tomorrow;
-        tomorrow = NULL;
+        if(today != NULL) delete today;
+        if(tomorrow != NULL) {
+            today = tomorrow;
+            tomorrow = NULL;
+        }
+        currentDay = tm.Day;
         midnightMillis = 0; // Force new midnight millis calculation
+        return true;
     } else {
-        breakTime(t, tm);
+        breakTime(t, tm); // Break UTC to find UTC midnight
         if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > 60000)) {
             lastTodayFetch = now;
-            time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second;
+            time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // UTC midnight
             time_t e2 = e1 + SECS_PER_DAY;
             tmElements_t d1, d2;
-            breakTime(tz->toUTC(e1), d1);
+            breakTime(tz->toUTC(e1), d1); // To get day and hour for CET/CEST at UTC midnight
             breakTime(tz->toUTC(e2), d2);
 
             snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
@@ -185,7 +190,7 @@ bool EntsoeApi::loop() {
             }
         }
     }
-    return false;
+    return ret;
 }
 
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {

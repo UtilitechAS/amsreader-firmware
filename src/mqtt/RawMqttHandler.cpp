@@ -181,7 +181,6 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
         float val = values[i];
         if(val == ENTSOE_NO_VALUE) {
             mqtt->publish(topic + "/price/" + String(i), "", true, 0);
-            break;
         } else {
             mqtt->publish(topic + "/price/" + String(i), String(val, 4), true, 0);
         }

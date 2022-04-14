@@ -158,7 +158,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         }
         // Try system title
         if(meterType == AmsTypeUnknown && hc != NULL) {
-            if(memcmp(hc->system_title, "SAGY", 4)) {
+            if(memcmp(hc->system_title, "SAGY", 4) == 0) {
                 meterType = AmsTypeSagemcom;
             }
         }

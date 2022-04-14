@@ -6,7 +6,7 @@ DB // Encrypted
 08 4B 41 4D 45 01 AC 4D 6E // System title
 82 // Prefix for 2-byte length
 01 D0 // Length 464
-30 // Security tag 0011 0000, 0=Compression off, 0=Unicast, 1=Encryption, 0=Authentication, 0000= Security Suite ID
+30 // Security tag 0011 0000, 0=Compression off, 0=Unicast, 1=Encryption, 1=Authentication, 0000= Security Suite ID
 00 00 A3 2F // Frame counter
 
 // Decrypted frame below

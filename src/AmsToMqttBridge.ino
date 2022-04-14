@@ -776,8 +776,21 @@ bool readHanPort() {
 	}
 	if(currentMeterType == 0) {
 		uint8_t flag = hanSerial->read();
-		if(flag == 0x7E || flag == 0x68) currentMeterType = 1;
-		else currentMeterType = 2;
+		if(flag == 0x7E || flag == 0x68) {
+			debugD("HDLC or MBUS");
+			currentMeterType = 1;
+		} else if(flag == 0xDB) {
+			debugD("Encrypted DSMR");
+			hc = new HDLCConfig();
+			memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);
+			memcpy(hc->authentication_key, meterConfig.authenticationKey, 16);
+			currentMeterType = 2;
+		} else if(flag == 0x2F) {
+			debugD("DSMR");
+			currentMeterType = 2;
+		} else {
+			currentMeterType = -1;
+		}
 		hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
 		return false;
 	}
@@ -855,70 +868,56 @@ bool readHanPort() {
 				debugD("Valid data, start at byte %d", pos);
 				data = IEC6205675(((char *) (hanBuffer)) + pos, meterState.getMeterType(), &meterConfig, timestamp, hc);
 			} else {
-				if(Debug.isActive(RemoteDebug::WARNING)) {
-					switch(pos) {
-						case HDLC_BOUNDRY_FLAG_MISSING:
-							debugW("Boundry flag missing");
-							break;
-						case HDLC_HCS_ERROR:
-							debugW("Header checksum error");
-							break;
-						case HDLC_FCS_ERROR:
-							debugW("Frame checksum error");
-							break;
-						case HDLC_FRAME_INCOMPLETE:
-							debugW("Received frame is incomplete");
-							break;
-						case HDLC_ENCRYPTION_CONFIG_MISSING:
-							debugI("Encryption configuration requested, initializing");
-							break;
-						case HDLC_ENCRYPTION_AUTH_FAILED:
-							debugW("Decrypt authentication failed");
-							break;
-						case HDLC_ENCRYPTION_KEY_FAILED:
-							debugW("Setting decryption key failed");
-							break;
-						case HDLC_ENCRYPTION_DECRYPT_FAILED:
-							debugW("Decryption failed");
-							break;
-						case MBUS_FRAME_LENGTH_NOT_EQUAL:
-							debugW("Frame length mismatch");
-							break;
-						case MBUS_FRAME_INTERMEDIATE_SEGMENT:
-						case MBUS_FRAME_LAST_SEGMENT:
-							debugW("Partial frame dropped");
-							break;
-						case HDLC_TIMESTAMP_UNKNOWN:
-							debugW("Frame timestamp is not correctly formatted");
-							break;
-						case HDLC_UNKNOWN_DATA:
-							debugW("Unknown data format %02X", hanBuffer[0]);
-							currentMeterType = 0;
-							break;
-						default:
-							debugW("Unspecified error while reading data: %d", pos);
-					}
-				}
+				printHanReadError(pos);
 				return false;
 			}
 		} else {
 			return false;
 		}
 	} else if(currentMeterType == 2) {
-		String payload = hanSerial->readString();
-		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
-			mqtt->publish(topic.c_str(), payload);
+		int pos = HDLC_FRAME_INCOMPLETE;
+		if(hc != NULL) {
+			while(hanSerial->available() && pos == HDLC_FRAME_INCOMPLETE) {
+				hanBuffer[len++] = hanSerial->read();
+				pos = mbus_decrypt((uint8_t *) hanBuffer, len, hc);
+			}
+		} else {
+			while(hanSerial->available()) {
+				hanBuffer[len++] = hanSerial->read();
+			}
+			if(len > 10) {
+				String end = String((char*) hanBuffer+len-5);
+				if(end.startsWith("!")) pos = 0;
+				while(hanSerial->available()) hanSerial->read();
+			}
 		}
-		data = IEC6205621(payload);
+		if(len == 0) return false;
+		if(pos == HDLC_FRAME_INCOMPLETE) return false;
+		if(len >= BUF_SIZE_HAN) {
+			len = 0;
+			debugI("Buffer overflow, resetting");
+			return false;
+		}
+		if(pos < 0) {
+			printHanReadError(pos);
+			return false;
+		}
+
+		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
+			mqtt->publish(topic.c_str(), (char*) hanBuffer);
+		}
+		len = 0;
+		data = IEC6205621(((char *) (hanBuffer)) + pos);
 		if(data.getListType() == 0) {
-			currentMeterType = 1;
+			currentMeterType = 0;
 			return false;
 		} else {
 			if(Debug.isActive(RemoteDebug::DEBUG)) {
-				debugD("Frame dump: %d", payload.length());
-				debugD("%s", payload.c_str());
+				debugD("Frame dump: %d", strlen((char*) (hanBuffer+pos)));
+				debugD("%s", hanBuffer+pos);
 			}
 		}
+		for(int i = len; i<BUF_SIZE_HAN; i++) hanBuffer[i] = 0x00;
 	}
 
 	if(data.getListType() > 0) {
@@ -976,6 +975,53 @@ bool readHanPort() {
 	}
 	delay(1);
 	return true;
+}
+
+void printHanReadError(int pos) {
+	if(Debug.isActive(RemoteDebug::WARNING)) {
+		switch(pos) {
+			case HDLC_BOUNDRY_FLAG_MISSING:
+				debugW("Boundry flag missing");
+				break;
+			case HDLC_HCS_ERROR:
+				debugW("Header checksum error");
+				break;
+			case HDLC_FCS_ERROR:
+				debugW("Frame checksum error");
+				break;
+			case HDLC_FRAME_INCOMPLETE:
+				debugW("Received frame is incomplete");
+				break;
+			case HDLC_ENCRYPTION_CONFIG_MISSING:
+				debugI("Encryption configuration requested, initializing");
+				break;
+			case HDLC_ENCRYPTION_AUTH_FAILED:
+				debugW("Decrypt authentication failed");
+				break;
+			case HDLC_ENCRYPTION_KEY_FAILED:
+				debugW("Setting decryption key failed");
+				break;
+			case HDLC_ENCRYPTION_DECRYPT_FAILED:
+				debugW("Decryption failed");
+				break;
+			case MBUS_FRAME_LENGTH_NOT_EQUAL:
+				debugW("Frame length mismatch");
+				break;
+			case MBUS_FRAME_INTERMEDIATE_SEGMENT:
+			case MBUS_FRAME_LAST_SEGMENT:
+				debugW("Partial frame dropped");
+				break;
+			case HDLC_TIMESTAMP_UNKNOWN:
+				debugW("Frame timestamp is not correctly formatted");
+				break;
+			case HDLC_UNKNOWN_DATA:
+				debugW("Unknown data format %02X", hanBuffer[0]);
+				currentMeterType = 0;
+				break;
+			default:
+				debugW("Unspecified error while reading data: %d", pos);
+		}
+	}
 }
 
 void debugPrint(byte *buffer, int start, int length) {

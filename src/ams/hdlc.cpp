@@ -133,167 +133,156 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
         return HDLC_UNKNOWN_DATA;
     }
 
-    if(((*ptr) & 0xFF) == 0x0F) {
-        // Unencrypted APDU
-        HDLCADPU* adpu = (HDLCADPU*) (ptr);
-        ptr += sizeof *adpu;
+    Serial.flush();
 
-        // ADPU timestamp
-        CosemData* dateTime = (CosemData*) ptr;
-        if(dateTime->base.type == CosemTypeOctetString) {
-            if(dateTime->base.length == 0x0C) {
-                memcpy(timestamp, ptr+1, dateTime->base.length+1);
-            }
-            ptr += 2 + dateTime->base.length;
-        } else if(dateTime->base.type == CosemTypeNull) {
-            timestamp = 0;
-            ptr++;
-        } else if(dateTime->base.type == CosemTypeDateTime) {
-            memcpy(timestamp, ptr, dateTime->base.length);
-        } else if(dateTime->base.type == 0x0C) { // Kamstrup bug...
-            memcpy(timestamp, ptr, 13);
-            ptr += 13;
-        } else {
-            return HDLC_TIMESTAMP_UNKNOWN;
-        }
-
-        return ptr-d;
-    } else if(((*ptr) & 0xFF) == 0xDB) {
+    if(((*ptr) & 0xFF) == 0xDB) {
         if(length < headersize + 18)
             return HDLC_FRAME_INCOMPLETE;
 
-        ptr++;
-        // Encrypted APDU
-        // http://www.weigu.lu/tutorials/sensors2bus/04_encryption/index.html
-        if(config == NULL)
-            return HDLC_ENCRYPTION_CONFIG_MISSING;
+        int ret = mbus_decrypt(ptr, length - headersize - footersize, config);
+        if(ret < 0) return ret;
+        ptr += ret;
+    }
 
-        uint8_t systemTitleLength = *ptr;
-        ptr++;
-        memcpy(config->system_title, ptr, systemTitleLength);
-        memcpy(config->initialization_vector, config->system_title, systemTitleLength);
+    HDLCADPU* adpu = (HDLCADPU*) (ptr);
+    ptr += sizeof *adpu;
 
-        headersize += 2 + systemTitleLength;
-        ptr += systemTitleLength;
-        if(((*ptr) & 0xFF) == 0x81) {
-            ptr++;
-            len = *ptr;
-            // 1-byte payload length
-            ptr++;
-            headersize += 2;
-        } else if(((*ptr) & 0xFF) == 0x82) {
-            HDLCHeader* h = (HDLCHeader*) ptr;
-
-            // 2-byte payload length
-            len = (ntohs(h->format) & 0xFFFF);
-
-            ptr += 3;
-            headersize += 3;
+    // ADPU timestamp
+    CosemData* dateTime = (CosemData*) ptr;
+    if(dateTime->base.type == CosemTypeOctetString) {
+        if(dateTime->base.length == 0x0C) {
+            memcpy(timestamp, ptr+1, dateTime->base.length+1);
         }
-        if(len + headersize + footersize > length)
-            return HDLC_FRAME_INCOMPLETE;
-
-        //Serial.printf("\nL: %d : %d, %d : %d\n", length, len, headersize, footersize);
-
-        memcpy(config->additional_authenticated_data, ptr, 1);
-
-        // Security tag
-        uint8_t sec = *ptr;
+        ptr += 2 + dateTime->base.length;
+    } else if(dateTime->base.type == CosemTypeNull) {
+        timestamp = 0;
         ptr++;
-        headersize++;
+    } else if(dateTime->base.type == CosemTypeDateTime) {
+        memcpy(timestamp, ptr, dateTime->base.length);
+    } else if(dateTime->base.type == 0x0C) { // Kamstrup bug...
+        memcpy(timestamp, ptr, 13);
+        ptr += 13;
+    } else {
+        return HDLC_TIMESTAMP_UNKNOWN;
+    }
 
-        // Frame counter
-        memcpy(config->initialization_vector + 8, ptr, 4);
-        ptr += 4;
-        headersize += 4;
+    return ptr-d;
+}
 
-        // Authentication enabled
-        uint8_t authkeylen = 0, aadlen = 0;
-        if((sec & 0x10) == 0x10) {
-            authkeylen = 12;
-            aadlen = 17;
-            footersize += authkeylen;
-            memcpy(config->additional_authenticated_data + 1, config->authentication_key, 16);
-            memcpy(config->authentication_tag, ptr + len - footersize - 2, authkeylen);
+int mbus_decrypt(const uint8_t* d, int length, HDLCConfig* config) {
+    if(length < 12) return HDLC_FRAME_INCOMPLETE;
+
+    uint8_t* ptr = (uint8_t*) d;
+    if(*ptr != 0xDB) return HDLC_ENCRYPTION_INVALID;
+    ptr++;
+    // Encrypted APDU
+    // http://www.weigu.lu/tutorials/sensors2bus/04_encryption/index.html
+    if(config == NULL)
+        return HDLC_ENCRYPTION_CONFIG_MISSING;
+
+    uint8_t systemTitleLength = *ptr;
+    ptr++;
+    memcpy(config->system_title, ptr, systemTitleLength);
+    memcpy(config->initialization_vector, config->system_title, systemTitleLength);
+
+    int len;
+    int headersize = 2 + systemTitleLength;
+    ptr += systemTitleLength;
+    if(((*ptr) & 0xFF) == 0x81) {
+        ptr++;
+        len = *ptr;
+        // 1-byte payload length
+        ptr++;
+        headersize += 2;
+    } else if(((*ptr) & 0xFF) == 0x82) {
+        HDLCHeader* h = (HDLCHeader*) ptr;
+
+        // 2-byte payload length
+        len = (ntohs(h->format) & 0xFFFF);
+
+        ptr += 3;
+        headersize += 3;
+    }
+    if(len + headersize > length)
+        return HDLC_FRAME_INCOMPLETE;
+
+    //Serial.printf("\nL: %d : %d, %d\n", length, len, headersize);
+
+    memcpy(config->additional_authenticated_data, ptr, 1);
+
+    // Security tag
+    uint8_t sec = *ptr;
+    ptr++;
+    headersize++;
+
+    // Frame counter
+    memcpy(config->initialization_vector + 8, ptr, 4);
+    ptr += 4;
+    headersize += 4;
+
+    int footersize = 0;
+
+    // Authentication enabled
+    uint8_t authkeylen = 0, aadlen = 0;
+    if((sec & 0x10) == 0x10) {
+        authkeylen = 12;
+        aadlen = 17;
+        footersize += authkeylen;
+        memcpy(config->additional_authenticated_data + 1, config->authentication_key, 16);
+        memcpy(config->authentication_tag, ptr + len - footersize - 5, authkeylen);
+    }
+
+    #if defined(ESP8266)
+        br_gcm_context gcmCtx;
+        br_aes_ct_ctr_keys bc;
+        br_aes_ct_ctr_init(&bc, config->encryption_key, 16);
+        br_gcm_init(&gcmCtx, &bc.vtable, br_ghash_ctmul32);
+        br_gcm_reset(&gcmCtx, config->initialization_vector, sizeof(config->initialization_vector));
+        if(authkeylen > 0) {
+            br_gcm_aad_inject(&gcmCtx, config->additional_authenticated_data, aadlen);
         }
+        br_gcm_flip(&gcmCtx);
+        br_gcm_run(&gcmCtx, 0, (void*) (ptr), len - authkeylen - 5); // 5 == security tag and frame counter
+        if(authkeylen > 0 && br_gcm_check_tag_trunc(&gcmCtx, config->authentication_tag, authkeylen) != 1) {
+            return HDLC_ENCRYPTION_AUTH_FAILED;
+        }
+    #elif defined(ESP32)
+        uint8_t cipher_text[len - authkeylen - 5];
+        memcpy(cipher_text, ptr, len - authkeylen - 5);
 
-        #if defined(ESP8266)
-            br_gcm_context gcmCtx;
-            br_aes_ct_ctr_keys bc;
-            br_aes_ct_ctr_init(&bc, config->encryption_key, 16);
-            br_gcm_init(&gcmCtx, &bc.vtable, br_ghash_ctmul32);
-            br_gcm_reset(&gcmCtx, config->initialization_vector, sizeof(config->initialization_vector));
-            if(authkeylen > 0) {
-                br_gcm_aad_inject(&gcmCtx, config->additional_authenticated_data, aadlen);
-            }
-            br_gcm_flip(&gcmCtx);
-            br_gcm_run(&gcmCtx, 0, (void*) (ptr), len - authkeylen - 5); // 5 == security tag and frame counter
-            if(authkeylen > 0 && br_gcm_check_tag_trunc(&gcmCtx, config->authentication_tag, authkeylen) != 1) {
+        mbedtls_gcm_context m_ctx;
+        mbedtls_gcm_init(&m_ctx);
+        int success = mbedtls_gcm_setkey(&m_ctx, MBEDTLS_CIPHER_ID_AES, config->encryption_key, 128);
+        if (0 != success) {
+            return HDLC_ENCRYPTION_KEY_FAILED;
+        }
+        if (0 < authkeylen) {
+            success = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text), config->initialization_vector, sizeof(config->initialization_vector),
+                config->additional_authenticated_data, aadlen, config->authentication_tag, authkeylen,
+                cipher_text, (unsigned char*)(ptr));
+            if (authkeylen > 0 && success == MBEDTLS_ERR_GCM_AUTH_FAILED) {
+                mbedtls_gcm_free(&m_ctx);
                 return HDLC_ENCRYPTION_AUTH_FAILED;
+            } else if(success == MBEDTLS_ERR_GCM_BAD_INPUT) {
+                mbedtls_gcm_free(&m_ctx);
+                return HDLC_ENCRYPTION_DECRYPT_FAILED;
             }
-        #elif defined(ESP32)
-            uint8_t cipher_text[len - authkeylen - 5];
-            memcpy(cipher_text, ptr, len - authkeylen - 5);
-
-            mbedtls_gcm_context m_ctx;
-            mbedtls_gcm_init(&m_ctx);
-            int success = mbedtls_gcm_setkey(&m_ctx, MBEDTLS_CIPHER_ID_AES, config->encryption_key, 128);
-            if (0 != success) {
-                return HDLC_ENCRYPTION_KEY_FAILED;
-            }
-            if (0 < authkeylen) {
-                success = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text), config->initialization_vector, sizeof(config->initialization_vector),
-                    config->additional_authenticated_data, aadlen, config->authentication_tag, authkeylen,
-                    cipher_text, (unsigned char*)(ptr));
-                if (authkeylen > 0 && success == MBEDTLS_ERR_GCM_AUTH_FAILED) {
-                    mbedtls_gcm_free(&m_ctx);
-                    return HDLC_ENCRYPTION_AUTH_FAILED;
-                } else if(success == MBEDTLS_ERR_GCM_BAD_INPUT) {
-                    mbedtls_gcm_free(&m_ctx);
-                    return HDLC_ENCRYPTION_DECRYPT_FAILED;
-                }
-            } else {
-                success = mbedtls_gcm_starts(&m_ctx, MBEDTLS_GCM_DECRYPT, config->initialization_vector, sizeof(config->initialization_vector),NULL, 0);
-                if (0 != success) {
-                    mbedtls_gcm_free(&m_ctx);
-                    return HDLC_ENCRYPTION_DECRYPT_FAILED;
-                }
-                success = mbedtls_gcm_update(&m_ctx, sizeof(cipher_text), cipher_text, (unsigned char*)(ptr));
-                if (0 != success) {
-                    mbedtls_gcm_free(&m_ctx);
-                    return HDLC_ENCRYPTION_DECRYPT_FAILED;
-                }
-            }
-            mbedtls_gcm_free(&m_ctx);
-        #endif
-
-        HDLCADPU* adpu = (HDLCADPU*) (ptr);
-        ptr += sizeof *adpu;
-
-        // ADPU timestamp
-        CosemData* dateTime = (CosemData*) ptr;
-        if(dateTime->base.type == CosemTypeOctetString) {
-            if(dateTime->base.length == 0x0C) {
-                memcpy(timestamp, ptr+1, dateTime->base.length);
-            }
-            ptr += 2 + dateTime->base.length;
-        } else if(dateTime->base.type == CosemTypeNull) {
-            timestamp = 0;
-            ptr++;
-        } else if(dateTime->base.type == CosemTypeDateTime) {
-            memcpy(timestamp, ptr, dateTime->base.length);
-        } else if(dateTime->base.type == 0x0C) { // Kamstrup bug...
-            memcpy(timestamp, ptr, 13);
-            ptr += 13;
         } else {
-            return HDLC_TIMESTAMP_UNKNOWN;
+            success = mbedtls_gcm_starts(&m_ctx, MBEDTLS_GCM_DECRYPT, config->initialization_vector, sizeof(config->initialization_vector),NULL, 0);
+            if (0 != success) {
+                mbedtls_gcm_free(&m_ctx);
+                return HDLC_ENCRYPTION_DECRYPT_FAILED;
+            }
+            success = mbedtls_gcm_update(&m_ctx, sizeof(cipher_text), cipher_text, (unsigned char*)(ptr));
+            if (0 != success) {
+                mbedtls_gcm_free(&m_ctx);
+                return HDLC_ENCRYPTION_DECRYPT_FAILED;
+            }
         }
+        mbedtls_gcm_free(&m_ctx);
+    #endif
 
-        return ptr-d;
-    }    
-
-    // Unknown payload
-	return HDLC_UNKNOWN_DATA;
+    return ptr-d;
 }
 
 uint8_t mbusChecksum(const uint8_t* p, int len) {

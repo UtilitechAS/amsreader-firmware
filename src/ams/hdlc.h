@@ -15,6 +15,7 @@
 #define HDLC_ENCRYPTION_AUTH_FAILED -91
 #define HDLC_ENCRYPTION_KEY_FAILED -92
 #define HDLC_ENCRYPTION_DECRYPT_FAILED -93
+#define HDLC_ENCRYPTION_INVALID -98
 #define HDLC_TIMESTAMP_UNKNOWN -99
 
 #define MBUS_START 0x68
@@ -158,7 +159,8 @@ typedef union {
 } CosemData; 
 
 void mbus_hexdump(const uint8_t* buf, int len);
-int HDLC_validate(const uint8_t* d, int len, HDLCConfig* config, CosemDateTime* timestamp);
+int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTime* timestamp);
+int mbus_decrypt(const uint8_t* d, int length, HDLCConfig* config);
 
 uint8_t mbusChecksum(const uint8_t* p, int len);
 

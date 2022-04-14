@@ -900,6 +900,8 @@ bool readHanPort() {
 		}
 		if(pos < 0) {
 			printHanReadError(pos);
+			while(hanSerial->available()) hanSerial->read();
+			len = 0;
 			return false;
 		}
 

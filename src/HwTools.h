@@ -51,6 +51,7 @@ public:
 
     HwTools() {};
 private:
+    uint16_t analogRange = 1024;
     AdcConfig voltAdc, tempAdc;
     #if defined(ESP32)
         esp_adc_cal_characteristics_t* voltAdcChar, tempAdcChar;

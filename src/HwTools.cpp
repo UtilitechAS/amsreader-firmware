@@ -14,10 +14,14 @@ void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
         config->tempSensorPin = 0xFF;
     }
 
+    #if defined(ESP32)
+        analogReadResolution(12);
+        analogRange = 4096;
+    #endif
     if(config->vccPin > 0 && config->vccPin < 40) {
-        getAdcChannel(config->vccPin, voltAdc);
-        if(voltAdc.unit != 0xFF) {
-            #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_IDF_TARGET_ESP32)
+            getAdcChannel(config->vccPin, voltAdc);
+            if(voltAdc.unit != 0xFF) {
                 if(voltAdc.unit == ADC_UNIT_1) {
                     voltAdcChar = (esp_adc_cal_characteristics_t*) calloc(1, sizeof(esp_adc_cal_characteristics_t));
                     esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_6, ADC_WIDTH_BIT_12, 1100, voltAdcChar);
@@ -27,10 +31,10 @@ void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
                     esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_6, ADC_WIDTH_BIT_12, 1100, voltAdcChar);
                     adc2_config_channel_atten((adc2_channel_t) voltAdc.channel, ADC_ATTEN_DB_6);
                 }
-            #endif
-        } else {
+            }
+        #else
             pinMode(config->vccPin, INPUT);
-        }
+        #endif
     } else {
         voltAdc.unit = 0xFF;
         voltAdc.channel = 0xFF;
@@ -176,20 +180,22 @@ double HwTools::getVcc() {
                 for (int i = 0; i < 10; i++) {
                     x += analogRead(config->vccPin);
                 }
-                volts = x / 40950;
+                volts = (x * 3.3) / 10.0 / analogRange;
             }
         #else
             uint32_t x = 0;
             for (int i = 0; i < 10; i++) {
                 x += analogRead(config->vccPin);
             }
-            volts = x / 10240;
+            volts = (x * 3.3) / 10.0 / analogRange;
         #endif
     } else {
         #if defined(ESP8266)
             volts = ESP.getVcc() / 1024.0;
         #endif
     }
+    if(volts == 0.0) return 0.0;
+
     if(config->vccResistorGnd > 0 && config->vccResistorVcc > 0) {
         volts *= ((double) (config->vccResistorGnd + config->vccResistorVcc) / config->vccResistorGnd);
     }
@@ -303,12 +309,7 @@ double HwTools::getTemperature() {
 double HwTools::getTemperatureAnalog() {
     if(config->tempAnalogSensorPin != 0xFF) {
         float adcCalibrationFactor = 1.06587;
-        int volts;
-        #if defined(ESP8266)
-            volts = (analogRead(config->tempAnalogSensorPin) / 1024.0) * 3.3;
-        #elif defined(ESP32)
-            volts = (analogRead(config->tempAnalogSensorPin) / 4095.0) * 3.3;
-        #endif
+        int volts = ((double) analogRead(config->tempAnalogSensorPin) / analogRange) * 3.3;
         return ((volts * adcCalibrationFactor) - 0.4) / 0.0195;
     }
     return DEVICE_DISCONNECTED_C;

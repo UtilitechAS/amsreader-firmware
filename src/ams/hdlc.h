@@ -11,6 +11,8 @@
 #define HDLC_HCS_ERROR -3
 #define HDLC_FRAME_INCOMPLETE -4
 #define HDLC_UNKNOWN_DATA -9
+#define HDLC_GBT_INTERMEDIATE -21
+#define HDLC_GBT_LAST -22
 #define HDLC_ENCRYPTION_CONFIG_MISSING -90
 #define HDLC_ENCRYPTION_AUTH_FAILED -91
 #define HDLC_ENCRYPTION_KEY_FAILED -92
@@ -35,6 +37,12 @@ struct HDLCConfig {
     uint8_t authentication_tag[12];
 };
 
+struct HDLCContext {
+    uint8_t apdu;
+    uint8_t apduStart;
+    uint8_t headersize;
+};
+
 typedef struct HDLCHeader {
 	uint8_t  flag;
 	uint16_t format;
@@ -55,11 +63,6 @@ typedef struct HDLCLLC {
     uint8_t src;
     uint8_t control;
 } __attribute__((packed)) HDLCLLC;
-
-typedef struct HDLCADPU {
-    uint8_t flag;
-    uint32_t id;
-} __attribute__((packed)) HDLCADPU;
 
 typedef struct MbusHeader {
 	uint8_t flag1;
@@ -159,7 +162,7 @@ typedef union {
 } CosemData; 
 
 void mbus_hexdump(const uint8_t* buf, int len);
-int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTime* timestamp);
+int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTime* timestamp, HDLCContext* context);
 int mbus_decrypt(const uint8_t* d, int length, HDLCConfig* config);
 
 uint8_t mbusChecksum(const uint8_t* p, int len);

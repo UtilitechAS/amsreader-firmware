@@ -64,6 +64,7 @@ ADC_MODE(ADC_VCC);
 #define BUF_SIZE_HAN (1024)
 #include "ams/hdlc.h"
 #include "MbusAssembler.h"
+#include "GBTAssembler.h"
 
 #include "IEC6205621.h"
 #include "IEC6205675.h"
@@ -765,15 +766,19 @@ void swapWifiMode() {
 
 int len = 0;
 MbusAssembler* ma = NULL;
+GBTAssembler* ga = NULL;
 int currentMeterType = -1;
 bool readHanPort() {
 	if(!hanSerial->available()) return false;
 
+	// Before autodetect starts, empty serial buffer to increase chance of getting first byte of a data transfer
 	if(currentMeterType == -1) {
 		hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
-		currentMeterType = 0;
+		currentMeterType = 0; // Start autodetection
 		return false;
 	}
+
+	// Data type autodetect
 	if(currentMeterType == 0) {
 		uint8_t flag = hanSerial->read();
 		if(flag == 0x7E || flag == 0x68) {
@@ -789,35 +794,44 @@ bool readHanPort() {
 			debugD("DSMR");
 			currentMeterType = 2;
 		} else {
-			currentMeterType = -1;
+			currentMeterType = -1; // Unable to detect, reset to flush serial buffer
 		}
+		// Empty serial buffer before continuing
 		hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
 		return false;
 	}
 	CosemDateTime timestamp = {0};
+	HDLCContext context;
 	AmsData data;
-	if(currentMeterType == 1) {
+	if(currentMeterType == 1) { // DLMS
 		int pos = HDLC_FRAME_INCOMPLETE;
+		// For each byte received, check if we have a complete HDLC (or MBUS) frame we can handle
 		while(hanSerial->available() && pos == HDLC_FRAME_INCOMPLETE) {
 			hanBuffer[len++] = hanSerial->read();
-			pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp);
+			pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp, &context);
 		}
 		if(len > 0) {
+			// If buffer was overflowed, reset
 			if(len >= BUF_SIZE_HAN) {
 				hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
 				len = 0;
 				debugI("Buffer overflow, resetting");
 				return false;
 			}
+
+			// In case we get segmented MBUS frames, assemble before parsing
 			if(pos == MBUS_FRAME_INTERMEDIATE_SEGMENT) {
 				debugI("Intermediate segment");
 				if(ma == NULL) {
 					ma = new MbusAssembler();
 				}
-				if(ma->append((uint8_t *) hanBuffer, len) < 0)
-					pos = -77;
+				if(ma->append((uint8_t *) hanBuffer, len) < 0) {
+					debugE("MBUS assembler failed");
+					pos = 0;
+					return false;
+				}
 				if(Debug.isActive(RemoteDebug::VERBOSE)) {
-					debugD("Frame dump (%db):", len);
+					debugD("Intermediate degment dump (%db):", len);
 					debugPrint(hanBuffer, 0, len);
 				}
 				len = 0;
@@ -825,28 +839,74 @@ bool readHanPort() {
 			} else if(pos == MBUS_FRAME_LAST_SEGMENT) {
 				debugI("Final segment");
 				if(Debug.isActive(RemoteDebug::VERBOSE)) {
-					debugD("Frame dump (%db):", len);
+					debugD("Final segment dump (%db):", len);
 					debugPrint(hanBuffer, 0, len);
 				}
 				if(ma->append((uint8_t *) hanBuffer, len) >= 0) {
 					len = ma->write((uint8_t *) hanBuffer);
-					pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp);
+					pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp, &context);
 				} else {
-					pos = -77;
+					debugE("MBUS assembler failed");
+					pos = 0;
+					return false;
 				}
 			}
-			if(pos == HDLC_FRAME_INCOMPLETE) {
+			
+			// In case we get segmented HDLC frames (General Block Transfer), assemble before parsing
+			if(pos == HDLC_GBT_INTERMEDIATE) {
+				debugI("Intermediate block");
+				if(ga == NULL) {
+					ga = new GBTAssembler();
+				}
+				ga->init((uint8_t *) hanBuffer, &context);
+				if(ga->append((uint8_t *) hanBuffer+context.apduStart, len, &Debug) < 0) {
+					debugE("GBT assembler failed");
+					pos = 0;
+					return false;
+				}
+				if(Debug.isActive(RemoteDebug::VERBOSE)) {
+					debugD("Intermediate block dump (%db):", len);
+					debugPrint(hanBuffer, 0, len);
+				}
+				len = 0;
 				return false;
+			} else if(pos == HDLC_GBT_LAST) {
+				debugI("Final block");
+				if(Debug.isActive(RemoteDebug::VERBOSE)) {
+					debugD("Final block dump (%db):", len);
+					debugPrint(hanBuffer, 0, len);
+				}
+				if(ga->append((uint8_t *) hanBuffer+context.apduStart, len, &Debug) >= 0) {
+					len = ga->write((uint8_t *) hanBuffer);
+					pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp, &context);
+				} else {
+					debugE("GBT assembler failed");
+					pos = 0;
+					return false;
+				}
 			}
-			for(int i = len; i<BUF_SIZE_HAN; i++) {
-				hanBuffer[i] = 0x00;
-			}
+
+			// Encryption, but config was not initialized
 			if(pos == HDLC_ENCRYPTION_CONFIG_MISSING) {
 				hc = new HDLCConfig();
 				memcpy(hc->encryption_key, meterConfig.encryptionKey, 16);
 				memcpy(hc->authentication_key, meterConfig.authenticationKey, 16);
+				pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp, &context);
+			}
+
+			// Received frame was incomplete, return to loop and wait for more data
+			if(pos == HDLC_FRAME_INCOMPLETE) {
+				return false;
+			}
+
+			// Data is valid, clear the rest of the buffer to avoid tainted read
+			for(int i = len; i<BUF_SIZE_HAN; i++) {
+				hanBuffer[i] = 0x00;
 			}
 			if(Debug.isActive(RemoteDebug::VERBOSE)) {
+				debugW("APDU tag %02X", context.apdu);
+				debugW("APDU start %d", context.apduStart);
+
 				debugD("Frame dump (%db):", len);
 				debugPrint(hanBuffer, 0, len);
 			}
@@ -860,12 +920,16 @@ bool readHanPort() {
 				debugD("Authentication tag:");
 				debugPrint(hc->authentication_tag, 0, 12);
 			}
+
+			// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 			if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 				mqtt->publish(topic.c_str(), toHex(hanBuffer, len));
 			}
-			len = 0;
+			len = 0; // Reset length for next frame
 			if(pos > 0) {
+				// Parse valid data
 				debugD("Valid data, start at byte %d", pos);
+				// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
 				data = IEC6205675(((char *) (hanBuffer)) + pos, meterState.getMeterType(), &meterConfig, timestamp, hc);
 			} else {
 				printHanReadError(pos);
@@ -874,7 +938,7 @@ bool readHanPort() {
 		} else {
 			return false;
 		}
-	} else if(currentMeterType == 2) {
+	} else if(currentMeterType == 2) { // DSMR
 		int pos = HDLC_FRAME_INCOMPLETE;
 		if(hc != NULL) {
 			while(hanSerial->available() && pos == HDLC_FRAME_INCOMPLETE) {
@@ -911,7 +975,7 @@ bool readHanPort() {
 		len = 0;
 		data = IEC6205621(((char *) (hanBuffer)) + pos);
 		if(data.getListType() == 0) {
-			currentMeterType = 0;
+			currentMeterType = 0; // Did not receive valid data, go bach to autodetect
 			return false;
 		} else {
 			if(Debug.isActive(RemoteDebug::DEBUG)) {
@@ -1018,7 +1082,7 @@ void printHanReadError(int pos) {
 				break;
 			case HDLC_UNKNOWN_DATA:
 				debugW("Unknown data format %02X", hanBuffer[0]);
-				currentMeterType = 0;
+				currentMeterType = 0; // Did not receive valid data, go back to autodetect
 				break;
 			default:
 				debugW("Unspecified error while reading data: %d", pos);

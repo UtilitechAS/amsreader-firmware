@@ -15,7 +15,7 @@ void mbus_hexdump(const uint8_t* buf, int len) {
     printf("]\n");
 }
 
-int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTime* timestamp) {
+int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTime* timestamp, HDLCContext* context) {
     int len;
     int headersize = 3;
     int footersize = 1;
@@ -64,6 +64,8 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
             headersize++;
             ptr++;
 
+            context->headersize = headersize + 1; // Include control byte in reported header size
+
             HDLC3CtrlHcs* t3 = (HDLC3CtrlHcs*) (ptr);
             headersize += 3;
 
@@ -73,10 +75,12 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
 
             ptr += sizeof *t3;
 
-            // Extract LLC
-            HDLCLLC* llc = (HDLCLLC*) ptr;
-            ptr += sizeof *llc;
-            headersize += sizeof *llc;
+            // Extract LLC if present
+            if(((*ptr) & 0xFF) == 0xE6) {
+                HDLCLLC* llc = (HDLCLLC*) ptr;
+                ptr += sizeof *llc;
+                headersize += sizeof *llc;
+            }
         } else {
             return HDLC_UNKNOWN_DATA;
         }
@@ -133,8 +137,10 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
         return HDLC_UNKNOWN_DATA;
     }
 
-    Serial.flush();
+    context->apdu = *ptr;
+    context->apduStart = ptr-d;
 
+    // Encrypted
     if(((*ptr) & 0xFF) == 0xDB) {
         if(length < headersize + 18)
             return HDLC_FRAME_INCOMPLETE;
@@ -144,8 +150,22 @@ int HDLC_validate(const uint8_t* d, int length, HDLCConfig* config, CosemDateTim
         ptr += ret;
     }
 
-    HDLCADPU* adpu = (HDLCADPU*) (ptr);
-    ptr += sizeof *adpu;
+    // GBT (General Block Transfer)
+    if(((*ptr) & 0xFF) == 0xE0) {
+        uint8_t control = *(ptr+1); // 1100 0000, 1=last frame, 1=streaming, remainig=window
+        // TODO GBT data from ptr-d
+        if((control & 0x80) == 0x00) {
+            return HDLC_GBT_INTERMEDIATE;
+        } else {
+            return HDLC_GBT_LAST;
+        }
+    }
+
+    // Yes, we are doing this again, after potential decryption
+    context->apdu = *ptr;
+    context->apduStart = ptr-d;
+    ptr++;
+    ptr += 4; // Skip invoke ID and priority
 
     // ADPU timestamp
     CosemData* dateTime = (CosemData*) ptr;

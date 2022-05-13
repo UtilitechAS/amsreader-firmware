@@ -17,15 +17,21 @@ void GBTAssembler::init(const uint8_t* d, HDLCContext* context) {
     lastSequenceNumber = 0;
 }
 
-int GBTAssembler::append(const uint8_t* d, int length, Print* debugger) {
-    GBTHeader* h = (GBTHeader*) d;
+int GBTAssembler::append(HDLCContext* context, const uint8_t* d, int length, Print* debugger) {
+    GBTHeader* h = (GBTHeader*) (d+context->apduStart);
     h->sequence = ntohs(h->sequence);
     h->sequenceAck = ntohs(h->sequenceAck);
-    uint8_t* ptr = (uint8_t*) &h[1];
 
     //debugger->printf("F: %02X, C: %02X, S: %d, A: %d, L: %d, X: %d\n", h->flag, h->control, h->sequence, h->sequenceAck, h->size, lastSequenceNumber);
+    if(h->flag != 0xE0) return -9;
 
-    if(lastSequenceNumber != h->sequence-1) return -1;
+    if(h->sequence == 1) {
+        init(d, context);
+    } else if(lastSequenceNumber != h->sequence-1) {
+        return -1;
+    }
+
+    uint8_t* ptr = (uint8_t*) &h[1];
     memcpy(buf + pos, ptr, h->size);
     pos += h->size;
     lastSequenceNumber = h->sequence;

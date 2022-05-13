@@ -858,8 +858,7 @@ bool readHanPort() {
 				if(ga == NULL) {
 					ga = new GBTAssembler();
 				}
-				ga->init((uint8_t *) hanBuffer, &context);
-				if(ga->append((uint8_t *) hanBuffer+context.apduStart, len, &Debug) < 0) {
+				if(ga->append(&context, (uint8_t *) hanBuffer, len, &Debug) < 0) {
 					debugE("GBT assembler failed");
 					len = 0;
 					return false;
@@ -876,7 +875,7 @@ bool readHanPort() {
 					debugD("Final block dump (%db):", len);
 					debugPrint(hanBuffer, 0, len);
 				}
-				if(ga->append((uint8_t *) hanBuffer+context.apduStart, len, &Debug) >= 0) {
+				if(ga->append(&context, (uint8_t *) hanBuffer, len, &Debug) >= 0) {
 					len = ga->write((uint8_t *) hanBuffer);
 					pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp, &context);
 				} else {

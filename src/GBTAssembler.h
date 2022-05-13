@@ -16,7 +16,7 @@ class GBTAssembler {
 public:
     GBTAssembler();
     void init(const uint8_t* d, HDLCContext* context);
-    int append(const uint8_t* d, int length, Print* debugger);
+    int append(HDLCContext* context, const uint8_t* d, int length, Print* debugger);
     uint16_t write(const uint8_t* d);
 
 private:

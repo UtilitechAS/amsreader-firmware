@@ -801,7 +801,7 @@ bool readHanPort() {
 		return false;
 	}
 	CosemDateTime timestamp = {0};
-	HDLCContext context;
+	HDLCContext context = {0,0,0};
 	AmsData data;
 	if(currentMeterType == 1) { // DLMS
 		int pos = HDLC_FRAME_INCOMPLETE;
@@ -827,7 +827,7 @@ bool readHanPort() {
 				}
 				if(ma->append((uint8_t *) hanBuffer, len) < 0) {
 					debugE("MBUS assembler failed");
-					pos = 0;
+					len = 0;
 					return false;
 				}
 				if(Debug.isActive(RemoteDebug::VERBOSE)) {
@@ -847,7 +847,7 @@ bool readHanPort() {
 					pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp, &context);
 				} else {
 					debugE("MBUS assembler failed");
-					pos = 0;
+					len = 0;
 					return false;
 				}
 			}
@@ -861,7 +861,7 @@ bool readHanPort() {
 				ga->init((uint8_t *) hanBuffer, &context);
 				if(ga->append((uint8_t *) hanBuffer+context.apduStart, len, &Debug) < 0) {
 					debugE("GBT assembler failed");
-					pos = 0;
+					len = 0;
 					return false;
 				}
 				if(Debug.isActive(RemoteDebug::VERBOSE)) {
@@ -881,7 +881,7 @@ bool readHanPort() {
 					pos = HDLC_validate((uint8_t *) hanBuffer, len, hc, &timestamp, &context);
 				} else {
 					debugE("GBT assembler failed");
-					pos = 0;
+					len = 0;
 					return false;
 				}
 			}

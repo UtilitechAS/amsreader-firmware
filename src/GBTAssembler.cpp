@@ -19,22 +19,20 @@ void GBTAssembler::init(const uint8_t* d, HDLCContext* context) {
 
 int GBTAssembler::append(HDLCContext* context, const uint8_t* d, int length, Print* debugger) {
     GBTHeader* h = (GBTHeader*) (d+context->apduStart);
-    h->sequence = ntohs(h->sequence);
-    h->sequenceAck = ntohs(h->sequenceAck);
+    uint16_t sequence = ntohs(h->sequence);
 
-    //debugger->printf("F: %02X, C: %02X, S: %d, A: %d, L: %d, X: %d\n", h->flag, h->control, h->sequence, h->sequenceAck, h->size, lastSequenceNumber);
     if(h->flag != 0xE0) return -9;
 
-    if(h->sequence == 1) {
+    if(sequence == 1) {
         init(d, context);
-    } else if(lastSequenceNumber != h->sequence-1) {
+    } else if(lastSequenceNumber != sequence-1) {
         return -1;
     }
 
     uint8_t* ptr = (uint8_t*) &h[1];
     memcpy(buf + pos, ptr, h->size);
     pos += h->size;
-    lastSequenceNumber = h->sequence;
+    lastSequenceNumber = sequence;
     return 0;
 }
 

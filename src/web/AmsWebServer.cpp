@@ -356,7 +356,11 @@ void AmsWebServer::configMeterHtml() {
 	html.replace("{mid}", meterState->getMeterId());
 	html.replace("{b}", String(meterConfig->baud));
 	html.replace("{b2400}", meterConfig->baud == 2400 ? "selected"  : "");
+	html.replace("{b4800}", meterConfig->baud == 4800 ? "selected"  : "");
 	html.replace("{b9600}", meterConfig->baud == 9600 ? "selected"  : "");
+	html.replace("{b19200}", meterConfig->baud == 19200 ? "selected"  : "");
+	html.replace("{b38400}", meterConfig->baud == 38400 ? "selected"  : "");
+	html.replace("{b57600}", meterConfig->baud == 57600 ? "selected"  : "");
 	html.replace("{b115200}", meterConfig->baud == 115200 ? "selected"  : "");
 	html.replace("{c}", String(meterConfig->baud));
 	html.replace("{c2}", meterConfig->parity == 2 ? "selected"  : "");

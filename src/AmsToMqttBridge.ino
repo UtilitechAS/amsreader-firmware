@@ -608,6 +608,9 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 				hwSerial = &Serial2;
 			}
 		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+			if(pin == 18) {
+				hwSerial = &Serial1;
+			}
 		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
 		#endif
 	#endif

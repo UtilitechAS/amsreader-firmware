@@ -1486,8 +1486,13 @@ String AmsWebServer::getSerialSelectOptions(int selected) {
 		gpioOptions += "<option value=\"3\">UART0 (GPIO3)</option>";
 	}
 	#if defined(CONFIG_IDF_TARGET_ESP32S2)
-		int numGpio = 31;
-		int gpios[] = {4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,21,22,23,25,32,33,34,35,36,39,40,41,42,43,44};
+		int numGpio = 30;
+		int gpios[] = {4,5,6,7,8,9,10,11,12,13,14,15,16,17,19,21,22,23,25,32,33,34,35,36,39,40,41,42,43,44};
+		if(selected == 18) {
+			gpioOptions += "<option value=\"18\" selected>UART1 (GPIO18)</option>";
+		} else {
+			gpioOptions += "<option value=\"18\">UART1 (GPIO18)</option>";
+		}
 	#elif defined(ESP32)
 		int numGpio = 24;
 		int gpios[] = {4,5,6,7,8,10,11,12,13,14,15,17,18,19,21,22,23,25,32,33,34,35,36,39};

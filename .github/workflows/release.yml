@@ -104,6 +104,15 @@ jobs:
         asset_path: .pio/build/esp32/firmware.bin
         asset_name: ams2mqtt-esp32-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream
+    - name: Upload esp32solo binary to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: .pio/build/esp32solo/firmware.bin
+        asset_name: ams2mqtt-esp32solo-${{ steps.release_tag.outputs.tag }}.bin
+        asset_content_type: application/octet-stream
     - name: Upload esp32s2 binary to release
       uses: actions/upload-release-asset@v1
       env:

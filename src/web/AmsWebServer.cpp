@@ -1614,11 +1614,15 @@ void AmsWebServer::firmwareHtml() {
 	String html = String((const __FlashStringHelper*) FIRMWARE_HTML);
 
 	#if defined(ESP8266)
-	html.replace("{chipset}", "ESP8266");
+		html.replace("{chipset}", "ESP8266");
 	#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-	html.replace("{chipset}", "ESP32S2");
+		html.replace("{chipset}", "ESP32S2");
 	#elif defined(ESP32)
-	html.replace("{chipset}", "ESP32");
+		#if defined(CONFIG_FREERTOS_UNICORE)
+			html.replace("{chipset}", "ESP32SOLO");
+		#else
+			html.replace("{chipset}", "ESP32");
+		#endif
 	#endif
 	
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
@@ -1703,7 +1707,12 @@ void AmsWebServer::firmwareDownload() {
 		#elif defined(ESP32)
 			WiFiClientSecure client;
 			client.setInsecure();
-			String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32-" + versionStripped + ".bin";
+			#if defined(CONFIG_FREERTOS_UNICORE)
+				String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32solo-" + versionStripped + ".bin";
+			#else
+				String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32-" + versionStripped + ".bin";
+			#endif
+
 			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 		#endif
 

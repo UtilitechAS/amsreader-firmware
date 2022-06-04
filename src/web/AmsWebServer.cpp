@@ -499,7 +499,7 @@ void AmsWebServer::configMqttHtml() {
 
 	#if defined(ESP8266)
 		html.replace("{sd}", "d-none");
-	#elif
+	#else
 		html.replace("{sd}", "");
 		html.replace("{s}", mqtt.ssl ? "checked" : "");
 

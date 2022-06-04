@@ -27,7 +27,10 @@ void EntsoeApi::setup(EntsoeConfig& config) {
         this->config = new EntsoeConfig();
     }
     memcpy(this->config, &config, sizeof(config));
-    lastCurrencyFetch = 0;
+    lastTodayFetch = lastTomorrowFetch = lastCurrencyFetch = 0;
+    if(today != NULL) delete today;
+    if(tomorrow != NULL) delete tomorrow;
+    today = tomorrow = NULL;
 }
 
 char* EntsoeApi::getToken() {

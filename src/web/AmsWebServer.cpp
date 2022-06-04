@@ -1875,7 +1875,7 @@ void AmsWebServer::mqttCa() {
 		}
 		LittleFS.end();
 	} else {
-		server.sendHeader("Location","/config-mqtt");
+		server.sendHeader("Location","/mqtt");
 		server.send(303);
 	}
 }
@@ -1887,7 +1887,7 @@ void AmsWebServer::mqttCaUpload() {
 	uploadFile(FILE_MQTT_CA);
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_END) {
-		server.sendHeader("Location","/config-mqtt");
+		server.sendHeader("Location","/mqtt");
 		server.send(303);
 
 		MqttConfig mqttConfig;
@@ -1903,7 +1903,7 @@ void AmsWebServer::mqttCaDelete() {
 
 	if(!uploading) { // Not an upload
 		deleteFile(FILE_MQTT_CA);
-		server.sendHeader("Location","/config-mqtt");
+		server.sendHeader("Location","/mqtt");
 		server.send(303);
 		MqttConfig mqttConfig;
 		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
@@ -1929,7 +1929,7 @@ void AmsWebServer::mqttCert() {
 		}
 		LittleFS.end();
 	} else {
-		server.sendHeader("Location","/config-mqtt");
+		server.sendHeader("Location","/mqtt");
 		server.send(303);
 	}
 }
@@ -1941,7 +1941,7 @@ void AmsWebServer::mqttCertUpload() {
 	uploadFile(FILE_MQTT_CERT);
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_END) {
-		server.sendHeader("Location","/config-mqtt");
+		server.sendHeader("Location","/mqtt");
 		server.send(303);
 		MqttConfig mqttConfig;
 		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
@@ -1956,7 +1956,7 @@ void AmsWebServer::mqttCertDelete() {
 
 	if(!uploading) { // Not an upload
 		deleteFile(FILE_MQTT_CERT);
-		server.sendHeader("Location","/config-mqtt");
+		server.sendHeader("Location","/mqtt");
 		server.send(303);
 		MqttConfig mqttConfig;
 		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
@@ -1982,7 +1982,7 @@ void AmsWebServer::mqttKey() {
 		}
 		LittleFS.end();
 	} else {
-		server.sendHeader("Location","/config-mqtt");
+		server.sendHeader("Location","/mqtt");
 		server.send(303);
 	}
 }
@@ -1994,7 +1994,7 @@ void AmsWebServer::mqttKeyUpload() {
 	uploadFile(FILE_MQTT_KEY);
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_END) {
-		server.sendHeader("Location","/config-mqtt");
+		server.sendHeader("Location","/mqtt");
 		server.send(303);
 		MqttConfig mqttConfig;
 		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
@@ -2009,7 +2009,7 @@ void AmsWebServer::mqttKeyDelete() {
 
 	if(!uploading) { // Not an upload
 		deleteFile(FILE_MQTT_KEY);
-		server.sendHeader("Location","/config-mqtt");
+		server.sendHeader("Location","/mqtt");
 		server.send(303);
 		MqttConfig mqttConfig;
 		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {

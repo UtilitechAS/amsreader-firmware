@@ -1312,6 +1312,8 @@ void MQTT_connect() {
 		}
 		#if defined(ESP8266)
 			mqttSecureClient->setBufferSizes(512, 512);
+			debugE("ESP8266 does not have enough RAM to SSL");
+			return;
 		#endif
 
 		if(LittleFS.begin()) {
@@ -1333,10 +1335,15 @@ void MQTT_connect() {
 
 			if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
 				#if defined(ESP8266)
+					debugI("Found MQTT certificate file");
 					file = LittleFS.open(FILE_MQTT_CERT, "r");
 				 	BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
+
+					debugI("Found MQTT key file");
 					file = LittleFS.open(FILE_MQTT_KEY, "r");
   					BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
+
+					debugD("Setting client certificates");
 					mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
 				#elif defined(ESP32)
 					debugI("Found MQTT certificate file");
@@ -1349,6 +1356,7 @@ void MQTT_connect() {
 				#endif
 			}
 			LittleFS.end();
+			debugD("MQTT SSL setup complete");
 		}
 		mqttClient = mqttSecureClient;
 	} else if(mqttClient == NULL) {

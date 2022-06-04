@@ -497,24 +497,29 @@ void AmsWebServer::configMqttHtml() {
 	}
 	html.replace("{f255}", mqtt.payloadFormat == 255 ? "selected"  : "");
 
-	html.replace("{s}", mqtt.ssl ? "checked" : "");
+	#if defined(ESP8266)
+		html.replace("{sd}", "d-none");
+	#elif
+		html.replace("{sd}", "");
+		html.replace("{s}", mqtt.ssl ? "checked" : "");
 
-	if(LittleFS.begin()) {
-		html.replace("{dcu}", LittleFS.exists(FILE_MQTT_CA) ? "none" : "");
-		html.replace("{dcf}", LittleFS.exists(FILE_MQTT_CA) ? "" : "none");
-		html.replace("{deu}", LittleFS.exists(FILE_MQTT_CERT) ? "none" : "");
-		html.replace("{def}", LittleFS.exists(FILE_MQTT_CERT) ? "" : "none");
-		html.replace("{dku}", LittleFS.exists(FILE_MQTT_KEY) ? "none" : "");
-		html.replace("{dkf}", LittleFS.exists(FILE_MQTT_KEY) ? "" : "none");
-		LittleFS.end();
-	} else {
-		html.replace("{dcu}", "");
-		html.replace("{dcf}", "none");
-		html.replace("{deu}", "");
-		html.replace("{def}", "none");
-		html.replace("{dku}", "");
-		html.replace("{dkf}", "none");
-	}
+		if(LittleFS.begin()) {
+			html.replace("{dcu}", LittleFS.exists(FILE_MQTT_CA) ? "none" : "");
+			html.replace("{dcf}", LittleFS.exists(FILE_MQTT_CA) ? "" : "none");
+			html.replace("{deu}", LittleFS.exists(FILE_MQTT_CERT) ? "none" : "");
+			html.replace("{def}", LittleFS.exists(FILE_MQTT_CERT) ? "" : "none");
+			html.replace("{dku}", LittleFS.exists(FILE_MQTT_KEY) ? "none" : "");
+			html.replace("{dkf}", LittleFS.exists(FILE_MQTT_KEY) ? "" : "none");
+			LittleFS.end();
+		} else {
+			html.replace("{dcu}", "");
+			html.replace("{dcf}", "none");
+			html.replace("{deu}", "");
+			html.replace("{def}", "none");
+			html.replace("{dku}", "");
+			html.replace("{dkf}", "none");
+		}
+	#endif
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, MIME_HTML, HEAD_HTML);

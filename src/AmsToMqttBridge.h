@@ -7,6 +7,11 @@
 
 #define MAX_PEM_SIZE 4096
 
+#define METER_SOURCE_NONE 0
+#define METER_SOURCE_SERIAL 1
+#define METER_SOURCE_MQTT 2
+#define METER_SOURCE_ESPNOW 3
+
 #include <SoftwareSerial.h>
 
 #if defined(ESP8266)

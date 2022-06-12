@@ -1,8 +1,9 @@
 #include "IEC6205675.h"
 #include "lwip/def.h"
 #include "Timezone.h"
+#include "ams/ntohll.h"
 
-IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, CosemDateTime packageTimestamp, HDLCConfig* hc) {
+IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx) {
     double val;
     char str[64];
 
@@ -10,7 +11,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
     TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
     Timezone tz(CEST, CET);
 
-    this->packageTimestamp = getTimestamp(packageTimestamp);
+    this->packageTimestamp = ctx.timestamp;
 
     val = getNumber(AMS_OBIS_ACTIVE_IMPORT, sizeof(AMS_OBIS_ACTIVE_IMPORT), ((char *) (d)));
     if(val == NOVALUE) {
@@ -107,7 +108,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                         case CosemTypeOctetString: {
                             if(data->oct.length == 0x0C) {
                                 AmsOctetTimestamp* amst = (AmsOctetTimestamp*) data;
-                                time_t ts = getTimestamp(amst->dt);
+                                time_t ts = decodeCosemDateTime(amst->dt);
                                 meterTimestamp = tz.toUTC(ts);
                             }
                         }
@@ -157,8 +158,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             } 
         }
         // Try system title
-        if(meterType == AmsTypeUnknown && hc != NULL) {
-            if(memcmp(hc->system_title, "SAGY", 4) == 0) {
+        if(meterType == AmsTypeUnknown) {
+            if(memcmp(ctx.system_title, "SAGY", 4) == 0) {
                 meterType = AmsTypeSagemcom;
             }
         }
@@ -264,7 +265,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         CosemData* meterTs = findObis(AMS_OBIS_METER_TIMESTAMP, sizeof(AMS_OBIS_METER_TIMESTAMP), ((char *) (d)));
         if(meterTs != NULL) {
             AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
-            time_t ts = getTimestamp(amst->dt);
+            time_t ts = decodeCosemDateTime(amst->dt);
             if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
                 meterTimestamp = tz.toUTC(ts);
             } else {
@@ -325,7 +326,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             CosemData* meterTs = getCosemDataAt(1, ((char *) (d)));
             if(meterTs != NULL) {
                 AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
-                time_t ts = getTimestamp(amst->dt);
+                time_t ts = decodeCosemDateTime(amst->dt);
                 meterTimestamp = ts;
             }
 
@@ -407,7 +408,7 @@ CosemData* IEC6205675::getCosemDataAt(uint8_t index, const char* ptr) {
     CosemData* item = (CosemData*) ptr;
     int i = 0;
     char* pos = (char*) ptr;
-    do {
+    while(pos-ptr < 900) {
         item = (CosemData*) pos;
         if(i == index) return item;
         switch(item->base.type) {
@@ -438,8 +439,7 @@ CosemData* IEC6205675::getCosemDataAt(uint8_t index, const char* ptr) {
                 pos += 2;
         }
         i++;
-        if(pos-ptr > 900) break; 
-    } while(item->base.type != HDLC_FLAG);
+    }
     return NULL;
 }
 
@@ -447,7 +447,7 @@ CosemData* IEC6205675::findObis(uint8_t* obis, int matchlength, const char* ptr)
     CosemData* item = (CosemData*) ptr;
     int ret = 0;
     char* pos = (char*) ptr;
-    do {
+    while(pos-ptr < 900) {
         item = (CosemData*) pos;
         if(ret == 1) return item;
         switch(item->base.type) {
@@ -485,8 +485,7 @@ CosemData* IEC6205675::findObis(uint8_t* obis, int matchlength, const char* ptr)
             default:
                 pos += 2;
         }
-        if(pos-ptr > 900) break; 
-    } while(item->base.type != HDLC_FLAG);
+    }
     return NULL;
 }
 
@@ -572,31 +571,10 @@ time_t IEC6205675::getTimestamp(uint8_t* obis, int matchlength, const char* ptr)
             case CosemTypeOctetString: {
                 if(item->oct.length == 0x0C) {
                     AmsOctetTimestamp* ts = (AmsOctetTimestamp*) item;
-                    return getTimestamp(ts->dt);
+                    return decodeCosemDateTime(ts->dt);
                 }
             }
         }
     }
     return 0;
-}
-
-time_t IEC6205675::getTimestamp(CosemDateTime timestamp) {
-    tmElements_t tm;
-    uint16_t year = ntohs(timestamp.year);
-    if(year < 1970) return 0;
-    tm.Year = year - 1970;
-    tm.Month = timestamp.month;
-    tm.Day = timestamp.dayOfMonth;
-    tm.Hour = timestamp.hour;
-    tm.Minute = timestamp.minute;
-    tm.Second = timestamp.second;
-
-    //Serial.printf("\nY: %d, M: %d, D: %d, h: %d, m: %d, s: %d, deviation: 0x%2X, status: 0x%1X\n", tm.Year, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second, timestamp.deviation, timestamp.status);
-
-    time_t time = makeTime(tm);
-    int16_t deviation = ntohs(timestamp.deviation);
-    if(deviation >= -720 && deviation <= 720) {
-        time -= deviation * 60;
-    }
-    return time;
 }

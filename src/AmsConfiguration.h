@@ -99,7 +99,9 @@ struct MeterConfig {
 	uint16_t voltageMultiplier;
 	uint16_t amperageMultiplier;
 	uint16_t accumulatedMultiplier;
-}; // 49
+	uint8_t source;
+	uint8_t parser;
+}; // 50
 
 struct MeterConfig87 {
 	uint8_t type;

@@ -1675,11 +1675,12 @@ void AmsWebServer::firmwareDownload() {
 		printI("Downloading firmware...");
 		HTTPClient httpClient;
 		httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-		httpClient.setTimeout(20000);
-		httpClient.addHeader("User-Agent", "ams2mqtt/" + String(VERSION));
+	    httpClient.setReuse(false);
+		httpClient.setTimeout(60000);
+		httpClient.setUserAgent("ams2mqtt/" + String(VERSION));
 
 		#if defined(ESP8266)
-			WiFiClient client;
+			//WiFiClient client;
 			String url = "http://ams2mqtt.no23.cc/releases/download/" + version + "/ams2mqtt-esp8266-" + versionStripped + ".bin";
 			/*
 			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
@@ -1705,13 +1706,11 @@ void AmsWebServer::firmwareDownload() {
 			return;
 			*/
 		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-			WiFiClientSecure client;
-			client.setInsecure();
+			httpClient.setConnectTimeout(60000);
 			String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32s2-" + versionStripped + ".bin";
 			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 		#elif defined(ESP32)
-			WiFiClientSecure client;
-			client.setInsecure();
+			httpClient.setConnectTimeout(60000);
 			#if defined(CONFIG_FREERTOS_UNICORE)
 				String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32solo-" + versionStripped + ".bin";
 			#else
@@ -1721,7 +1720,10 @@ void AmsWebServer::firmwareDownload() {
 			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 		#endif
 
-		if(httpClient.begin(client, url)) {
+		printD("Downloading from URL:");
+		printD(url);
+
+		if(httpClient.begin(url)) {
 			printD("HTTP client setup successful");
 			int status = httpClient.GET();
 			if(status == HTTP_CODE_OK) {
@@ -1749,8 +1751,8 @@ void AmsWebServer::firmwareDownload() {
 				}
 			} else {
 				printE("Communication error: ");
+				debugger->printf("%d\n", status);
 				printE(httpClient.errorToString(status));
-				printI(url);
 				printD(httpClient.getString());
 				server.sendHeader("Location","/");
 				server.send(303);
@@ -1761,7 +1763,6 @@ void AmsWebServer::firmwareDownload() {
 			server.send(303);
 		}
 		httpClient.end();
-		client.stop();
 	} else {
 		printI("No firmware version specified...");
 		server.sendHeader("Location","/");

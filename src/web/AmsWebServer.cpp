@@ -1680,7 +1680,7 @@ void AmsWebServer::firmwareDownload() {
 		httpClient.setUserAgent("ams2mqtt/" + String(VERSION));
 
 		#if defined(ESP8266)
-			//WiFiClient client;
+			WiFiClient client;
 			String url = "http://ams2mqtt.no23.cc/releases/download/" + version + "/ams2mqtt-esp8266-" + versionStripped + ".bin";
 			/*
 			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
@@ -1723,7 +1723,11 @@ void AmsWebServer::firmwareDownload() {
 		printD("Downloading from URL:");
 		printD(url);
 
+		#if defined(ESP8266)
+		if(httpClient.begin(client, url)) {
+		#elif defined(ESP32)
 		if(httpClient.begin(url)) {
+		#endif
 			printD("HTTP client setup successful");
 			int status = httpClient.GET();
 			if(status == HTTP_CODE_OK) {

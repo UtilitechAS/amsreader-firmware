@@ -1312,8 +1312,6 @@ void MQTT_connect() {
 		}
 		#if defined(ESP8266)
 			mqttSecureClient->setBufferSizes(512, 512);
-			//debugE("ESP8266 does not have enough RAM to SSL");
-			//return;
 		#endif
 	
 		if(LittleFS.begin()) {

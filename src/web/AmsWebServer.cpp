@@ -497,7 +497,6 @@ void AmsWebServer::configMqttHtml() {
 	}
 	html.replace("{f255}", mqtt.payloadFormat == 255 ? "selected"  : "");
 
-	html.replace("{sd}", ""); // Could be used to hide SSL config with "d-none"
 	html.replace("{s}", mqtt.ssl ? "checked" : "");
 
 	if(LittleFS.begin()) {

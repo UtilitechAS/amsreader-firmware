@@ -17,11 +17,11 @@ void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
     #if defined(CONFIG_IDF_TARGET_ESP32S2)
         analogReadResolution(13);
         analogRange = 8192;
-        //analogSetAttenuation(ADC_11db);
+        analogSetAttenuation(ADC_11db);
     #elif defined(ESP32)
         analogReadResolution(12);
         analogRange = 4096;
-        //analogSetAttenuation(ADC_11db);
+        analogSetAttenuation(ADC_6db);
     #endif
     if(config->vccPin > 0 && config->vccPin < 40) {
         #if defined(CONFIG_IDF_TARGET_ESP32S2)

@@ -25,6 +25,8 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
         );
         mqtt->publish(topic + "/energy", json);
     }
+    String meterModel = data->getMeterModel();
+    meterModel.replace("\\", "\\\\");
     if(data->getListType() == 1) { // publish power counts
         snprintf_P(json, BufferSize, HA1_JSON,
             data->getActiveImportPower()
@@ -34,7 +36,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
         snprintf_P(json, BufferSize, HA3_JSON,
             data->getListId().c_str(),
             data->getMeterId().c_str(),
-            data->getMeterModel().c_str(),
+            meterModel.c_str(),
             data->getActiveImportPower(),
             data->getReactiveImportPower(),
             data->getActiveExportPower(),

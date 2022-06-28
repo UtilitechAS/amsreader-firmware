@@ -14,12 +14,30 @@ void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
         config->tempSensorPin = 0xFF;
     }
 
-    #if defined(ESP32)
+    #if defined(CONFIG_IDF_TARGET_ESP32S2)
+        analogReadResolution(13);
+        analogRange = 8192;
+        analogSetAttenuation(ADC_11db);
+    #elif defined(ESP32)
         analogReadResolution(12);
         analogRange = 4096;
+        analogSetAttenuation(ADC_6db);
     #endif
     if(config->vccPin > 0 && config->vccPin < 40) {
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(CONFIG_IDF_TARGET_ESP32S2)
+            getAdcChannel(config->vccPin, voltAdc);
+            if(voltAdc.unit != 0xFF) {
+                if(voltAdc.unit == ADC_UNIT_1) {
+                    voltAdcChar = (esp_adc_cal_characteristics_t*) calloc(1, sizeof(esp_adc_cal_characteristics_t));
+                    esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_13, 1100, voltAdcChar);
+                    adc1_config_channel_atten((adc1_channel_t) voltAdc.channel, ADC_ATTEN_DB_11);
+                } else if(voltAdc.unit == ADC_UNIT_2) {
+                    voltAdcChar = (esp_adc_cal_characteristics_t*) calloc(1, sizeof(esp_adc_cal_characteristics_t));
+                    esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_13, 1100, voltAdcChar);
+                    adc2_config_channel_atten((adc2_channel_t) voltAdc.channel, ADC_ATTEN_DB_11);
+                }
+            }
+        #elif defined(ESP32)
             getAdcChannel(config->vccPin, voltAdc);
             if(voltAdc.unit != 0xFF) {
                 if(voltAdc.unit == ADC_UNIT_1) {
@@ -113,6 +131,16 @@ void HwTools::getAdcChannel(uint8_t pin, AdcConfig& config) {
                 config.unit = ADC_UNIT_1;
                 config.channel = ADC1_CHANNEL_7;
                 break;
+            #if defined(CONFIG_IDF_TARGET_ESP32S2)
+            case ADC1_CHANNEL_8_GPIO_NUM:
+                config.unit = ADC_UNIT_1;
+                config.channel = ADC1_CHANNEL_8;
+                break;
+            case ADC1_CHANNEL_9_GPIO_NUM:
+                config.unit = ADC_UNIT_1;
+                config.channel = ADC1_CHANNEL_9;
+                break;
+            #endif
             case ADC2_CHANNEL_0_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_0;
@@ -160,7 +188,7 @@ void HwTools::getAdcChannel(uint8_t pin, AdcConfig& config) {
 double HwTools::getVcc() {
     double volts = 0.0;
     if(config->vccPin != 0xFF) {
-        #if defined(CONFIG_IDF_TARGET_ESP32)
+        #if defined(ESP32)
             if(voltAdc.unit != 0xFF) {
                 uint32_t x = 0;
                 for (int i = 0; i < 10; i++) {
@@ -168,7 +196,11 @@ double HwTools::getVcc() {
                         x +=  adc1_get_raw((adc1_channel_t) voltAdc.channel);
                     } else if(voltAdc.unit == ADC_UNIT_2) {
                         int v = 0;
+                        #if defined(CONFIG_IDF_TARGET_ESP32S2)
+                        adc2_get_raw((adc2_channel_t) voltAdc.channel, ADC_WIDTH_BIT_13, &v);
+                        #elif defined(CONFIG_IDF_TARGET_ESP32)
                         adc2_get_raw((adc2_channel_t) voltAdc.channel, ADC_WIDTH_BIT_12, &v);
+                        #endif
                         x += v;
                     }
                 }

@@ -497,29 +497,24 @@ void AmsWebServer::configMqttHtml() {
 	}
 	html.replace("{f255}", mqtt.payloadFormat == 255 ? "selected"  : "");
 
-	#if defined(ESP8266)
-		html.replace("{sd}", "d-none");
-	#else
-		html.replace("{sd}", "");
-		html.replace("{s}", mqtt.ssl ? "checked" : "");
+	html.replace("{s}", mqtt.ssl ? "checked" : "");
 
-		if(LittleFS.begin()) {
-			html.replace("{dcu}", LittleFS.exists(FILE_MQTT_CA) ? "none" : "");
-			html.replace("{dcf}", LittleFS.exists(FILE_MQTT_CA) ? "" : "none");
-			html.replace("{deu}", LittleFS.exists(FILE_MQTT_CERT) ? "none" : "");
-			html.replace("{def}", LittleFS.exists(FILE_MQTT_CERT) ? "" : "none");
-			html.replace("{dku}", LittleFS.exists(FILE_MQTT_KEY) ? "none" : "");
-			html.replace("{dkf}", LittleFS.exists(FILE_MQTT_KEY) ? "" : "none");
-			LittleFS.end();
-		} else {
-			html.replace("{dcu}", "");
-			html.replace("{dcf}", "none");
-			html.replace("{deu}", "");
-			html.replace("{def}", "none");
-			html.replace("{dku}", "");
-			html.replace("{dkf}", "none");
-		}
-	#endif
+	if(LittleFS.begin()) {
+		html.replace("{dcu}", LittleFS.exists(FILE_MQTT_CA) ? "none" : "");
+		html.replace("{dcf}", LittleFS.exists(FILE_MQTT_CA) ? "" : "none");
+		html.replace("{deu}", LittleFS.exists(FILE_MQTT_CERT) ? "none" : "");
+		html.replace("{def}", LittleFS.exists(FILE_MQTT_CERT) ? "" : "none");
+		html.replace("{dku}", LittleFS.exists(FILE_MQTT_KEY) ? "none" : "");
+		html.replace("{dkf}", LittleFS.exists(FILE_MQTT_KEY) ? "" : "none");
+		LittleFS.end();
+	} else {
+		html.replace("{dcu}", "");
+		html.replace("{dcf}", "none");
+		html.replace("{deu}", "");
+		html.replace("{def}", "none");
+		html.replace("{dku}", "");
+		html.replace("{dkf}", "none");
+	}
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, MIME_HTML, HEAD_HTML);
@@ -1675,8 +1670,9 @@ void AmsWebServer::firmwareDownload() {
 		printI("Downloading firmware...");
 		HTTPClient httpClient;
 		httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-		httpClient.setTimeout(20000);
-		httpClient.addHeader("User-Agent", "ams2mqtt/" + String(VERSION));
+	    httpClient.setReuse(false);
+		httpClient.setTimeout(60000);
+		httpClient.setUserAgent("ams2mqtt/" + String(VERSION));
 
 		#if defined(ESP8266)
 			WiFiClient client;
@@ -1705,13 +1701,11 @@ void AmsWebServer::firmwareDownload() {
 			return;
 			*/
 		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-			WiFiClientSecure client;
-			client.setInsecure();
+			httpClient.setConnectTimeout(60000);
 			String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32s2-" + versionStripped + ".bin";
 			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 		#elif defined(ESP32)
-			WiFiClientSecure client;
-			client.setInsecure();
+			httpClient.setConnectTimeout(60000);
 			#if defined(CONFIG_FREERTOS_UNICORE)
 				String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32solo-" + versionStripped + ".bin";
 			#else
@@ -1721,7 +1715,14 @@ void AmsWebServer::firmwareDownload() {
 			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
 		#endif
 
+		printD("Downloading from URL:");
+		printD(url);
+
+		#if defined(ESP8266)
 		if(httpClient.begin(client, url)) {
+		#elif defined(ESP32)
+		if(httpClient.begin(url)) {
+		#endif
 			printD("HTTP client setup successful");
 			int status = httpClient.GET();
 			if(status == HTTP_CODE_OK) {
@@ -1749,8 +1750,8 @@ void AmsWebServer::firmwareDownload() {
 				}
 			} else {
 				printE("Communication error: ");
+				debugger->printf("%d\n", status);
 				printE(httpClient.errorToString(status));
-				printI(url);
 				printD(httpClient.getString());
 				server.sendHeader("Location","/");
 				server.send(303);
@@ -1761,7 +1762,6 @@ void AmsWebServer::firmwareDownload() {
 			server.send(303);
 		}
 		httpClient.end();
-		client.stop();
 	} else {
 		printI("No firmware version specified...");
 		server.sendHeader("Location","/");

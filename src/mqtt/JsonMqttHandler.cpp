@@ -12,6 +12,8 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 
+    String meterModel = data->getMeterModel();
+    meterModel.replace("\\", "\\\\");
     if(data->getListType() == 1) {
         snprintf_P(json, BufferSize, JSON1_JSON,
             WiFi.macAddress().c_str(),
@@ -39,7 +41,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             hw->getTemperature(),
             data->getListId().c_str(),
             data->getMeterId().c_str(),
-            data->getMeterModel().c_str(),
+            meterModel.c_str(),
             data->getActiveImportPower(),
             data->getReactiveImportPower(),
             data->getActiveExportPower(),
@@ -67,7 +69,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             hw->getTemperature(),
             data->getListId().c_str(),
             data->getMeterId().c_str(),
-            data->getMeterModel().c_str(),
+            meterModel.c_str(),
             data->getActiveImportPower(),
             data->getReactiveImportPower(),
             data->getActiveExportPower(),
@@ -100,7 +102,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             hw->getTemperature(),
             data->getListId().c_str(),
             data->getMeterId().c_str(),
-            data->getMeterModel().c_str(),
+            meterModel.c_str(),
             data->getActiveImportPower(),
             data->getReactiveImportPower(),
             data->getActiveExportPower(),

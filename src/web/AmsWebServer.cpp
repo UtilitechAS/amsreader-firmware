@@ -606,6 +606,7 @@ void AmsWebServer::configThresholdsHtml() {
 	for(int i = 0; i < 9; i++) {
 		html.replace("{t" + String(i) + "}", String(config->thresholds[i]));
 	}
+	html.replace("{h}", String(config->hours));
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, MIME_HTML, HEAD_HTML);
@@ -1353,6 +1354,7 @@ void AmsWebServer::handleSave() {
 		eac.thresholds[6] = server.arg("t6").toInt();
 		eac.thresholds[7] = server.arg("t7").toInt();
 		eac.thresholds[8] = server.arg("t8").toInt();
+		eac.hours = server.arg("h").toInt();
 		config->setEnergyAccountingConfig(eac);
 	}
 
@@ -2268,7 +2270,7 @@ void AmsWebServer::configFileDownload() {
 		EnergyAccountingConfig eac;
 		config->getEnergyAccountingConfig(eac);
 
-		if(eac.thresholds[9] > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("thresholds %d %d %d %d %d %d %d %d %d %d\n"), 
+		if(eac.thresholds[9] > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("thresholds %d %d %d %d %d %d %d %d %d %d %d\n"), 
 			eac.thresholds[0],
 			eac.thresholds[1],
 			eac.thresholds[2],
@@ -2278,7 +2280,8 @@ void AmsWebServer::configFileDownload() {
 			eac.thresholds[6],
 			eac.thresholds[7],
 			eac.thresholds[8],
-			eac.thresholds[9]
+			eac.thresholds[9],
+			eac.hours
 		));
 	}
 
@@ -2424,15 +2427,25 @@ void AmsWebServer::configFileDownload() {
 	}
 
 	if(ea != NULL) {
+		EnergyAccountingConfig eac;
+		config->getEnergyAccountingConfig(eac);
 		EnergyAccountingData ead = ea->getData();
 		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("energyaccounting %d %d %.2f %.2f %.2f %.2f"), 
 			ead.version,
 			ead.month,
-			ead.maxHour / 100.0,
+			0,
 			ead.costYesterday / 100.0,
 			ead.costThisMonth / 100.0,
 			ead.costLastMonth / 100.0
 		));
+		if(eac.hours > 0) {
+			uint16_t *maxHours = ea->getMaxHours();
+			server.sendContent(buf, snprintf(buf, BufferSize, " %d", eac.hours));
+			for(int i = 0; i < eac.hours; i++) {
+				server.sendContent(buf, snprintf(buf, BufferSize, " %d", maxHours[i]));
+			}
+		}
+		server.sendContent("\n");
 	}
 }
 

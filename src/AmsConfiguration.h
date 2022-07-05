@@ -4,7 +4,7 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 94 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 95 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
@@ -161,7 +161,8 @@ struct EntsoeConfig {
 
 struct EnergyAccountingConfig {
 	uint8_t thresholds[10];
-}; // 10
+	uint8_t hours;
+}; // 11
 
 struct TempSensorConfig {
 	uint8_t address[8];
@@ -264,7 +265,8 @@ private:
 	bool relocateConfig90(); // 2.0.0
 	bool relocateConfig91(); // 2.0.2
 	bool relocateConfig92(); // 2.0.3
-	bool relocateConfig93(); // 2.1 beta
+	bool relocateConfig93(); // 2.1.0
+	bool relocateConfig94(); // 2.1.4
 
 	void saveToFs();
 	bool loadFromFs(uint8_t version);

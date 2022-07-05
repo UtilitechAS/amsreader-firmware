@@ -657,6 +657,14 @@ bool AmsConfiguration::hasConfig() {
 					configVersion = 0;
 					return false;
 				}
+			case 94:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig94()) {
+					configVersion = 95;
+				} else {
+					configVersion = 0;
+					return false;
+				}
 			case EEPROM_CHECK_SUM:
 				return true;
 			default:
@@ -817,6 +825,18 @@ bool AmsConfiguration::relocateConfig93() {
 	meter.accumulatedMultiplier = 0;
 	EEPROM.put(CONFIG_METER_START, meter);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 94);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig94() {
+	EnergyAccountingConfig eac;
+	EEPROM.begin(EEPROM_SIZE);
+    EEPROM.get(CONFIG_ENERGYACCOUNTING_START, eac);
+	eac.hours = 1;
+	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 95);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;

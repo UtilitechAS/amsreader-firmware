@@ -371,7 +371,8 @@ void setup() {
 		config.setEnergyAccountingConfig(*eac);
 		config.ackEnergyAccountingChange();
 	}
-	ea.setup(&ds, eapi, eac);
+	ea.setup(&ds, eac);
+	ea.setEapi(eapi);
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
 
 	#if defined(ESP32)
@@ -517,6 +518,7 @@ void loop() {
 					if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
 						if(eapi == NULL) {
 							eapi = new EntsoeApi(&Debug);
+							ea.setEapi(eapi);
 							ws.setEntsoeApi(eapi);
 						}
 						eapi->setup(entsoe);
@@ -561,7 +563,7 @@ void loop() {
 	if(config.isEnergyAccountingChanged()) {
 		EnergyAccountingConfig *eac = ea.getConfig();
 		config.getEnergyAccountingConfig(*eac);
-		ea.setup(&ds, eapi, eac);
+		ea.setup(&ds, eac);
 		config.ackEnergyAccountingChange();
 	}
 
@@ -1020,14 +1022,14 @@ bool readHanPort() {
 
 		bool saveData = false;
 		if(!ds.isHappy() && now > BUILD_EPOCH) {
-			debugD("Its time to update data storage");
+			debugV("Its time to update data storage");
 			tmElements_t tm;
 			breakTime(now, tm);
 			if(tm.Minute == 0) {
-				debugD(" using actual data");
+				debugV(" using actual data");
 				saveData = ds.update(&data);
 			} else if(meterState.getListType() >= 3) {
-				debugD(" using estimated data");
+				debugV(" using estimated data");
 				saveData = ds.update(&meterState);
 			}
 			if(saveData) {
@@ -1672,6 +1674,7 @@ void configFileParse() {
 		} else if(strncmp(buf, "energyaccounting ", 17) == 0) {
 			int i = 0;
 			EnergyAccountingData ead = { 1 };
+			uint16_t *maxHours = NULL;
 			char * pch = strtok (buf+17," ");
 			while (pch != NULL) {
 				if(i == 1) {
@@ -1679,7 +1682,7 @@ void configFileParse() {
 					ead.month = val;
 				} else if(i == 2) {
 					double val = String(pch).toDouble();
-					ead.maxHour = val * 100;
+					ead.unused = val * 100;
 				} else if(i == 3) {
 					double val = String(pch).toDouble();
 					ead.costYesterday = val * 100;
@@ -1689,11 +1692,22 @@ void configFileParse() {
 				} else if(i == 5) {
 					double val = String(pch).toDouble();
 					ead.costLastMonth = val * 100;
+				} else if(i == 6) {
+					int val = String(pch).toInt();
+					if(val > 0) {
+						maxHours = new uint16_t[val];
+					}
+				} else {
+					double val = String(pch).toDouble();
+					maxHours[i-7] = val * 100;
 				}
 				pch = strtok (NULL, " ");
 				i++;
 			}
 			ea.setData(ead);
+			if(maxHours != NULL) {
+				ea.setMaxHours(maxHours);
+			}
 		}
 		memset(buf, 0, 1024);
 	}

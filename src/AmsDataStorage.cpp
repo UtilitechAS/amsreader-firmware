@@ -383,17 +383,17 @@ bool AmsDataStorage::isDayHappy() {
     tmElements_t tm, last;
 
     if(now < day.lastMeterReadTime) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Day %lld < %lld\n", (int64_t) now, (int64_t) day.lastMeterReadTime);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Day %lld < %lld\n", (int64_t) now, (int64_t) day.lastMeterReadTime);
         return false;
     }
     if(now-day.lastMeterReadTime > 3600) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Day %lld - %lld > 3600\n", (int64_t) now, (int64_t) day.lastMeterReadTime);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Day %lld - %lld > 3600\n", (int64_t) now, (int64_t) day.lastMeterReadTime);
         return false;
     }
     breakTime(tz->toLocal(now), tm);
     breakTime(tz->toLocal(day.lastMeterReadTime), last);
     if(tm.Hour > last.Hour) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Day %d > %d\n", tm.Hour, last.Hour);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Day %d > %d\n", tm.Hour, last.Hour);
         return false;
     }
 
@@ -411,17 +411,17 @@ bool AmsDataStorage::isMonthHappy() {
     tmElements_t tm, last;
     
     if(now < month.lastMeterReadTime) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Month %lld < %lld\n", (int64_t) now, (int64_t) month.lastMeterReadTime);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Month %lld < %lld\n", (int64_t) now, (int64_t) month.lastMeterReadTime);
         return false;
     }
     if(now-month.lastMeterReadTime > 86400) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Month %lld - %lld > 3600\n", (int64_t) now, (int64_t) month.lastMeterReadTime);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Month %lld - %lld > 3600\n", (int64_t) now, (int64_t) month.lastMeterReadTime);
         return false;
     }
     breakTime(tz->toLocal(now), tm);
     breakTime(tz->toLocal(month.lastMeterReadTime), last);
     if(tm.Day > last.Day) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(AmsDataStorage) Month %d > %d\n", tm.Day, last.Day);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Month %d > %d\n", tm.Day, last.Day);
         return false;
     }
 

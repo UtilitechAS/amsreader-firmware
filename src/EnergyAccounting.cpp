@@ -8,11 +8,25 @@ EnergyAccounting::EnergyAccounting(RemoteDebug* debugger) {
     this->debugger = debugger;
 }
 
-void EnergyAccounting::setup(AmsDataStorage *ds, EntsoeApi *eapi, EnergyAccountingConfig *config) {
+void EnergyAccounting::setup(AmsDataStorage *ds, EnergyAccountingConfig *config) {
     this->ds = ds;
-    this->eapi = eapi;
     this->config = config;
     this->currentThresholdIdx = 0;
+    uint16_t *maxHours = new uint16_t[config->hours];
+    for(uint8_t i = 0; i < config->hours; i++) {
+        maxHours[i] = 0;
+    }
+    if(this->maxHours != NULL) {
+        for(uint8_t i = 0; i < sizeof(this->maxHours)/2 && i < config->hours; i++) {
+            maxHours[i] = this->maxHours[i];
+        }
+        delete(this->maxHours);
+    }
+    this->maxHours = maxHours;
+}
+
+void EnergyAccounting::setEapi(EntsoeApi *eapi) {
+    this->eapi = eapi;
 }
 
 EnergyAccountingConfig* EnergyAccounting::getConfig() {
@@ -24,6 +38,7 @@ void EnergyAccounting::setTimezone(Timezone* tz) {
 }
 
 bool EnergyAccounting::update(AmsData* amsData) {
+    if(config == NULL) return false;
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return false;
     if(tz == NULL) {
@@ -38,24 +53,50 @@ bool EnergyAccounting::update(AmsData* amsData) {
     if(!init) {
         currentHour = local.Hour;
         currentDay = local.Day;
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Initializing data at %lld\n", (int64_t) now);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Initializing data at %lld\n", (int64_t) now);
         if(!load()) {
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Unable to load existing data");
-            data = { 1, local.Month, 0, 0, 0, 0 };
-            if(calcDayUse()) ret = true;
+            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Unable to load existing data\n");
+            data = { 2, local.Month, 0, 0, 0, 0 };
+            for(uint8_t i = 0; i < config->hours; i++) {
+                maxHours[i] = 0;
+                break;
+            }
+        } else if(debugger->isActive(RemoteDebug::DEBUG)) {
+            debugger->printf("(EnergyAccounting) Loaded max calculated from %d hours with highest consumption\n", config->hours);
+            for(uint8_t i = 0; i < config->hours; i++) {
+                debugger->printf("(EnergyAccounting)  hour %d: %d\n", i+1, maxHours[i]*10);
+            }
+            debugger->printf("(EnergyAccounting) Loaded cost yesterday: %d, this month: %d, last month: %d\n", data.costYesterday, data.costThisMonth, data.costLastMonth);
         }
         init = true;
     }
 
     if(!initPrice && eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Initializing prices at %lld\n", (int64_t) now);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Initializing prices at %lld\n", (int64_t) now);
         calcDayCost();
     }
 
     if(local.Hour != currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New local hour %d\n", local.Hour);
 
-        if(calcDayUse()) ret = true;
+        tmElements_t oneHrAgo;
+        breakTime(now-3600, oneHrAgo);
+        uint32_t val = ds->getHourImport(oneHrAgo.Hour) / 10;
+        for(uint8_t i = 0; i < config->hours; i++) {
+            if(val > maxHours[i]) {
+                if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Adding new max (%d) which is larger than %d\n", val*10, maxHours[i]*10);
+                maxHours[i] = val;
+                ret = true;
+                break;
+            }
+        }
+        if(debugger->isActive(RemoteDebug::INFO)) {
+            debugger->printf("(EnergyAccounting) Current max calculated from %d hours with highest consumption\n", config->hours);
+            for(uint8_t i = 0; i < config->hours; i++) {
+                debugger->printf("(EnergyAccounting)  hour %d: %d\n", i+1, maxHours[i]*10);
+            }
+        }
+
         if(local.Hour > 0) {
             calcDayCost();
         }
@@ -77,7 +118,9 @@ bool EnergyAccounting::update(AmsData* amsData) {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New month %d\n", local.Month);
             data.costLastMonth = data.costThisMonth;
             data.costThisMonth = 0;
-            data.maxHour = 0;
+            for(uint8_t i = 0; i < config->hours; i++) {
+                maxHours[i] = 0;
+            }
             data.month = local.Month;
             currentThresholdIdx = 0;
             ret = true;
@@ -105,24 +148,6 @@ bool EnergyAccounting::update(AmsData* amsData) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  new threshold %d\n", currentThresholdIdx);
     }
 
-    return ret;
-}
-
-bool EnergyAccounting::calcDayUse() {
-    time_t now = time(nullptr);
-    tmElements_t local, utc;
-    breakTime(tz->toLocal(now), local);
-
-    bool ret = false;
-    uint8_t lim = local.Day == 1 ? local.Hour : 24;
-    for(int i = 0; i < lim; i++) {
-        breakTime(now - ((lim - i) * 3600), utc);
-        int16_t val = ds->getHourImport(utc.Hour) / 10.0;
-        if(val > data.maxHour) {
-            data.maxHour = val;
-            ret = true;
-        }
-    }
     return ret;
 }
 
@@ -203,7 +228,15 @@ uint8_t EnergyAccounting::getCurrentThreshold() {
 }
 
 float EnergyAccounting::getMonthMax() {
-    return data.maxHour / 100.0;
+    uint8_t count = 0;
+    uint32_t maxHour = 0.0;
+    for(uint8_t i = 0; i < config->hours; i++) {
+        if(maxHours[i] > 0) {
+            maxHour += maxHours[i];
+            count++;
+        }
+    }
+    return maxHour > 0 ? maxHour / count / 100.0 : 0.0;
 }
 
 bool EnergyAccounting::load() {
@@ -220,14 +253,31 @@ bool EnergyAccounting::load() {
         char buf[file.size()];
         file.readBytes(buf, file.size());
         EnergyAccountingData* data = (EnergyAccountingData*) buf;
-        file.close();
 
-        if(data->version == 1) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Data version %d\n", data->version);
+        if(data->version == 2) {
             memcpy(&this->data, data, sizeof(this->data));
+            uint8_t b = 0;
+            for(uint8_t i = sizeof(this->data); i < file.size(); i+=2) {
+                memcpy(&this->maxHours[b++], buf+i, 2);
+                if(b > config->hours) break;
+            }
+            ret = true;
+        } else if(data->version == 1) {
+            memcpy(&this->data, data, sizeof(this->data));
+            for(uint8_t i = 0; i < config->hours; i++) {
+                maxHours[i] = data->unused;
+            }
+            data->version = 2;
             ret = true;
         } else {
+            if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf("(EnergyAccounting) Unknown version\n");
             ret = false;
         }
+
+        file.close();
+    } else {
+        if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf("(EnergyAccounting) File not found\n");
     }
 
     LittleFS.end();
@@ -244,9 +294,12 @@ bool EnergyAccounting::save() {
     }
     {
         File file = LittleFS.open(FILE_ENERGYACCOUNTING, "w");
-        char buf[sizeof(data)];
+        char buf[sizeof(data)+sizeof(this->maxHours)];
         memcpy(buf, &data, sizeof(data));
-        for(unsigned long i = 0; i < sizeof(data); i++) {
+        for(uint8_t i = 0; i < config->hours; i++) {
+            memcpy(buf+sizeof(data)+(i*2), &this->maxHours[i], 2);
+        }
+        for(uint8_t i = 0; i < sizeof(buf); i++) {
             file.write(buf[i]);
         }
         file.close();
@@ -262,4 +315,14 @@ EnergyAccountingData EnergyAccounting::getData() {
 
 void EnergyAccounting::setData(EnergyAccountingData& data) {
     this->data = data;
+}
+
+uint16_t * EnergyAccounting::getMaxHours() {
+    return maxHours;
+}
+
+void EnergyAccounting::setMaxHours(uint16_t * maxHours) {
+    for(uint8_t i = 0; i < config->hours; i++) {
+        this->maxHours[i] = maxHours[i];
+    }
 }

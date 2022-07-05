@@ -2442,7 +2442,7 @@ void AmsWebServer::configFileDownload() {
 			uint16_t *maxHours = ea->getMaxHours();
 			server.sendContent(buf, snprintf(buf, BufferSize, " %d", eac.hours));
 			for(int i = 0; i < eac.hours; i++) {
-				server.sendContent(buf, snprintf(buf, BufferSize, " %d", maxHours[i]));
+				server.sendContent(buf, snprintf(buf, BufferSize, " %.2f", maxHours[i]/100.0));
 			}
 		}
 		server.sendContent("\n");

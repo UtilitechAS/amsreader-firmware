@@ -23,6 +23,7 @@ public:
     void setTimezone(Timezone*);
     EnergyAccountingConfig* getConfig();
     bool update(AmsData* amsData);
+    bool load();
     bool save();
 
     double getUseThisHour();
@@ -53,9 +54,8 @@ private:
     uint8_t currentHour = 0, currentDay = 0, currentThresholdIdx = 0;
     double use, costHour, costDay;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0 };
-    uint16_t *maxHours;
+    uint16_t *maxHours = NULL;
 
-    bool load();
     void calcDayCost();
 };
 

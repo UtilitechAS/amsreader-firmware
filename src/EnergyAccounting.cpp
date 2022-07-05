@@ -93,7 +93,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         if(debugger->isActive(RemoteDebug::INFO)) {
             debugger->printf("(EnergyAccounting) Current max calculated from %d hours with highest consumption\n", config->hours);
             for(uint8_t i = 0; i < config->hours; i++) {
-                debugger->printf("(EnergyAccounting)  hour %d: %d\n", i+1, maxHours[i]*10);
+                debugger->printf("(EnergyAccounting)  hour %d: %.2f\n", i+1, maxHours[i]/100.0);
             }
         }
 
@@ -259,8 +259,10 @@ bool EnergyAccounting::load() {
             memcpy(&this->data, data, sizeof(this->data));
             uint8_t b = 0;
             for(uint8_t i = sizeof(this->data); i < file.size(); i+=2) {
-                memcpy(&this->maxHours[b++], buf+i, 2);
-                if(b > config->hours) break;
+                memcpy(&this->maxHours[b], buf+i, 2);
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Loading max hour %d: %.2f\n", b, this->maxHours[b] / 100.0);
+                b++;
+                if(b >= config->hours) break;
             }
             ret = true;
         } else if(data->version == 1) {
@@ -268,6 +270,7 @@ bool EnergyAccounting::load() {
             for(uint8_t i = 0; i < config->hours; i++) {
                 maxHours[i] = data->unused;
             }
+            data->unused = 0;
             data->version = 2;
             ret = true;
         } else {
@@ -296,7 +299,7 @@ bool EnergyAccounting::save() {
         File file = LittleFS.open(FILE_ENERGYACCOUNTING, "w");
         char buf[sizeof(data)+sizeof(this->maxHours)];
         memcpy(buf, &data, sizeof(data));
-        for(uint8_t i = 0; i < config->hours; i++) {
+        for(uint8_t i = 0; i < sizeof(this->maxHours)/2; i++) {
             memcpy(buf+sizeof(data)+(i*2), &this->maxHours[i], 2);
         }
         for(uint8_t i = 0; i < sizeof(buf); i++) {
@@ -322,7 +325,14 @@ uint16_t * EnergyAccounting::getMaxHours() {
 }
 
 void EnergyAccounting::setMaxHours(uint16_t * maxHours) {
-    for(uint8_t i = 0; i < config->hours; i++) {
+    if(this->maxHours == NULL) {
+        if(config == NULL) {
+            this->maxHours = new uint16_t[sizeof(maxHours)/2];
+        } else {
+            this->maxHours = new uint16_t[config->hours];
+        }
+    }
+    for(uint8_t i = 0; i < sizeof(this->maxHours)/2; i++) {
         this->maxHours[i] = maxHours[i];
     }
 }

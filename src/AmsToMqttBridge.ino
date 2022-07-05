@@ -1423,6 +1423,8 @@ void configFileParse() {
 	bool lNtp = false;
 	bool lEntsoe = false;
 	bool lEac = false;
+	bool sEa = false;
+	bool sDs = false;
 
 	SystemConfig sys;
 	WiFiConfig wifi;
@@ -1649,6 +1651,7 @@ void configFileParse() {
 				i++;
 			}
 			ds.setDayData(day);
+			sDs = true;
 		} else if(strncmp(buf, "monthplot ", 10) == 0) {
 			int i = 0;
 			MonthDataPoints month = { 5 }; // Use a version we know the multiplier of the data points
@@ -1671,13 +1674,17 @@ void configFileParse() {
 				i++;
 			}
 			ds.setMonthData(month);
+			sDs = true;
 		} else if(strncmp(buf, "energyaccounting ", 17) == 0) {
-			int i = 0;
-			EnergyAccountingData ead = { 1 };
+			uint8_t i = 0;
+			EnergyAccountingData ead = { 2 };
+			long hours = 0;
 			uint16_t *maxHours = NULL;
 			char * pch = strtok (buf+17," ");
 			while (pch != NULL) {
-				if(i == 1) {
+				if(i == 0) {
+					// Ignore version
+				} else if(i == 1) {
 					long val = String(pch).toInt();
 					ead.month = val;
 				} else if(i == 2) {
@@ -1693,21 +1700,33 @@ void configFileParse() {
 					double val = String(pch).toDouble();
 					ead.costLastMonth = val * 100;
 				} else if(i == 6) {
-					int val = String(pch).toInt();
-					if(val > 0) {
-						maxHours = new uint16_t[val];
+					hours = String(pch).toInt();
+					debugD("Got %d max hours", hours);
+					Serial.flush();
+					if(hours > 0 && hours < 6) {
+						maxHours = new uint16_t[hours];
+						for(uint8_t x = 0; x < hours; x++) {
+							maxHours[x] = 0;
+						}
 					}
-				} else {
+				} else if(i >= 7 && i < hours+7) {
+					uint8_t hour = i-7;
 					double val = String(pch).toDouble();
-					maxHours[i-7] = val * 100;
+					debugD(" hour %d: %.2f", hour, val);
+					maxHours[hour] = val * 100;
 				}
 				pch = strtok (NULL, " ");
 				i++;
 			}
 			ea.setData(ead);
-			if(maxHours != NULL) {
-				ea.setMaxHours(maxHours);
+			if(maxHours == NULL) {
+				maxHours = new uint16_t[3];
+				for(i = 0; i < 3; i++) {
+					maxHours[i] = 0;
+				}
 			}
+			ea.setMaxHours(maxHours);
+			sEa = true;
 		}
 		memset(buf, 0, 1024);
 	}
@@ -1727,7 +1746,7 @@ void configFileParse() {
 	if(lDomo) config.setDomoticzConfig(domo);
 	if(lNtp) config.setNtpConfig(ntp);
 	if(lEntsoe) config.setEntsoeConfig(entsoe);
-	ds.save();
-	ea.save();
+	if(sDs) ds.save();
+	if(sEa) ea.save();
 	config.save();
 }

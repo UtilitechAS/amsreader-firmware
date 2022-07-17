@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name d1_mini_shield-rescue)(type Legacy)(uri ${KIPRJMOD}/d1_mini_shield-rescue.lib)(options "")(descr ""))
+  (lib (name tss721)(type Legacy)(uri ${KIPRJMOD}/tss721.lib)(options "")(descr ""))
+)

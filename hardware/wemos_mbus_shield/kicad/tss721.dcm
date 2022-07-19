@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP TSS721
+D TSS721A Meter Bus Transceiver, SOIC-16/TSSOP-16
+K MBUS Tranciever
+F http://www.ti.com/lit/ds/symlink/tss721a.pdf
+$ENDCMP
+#
+#End Doc Library

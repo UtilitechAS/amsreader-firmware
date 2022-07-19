@@ -377,7 +377,8 @@ void setup() {
 		config.setEnergyAccountingConfig(*eac);
 		config.ackEnergyAccountingChange();
 	}
-	ea.setup(&ds, eapi, eac);
+	ea.setup(&ds, eac);
+	ea.setEapi(eapi);
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
 
 	#if defined(ESP32)
@@ -523,6 +524,7 @@ void loop() {
 					if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
 						if(eapi == NULL) {
 							eapi = new EntsoeApi(&Debug);
+							ea.setEapi(eapi);
 							ws.setEntsoeApi(eapi);
 						}
 						eapi->setup(entsoe);
@@ -567,7 +569,7 @@ void loop() {
 	if(config.isEnergyAccountingChanged()) {
 		EnergyAccountingConfig *eac = ea.getConfig();
 		config.getEnergyAccountingConfig(*eac);
-		ea.setup(&ds, eapi, eac);
+		ea.setup(&ds, eac);
 		config.ackEnergyAccountingChange();
 	}
 
@@ -884,14 +886,14 @@ bool readHanPort() {
 
 		bool saveData = false;
 		if(!ds.isHappy() && now > BUILD_EPOCH) {
-			debugD("Its time to update data storage");
+			debugV("Its time to update data storage");
 			tmElements_t tm;
 			breakTime(now, tm);
 			if(tm.Minute == 0) {
-				debugD(" using actual data");
+				debugV(" using actual data");
 				saveData = ds.update(&data);
 			} else if(meterState.getListType() >= 3) {
-				debugD(" using estimated data");
+				debugV(" using estimated data");
 				saveData = ds.update(&meterState);
 			}
 			if(saveData) {
@@ -1406,6 +1408,8 @@ void configFileParse() {
 	bool lNtp = false;
 	bool lEntsoe = false;
 	bool lEac = false;
+	bool sEa = false;
+	bool sDs = false;
 
 	SystemConfig sys;
 	WiFiConfig wifi;
@@ -1632,6 +1636,7 @@ void configFileParse() {
 				i++;
 			}
 			ds.setDayData(day);
+			sDs = true;
 		} else if(strncmp(buf, "monthplot ", 10) == 0) {
 			int i = 0;
 			MonthDataPoints month = { 5 }; // Use a version we know the multiplier of the data points
@@ -1654,17 +1659,29 @@ void configFileParse() {
 				i++;
 			}
 			ds.setMonthData(month);
+			sDs = true;
 		} else if(strncmp(buf, "energyaccounting ", 17) == 0) {
-			int i = 0;
-			EnergyAccountingData ead = { 1 };
+			uint8_t i = 0;
+			EnergyAccountingData ead = { 3, 0, 
+                0, 0, 0,
+                0, 0, // Peak 1
+                0, 0, // Peak 2
+                0, 0, // Peak 3
+                0, 0, // Peak 4
+                0, 0 // Peak 5
+            };
 			char * pch = strtok (buf+17," ");
 			while (pch != NULL) {
-				if(i == 1) {
+				if(i == 0) {
+					// Ignore version
+				} else if(i == 1) {
 					long val = String(pch).toInt();
 					ead.month = val;
 				} else if(i == 2) {
 					double val = String(pch).toDouble();
-					ead.maxHour = val * 100;
+					if(val > 0.0) {
+						ead.peaks[0] = { 1, (uint16_t) (val*100) };
+					}
 				} else if(i == 3) {
 					double val = String(pch).toDouble();
 					ead.costYesterday = val * 100;
@@ -1674,11 +1691,21 @@ void configFileParse() {
 				} else if(i == 5) {
 					double val = String(pch).toDouble();
 					ead.costLastMonth = val * 100;
+				} else if(i >= 6 && i < 18) {
+					uint8_t hour = i-6;					
+					if(hour%2 == 0) {
+						long val = String(pch).toInt();
+						ead.peaks[hour/2].day = val;
+					} else {
+						double val = String(pch).toDouble();
+						ead.peaks[hour/2].value = val * 100;
+					}
 				}
 				pch = strtok (NULL, " ");
 				i++;
 			}
 			ea.setData(ead);
+			sEa = true;
 		}
 		memset(buf, 0, 1024);
 	}
@@ -1698,7 +1725,7 @@ void configFileParse() {
 	if(lDomo) config.setDomoticzConfig(domo);
 	if(lNtp) config.setNtpConfig(ntp);
 	if(lEntsoe) config.setEntsoeConfig(entsoe);
-	ds.save();
-	ea.save();
+	if(sDs) ds.save();
+	if(sEa) ea.save();
 	config.save();
 }

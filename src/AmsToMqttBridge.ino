@@ -1677,9 +1677,14 @@ void configFileParse() {
 			sDs = true;
 		} else if(strncmp(buf, "energyaccounting ", 17) == 0) {
 			uint8_t i = 0;
-			EnergyAccountingData ead = { 2 };
-			long hours = 0;
-			uint16_t *maxHours = NULL;
+			EnergyAccountingData ead = { 3, 0, 
+                0, 0, 0,
+                0, 0, // Peak 1
+                0, 0, // Peak 2
+                0, 0, // Peak 3
+                0, 0, // Peak 4
+                0, 0 // Peak 5
+            };
 			char * pch = strtok (buf+17," ");
 			while (pch != NULL) {
 				if(i == 0) {
@@ -1689,7 +1694,9 @@ void configFileParse() {
 					ead.month = val;
 				} else if(i == 2) {
 					double val = String(pch).toDouble();
-					ead.unused = val * 100;
+					if(val > 0.0) {
+						ead.peaks[0] = { 1, (uint16_t) (val*100) };
+					}
 				} else if(i == 3) {
 					double val = String(pch).toDouble();
 					ead.costYesterday = val * 100;
@@ -1699,33 +1706,20 @@ void configFileParse() {
 				} else if(i == 5) {
 					double val = String(pch).toDouble();
 					ead.costLastMonth = val * 100;
-				} else if(i == 6) {
-					hours = String(pch).toInt();
-					debugD("Got %d max hours", hours);
-					Serial.flush();
-					if(hours > 0 && hours < 6) {
-						maxHours = new uint16_t[hours];
-						for(uint8_t x = 0; x < hours; x++) {
-							maxHours[x] = 0;
-						}
+				} else if(i >= 6 && i < 18) {
+					uint8_t hour = i-6;					
+					if(hour%2 == 0) {
+						long val = String(pch).toInt();
+						ead.peaks[hour/2].day = val;
+					} else {
+						double val = String(pch).toDouble();
+						ead.peaks[hour/2].value = val * 100;
 					}
-				} else if(i >= 7 && i < hours+7) {
-					uint8_t hour = i-7;
-					double val = String(pch).toDouble();
-					debugD(" hour %d: %.2f", hour, val);
-					maxHours[hour] = val * 100;
 				}
 				pch = strtok (NULL, " ");
 				i++;
 			}
 			ea.setData(ead);
-			if(maxHours == NULL) {
-				maxHours = new uint16_t[3];
-				for(i = 0; i < 3; i++) {
-					maxHours[i] = 0;
-				}
-			}
-			ea.setMaxHours(maxHours);
 			sEa = true;
 		}
 		memset(buf, 0, 1024);

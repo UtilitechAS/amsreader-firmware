@@ -6,14 +6,29 @@
 #include "AmsDataStorage.h"
 #include "entsoe/EntsoeApi.h"
 
+struct EnergyAccountingPeak {
+    uint8_t day;
+    uint16_t value;
+};
+
 struct EnergyAccountingData {
     uint8_t version;
     uint8_t month;
-    uint16_t unused;
+    uint16_t costYesterday;
+    uint16_t costThisMonth;
+    uint16_t costLastMonth;
+    EnergyAccountingPeak peaks[5];
+};
+
+struct EnergyAccountingData1 {
+    uint8_t version;
+    uint8_t month;
+    uint16_t maxHour;
     uint16_t costYesterday;
     uint16_t costThisMonth;
     uint16_t costLastMonth;
 };
+
 
 class EnergyAccounting {
 public:
@@ -40,8 +55,6 @@ public:
 
     EnergyAccountingData getData();
     void setData(EnergyAccountingData&);
-    uint16_t * getMaxHours();
-    void setMaxHours(uint16_t * maxHours);
 
 private:
     RemoteDebug* debugger = NULL;
@@ -54,9 +67,9 @@ private:
     uint8_t currentHour = 0, currentDay = 0, currentThresholdIdx = 0;
     double use, costHour, costDay;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0 };
-    uint16_t *maxHours = NULL;
 
     void calcDayCost();
+    bool updateMax(uint16_t val, uint8_t day);
 };
 
 #endif

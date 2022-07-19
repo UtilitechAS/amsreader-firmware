@@ -2430,21 +2430,24 @@ void AmsWebServer::configFileDownload() {
 		EnergyAccountingConfig eac;
 		config->getEnergyAccountingConfig(eac);
 		EnergyAccountingData ead = ea->getData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("energyaccounting %d %d %.2f %.2f %.2f %.2f"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("energyaccounting %d %d %.2f %.2f %.2f %.2f %d %.2f %d %.2f %d %.2f %d %.2f %d %.2f"), 
 			ead.version,
 			ead.month,
-			0,
+			0.0, // Old max
 			ead.costYesterday / 100.0,
 			ead.costThisMonth / 100.0,
-			ead.costLastMonth / 100.0
+			ead.costLastMonth / 100.0,
+			ead.peaks[0].day,
+			ead.peaks[0].value / 100.0,
+			ead.peaks[1].day,
+			ead.peaks[1].value / 100.0,
+			ead.peaks[2].day,
+			ead.peaks[2].value / 100.0,
+			ead.peaks[3].day,
+			ead.peaks[3].value / 100.0,
+			ead.peaks[4].day,
+			ead.peaks[4].value / 100.0
 		));
-		if(eac.hours > 0) {
-			uint16_t *maxHours = ea->getMaxHours();
-			server.sendContent(buf, snprintf(buf, BufferSize, " %d", eac.hours));
-			for(int i = 0; i < eac.hours; i++) {
-				server.sendContent(buf, snprintf(buf, BufferSize, " %.2f", maxHours[i]/100.0));
-			}
-		}
 		server.sendContent("\n");
 	}
 }

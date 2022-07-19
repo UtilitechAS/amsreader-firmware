@@ -4,20 +4,11 @@
 #include "hexutils.h"
 #include "AmsData.h"
 
-#if defined(ESP8266)
-	#include "root/head8266_html.h"
-	#define HEAD_HTML HEAD8266_HTML
-	#define HEAD_HTML_LEN HEAD8266_HTML_LEN
-#elif defined(ESP32) 
-	#include "root/head32_html.h"
-	#define HEAD_HTML HEAD32_HTML
-	#define HEAD_HTML_LEN HEAD32_HTML_LEN
-#endif
-
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #endif
 
+#include "root/head_html.h"
 #include "root/foot_html.h"
 #include "root/index_html.h"
 #include "root/application_js.h"
@@ -43,7 +34,6 @@
 #include "root/notfound_html.h"
 #include "root/data_json.h"
 #include "root/tempsensor_json.h"
-#include "root/lowmem_html.h"
 #include "root/dayplot_json.h"
 #include "root/monthplot_json.h"
 #include "root/energyprice_json.h"
@@ -587,10 +577,7 @@ void AmsWebServer::configEntsoeHtml() {
 		server.sendContent(html);
 		server.sendContent_P(FOOT_HTML);
 	} else {
-		server.setContentLength(LOWMEM_HTML_LEN + HEAD_HTML_LEN + FOOT_HTML_LEN);
-		server.send_P(200, MIME_HTML, HEAD_HTML);
-		server.sendContent_P(LOWMEM_HTML);
-		server.sendContent_P(FOOT_HTML);
+		notFound();
 	}
 }
 

@@ -59,6 +59,8 @@ for filename in os.listdir(webroot):
     try:    
         if filename.endswith(".html"):
             content = html_minify(content)
+        if filename.endswith(".svg"):
+            content = html_minify(content)
         elif filename.endswith(".css"):
             content = css_minify(content)
         elif (filename.endswith(".js") and filename != 'gaugemeter.js') or filename.endswith(".json"):

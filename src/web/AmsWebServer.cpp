@@ -1073,6 +1073,14 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->ledPin = 2;
 				gpioConfig->ledInverted = false;
 				break;
+			case 50: // S2
+				gpioConfig->hanPin = 18;
+				break;
+			case 51: // S2-mini
+				gpioConfig->hanPin = 18;
+				gpioConfig->ledPin = 15;
+				gpioConfig->ledInverted = false;
+				break;
 		}
 
 		WiFiConfig wifi;

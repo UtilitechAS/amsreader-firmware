@@ -1677,7 +1677,7 @@ void configFileParse() {
 			sDs = true;
 		} else if(strncmp(buf, "energyaccounting ", 17) == 0) {
 			uint8_t i = 0;
-			EnergyAccountingData ead = { 3, 0, 
+			EnergyAccountingData ead = { 4, 0, 
                 0, 0, 0,
                 0, 0, // Peak 1
                 0, 0, // Peak 2
@@ -1699,13 +1699,13 @@ void configFileParse() {
 					}
 				} else if(i == 3) {
 					double val = String(pch).toDouble();
-					ead.costYesterday = val * 100;
+					ead.costYesterday = val * 10;
 				} else if(i == 4) {
 					double val = String(pch).toDouble();
-					ead.costThisMonth = val * 100;
+					ead.costThisMonth = val;
 				} else if(i == 5) {
 					double val = String(pch).toDouble();
-					ead.costLastMonth = val * 100;
+					ead.costLastMonth = val;
 				} else if(i >= 6 && i < 18) {
 					uint8_t hour = i-6;					
 					if(hour%2 == 0) {

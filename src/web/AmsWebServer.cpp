@@ -2429,9 +2429,9 @@ void AmsWebServer::configFileDownload() {
 			ead.version,
 			ead.month,
 			0.0, // Old max
-			ead.costYesterday / 100.0,
-			ead.costThisMonth / 100.0,
-			ead.costLastMonth / 100.0,
+			ead.costYesterday / 10.0,
+			ead.costThisMonth,
+			ead.costLastMonth,
 			ead.peaks[0].day,
 			ead.peaks[0].value / 100.0,
 			ead.peaks[1].day,

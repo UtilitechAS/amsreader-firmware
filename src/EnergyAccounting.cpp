@@ -45,7 +45,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Initializing data at %lld\n", (int64_t) now);
         if(!load()) {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Unable to load existing data\n");
-            data = { 3, local.Month, 
+            data = { 4, local.Month, 
                 0, 0, 0,
                 0, 0, // Peak 1
                 0, 0, // Peak 2
@@ -57,7 +57,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
             for(uint8_t i = 0; i < 5; i++) {
                 debugger->printf("(EnergyAccounting) Peak hour from day %d: %d\n", data.peaks[i].day, data.peaks[i].value*10);
             }
-            debugger->printf("(EnergyAccounting) Loaded cost yesterday: %d, this month: %d, last month: %d\n", data.costYesterday, data.costThisMonth, data.costLastMonth);
+            debugger->printf("(EnergyAccounting) Loaded cost yesterday: %d, this month: %d, last month: %d\n", data.costYesterday / 10.0, data.costThisMonth, data.costLastMonth);
         }
         init = true;
     }
@@ -85,8 +85,8 @@ bool EnergyAccounting::update(AmsData* amsData) {
 
         if(local.Day != currentDay) {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New day %d\n", local.Day);
-            data.costYesterday = costDay * 100;
-            data.costThisMonth += costDay * 100;
+            data.costYesterday = costDay * 10;
+            data.costThisMonth += costDay;
             costDay = 0;
             currentDay = local.Day;
             ret = true;
@@ -173,7 +173,7 @@ double EnergyAccounting::getCostToday() {
 }
 
 double EnergyAccounting::getCostYesterday() {
-    return data.costYesterday / 100.0;
+    return data.costYesterday / 10.0;
 }
 
 double EnergyAccounting::getUseThisMonth() {
@@ -192,11 +192,11 @@ double EnergyAccounting::getUseThisMonth() {
 }
 
 double EnergyAccounting::getCostThisMonth() {
-    return (data.costThisMonth / 100.0) + getCostToday();
+    return data.costThisMonth + getCostToday();
 }
 
-double EnergyAccounting::getCostLastMonth() {
-    return data.costLastMonth / 100.0;
+uint16_t EnergyAccounting::getCostLastMonth() {
+    return data.costLastMonth;
 }
 
 uint8_t EnergyAccounting::getCurrentThreshold() {
@@ -248,12 +248,22 @@ bool EnergyAccounting::load() {
         file.readBytes(buf, file.size());
 
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Data version %d\n", buf[0]);
-        if(buf[0] == 3) {
+        if(buf[0] == 4) {
             EnergyAccountingData* data = (EnergyAccountingData*) buf;
             memcpy(&this->data, data, sizeof(this->data));
+        } else if(buf[0] == 3) {
+            EnergyAccountingData* data = (EnergyAccountingData*) buf;
+            this->data = { 4, data->month, 
+                (uint16_t) (data->costYesterday / 10), (uint16_t) (data->costThisMonth / 100), (uint16_t) (data->costLastMonth / 100),
+                data->peaks[0].day, data->peaks[0].value,
+                data->peaks[1].day, data->peaks[1].value,
+                data->peaks[2].day, data->peaks[2].value,
+                data->peaks[3].day, data->peaks[3].value,
+                data->peaks[4].day, data->peaks[4].value
+            };
             ret = true;
         } else {
-            data = { 3, 0, 
+            data = { 4, 0, 
                 0, 0, 0,
                 0, 0, // Peak 1
                 0, 0, // Peak 2
@@ -264,9 +274,9 @@ bool EnergyAccounting::load() {
             if(buf[0] == 2) {
                 EnergyAccountingData1* data = (EnergyAccountingData1*) buf;
                 this->data.month = data->month;
-                this->data.costYesterday = data->costYesterday;
-                this->data.costThisMonth = data->costThisMonth;
-                this->data.costLastMonth = data->costLastMonth;
+                this->data.costYesterday = (uint16_t) (data->costYesterday / 10);
+                this->data.costThisMonth = (uint16_t) (data->costThisMonth / 100);
+                this->data.costLastMonth = (uint16_t) (data->costLastMonth / 100);
                 uint8_t b = 0;
                 for(uint8_t i = sizeof(this->data); i < file.size(); i+=2) {
                     this->data.peaks[b].day = b;
@@ -278,9 +288,9 @@ bool EnergyAccounting::load() {
             } else if(buf[0] == 1) {
                 EnergyAccountingData1* data = (EnergyAccountingData1*) buf;
                 this->data.month = data->month;
-                this->data.costYesterday = data->costYesterday;
-                this->data.costThisMonth = data->costThisMonth;
-                this->data.costLastMonth = data->costLastMonth;
+                this->data.costYesterday = (uint16_t) (data->costYesterday / 10);
+                this->data.costThisMonth = (uint16_t) (data->costThisMonth / 100);
+                this->data.costLastMonth = (uint16_t) (data->costLastMonth / 100);
                 this->data.peaks[0].day = 1;
                 this->data.peaks[0].value = data->maxHour;
                 ret = true;

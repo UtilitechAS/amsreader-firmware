@@ -48,7 +48,7 @@ public:
     double getCostYesterday();
     double getUseThisMonth();
     double getCostThisMonth();
-    double getCostLastMonth();
+    uint16_t getCostLastMonth();
 
     float getMonthMax();
     uint8_t getCurrentThreshold();

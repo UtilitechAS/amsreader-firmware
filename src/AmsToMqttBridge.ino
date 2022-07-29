@@ -845,7 +845,7 @@ bool readHanPort() {
 		}
 
 		debugV("Using application data:");
-		debugPrint(hanBuffer+pos, 0, ctx.length);
+		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint(hanBuffer+pos, 0, ctx.length);
 
 		// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
 		data = IEC6205675(((char *) (hanBuffer)) + pos, meterState.getMeterType(), &meterConfig, ctx);

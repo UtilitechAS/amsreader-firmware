@@ -927,42 +927,42 @@ void AmsWebServer::energyPriceJson() {
 
 	snprintf_P(buf, BufferSize, ENERGYPRICE_JSON, 
 		eapi == NULL ? "" : eapi->getCurrency(),
-		prices[0] == ENTSOE_NO_VALUE ? "null" : String(prices[0], 2).c_str(),
-		prices[1] == ENTSOE_NO_VALUE ? "null" : String(prices[1], 2).c_str(),
-		prices[2] == ENTSOE_NO_VALUE ? "null" : String(prices[2], 2).c_str(),
-		prices[3] == ENTSOE_NO_VALUE ? "null" : String(prices[3], 2).c_str(),
-		prices[4] == ENTSOE_NO_VALUE ? "null" : String(prices[4], 2).c_str(),
-		prices[5] == ENTSOE_NO_VALUE ? "null" : String(prices[5], 2).c_str(),
-		prices[6] == ENTSOE_NO_VALUE ? "null" : String(prices[6], 2).c_str(),
-		prices[7] == ENTSOE_NO_VALUE ? "null" : String(prices[7], 2).c_str(),
-		prices[8] == ENTSOE_NO_VALUE ? "null" : String(prices[8], 2).c_str(),
-		prices[9] == ENTSOE_NO_VALUE ? "null" : String(prices[9], 2).c_str(),
-		prices[10] == ENTSOE_NO_VALUE ? "null" : String(prices[10], 2).c_str(),
-		prices[11] == ENTSOE_NO_VALUE ? "null" : String(prices[11], 2).c_str(),
-		prices[12] == ENTSOE_NO_VALUE ? "null" : String(prices[12], 2).c_str(),
-		prices[13] == ENTSOE_NO_VALUE ? "null" : String(prices[13], 2).c_str(),
-		prices[14] == ENTSOE_NO_VALUE ? "null" : String(prices[14], 2).c_str(),
-		prices[15] == ENTSOE_NO_VALUE ? "null" : String(prices[15], 2).c_str(),
-		prices[16] == ENTSOE_NO_VALUE ? "null" : String(prices[16], 2).c_str(),
-		prices[17] == ENTSOE_NO_VALUE ? "null" : String(prices[17], 2).c_str(),
-		prices[18] == ENTSOE_NO_VALUE ? "null" : String(prices[18], 2).c_str(),
-		prices[19] == ENTSOE_NO_VALUE ? "null" : String(prices[19], 2).c_str(),
-		prices[20] == ENTSOE_NO_VALUE ? "null" : String(prices[20], 2).c_str(),
-		prices[21] == ENTSOE_NO_VALUE ? "null" : String(prices[21], 2).c_str(),
-		prices[22] == ENTSOE_NO_VALUE ? "null" : String(prices[22], 2).c_str(),
-		prices[23] == ENTSOE_NO_VALUE ? "null" : String(prices[23], 2).c_str(),
-		prices[24] == ENTSOE_NO_VALUE ? "null" : String(prices[24], 2).c_str(),
-		prices[25] == ENTSOE_NO_VALUE ? "null" : String(prices[25], 2).c_str(),
-		prices[26] == ENTSOE_NO_VALUE ? "null" : String(prices[26], 2).c_str(),
-		prices[27] == ENTSOE_NO_VALUE ? "null" : String(prices[27], 2).c_str(),
-		prices[28] == ENTSOE_NO_VALUE ? "null" : String(prices[28], 2).c_str(),
-		prices[29] == ENTSOE_NO_VALUE ? "null" : String(prices[29], 2).c_str(),
-		prices[30] == ENTSOE_NO_VALUE ? "null" : String(prices[30], 2).c_str(),
-		prices[31] == ENTSOE_NO_VALUE ? "null" : String(prices[31], 2).c_str(),
-		prices[32] == ENTSOE_NO_VALUE ? "null" : String(prices[32], 2).c_str(),
-		prices[33] == ENTSOE_NO_VALUE ? "null" : String(prices[33], 2).c_str(),
-		prices[34] == ENTSOE_NO_VALUE ? "null" : String(prices[34], 2).c_str(),
-		prices[35] == ENTSOE_NO_VALUE ? "null" : String(prices[35], 2).c_str()
+		prices[0] == ENTSOE_NO_VALUE ? "null" : String(prices[0], 4).c_str(),
+		prices[1] == ENTSOE_NO_VALUE ? "null" : String(prices[1], 4).c_str(),
+		prices[2] == ENTSOE_NO_VALUE ? "null" : String(prices[2], 4).c_str(),
+		prices[3] == ENTSOE_NO_VALUE ? "null" : String(prices[3], 4).c_str(),
+		prices[4] == ENTSOE_NO_VALUE ? "null" : String(prices[4], 4).c_str(),
+		prices[5] == ENTSOE_NO_VALUE ? "null" : String(prices[5], 4).c_str(),
+		prices[6] == ENTSOE_NO_VALUE ? "null" : String(prices[6], 4).c_str(),
+		prices[7] == ENTSOE_NO_VALUE ? "null" : String(prices[7], 4).c_str(),
+		prices[8] == ENTSOE_NO_VALUE ? "null" : String(prices[8], 4).c_str(),
+		prices[9] == ENTSOE_NO_VALUE ? "null" : String(prices[9], 4).c_str(),
+		prices[10] == ENTSOE_NO_VALUE ? "null" : String(prices[10], 4).c_str(),
+		prices[11] == ENTSOE_NO_VALUE ? "null" : String(prices[11], 4).c_str(),
+		prices[12] == ENTSOE_NO_VALUE ? "null" : String(prices[12], 4).c_str(),
+		prices[13] == ENTSOE_NO_VALUE ? "null" : String(prices[13], 4).c_str(),
+		prices[14] == ENTSOE_NO_VALUE ? "null" : String(prices[14], 4).c_str(),
+		prices[15] == ENTSOE_NO_VALUE ? "null" : String(prices[15], 4).c_str(),
+		prices[16] == ENTSOE_NO_VALUE ? "null" : String(prices[16], 4).c_str(),
+		prices[17] == ENTSOE_NO_VALUE ? "null" : String(prices[17], 4).c_str(),
+		prices[18] == ENTSOE_NO_VALUE ? "null" : String(prices[18], 4).c_str(),
+		prices[19] == ENTSOE_NO_VALUE ? "null" : String(prices[19], 4).c_str(),
+		prices[20] == ENTSOE_NO_VALUE ? "null" : String(prices[20], 4).c_str(),
+		prices[21] == ENTSOE_NO_VALUE ? "null" : String(prices[21], 4).c_str(),
+		prices[22] == ENTSOE_NO_VALUE ? "null" : String(prices[22], 4).c_str(),
+		prices[23] == ENTSOE_NO_VALUE ? "null" : String(prices[23], 4).c_str(),
+		prices[24] == ENTSOE_NO_VALUE ? "null" : String(prices[24], 4).c_str(),
+		prices[25] == ENTSOE_NO_VALUE ? "null" : String(prices[25], 4).c_str(),
+		prices[26] == ENTSOE_NO_VALUE ? "null" : String(prices[26], 4).c_str(),
+		prices[27] == ENTSOE_NO_VALUE ? "null" : String(prices[27], 4).c_str(),
+		prices[28] == ENTSOE_NO_VALUE ? "null" : String(prices[28], 4).c_str(),
+		prices[29] == ENTSOE_NO_VALUE ? "null" : String(prices[29], 4).c_str(),
+		prices[30] == ENTSOE_NO_VALUE ? "null" : String(prices[30], 4).c_str(),
+		prices[31] == ENTSOE_NO_VALUE ? "null" : String(prices[31], 4).c_str(),
+		prices[32] == ENTSOE_NO_VALUE ? "null" : String(prices[32], 4).c_str(),
+		prices[33] == ENTSOE_NO_VALUE ? "null" : String(prices[33], 4).c_str(),
+		prices[34] == ENTSOE_NO_VALUE ? "null" : String(prices[34], 4).c_str(),
+		prices[35] == ENTSOE_NO_VALUE ? "null" : String(prices[35], 4).c_str()
 	);
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -1667,8 +1667,7 @@ void AmsWebServer::firmwareUpload() {
 
 const uint8_t githubFingerprint[] = {0x59, 0x74, 0x61, 0x88, 0x13, 0xCA, 0x12, 0x34, 0x15, 0x4D, 0x11, 0x0A, 0xC1, 0x7F, 0xE6, 0x67, 0x07, 0x69, 0x42, 0xF5};
 
-void AmsWebServer::
-firmwareDownload() {
+void AmsWebServer::firmwareDownload() {
 	if(!checkSecurity(1))
 		return;
 
@@ -1686,7 +1685,7 @@ firmwareDownload() {
 		#if defined(ESP8266)
 			WiFiClient client;
 			String url = "http://ams2mqtt.no23.cc/hub/firmware/update";
-			server.sendHeader("Location","/restart-wait");
+			server.sendHeader("Location","/");
 			server.send(303);
 			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
 			switch(ret) {
@@ -1697,7 +1696,7 @@ firmwareDownload() {
 					printI("[update] Update no Update.");
 					break;
 				case HTTP_UPDATE_OK:
-					printI("[update] Update ok."); // may not be called since we reboot the ESP
+					printI("[update] Update ok.");
 					break;
 			}
 			

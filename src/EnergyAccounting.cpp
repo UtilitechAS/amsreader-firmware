@@ -251,6 +251,7 @@ bool EnergyAccounting::load() {
         if(buf[0] == 4) {
             EnergyAccountingData* data = (EnergyAccountingData*) buf;
             memcpy(&this->data, data, sizeof(this->data));
+            ret = true;
         } else if(buf[0] == 3) {
             EnergyAccountingData* data = (EnergyAccountingData*) buf;
             this->data = { 4, data->month, 

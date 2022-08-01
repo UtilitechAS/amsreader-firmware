@@ -1036,7 +1036,7 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->ledPinRed = 13;
 				gpioConfig->ledPinGreen = 14;
 				gpioConfig->ledRgbInverted = true;
-				gpioConfig->vccPin = 35;
+				gpioConfig->vccPin = 10;
 				gpioConfig->vccResistorGnd = 22;
 				gpioConfig->vccResistorVcc = 33;
 				break;

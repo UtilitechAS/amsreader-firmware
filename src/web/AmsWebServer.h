@@ -24,6 +24,7 @@
 	#include <WiFi.h>
 	#include <WebServer.h>
 	#include <HTTPClient.h>
+	#include <HTTPUpdate.h>
 #else
 	#warning "Unsupported board type"
 #endif
@@ -58,6 +59,8 @@ private:
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
+	bool performUpgrade = false;
+	bool rebootForUpgrade = false;
 
     static const uint16_t BufferSize = 2048;
     char* buf;

@@ -1659,7 +1659,7 @@ void AmsWebServer::firmwareUpload() {
 	}
 	uploadFile(FILE_FIRMWARE);
 	if(upload.status == UPLOAD_FILE_END) {
-		performRestart = true;
+		rebootForUpgrade = true;
 		server.sendHeader("Location","/restart-wait");
 		server.send(303);
 	}
@@ -1672,102 +1672,9 @@ void AmsWebServer::firmwareDownload() {
 		return;
 
 	printD("Firmware download URL triggered");
-	if(server.hasArg("version")) {
-		String version = server.arg("version");
-		String versionStripped = version.substring(1);
-		printI("Downloading firmware...");
-		HTTPClient httpClient;
-		httpClient.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-	    httpClient.setReuse(false);
-		httpClient.setTimeout(60000);
-		httpClient.setUserAgent("ams2mqtt/" + String(VERSION));
-
-		#if defined(ESP8266)
-			WiFiClient client;
-			String url = "http://ams2mqtt.no23.cc/hub/firmware/update";
-			server.sendHeader("Location","/");
-			server.send(303);
-			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
-			switch(ret) {
-				case HTTP_UPDATE_FAILED:
-					printE("[update] Update failed.");
-					break;
-				case HTTP_UPDATE_NO_UPDATES:
-					printI("[update] Update no Update.");
-					break;
-				case HTTP_UPDATE_OK:
-					printI("[update] Update ok.");
-					break;
-			}
-			
-			return;
-		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-			httpClient.setConnectTimeout(60000);
-			String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32s2-" + versionStripped + ".bin";
-			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
-		#elif defined(ESP32)
-			httpClient.setConnectTimeout(60000);
-			#if defined(CONFIG_FREERTOS_UNICORE)
-				String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32solo-" + versionStripped + ".bin";
-			#else
-				String url = "https://github.com/gskjold/AmsToMqttBridge/releases/download/" + version + "/ams2mqtt-esp32-" + versionStripped + ".bin";
-			#endif
-
-			httpClient.addHeader("Referer", "https://github.com/gskjold/AmsToMqttBridge/releases");
-		#endif
-
-		printD("Downloading from URL:");
-		printD(url);
-
-		#if defined(ESP8266)
-		if(httpClient.begin(client, url)) {
-		#elif defined(ESP32)
-		if(httpClient.begin(url)) {
-		#endif
-			printD("HTTP client setup successful");
-			int status = httpClient.GET();
-			if(status == HTTP_CODE_OK) {
-				printD("Received OK from server");
-				if(LittleFS.begin()) {
-					#if defined(ESP32)
-						esp_task_wdt_delete(NULL);
-						esp_task_wdt_deinit();
-					#elif defined(ESP8266)
-						ESP.wdtDisable();
-					#endif
-
-					printI("Downloading firmware to LittleFS");
-					file = LittleFS.open(FILE_FIRMWARE, "w");
-					int len = httpClient.writeToStream(&file);
-					file.close();
-					LittleFS.end();
-					performRestart = true;
-					server.sendHeader("Location","/restart-wait");
-					server.send(303);
-				} else {
-					printE("Unable to open LittleFS for writing");
-					server.sendHeader("Location","/");
-					server.send(303);
-				}
-			} else {
-				printE("Communication error: ");
-				debugger->printf("%d\n", status);
-				printE(httpClient.errorToString(status));
-				printD(httpClient.getString());
-				server.sendHeader("Location","/");
-				server.send(303);
-			}
-		} else {
-			printE("Unable to configure HTTP client");
-			server.sendHeader("Location","/");
-			server.send(303);
-		}
-		httpClient.end();
-	} else {
-		printI("No firmware version specified...");
-		server.sendHeader("Location","/");
-		server.send(303);
-	}
+	performUpgrade = true;
+	server.sendHeader("Location","/restart-wait");
+	server.send(303);
 }
 
 void AmsWebServer::restartHtml() {
@@ -1817,6 +1724,14 @@ void AmsWebServer::restartWaitHtml() {
 	}
 	html.replace("${hostname}", wifi.hostname);
 
+	if(performUpgrade || rebootForUpgrade) {
+		html.replace("{rs}", "d-none");
+		html.replace("{us}", "");
+	} else {
+		html.replace("{rs}", "");
+		html.replace("{us}", "d-none");
+	}
+
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -1825,7 +1740,7 @@ void AmsWebServer::restartWaitHtml() {
 	server.send(200, MIME_HTML, html);
 
 	yield();
-	if(performRestart) {
+	if(performRestart || rebootForUpgrade) {
 		if(ds != NULL) {
 			ds->save();
 		}
@@ -1837,6 +1752,40 @@ void AmsWebServer::restartWaitHtml() {
 		ESP.restart();
 #endif
 		performRestart = false;
+	} else if(performUpgrade) {
+		WiFiClient client;
+		String url = "http://ams2mqtt.rewiredinvent.no/hub/firmware/update";
+		#if defined(ESP8266)
+			String chipType = "esp8266";
+		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+			String chipType = "esp32s2";
+		#elif defined(ESP32)
+			#if defined(CONFIG_FREERTOS_UNICORE)
+				String chipType = "esp32solo";
+			#else
+				String chipType = "esp32";
+			#endif
+		#endif
+
+		#if defined(ESP8266)
+			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
+		#elif defined(ESP32)
+			HTTPUpdate httpUpdate;
+			HTTPUpdateResult ret = httpUpdate.update(client, url, String(VERSION) + "-" + chipType);
+		#endif
+
+		switch(ret) {
+			case HTTP_UPDATE_FAILED:
+				printE("Update failed");
+				break;
+			case HTTP_UPDATE_NO_UPDATES:
+				printI("No Update");
+				break;
+			case HTTP_UPDATE_OK:
+				printI("Update OK");
+				break;
+		}
+		performUpgrade = false;
 	}
 }
 

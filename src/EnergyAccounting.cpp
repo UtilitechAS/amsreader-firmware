@@ -142,10 +142,10 @@ void EnergyAccounting::calcDayCost() {
 
     if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
         if(initPrice) costDay = 0;
-        for(int i = 0; i < local.Hour; i++) {
-            float price = eapi->getValueForHour(i - local.Hour);
+        for(int i = 0; i < currentHour; i++) {
+            float price = eapi->getValueForHour(i - currentHour);
             if(price == ENTSOE_NO_VALUE) break;
-            breakTime(now - ((local.Hour - i) * 3600), utc);
+            breakTime(now - ((currentHour - i) * 3600), utc);
             int16_t wh = ds->getHourImport(utc.Hour);
             costDay += price * (wh / 1000.0);
         }
@@ -161,10 +161,9 @@ double EnergyAccounting::getUseToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0;
-    tmElements_t local, utc;
-    breakTime(tz->toLocal(now), local);
-    for(int i = 0; i < local.Hour; i++) {
-        breakTime(now - ((local.Hour - i) * 3600), utc);
+    tmElements_t utc;
+    for(int i = 0; i < currentHour; i++) {
+        breakTime(now - ((currentHour - i) * 3600), utc);
         ret += ds->getHourImport(utc.Hour) / 1000.0;
     }
     return ret + getUseThisHour();
@@ -173,13 +172,8 @@ double EnergyAccounting::getUseToday() {
 double EnergyAccounting::getUseThisMonth() {
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0;
-    tmElements_t tm;
-    if(tz != NULL)
-        breakTime(tz->toLocal(now), tm);
-    else
-        breakTime(now, tm);
     float ret = 0;
-    for(int i = 0; i < tm.Day; i++) {
+    for(int i = 0; i < currentDay; i++) {
         ret += ds->getDayImport(i) / 1000.0;
     }
     return ret + getUseToday();
@@ -193,10 +187,9 @@ double EnergyAccounting::getProducedToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0;
-    tmElements_t local, utc;
-    breakTime(tz->toLocal(now), local);
-    for(int i = 0; i < local.Hour; i++) {
-        breakTime(now - ((local.Hour - i) * 3600), utc);
+    tmElements_t utc;
+    for(int i = 0; i < currentHour; i++) {
+        breakTime(now - ((currentHour - i) * 3600), utc);
         ret += ds->getHourExport(utc.Hour) / 1000.0;
     }
     return ret + getProducedThisHour();
@@ -205,13 +198,8 @@ double EnergyAccounting::getProducedToday() {
 double EnergyAccounting::getProducedThisMonth() {
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0;
-    tmElements_t tm;
-    if(tz != NULL)
-        breakTime(tz->toLocal(now), tm);
-    else
-        breakTime(now, tm);
     float ret = 0;
-    for(int i = 0; i < tm.Day; i++) {
+    for(int i = 0; i < currentDay; i++) {
         ret += ds->getDayExport(i) / 1000.0;
     }
     return ret + getProducedToday();

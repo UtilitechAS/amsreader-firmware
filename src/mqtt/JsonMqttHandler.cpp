@@ -27,7 +27,9 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             ea->getUseThisHour(),
             ea->getUseToday(),
             ea->getCurrentThreshold(),
-            ea->getMonthMax()
+            ea->getMonthMax(),
+            ea->getProducedThisHour(),
+            ea->getProducedToday()
         );
         return mqtt->publish(topic, json);
     } else if(data->getListType() == 2) {
@@ -55,7 +57,9 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             ea->getUseThisHour(),
             ea->getUseToday(),
             ea->getCurrentThreshold(),
-            ea->getMonthMax()
+            ea->getMonthMax(),
+            ea->getProducedThisHour(),
+            ea->getProducedToday()
         );
         return mqtt->publish(topic, json);
     } else if(data->getListType() == 3) {
@@ -88,7 +92,9 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             ea->getUseThisHour(),
             ea->getUseToday(),
             ea->getCurrentThreshold(),
-            ea->getMonthMax()
+            ea->getMonthMax(),
+            ea->getProducedThisHour(),
+            ea->getProducedToday()
         );
         return mqtt->publish(topic, json);
     } else if(data->getListType() == 4) {
@@ -125,7 +131,9 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             ea->getUseThisHour(),
             ea->getUseToday(),
             ea->getCurrentThreshold(),
-            ea->getMonthMax()
+            ea->getMonthMax(),
+            ea->getProducedThisHour(),
+            ea->getProducedToday()
         );
         return mqtt->publish(topic, json);
     }

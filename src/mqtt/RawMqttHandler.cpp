@@ -76,6 +76,8 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccountin
     mqtt->publish(topic + "/realtime/import/day", String(ea->getUseToday(), 2));
     mqtt->publish(topic + "/realtime/import/threshold", String(ea->getCurrentThreshold(), 10), true, 0);
     mqtt->publish(topic + "/realtime/import/monthmax", String(ea->getMonthMax(), 3), true, 0);
+    mqtt->publish(topic + "/realtime/export/hour", String(ea->getProducedThisHour(), 3));
+    mqtt->publish(topic + "/realtime/export/day", String(ea->getProducedToday(), 2));
     return true;
 }
 

@@ -42,11 +42,16 @@ public:
     bool save();
 
     double getUseThisHour();
-    double getCostThisHour();
     double getUseToday();
+    double getUseThisMonth();
+
+    double getProducedThisHour();
+    double getProducedToday();
+    double getProducedThisMonth();
+
+    double getCostThisHour();
     double getCostToday();
     double getCostYesterday();
-    double getUseThisMonth();
     double getCostThisMonth();
     uint16_t getCostLastMonth();
 
@@ -66,6 +71,7 @@ private:
     Timezone *tz = NULL;
     uint8_t currentHour = 0, currentDay = 0, currentThresholdIdx = 0;
     double use, costHour, costDay;
+    double produce;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0 };
 
     void calcDayCost();

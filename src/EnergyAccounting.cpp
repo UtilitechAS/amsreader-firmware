@@ -80,6 +80,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         }
 
         use = 0;
+        produce = 0;
         costHour = 0;
         currentHour = local.Hour;
 
@@ -106,18 +107,23 @@ bool EnergyAccounting::update(AmsData* amsData) {
     }
 
     unsigned long ms = this->lastUpdateMillis > amsData->getLastUpdateMillis() ? 0 : amsData->getLastUpdateMillis() - this->lastUpdateMillis;
-    float kwh = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
+    float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
+    float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
     lastUpdateMillis = amsData->getLastUpdateMillis();
-    if(kwh > 0) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting) Adding %.4f kWh\n", kwh);
-        use += kwh;
+    if(kwhi > 0) {
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting) Adding %.4f kWh import\n", kwhi);
+        use += kwhi;
         if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
             float price = eapi->getValueForHour(0);
-            float cost = price * kwh;
+            float cost = price * kwhi;
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  and %.4f %s\n", cost / 100.0, eapi->getCurrency());
             costHour += cost;
             costDay += cost;
         }
+    }
+    if(kwhe > 0) {
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting) Adding %.4f kWh export\n", kwhe);
+        produce += kwhe;
     }
 
     if(config != NULL) {
@@ -151,10 +157,6 @@ double EnergyAccounting::getUseThisHour() {
     return use;
 }
 
-double EnergyAccounting::getCostThisHour() {
-    return costHour;
-}
-
 double EnergyAccounting::getUseToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
@@ -166,14 +168,6 @@ double EnergyAccounting::getUseToday() {
         ret += ds->getHourImport(utc.Hour) / 1000.0;
     }
     return ret + getUseThisHour();
-}
-
-double EnergyAccounting::getCostToday() {
-    return costDay;
-}
-
-double EnergyAccounting::getCostYesterday() {
-    return data.costYesterday / 10.0;
 }
 
 double EnergyAccounting::getUseThisMonth() {
@@ -189,6 +183,51 @@ double EnergyAccounting::getUseThisMonth() {
         ret += ds->getDayImport(i) / 1000.0;
     }
     return ret + getUseToday();
+}
+
+double EnergyAccounting::getProducedThisHour() {
+    return produce;
+}
+
+double EnergyAccounting::getProducedToday() {
+    float ret = 0.0;
+    time_t now = time(nullptr);
+    if(now < BUILD_EPOCH) return 0;
+    tmElements_t local, utc;
+    breakTime(tz->toLocal(now), local);
+    for(int i = 0; i < local.Hour; i++) {
+        breakTime(now - ((local.Hour - i) * 3600), utc);
+        ret += ds->getHourExport(utc.Hour) / 1000.0;
+    }
+    return ret + getProducedThisHour();
+}
+
+double EnergyAccounting::getProducedThisMonth() {
+    time_t now = time(nullptr);
+    if(now < BUILD_EPOCH) return 0;
+    tmElements_t tm;
+    if(tz != NULL)
+        breakTime(tz->toLocal(now), tm);
+    else
+        breakTime(now, tm);
+    float ret = 0;
+    for(int i = 0; i < tm.Day; i++) {
+        ret += ds->getDayExport(i) / 1000.0;
+    }
+    return ret + getProducedToday();
+}
+
+
+double EnergyAccounting::getCostThisHour() {
+    return costHour;
+}
+
+double EnergyAccounting::getCostToday() {
+    return costDay;
+}
+
+double EnergyAccounting::getCostYesterday() {
+    return data.costYesterday / 10.0;
 }
 
 double EnergyAccounting::getCostThisMonth() {

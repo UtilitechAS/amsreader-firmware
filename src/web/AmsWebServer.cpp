@@ -747,10 +747,13 @@ void AmsWebServer::dataJson() {
 		ea->getCurrentThreshold(),
 		ea->getUseThisHour(),
 		ea->getCostThisHour(),
+		ea->getProducedThisHour(),
 		ea->getUseToday(),
 		ea->getCostToday(),
+		ea->getProducedToday(),
 		ea->getUseThisMonth(),
 		ea->getCostThisMonth(),
+		ea->getProducedThisMonth(),
 		(uint32_t) time(nullptr)
 	);
 

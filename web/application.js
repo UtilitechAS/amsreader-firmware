@@ -790,6 +790,12 @@ var fetch = function() {
             if(currency) {
                 $('.sp').show();
             }
+            if(om > 0) {
+                $('.se').removeClass('d-none');
+                $('#eache').html(json.ea.h.p.toFixed(2));
+                $('#eacde').html(json.ea.d.p.toFixed(1));
+                $('#eacme').html(json.ea.m.p.toFixed(0));
+            }
         }
 
         if(json.me) {

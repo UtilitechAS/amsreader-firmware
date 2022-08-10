@@ -24,6 +24,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
             data->getMeterTimestamp()
         );
         mqtt->publish(topic + "/energy", json);
+        mqtt->loop();
     }
     String meterModel = data->getMeterModel();
     meterModel.replace("\\", "\\\\");

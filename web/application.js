@@ -878,7 +878,7 @@ var fetch = function() {
 
 var upgrade = function() {
     if(nextVersion) {
-        if(confirm("Are you sure you want to perform upgrade to " + nextVersion.tag_name + "?")) {
+        if(confirm("WARNING: Please keep USB power connected while upgrading. Are you sure you want to perform upgrade to " + nextVersion.tag_name + "?")) {
             $('#loading-indicator').show();
             window.location.href="/upgrade?version=" + nextVersion.tag_name;
         }

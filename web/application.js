@@ -478,7 +478,7 @@ var drawDay = function() {
         timeout: 30000,
         dataType: 'json',
     }).done(function(json) {
-        data = [['Hour', 'Import', { role: 'style' }, { role: 'annotation' }, 'Export', { role: 'style' }]];
+        data = [['Hour', 'Import', { role: 'style' }, { role: 'annotation' }, 'Export', { role: 'style' }, { role: 'annotation' }]];
         var r = 1;
         var hour = moment.utc().hours();
         var offset = moment().utcOffset()/60;
@@ -486,13 +486,13 @@ var drawDay = function() {
         for(var i = hour; i<24; i++) {
             var imp = json["i"+zeropad(i)];
             var exp = json["e"+zeropad(i)];
-            data[r++] = [zeropad((i+offset)%24), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(1) : imp.toFixed(1) + '\n' + -exp.toFixed(1), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            data[r++] = [zeropad((i+offset)%24), imp, "opacity: 0.9;", imp == 0 ? "" : imp.toFixed(1), exp == 0 ? 0 : -exp, "opacity: 0.9;", exp == 0 ? "" : -exp.toFixed(1)];
             min = Math.min(0, -exp);
         };
         for(var i = 0; i < hour; i++) {
             var imp = json["i"+zeropad(i)];
             var exp = json["e"+zeropad(i)];
-            data[r++] = [zeropad((i+offset)%24), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(1) : imp.toFixed(1) + '\n' + -exp.toFixed(1), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            data[r++] = [zeropad((i+offset)%24), imp, "opacity: 0.9;", imp == 0 ? "" : imp.toFixed(1), exp == 0 ? 0 : -exp, "opacity: 0.9;", exp == 0 ? "" : -exp.toFixed(1)];
             min = Math.min(0, -exp);
         };
         ea = google.visualization.arrayToDataTable(data);
@@ -511,7 +511,7 @@ var drawMonth = function() {
         timeout: 30000,
         dataType: 'json',
     }).done(function(json) {
-        data = [['Hour', 'Import', { role: 'style' }, { role: 'annotation' }, 'Export', { role: 'style' }]];
+        data = [['Hour', 'Import', { role: 'style' }, { role: 'annotation' }, 'Export', { role: 'style' }, { role: 'annotation' }]];
         var r = 1;
         var day = moment().date();
         var eom = moment().subtract(1, 'months').endOf('month').date();
@@ -519,13 +519,13 @@ var drawMonth = function() {
         for(var i = day; i<=eom; i++) {
             var imp = json["i"+zeropad(i)];
             var exp = json["e"+zeropad(i)];
-            data[r++] = [zeropad(i), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(0) : imp.toFixed(0) + '\n' + -exp.toFixed(0), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            data[r++] = [zeropad(i), imp, "opacity: 0.9;", imp == 0 ? "" : imp.toFixed(0), exp == 0 ? 0 : -exp, "opacity: 0.9;", exp == 0 ? "" : -exp.toFixed(0)];
             min = Math.min(0, -exp);
         }
         for(var i = 1; i < day; i++) {
             var imp = json["i"+zeropad(i)];
             var exp = json["e"+zeropad(i)];
-            data[r++] = [zeropad(i), imp, "opacity: 0.9;", exp == 0 ? imp.toFixed(0) : imp.toFixed(0) + '\n' + -exp.toFixed(0), exp == 0 ? 0 : -exp, "opacity: 0.9;"];
+            data[r++] = [zeropad(i), imp, "opacity: 0.9;", imp == 0 ? "" : imp.toFixed(0), exp == 0 ? 0 : -exp, "opacity: 0.9;", exp == 0 ? "" : -exp.toFixed(0)];
             min = Math.min(0, -exp);
         }
         ma = google.visualization.arrayToDataTable(data);

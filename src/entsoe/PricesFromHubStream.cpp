@@ -27,3 +27,7 @@ size_t PricesFromHubStream::write(uint8_t b) {
     buf[pos++] = b;
     return 1;
 }
+
+void PricesFromHubStream::get(PricesContainer* container) {
+    memcpy(container, buf, pos);
+}

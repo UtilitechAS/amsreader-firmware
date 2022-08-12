@@ -2,6 +2,7 @@
 #define _ENTSOEA44PARSER_H
 
 #include "Stream.h"
+#include "PricesContainer.h"
 
 #define DOCPOS_SEEK 0
 #define DOCPOS_CURRENCY 1
@@ -25,6 +26,7 @@ public:
     void flush();
     size_t write(const uint8_t *buffer, size_t size);
     size_t write(uint8_t);
+    void get(PricesContainer*);
 
 private:
     char currency[4];

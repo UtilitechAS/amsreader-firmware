@@ -148,6 +148,8 @@ void setup() {
 			gpioConfig.hanPin = 3;
 			gpioConfig.ledPin = 2;
 			gpioConfig.ledInverted = true;
+		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+			gpioConfig.hanPin = 18;
 		#elif defined(ESP32)
 			gpioConfig.hanPin = 16;
 			gpioConfig.ledPin = 2;
@@ -155,6 +157,7 @@ void setup() {
 			gpioConfig.tempSensorPin = 14;
 		#endif
 	}
+
 	delay(1);
 	config.loadTempSensors();
 	hw.setup(&gpioConfig, &config);
@@ -1032,6 +1035,7 @@ void WiFi_connect() {
 			}	
 		#endif
 		WiFi.mode(WIFI_STA);
+		WiFi.setSleep(WIFI_PS_MAX_MODEM);
 		#if defined(ESP32)
 			if(wifi.power >= 195)
 				WiFi.setTxPower(WIFI_POWER_19_5dBm);
@@ -1055,6 +1059,8 @@ void WiFi_connect() {
 				WiFi.setTxPower(WIFI_POWER_5dBm);
 			else if(wifi.power >= 20)
 				WiFi.setTxPower(WIFI_POWER_2dBm);
+			else
+				WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
 		#elif defined(ESP8266)
 			WiFi.setOutputPower(wifi.power / 10.0);
 		#endif

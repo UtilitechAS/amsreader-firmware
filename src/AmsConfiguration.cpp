@@ -63,8 +63,10 @@ void AmsConfiguration::clearWifi(WiFiConfig& config) {
 	uint16_t chipId;
 	#if defined(ESP32)
 		chipId = ESP.getEfuseMac();
+		config.power = 195;
 	#else
 		chipId = ESP.getChipId();
+		config.power = 205;
 	#endif
 	strcpy(config.hostname, (String("ams-") + String(chipId, HEX)).c_str());
 	config.mdns = true;

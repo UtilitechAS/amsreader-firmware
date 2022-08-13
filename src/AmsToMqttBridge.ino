@@ -1026,7 +1026,7 @@ void WiFi_connect() {
 			}	
 		#endif
 		WiFi.mode(WIFI_STA);
-		WiFi.setSleep(WIFI_PS_MAX_MODEM);
+		WiFi.setSleep(WIFI_PS_MIN_MODEM);
 		#if defined(ESP32)
 			if(wifi.power >= 195)
 				WiFi.setTxPower(WIFI_POWER_19_5dBm);

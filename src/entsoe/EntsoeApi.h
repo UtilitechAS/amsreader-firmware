@@ -5,7 +5,6 @@
 #include "Timezone.h"
 #include "RemoteDebug.h"
 #include "AmsConfiguration.h"
-#include "PricesFromHubStream.h"
 #include "EntsoeA44Parser.h"
 
 #if defined(ESP8266)
@@ -47,6 +46,10 @@ private:
 
     static const uint16_t BufferSize = 256;
     char* buf;
+
+    bool hub = false;
+    uint8_t* key = NULL;
+    uint8_t* auth = NULL;
 
     float currencyMultiplier = 0;
 

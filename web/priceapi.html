@@ -1,22 +1,15 @@
 <form method="post" action="/save">
     <input type="hidden" name="ec" value="true"/>
     <div class="my-3 p-3 bg-white rounded shadow">
-        <h6>ENTSO-E API</h6>
+        <h6>Price API</h6>
         <div class="row">
-            <div class="col-xl-4 col-lg-6 col-md-8">
-                <div class="m-2 input-group input-group-sm">
-                    <div class="input-group-prepend">
-                        <span class="input-group-text">Token</span>
-                    </div>
-                    <input type="text" name="et" class="form-control" value="{et}"/>
-                </div>
-            </div>
             <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6">
                 <div class="m-2 input-group input-group-sm">
                     <div class="input-group-prepend">
                         <span class="input-group-text">Region</span>
                     </div>
                     <select name="ea" class="form-control">
+                        <option value="">None</option>
                         <optgroup label="Norway">
                             <option value="10YNO-1--------2" {eaNo1}>NO1</option>
                             <option value="10YNO-2--------T" {eaNo2}>NO2</option>
@@ -56,6 +49,14 @@
                         <span class="input-group-text">Multiplier</span>
                     </div>
                     <input name="em" type="number" min="0.001" max="1000" step="0.001" class="form-control" value="{em}"/>
+                </div>
+            </div>
+            <div class="col-xl-4 col-lg-6 col-md-8 {dt}">
+                <div class="m-2 input-group input-group-sm">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">ENTSO-E token</span>
+                    </div>
+                    <input type="text" name="et" class="form-control" value="{et}" placeholder="Optional"/>
                 </div>
             </div>
         </div>

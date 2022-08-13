@@ -196,11 +196,11 @@ void setup() {
 	hw.ledBlink(LED_BLUE, 1);
 
 	EntsoeConfig entsoe;
-	eapi = new EntsoeApi(&Debug);
-	config.getEntsoeConfig(entsoe);
-	eapi->setup(entsoe);
-	ws.setEntsoeApi(eapi);
-
+	if(config.getEntsoeConfig(entsoe) && strlen(entsoe.area) > 0) {
+		eapi = new EntsoeApi(&Debug);
+		eapi->setup(entsoe);
+		ws.setEntsoeApi(eapi);
+	}
 	bool shared = false;
 	config.getMeterConfig(meterConfig);
 	Serial.flush();
@@ -520,13 +520,17 @@ void loop() {
 				
 				if(config.isEntsoeChanged()) {
 					EntsoeConfig entsoe;
-					if(config.getEntsoeConfig(entsoe)) {
+					if(config.getEntsoeConfig(entsoe) && strlen(entsoe.area) > 0) {
 						if(eapi == NULL) {
 							eapi = new EntsoeApi(&Debug);
 							ea.setEapi(eapi);
 							ws.setEntsoeApi(eapi);
 						}
 						eapi->setup(entsoe);
+					} else if(eapi != NULL) {
+						delete eapi;
+						eapi = NULL;
+						ws.setEntsoeApi(NULL);
 					}
 					config.ackEntsoeChange();
 				}

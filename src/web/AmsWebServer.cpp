@@ -18,7 +18,7 @@
 #include "root/mqtt_html.h"
 #include "root/web_html.h"
 #include "root/domoticz_html.h"
-#include "root/entsoe_html.h"
+#include "root/priceapi_html.h"
 #include "root/ntp_html.h"
 #include "root/gpio_html.h"
 #include "root/debugging_html.h"
@@ -71,7 +71,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/mqtt", HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
 	server.on("/web", HTTP_GET, std::bind(&AmsWebServer::configWebHtml, this));
 	server.on("/domoticz",HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
-	server.on("/entsoe",HTTP_GET, std::bind(&AmsWebServer::configEntsoeHtml, this));
+	server.on("/priceapi",HTTP_GET, std::bind(&AmsWebServer::configPriceApiHtml, this));
 	server.on("/thresholds",HTTP_GET, std::bind(&AmsWebServer::configThresholdsHtml, this));
 	server.on("/boot.css", HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
 	server.on("/github.svg", HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
@@ -538,8 +538,8 @@ void AmsWebServer::configDomoticzHtml() {
 	server.sendContent_P(FOOT_HTML);
 }
 
-void AmsWebServer::configEntsoeHtml() {
-	printD("Serving /entsoe.html over http...");
+void AmsWebServer::configPriceApiHtml() {
+	printD("Serving /priceapi.html over http...");
 
 	if(!checkSecurity(1))
 		return;
@@ -547,9 +547,15 @@ void AmsWebServer::configEntsoeHtml() {
 	EntsoeConfig entsoe;
 	config->getEntsoeConfig(entsoe);
 
-	String html = String((const __FlashStringHelper*) ENTSOE_HTML);
+	String html = String((const __FlashStringHelper*) PRICEAPI_HTML);
 
-	html.replace("{et}", entsoe.token);
+	if(ESP.getFreeHeap() > 32000) {
+		html.replace("{et}", entsoe.token);
+		html.replace("{dt}", "");
+	} else {
+		html.replace("{et}", "");
+		html.replace("{dt}", "d-none");
+	}
 	html.replace("{em}", String(entsoe.multiplier / 1000.0, 3));
 
 	html.replace("{eaNo1}", strcmp(entsoe.area, "10YNO-1--------2") == 0 ? "selected" : "");
@@ -1663,8 +1669,6 @@ void AmsWebServer::firmwareUpload() {
 		server.send(303);
 	}
 }
-
-const uint8_t githubFingerprint[] = {0x59, 0x74, 0x61, 0x88, 0x13, 0xCA, 0x12, 0x34, 0x15, 0x4D, 0x11, 0x0A, 0xC1, 0x7F, 0xE6, 0x67, 0x07, 0x69, 0x42, 0xF5};
 
 void AmsWebServer::firmwareDownload() {
 	if(!checkSecurity(1))

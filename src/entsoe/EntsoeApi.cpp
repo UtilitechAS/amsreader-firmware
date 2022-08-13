@@ -39,6 +39,20 @@ void EntsoeApi::setup(EntsoeConfig& config) {
     http.setTimeout(60000);
     http.setUserAgent("ams2mqtt/" + String(VERSION));
     http.useHTTP10(true);
+
+    #if defined(AMS2MQTT_PRICE_KEY)
+        key = new uint8_t[16] AMS2MQTT_PRICE_KEY;
+        hub = true;
+    #else
+        hub = false;
+    #endif
+    #if defined(AMS2MQTT_PRICE_AUTHENTICATION)
+        auth = new uint8_t[16] AMS2MQTT_PRICE_AUTHENTICATION;
+        hub = hub && true;
+    #else
+        hub = false;
+    #endif
+
 }
 
 char* EntsoeApi::getToken() {
@@ -248,7 +262,36 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
 PricesContainer* EntsoeApi::fetchPrices(time_t t) {
     tmElements_t tm;
     breakTime(t, tm);
-    if(strlen(getToken()) == 0) {
+    if(strlen(getToken()) > 0) {
+        time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // UTC midnight
+        time_t e2 = e1 + SECS_PER_DAY;
+        tmElements_t d1, d2;
+        breakTime(tz->toUTC(e1), d1); // To get day and hour for CET/CEST at UTC midnight
+        breakTime(tz->toUTC(e2), d2);
+
+        snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
+        "https://transparency.entsoe.eu/api", getToken(), 
+        d1.Year+1970, d1.Month, d1.Day, d1.Hour, 00,
+        d2.Year+1970, d2.Month, d2.Day, d2.Hour, 00,
+        config->area, config->area);
+
+        #if defined(ESP32)
+            esp_task_wdt_reset();
+        #elif defined(ESP8266)
+            ESP.wdtFeed();
+        #endif
+
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for %d.%d.%d\n", tm.Day, tm.Month, tm.Year+1970);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", buf);
+        EntsoeA44Parser a44;
+        if(retrieve(buf, &a44) && a44.getPoint(0) != ENTSOE_NO_VALUE) {
+            PricesContainer* ret = new PricesContainer();
+            a44.get(ret);
+            return ret;
+        } else {
+            return NULL;
+        }
+    } else if(hub) {
         String data;
         snprintf(buf, BufferSize, "%s/%s/%d/%d/%d?currency=%s",
             "http://ams2mqtt.rewiredinvent.no/hub/price",
@@ -291,17 +334,6 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
             debugPrint(content, 0, data.length());
         }
 
-        #if defined(AMS2MQTT_PRICE_KEY)
-            uint8_t key[] = AMS2MQTT_PRICE_KEY;
-        #else
-            uint8_t key[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-        #endif
-        #if defined(AMS2MQTT_PRICE_AUTHENTICATION)
-            uint8_t auth[] = AMS2MQTT_PRICE_AUTHENTICATION;
-        #else
-            uint8_t auth[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-        #endif
-
         DataParserContext ctx;
         ctx.length = data.length();
         GCMParser gcm(key, auth);
@@ -320,35 +352,6 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
             return ret;
         } else {
             if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Error code while decrypting prices: %d\n", gcmRet);
-        }
-    } else {
-        time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // UTC midnight
-        time_t e2 = e1 + SECS_PER_DAY;
-        tmElements_t d1, d2;
-        breakTime(tz->toUTC(e1), d1); // To get day and hour for CET/CEST at UTC midnight
-        breakTime(tz->toUTC(e2), d2);
-
-        snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-        "https://transparency.entsoe.eu/api", getToken(), 
-        d1.Year+1970, d1.Month, d1.Day, d1.Hour, 00,
-        d2.Year+1970, d2.Month, d2.Day, d2.Hour, 00,
-        config->area, config->area);
-
-        #if defined(ESP32)
-            esp_task_wdt_reset();
-        #elif defined(ESP8266)
-            ESP.wdtFeed();
-        #endif
-
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for %d.%d.%d\n", tm.Day, tm.Month, tm.Year+1970);
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", buf);
-        EntsoeA44Parser a44;
-        if(retrieve(buf, &a44) && a44.getPoint(0) != ENTSOE_NO_VALUE) {
-            PricesContainer* ret = new PricesContainer();
-            a44.get(ret);
-            return ret;
-        } else {
-            return NULL;
         }
     }
     return NULL;

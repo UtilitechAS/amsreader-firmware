@@ -336,6 +336,9 @@ void AmsWebServer::configMeterHtml() {
 		case AmsTypeSagemcom:
 			manufacturer = "Sagemcom";
 			break;
+		case AmsTypeLng:
+			manufacturer = "L&G";
+			break;
 		default:
 			manufacturer = "Unknown";
 			break;

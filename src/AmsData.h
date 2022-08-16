@@ -12,6 +12,7 @@ enum AmsType {
     AmsTypeIskra = 0x08,
     AmsTypeLandis = 0x09,
     AmsTypeSagemcom = 0x0A,
+    AmsTypeLng = 0x0B,
     AmsTypeCustom = 0x88,
     AmsTypeUnknown = 0xFF
 };

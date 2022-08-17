@@ -32,6 +32,10 @@ ADC_MODE(ADC_VCC);
 #endif
 #define WDT_TIMEOUT 60
 
+#if defined(CONFIG_IDF_TARGET_ESP32S2)
+#include <driver/uart.h>
+#endif
+
 #include "version.h"
 
 #include "AmsToMqttBridge.h"
@@ -620,9 +624,7 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 				hwSerial = &Serial2;
 			}
 		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-			if(pin == 18) {
-				hwSerial = &Serial1;
-			}
+			hwSerial = &Serial1;
 		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
 		#endif
 	#endif
@@ -655,7 +657,11 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 				break;
 		}
 
-		#if defined(ESP32)
+		#if defined(CONFIG_IDF_TARGET_ESP32S2)
+			hwSerial->begin(baud, serialConfig, -1, -1, invert);
+			hwSerial->setRxBufferSize(768);
+			uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+		#elif defined(ESP32)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
 			hwSerial->setRxBufferSize(768);
 		#else

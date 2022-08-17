@@ -1047,7 +1047,7 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->vccResistorVcc = 33;
 				break;
 			case 6: // Pow-P1
-				gpioConfig->hanPin = 18;
+				gpioConfig->hanPin = 16;
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPinRed = 13;
 				gpioConfig->ledPinGreen = 14;

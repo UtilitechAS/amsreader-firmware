@@ -859,7 +859,7 @@ bool readHanPort() {
 
 		// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
 		//data = IEC6205675(((char *) (hanBuffer)) + pos, meterState.getMeterType(), &meterConfig, ctx);
-		data = LNG(((char *) (hanBuffer)) + pos, meterState.getMeterType(), &meterConfig, ctx);
+		data = LNG(((char *) (hanBuffer)) + pos, meterState.getMeterType(), &meterConfig, ctx, &Debug);
 	} else if(ctx.type == DATA_TAG_DSMR) {
 		data = IEC6205621(((char *) (hanBuffer)) + pos);
 	}

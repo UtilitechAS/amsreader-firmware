@@ -2,7 +2,7 @@
 #include "lwip/def.h"
 #include "ams/Cosem.h"
 
-LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx) {
+LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
     LngHeader* h = (LngHeader*) payload;
     if(h->tag == CosemTypeStructure && h->arrayTag == CosemTypeArray) {
         meterType = AmsTypeLng;
@@ -11,55 +11,68 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
         uint8_t* ptr = (uint8_t*) &h[1];
         uint8_t* data = ptr + (18*h->arrayLength); // Skip descriptors
 
-        for(uint8_t i = 0; i < h->arrayLength; i++) {
-            LngObisDescriptor* descriptor = (LngObisDescriptor*) ptr;
+        LngObisDescriptor* descriptor = (LngObisDescriptor*) ptr;
+        for(uint8_t x = 0;  x < h->arrayLength-1; x++) {
+            ptr = (uint8_t*) &descriptor[1];
+            descriptor = (LngObisDescriptor*) ptr;
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(L&G) OBIS %d.%d.%d with type 0x%02X", descriptor->obis[2], descriptor->obis[3], descriptor->obis[4], *data);
+
+            CosemData* item = (CosemData*) data;
             if(descriptor->obis[2] == 1) {
                 if(descriptor->obis[3] == 7) {
                     if(descriptor->obis[4] == 0) {
-                        CosemDLongUnsigned* item = (CosemDLongUnsigned*) data;
-                        activeImportPower = ntohl(item->data);
+                        activeImportPower = ntohl(item->dlu.data);
                         listType = listType >= 1 ? listType : 1;
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
                     }
                 } else if(descriptor->obis[3] == 8) {
                     if(descriptor->obis[4] == 0) {
-                        CosemDLongUnsigned* item = (CosemDLongUnsigned*) data;
-                        activeImportCounter = ntohl(item->data);
+                        activeImportCounter = ntohl(item->dlu.data);
                         listType = listType >= 3 ? listType : 3;
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
                     }
                 } 
             } else if(descriptor->obis[2] == 2) {
                 if(descriptor->obis[3] == 7) {
                     if(descriptor->obis[4] == 0) {
-                        CosemDLongUnsigned* item = (CosemDLongUnsigned*) data;
-                        activeExportPower = ntohl(item->data);
+                        activeExportPower = ntohl(item->dlu.data);
                         listType = listType >= 2 ? listType : 2;
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
                     }
                 } else if(descriptor->obis[3] == 8) {
                     if(descriptor->obis[4] == 0) {
-                        CosemDLongUnsigned* item = (CosemDLongUnsigned*) data;
-                        activeExportCounter = ntohl(item->data);
+                        activeExportCounter = ntohl(item->dlu.data);
                         listType = listType >= 3 ? listType : 3;
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
                     }
                 } 
             } else if(descriptor->obis[2] == 96) {
                 if(descriptor->obis[3] == 1) {
                     if(descriptor->obis[4] == 0) {
-                        CosemString* item = (CosemString*) data;
-                        char str[item->length+1];
-                        memcpy(str, item->data, item->length);
-                        str[item->length] = '\0';
+                        char str[item->oct.length+1];
+                        memcpy(str, item->oct.data, item->oct.length);
+                        str[item->oct.length] = '\0';
                         meterId = String(str);
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %s (oct)", str);
+                    } else if(descriptor->obis[4] == 1) {
+                        char str[item->oct.length+1];
+                        memcpy(str, item->oct.data, item->oct.length);
+                        str[item->oct.length] = '\0';
+                        meterModel = String(str);
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %s (oct)", str);
                     }
                 }
             }
 
-            ptr = (uint8_t*) &descriptor[1];
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("\n");
 
             if((*data) == 0x09) {
-                data += (*data+1)+2;
+                data += (*(data+1))+2;
             } else {
                 data += 5;
             }
+
+            lastUpdateMillis = millis();
         }
     }
 }

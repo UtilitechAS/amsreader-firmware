@@ -203,7 +203,8 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
             (uint32_t) (millis64()/1000),
             hw->getVcc(),
             hw->getWifiRssi(),
-            hw->getTemperature()
+            hw->getTemperature(),
+            VERSION
         );
         mqtt->publish(topic + "/state", json);
     }

@@ -1,4 +1,5 @@
 #include "JsonMqttHandler.h"
+#include "version.h"
 #include "hexutils.h"
 #include "Uptime.h"
 #include "web/root/json1_json.h"
@@ -280,7 +281,8 @@ bool JsonMqttHandler::publishSystem(HwTools* hw) {
         (uint32_t) (millis64()/1000),
         hw->getVcc(),
         hw->getWifiRssi(),
-        hw->getTemperature()
+        hw->getTemperature(),
+        VERSION
     );
     init = mqtt->publish(topic, json);
     return init;

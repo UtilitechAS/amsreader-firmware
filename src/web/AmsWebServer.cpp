@@ -591,9 +591,9 @@ void AmsWebServer::configThresholdsHtml() {
 
 	String html = String((const __FlashStringHelper*) THRESHOLDS_HTML);
 	for(int i = 0; i < 9; i++) {
-		html.replace("{t" + String(i) + "}", String(config->thresholds[i]));
+		html.replace("{t" + String(i) + "}", String(config->thresholds[i], 10));
 	}
-	html.replace("{h}", String(config->hours));
+	html.replace("{h}", String(config->hours, 10));
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, MIME_HTML, HEAD_HTML);
@@ -708,6 +708,12 @@ void AmsWebServer::dataJson() {
 	if(eapi != NULL && strlen(eapi->getToken()) > 0)
 		price = eapi->getValueForHour(0);
 
+	String peaks = "";
+	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
+		if(!peaks.isEmpty()) peaks += ",";
+		peaks += String(ea->getPeak(i));
+	}
+
 	snprintf_P(buf, BufferSize, DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		meterConfig->productionCapacity,
@@ -744,6 +750,7 @@ void AmsWebServer::dataJson() {
 		meterState->getMeterType(),
 		meterConfig->distributionSystem,
 		ea->getMonthMax(),
+		peaks.c_str(),
 		ea->getCurrentThreshold(),
 		ea->getUseThisHour(),
 		ea->getCostThisHour(),

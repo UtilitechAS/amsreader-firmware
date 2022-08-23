@@ -260,6 +260,37 @@ float EnergyAccounting::getMonthMax() {
     return maxHour > 0 ? maxHour / count / 100.0 : 0.0;
 }
 
+float EnergyAccounting::getPeak(uint8_t num) {
+    if(num < 1 || num > 5) return 0.0;
+
+    uint8_t count = 0;
+    bool included[5] = { false, false, false, false, false };
+
+    while(count < config->hours) {
+        uint8_t maxIdx = 0;
+        uint16_t maxVal = 0;
+        for(uint8_t i = 0; i < 5; i++) {
+            if(included[i]) continue;
+            if(data.peaks[i].value > maxVal) {
+                maxVal = data.peaks[i].value;
+                maxIdx = i;
+            }
+        }
+        included[maxIdx] = true;
+        count++;
+    }
+
+    uint8_t pos = 0;
+    for(uint8_t i = 0; i < 5; i++) {
+        if(!included[i]) continue;
+        pos++;
+        if(pos == num) {
+            return data.peaks[i].value / 100.0;
+        }
+    }
+    return 0.0;
+}
+
 bool EnergyAccounting::load() {
     if(!LittleFS.begin()) {
         if(debugger->isActive(RemoteDebug::ERROR)) {

@@ -11,6 +11,8 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
         uint8_t* ptr = (uint8_t*) &h[1];
         uint8_t* data = ptr + (18*h->arrayLength); // Skip descriptors
 
+        uint16_t o181 = 0, o182 = 0;
+        uint16_t o281 = 0, o282 = 0;
         LngObisDescriptor* descriptor = (LngObisDescriptor*) ptr;
         for(uint8_t x = 0;  x < h->arrayLength-1; x++) {
             ptr = (uint8_t*) &descriptor[1];
@@ -30,6 +32,12 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                         activeImportCounter = ntohl(item->dlu.data);
                         listType = listType >= 3 ? listType : 3;
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                    } else if(descriptor->obis[4] == 1) {
+                        o181 = ntohl(item->dlu.data);
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                    } else if(descriptor->obis[4] == 2) {
+                        o182 = ntohl(item->dlu.data);
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
                     }
                 } 
             } else if(descriptor->obis[2] == 2) {
@@ -43,6 +51,12 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                     if(descriptor->obis[4] == 0) {
                         activeExportCounter = ntohl(item->dlu.data);
                         listType = listType >= 3 ? listType : 3;
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                    } else if(descriptor->obis[4] == 1) {
+                        o281 = ntohl(item->dlu.data);
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                    } else if(descriptor->obis[4] == 2) {
+                        o282 = ntohl(item->dlu.data);
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
                     }
                 } 
@@ -65,6 +79,15 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
             }
 
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("\n");
+
+            if(o181 > 0 || o182 > 0) {
+                activeImportCounter = o181 + o182;
+                listType = listType >= 3 ? listType : 3;
+            }
+            if(o281 > 0 || o282 > 0) {
+                activeExportCounter = o281 + o282;
+                listType = listType >= 3 ? listType : 3;
+            }
 
             if((*data) == 0x09) {
                 data += (*(data+1))+2;

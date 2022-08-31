@@ -836,6 +836,7 @@ bool readHanPort() {
 		len += hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
 		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 			mqtt->publish(topic.c_str(), toHex(hanBuffer+pos, len));
+			mqtt->loop();
 		}
 		while(hanSerial->available()) hanSerial->read(); // Make sure it is all empty, in case we overflowed buffer above
 		len = 0;
@@ -852,6 +853,7 @@ bool readHanPort() {
 		// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 			mqtt->publish(topic.c_str(), toHex(hanBuffer+pos, ctx.length));
+			mqtt->loop();
 		}
 
 		debugV("Using application data:");
@@ -1177,6 +1179,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), toHex(buf, curLen));
+						mqtt->loop();
 					}
 					break;
 				case DATA_TAG_MBUS:
@@ -1184,6 +1187,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), toHex(buf, curLen));
+						mqtt->loop();
 					}
 					break;
 				case DATA_TAG_GBT:
@@ -1202,6 +1206,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					debugV("DSMR frame:");
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), (char*) buf);
+						mqtt->loop();
 					}
 					break;
 			}

@@ -266,7 +266,9 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         if(meterTs != NULL) {
             AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
             time_t ts = decodeCosemDateTime(amst->dt);
-            if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
+            if(meterType == AmsTypeAidon) {
+                meterTimestamp = ts - 3600;
+            } else if(meterType == AmsTypeKamstrup) {
                 meterTimestamp = tz.toUTC(ts);
             } else {
                 meterTimestamp = ts;

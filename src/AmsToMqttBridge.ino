@@ -54,11 +54,11 @@ ADC_MODE(ADC_VCC);
 #include "AmsWebServer.h"
 #include "AmsConfiguration.h"
 
-#include "mqtt/AmsMqttHandler.h"
-#include "mqtt/JsonMqttHandler.h"
-#include "mqtt/RawMqttHandler.h"
-#include "mqtt/DomoticzMqttHandler.h"
-#include "mqtt/HomeAssistantMqttHandler.h"
+#include "AmsMqttHandler.h"
+#include "JsonMqttHandler.h"
+#include "RawMqttHandler.h"
+#include "DomoticzMqttHandler.h"
+#include "HomeAssistantMqttHandler.h"
 
 #include "Uptime.h"
 

@@ -2,12 +2,12 @@
 #include "version.h"
 #include "hexutils.h"
 #include "Uptime.h"
-#include "root/json1_json.h"
-#include "root/json2_json.h"
-#include "root/json3_json.h"
-#include "root/json4_json.h"
-#include "root/jsonsys_json.h"
-#include "root/jsonprices_json.h"
+#include "json/json1_json.h"
+#include "json/json2_json.h"
+#include "json/json3_json.h"
+#include "json/json4_json.h"
+#include "json/jsonsys_json.h"
+#include "json/jsonprices_json.h"
 
 bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected())

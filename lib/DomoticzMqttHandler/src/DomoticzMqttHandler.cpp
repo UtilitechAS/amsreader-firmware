@@ -1,5 +1,5 @@
 #include "DomoticzMqttHandler.h"
-#include "root/domoticz_json.h"
+#include "json/domoticz_json.h"
 
 bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea) {
     bool ret = false;

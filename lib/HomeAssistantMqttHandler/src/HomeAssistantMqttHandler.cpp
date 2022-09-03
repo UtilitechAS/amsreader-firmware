@@ -3,12 +3,12 @@
 #include "hexutils.h"
 #include "Uptime.h"
 #include "version.h"
-#include "root/ha1_json.h"
-#include "root/ha2_json.h"
-#include "root/ha3_json.h"
-#include "root/jsonsys_json.h"
-#include "root/jsonprices_json.h"
-#include "root/hadiscover_json.h"
+#include "json/ha1_json.h"
+#include "json/ha2_json.h"
+#include "json/ha3_json.h"
+#include "json/jsonsys_json.h"
+#include "json/jsonprices_json.h"
+#include "json/hadiscover_json.h"
 
 bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected())

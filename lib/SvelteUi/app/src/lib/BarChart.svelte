@@ -68,10 +68,6 @@
 </div>
 
 <style>
-	h2 {
-		text-align: center;
-	}
-
 	.chart {
 		width: 100%;
 		margin: 0 auto;

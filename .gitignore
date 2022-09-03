@@ -15,3 +15,5 @@ platformio-user.ini
 /sdkconfig
 /.tmp
 /*.zip
+node_modules
+/gui/dist

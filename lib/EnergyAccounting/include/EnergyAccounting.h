@@ -4,7 +4,7 @@
 #include "Arduino.h"
 #include "AmsData.h"
 #include "AmsDataStorage.h"
-#include "entsoe/EntsoeApi.h"
+#include "EntsoeApi.h"
 
 struct EnergyAccountingPeak {
     uint8_t day;

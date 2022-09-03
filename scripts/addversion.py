@@ -2,7 +2,7 @@ import os
 import subprocess
 from time import time
 
-FILENAME_VERSION_H = 'src/version.h'
+FILENAME_VERSION_H = 'lib/AmsConfiguration/include/version.h'
 version = os.environ.get('GITHUB_TAG')
 if version == None:
     try:

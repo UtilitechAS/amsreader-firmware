@@ -25,8 +25,8 @@ except:
         print("WARN: Unable to load minifier")
 
 
-webroot = "web"
-srcroot = "src/web/root"
+webroot = "lib/ClassicUi/html"
+srcroot = "lib/ClassicUi/include/root"
 
 version = os.environ.get('GITHUB_TAG')
 if version == None:

@@ -201,7 +201,7 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     https.setReuse(false);
     https.setTimeout(50000);
-    https.setUserAgent("ams2mqtt/" + String(VERSION));
+    https.setUserAgent("ams2mqtt");
     #if defined(ESP32)
         if(https.begin(url)) {
             printD("Connection established");

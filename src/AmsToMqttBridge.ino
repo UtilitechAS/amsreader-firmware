@@ -49,9 +49,9 @@ ADC_MODE(ADC_VCC);
 #include "hexutils.h"
 #include "HwTools.h"
 
-#include "entsoe/EntsoeApi.h"
+#include "EntsoeApi.h"
 
-#include "web/AmsWebServer.h"
+#include "AmsWebServer.h"
 #include "AmsConfiguration.h"
 
 #include "mqtt/AmsMqttHandler.h"

@@ -13,7 +13,7 @@
 #include "EnergyAccounting.h"
 #include "Uptime.h"
 #include "RemoteDebug.h"
-#include "entsoe/EntsoeApi.h"
+#include "EntsoeApi.h"
 
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>

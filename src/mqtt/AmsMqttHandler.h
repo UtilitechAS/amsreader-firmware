@@ -7,7 +7,7 @@
 #include "AmsConfiguration.h"
 #include "EnergyAccounting.h"
 #include "HwTools.h"
-#include "entsoe/EntsoeApi.h"
+#include "EntsoeApi.h"
 
 class AmsMqttHandler {
 public:

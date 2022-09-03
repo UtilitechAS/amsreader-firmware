@@ -81,6 +81,8 @@ private:
 	void monthplotJson();
 	void energyPriceJson();
 	void temperatureJson();
+
+	void notFound();
 };
 
 #endif

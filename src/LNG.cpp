@@ -11,6 +11,7 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
         uint8_t* ptr = (uint8_t*) &h[1];
         uint8_t* data = ptr + (18*h->arrayLength); // Skip descriptors
 
+        uint16_t o170 = 0, o270 = 0;
         uint16_t o181 = 0, o182 = 0;
         uint16_t o281 = 0, o282 = 0;
         LngObisDescriptor* descriptor = (LngObisDescriptor*) ptr;
@@ -23,8 +24,7 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
             if(descriptor->obis[2] == 1) {
                 if(descriptor->obis[3] == 7) {
                     if(descriptor->obis[4] == 0) {
-                        activeImportPower = ntohl(item->dlu.data);
-                        listType = listType >= 1 ? listType : 1;
+                        o170 = ntohl(item->dlu.data);
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
                     }
                 } else if(descriptor->obis[3] == 8) {
@@ -43,8 +43,7 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
             } else if(descriptor->obis[2] == 2) {
                 if(descriptor->obis[3] == 7) {
                     if(descriptor->obis[4] == 0) {
-                        activeExportPower = ntohl(item->dlu.data);
-                        listType = listType >= 2 ? listType : 2;
+                        o270 = ntohl(item->dlu.data);
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
                     }
                 } else if(descriptor->obis[3] == 8) {
@@ -79,6 +78,17 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
             }
 
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("\n");
+
+            if(o170 > 0 || o270 > 0) {
+                int32_t sum = o170-o270;
+                if(sum > 0) {
+                    listType = listType >= 1 ? listType : 1;
+                    activeImportPower = sum;
+                } else {
+                    listType = listType >= 2 ? listType : 2;
+                    activeExportPower = sum * -1;
+                }
+            }
 
             if(o181 > 0 || o182 > 0) {
                 activeImportCounter = (o181 + o182) / 1000.0;

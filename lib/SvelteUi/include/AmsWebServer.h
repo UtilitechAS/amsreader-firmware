@@ -82,6 +82,8 @@ private:
 	void energyPriceJson();
 	void temperatureJson();
 
+	void configurationJson();
+
 	void notFound();
 };
 

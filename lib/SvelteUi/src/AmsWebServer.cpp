@@ -1,6 +1,9 @@
 #include "AmsWebServer.h"
 #include "AmsWebHeaders.h"
 #include "base64.h"
+#include "hexutils.h"
+
+#include <ArduinoJson.h>
 
 #include "html/index_html.h"
 #include "html/index_css.h"
@@ -10,7 +13,9 @@
 #include "html/dayplot_json.h"
 #include "html/monthplot_json.h"
 #include "html/energyprice_json.h"
+#include "html/tempsensor_json.h"
 
+#include "version.h"
 
 
 AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw) {
@@ -36,6 +41,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/dayplot.json", HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
 	server.on("/monthplot.json", HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
 	server.on("/energyprice.json", HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
+	server.on("/temperature.json", HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
+
+	server.on("/configuration.json", HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 		
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
@@ -462,6 +470,41 @@ void AmsWebServer::energyPriceJson() {
 	server.send(200, MIME_JSON, buf);
 }
 
+void AmsWebServer::temperatureJson() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /temperature.json over http...\n");
+
+	if(!checkSecurity(2))
+		return;
+
+	int count = hw->getTempSensorCount();
+	snprintf(buf, 16, "{\"c\":%d,\"s\":[", count);
+
+	for(int i = 0; i < count; i++) {
+		TempSensorData* data = hw->getTempSensorData(i);
+		if(data == NULL) continue;
+
+		TempSensorConfig* conf = config->getTempSensorConfig(data->address);
+		char* pos = buf+strlen(buf);
+		snprintf_P(pos, 72, TEMPSENSOR_JSON, 
+			i,
+			toHex(data->address, 8).c_str(),
+			conf == NULL ? "" : String(conf->name).substring(0,16).c_str(),
+			conf == NULL || conf->common ? 1 : 0,
+			data->lastRead
+		);
+		delay(10);
+	}
+	char* pos = buf+strlen(buf);
+	snprintf(count == 0 ? pos : pos-1, 8, "]}");
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
+}
+
 void AmsWebServer::indexHtml() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /index.html over http...\n");
 
@@ -501,4 +544,48 @@ void AmsWebServer::indexJs() {
 
 	server.setContentLength(INDEX_JS_LEN);
 	server.send_P(200, MIME_JS, INDEX_JS);
+}
+
+void AmsWebServer::configurationJson() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /config.json over http...\n");
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	if(!checkSecurity(1))
+		return;
+
+	DynamicJsonDocument doc(512);
+	doc["version"] = VERSION;
+
+
+	doc["general"]["t"] = "";
+	doc["general"]["h"] = "";
+	doc["general"]["s"] = "";
+	doc["general"]["u"] = "";
+	doc["general"]["p"] = "";
+
+/*
+	uint16_t wattageMultiplier;
+	uint16_t voltageMultiplier;
+	uint16_t amperageMultiplier;
+	uint16_t accumulatedMultiplier;
+	uint8_t source;
+	uint8_t parser
+*/
+	config->getGpioConfig(*gpioConfig);
+	config->getMeterConfig(*meterConfig);
+	doc["meter"]["s"] = gpioConfig->hanPin;
+	doc["meter"]["b"] = meterConfig->baud;
+	doc["meter"]["p"] = meterConfig->parity;
+	doc["meter"]["i"] = meterConfig->invert;
+	doc["meter"]["d"] = meterConfig->distributionSystem;
+	doc["meter"]["f"] = meterConfig->mainFuse;
+	doc["meter"]["o"] = meterConfig->productionCapacity;
+	doc["meter"]["e"] = toHex(meterConfig->encryptionKey, 16);
+	doc["meter"]["a"] = toHex(meterConfig->authenticationKey, 16);
+
+	serializeJson(doc, buf, BufferSize);
+	server.send(200, MIME_JSON, buf);
 }

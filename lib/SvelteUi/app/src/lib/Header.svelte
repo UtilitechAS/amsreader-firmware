@@ -1,7 +1,10 @@
 <script>
+    import { Link } from "svelte-navigator";
     import GitHubLogo from './../assets/github.svg';
+    import Uptime from "./Uptime.svelte";
     import Badge from './Badge.svelte';
     import Clock from './Clock.svelte';
+    import GearIcon from './GearIcon.svelte';
 
     export let data = {}
     let timestamp = new Date(0);
@@ -10,10 +13,10 @@
 <nav class="bg-violet-600 p-1 rounded-md mx-2">
       <div class="flex flex-wrap space-x-4 text-sm text-gray-300">
         <div class="flex-none text-lg text-gray-100 p-2">
-          <a href="/">AMS reader <span>v0.0.0</span></a>
+          <Link to="/">AMS reader <span>v0.0.0</span></Link>
         </div>
         <div class="flex-none my-auto p-2 flex space-x-4">
-          <div class="flex-none my-auto">Up { data.u ? data.u : '-' }</div>
+          <div class="flex-none my-auto"><Uptime epoch={data.u}/></div>
           <div class="flex-none my-auto">{ data.t ? data.t.toFixed(1) : '-' }&deg;C</div>
           <div class="flex-none my-auto">Free mem: {data.m ? (data.m/1000).toFixed(1) : '-'}kb</div>
         </div>
@@ -29,6 +32,9 @@
           </div>
           <div class="flex-none my-auto px-2">
             <Clock timestamp={ data.c ? new Date(data.c * 1000) : new Date(0) } />
+          </div>
+          <div class="flex-none px-2 mt-1">
+            <Link to="/configuration"><GearIcon/></Link>
           </div>
         </div> 
       </div>

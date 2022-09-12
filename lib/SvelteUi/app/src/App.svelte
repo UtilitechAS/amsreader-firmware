@@ -1,7 +1,10 @@
 <script>
+  import { Router, Route } from "svelte-navigator";
+
   import { dataStore } from './lib/DataStores.js';
   import Header from './lib/Header.svelte';
   import Dashboard from './lib/Dashboard.svelte';
+  import ConfigurationPanel from './lib/ConfigurationPanel.svelte';
 
   let data = {};
   dataStore.subscribe(update => {
@@ -10,6 +13,14 @@
   </script>
 
 <div class="container mx-auto m-3">
-  <Header data={data}/>
-  <Dashboard data={data}/>
+  <Router>
+    <Header data={data}/>
+    <Route path="/">
+      <Dashboard data={data}/>
+    </Route>
+    <Route path="/configuration">
+      <ConfigurationPanel/>
+    </Route>
+  </Router>
+  
 </div>

@@ -567,6 +567,20 @@ void AmsWebServer::configEntsoeHtml() {
 		html.replace("{eaDk1}", strcmp(entsoe.area, "10YDK-1--------W") == 0 ? "selected" : "");
 		html.replace("{eaDk2}", strcmp(entsoe.area, "10YDK-2--------M") == 0 ? "selected" : "");
 
+		html.replace("{at}", strcmp(entsoe.area, "10YAT-APG------L") == 0 ? "selected" : "");
+		html.replace("{be}", strcmp(entsoe.area, "10YBE----------2") == 0 ? "selected" : "");
+		html.replace("{cz}", strcmp(entsoe.area, "10YCZ-CEPS-----N") == 0 ? "selected" : "");
+		html.replace("{ee}", strcmp(entsoe.area, "10Y1001A1001A39I") == 0 ? "selected" : "");
+		html.replace("{fi}", strcmp(entsoe.area, "10YFI-1--------U") == 0 ? "selected" : "");
+		html.replace("{fr}", strcmp(entsoe.area, "10YFR-RTE------C") == 0 ? "selected" : "");
+		html.replace("{de}", strcmp(entsoe.area, "10Y1001A1001A83F") == 0 ? "selected" : "");
+		html.replace("{gb}", strcmp(entsoe.area, "10YGB----------A") == 0 ? "selected" : "");
+		html.replace("{lv}", strcmp(entsoe.area, "10YLV-1001A00074") == 0 ? "selected" : "");
+		html.replace("{lt}", strcmp(entsoe.area, "10YLT-1001A0008Q") == 0 ? "selected" : "");
+		html.replace("{nl}", strcmp(entsoe.area, "10YNL----------L") == 0 ? "selected" : "");
+		html.replace("{pl}", strcmp(entsoe.area, "10YPL-AREA-----S") == 0 ? "selected" : "");
+		html.replace("{ch}", strcmp(entsoe.area, "10YCH-SWISSGRIDZ") == 0 ? "selected" : "");
+
 		html.replace("{ecNOK}", strcmp(entsoe.currency, "NOK") == 0 ? "selected" : "");
 		html.replace("{ecSEK}", strcmp(entsoe.currency, "SEK") == 0 ? "selected" : "");
 		html.replace("{ecDKK}", strcmp(entsoe.currency, "DKK") == 0 ? "selected" : "");

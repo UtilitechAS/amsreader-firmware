@@ -525,6 +525,7 @@ bool AmsConfiguration::setEnergyAccountingConfig(EnergyAccountingConfig& config)
 			}
 		}
 		config.thresholds[9] = 255;
+		energyAccountingChanged |= config.hours != existing.hours;
 	} else {
 		energyAccountingChanged = true;
 	}

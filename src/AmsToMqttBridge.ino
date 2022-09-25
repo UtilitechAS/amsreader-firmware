@@ -65,7 +65,7 @@ ADC_MODE(ADC_VCC);
 #include "RemoteDebug.h"
 
 #define BUF_SIZE_COMMON (2048)
-#define BUF_SIZE_HAN (1024)
+#define BUF_SIZE_HAN (1280)
 
 #include "IEC6205621.h"
 #include "IEC6205675.h"
@@ -1260,18 +1260,7 @@ void MQTT_connect() {
 		mqtt->disconnect();
 		yield();
 	} else {
-		uint16_t size = 256;
-		switch(mqttConfig.payloadFormat) {
-			case 0: // JSON
-			case 4: // Home Assistant
-				size = 768;
-				break;
-			case 255: // Raw frame
-				size = 1024;
-				break;
-		}
-
-		mqtt = new MQTTClient(size);
+		mqtt = new MQTTClient(1024);
 		ws.setMqtt(mqtt);
 	}
 

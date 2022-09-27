@@ -512,6 +512,7 @@ void loop() {
 			if (mqttEnabled || config.isMqttChanged()) {
 				if(mqtt == NULL || !mqtt->connected() || config.isMqttChanged()) {
 					MQTT_connect();
+					config.ackMqttChange();
 				}
 			} else if(mqtt != NULL && mqtt->connected()) {
 				mqttClient->stop();
@@ -1243,7 +1244,6 @@ void MQTT_connect() {
 		if(Debug.isActive(RemoteDebug::WARNING)) debugW("No MQTT config");
 		mqttEnabled = false;
 		ws.setMqttEnabled(false);
-		config.ackMqttChange();
 		return;
 	}
 	if(mqtt != NULL) {
@@ -1258,6 +1258,16 @@ void MQTT_connect() {
 		}
 
 		mqtt->disconnect();
+		if(config.isMqttChanged()) {
+			if(mqttSecureClient != NULL) {
+				mqttSecureClient->stop();
+				delete mqttSecureClient;
+				mqttSecureClient = NULL;
+			} else {
+				mqttClient->stop();
+			}
+			mqttClient = NULL;
+		}
 		yield();
 	} else {
 		mqtt = new MQTTClient(1024);
@@ -1295,54 +1305,54 @@ void MQTT_connect() {
 		debugI("MQTT SSL is configured (%dkb free heap)", ESP.getFreeHeap());
 		if(mqttSecureClient == NULL) {
 			mqttSecureClient = new WiFiClientSecure();
-		}
-		#if defined(ESP8266)
-			mqttSecureClient->setBufferSizes(512, 512);
-		#endif
-	
-		if(LittleFS.begin()) {
-			File file;
+			#if defined(ESP8266)
+				mqttSecureClient->setBufferSizes(512, 512);
+			#endif
+		
+			if(LittleFS.begin()) {
+				File file;
 
-			if(LittleFS.exists(FILE_MQTT_CA)) {
-				debugI("Found MQTT CA file (%dkb free heap)", ESP.getFreeHeap());
-				file = LittleFS.open(FILE_MQTT_CA, "r");
-				#if defined(ESP8266)
-					BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(file);
-                    mqttSecureClient->setTrustAnchors(serverTrustedCA);
-				#elif defined(ESP32)
-					mqttSecureClient->loadCACert(file, file.size());
-				#endif
-				file.close();
+				if(LittleFS.exists(FILE_MQTT_CA)) {
+					debugI("Found MQTT CA file (%dkb free heap)", ESP.getFreeHeap());
+					file = LittleFS.open(FILE_MQTT_CA, "r");
+					#if defined(ESP8266)
+						BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(file);
+						mqttSecureClient->setTrustAnchors(serverTrustedCA);
+					#elif defined(ESP32)
+						mqttSecureClient->loadCACert(file, file.size());
+					#endif
+					file.close();
+				}
+
+				if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
+					#if defined(ESP8266)
+						debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_CERT, "r");
+						BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
+						file.close();
+
+						debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_KEY, "r");
+						BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
+						file.close();
+
+						debugD("Setting client certificates (%dkb free heap)", ESP.getFreeHeap());
+						mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
+					#elif defined(ESP32)
+						debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_CERT, "r");
+						mqttSecureClient->loadCertificate(file, file.size());
+						file.close();
+
+						debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_KEY, "r");
+						mqttSecureClient->loadPrivateKey(file, file.size());
+						file.close();
+					#endif
+				}
+				LittleFS.end();
+				debugD("MQTT SSL setup complete (%dkb free heap)", ESP.getFreeHeap());
 			}
-
-			if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
-				#if defined(ESP8266)
-					debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
-					file = LittleFS.open(FILE_MQTT_CERT, "r");
-				 	BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
-					file.close();
-
-					debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
-					file = LittleFS.open(FILE_MQTT_KEY, "r");
-  					BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
-					file.close();
-
-					debugD("Setting client certificates (%dkb free heap)", ESP.getFreeHeap());
-					mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
-				#elif defined(ESP32)
-					debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
-					file = LittleFS.open(FILE_MQTT_CERT, "r");
-					mqttSecureClient->loadCertificate(file, file.size());
-					file.close();
-
-					debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
-					file = LittleFS.open(FILE_MQTT_KEY, "r");
-					mqttSecureClient->loadPrivateKey(file, file.size());
-					file.close();
-				#endif
-			}
-			LittleFS.end();
-			debugD("MQTT SSL setup complete (%dkb free heap)", ESP.getFreeHeap());
 		}
 		mqttClient = mqttSecureClient;
 	} else if(mqttClient == NULL) {
@@ -1367,7 +1377,6 @@ void MQTT_connect() {
 	if ((strlen(mqttConfig.username) == 0 && mqtt->connect(mqttConfig.clientId)) ||
 		(strlen(mqttConfig.username) > 0 && mqtt->connect(mqttConfig.clientId, mqttConfig.username, mqttConfig.password))) {
 		if (Debug.isActive(RemoteDebug::INFO)) debugI("Successfully connected to MQTT!");
-		config.ackMqttChange();
 		
 		if(mqttHandler != NULL) {
 			mqttHandler->publishSystem(&hw);

@@ -211,7 +211,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
     return true;
 }
 
-bool RawMqttHandler::publishSystem(HwTools* hw) {
+bool RawMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 

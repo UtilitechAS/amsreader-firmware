@@ -19,7 +19,7 @@ public:
     virtual bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea);
     virtual bool publishTemperatures(AmsConfiguration*, HwTools*);
     virtual bool publishPrices(EntsoeApi* eapi);
-    virtual bool publishSystem(HwTools*);
+    virtual bool publishSystem(HwTools*, EntsoeApi*, EnergyAccounting*);
 
 protected:
     MQTTClient* mqtt;

@@ -271,7 +271,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
     return mqtt->publish(topic, json);
 }
 
-bool JsonMqttHandler::publishSystem(HwTools* hw) {
+bool JsonMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
 	if(init || topic.isEmpty() || !mqtt->connected())
 		return false;
 

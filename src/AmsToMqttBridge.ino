@@ -594,7 +594,7 @@ void loop() {
 		}
 		if(now - lastSysupdate > 10000) {
 			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-				mqttHandler->publishSystem(&hw);
+				mqttHandler->publishSystem(&hw, eapi, &ea);
 			}
 			lastSysupdate = now;
 		}
@@ -1379,7 +1379,7 @@ void MQTT_connect() {
 		if (Debug.isActive(RemoteDebug::INFO)) debugI("Successfully connected to MQTT!");
 		
 		if(mqttHandler != NULL) {
-			mqttHandler->publishSystem(&hw);
+			mqttHandler->publishSystem(&hw, eapi, &ea);
 		}
 
 		// Subscribe to the chosen MQTT topic, if set in configuration

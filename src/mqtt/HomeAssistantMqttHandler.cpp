@@ -248,6 +248,7 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
             uid.replace(".", "");
             uid.replace("[", "");
             uid.replace("]", "");
+            uid.replace("'", "");
             String uom = String(sensor.uom);
             if(strncmp(sensor.devcl, "monetary", 8) == 0) {
                 if(eapi == NULL) continue;

@@ -890,7 +890,7 @@ var fetch = function() {
 
 var upgrade = function() {
     if(nextVersion) {
-        if(confirm("WARNING: If you have a BUS powered device (Pow-U), please keep USB power connected while upgrading.\n\nAre you sure you want to perform upgrade to " + nextVersion.tag_name + "?")) {
+        if(confirm("WARNING: If you have a M-BUS powered device (Pow-U), please keep USB power connected while upgrading.\n\nAre you sure you want to perform upgrade to " + nextVersion.tag_name + "?")) {
             $('#loading-indicator').show();
             window.location.href="/upgrade?version=" + nextVersion.tag_name;
         }

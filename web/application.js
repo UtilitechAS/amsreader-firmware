@@ -316,6 +316,7 @@ $(function() {
             url: swv.data('url'),
             dataType: 'json'
         }).done(function(releases) {
+            var isnew = false;
             if(/^v\d{1,2}\.\d{1,2}\.\d{1,2}$/.test(swv.text()) && fwl.length == 0) {
                 releases.reverse();
                 var next_patch;
@@ -352,10 +353,13 @@ $(function() {
                 });
                 if(next_minor) {
                     nextVersion = next_minor;
+                    isnew = true;
                 } else if(next_major) {
                     nextVersion = next_major;
+                    isnew = true;
                 } else if(next_patch) {
                     nextVersion = next_patch;
+                    isnew = true;
                 }
             } else {
                 nextVersion = releases[0];
@@ -375,9 +379,11 @@ $(function() {
                         }
                     });
                 };
-                $('#newVersionTag').text(nextVersion.tag_name);
-                $('#newVersionUrl').prop('href', nextVersion.html_url);
-                $('#newVersion').removeClass('d-none');
+                if(isnew) {
+                    $('#newVersionTag').text(nextVersion.tag_name);
+                    $('#newVersionUrl').prop('href', nextVersion.html_url);
+                    $('#newVersion').removeClass('d-none');
+                }
             }
         });
     }
@@ -884,7 +890,7 @@ var fetch = function() {
 
 var upgrade = function() {
     if(nextVersion) {
-        if(confirm("WARNING: Please keep USB power connected while upgrading. Are you sure you want to perform upgrade to " + nextVersion.tag_name + "?")) {
+        if(confirm("WARNING: If you have a BUS powered device (Pow-U), please keep USB power connected while upgrading.\n\nAre you sure you want to perform upgrade to " + nextVersion.tag_name + "?")) {
             $('#loading-indicator').show();
             window.location.href="/upgrade?version=" + nextVersion.tag_name;
         }

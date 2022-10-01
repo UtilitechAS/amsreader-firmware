@@ -850,21 +850,26 @@ bool readHanPort() {
 	}
 
 	AmsData data;
+	char* payload = ((char *) (hanBuffer)) + pos;
 	if(ctx.type == DATA_TAG_DLMS) {
 		// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
-			mqtt->publish(topic.c_str(), toHex(hanBuffer+pos, ctx.length));
+			mqtt->publish(topic.c_str(), toHex((byte*) payload, ctx.length));
 			mqtt->loop();
 		}
 
 		debugV("Using application data:");
-		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint(hanBuffer+pos, 0, ctx.length);
+		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint((byte*) payload, 0, ctx.length);
 
-		// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
-		//data = IEC6205675(((char *) (hanBuffer)) + pos, meterState.getMeterType(), &meterConfig, ctx);
-		data = LNG(((char *) (hanBuffer)) + pos, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+		// Rudimentary detector for L&G proprietary format
+		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
+			data = LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+		} else {
+			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
+			data = IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx);
+		}
 	} else if(ctx.type == DATA_TAG_DSMR) {
-		data = IEC6205621(((char *) (hanBuffer)) + pos);
+		data = IEC6205621(payload);
 	}
 	len = 0;
 

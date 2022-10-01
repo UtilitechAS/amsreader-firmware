@@ -90,7 +90,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/debugging", HTTP_GET, std::bind(&AmsWebServer::configDebugHtml, this));
 
 	server.on("/firmware", HTTP_GET, std::bind(&AmsWebServer::firmwareHtml, this));
-	server.on("/firmware", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::firmwareUpload, this));
+	server.on("/firmware", HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::firmwareUpload, this));
 	server.on("/upgrade", HTTP_GET, std::bind(&AmsWebServer::firmwareDownload, this));
 	server.on("/restart", HTTP_GET, std::bind(&AmsWebServer::restartHtml, this));
 	server.on("/restart", HTTP_POST, std::bind(&AmsWebServer::restartPost, this));
@@ -1663,13 +1663,40 @@ void AmsWebServer::firmwareHtml() {
 	server.sendContent_P(FOOT_HTML);
 }
 
+void AmsWebServer::firmwarePost() {
+	printD("Handlling firmware post...");
+	if(!checkSecurity(1))
+		return;
+	
+	if(rebootForUpgrade) {
+		server.send(200);
+	} else {
+		if(server.hasArg("url")) {
+			String url = server.arg("url");
+			if(!url.isEmpty() && (url.startsWith("http://") || url.startsWith("https://"))) {
+				printD("Custom firmware URL was provided");
+				customFirmwareUrl = url;
+				performUpgrade = true;
+				server.sendHeader("Location","/restart-wait");
+				server.send(303);
+				return;
+			}
+		}
+		server.sendHeader("Location","/firmware");
+		server.send(303);
+	}
+}
+
 void AmsWebServer::firmwareUpload() {
+	printD("Handlling firmware upload...");
 	if(!checkSecurity(1))
 		return;
 
 	HTTPUpload& upload = server.upload();
+	String filename = upload.filename;
+	if(filename.isEmpty()) return;
+
     if(upload.status == UPLOAD_FILE_START) {
-        String filename = upload.filename;
         if(!filename.endsWith(".bin")) {
             server.send(500, MIME_PLAIN, "500: couldn't create file");
 		} else {
@@ -1778,7 +1805,7 @@ void AmsWebServer::restartWaitHtml() {
 		performRestart = false;
 	} else if(performUpgrade) {
 		WiFiClient client;
-		String url = "http://ams2mqtt.rewiredinvent.no/hub/firmware/update";
+		String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith("http") ? "http://ams2mqtt.rewiredinvent.no/hub/firmware/update" : customFirmwareUrl;
 		#if defined(ESP8266)
 			String chipType = "esp8266";
 		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -1792,9 +1819,11 @@ void AmsWebServer::restartWaitHtml() {
 		#endif
 
 		#if defined(ESP8266)
+			ESPhttpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
 		#elif defined(ESP32)
 			HTTPUpdate httpUpdate;
+			httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 			HTTPUpdateResult ret = httpUpdate.update(client, url, String(VERSION) + "-" + chipType);
 		#endif
 

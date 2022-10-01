@@ -61,6 +61,7 @@ private:
 	bool performRestart = false;
 	bool performUpgrade = false;
 	bool rebootForUpgrade = false;
+	String customFirmwareUrl;
 
     static const uint16_t BufferSize = 2048;
     char* buf;
@@ -104,6 +105,7 @@ private:
 
 	String getSerialSelectOptions(int selected);
 	void firmwareHtml();
+	void firmwarePost();
 	void firmwareUpload();
 	void firmwareDownload();
 	void restartHtml();

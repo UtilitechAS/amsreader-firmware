@@ -4,12 +4,12 @@
 #include "Arduino.h"
 
 struct HomeAssistantSensor {
-    char* name;
-    char* topic;
-    char* path;
-    char* uom;
-    char* devcl;
-    char* stacl;
+    const char* name;
+    const char* topic;
+    const char* path;
+    const char* uom;
+    const char* devcl;
+    const char* stacl;
 };
 
 

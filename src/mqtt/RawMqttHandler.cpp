@@ -11,6 +11,24 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccountin
     }
     switch(data->getListType()) {
         case 4:
+            if(full || meterState->getL1ActiveImportPower() != data->getL1ActiveImportPower()) {
+                mqtt->publish(topic + "/meter/import/l1", String(data->getL1ActiveImportPower(), 2));
+            }
+            if(full || meterState->getL2ActiveImportPower() != data->getL2ActiveImportPower()) {
+                mqtt->publish(topic + "/meter/import/l2", String(data->getL2ActiveImportPower(), 2));
+            }
+            if(full || meterState->getL3ActiveImportPower() != data->getL3ActiveImportPower()) {
+                mqtt->publish(topic + "/meter/import/l3", String(data->getL3ActiveImportPower(), 2));
+            }
+            if(full || meterState->getL1ActiveExportPower() != data->getL1ActiveExportPower()) {
+                mqtt->publish(topic + "/meter/export/l1", String(data->getL1ActiveExportPower(), 2));
+            }
+            if(full || meterState->getL2ActiveExportPower() != data->getL2ActiveExportPower()) {
+                mqtt->publish(topic + "/meter/export/l2", String(data->getL2ActiveExportPower(), 2));
+            }
+            if(full || meterState->getL3ActiveExportPower() != data->getL3ActiveExportPower()) {
+                mqtt->publish(topic + "/meter/export/l3", String(data->getL3ActiveExportPower(), 2));
+            }
             if(full || meterState->getPowerFactor() != data->getPowerFactor()) {
                 mqtt->publish(topic + "/meter/powerfactor", String(data->getPowerFactor(), 2));
             }

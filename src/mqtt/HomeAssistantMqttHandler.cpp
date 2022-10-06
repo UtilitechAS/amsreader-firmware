@@ -64,9 +64,11 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
     }
 
 	String peaks = "";
-	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
+    uint8_t peakCount = ea->getConfig()->hours;
+    if(peakCount > 5) peakCount = 5;
+	for(uint8_t i = 1; i <= peakCount; i++) {
 		if(!peaks.isEmpty()) peaks += ",";
-		peaks += String(ea->getPeak(i));
+		peaks += String(ea->getPeak(i), 2);
 	}
     snprintf_P(json, BufferSize, REALTIME_JSON,
 		ea->getMonthMax(),
@@ -246,6 +248,8 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
         #endif
         String haUrl = "http://" + haUID + ".local/";
         // Could this be necessary? haUID.replace("-", "_");
+        uint8_t peakCount = ea->getConfig()->hours;
+        if(peakCount > 5) peakCount = 5;
 
         uint8_t peaks = 0;
         for(int i=0;i<HA_SENSOR_COUNT;i++) {
@@ -261,7 +265,7 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
                 uom = String(eapi->getCurrency());
             }
             if(strncmp(sensor.path, "peaks[", 6) == 0) {
-                if(peaks >= ea->getConfig()->hours) continue;
+                if(peaks >= peakCount) continue;
                 peaks++;
             }
             snprintf_P(json, BufferSize, HADISCOVER_JSON,

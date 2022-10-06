@@ -237,11 +237,12 @@ float EnergyAccounting::getMonthMax() {
     uint32_t maxHour = 0.0;
     bool included[5] = { false, false, false, false, false };
 
-    while(count < config->hours) {
+    while(count < config->hours && count <= 5) {
         uint8_t maxIdx = 0;
         uint16_t maxVal = 0;
         for(uint8_t i = 0; i < 5; i++) {
             if(included[i]) continue;
+            if(data.peaks[i].day == 0) continue;
             if(data.peaks[i].value > maxVal) {
                 maxVal = data.peaks[i].value;
                 maxIdx = i;
@@ -253,9 +254,7 @@ float EnergyAccounting::getMonthMax() {
 
     for(uint8_t i = 0; i < 5; i++) {
         if(!included[i]) continue;
-        if(data.peaks[i].day > 0) {
-            maxHour += data.peaks[i].value;
-        }
+        maxHour += data.peaks[i].value;
     }
     return maxHour > 0 ? maxHour / count / 100.0 : 0.0;
 }
@@ -266,7 +265,7 @@ float EnergyAccounting::getPeak(uint8_t num) {
     uint8_t count = 0;
     bool included[5] = { false, false, false, false, false };
 
-    while(count < config->hours) {
+    while(count < config->hours && count <= 5) {
         uint8_t maxIdx = 0;
         uint16_t maxVal = 0;
         for(uint8_t i = 0; i < 5; i++) {
@@ -341,7 +340,7 @@ bool EnergyAccounting::load() {
                     this->data.peaks[b].day = b;
                     memcpy(&this->data.peaks[b].value, buf+i, 2);
                     b++;
-                    if(b >= config->hours) break;
+                    if(b >= config->hours || b >= 5) break;
                 }
                 ret = true;
             } else if(buf[0] == 1) {

@@ -62,7 +62,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
     if(peakCount > 5) peakCount = 5;
 	for(uint8_t i = 1; i <= peakCount; i++) {
 		if(!peaks.isEmpty()) peaks += ",";
-		peaks += String(ea->getPeak(i));
+		peaks += String(ea->getPeak(i), 2);
 	}
     snprintf_P(json, BufferSize, REALTIME_JSON,
 		ea->getMonthMax(),

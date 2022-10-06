@@ -517,6 +517,7 @@ bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config)
 }
 
 bool AmsConfiguration::setEnergyAccountingConfig(EnergyAccountingConfig& config) {
+	if(config.hours > 5) config.hours = 5;
 	EnergyAccountingConfig existing;
 	if(getEnergyAccountingConfig(existing)) {
 		for(int i = 0; i < 9; i++) {

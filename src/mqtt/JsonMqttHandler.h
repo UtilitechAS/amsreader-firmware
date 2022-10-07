@@ -13,7 +13,7 @@ public:
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(EntsoeApi*);
-    bool publishSystem(HwTools*);
+    bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
 
 private:
     String clientId;

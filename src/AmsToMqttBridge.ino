@@ -65,10 +65,11 @@ ADC_MODE(ADC_VCC);
 #include "RemoteDebug.h"
 
 #define BUF_SIZE_COMMON (2048)
-#define BUF_SIZE_HAN (1024)
+#define BUF_SIZE_HAN (1280)
 
 #include "IEC6205621.h"
 #include "IEC6205675.h"
+#include "LNG.h"
 
 #include "ams/DataParsers.h"
 
@@ -509,6 +510,7 @@ void loop() {
 			if (mqttEnabled || config.isMqttChanged()) {
 				if(mqtt == NULL || !mqtt->connected() || config.isMqttChanged()) {
 					MQTT_connect();
+					config.ackMqttChange();
 				}
 			} else if(mqtt != NULL && mqtt->connected()) {
 				mqttClient->stop();
@@ -588,7 +590,7 @@ void loop() {
 		}
 		if(now - lastSysupdate > 10000) {
 			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-				mqttHandler->publishSystem(&hw);
+				mqttHandler->publishSystem(&hw, eapi, &ea);
 			}
 			lastSysupdate = now;
 		}
@@ -830,6 +832,7 @@ bool readHanPort() {
 		len += hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
 		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 			mqtt->publish(topic.c_str(), toHex(hanBuffer+pos, len));
+			mqtt->loop();
 		}
 		while(hanSerial->available()) hanSerial->read(); // Make sure it is all empty, in case we overflowed buffer above
 		len = 0;
@@ -842,19 +845,26 @@ bool readHanPort() {
 	}
 
 	AmsData data;
+	char* payload = ((char *) (hanBuffer)) + pos;
 	if(ctx.type == DATA_TAG_DLMS) {
 		// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
-			mqtt->publish(topic.c_str(), toHex(hanBuffer+pos, ctx.length));
+			mqtt->publish(topic.c_str(), toHex((byte*) payload, ctx.length));
+			mqtt->loop();
 		}
 
 		debugV("Using application data:");
-		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint(hanBuffer+pos, 0, ctx.length);
+		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint((byte*) payload, 0, ctx.length);
 
-		// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
-		data = IEC6205675(((char *) (hanBuffer)) + pos, meterState.getMeterType(), &meterConfig, ctx);
+		// Rudimentary detector for L&G proprietary format
+		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
+			data = LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+		} else {
+			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
+			data = IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx);
+		}
 	} else if(ctx.type == DATA_TAG_DSMR) {
-		data = IEC6205621(((char *) (hanBuffer)) + pos);
+		data = IEC6205621(payload);
 	}
 	len = 0;
 
@@ -1036,7 +1046,7 @@ void WiFi_connect() {
 			}	
 		#endif
 		WiFi.mode(WIFI_STA);
-		WiFi.setSleep(WIFI_PS_MIN_MODEM);
+		WiFi.setSleep(WIFI_PS_MAX_MODEM);
 		#if defined(ESP32)
 			if(wifi.power >= 195)
 				WiFi.setTxPower(WIFI_POWER_19_5dBm);
@@ -1170,6 +1180,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), toHex(buf, curLen));
+						mqtt->loop();
 					}
 					break;
 				case DATA_TAG_MBUS:
@@ -1177,6 +1188,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), toHex(buf, curLen));
+						mqtt->loop();
 					}
 					break;
 				case DATA_TAG_GBT:
@@ -1195,6 +1207,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					debugV("DSMR frame:");
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), (char*) buf);
+						mqtt->loop();
 					}
 					break;
 			}
@@ -1233,7 +1246,6 @@ void MQTT_connect() {
 		if(Debug.isActive(RemoteDebug::WARNING)) debugW("No MQTT config");
 		mqttEnabled = false;
 		ws.setMqttEnabled(false);
-		config.ackMqttChange();
 		return;
 	}
 	if(mqtt != NULL) {
@@ -1248,20 +1260,19 @@ void MQTT_connect() {
 		}
 
 		mqtt->disconnect();
+		if(config.isMqttChanged()) {
+			if(mqttSecureClient != NULL) {
+				mqttSecureClient->stop();
+				delete mqttSecureClient;
+				mqttSecureClient = NULL;
+			} else {
+				mqttClient->stop();
+			}
+			mqttClient = NULL;
+		}
 		yield();
 	} else {
-		uint16_t size = 256;
-		switch(mqttConfig.payloadFormat) {
-			case 0: // JSON
-			case 4: // Home Assistant
-				size = 768;
-				break;
-			case 255: // Raw frame
-				size = 1024;
-				break;
-		}
-
-		mqtt = new MQTTClient(size);
+		mqtt = new MQTTClient(1024);
 		ws.setMqtt(mqtt);
 	}
 
@@ -1296,54 +1307,54 @@ void MQTT_connect() {
 		debugI("MQTT SSL is configured (%dkb free heap)", ESP.getFreeHeap());
 		if(mqttSecureClient == NULL) {
 			mqttSecureClient = new WiFiClientSecure();
-		}
-		#if defined(ESP8266)
-			mqttSecureClient->setBufferSizes(512, 512);
-		#endif
-	
-		if(LittleFS.begin()) {
-			File file;
+			#if defined(ESP8266)
+				mqttSecureClient->setBufferSizes(512, 512);
+			#endif
+		
+			if(LittleFS.begin()) {
+				File file;
 
-			if(LittleFS.exists(FILE_MQTT_CA)) {
-				debugI("Found MQTT CA file (%dkb free heap)", ESP.getFreeHeap());
-				file = LittleFS.open(FILE_MQTT_CA, "r");
-				#if defined(ESP8266)
-					BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(file);
-                    mqttSecureClient->setTrustAnchors(serverTrustedCA);
-				#elif defined(ESP32)
-					mqttSecureClient->loadCACert(file, file.size());
-				#endif
-				file.close();
+				if(LittleFS.exists(FILE_MQTT_CA)) {
+					debugI("Found MQTT CA file (%dkb free heap)", ESP.getFreeHeap());
+					file = LittleFS.open(FILE_MQTT_CA, "r");
+					#if defined(ESP8266)
+						BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(file);
+						mqttSecureClient->setTrustAnchors(serverTrustedCA);
+					#elif defined(ESP32)
+						mqttSecureClient->loadCACert(file, file.size());
+					#endif
+					file.close();
+				}
+
+				if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
+					#if defined(ESP8266)
+						debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_CERT, "r");
+						BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
+						file.close();
+
+						debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_KEY, "r");
+						BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
+						file.close();
+
+						debugD("Setting client certificates (%dkb free heap)", ESP.getFreeHeap());
+						mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
+					#elif defined(ESP32)
+						debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_CERT, "r");
+						mqttSecureClient->loadCertificate(file, file.size());
+						file.close();
+
+						debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_KEY, "r");
+						mqttSecureClient->loadPrivateKey(file, file.size());
+						file.close();
+					#endif
+				}
+				LittleFS.end();
+				debugD("MQTT SSL setup complete (%dkb free heap)", ESP.getFreeHeap());
 			}
-
-			if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
-				#if defined(ESP8266)
-					debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
-					file = LittleFS.open(FILE_MQTT_CERT, "r");
-				 	BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
-					file.close();
-
-					debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
-					file = LittleFS.open(FILE_MQTT_KEY, "r");
-  					BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
-					file.close();
-
-					debugD("Setting client certificates (%dkb free heap)", ESP.getFreeHeap());
-					mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
-				#elif defined(ESP32)
-					debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
-					file = LittleFS.open(FILE_MQTT_CERT, "r");
-					mqttSecureClient->loadCertificate(file, file.size());
-					file.close();
-
-					debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
-					file = LittleFS.open(FILE_MQTT_KEY, "r");
-					mqttSecureClient->loadPrivateKey(file, file.size());
-					file.close();
-				#endif
-			}
-			LittleFS.end();
-			debugD("MQTT SSL setup complete (%dkb free heap)", ESP.getFreeHeap());
 		}
 		mqttClient = mqttSecureClient;
 	} else if(mqttClient == NULL) {
@@ -1368,10 +1379,9 @@ void MQTT_connect() {
 	if ((strlen(mqttConfig.username) == 0 && mqtt->connect(mqttConfig.clientId)) ||
 		(strlen(mqttConfig.username) > 0 && mqtt->connect(mqttConfig.clientId, mqttConfig.username, mqttConfig.password))) {
 		if (Debug.isActive(RemoteDebug::INFO)) debugI("Successfully connected to MQTT!");
-		config.ackMqttChange();
 		
 		if(mqttHandler != NULL) {
-			mqttHandler->publishSystem(&hw);
+			mqttHandler->publishSystem(&hw, eapi, &ea);
 		}
 
 		// Subscribe to the chosen MQTT topic, if set in configuration

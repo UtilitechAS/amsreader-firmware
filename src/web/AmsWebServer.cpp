@@ -90,7 +90,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on("/debugging", HTTP_GET, std::bind(&AmsWebServer::configDebugHtml, this));
 
 	server.on("/firmware", HTTP_GET, std::bind(&AmsWebServer::firmwareHtml, this));
-	server.on("/firmware", HTTP_POST, std::bind(&AmsWebServer::uploadPost, this), std::bind(&AmsWebServer::firmwareUpload, this));
+	server.on("/firmware", HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::firmwareUpload, this));
 	server.on("/upgrade", HTTP_GET, std::bind(&AmsWebServer::firmwareDownload, this));
 	server.on("/restart", HTTP_GET, std::bind(&AmsWebServer::restartHtml, this));
 	server.on("/restart", HTTP_POST, std::bind(&AmsWebServer::restartPost, this));
@@ -336,6 +336,9 @@ void AmsWebServer::configMeterHtml() {
 		case AmsTypeSagemcom:
 			manufacturer = "Sagemcom";
 			break;
+		case AmsTypeLng:
+			manufacturer = "L&G";
+			break;
 		default:
 			manufacturer = "Unknown";
 			break;
@@ -552,6 +555,12 @@ void AmsWebServer::configPriceApiHtml() {
 	if(ESP.getFreeHeap() > 32000) {
 		html.replace("{et}", entsoe.token);
 		html.replace("{dt}", "");
+		html.replace("{em}", String(entsoe.multiplier / 1000.0, 3));
+
+		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+		server.send_P(200, MIME_HTML, HEAD_HTML);
+		server.sendContent(html);
+		server.sendContent_P(FOOT_HTML);
 	} else {
 		html.replace("{et}", "");
 		html.replace("{dt}", "d-none");
@@ -571,6 +580,20 @@ void AmsWebServer::configPriceApiHtml() {
 
 	html.replace("{eaDk1}", strcmp(entsoe.area, "10YDK-1--------W") == 0 ? "selected" : "");
 	html.replace("{eaDk2}", strcmp(entsoe.area, "10YDK-2--------M") == 0 ? "selected" : "");
+
+	html.replace("{at}", strcmp(entsoe.area, "10YAT-APG------L") == 0 ? "selected" : "");
+	html.replace("{be}", strcmp(entsoe.area, "10YBE----------2") == 0 ? "selected" : "");
+	html.replace("{cz}", strcmp(entsoe.area, "10YCZ-CEPS-----N") == 0 ? "selected" : "");
+	html.replace("{ee}", strcmp(entsoe.area, "10Y1001A1001A39I") == 0 ? "selected" : "");
+	html.replace("{fi}", strcmp(entsoe.area, "10YFI-1--------U") == 0 ? "selected" : "");
+	html.replace("{fr}", strcmp(entsoe.area, "10YFR-RTE------C") == 0 ? "selected" : "");
+	html.replace("{de}", strcmp(entsoe.area, "10Y1001A1001A83F") == 0 ? "selected" : "");
+	html.replace("{gb}", strcmp(entsoe.area, "10YGB----------A") == 0 ? "selected" : "");
+	html.replace("{lv}", strcmp(entsoe.area, "10YLV-1001A00074") == 0 ? "selected" : "");
+	html.replace("{lt}", strcmp(entsoe.area, "10YLT-1001A0008Q") == 0 ? "selected" : "");
+	html.replace("{nl}", strcmp(entsoe.area, "10YNL----------L") == 0 ? "selected" : "");
+	html.replace("{pl}", strcmp(entsoe.area, "10YPL-AREA-----S") == 0 ? "selected" : "");
+	html.replace("{ch}", strcmp(entsoe.area, "10YCH-SWISSGRIDZ") == 0 ? "selected" : "");
 
 	html.replace("{ecNOK}", strcmp(entsoe.currency, "NOK") == 0 ? "selected" : "");
 	html.replace("{ecSEK}", strcmp(entsoe.currency, "SEK") == 0 ? "selected" : "");
@@ -593,9 +616,9 @@ void AmsWebServer::configThresholdsHtml() {
 
 	String html = String((const __FlashStringHelper*) THRESHOLDS_HTML);
 	for(int i = 0; i < 9; i++) {
-		html.replace("{t" + String(i) + "}", String(config->thresholds[i]));
+		html.replace("{t" + String(i) + "}", String(config->thresholds[i], 10));
 	}
-	html.replace("{h}", String(config->hours));
+	html.replace("{h}", String(config->hours, 10));
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, MIME_HTML, HEAD_HTML);
@@ -710,6 +733,12 @@ void AmsWebServer::dataJson() {
 	if(eapi != NULL)
 		price = eapi->getValueForHour(0);
 
+	String peaks = "";
+	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
+		if(!peaks.isEmpty()) peaks += ",";
+		peaks += String(ea->getPeak(i));
+	}
+
 	snprintf_P(buf, BufferSize, DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		meterConfig->productionCapacity,
@@ -746,6 +775,7 @@ void AmsWebServer::dataJson() {
 		meterState->getMeterType(),
 		meterConfig->distributionSystem,
 		ea->getMonthMax(),
+		peaks.c_str(),
 		ea->getCurrentThreshold(),
 		ea->getUseThisHour(),
 		ea->getCostThisHour(),
@@ -1644,13 +1674,40 @@ void AmsWebServer::firmwareHtml() {
 	server.sendContent_P(FOOT_HTML);
 }
 
+void AmsWebServer::firmwarePost() {
+	printD("Handlling firmware post...");
+	if(!checkSecurity(1))
+		return;
+	
+	if(rebootForUpgrade) {
+		server.send(200);
+	} else {
+		if(server.hasArg("url")) {
+			String url = server.arg("url");
+			if(!url.isEmpty() && (url.startsWith("http://") || url.startsWith("https://"))) {
+				printD("Custom firmware URL was provided");
+				customFirmwareUrl = url;
+				performUpgrade = true;
+				server.sendHeader("Location","/restart-wait");
+				server.send(303);
+				return;
+			}
+		}
+		server.sendHeader("Location","/firmware");
+		server.send(303);
+	}
+}
+
 void AmsWebServer::firmwareUpload() {
+	printD("Handlling firmware upload...");
 	if(!checkSecurity(1))
 		return;
 
 	HTTPUpload& upload = server.upload();
+	String filename = upload.filename;
+	if(filename.isEmpty()) return;
+
     if(upload.status == UPLOAD_FILE_START) {
-        String filename = upload.filename;
         if(!filename.endsWith(".bin")) {
             server.send(500, MIME_PLAIN, "500: couldn't create file");
 		} else {
@@ -1757,7 +1814,7 @@ void AmsWebServer::restartWaitHtml() {
 		performRestart = false;
 	} else if(performUpgrade) {
 		WiFiClient client;
-		String url = "http://ams2mqtt.rewiredinvent.no/hub/firmware/update";
+		String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith("http") ? "http://ams2mqtt.rewiredinvent.no/hub/firmware/update" : customFirmwareUrl;
 		#if defined(ESP8266)
 			String chipType = "esp8266";
 		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -1771,9 +1828,11 @@ void AmsWebServer::restartWaitHtml() {
 		#endif
 
 		#if defined(ESP8266)
+			ESPhttpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
 		#elif defined(ESP32)
 			HTTPUpdate httpUpdate;
+			httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
 			HTTPUpdateResult ret = httpUpdate.update(client, url, String(VERSION) + "-" + chipType);
 		#endif
 

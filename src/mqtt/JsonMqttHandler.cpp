@@ -1,4 +1,5 @@
 #include "JsonMqttHandler.h"
+#include "version.h"
 #include "hexutils.h"
 #include "Uptime.h"
 #include "web/root/json1_json.h"
@@ -270,7 +271,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
     return mqtt->publish(topic, json);
 }
 
-bool JsonMqttHandler::publishSystem(HwTools* hw) {
+bool JsonMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
 	if(init || topic.isEmpty() || !mqtt->connected())
 		return false;
 
@@ -280,7 +281,8 @@ bool JsonMqttHandler::publishSystem(HwTools* hw) {
         (uint32_t) (millis64()/1000),
         hw->getVcc(),
         hw->getWifiRssi(),
-        hw->getTemperature()
+        hw->getTemperature(),
+        VERSION
     );
     init = mqtt->publish(topic, json);
     return init;

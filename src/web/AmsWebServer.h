@@ -61,7 +61,11 @@ private:
 	bool performRestart = false;
 	bool performUpgrade = false;
 	bool rebootForUpgrade = false;
+	#if defined(AMS2MQTT_FIRMWARE_URL)
+	String customFirmwareUrl = AMS2MQTT_FIRMWARE_URL;
+	#else
 	String customFirmwareUrl;
+	#endif
 
     static const uint16_t BufferSize = 2048;
     char* buf;

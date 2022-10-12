@@ -1077,6 +1077,16 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->vccResistorGnd = 22;
 				gpioConfig->vccResistorVcc = 33;
 				break;
+			case 7: // Pow-U+
+				gpioConfig->hanPin = 16;
+				gpioConfig->apPin = 0;
+				gpioConfig->ledPinRed = 13;
+				gpioConfig->ledPinGreen = 14;
+				gpioConfig->ledRgbInverted = true;
+				gpioConfig->vccPin = 10;
+				gpioConfig->vccResistorGnd = 22;
+				gpioConfig->vccResistorVcc = 33;
+				break;
 			case 101: // D1
 				gpioConfig->hanPin = 5;
 				gpioConfig->apPin = 4;

@@ -1007,9 +1007,11 @@ void WiFi_connect() {
 				case WL_CONNECTION_LOST:
 					debugE("WiFi error, connection lost");
 					break;
+				#if defined(ESP8266)
 				case WL_WRONG_PASSWORD:
 					debugE("WiFi error, wrong password");
 					break;
+				#endif
 			}
 			if(wifiReconnectCount > 3) {
 				ESP.restart();
@@ -1044,7 +1046,9 @@ void WiFi_connect() {
 			WiFi.softAPdisconnect(true);
 			WiFi.enableAP(false);
 			WiFi.mode(WIFI_OFF);
-			WiFi.forceSleepBegin();
+			#if defined(ESP8266)
+				WiFi.forceSleepBegin();
+			#endif
 			yield();
 			return;
 		}

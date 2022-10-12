@@ -1007,7 +1007,7 @@ void AmsWebServer::handleSetup() {
 		server.sendHeader("Location", String("/"), true);
 		server.send (302, MIME_PLAIN, "");
 	} else {
-		SystemConfig sys { server.arg("board").toInt() };
+		SystemConfig sys { static_cast<uint8_t>(server.arg("board").toInt()) };
 
 		DebugConfig debugConfig;
 		config->getDebugConfig(debugConfig);
@@ -1287,11 +1287,11 @@ void AmsWebServer::handleSave() {
 	if(server.hasArg("dc") && server.arg("dc") == "true") {
 		printD("Received Domoticz config");
 		DomoticzConfig domo {
-			server.arg("elidx").toInt(),
-			server.arg("vl1idx").toInt(),
-			server.arg("vl2idx").toInt(),
-			server.arg("vl3idx").toInt(),
-			server.arg("cl1idx").toInt()
+			static_cast<uint16_t>(server.arg("elidx").toInt()),
+			static_cast<uint16_t>(server.arg("vl1idx").toInt()),
+			static_cast<uint16_t>(server.arg("vl2idx").toInt()),
+			static_cast<uint16_t>(server.arg("vl3idx").toInt()),
+			static_cast<uint16_t>(server.arg("cl1idx").toInt())
 		};
 		config->setDomoticzConfig(domo);
 	}
@@ -1368,8 +1368,8 @@ void AmsWebServer::handleSave() {
 		NtpConfig ntp {
 			server.hasArg("n") && server.arg("n") == "true",
 			server.hasArg("nd") && server.arg("nd") == "true",
-			server.arg("o").toInt() / 10,
-			server.arg("so").toInt() / 10
+			static_cast<int16_t>(server.arg("o").toInt() / 10),
+			static_cast<int16_t>(server.arg("so").toInt() / 10)
 		};
 		strcpy(ntp.server, server.arg("ns").c_str());
 		config->setNtpConfig(ntp);

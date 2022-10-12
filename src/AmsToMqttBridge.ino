@@ -1141,7 +1141,7 @@ void WiFi_connect() {
 void mqttMessageReceived(String &topic, String &payload) {
     debugI("Received message for topic %s", topic.c_str() );
 	if(meterConfig.source == METER_SOURCE_MQTT) {
-		DataParserContext ctx = {payload.length()/2};
+		DataParserContext ctx = {static_cast<uint8_t>(payload.length()/2)};
 		fromHex(hanBuffer, payload, ctx.length);
 		uint16_t pos = unwrapData(hanBuffer, ctx);
 		// TODO: Run through DLMS/DMSR parser and apply AmsData

@@ -6,6 +6,7 @@
 #include "web/root/ha1_json.h"
 #include "web/root/ha2_json.h"
 #include "web/root/ha3_json.h"
+#include "web/root/ha4_json.h"
 #include "web/root/jsonsys_json.h"
 #include "web/root/jsonprices_json.h"
 #include "web/root/hadiscover_json.h"
@@ -34,7 +35,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
             data->getActiveImportPower()
         );
         mqtt->publish(topic + "/power", json);
-    } else if(data->getListType() >= 2) { // publish power counts and volts/amps
+    } else if(data->getListType() <= 3) { // publish power counts and volts/amps
         snprintf_P(json, BufferSize, HA3_JSON,
             data->getListId().c_str(),
             data->getMeterId().c_str(),
@@ -42,6 +43,29 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
             data->getActiveImportPower(),
             data->getReactiveImportPower(),
             data->getActiveExportPower(),
+            data->getReactiveExportPower(),
+            data->getL1Current(),
+            data->getL2Current(),
+            data->getL3Current(),
+            data->getL1Voltage(),
+            data->getL2Voltage(),
+            data->getL3Voltage()
+        );
+        mqtt->publish(topic + "/power", json);
+    } else if(data->getListType() == 4) { // publish power counts and volts/amps/phase power and PF
+        snprintf_P(json, BufferSize, HA4_JSON,
+            data->getListId().c_str(),
+            data->getMeterId().c_str(),
+            meterModel.c_str(),
+            data->getActiveImportPower(),
+            data->getL1ActiveImportPower(),
+            data->getL2ActiveImportPower(),
+            data->getL3ActiveImportPower(),
+            data->getReactiveImportPower(),
+            data->getActiveExportPower(),
+            data->getL1ActiveExportPower(),
+            data->getL2ActiveExportPower(),
+            data->getL3ActiveExportPower(),
             data->getReactiveExportPower(),
             data->getL1Current(),
             data->getL2Current(),

@@ -27,7 +27,7 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx) {
     memcpy(ctx.system_title, ptr, systemTitleLength);
     memcpy(initialization_vector, ctx.system_title, systemTitleLength);
 
-    int len;
+    int len = 0;
     int headersize = 2 + systemTitleLength;
     ptr += systemTitleLength;
     if(((*ptr) & 0xFF) == 0x81) {

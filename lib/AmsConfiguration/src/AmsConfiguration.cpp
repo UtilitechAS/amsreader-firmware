@@ -517,6 +517,7 @@ bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config)
 }
 
 bool AmsConfiguration::setEnergyAccountingConfig(EnergyAccountingConfig& config) {
+	if(config.hours > 5) config.hours = 5;
 	EnergyAccountingConfig existing;
 	if(getEnergyAccountingConfig(existing)) {
 		for(int i = 0; i < 9; i++) {
@@ -525,6 +526,7 @@ bool AmsConfiguration::setEnergyAccountingConfig(EnergyAccountingConfig& config)
 			}
 		}
 		config.thresholds[9] = 255;
+		energyAccountingChanged |= config.hours != existing.hours;
 	} else {
 		energyAccountingChanged = true;
 	}
@@ -741,7 +743,7 @@ bool AmsConfiguration::relocateConfig86() {
 }
 
 bool AmsConfiguration::relocateConfig87() {
-	MeterConfig87 meter87;
+	MeterConfig87 meter87 = {0,0,0,0,0,0,0};
 	MeterConfig meter;
 	EEPROM.begin(EEPROM_SIZE);
     EEPROM.get(CONFIG_METER_START_87, meter87);

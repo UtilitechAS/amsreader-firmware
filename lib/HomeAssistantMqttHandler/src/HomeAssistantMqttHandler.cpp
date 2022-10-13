@@ -6,9 +6,11 @@
 #include "json/ha1_json.h"
 #include "json/ha2_json.h"
 #include "json/ha3_json.h"
+#include "json/ha4_json.h"
 #include "json/jsonsys_json.h"
 #include "json/jsonprices_json.h"
 #include "json/hadiscover_json.h"
+#include "json/realtime_json.h"
 
 bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected())
@@ -32,8 +34,8 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
         snprintf_P(json, BufferSize, HA1_JSON,
             data->getActiveImportPower()
         );
-        return mqtt->publish(topic + "/power", json);
-    } else if(data->getListType() >= 2) { // publish power counts and volts/amps
+        mqtt->publish(topic + "/power", json);
+    } else if(data->getListType() <= 3) { // publish power counts and volts/amps
         snprintf_P(json, BufferSize, HA3_JSON,
             data->getListId().c_str(),
             data->getMeterId().c_str(),
@@ -47,15 +49,62 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
             data->getL3Current(),
             data->getL1Voltage(),
             data->getL2Voltage(),
+            data->getL3Voltage()
+        );
+        mqtt->publish(topic + "/power", json);
+    } else if(data->getListType() == 4) { // publish power counts and volts/amps/phase power and PF
+        snprintf_P(json, BufferSize, HA4_JSON,
+            data->getListId().c_str(),
+            data->getMeterId().c_str(),
+            meterModel.c_str(),
+            data->getActiveImportPower(),
+            data->getL1ActiveImportPower(),
+            data->getL2ActiveImportPower(),
+            data->getL3ActiveImportPower(),
+            data->getReactiveImportPower(),
+            data->getActiveExportPower(),
+            data->getL1ActiveExportPower(),
+            data->getL2ActiveExportPower(),
+            data->getL3ActiveExportPower(),
+            data->getReactiveExportPower(),
+            data->getL1Current(),
+            data->getL2Current(),
+            data->getL3Current(),
+            data->getL1Voltage(),
+            data->getL2Voltage(),
             data->getL3Voltage(),
             data->getPowerFactor() == 0 ? 1 : data->getPowerFactor(),
             data->getPowerFactor() == 0 ? 1 : data->getL1PowerFactor(),
             data->getPowerFactor() == 0 ? 1 : data->getL2PowerFactor(),
             data->getPowerFactor() == 0 ? 1 : data->getL3PowerFactor()
         );
-        return mqtt->publish(topic + "/power", json);
+        mqtt->publish(topic + "/power", json);
     }
-    return false;
+
+	String peaks = "";
+    uint8_t peakCount = ea->getConfig()->hours;
+    if(peakCount > 5) peakCount = 5;
+	for(uint8_t i = 1; i <= peakCount; i++) {
+		if(!peaks.isEmpty()) peaks += ",";
+		peaks += String(ea->getPeak(i), 2);
+	}
+    snprintf_P(json, BufferSize, REALTIME_JSON,
+		ea->getMonthMax(),
+		peaks.c_str(),
+		ea->getCurrentThreshold(),
+		ea->getUseThisHour(),
+		ea->getCostThisHour(),
+		ea->getProducedThisHour(),
+		ea->getUseToday(),
+		ea->getCostToday(),
+		ea->getProducedToday(),
+		ea->getUseThisMonth(),
+		ea->getCostThisMonth(),
+		ea->getProducedThisMonth()
+    );
+    mqtt->publish(topic + "/realtime", json);
+
+    return true;
 }
 
 bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {
@@ -92,7 +141,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 
 	time_t now = time(nullptr);
 
-	float min1hr, min3hr, min6hr;
+	float min1hr = 0.0, min3hr = 0.0, min6hr = 0.0;
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[24];
@@ -142,7 +191,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 
 	}
 
-	char ts1hr[21];
+	char ts1hr[24];
 	if(min1hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
         //Serial.printf("1hr: %d %lu\n", min1hrIdx, ts);
@@ -150,7 +199,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         breakTime(ts, tm);
 		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
-	char ts3hr[21];
+	char ts3hr[24];
 	if(min3hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
         //Serial.printf("3hr: %d %lu\n", min3hrIdx, ts);
@@ -158,7 +207,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         breakTime(ts, tm);
 		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
-	char ts6hr[21];
+	char ts6hr[24];
 	if(min6hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
         //Serial.printf("6hr: %d %lu\n", min6hrIdx, ts);
@@ -187,10 +236,10 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         ts3hr,
         ts6hr
     );
-    return mqtt->publish(topic + "/prices", json);
+    return mqtt->publish(topic + "/prices", json, true, 0);
 }
 
-bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
+bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected()){
         sequence = 0;
 		return false;
@@ -217,27 +266,46 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw) {
         #endif
         String haUrl = "http://" + haUID + ".local/";
         // Could this be necessary? haUID.replace("-", "_");
+        uint8_t peakCount = ea->getConfig()->hours;
+        if(peakCount > 5) peakCount = 5;
 
-        for(int i=0;i<sensors;i++){
+        uint8_t peaks = 0;
+        for(int i=0;i<HA_SENSOR_COUNT;i++) {
+            HomeAssistantSensor sensor = HA_SENSORS[i];
+            String uid = String(sensor.path);
+            uid.replace(".", "");
+            uid.replace("[", "");
+            uid.replace("]", "");
+            uid.replace("'", "");
+            String uom = String(sensor.uom);
+            if(strncmp(sensor.devcl, "monetary", 8) == 0) {
+                if(eapi == NULL) continue;
+                uom = String(eapi->getCurrency());
+            }
+            if(strncmp(sensor.path, "peaks[", 6) == 0) {
+                if(peaks >= peakCount) continue;
+                peaks++;
+            }
             snprintf_P(json, BufferSize, HADISCOVER_JSON,
-                FPSTR(HA_NAMES[i]),
-                topic.c_str(), FPSTR(HA_TOPICS[i]),
-                haUID.c_str(), FPSTR(HA_PARAMS[i]),
-                haUID.c_str(), FPSTR(HA_PARAMS[i]),
-                FPSTR(HA_UOM[i]),
-                FPSTR(HA_PARAMS[i]),
-                FPSTR(HA_DEVCL[i]),
+                sensor.name,
+                topic.c_str(), sensor.topic,
+                haUID.c_str(), uid.c_str(),
+                haUID.c_str(), uid.c_str(),
+                uom.c_str(),
+                sensor.path,
+                sensor.devcl,
                 haUID.c_str(),
                 haName.c_str(),
                 haModel.c_str(),
                 VERSION,
                 haManuf.c_str(),
                 haUrl.c_str(),
-                strlen_P(HA_STACL[i]) > 0 ? ", \"stat_cla\" :" : "",
-                strlen_P(HA_STACL[i]) > 0 ? (char *) FPSTR(HA_STACL[i]) : ""
+                strlen_P(sensor.stacl) > 0 ? ", \"stat_cla\" :" : "",
+                strlen_P(sensor.stacl) > 0 ? (char *) FPSTR(sensor.stacl) : ""
             );
-            mqtt->publish(haTopic + haUID + "_" + FPSTR(HA_PARAMS[i]) + "/config", json, true, 0);
+            mqtt->publish(haTopic + haUID + "_" + uid.c_str() + "/config", json, true, 0);
         }
+
         autodiscoverInit = true;
     }
     if(listType>0) sequence++;

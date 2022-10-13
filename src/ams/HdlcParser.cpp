@@ -5,8 +5,6 @@
 int8_t HDLCParser::parse(uint8_t *d, DataParserContext &ctx) {
     int len;
 
-    uint8_t flag = *d;
-
     uint8_t* ptr;
     if(ctx.length < 3)
         return DATA_PARSE_INCOMPLETE;

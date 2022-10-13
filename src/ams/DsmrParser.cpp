@@ -4,7 +4,6 @@ int8_t DSMRParser::parse(uint8_t *buf, DataParserContext &ctx, bool verified) {
     uint16_t crcPos = 0;
     bool reachedEnd = verified;
     uint8_t lastByte = 0x00;
-    int c = 0;
     for(int pos = 0; pos < ctx.length; pos++) {
         uint8_t b = *(buf+pos);
         if(pos == 0 && b != '/') return DATA_PARSE_BOUNDRY_FLAG_MISSING;

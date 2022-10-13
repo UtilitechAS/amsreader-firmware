@@ -49,6 +49,12 @@ private:
     uint8_t AMS_OBIS_POWER_FACTOR_L1[4]         = { 33, 7, 0, 255 };
     uint8_t AMS_OBIS_POWER_FACTOR_L2[4]         = { 53, 7, 0, 255 };
     uint8_t AMS_OBIS_POWER_FACTOR_L3[4]         = { 73, 7, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_IMPORT_L1[4]        = { 21, 7, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_IMPORT_L2[4]        = { 41, 7, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_IMPORT_L3[4]        = { 61, 7, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_EXPORT_L1[4]        = { 22, 7, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_EXPORT_L2[4]        = { 42, 7, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_EXPORT_L3[4]        = { 62, 7, 0, 255 };
 
 };
 #endif

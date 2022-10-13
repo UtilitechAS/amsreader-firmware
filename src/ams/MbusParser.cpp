@@ -5,8 +5,6 @@ int8_t MBUSParser::parse(uint8_t *d, DataParserContext &ctx) {
     int headersize = 3;
     int footersize = 1;
 
-    uint8_t flag = *d;
-
     uint8_t* ptr;
 
     // https://m-bus.com/documentation-wired/06-application-layer

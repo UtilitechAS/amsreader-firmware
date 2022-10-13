@@ -11,6 +11,24 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccountin
     }
     switch(data->getListType()) {
         case 4:
+            if(full || meterState->getL1ActiveImportPower() != data->getL1ActiveImportPower()) {
+                mqtt->publish(topic + "/meter/import/l1", String(data->getL1ActiveImportPower(), 2));
+            }
+            if(full || meterState->getL2ActiveImportPower() != data->getL2ActiveImportPower()) {
+                mqtt->publish(topic + "/meter/import/l2", String(data->getL2ActiveImportPower(), 2));
+            }
+            if(full || meterState->getL3ActiveImportPower() != data->getL3ActiveImportPower()) {
+                mqtt->publish(topic + "/meter/import/l3", String(data->getL3ActiveImportPower(), 2));
+            }
+            if(full || meterState->getL1ActiveExportPower() != data->getL1ActiveExportPower()) {
+                mqtt->publish(topic + "/meter/export/l1", String(data->getL1ActiveExportPower(), 2));
+            }
+            if(full || meterState->getL2ActiveExportPower() != data->getL2ActiveExportPower()) {
+                mqtt->publish(topic + "/meter/export/l2", String(data->getL2ActiveExportPower(), 2));
+            }
+            if(full || meterState->getL3ActiveExportPower() != data->getL3ActiveExportPower()) {
+                mqtt->publish(topic + "/meter/export/l3", String(data->getL3ActiveExportPower(), 2));
+            }
             if(full || meterState->getPowerFactor() != data->getPowerFactor()) {
                 mqtt->publish(topic + "/meter/powerfactor", String(data->getPowerFactor(), 2));
             }
@@ -106,7 +124,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 
 	time_t now = time(nullptr);
 
-	float min1hr, min3hr, min6hr;
+	float min1hr = 0.0, min3hr = 0.0, min6hr = 0.0;
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[34];
@@ -157,7 +175,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 
 	}
 
-	char ts1hr[21];
+	char ts1hr[24];
 	if(min1hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
         //Serial.printf("1hr: %d %lu\n", min1hrIdx, ts);
@@ -165,7 +183,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
         breakTime(ts, tm);
 		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
-	char ts3hr[21];
+	char ts3hr[24];
 	if(min3hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
         //Serial.printf("3hr: %d %lu\n", min3hrIdx, ts);
@@ -173,7 +191,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
         breakTime(ts, tm);
 		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
-	char ts6hr[21];
+	char ts6hr[24];
 	if(min6hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
         //Serial.printf("6hr: %d %lu\n", min6hrIdx, ts);
@@ -211,7 +229,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
     return true;
 }
 
-bool RawMqttHandler::publishSystem(HwTools* hw) {
+bool RawMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 

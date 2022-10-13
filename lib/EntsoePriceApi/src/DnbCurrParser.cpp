@@ -22,7 +22,7 @@ void DnbCurrParser::flush() {
 }
 
 size_t DnbCurrParser::write(const uint8_t *buffer, size_t size) {
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
         write(buffer[i]);
     }
     return size;

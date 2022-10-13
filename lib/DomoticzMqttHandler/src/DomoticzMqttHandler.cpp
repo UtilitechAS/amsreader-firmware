@@ -71,6 +71,6 @@ bool DomoticzMqttHandler::publishPrices(EntsoeApi* eapi) {
     return false;
 }
 
-bool DomoticzMqttHandler::publishSystem(HwTools* hw) {
+bool DomoticzMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
     return false;
 }

@@ -12,6 +12,7 @@ enum AmsType {
     AmsTypeIskra = 0x08,
     AmsTypeLandis = 0x09,
     AmsTypeSagemcom = 0x0A,
+    AmsTypeLng = 0x0B,
     AmsTypeCustom = 0x88,
     AmsTypeUnknown = 0xFF
 };
@@ -53,6 +54,14 @@ public:
     float getL2PowerFactor();
     float getL3PowerFactor();
 
+    float getL1ActiveImportPower();
+    float getL2ActiveImportPower();
+    float getL3ActiveImportPower();
+
+    float getL1ActiveExportPower();
+    float getL2ActiveExportPower();
+    float getL3ActiveExportPower();
+
     double getActiveImportCounter();
     double getReactiveImportCounter();
     double getActiveExportCounter();
@@ -70,6 +79,8 @@ protected:
     time_t meterTimestamp = 0;
     uint16_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
     float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
+    float l1activeImportPower = 0, l2activeImportPower = 0, l3activeImportPower = 0;
+    float l1activeExportPower = 0, l2activeExportPower = 0, l3activeExportPower = 0;
     float powerFactor = 0, l1PowerFactor = 0, l2PowerFactor = 0, l3PowerFactor = 0;
     double activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
     bool threePhase = false, twoPhase = false, counterEstimated = false;

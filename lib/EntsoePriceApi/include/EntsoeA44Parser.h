@@ -14,6 +14,7 @@
 class EntsoeA44Parser: public Stream {
 public:
     EntsoeA44Parser();
+    virtual ~EntsoeA44Parser();
 
     char* getCurrency();
     char* getMeasurementUnit();

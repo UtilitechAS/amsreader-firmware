@@ -19,6 +19,6 @@ hf = """
   #define VERSION "{}"
 #endif
 #define BUILD_EPOCH {}
-""".format(version, time())
+""".format(version, round(time()))
 with open(FILENAME_VERSION_H, 'w+') as f:
     f.write(hf)

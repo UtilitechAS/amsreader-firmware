@@ -1,8 +1,8 @@
 {
     "id" : "%s",
     "name" : "%s",
-    "up" : %lu,
-    "t" : %lu,
+    "up" : %u,
+    "t" : %lld,
     "vcc" : %.3f,
     "rssi": %d,
     "temp": %.2f,
@@ -34,7 +34,7 @@
         "tPO" : %.2f,
         "tQI" : %.2f,
         "tQO" : %.2f,
-        "rtc" : %lu
+        "rtc" : %lld
     },
     "realtime" : {
         "h" : %.2f,

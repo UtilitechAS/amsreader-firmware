@@ -5,6 +5,10 @@ EntsoeA44Parser::EntsoeA44Parser() {
     for(int i = 0; i < 24; i++) points[i] = ENTSOE_NO_VALUE;
 }
 
+EntsoeA44Parser::~EntsoeA44Parser() {
+
+}
+
 char* EntsoeA44Parser::getCurrency() {
     return currency;
 }
@@ -35,7 +39,7 @@ void EntsoeA44Parser::flush() {
 }
 
 size_t EntsoeA44Parser::write(const uint8_t *buffer, size_t size) {
-    for(int i = 0; i < size; i++) {
+    for(size_t i = 0; i < size; i++) {
         write(buffer[i]);
     }
     return size;

@@ -119,7 +119,6 @@ DLMSParser *dlmsParser = NULL;
 DSMRParser *dsmrParser = NULL;
 
 void setup() {
-	WiFiConfig wifi;
 	Serial.begin(115200);
 
 	if(!config.getGpioConfig(gpioConfig)) {
@@ -246,7 +245,6 @@ void setup() {
 	}
 
 	Debug.setSerialEnabled(true);
-	DebugConfig debug;
 	delay(1);
 
 	float vcc = hw.getVcc();
@@ -591,7 +589,7 @@ void loop() {
 			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
 				mqttHandler->publishTemperatures(&config, &hw);
 			}
-			debugD("Used %d ms to update temperature", millis()-start);
+			debugD("Used %ld ms to update temperature", millis()-start);
 		}
 		if(now - lastSysupdate > 10000) {
 			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
@@ -1017,6 +1015,9 @@ void WiFi_connect() {
 					debugE("WiFi error, wrong password");
 					break;
 				#endif
+				default:
+					debugE("WiFi error, %d", WiFi.status());
+					break;
 			}
 			if(wifiReconnectCount > 3) {
 				ESP.restart();
@@ -1145,16 +1146,16 @@ void WiFi_connect() {
 
 void mqttMessageReceived(String &topic, String &payload) {
     debugI("Received message for topic %s", topic.c_str() );
-	if(meterConfig.source == METER_SOURCE_MQTT) {
-		DataParserContext ctx = {static_cast<uint8_t>(payload.length()/2)};
-		fromHex(hanBuffer, payload, ctx.length);
-		uint16_t pos = unwrapData(hanBuffer, ctx);
+	//if(meterConfig.source == METER_SOURCE_MQTT) {
+		//DataParserContext ctx = {static_cast<uint8_t>(payload.length()/2)};
+		//fromHex(hanBuffer, payload, ctx.length);
+		//uint16_t pos = unwrapData(hanBuffer, ctx);
 		// TODO: Run through DLMS/DMSR parser and apply AmsData
-	}
+	//}
 }
 
 int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
-	int16_t ret;
+	int16_t ret = 0;
 	bool doRet = false;
 	uint16_t end = BUF_SIZE_HAN;
 	uint8_t tag = (*buf);
@@ -1399,7 +1400,7 @@ void MQTT_connect() {
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
 			time_t epoch = time(nullptr);
-			debugD("Setting NTP time %i for secure MQTT connection", epoch);
+			debugD("Setting NTP time %lld for secure MQTT connection", epoch);
 			mqttSecureClient->setX509Time(epoch);
 		}
 	#endif

@@ -1599,21 +1599,21 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 			}
 		    file = LittleFS.open(path, "w");
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf("handleFileUpload Open file and write: %lu\n", upload.currentSize);
+				debugger->printf("handleFileUpload Open file and write: %u\n", upload.currentSize);
 			}
             size_t written = file.write(upload.buf, upload.currentSize);
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf("handleFileUpload Written: %lu\n", written);
+				debugger->printf("handleFileUpload Written: %u\n", written);
 			}
 	    } 
     } else if(upload.status == UPLOAD_FILE_WRITE) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) {
-			debugger->printf("handleFileUpload Writing: %lu\n", upload.currentSize);
+			debugger->printf("handleFileUpload Writing: %u\n", upload.currentSize);
 		}
         if(file) {
             size_t written = file.write(upload.buf, upload.currentSize);
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf("handleFileUpload Written: %lu\n", written);
+				debugger->printf("handleFileUpload Written: %u\n", written);
 			}
 			delay(1);
 			if(written != upload.currentSize) {
@@ -2332,7 +2332,7 @@ void AmsWebServer::configFileDownload() {
 			ds->getHourImport(23)
 		));
 		if(day.activeExport > 0) {
-			server.sendContent(buf, snprintf(buf, BufferSize, " %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
+			server.sendContent(buf, snprintf(buf, BufferSize, " %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
 				day.activeExport,
 				ds->getHourExport(0),
 				ds->getHourExport(1),
@@ -2401,7 +2401,7 @@ void AmsWebServer::configFileDownload() {
 			ds->getDayImport(31)
 		));
 		if(month.activeExport > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, " %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
+			server.sendContent(buf, snprintf_P(buf, BufferSize, " %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
 				month.activeExport,
 				ds->getDayExport(1),
 				ds->getDayExport(2),

@@ -830,6 +830,11 @@ bool readHanPort() {
 	}
 	if(pos == DATA_PARSE_INCOMPLETE) {
 		return false;
+	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
+		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
+		debugPrint(hanBuffer, 0, len);
+		len = 0;
+		return false;
 	}
 
 	if(pos == DATA_PARSE_INTERMEDIATE_SEGMENT) {

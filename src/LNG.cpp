@@ -25,38 +25,38 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                 if(descriptor->obis[3] == 7) {
                     if(descriptor->obis[4] == 0) {
                         o170 = ntohl(item->dlu.data);
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu (dlu)", ntohl(item->dlu.data));
                     }
                 } else if(descriptor->obis[3] == 8) {
                     if(descriptor->obis[4] == 0) {
                         activeImportCounter = ntohl(item->dlu.data) / 1000.0;
                         listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu (dlu)", ntohl(item->dlu.data));
                     } else if(descriptor->obis[4] == 1) {
                         o181 = ntohl(item->dlu.data);
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu (dlu)", ntohl(item->dlu.data));
                     } else if(descriptor->obis[4] == 2) {
                         o182 = ntohl(item->dlu.data);
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu (dlu)", ntohl(item->dlu.data));
                     }
                 } 
             } else if(descriptor->obis[2] == 2) {
                 if(descriptor->obis[3] == 7) {
                     if(descriptor->obis[4] == 0) {
                         o270 = ntohl(item->dlu.data);
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu (dlu)", ntohl(item->dlu.data));
                     }
                 } else if(descriptor->obis[3] == 8) {
                     if(descriptor->obis[4] == 0) {
                         activeExportCounter = ntohl(item->dlu.data) / 1000.0;
                         listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu (dlu)", ntohl(item->dlu.data));
                     } else if(descriptor->obis[4] == 1) {
                         o281 = ntohl(item->dlu.data);
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu (dlu)", ntohl(item->dlu.data));
                     } else if(descriptor->obis[4] == 2) {
                         o282 = ntohl(item->dlu.data);
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %d (dlu)", ntohl(item->dlu.data));
+                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu (dlu)", ntohl(item->dlu.data));
                     }
                 } 
             } else if(descriptor->obis[2] == 96) {

@@ -6,6 +6,7 @@
 #include "web/root/ha1_json.h"
 #include "web/root/ha2_json.h"
 #include "web/root/ha3_json.h"
+#include "web/root/ha4_json.h"
 #include "web/root/jsonsys_json.h"
 #include "web/root/jsonprices_json.h"
 #include "web/root/hadiscover_json.h"
@@ -34,7 +35,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
             data->getActiveImportPower()
         );
         mqtt->publish(topic + "/power", json);
-    } else if(data->getListType() >= 2) { // publish power counts and volts/amps
+    } else if(data->getListType() <= 3) { // publish power counts and volts/amps
         snprintf_P(json, BufferSize, HA3_JSON,
             data->getListId().c_str(),
             data->getMeterId().c_str(),
@@ -42,6 +43,29 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
             data->getActiveImportPower(),
             data->getReactiveImportPower(),
             data->getActiveExportPower(),
+            data->getReactiveExportPower(),
+            data->getL1Current(),
+            data->getL2Current(),
+            data->getL3Current(),
+            data->getL1Voltage(),
+            data->getL2Voltage(),
+            data->getL3Voltage()
+        );
+        mqtt->publish(topic + "/power", json);
+    } else if(data->getListType() == 4) { // publish power counts and volts/amps/phase power and PF
+        snprintf_P(json, BufferSize, HA4_JSON,
+            data->getListId().c_str(),
+            data->getMeterId().c_str(),
+            meterModel.c_str(),
+            data->getActiveImportPower(),
+            data->getL1ActiveImportPower(),
+            data->getL2ActiveImportPower(),
+            data->getL3ActiveImportPower(),
+            data->getReactiveImportPower(),
+            data->getActiveExportPower(),
+            data->getL1ActiveExportPower(),
+            data->getL2ActiveExportPower(),
+            data->getL3ActiveExportPower(),
             data->getReactiveExportPower(),
             data->getL1Current(),
             data->getL2Current(),
@@ -117,7 +141,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 
 	time_t now = time(nullptr);
 
-	float min1hr, min3hr, min6hr;
+	float min1hr = 0.0, min3hr = 0.0, min6hr = 0.0;
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[24];
@@ -167,7 +191,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 
 	}
 
-	char ts1hr[21];
+	char ts1hr[24];
 	if(min1hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
         //Serial.printf("1hr: %d %lu\n", min1hrIdx, ts);
@@ -175,7 +199,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         breakTime(ts, tm);
 		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
-	char ts3hr[21];
+	char ts3hr[24];
 	if(min3hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
         //Serial.printf("3hr: %d %lu\n", min3hrIdx, ts);
@@ -183,7 +207,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         breakTime(ts, tm);
 		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
-	char ts6hr[21];
+	char ts6hr[24];
 	if(min6hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
         //Serial.printf("6hr: %d %lu\n", min6hrIdx, ts);
@@ -263,13 +287,13 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
                 peaks++;
             }
             snprintf_P(json, BufferSize, HADISCOVER_JSON,
-                FPSTR(sensor.name),
-                topic.c_str(), FPSTR(sensor.topic),
+                sensor.name,
+                topic.c_str(), sensor.topic,
                 haUID.c_str(), uid.c_str(),
                 haUID.c_str(), uid.c_str(),
                 uom.c_str(),
-                FPSTR(sensor.path),
-                FPSTR(sensor.devcl),
+                sensor.path,
+                sensor.devcl,
                 haUID.c_str(),
                 haName.c_str(),
                 haModel.c_str(),

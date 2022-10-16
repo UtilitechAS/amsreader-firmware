@@ -119,7 +119,6 @@ DLMSParser *dlmsParser = NULL;
 DSMRParser *dsmrParser = NULL;
 
 void setup() {
-	WiFiConfig wifi;
 	Serial.begin(115200);
 
 	if(!config.getGpioConfig(gpioConfig)) {
@@ -243,7 +242,6 @@ void setup() {
 	}
 
 	Debug.setSerialEnabled(true);
-	DebugConfig debug;
 	delay(1);
 
 	float vcc = hw.getVcc();
@@ -433,6 +431,10 @@ void loop() {
 		}
 	}
 
+	if(now > 10000 && now - lastErrorBlink > 3000) {
+		errorBlink();
+	}
+
 	// Only do normal stuff if we're not booted as AP
 	if (WiFi.getMode() != WIFI_AP) {
 		if (WiFi.status() != WL_CONNECTED) {
@@ -502,10 +504,6 @@ void loop() {
 			#if defined ESP8266
 			MDNS.update();
 			#endif
-
-			if(now > 10000 && now - lastErrorBlink > 3000) {
-				errorBlink();
-			}
 
 			if (mqttEnabled || config.isMqttChanged()) {
 				if(mqtt == NULL || !mqtt->connected() || config.isMqttChanged()) {
@@ -586,7 +584,7 @@ void loop() {
 			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
 				mqttHandler->publishTemperatures(&config, &hw);
 			}
-			debugD("Used %d ms to update temperature", millis()-start);
+			debugD("Used %ld ms to update temperature", millis()-start);
 		}
 		if(now - lastSysupdate > 10000) {
 			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
@@ -720,22 +718,25 @@ void errorBlink() {
 	if(lastError == 3)
 		lastError = 0;
 	lastErrorBlink = millis();
-	for(;lastError < 3;lastError++) {
-		switch(lastError) {
+	while(lastError < 3) {
+		switch(lastError++) {
 			case 0:
 				if(lastErrorBlink - meterState.getLastUpdateMillis() > 30000) {
+					debugW("No HAN data received last 30s, single blink");
 					hw.ledBlink(LED_RED, 1); // If no message received from AMS in 30 sec, blink once
 					return;
 				}
 				break;
 			case 1:
 				if(mqttEnabled && mqtt != NULL && mqtt->lastError() != 0) {
+					debugW("MQTT connection not available, double blink");
 					hw.ledBlink(LED_RED, 2); // If MQTT error, blink twice
 					return;
 				}
 				break;
 			case 2:
 				if(WiFi.getMode() != WIFI_AP && WiFi.status() != WL_CONNECTED) {
+					debugW("WiFi not connected, tripe blink");
 					hw.ledBlink(LED_RED, 3); // If WiFi not connected, blink three times
 					return;
 				}
@@ -821,6 +822,11 @@ bool readHanPort() {
 		}
 	}
 	if(pos == DATA_PARSE_INCOMPLETE) {
+		return false;
+	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
+		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
+		debugPrint(hanBuffer, 0, len);
+		len = 0;
 		return false;
 	}
 
@@ -980,17 +986,34 @@ void debugPrint(byte *buffer, int start, int length) {
 	Debug.println("");
 }
 
-unsigned long wifiTimeout = WIFI_CONNECTION_TIMEOUT;
 unsigned long lastWifiRetry = -WIFI_CONNECTION_TIMEOUT;
 void WiFi_connect() {
-	if(millis() - lastWifiRetry < wifiTimeout) {
-		delay(50);
-		return;
-	}
-	lastWifiRetry = millis();
-
 	if (WiFi.status() != WL_CONNECTED) {
+		if(WiFi.status() == WL_DISCONNECTED) {
+			if(millis() - lastWifiRetry < WIFI_CONNECTION_TIMEOUT) {
+				return;
+			}
+		}
 		if(WiFi.getMode() != WIFI_OFF) {
+			switch(WiFi.status()) {
+				case WL_NO_SSID_AVAIL:
+					debugE("WiFi error, no SSID available");
+					break;
+				case WL_CONNECT_FAILED:
+					debugE("WiFi error, connection failed");
+					break;
+				case WL_CONNECTION_LOST:
+					debugE("WiFi error, connection lost");
+					break;
+				#if defined(ESP8266)
+				case WL_WRONG_PASSWORD:
+					debugE("WiFi error, wrong password");
+					break;
+				#endif
+				default:
+					debugE("WiFi error, %d", WiFi.status());
+					break;
+			}
 			if(wifiReconnectCount > 3) {
 				ESP.restart();
 				return;
@@ -1024,11 +1047,13 @@ void WiFi_connect() {
 			WiFi.softAPdisconnect(true);
 			WiFi.enableAP(false);
 			WiFi.mode(WIFI_OFF);
+			#if defined(ESP8266)
+				WiFi.forceSleepBegin();
+			#endif
 			yield();
-			wifiTimeout = 5000;
 			return;
 		}
-		wifiTimeout = WIFI_CONNECTION_TIMEOUT;
+		lastWifiRetry = millis();
 
 		WiFiConfig wifi;
 		if(!config.getWiFiConfig(wifi) || strlen(wifi.ssid) == 0) {
@@ -1116,16 +1141,16 @@ void WiFi_connect() {
 
 void mqttMessageReceived(String &topic, String &payload) {
     debugI("Received message for topic %s", topic.c_str() );
-	if(meterConfig.source == METER_SOURCE_MQTT) {
-		DataParserContext ctx = {payload.length()/2};
-		fromHex(hanBuffer, payload, ctx.length);
-		uint16_t pos = unwrapData(hanBuffer, ctx);
+	//if(meterConfig.source == METER_SOURCE_MQTT) {
+		//DataParserContext ctx = {static_cast<uint8_t>(payload.length()/2)};
+		//fromHex(hanBuffer, payload, ctx.length);
+		//uint16_t pos = unwrapData(hanBuffer, ctx);
 		// TODO: Run through DLMS/DMSR parser and apply AmsData
-	}
+	//}
 }
 
 int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
-	int16_t ret;
+	int16_t ret = 0;
 	bool doRet = false;
 	uint16_t end = BUF_SIZE_HAN;
 	uint8_t tag = (*buf);
@@ -1370,7 +1395,7 @@ void MQTT_connect() {
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
 			time_t epoch = time(nullptr);
-			debugD("Setting NTP time %i for secure MQTT connection", epoch);
+			debugD("Setting NTP time %lld for secure MQTT connection", epoch);
 			mqttSecureClient->setX509Time(epoch);
 		}
 	#endif

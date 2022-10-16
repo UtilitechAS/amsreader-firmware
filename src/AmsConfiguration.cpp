@@ -743,7 +743,7 @@ bool AmsConfiguration::relocateConfig86() {
 }
 
 bool AmsConfiguration::relocateConfig87() {
-	MeterConfig87 meter87;
+	MeterConfig87 meter87 = {0,0,0,0,0,0,0};
 	MeterConfig meter;
 	EEPROM.begin(EEPROM_SIZE);
     EEPROM.get(CONFIG_METER_START_87, meter87);

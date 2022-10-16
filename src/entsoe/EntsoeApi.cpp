@@ -143,11 +143,11 @@ bool EntsoeApi::loop() {
     if(midnightMillis == 0) {
         uint32_t curDayMillis = (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000);
         midnightMillis = now + (SECS_PER_DAY * 1000) - curDayMillis;
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Setting midnight millis %lu\n", midnightMillis);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Setting midnight millis %llu\n", midnightMillis);
         currentDay = tm.Day;
         return false;
     } else if(now > midnightMillis && currentDay != tm.Day) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Rotating price objects at %lu\n", t);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Rotating price objects at %lld\n", t);
         if(today != NULL) delete today;
         if(tomorrow != NULL) {
             today = tomorrow;

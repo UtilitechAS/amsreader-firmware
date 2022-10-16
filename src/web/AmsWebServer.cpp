@@ -555,31 +555,25 @@ void AmsWebServer::configPriceApiHtml() {
 	if(ESP.getFreeHeap() > 32000) {
 		html.replace("{et}", entsoe.token);
 		html.replace("{dt}", "");
-		html.replace("{em}", String(entsoe.multiplier / 1000.0, 3));
-
-		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-		server.send_P(200, MIME_HTML, HEAD_HTML);
-		server.sendContent(html);
-		server.sendContent_P(FOOT_HTML);
 	} else {
 		html.replace("{et}", "");
 		html.replace("{dt}", "d-none");
 	}
 	html.replace("{em}", String(entsoe.multiplier / 1000.0, 3));
 
-	html.replace("{eaNo1}", strcmp(entsoe.area, "10YNO-1--------2") == 0 ? "selected" : "");
-	html.replace("{eaNo2}", strcmp(entsoe.area, "10YNO-2--------T") == 0 ? "selected" : "");
-	html.replace("{eaNo3}", strcmp(entsoe.area, "10YNO-3--------J") == 0 ? "selected" : "");
-	html.replace("{eaNo4}", strcmp(entsoe.area, "10YNO-4--------9") == 0 ? "selected" : "");
-	html.replace("{eaNo5}", strcmp(entsoe.area, "10Y1001A1001A48H") == 0 ? "selected" : "");
+	html.replace("{no1}", strcmp(entsoe.area, "10YNO-1--------2") == 0 ? "selected" : "");
+	html.replace("{no2}", strcmp(entsoe.area, "10YNO-2--------T") == 0 ? "selected" : "");
+	html.replace("{no3}", strcmp(entsoe.area, "10YNO-3--------J") == 0 ? "selected" : "");
+	html.replace("{no4}", strcmp(entsoe.area, "10YNO-4--------9") == 0 ? "selected" : "");
+	html.replace("{no5}", strcmp(entsoe.area, "10Y1001A1001A48H") == 0 ? "selected" : "");
 
-	html.replace("{eaSe1}", strcmp(entsoe.area, "10Y1001A1001A44P") == 0 ? "selected" : "");
-	html.replace("{eaSe2}", strcmp(entsoe.area, "10Y1001A1001A45N") == 0 ? "selected" : "");
-	html.replace("{eaSe3}", strcmp(entsoe.area, "10Y1001A1001A46L") == 0 ? "selected" : "");
-	html.replace("{eaSe4}", strcmp(entsoe.area, "10Y1001A1001A47J") == 0 ? "selected" : "");
+	html.replace("{se1}", strcmp(entsoe.area, "10Y1001A1001A44P") == 0 ? "selected" : "");
+	html.replace("{se2}", strcmp(entsoe.area, "10Y1001A1001A45N") == 0 ? "selected" : "");
+	html.replace("{se3}", strcmp(entsoe.area, "10Y1001A1001A46L") == 0 ? "selected" : "");
+	html.replace("{se4}", strcmp(entsoe.area, "10Y1001A1001A47J") == 0 ? "selected" : "");
 
-	html.replace("{eaDk1}", strcmp(entsoe.area, "10YDK-1--------W") == 0 ? "selected" : "");
-	html.replace("{eaDk2}", strcmp(entsoe.area, "10YDK-2--------M") == 0 ? "selected" : "");
+	html.replace("{dk1}", strcmp(entsoe.area, "10YDK-1--------W") == 0 ? "selected" : "");
+	html.replace("{dk2}", strcmp(entsoe.area, "10YDK-2--------M") == 0 ? "selected" : "");
 
 	html.replace("{at}", strcmp(entsoe.area, "10YAT-APG------L") == 0 ? "selected" : "");
 	html.replace("{be}", strcmp(entsoe.area, "10YBE----------2") == 0 ? "selected" : "");
@@ -595,10 +589,10 @@ void AmsWebServer::configPriceApiHtml() {
 	html.replace("{pl}", strcmp(entsoe.area, "10YPL-AREA-----S") == 0 ? "selected" : "");
 	html.replace("{ch}", strcmp(entsoe.area, "10YCH-SWISSGRIDZ") == 0 ? "selected" : "");
 
-	html.replace("{ecNOK}", strcmp(entsoe.currency, "NOK") == 0 ? "selected" : "");
-	html.replace("{ecSEK}", strcmp(entsoe.currency, "SEK") == 0 ? "selected" : "");
-	html.replace("{ecDKK}", strcmp(entsoe.currency, "DKK") == 0 ? "selected" : "");
-	html.replace("{ecEUR}", strcmp(entsoe.currency, "EUR") == 0 ? "selected" : "");
+	html.replace("{nok}", strcmp(entsoe.currency, "NOK") == 0 ? "selected" : "");
+	html.replace("{sek}", strcmp(entsoe.currency, "SEK") == 0 ? "selected" : "");
+	html.replace("{dkk}", strcmp(entsoe.currency, "DKK") == 0 ? "selected" : "");
+	html.replace("{eur}", strcmp(entsoe.currency, "EUR") == 0 ? "selected" : "");
 
 	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
 	server.send_P(200, MIME_HTML, HEAD_HTML);

@@ -4,23 +4,29 @@
 #include "Arduino.h"
 
 struct HomeAssistantSensor {
-    char* name;
-    char* topic;
-    char* path;
-    char* uom;
-    char* devcl;
-    char* stacl;
+    const char* name;
+    const char* topic;
+    const char* path;
+    const char* uom;
+    const char* devcl;
+    const char* stacl;
 };
 
 
-const uint8_t HA_SENSOR_COUNT PROGMEM = 50;
+const uint8_t HA_SENSOR_COUNT PROGMEM = 60;
 HomeAssistantSensor HA_SENSORS[HA_SENSOR_COUNT] PROGMEM = {
     {"Status",                     "/state",   "rssi",              "dBm",  "signal_strength", "\"measurement\""},
     {"Supply volt",                "/state",   "vcc",               "V",    "voltage",         "\"measurement\""},
     {"Temperature",                "/state",   "temp",              "C",    "temperature",     "\"measurement\""},
     {"Active import",              "/power",   "P",                 "W",    "power",           "\"measurement\""},
+    {"L1 active import",           "/power",   "P1",                "W",    "power",           "\"measurement\""},
+    {"L2 active import",           "/power",   "P2",                "W",    "power",           "\"measurement\""},
+    {"L3 active import",           "/power",   "P3",                "W",    "power",           "\"measurement\""},
     {"Reactive import",            "/power",   "Q",                 "VAr",  "reactive_power",  "\"measurement\""},
     {"Active export",              "/power",   "PO",                "W",    "power",           "\"measurement\""},
+    {"L1 active export",           "/power",   "PO1",               "W",    "power",           "\"measurement\""},
+    {"L2 active export",           "/power",   "PO2",               "W",    "power",           "\"measurement\""},
+    {"L3 active export",           "/power",   "PO3",               "W",    "power",           "\"measurement\""},
     {"Reactive export",            "/power",   "QO",                "VAr",  "reactive_power",  "\"measurement\""},
     {"L1 current",                 "/power",   "I1",                "A",    "current",         "\"measurement\""},
     {"L2 current",                 "/power",   "I2",                "A",    "current",         "\"measurement\""},
@@ -32,6 +38,10 @@ HomeAssistantSensor HA_SENSORS[HA_SENSOR_COUNT] PROGMEM = {
     {"Accumulated active export",  "/energy",  "tPO",               "kWh",  "energy",          "\"total_increasing\""},
     {"Accumulated reactive import","/energy",  "tQI",               "kVArh","energy",          "\"total_increasing\""},
     {"Accumulated reactive export","/energy",  "tQO",               "kVArh","energy",          "\"total_increasing\""},
+    {"Power factor",               "/power",   "PF",                "",     "power_factor",    "\"measurement\""},
+    {"L1 power factor",            "/power",   "PF1",               "",     "power_factor",    "\"measurement\""},
+    {"L2 power factor",            "/power",   "PF2",               "",     "power_factor",    "\"measurement\""},
+    {"L3 power factor",            "/power",   "PF3",               "",     "power_factor",    "\"measurement\""},
     {"Price current hour",         "/prices",  "prices['0']",       "",     "monetary",        ""},
     {"Price next hour",            "/prices",  "prices['1']",       "",     "monetary",        ""},
     {"Price in two hour",          "/prices",  "prices['2']",       "",     "monetary",        ""},

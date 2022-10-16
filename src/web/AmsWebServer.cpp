@@ -1015,7 +1015,7 @@ void AmsWebServer::handleSetup() {
 		server.sendHeader("Location", String("/"), true);
 		server.send (302, MIME_PLAIN, "");
 	} else {
-		SystemConfig sys { server.arg("board").toInt() };
+		SystemConfig sys { static_cast<uint8_t>(server.arg("board").toInt()) };
 
 		DebugConfig debugConfig;
 		config->getDebugConfig(debugConfig);
@@ -1076,6 +1076,16 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->vccResistorVcc = 33;
 				break;
 			case 6: // Pow-P1
+				gpioConfig->hanPin = 16;
+				gpioConfig->apPin = 0;
+				gpioConfig->ledPinRed = 13;
+				gpioConfig->ledPinGreen = 14;
+				gpioConfig->ledRgbInverted = true;
+				gpioConfig->vccPin = 10;
+				gpioConfig->vccResistorGnd = 22;
+				gpioConfig->vccResistorVcc = 33;
+				break;
+			case 7: // Pow-U+
 				gpioConfig->hanPin = 16;
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPinRed = 13;
@@ -1285,11 +1295,11 @@ void AmsWebServer::handleSave() {
 	if(server.hasArg("dc") && server.arg("dc") == "true") {
 		printD("Received Domoticz config");
 		DomoticzConfig domo {
-			server.arg("elidx").toInt(),
-			server.arg("vl1idx").toInt(),
-			server.arg("vl2idx").toInt(),
-			server.arg("vl3idx").toInt(),
-			server.arg("cl1idx").toInt()
+			static_cast<uint16_t>(server.arg("elidx").toInt()),
+			static_cast<uint16_t>(server.arg("vl1idx").toInt()),
+			static_cast<uint16_t>(server.arg("vl2idx").toInt()),
+			static_cast<uint16_t>(server.arg("vl3idx").toInt()),
+			static_cast<uint16_t>(server.arg("cl1idx").toInt())
 		};
 		config->setDomoticzConfig(domo);
 	}
@@ -1310,24 +1320,24 @@ void AmsWebServer::handleSave() {
 		config->setWebConfig(webConfig);
 	}
 
-	if(server.hasArg("gpioConfig") && server.arg("gpioConfig") == "true") {
+	if(server.hasArg("gc") && server.arg("gc") == "true") {
 		printD("Received GPIO config");
-		gpioConfig->hanPin = server.hasArg("hanPin") && !server.arg("hanPin").isEmpty() ? server.arg("hanPin").toInt() : 3;
-		gpioConfig->ledPin = server.hasArg("ledPin") && !server.arg("ledPin").isEmpty() ? server.arg("ledPin").toInt() : 0xFF;
-		gpioConfig->ledInverted = server.hasArg("ledInverted") && server.arg("ledInverted") == "true";
-		gpioConfig->ledPinRed = server.hasArg("ledPinRed") && !server.arg("ledPinRed").isEmpty() ? server.arg("ledPinRed").toInt() : 0xFF;
-		gpioConfig->ledPinGreen = server.hasArg("ledPinGreen") && !server.arg("ledPinGreen").isEmpty() ? server.arg("ledPinGreen").toInt() : 0xFF;
-		gpioConfig->ledPinBlue = server.hasArg("ledPinBlue") && !server.arg("ledPinBlue").isEmpty() ? server.arg("ledPinBlue").toInt() : 0xFF;
-		gpioConfig->ledRgbInverted = server.hasArg("ledRgbInverted") && server.arg("ledRgbInverted") == "true";
-		gpioConfig->apPin = server.hasArg("apPin") && !server.arg("apPin").isEmpty() ? server.arg("apPin").toInt() : 0xFF;
-		gpioConfig->tempSensorPin = server.hasArg("tempSensorPin") && !server.arg("tempSensorPin").isEmpty() ?server.arg("tempSensorPin").toInt() : 0xFF;
-		gpioConfig->tempAnalogSensorPin = server.hasArg("tempAnalogSensorPin") && !server.arg("tempAnalogSensorPin").isEmpty() ?server.arg("tempAnalogSensorPin").toInt() : 0xFF;
-		gpioConfig->vccPin = server.hasArg("vccPin") && !server.arg("vccPin").isEmpty() ? server.arg("vccPin").toInt() : 0xFF;
-		gpioConfig->vccOffset = server.hasArg("vccOffset") && !server.arg("vccOffset").isEmpty() ? server.arg("vccOffset").toFloat() * 100 : 0;
-		gpioConfig->vccMultiplier = server.hasArg("vccMultiplier") && !server.arg("vccMultiplier").isEmpty() ? server.arg("vccMultiplier").toFloat() * 1000 : 1000;
-		gpioConfig->vccBootLimit = server.hasArg("vccBootLimit") && !server.arg("vccBootLimit").isEmpty() ? server.arg("vccBootLimit").toFloat() * 10 : 0;
-		gpioConfig->vccResistorGnd = server.hasArg("vccResistorGnd") && !server.arg("vccResistorGnd").isEmpty() ? server.arg("vccResistorGnd").toInt() : 0;
-		gpioConfig->vccResistorVcc = server.hasArg("vccResistorVcc") && !server.arg("vccResistorVcc").isEmpty() ? server.arg("vccResistorVcc").toInt() : 0;
+		gpioConfig->hanPin = server.hasArg("h") && !server.arg("h").isEmpty() ? server.arg("h").toInt() : 3;
+		gpioConfig->ledPin = server.hasArg("l") && !server.arg("l").isEmpty() ? server.arg("l").toInt() : 0xFF;
+		gpioConfig->ledInverted = server.hasArg("i") && server.arg("i") == "true";
+		gpioConfig->ledPinRed = server.hasArg("r") && !server.arg("r").isEmpty() ? server.arg("r").toInt() : 0xFF;
+		gpioConfig->ledPinGreen = server.hasArg("e") && !server.arg("e").isEmpty() ? server.arg("e").toInt() : 0xFF;
+		gpioConfig->ledPinBlue = server.hasArg("b") && !server.arg("b").isEmpty() ? server.arg("b").toInt() : 0xFF;
+		gpioConfig->ledRgbInverted = server.hasArg("n") && server.arg("n") == "true";
+		gpioConfig->apPin = server.hasArg("a") && !server.arg("a").isEmpty() ? server.arg("a").toInt() : 0xFF;
+		gpioConfig->tempSensorPin = server.hasArg("t") && !server.arg("t").isEmpty() ?server.arg("t").toInt() : 0xFF;
+		gpioConfig->tempAnalogSensorPin = server.hasArg("m") && !server.arg("m").isEmpty() ?server.arg("m").toInt() : 0xFF;
+		gpioConfig->vccPin = server.hasArg("v") && !server.arg("v").isEmpty() ? server.arg("v").toInt() : 0xFF;
+		gpioConfig->vccOffset = server.hasArg("o") && !server.arg("o").isEmpty() ? server.arg("o").toFloat() * 100 : 0;
+		gpioConfig->vccMultiplier = server.hasArg("u") && !server.arg("u").isEmpty() ? server.arg("u").toFloat() * 1000 : 1000;
+		gpioConfig->vccBootLimit = server.hasArg("c") && !server.arg("c").isEmpty() ? server.arg("c").toFloat() * 10 : 0;
+		gpioConfig->vccResistorGnd = server.hasArg("d") && !server.arg("d").isEmpty() ? server.arg("d").toInt() : 0;
+		gpioConfig->vccResistorVcc = server.hasArg("s") && !server.arg("s").isEmpty() ? server.arg("s").toInt() : 0;
 		config->setGpioConfig(*gpioConfig);
 	}
 
@@ -1366,8 +1376,8 @@ void AmsWebServer::handleSave() {
 		NtpConfig ntp {
 			server.hasArg("n") && server.arg("n") == "true",
 			server.hasArg("nd") && server.arg("nd") == "true",
-			server.arg("o").toInt() / 10,
-			server.arg("so").toInt() / 10
+			static_cast<int16_t>(server.arg("o").toInt() / 10),
+			static_cast<int16_t>(server.arg("so").toInt() / 10)
 		};
 		strcpy(ntp.server, server.arg("ns").c_str());
 		config->setNtpConfig(ntp);
@@ -1459,32 +1469,32 @@ void AmsWebServer::configGpioHtml() {
 	String html = String((const __FlashStringHelper*) GPIO_HTML);
 
 	#if defined(CONFIG_IDF_TARGET_ESP32S2)
-		html.replace("${gpio.max}", "44");
+		html.replace("${g}", "44");
 	#elif defined(ESP32)
-		html.replace("${gpio.max}", "39");
+		html.replace("${g}", "39");
 	#else
-		html.replace("${gpio.max}", "16");
+		html.replace("${g}", "16");
 	#endif
 
-	html.replace("${options.han}", getSerialSelectOptions(gpioConfig->hanPin));
+	html.replace("${h}", getSerialSelectOptions(gpioConfig->hanPin));
 
-	html.replace("${config.ledPin}", gpioConfig->ledPin == 0xFF ? "" : String(gpioConfig->ledPin));
-	html.replace("${config.ledInverted}", gpioConfig->ledInverted ? "checked" : "");
-	html.replace("${config.ledPinRed}", gpioConfig->ledPinRed == 0xFF ? "" : String(gpioConfig->ledPinRed));
-	html.replace("${config.ledPinGreen}", gpioConfig->ledPinGreen == 0xFF ? "" : String(gpioConfig->ledPinGreen));
-	html.replace("${config.ledPinBlue}", gpioConfig->ledPinBlue == 0xFF ? "" : String(gpioConfig->ledPinBlue));
-	html.replace("${config.ledRgbInverted}", gpioConfig->ledRgbInverted ? "checked" : "");
-	html.replace("${config.apPin}", gpioConfig->apPin == 0xFF ? "" : String(gpioConfig->apPin));
-	html.replace("${config.tempSensorPin}", gpioConfig->tempSensorPin == 0xFF ? "" : String(gpioConfig->tempSensorPin));
-	html.replace("${config.tempAnalogSensorPin}", gpioConfig->tempAnalogSensorPin == 0xFF ? "" : String(gpioConfig->tempAnalogSensorPin));
-	html.replace("${config.vccPin}", gpioConfig->vccPin == 0xFF ? "" : String(gpioConfig->vccPin));
+	html.replace("${l}", gpioConfig->ledPin == 0xFF ? "" : String(gpioConfig->ledPin));
+	html.replace("${i}", gpioConfig->ledInverted ? "checked" : "");
+	html.replace("${r}", gpioConfig->ledPinRed == 0xFF ? "" : String(gpioConfig->ledPinRed));
+	html.replace("${e}", gpioConfig->ledPinGreen == 0xFF ? "" : String(gpioConfig->ledPinGreen));
+	html.replace("${b}", gpioConfig->ledPinBlue == 0xFF ? "" : String(gpioConfig->ledPinBlue));
+	html.replace("${n}", gpioConfig->ledRgbInverted ? "checked" : "");
+	html.replace("${a}", gpioConfig->apPin == 0xFF ? "" : String(gpioConfig->apPin));
+	html.replace("${t}", gpioConfig->tempSensorPin == 0xFF ? "" : String(gpioConfig->tempSensorPin));
+	html.replace("${m}", gpioConfig->tempAnalogSensorPin == 0xFF ? "" : String(gpioConfig->tempAnalogSensorPin));
+	html.replace("${v}", gpioConfig->vccPin == 0xFF ? "" : String(gpioConfig->vccPin));
 
-	html.replace("${config.vccOffset}", gpioConfig->vccOffset > 0 ? String(gpioConfig->vccOffset / 100.0, 2) : "");
-	html.replace("${config.vccMultiplier}", gpioConfig->vccMultiplier > 0 ? String(gpioConfig->vccMultiplier / 1000.0, 2) : "");
-	html.replace("${config.vccBootLimit}", gpioConfig->vccBootLimit > 0 ? String(gpioConfig->vccBootLimit / 10.0, 1) : "");
+	html.replace("${o}", gpioConfig->vccOffset > 0 ? String(gpioConfig->vccOffset / 100.0, 2) : "");
+	html.replace("${u}", gpioConfig->vccMultiplier > 0 ? String(gpioConfig->vccMultiplier / 1000.0, 2) : "");
+	html.replace("${c}", gpioConfig->vccBootLimit > 0 ? String(gpioConfig->vccBootLimit / 10.0, 1) : "");
 
-	html.replace("${config.vccResistorGnd}", gpioConfig->vccResistorGnd > 0 ? String(gpioConfig->vccResistorGnd) : "");
-	html.replace("${config.vccResistorVcc}", gpioConfig->vccResistorVcc > 0 ? String(gpioConfig->vccResistorVcc) : "");
+	html.replace("${d}", gpioConfig->vccResistorGnd > 0 ? String(gpioConfig->vccResistorGnd) : "");
+	html.replace("${s}", gpioConfig->vccResistorVcc > 0 ? String(gpioConfig->vccResistorVcc) : "");
 
 	server.sendHeader(HEADER_CACHE_CONTROL, "no-cache, no-store, must-revalidate");
 	server.sendHeader("Pragma", "no-cache");
@@ -1597,21 +1607,21 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 			}
 		    file = LittleFS.open(path, "w");
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf("handleFileUpload Open file and write: %lu\n", upload.currentSize);
+				debugger->printf("handleFileUpload Open file and write: %u\n", upload.currentSize);
 			}
             size_t written = file.write(upload.buf, upload.currentSize);
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf("handleFileUpload Written: %lu\n", written);
+				debugger->printf("handleFileUpload Written: %u\n", written);
 			}
 	    } 
     } else if(upload.status == UPLOAD_FILE_WRITE) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) {
-			debugger->printf("handleFileUpload Writing: %lu\n", upload.currentSize);
+			debugger->printf("handleFileUpload Writing: %u\n", upload.currentSize);
 		}
         if(file) {
             size_t written = file.write(upload.buf, upload.currentSize);
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf("handleFileUpload Written: %lu\n", written);
+				debugger->printf("handleFileUpload Written: %u\n", written);
 			}
 			delay(1);
 			if(written != upload.currentSize) {
@@ -2328,7 +2338,7 @@ void AmsWebServer::configFileDownload() {
 			ds->getHourImport(23)
 		));
 		if(day.activeExport > 0) {
-			server.sendContent(buf, snprintf(buf, BufferSize, " %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
+			server.sendContent(buf, snprintf(buf, BufferSize, " %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
 				day.activeExport,
 				ds->getHourExport(0),
 				ds->getHourExport(1),
@@ -2397,7 +2407,7 @@ void AmsWebServer::configFileDownload() {
 			ds->getDayImport(31)
 		));
 		if(month.activeExport > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, " %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
+			server.sendContent(buf, snprintf_P(buf, BufferSize, " %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n", 
 				month.activeExport,
 				ds->getDayExport(1),
 				ds->getDayExport(2),

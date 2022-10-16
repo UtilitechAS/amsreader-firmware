@@ -57,7 +57,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
             for(uint8_t i = 0; i < 5; i++) {
                 debugger->printf("(EnergyAccounting) Peak hour from day %d: %d\n", data.peaks[i].day, data.peaks[i].value*10);
             }
-            debugger->printf("(EnergyAccounting) Loaded cost yesterday: %d, this month: %d, last month: %d\n", data.costYesterday / 10.0, data.costThisMonth, data.costLastMonth);
+            debugger->printf("(EnergyAccounting) Loaded cost yesterday: %.2f, this month: %d, last month: %d\n", data.costYesterday / 10.0, data.costThisMonth, data.costLastMonth);
         }
         init = true;
     }

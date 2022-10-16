@@ -296,6 +296,38 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             l3PowerFactor = val;
         }
 
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_L1, sizeof(AMS_OBIS_ACTIVE_IMPORT_L1), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l1activeImportPower = val;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_L2, sizeof(AMS_OBIS_ACTIVE_IMPORT_L2), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l2activeImportPower = val;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_L3, sizeof(AMS_OBIS_ACTIVE_IMPORT_L3), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l3activeImportPower = val;
+        }
+
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_L1, sizeof(AMS_OBIS_ACTIVE_EXPORT_L1), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l1activeExportPower = val;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_L2, sizeof(AMS_OBIS_ACTIVE_EXPORT_L2), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l2activeExportPower = val;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_L3, sizeof(AMS_OBIS_ACTIVE_EXPORT_L3), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l3activeExportPower = val;
+        }
+
         if(meterType == AmsTypeKamstrup) {
             if(listType >= 3) {
                 activeImportCounter *= 10;
@@ -336,12 +368,16 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             if(mid != NULL) {
                 switch(mid->base.type) {
                     case CosemTypeString:
-                        memcpy(&meterId, mid->str.data, mid->str.length);
+                        memcpy(str, mid->oct.data, mid->oct.length);
+                        str[mid->oct.length] = 0x00;
+                        meterId = String(str);
                         meterId[mid->str.length] = 0;
                         break;
                     case CosemTypeOctetString:
-                        memcpy(&meterId, mid->oct.data, mid->oct.length);
-                        meterId[mid->oct.length] = 0;
+                        memcpy(str, mid->str.data, mid->str.length);
+                        str[mid->str.length] = 0x00;
+                        meterId = String(str);
+                        meterId[mid->str.length] = 0;
                         break;
                 }
             }

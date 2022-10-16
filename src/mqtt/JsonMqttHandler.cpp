@@ -111,8 +111,14 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             data->getMeterId().c_str(),
             meterModel.c_str(),
             data->getActiveImportPower(),
+            data->getL1ActiveImportPower(),
+            data->getL2ActiveImportPower(),
+            data->getL3ActiveImportPower(),
             data->getReactiveImportPower(),
             data->getActiveExportPower(),
+            data->getL1ActiveExportPower(),
+            data->getL2ActiveExportPower(),
+            data->getL3ActiveExportPower(),
             data->getReactiveExportPower(),
             data->getL1Current(),
             data->getL2Current(),
@@ -143,8 +149,9 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
 
 bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {
 	int count = hw->getTempSensorCount();
-    if(count < 2)
+    if(count < 2) {
         return false;
+    }
 
 	snprintf(json, 24, "{\"temperatures\":{");
 
@@ -173,7 +180,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 
 	time_t now = time(nullptr);
 
-	float min1hr, min3hr, min6hr;
+	float min1hr = 0.0, min3hr = 0.0, min6hr = 0.0;
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[24];
@@ -223,7 +230,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 
 	}
 
-	char ts1hr[21];
+	char ts1hr[24];
 	if(min1hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
         //Serial.printf("1hr: %d %lu\n", min1hrIdx, ts);
@@ -231,7 +238,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
         breakTime(ts, tm);
 		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
-	char ts3hr[21];
+	char ts3hr[24];
 	if(min3hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
         //Serial.printf("3hr: %d %lu\n", min3hrIdx, ts);
@@ -239,7 +246,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
         breakTime(ts, tm);
 		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
-	char ts6hr[21];
+	char ts6hr[24];
 	if(min6hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
         //Serial.printf("6hr: %d %lu\n", min6hrIdx, ts);

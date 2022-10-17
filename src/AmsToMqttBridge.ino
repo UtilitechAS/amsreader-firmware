@@ -986,34 +986,17 @@ void debugPrint(byte *buffer, int start, int length) {
 	Debug.println("");
 }
 
+unsigned long wifiTimeout = WIFI_CONNECTION_TIMEOUT;
 unsigned long lastWifiRetry = -WIFI_CONNECTION_TIMEOUT;
 void WiFi_connect() {
+	if(millis() - lastWifiRetry < wifiTimeout) {
+		delay(50);
+		return;
+	}
+	lastWifiRetry = millis();
+
 	if (WiFi.status() != WL_CONNECTED) {
-		if(WiFi.status() == WL_DISCONNECTED) {
-			if(millis() - lastWifiRetry < WIFI_CONNECTION_TIMEOUT) {
-				return;
-			}
-		}
 		if(WiFi.getMode() != WIFI_OFF) {
-			switch(WiFi.status()) {
-				case WL_NO_SSID_AVAIL:
-					debugE("WiFi error, no SSID available");
-					break;
-				case WL_CONNECT_FAILED:
-					debugE("WiFi error, connection failed");
-					break;
-				case WL_CONNECTION_LOST:
-					debugE("WiFi error, connection lost");
-					break;
-				#if defined(ESP8266)
-				case WL_WRONG_PASSWORD:
-					debugE("WiFi error, wrong password");
-					break;
-				#endif
-				default:
-					debugE("WiFi error, %d", WiFi.status());
-					break;
-			}
 			if(wifiReconnectCount > 3) {
 				ESP.restart();
 				return;
@@ -1047,13 +1030,11 @@ void WiFi_connect() {
 			WiFi.softAPdisconnect(true);
 			WiFi.enableAP(false);
 			WiFi.mode(WIFI_OFF);
-			#if defined(ESP8266)
-				WiFi.forceSleepBegin();
-			#endif
 			yield();
+			wifiTimeout = 5000;
 			return;
 		}
-		lastWifiRetry = millis();
+		wifiTimeout = WIFI_CONNECTION_TIMEOUT;
 
 		WiFiConfig wifi;
 		if(!config.getWiFiConfig(wifi) || strlen(wifi.ssid) == 0) {

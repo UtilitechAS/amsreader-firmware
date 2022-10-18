@@ -547,7 +547,7 @@ void AmsWebServer::indexJs() {
 }
 
 void AmsWebServer::configurationJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /config.json over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /configuration.json over http...\n");
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -556,35 +556,70 @@ void AmsWebServer::configurationJson() {
 	if(!checkSecurity(1))
 		return;
 
-	DynamicJsonDocument doc(512);
+	DynamicJsonDocument doc(1024);
 	doc["version"] = VERSION;
+	#if defined(CONFIG_IDF_TARGET_ESP32S2)
+	doc["chip"] = "esp32s2";
+	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+	doc["chip"] = "esp32c3";
+	#elif defined(ESP32)
+	doc["chip"] = "esp32";
+	#elif defined(ESP8266)
+	doc["chip"] = "esp8266";
+	#endif
 
 
-	doc["general"]["t"] = "";
-	doc["general"]["h"] = "";
-	doc["general"]["s"] = "";
-	doc["general"]["u"] = "";
-	doc["general"]["p"] = "";
+	WiFiConfig wifiConfig;
+	config->getWiFiConfig(wifiConfig);
+	WebConfig webConfig;
+	config->getWebConfig(webConfig);
+	doc["general"]["zone"] = "Europe/Oslo";
+	doc["general"]["host"] = wifiConfig.hostname;
+	doc["general"]["sec"] = webConfig.security;
+	doc["general"]["user"] = webConfig.username;
+	doc["general"]["pass"] = webConfig.password;
 
-/*
-	uint16_t wattageMultiplier;
-	uint16_t voltageMultiplier;
-	uint16_t amperageMultiplier;
-	uint16_t accumulatedMultiplier;
-	uint8_t source;
-	uint8_t parser
-*/
 	config->getGpioConfig(*gpioConfig);
 	config->getMeterConfig(*meterConfig);
-	doc["meter"]["s"] = gpioConfig->hanPin;
-	doc["meter"]["b"] = meterConfig->baud;
-	doc["meter"]["p"] = meterConfig->parity;
-	doc["meter"]["i"] = meterConfig->invert;
-	doc["meter"]["d"] = meterConfig->distributionSystem;
-	doc["meter"]["f"] = meterConfig->mainFuse;
-	doc["meter"]["o"] = meterConfig->productionCapacity;
-	doc["meter"]["e"] = toHex(meterConfig->encryptionKey, 16);
-	doc["meter"]["a"] = toHex(meterConfig->authenticationKey, 16);
+	doc["meter"]["pin"] = gpioConfig->hanPin;
+	doc["meter"]["baud"] = meterConfig->baud;
+	doc["meter"]["par"] = meterConfig->parity;
+	doc["meter"]["inv"] = meterConfig->invert;
+	doc["meter"]["dist"] = meterConfig->distributionSystem;
+	doc["meter"]["fuse"] = meterConfig->mainFuse;
+	doc["meter"]["prod"] = meterConfig->productionCapacity;
+	doc["meter"]["enc"] = toHex(meterConfig->encryptionKey, 16);
+	doc["meter"]["auth"] = toHex(meterConfig->authenticationKey, 16);
+
+	// TODO: Tariff thresholds
+	// TODO: Multipliers
+
+	doc["wifi"]["ssid"] = wifiConfig.ssid;
+	doc["wifi"]["psk"] = wifiConfig.psk;
+	doc["wifi"]["pwr"] = wifiConfig.power / 10.0;
+
+	NtpConfig ntpConfig;
+	config->getNtpConfig(ntpConfig);
+	doc["net"]["mode"] = strlen(wifiConfig.ip) > 0 ? "s" : "d";
+	doc["net"]["ip"] = wifiConfig.ip;
+	doc["net"]["mask"] = wifiConfig.subnet;
+	doc["net"]["gw"] = wifiConfig.gateway;
+	doc["net"]["dns1"] = wifiConfig.dns1;
+	doc["net"]["dns2"] = wifiConfig.dns2;
+	doc["net"]["mdns"] = wifiConfig.mdns;
+	doc["net"]["ntp1"] = ntpConfig.server;
+	doc["net"]["ntpdhcp"] = ntpConfig.dhcp;
+
+	MqttConfig mqttConfig;
+	config->getMqttConfig(mqttConfig);
+	doc["mqtt"]["host"] = mqttConfig.host;
+	doc["mqtt"]["port"] = mqttConfig.port;
+	doc["mqtt"]["user"] = mqttConfig.username;
+	doc["mqtt"]["pass"] = mqttConfig.password;
+	doc["mqtt"]["clid"] = mqttConfig.clientId;
+	doc["mqtt"]["pub"] = mqttConfig.publishTopic;
+	doc["mqtt"]["mode"] = mqttConfig.payloadFormat;
+	doc["mqtt"]["ssl"] = mqttConfig.ssl;
 
 	serializeJson(doc, buf, BufferSize);
 	server.send(200, MIME_JSON, buf);

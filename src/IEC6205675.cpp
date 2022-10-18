@@ -371,13 +371,11 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                         memcpy(str, mid->oct.data, mid->oct.length);
                         str[mid->oct.length] = 0x00;
                         meterId = String(str);
-                        meterId[mid->str.length] = 0;
                         break;
                     case CosemTypeOctetString:
                         memcpy(str, mid->str.data, mid->str.length);
                         str[mid->str.length] = 0x00;
                         meterId = String(str);
-                        meterId[mid->str.length] = 0;
                         break;
                 }
             }

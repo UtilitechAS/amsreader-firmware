@@ -510,6 +510,7 @@ bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config)
 		if(config.thresholds[9] != 255) {
 			clearEnergyAccountingConfig(config);
 		}
+		if(config.hours > 5) config.hours = 5;
 		return true;
 	} else {
 		return false;
@@ -549,6 +550,7 @@ void AmsConfiguration::clearEnergyAccountingConfig(EnergyAccountingConfig& confi
 	config.thresholds[7] = 100;
 	config.thresholds[8] = 150;
 	config.thresholds[9] = 255;
+	config.hours = 3;
 }
 
 bool AmsConfiguration::isEnergyAccountingChanged() {

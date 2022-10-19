@@ -237,7 +237,7 @@ float EnergyAccounting::getMonthMax() {
     uint32_t maxHour = 0.0;
     bool included[5] = { false, false, false, false, false };
 
-    while(count < config->hours && count <= 5) {
+    while(count < config->hours && count < 5) {
         uint8_t maxIdx = 0;
         uint16_t maxVal = 0;
         for(uint8_t i = 0; i < 5; i++) {
@@ -265,7 +265,7 @@ float EnergyAccounting::getPeak(uint8_t num) {
     uint8_t count = 0;
     bool included[5] = { false, false, false, false, false };
 
-    while(count < config->hours && count <= 5) {
+    while(count < config->hours && count < 5) {
         uint8_t maxIdx = 0;
         uint16_t maxVal = 0;
         for(uint8_t i = 0; i < 5; i++) {

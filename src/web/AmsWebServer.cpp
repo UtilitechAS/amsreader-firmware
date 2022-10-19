@@ -57,7 +57,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	this->ds = ds;
 	this->ea = ea;
 
-	snprintf(buf, 32, (char*) F("/application-%s.js"), VERSION);
+	snprintf_P(buf, 32, PSTR("/application-%s.js"), VERSION);
 
 	server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/"), HTTP_POST, std::bind(&AmsWebServer::handleSetup, this));
@@ -162,8 +162,8 @@ bool AmsWebServer::checkSecurity(byte level) {
 		String expectedBase64 = base64::encode(expectedAuth);
 		#endif
 
-		debugger->printf((char*) F("Expected auth: %s\n"), expectedBase64.c_str());
-		debugger->printf((char*) F("Provided auth: %s\n"), providedPwd.c_str());
+		debugger->printf_P(PSTR("Expected auth: %s\n"), expectedBase64.c_str());
+		debugger->printf_P(PSTR("Provided auth: %s\n"), providedPwd.c_str());
 
 		access = providedPwd.equals(expectedBase64);
 	}
@@ -229,7 +229,7 @@ void AmsWebServer::temperatureJson() {
 		return;
 
 	int count = hw->getTempSensorCount();
-	snprintf(buf, 16, "{\"c\":%d,\"s\":[", count);
+	snprintf_P(buf, 16, PSTR("{\"c\":%d,\"s\":["), count);
 
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
@@ -247,7 +247,7 @@ void AmsWebServer::temperatureJson() {
 		delay(10);
 	}
 	char* pos = buf+strlen(buf);
-	snprintf(count == 0 ? pos : pos-1, 8, "]}");
+	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("]}"));
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -300,7 +300,7 @@ void AmsWebServer::applicationJs() {
 	printD(F("Serving /application.js over http..."));
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
-	server.send_P(200, (char*) F("application/javascript"), APPLICATION_JS);
+	server.send_P(200, PSTR("application/javascript"), APPLICATION_JS);
 }
 
 void AmsWebServer::configMeterHtml() {
@@ -652,7 +652,7 @@ void AmsWebServer::githubSvg() {
 	printD(F("Serving /github.svg over http..."));
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
-	server.send_P(200, (char*) F("image/svg+xml"), GITHUB_SVG);
+	server.send_P(200, PSTR("image/svg+xml"), GITHUB_SVG);
 }
 
 void AmsWebServer::dataJson() {
@@ -764,7 +764,7 @@ void AmsWebServer::dataJson() {
 		wifiStatus,
 		mqttStatus,
 		mqtt == NULL ? 0 : (int) mqtt->lastError(),
-		price == ENTSOE_NO_VALUE ? (char*) F("null") : String(price, 2).c_str(),
+		price == ENTSOE_NO_VALUE ? PSTR("null") : String(price, 2).c_str(),
 		meterState->getMeterType(),
 		meterConfig->distributionSystem,
 		ea->getMonthMax(),
@@ -955,42 +955,42 @@ void AmsWebServer::energyPriceJson() {
 
 	snprintf_P(buf, BufferSize, ENERGYPRICE_JSON, 
 		eapi == NULL ? "" : eapi->getCurrency(),
-		prices[0] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[0], 4).c_str(),
-		prices[1] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[1], 4).c_str(),
-		prices[2] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[2], 4).c_str(),
-		prices[3] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[3], 4).c_str(),
-		prices[4] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[4], 4).c_str(),
-		prices[5] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[5], 4).c_str(),
-		prices[6] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[6], 4).c_str(),
-		prices[7] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[7], 4).c_str(),
-		prices[8] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[8], 4).c_str(),
-		prices[9] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[9], 4).c_str(),
-		prices[10] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[10], 4).c_str(),
-		prices[11] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[11], 4).c_str(),
-		prices[12] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[12], 4).c_str(),
-		prices[13] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[13], 4).c_str(),
-		prices[14] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[14], 4).c_str(),
-		prices[15] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[15], 4).c_str(),
-		prices[16] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[16], 4).c_str(),
-		prices[17] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[17], 4).c_str(),
-		prices[18] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[18], 4).c_str(),
-		prices[19] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[19], 4).c_str(),
-		prices[20] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[20], 4).c_str(),
-		prices[21] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[21], 4).c_str(),
-		prices[22] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[22], 4).c_str(),
-		prices[23] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[23], 4).c_str(),
-		prices[24] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[24], 4).c_str(),
-		prices[25] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[25], 4).c_str(),
-		prices[26] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[26], 4).c_str(),
-		prices[27] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[27], 4).c_str(),
-		prices[28] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[28], 4).c_str(),
-		prices[29] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[29], 4).c_str(),
-		prices[30] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[30], 4).c_str(),
-		prices[31] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[31], 4).c_str(),
-		prices[32] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[32], 4).c_str(),
-		prices[33] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[33], 4).c_str(),
-		prices[34] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[34], 4).c_str(),
-		prices[35] == ENTSOE_NO_VALUE ? (char*) F("null") : String(prices[35], 4).c_str()
+		prices[0] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[0], 4).c_str(),
+		prices[1] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[1], 4).c_str(),
+		prices[2] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[2], 4).c_str(),
+		prices[3] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[3], 4).c_str(),
+		prices[4] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[4], 4).c_str(),
+		prices[5] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[5], 4).c_str(),
+		prices[6] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[6], 4).c_str(),
+		prices[7] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[7], 4).c_str(),
+		prices[8] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[8], 4).c_str(),
+		prices[9] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[9], 4).c_str(),
+		prices[10] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[10], 4).c_str(),
+		prices[11] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[11], 4).c_str(),
+		prices[12] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[12], 4).c_str(),
+		prices[13] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[13], 4).c_str(),
+		prices[14] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[14], 4).c_str(),
+		prices[15] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[15], 4).c_str(),
+		prices[16] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[16], 4).c_str(),
+		prices[17] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[17], 4).c_str(),
+		prices[18] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[18], 4).c_str(),
+		prices[19] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[19], 4).c_str(),
+		prices[20] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[20], 4).c_str(),
+		prices[21] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[21], 4).c_str(),
+		prices[22] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[22], 4).c_str(),
+		prices[23] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[23], 4).c_str(),
+		prices[24] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[24], 4).c_str(),
+		prices[25] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[25], 4).c_str(),
+		prices[26] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[26], 4).c_str(),
+		prices[27] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[27], 4).c_str(),
+		prices[28] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[28], 4).c_str(),
+		prices[29] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[29], 4).c_str(),
+		prices[30] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[30], 4).c_str(),
+		prices[31] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[31], 4).c_str(),
+		prices[32] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[32], 4).c_str(),
+		prices[33] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[33], 4).c_str(),
+		prices[34] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[34], 4).c_str(),
+		prices[35] == ENTSOE_NO_VALUE ? PSTR("null") : String(prices[35], 4).c_str()
 	);
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -1303,8 +1303,8 @@ void AmsWebServer::handleSave() {
 			strcpy(webConfig.password, server.arg(F("ap")).c_str());
 			debugger->setPassword(webConfig.password);
 		} else {
-			strcpy(webConfig.username, (char*) F(""));
-			strcpy(webConfig.password, (char*) F(""));
+			strcpy_P(webConfig.username, PSTR(""));
+			strcpy_P(webConfig.password, PSTR(""));
 			debugger->setPassword(F(""));
 		}
 		config->setWebConfig(webConfig);
@@ -1587,28 +1587,28 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 		} else {
 			uploading = true;
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf((char*) F("handleFileUpload file: %s\n"), path);
+				debugger->printf_P(PSTR("handleFileUpload file: %s\n"), path);
 			}
 			if(LittleFS.exists(path)) {
 				LittleFS.remove(path);
 			}
 		    file = LittleFS.open(path, "w");
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf((char*) F("handleFileUpload Open file and write: %u\n"), upload.currentSize);
+				debugger->printf_P(PSTR("handleFileUpload Open file and write: %u\n"), upload.currentSize);
 			}
             size_t written = file.write(upload.buf, upload.currentSize);
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf((char*) F("handleFileUpload Written: %u\n"), written);
+				debugger->printf_P(PSTR("handleFileUpload Written: %u\n"), written);
 			}
 	    } 
     } else if(upload.status == UPLOAD_FILE_WRITE) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) {
-			debugger->printf((char*) F("handleFileUpload Writing: %u\n"), upload.currentSize);
+			debugger->printf_P(PSTR("handleFileUpload Writing: %u\n"), upload.currentSize);
 		}
         if(file) {
             size_t written = file.write(upload.buf, upload.currentSize);
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf((char*) F("handleFileUpload Written: %u\n"), written);
+				debugger->printf_P(PSTR("handleFileUpload Written: %u\n"), written);
 			}
 			delay(1);
 			if(written != upload.currentSize) {
@@ -1882,9 +1882,9 @@ void AmsWebServer::mqttCa() {
 
 	if(LittleFS.begin()) {
 		if(LittleFS.exists(FILE_MQTT_CA)) {
-			deleteHtml((char*) F("CA file"), (char*) F("/mqtt-ca/delete"), (char*) F("mqtt"));
+			deleteHtml("CA file", "/mqtt-ca/delete", "mqtt");
 		} else {
-			uploadHtml((char*) F("CA file"), (char*) F("/mqtt-ca"), (char*) F("mqtt"));
+			uploadHtml("CA file", "/mqtt-ca", "mqtt");
 		}
 		LittleFS.end();
 	} else {
@@ -1936,9 +1936,9 @@ void AmsWebServer::mqttCert() {
 
 	if(LittleFS.begin()) {
 		if(LittleFS.exists(FILE_MQTT_CERT)) {
-			deleteHtml((char*) F("Certificate"), (char*) F("/mqtt-cert/delete"), (char*) F("mqtt"));
+			deleteHtml("Certificate", "/mqtt-cert/delete", "mqtt");
 		} else {
-			uploadHtml((char*) F("Certificate"), (char*) F("/mqtt-cert"), (char*) F("mqtt"));
+			uploadHtml("Certificate", "/mqtt-cert", "mqtt");
 		}
 		LittleFS.end();
 	} else {
@@ -1989,9 +1989,9 @@ void AmsWebServer::mqttKey() {
 
 	if(LittleFS.begin()) {
 		if(LittleFS.exists(FILE_MQTT_KEY)) {
-			deleteHtml((char*) F("Private key"), (char*) F("/mqtt-key/delete"), (char*) F("mqtt"));
+			deleteHtml("Private key", "/mqtt-key/delete", "mqtt");
 		} else {
-			uploadHtml((char*) F("Private key"), (char*) F("/mqtt-key"), (char*) F("mqtt"));
+			uploadHtml("Private key", "/mqtt-key", "mqtt");
 		}
 		LittleFS.end();
 	} else {
@@ -2148,135 +2148,135 @@ void AmsWebServer::configFileDownload() {
 	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
 
 	server.send(200, MIME_PLAIN, F("amsconfig\n"));
-	server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("version %s\n"), VERSION));
-	server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("boardType %d\n"), sys.boardType));
+	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("version %s\n"), VERSION));
+	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("boardType %d\n"), sys.boardType));
 	
 	if(includeWifi) {
 		WiFiConfig wifi;
 		config->getWiFiConfig(wifi);
-		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("hostname %s\n"), wifi.hostname));
-		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ssid %s\n"), wifi.ssid));
-		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("psk %s\n"), wifi.psk));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("hostname %s\n"), wifi.hostname));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ssid %s\n"), wifi.ssid));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("psk %s\n"), wifi.psk));
 		if(strlen(wifi.ip) > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ip %s\n"), wifi.ip));
-			if(strlen(wifi.gateway) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gateway %s\n"), wifi.gateway));
-			if(strlen(wifi.subnet) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("subnet %s\n"), wifi.subnet));
-			if(strlen(wifi.dns1) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("dns1 %s\n"), wifi.dns1));
-			if(strlen(wifi.dns2) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("dns2 %s\n"), wifi.dns2));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ip %s\n"), wifi.ip));
+			if(strlen(wifi.gateway) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gateway %s\n"), wifi.gateway));
+			if(strlen(wifi.subnet) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("subnet %s\n"), wifi.subnet));
+			if(strlen(wifi.dns1) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dns1 %s\n"), wifi.dns1));
+			if(strlen(wifi.dns2) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dns2 %s\n"), wifi.dns2));
 		}
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mdns %d\n"), wifi.mdns ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mdns %d\n"), wifi.mdns ? 1 : 0));
 	}
 	
 	if(includeMqtt) {
 		MqttConfig mqtt;
 		config->getMqttConfig(mqtt);
 		if(strlen(mqtt.host) > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttHost %s\n"), mqtt.host));
-			if(mqtt.port > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttPort %d\n"), mqtt.port));
-			if(strlen(mqtt.clientId) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttClientId %s\n"), mqtt.clientId));
-			if(strlen(mqtt.publishTopic) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttPublishTopic %s\n"), mqtt.publishTopic));
-			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttUsername %s\n"), mqtt.username));
-			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttPassword %s\n"), mqtt.password));
-			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttPayloadFormat %d\n"), mqtt.payloadFormat));
-			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("mqttSsl %d\n"), mqtt.ssl ? 1 : 0));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttHost %s\n"), mqtt.host));
+			if(mqtt.port > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPort %d\n"), mqtt.port));
+			if(strlen(mqtt.clientId) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttClientId %s\n"), mqtt.clientId));
+			if(strlen(mqtt.publishTopic) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPublishTopic %s\n"), mqtt.publishTopic));
+			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttUsername %s\n"), mqtt.username));
+			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPassword %s\n"), mqtt.password));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPayloadFormat %d\n"), mqtt.payloadFormat));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttSsl %d\n"), mqtt.ssl ? 1 : 0));
 		}
 	}
 
 	if(includeWeb && includeSecrets) {
 		WebConfig web;
 		config->getWebConfig(web);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("webSecurity %d\n"), web.security));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("webSecurity %d\n"), web.security));
 		if(web.security > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("webUsername %s\n"), web.username));
-			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("webPassword %s\n"), web.password));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("webUsername %s\n"), web.username));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("webPassword %s\n"), web.password));
 		}
 	}
 
 	if(includeMeter) {
 		MeterConfig meter;
 		config->getMeterConfig(meter);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterBaud %d\n"), meter.baud));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterBaud %d\n"), meter.baud));
 		char parity[4] = "";
 		switch(meter.parity) {
 			case 2:
-				strcpy(parity, (char*) F("7N1"));
+				strcpy_P(parity, PSTR("7N1"));
 				break;
 			case 3:
-				strcpy(parity, (char*) F("8N1"));
+				strcpy_P(parity, PSTR("8N1"));
 				break;
 			case 10:
-				strcpy(parity, (char*) F("7E1"));
+				strcpy_P(parity, PSTR("7E1"));
 				break;
 			case 11:
-				strcpy(parity, (char*) F("8E1"));
+				strcpy_P(parity, PSTR("8E1"));
 				break;
 		}
-		if(strlen(parity) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterParity %s\n"), parity));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterInvert %d\n"), meter.invert ? 1 : 0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterDistributionSystem %d\n"), meter.distributionSystem));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterMainFuse %d\n"), meter.mainFuse));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterProductionCapacity %d\n"), meter.productionCapacity));
+		if(strlen(parity) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterParity %s\n"), parity));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterInvert %d\n"), meter.invert ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterDistributionSystem %d\n"), meter.distributionSystem));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterMainFuse %d\n"), meter.mainFuse));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterProductionCapacity %d\n"), meter.productionCapacity));
 		if(includeSecrets) {
-			if(meter.encryptionKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterEncryptionKey %s\n"), toHex(meter.encryptionKey, 16).c_str()));
-			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("meterAuthenticationKey %s\n"), toHex(meter.authenticationKey, 16).c_str()));
+			if(meter.encryptionKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterEncryptionKey %s\n"), toHex(meter.encryptionKey, 16).c_str()));
+			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAuthenticationKey %s\n"), toHex(meter.authenticationKey, 16).c_str()));
 		}
 	}
 
 	if(includeGpio) {
 		GpioConfig gpio;
 		config->getGpioConfig(gpio);
-		if(gpio.hanPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioHanPin %d\n"), gpio.hanPin));
-		if(gpio.apPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioApPin %d\n"), gpio.apPin));
-		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedPin %d\n"), gpio.ledPin));
-		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedInverted %d\n"), gpio.ledInverted ? 1 : 0));
-		if(gpio.ledPinRed != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedPinRed %d\n"), gpio.ledPinRed));
-		if(gpio.ledPinGreen != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedPinGreen %d\n"), gpio.ledPinGreen));
-		if(gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedPinBlue %d\n"), gpio.ledPinBlue));
-		if(gpio.ledPinRed != 0xFF || gpio.ledPinGreen != 0xFF || gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioLedRgbInverted %d\n"), gpio.ledRgbInverted ? 1 : 0));
-		if(gpio.tempSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioTempSensorPin %d\n"), gpio.tempSensorPin));
-		if(gpio.tempAnalogSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioTempAnalogSensorPin %d\n"), gpio.tempAnalogSensorPin));
-		if(gpio.vccPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccPin %d\n"), gpio.vccPin));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccOffset %.2f\n"), gpio.vccOffset / 100.0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccMultiplier %.3f\n"), gpio.vccMultiplier / 1000.0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccBootLimit %.1f\n"), gpio.vccBootLimit / 10.0));
-		if(gpio.vccPin != 0xFF && gpio.vccResistorGnd != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccResistorGnd %d\n"), gpio.vccResistorGnd));
-		if(gpio.vccPin != 0xFF && gpio.vccResistorVcc != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("gpioVccResistorVcc %d\n"), gpio.vccResistorVcc));
+		if(gpio.hanPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioHanPin %d\n"), gpio.hanPin));
+		if(gpio.apPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioApPin %d\n"), gpio.apPin));
+		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPin %d\n"), gpio.ledPin));
+		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedInverted %d\n"), gpio.ledInverted ? 1 : 0));
+		if(gpio.ledPinRed != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPinRed %d\n"), gpio.ledPinRed));
+		if(gpio.ledPinGreen != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPinGreen %d\n"), gpio.ledPinGreen));
+		if(gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPinBlue %d\n"), gpio.ledPinBlue));
+		if(gpio.ledPinRed != 0xFF || gpio.ledPinGreen != 0xFF || gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedRgbInverted %d\n"), gpio.ledRgbInverted ? 1 : 0));
+		if(gpio.tempSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioTempSensorPin %d\n"), gpio.tempSensorPin));
+		if(gpio.tempAnalogSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioTempAnalogSensorPin %d\n"), gpio.tempAnalogSensorPin));
+		if(gpio.vccPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccPin %d\n"), gpio.vccPin));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccOffset %.2f\n"), gpio.vccOffset / 100.0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccMultiplier %.3f\n"), gpio.vccMultiplier / 1000.0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccBootLimit %.1f\n"), gpio.vccBootLimit / 10.0));
+		if(gpio.vccPin != 0xFF && gpio.vccResistorGnd != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccResistorGnd %d\n"), gpio.vccResistorGnd));
+		if(gpio.vccPin != 0xFF && gpio.vccResistorVcc != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccResistorVcc %d\n"), gpio.vccResistorVcc));
 	}
 
 	if(includeDomo) {
 		DomoticzConfig domo;
 		config->getDomoticzConfig(domo);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzElidx %d\n"), domo.elidx));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzVl1idx %d\n"), domo.vl1idx));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzVl2idx %d\n"), domo.vl2idx));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzVl3idx %d\n"), domo.vl3idx));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("domoticzCl1idx %d\n"), domo.cl1idx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzElidx %d\n"), domo.elidx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl1idx %d\n"), domo.vl1idx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl2idx %d\n"), domo.vl2idx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl3idx %d\n"), domo.vl3idx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzCl1idx %d\n"), domo.cl1idx));
 	}
 
 	if(includeNtp) {
 		NtpConfig ntp;
 		config->getNtpConfig(ntp);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpEnable %d\n"), ntp.enable ? 1 : 0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpDhcp %d\n"), ntp.dhcp ? 1 : 0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpOffset %d\n"), ntp.offset * 10));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpSummerOffset %d\n"), ntp.summerOffset * 10));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("ntpServer %s\n"), ntp.server));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpEnable %d\n"), ntp.enable ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpDhcp %d\n"), ntp.dhcp ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpOffset %d\n"), ntp.offset * 10));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpSummerOffset %d\n"), ntp.summerOffset * 10));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpServer %s\n"), ntp.server));
 	}
 
 	if(includeEntsoe) {
 		EntsoeConfig entsoe;
 		config->getEntsoeConfig(entsoe);
-		if(strlen(entsoe.token) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeToken %s\n"), entsoe.token));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeArea %s\n"), entsoe.area));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeCurrency %s\n"), entsoe.currency));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("entsoeMultiplier %.3f\n"), entsoe.multiplier / 1000.0));
+		if(strlen(entsoe.token) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeToken %s\n"), entsoe.token));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeArea %s\n"), entsoe.area));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeCurrency %s\n"), entsoe.currency));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeMultiplier %.3f\n"), entsoe.multiplier / 1000.0));
 	}
 
 	if(includeThresholds) {
 		EnergyAccountingConfig eac;
 		config->getEnergyAccountingConfig(eac);
 
-		if(eac.thresholds[9] > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("thresholds %d %d %d %d %d %d %d %d %d %d %d\n"), 
+		if(eac.thresholds[9] > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("thresholds %d %d %d %d %d %d %d %d %d %d %d\n"), 
 			eac.thresholds[0],
 			eac.thresholds[1],
 			eac.thresholds[2],
@@ -2294,7 +2294,7 @@ void AmsWebServer::configFileDownload() {
 
 	if(ds != NULL) {
 		DayDataPoints day = ds->getDayData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("dayplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dayplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			day.version,
 			(int64_t) day.lastMeterReadTime,
 			day.activeImport,
@@ -2324,7 +2324,7 @@ void AmsWebServer::configFileDownload() {
 			ds->getHourImport(23)
 		));
 		if(day.activeExport > 0) {
-			server.sendContent(buf, snprintf(buf, BufferSize, (char*) F(" %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR(" %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
 				day.activeExport,
 				ds->getHourExport(0),
 				ds->getHourExport(1),
@@ -2356,7 +2356,7 @@ void AmsWebServer::configFileDownload() {
 		}
 
 		MonthDataPoints month = ds->getMonthData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("monthplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("monthplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			month.version,
 			(int64_t) month.lastMeterReadTime,
 			month.activeImport,
@@ -2393,7 +2393,7 @@ void AmsWebServer::configFileDownload() {
 			ds->getDayImport(31)
 		));
 		if(month.activeExport > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F(" %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR(" %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
 				month.activeExport,
 				ds->getDayExport(1),
 				ds->getDayExport(2),
@@ -2436,7 +2436,7 @@ void AmsWebServer::configFileDownload() {
 		EnergyAccountingConfig eac;
 		config->getEnergyAccountingConfig(eac);
 		EnergyAccountingData ead = ea->getData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, (char*) F("energyaccounting %d %d %.2f %.2f %.2f %.2f %d %.2f %d %.2f %d %.2f %d %.2f %d %.2f"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("energyaccounting %d %d %.2f %.2f %.2f %.2f %d %.2f %d %.2f %d %.2f %d %.2f %d %.2f"), 
 			ead.version,
 			ead.month,
 			0.0, // Old max

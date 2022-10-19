@@ -307,7 +307,7 @@ void setup() {
 				}
 
 				debugI(" flashing");
-				File firmwareFile = LittleFS.open(FILE_FIRMWARE, (char*) F("r"));
+				File firmwareFile = LittleFS.open(FILE_FIRMWARE, (char*) "r");
 				debugD(" firmware size: %d", firmwareFile.size());
 				uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 				debugD(" available: %d", maxSketchSpace);
@@ -1324,7 +1324,7 @@ void MQTT_connect() {
 
 				if(LittleFS.exists(FILE_MQTT_CA)) {
 					debugI("Found MQTT CA file (%dkb free heap)", ESP.getFreeHeap());
-					file = LittleFS.open(FILE_MQTT_CA, (char*) F("r"));
+					file = LittleFS.open(FILE_MQTT_CA, (char*) "r");
 					#if defined(ESP8266)
 						BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(file);
 						mqttSecureClient->setTrustAnchors(serverTrustedCA);
@@ -1337,12 +1337,12 @@ void MQTT_connect() {
 				if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
 					#if defined(ESP8266)
 						debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_CERT, (char*) F("r"));
+						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
 						BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
 						file.close();
 
 						debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_KEY, (char*) F("r"));
+						file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
 						BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
 						file.close();
 
@@ -1350,12 +1350,12 @@ void MQTT_connect() {
 						mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
 					#elif defined(ESP32)
 						debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_CERT, (char*) F("r"));
+						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
 						mqttSecureClient->loadCertificate(file, file.size());
 						file.close();
 
 						debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_KEY, (char*) F("r"));
+						file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
 						mqttSecureClient->loadPrivateKey(file, file.size());
 						file.close();
 					#endif
@@ -1421,7 +1421,7 @@ void configFileParse() {
 		return;
 	}
 
-	File file = LittleFS.open(FILE_CFG, "r");
+	File file = LittleFS.open(FILE_CFG, (char*) "r");
 
 	bool lSys = false;
 	bool lWiFi = false;
@@ -1451,187 +1451,187 @@ void configFileParse() {
 	char* buf = (char*) commonBuffer;
 	memset(buf, 0, 1024);
 	while((size = file.readBytesUntil('\n', buf, 1024)) > 0) {
-		if(strncmp(buf, "boardType ", 10) == 0) {
+		if(strncmp_P(buf, PSTR("boardType "), 10) == 0) {
 			if(!lSys) { config.getSystemConfig(sys); lSys = true; };
 			sys.boardType = String(buf+10).toInt();
-		} else if(strncmp(buf, "ssid ", 5) == 0) {
+		} else if(strncmp_P(buf, PSTR("ssid "), 5) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			memcpy(wifi.ssid, buf+5, size-5);
-		} else if(strncmp(buf, "psk ", 4) == 0) {
+		} else if(strncmp_P(buf, PSTR("psk "), 4) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			memcpy(wifi.psk, buf+4, size-4);
-		} else if(strncmp(buf, "ip ", 3) == 0) {
+		} else if(strncmp_P(buf, PSTR("ip "), 3) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			memcpy(wifi.ip, buf+3, size-3);
-		} else if(strncmp(buf, "gateway ", 8) == 0) {
+		} else if(strncmp_P(buf, PSTR("gateway "), 8) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			memcpy(wifi.gateway, buf+8, size-8);
-		} else if(strncmp(buf, "subnet ", 7) == 0) {
+		} else if(strncmp_P(buf, PSTR("subnet "), 7) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			memcpy(wifi.subnet, buf+7, size-7);
-		} else if(strncmp(buf, "dns1 ", 5) == 0) {
+		} else if(strncmp_P(buf, PSTR("dns1 "), 5) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			memcpy(wifi.dns1, buf+5, size-5);
-		} else if(strncmp(buf, "dns2 ", 5) == 0) {
+		} else if(strncmp_P(buf, PSTR("dns2 "), 5) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			memcpy(wifi.dns2, buf+5, size-5);
-		} else if(strncmp(buf, "hostname ", 9) == 0) {
+		} else if(strncmp_P(buf, PSTR("hostname "), 9) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			memcpy(wifi.hostname, buf+9, size-9);
-		} else if(strncmp(buf, "mdns ", 5) == 0) {
+		} else if(strncmp_P(buf, PSTR("mdns "), 5) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			wifi.mdns = String(buf+5).toInt() == 1;;
-		} else if(strncmp(buf, "mqttHost ", 9) == 0) {
+		} else if(strncmp_P(buf, PSTR("mqttHost "), 9) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			memcpy(mqtt.host, buf+9, size-9);
-		} else if(strncmp(buf, "mqttPort ", 9) == 0) {
+		} else if(strncmp_P(buf, PSTR("mqttPort "), 9) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			mqtt.port = String(buf+9).toInt();
-		} else if(strncmp(buf, "mqttClientId ", 13) == 0) {
+		} else if(strncmp_P(buf, PSTR("mqttClientId "), 13) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			memcpy(mqtt.clientId, buf+13, size-13);
-		} else if(strncmp(buf, "mqttPublishTopic ", 17) == 0) {
+		} else if(strncmp_P(buf, PSTR("mqttPublishTopic "), 17) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			memcpy(mqtt.publishTopic, buf+17, size-17);
-		} else if(strncmp(buf, "mqttUsername ", 13) == 0) {
+		} else if(strncmp_P(buf, PSTR("mqttUsername "), 13) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			memcpy(mqtt.username, buf+13, size-13);
-		} else if(strncmp(buf, "mqttPassword ", 13) == 0) {
+		} else if(strncmp_P(buf, PSTR("mqttPassword "), 13) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			memcpy(mqtt.password, buf+13, size-13);
-		} else if(strncmp(buf, "mqttPayloadFormat ", 18) == 0) {
+		} else if(strncmp_P(buf, PSTR("mqttPayloadFormat "), 18) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			mqtt.payloadFormat = String(buf+18).toInt();
-		} else if(strncmp(buf, "mqttSsl ", 8) == 0) {
+		} else if(strncmp_P(buf, PSTR("mqttSsl "), 8) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			mqtt.ssl = String(buf+8).toInt() == 1;;
-		} else if(strncmp(buf, "webSecurity ", 12) == 0) {
+		} else if(strncmp_P(buf, PSTR("webSecurity "), 12) == 0) {
 			if(!lWeb) { config.getWebConfig(web); lWeb = true; };
 			web.security = String(buf+12).toInt();
-		} else if(strncmp(buf, "webUsername ", 12) == 0) {
+		} else if(strncmp_P(buf, PSTR("webUsername "), 12) == 0) {
 			if(!lWeb) { config.getWebConfig(web); lWeb = true; };
 			memcpy(web.username, buf+12, size-12);
-		} else if(strncmp(buf, "webPassword ", 12) == 0) {
+		} else if(strncmp_P(buf, PSTR("webPassword "), 12) == 0) {
 			if(!lWeb) { config.getWebConfig(web); lWeb = true; };
 			memcpy(web.username, buf+12, size-12);
-		} else if(strncmp(buf, "meterBaud ", 10) == 0) {
+		} else if(strncmp_P(buf, PSTR("meterBaud "), 10) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.baud = String(buf+10).toInt();
-		} else if(strncmp(buf, "meterParity ", 12) == 0) {
+		} else if(strncmp_P(buf, PSTR("meterParity "), 12) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			if(strncmp(buf+12, "7N1", 3) == 0) meter.parity = 2;
-			if(strncmp(buf+12, "8N1", 3) == 0) meter.parity = 3;
-			if(strncmp(buf+12, "7E1", 3) == 0) meter.parity = 10;
-			if(strncmp(buf+12, "8E1", 3) == 0) meter.parity = 11;
-		} else if(strncmp(buf, "meterInvert ", 12) == 0) {
+			if(strncmp_P(buf+12, PSTR("7N1"), 3) == 0) meter.parity = 2;
+			if(strncmp_P(buf+12, PSTR("8N1"), 3) == 0) meter.parity = 3;
+			if(strncmp_P(buf+12, PSTR("7E1"), 3) == 0) meter.parity = 10;
+			if(strncmp_P(buf+12, PSTR("8E1"), 3) == 0) meter.parity = 11;
+		} else if(strncmp_P(buf, PSTR("meterInvert "), 12) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.invert = String(buf+12).toInt() == 1;;
-		} else if(strncmp(buf, "meterDistributionSystem ", 24) == 0) {
+		} else if(strncmp_P(buf, PSTR("meterDistributionSystem "), 24) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.distributionSystem = String(buf+24).toInt();
-		} else if(strncmp(buf, "meterMainFuse ", 14) == 0) {
+		} else if(strncmp_P(buf, PSTR("meterMainFuse "), 14) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.mainFuse = String(buf+14).toInt();
-		} else if(strncmp(buf, "meterProductionCapacity ", 24) == 0) {
+		} else if(strncmp_P(buf, PSTR("meterProductionCapacity "), 24) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.productionCapacity = String(buf+24).toInt();
-		} else if(strncmp(buf, "meterEncryptionKey ", 19) == 0) {
+		} else if(strncmp_P(buf, PSTR("meterEncryptionKey "), 19) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			fromHex(meter.encryptionKey, String(buf+19), 16);
-		} else if(strncmp(buf, "meterAuthenticationKey ", 23) == 0) {
+		} else if(strncmp_P(buf, PSTR("meterAuthenticationKey "), 23) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			fromHex(meter.authenticationKey, String(buf+19), 16);
-		} else if(strncmp(buf, "gpioHanPin ", 11) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioHanPin "), 11) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.hanPin = String(buf+11).toInt();
-		} else if(strncmp(buf, "gpioApPin ", 10) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioApPin "), 10) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.apPin = String(buf+10).toInt();
-		} else if(strncmp(buf, "gpioLedPin ", 11) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioLedPin "), 11) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.ledPin = String(buf+11).toInt();
-		} else if(strncmp(buf, "gpioLedInverted ", 16) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioLedInverted "), 16) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.ledInverted = String(buf+16).toInt() == 1;
-		} else if(strncmp(buf, "gpioLedPinRed ", 14) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioLedPinRed "), 14) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.ledPinRed = String(buf+14).toInt();
-		} else if(strncmp(buf, "gpioLedPinGreen ", 16) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioLedPinGreen "), 16) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.ledPinGreen = String(buf+16).toInt();
-		} else if(strncmp(buf, "gpioLedPinBlue ", 15) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioLedPinBlue "), 15) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.ledPinBlue = String(buf+15).toInt();
-		} else if(strncmp(buf, "gpioLedRgbInverted ", 19) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioLedRgbInverted "), 19) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.ledRgbInverted = String(buf+19).toInt() == 1;
-		} else if(strncmp(buf, "gpioTempSensorPin ", 18) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioTempSensorPin "), 18) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.tempSensorPin = String(buf+18).toInt();
-		} else if(strncmp(buf, "gpioTempAnalogSensorPin ", 24) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioTempAnalogSensorPin "), 24) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.tempAnalogSensorPin = String(buf+24).toInt();
-		} else if(strncmp(buf, "gpioVccPin ", 11) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioVccPin "), 11) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.vccPin = String(buf+11).toInt();
-		} else if(strncmp(buf, "gpioVccOffset ", 14) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioVccOffset "), 14) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.vccOffset = String(buf+14).toDouble() * 100;
-		} else if(strncmp(buf, "gpioVccMultiplier ", 18) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioVccMultiplier "), 18) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.vccMultiplier = String(buf+18).toDouble() * 1000;
-		} else if(strncmp(buf, "gpioVccBootLimit ", 17) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioVccBootLimit "), 17) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.vccBootLimit = String(buf+17).toDouble() * 10;
-		} else if(strncmp(buf, "gpioVccResistorGnd ", 19) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioVccResistorGnd "), 19) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.vccResistorGnd = String(buf+19).toInt();
-		} else if(strncmp(buf, "gpioVccResistorVcc ", 19) == 0) {
+		} else if(strncmp_P(buf, PSTR("gpioVccResistorVcc "), 19) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.vccResistorVcc = String(buf+19).toInt();
-		} else if(strncmp(buf, "domoticzElidx ", 14) == 0) {
+		} else if(strncmp_P(buf, PSTR("domoticzElidx "), 14) == 0) {
 			if(!lDomo) { config.getDomoticzConfig(domo); lDomo = true; };
 			domo.elidx = String(buf+14).toInt();
-		} else if(strncmp(buf, "domoticzVl1idx ", 15) == 0) {
+		} else if(strncmp_P(buf, PSTR("domoticzVl1idx "), 15) == 0) {
 			if(!lDomo) { config.getDomoticzConfig(domo); lDomo = true; };
 			domo.vl1idx = String(buf+15).toInt();
-		} else if(strncmp(buf, "domoticzVl2idx ", 15) == 0) {
+		} else if(strncmp_P(buf, PSTR("domoticzVl2idx "), 15) == 0) {
 			if(!lDomo) { config.getDomoticzConfig(domo); lDomo = true; };
 			domo.vl2idx = String(buf+15).toInt();
-		} else if(strncmp(buf, "domoticzVl3idx ", 15) == 0) {
+		} else if(strncmp_P(buf, PSTR("domoticzVl3idx "), 15) == 0) {
 			if(!lDomo) { config.getDomoticzConfig(domo); lDomo = true; };
 			domo.vl3idx = String(buf+15).toInt();
-		} else if(strncmp(buf, "domoticzCl1idx ", 15) == 0) {
+		} else if(strncmp_P(buf, PSTR("domoticzCl1idx "), 15) == 0) {
 			if(!lDomo) { config.getDomoticzConfig(domo); lDomo = true; };
 			domo.cl1idx = String(buf+15).toInt();
-		} else if(strncmp(buf, "ntpEnable ", 10) == 0) {
+		} else if(strncmp_P(buf, PSTR("ntpEnable "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			ntp.enable = String(buf+10).toInt() == 1;
-		} else if(strncmp(buf, "ntpDhcp ", 8) == 0) {
+		} else if(strncmp_P(buf, PSTR("ntpDhcp "), 8) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			ntp.dhcp = String(buf+8).toInt() == 1;
-		} else if(strncmp(buf, "ntpOffset ", 10) == 0) {
+		} else if(strncmp_P(buf, PSTR("ntpOffset "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			ntp.offset = String(buf+10).toInt() / 10;
-		} else if(strncmp(buf, "ntpSummerOffset ", 16) == 0) {
+		} else if(strncmp_P(buf, PSTR("ntpSummerOffset "), 16) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			ntp.summerOffset = String(buf+16).toInt() / 10;
-		} else if(strncmp(buf, "ntpServer ", 10) == 0) {
+		} else if(strncmp_P(buf, PSTR("ntpServer "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			memcpy(ntp.server, buf+10, size-10);
-		} else if(strncmp(buf, "entsoeToken ", 12) == 0) {
+		} else if(strncmp_P(buf, PSTR("entsoeToken "), 12) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
 			memcpy(entsoe.token, buf+12, size-12);
-		} else if(strncmp(buf, "entsoeArea ", 11) == 0) {
+		} else if(strncmp_P(buf, PSTR("entsoeArea "), 11) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
 			memcpy(entsoe.area, buf+11, size-11);
-		} else if(strncmp(buf, "entsoeCurrency ", 15) == 0) {
+		} else if(strncmp_P(buf, PSTR("entsoeCurrency "), 15) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
 			memcpy(entsoe.currency, buf+15, size-15);
-		} else if(strncmp(buf, "entsoeMultiplier ", 17) == 0) {
+		} else if(strncmp_P(buf, PSTR("entsoeMultiplier "), 17) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
 			entsoe.multiplier = String(buf+17).toDouble() * 1000;
-		} else if(strncmp(buf, "thresholds ", 11) == 0) {
+		} else if(strncmp_P(buf, PSTR("thresholds "), 11) == 0) {
 			if(!lEac) { config.getEnergyAccountingConfig(eac); lEac = true; };
 			int i = 0;
 			char * pch = strtok (buf+11," ");
@@ -1639,7 +1639,7 @@ void configFileParse() {
 				eac.thresholds[i++] = String(pch).toInt();
 				pch = strtok (NULL, " ");
 			}
-		} else if(strncmp(buf, "dayplot ", 8) == 0) {
+		} else if(strncmp_P(buf, PSTR("dayplot "), 8) == 0) {
 			int i = 0;
 			DayDataPoints day = { 4 }; // Use a version we know the multiplier of the data points
 			char * pch = strtok (buf+8," ");
@@ -1662,7 +1662,7 @@ void configFileParse() {
 			}
 			ds.setDayData(day);
 			sDs = true;
-		} else if(strncmp(buf, "monthplot ", 10) == 0) {
+		} else if(strncmp_P(buf, PSTR("monthplot "), 10) == 0) {
 			int i = 0;
 			MonthDataPoints month = { 5 }; // Use a version we know the multiplier of the data points
 			char * pch = strtok (buf+10," ");
@@ -1685,7 +1685,7 @@ void configFileParse() {
 			}
 			ds.setMonthData(month);
 			sDs = true;
-		} else if(strncmp(buf, "energyaccounting ", 17) == 0) {
+		} else if(strncmp_P(buf, PSTR("energyaccounting "), 17) == 0) {
 			uint8_t i = 0;
 			EnergyAccountingData ead = { 4, 0, 
                 0, 0, 0,

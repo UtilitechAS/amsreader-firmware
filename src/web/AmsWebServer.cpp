@@ -171,7 +171,7 @@ bool AmsWebServer::checkSecurity(byte level) {
 	if(!access) {
 		server.sendHeader(HEADER_AUTHENTICATE, AUTHENTICATE_BASIC);
 		server.setContentLength(0);
-		server.send(401, MIME_HTML, F(""));
+		server.send_P(401, MIME_HTML, PSTR(""));
 	}
 	return access;
 }
@@ -218,7 +218,7 @@ void AmsWebServer::temperaturePost() {
 		server.send (302, MIME_PLAIN, F(""));
 	} else {
 		printE(F("Error saving configuration"));
-		server.send(500, MIME_HTML, F("<html><body><h1>Error saving configuration!</h1></body></html>"));
+		server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Error saving configuration!</h1></body></html>"));
 	}
 }
 
@@ -1193,7 +1193,7 @@ void AmsWebServer::handleSetup() {
 			server.send(303);
 		} else {
 			printE(F("Error saving configuration"));
-			server.send(500, MIME_HTML, F("<html><body><h1>Error saving configuration!</h1></body></html>"));
+			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Error saving configuration!</h1></body></html>"));
 		}
 	}
 }
@@ -1406,17 +1406,17 @@ void AmsWebServer::handleSave() {
 		printI(F("Successfully saved."));
 		if(config->isWifiChanged() || performRestart) {
 			performRestart = true;
-            server.sendHeader(HEADER_LOCATION,"/restart-wait");
+            server.sendHeader(HEADER_LOCATION,F("/restart-wait"));
             server.send(303);
 		} else {
-			server.sendHeader(HEADER_LOCATION, String("/"), true);
-			server.send (302, MIME_PLAIN, F(""));
+			server.sendHeader(HEADER_LOCATION, F("/"), true);
+			server.send_P(302, MIME_PLAIN, PSTR(""));
 
 			hw->setup(gpioConfig, config);
 		}
 	} else {
 		printE(F("Error saving configuration"));
-		server.send(500, MIME_HTML, F("<html><body><h1>Error saving configuration!</h1></body></html>"));
+		server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Error saving configuration!</h1></body></html>"));
 	}
 }
 
@@ -1580,10 +1580,10 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
     if(upload.status == UPLOAD_FILE_START){
 		if(uploading) {
 			printE(F("Upload already in progress"));
-			server.send(500, MIME_HTML, F("<html><body><h1>Upload already in progress!</h1></body></html>"));
+			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Upload already in progress!</h1></body></html>"));
 		} else if (!LittleFS.begin()) {
 			printE(F("An Error has occurred while mounting LittleFS"));
-			server.send(500, MIME_HTML, F("<html><body><h1>Unable to mount LittleFS!</h1></body></html>"));
+			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Unable to mount LittleFS!</h1></body></html>"));
 		} else {
 			uploading = true;
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
@@ -1618,7 +1618,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 				LittleFS.end();
 
 				printE(F("An Error has occurred while writing file"));
-				server.send(500, MIME_HTML, F("<html><body><h1>Unable to write file!</h1></body></html>"));
+				server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Unable to write file!</h1></body></html>"));
 			}
 		}
     } else if(upload.status == UPLOAD_FILE_END) {
@@ -1627,7 +1627,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
             file.close();
 //			LittleFS.end();
         } else {
-            server.send(500, MIME_PLAIN, F("500: couldn't create file"));
+            server.send_P(500, MIME_PLAIN, PSTR("500: couldn't create file"));
         }
     }
 	return upload;
@@ -1705,7 +1705,7 @@ void AmsWebServer::firmwareUpload() {
 
     if(upload.status == UPLOAD_FILE_START) {
         if(!filename.endsWith(".bin")) {
-            server.send(500, MIME_PLAIN, F("500: couldn't create file"));
+            server.send_P(500, MIME_PLAIN, PSTR("500: couldn't create file"));
 		} else {
 			#if defined(ESP32)
 				esp_task_wdt_delete(NULL);
@@ -2147,7 +2147,7 @@ void AmsWebServer::configFileDownload() {
 	server.sendHeader(F("Content-Disposition"), F("attachment; filename=configfile.cfg"));
 	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
 
-	server.send(200, MIME_PLAIN, F("amsconfig\n"));
+	server.send_P(200, MIME_PLAIN, PSTR("amsconfig\n"));
 	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("version %s\n"), VERSION));
 	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("boardType %d\n"), sys.boardType));
 	

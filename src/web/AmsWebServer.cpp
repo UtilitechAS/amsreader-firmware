@@ -2136,7 +2136,7 @@ void AmsWebServer::configFileDownload() {
 	bool includeDomo = server.hasArg(F("id")) && server.arg(F("id")) == F("true");
 	bool includeNtp = server.hasArg(F("in")) && server.arg(F("in")) == F("true");
 	bool includeEntsoe = server.hasArg(F("is")) && server.arg(F("is")) == F("true");
-	bool includeThresholds = server.hasArg(F("nh")) && server.arg(F("nh")) == F("true");
+	bool includeThresholds = server.hasArg(F("ih")) && server.arg(F("ih")) == F("true");
 	
 	SystemConfig sys;
 	config->getSystemConfig(sys);
@@ -2439,7 +2439,7 @@ void AmsWebServer::configFileDownload() {
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("energyaccounting %d %d %.2f %.2f %.2f %.2f %d %.2f %d %.2f %d %.2f %d %.2f %d %.2f"), 
 			ead.version,
 			ead.month,
-			0.0, // Old max
+			0.0,
 			ead.costYesterday / 10.0,
 			ead.costThisMonth / 1.0,
 			ead.costLastMonth / 1.0,

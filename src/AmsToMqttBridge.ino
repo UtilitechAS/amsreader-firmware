@@ -1635,10 +1635,11 @@ void configFileParse() {
 			if(!lEac) { config.getEnergyAccountingConfig(eac); lEac = true; };
 			int i = 0;
 			char * pch = strtok (buf+11," ");
-			while (pch != NULL) {
+			while (pch != NULL && i < 10) {
 				eac.thresholds[i++] = String(pch).toInt();
 				pch = strtok (NULL, " ");
 			}
+			eac.hours = String(pch).toInt();
 		} else if(strncmp_P(buf, PSTR("dayplot "), 8) == 0) {
 			int i = 0;
 			DayDataPoints day = { 4 }; // Use a version we know the multiplier of the data points
@@ -1750,6 +1751,7 @@ void configFileParse() {
 	if(lDomo) config.setDomoticzConfig(domo);
 	if(lNtp) config.setNtpConfig(ntp);
 	if(lEntsoe) config.setEntsoeConfig(entsoe);
+	if(lEac) config.setEnergyAccountingConfig(eac);
 	if(sDs) ds.save();
 	if(sEa) ea.save();
 	config.save();

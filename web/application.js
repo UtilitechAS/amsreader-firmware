@@ -657,7 +657,7 @@ var fetch = function() {
 
         if(ip) {
             var v = parseInt(json.i);
-            var pct = (v*100)/parseInt(json.im);
+            var pct = Math.min((v*100)/parseInt(json.im), 100);
             var append = "W";
             if(v > 1000 && !swatt) {
                 v = (v/1000).toFixed(1);
@@ -683,7 +683,7 @@ var fetch = function() {
             $('.rim').hide();
             if(xp) {
                 var v = parseInt(json.e);
-                var pct = (v*100)/(om*1000);
+                var pct = Math.min((v*100)/(om*1000), 100);
                 var append = "W";
                 if(v > 1000 && !swatt) {
                     v = (v/1000).toFixed(1);
@@ -723,21 +723,21 @@ var fetch = function() {
                 var u1 = parseFloat(json.u1);
                 t += u1;
                 c++;
-                var pct = (Math.max(parseFloat(json.u1)-195.5, 1)*100/69);
+                var pct = Math.min(Math.max(parseFloat(json.u1)-195.5, 1)*100/69, 100);
                 arr[r++] = [ds == 1 ? 'L1-L2' : 'L1', u1, "color: " + voltcol(pct) + ";opacity: 0.9;", u1 + "V"];
             }
             if(json.u2) {
                 var u2 = parseFloat(json.u2);
                 t += u2;
                 c++;
-                var pct = (Math.max(parseFloat(json.u2)-195.5, 1)*100/69);
+                var pct = Math.min(Math.max(parseFloat(json.u2)-195.5, 1)*100/69, 100);
                 arr[r++] = [ds == 1 ? 'L1-L3' : 'L2', u2, "color: " + voltcol(pct) + ";opacity: 0.9;", u2 + "V"];
             }
             if(json.u3) {
                 var u3 = parseFloat(json.u3);
                 t += u3;
                 c++;
-                var pct = (Math.max(parseFloat(json.u3)-195.5, 1)*100/69);
+                var pct = Math.min(Math.max(parseFloat(json.u3)-195.5, 1)*100/69, 100);
                 arr[r++] = [ds == 1 ? 'L2-L3' : 'L3', u3, "color: " + voltcol(pct) + ";opacity: 0.9;", u3 + "V"];
             }
             v = t/c;
@@ -762,19 +762,19 @@ var fetch = function() {
             if(json.i1 || json.u1) {
                 var i1 = parseFloat(json.i1);
                 dA = true;
-                var pct = (parseFloat(json.i1)/parseInt(json.mf))*100;
+                var pct = Math.min((parseFloat(json.i1)/parseInt(json.mf))*100, 100);
                 arr[r++] = ['L1', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i1 + "A"];
             }
             if(json.i2 || json.u2) {
                 var i2 = parseFloat(json.i2);
                 dA = true;
-                var pct = (parseFloat(json.i2)/parseInt(json.mf))*100;
+                var pct = Math.min((parseFloat(json.i2)/parseInt(json.mf))*100, 100);
                 arr[r++] = ['L2', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i2 + "A"];
             }
             if(json.i3 || json.u3) {
                 var i3 = parseFloat(json.i3);
                 dA = true;
-                var pct = (parseFloat(json.i3)/parseInt(json.mf))*100;
+                var pct = Math.min((parseFloat(json.i3)/parseInt(json.mf))*100, 100);
                 arr[r++] = ['L3', pct, "color: " + ampcol(pct) + ";opacity: 0.9;", i3 + "A"];
             }
             if(dA) {

@@ -237,7 +237,7 @@ float EnergyAccounting::getMonthMax() {
     uint32_t maxHour = 0.0;
     bool included[5] = { false, false, false, false, false };
 
-    while(count < config->hours && count <= 5) {
+    for(uint8_t x = 0;x < min((uint8_t) 5, config->hours); x++) {
         uint8_t maxIdx = 0;
         uint16_t maxVal = 0;
         for(uint8_t i = 0; i < 5; i++) {
@@ -248,8 +248,10 @@ float EnergyAccounting::getMonthMax() {
                 maxIdx = i;
             }
         }
-        included[maxIdx] = true;
-        count++;
+        if(maxVal > 0) {
+            included[maxIdx] = true;
+            count++;
+        }
     }
 
     for(uint8_t i = 0; i < 5; i++) {
@@ -265,7 +267,7 @@ float EnergyAccounting::getPeak(uint8_t num) {
     uint8_t count = 0;
     bool included[5] = { false, false, false, false, false };
 
-    while(count < config->hours && count <= 5) {
+    for(uint8_t x = 0;x < min((uint8_t) 5, config->hours); x++) {
         uint8_t maxIdx = 0;
         uint16_t maxVal = 0;
         for(uint8_t i = 0; i < 5; i++) {
@@ -275,8 +277,10 @@ float EnergyAccounting::getPeak(uint8_t num) {
                 maxIdx = i;
             }
         }
-        included[maxIdx] = true;
-        count++;
+        if(maxVal > 0) {
+            included[maxIdx] = true;
+            count++;
+        }
     }
 
     uint8_t pos = 0;

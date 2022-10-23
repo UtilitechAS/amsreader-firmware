@@ -2,7 +2,7 @@
     "id" : "%s",
     "name" : "%s",
     "up" : %u,
-    "t" : %lld,
+    "t" : %lu,
     "vcc" : %.3f,
     "rssi": %d,
     "temp": %.2f,
@@ -34,7 +34,7 @@
         "tPO" : %.2f,
         "tQI" : %.2f,
         "tQO" : %.2f,
-        "rtc" : %lld
+        "rtc" : %lu
     },
     "realtime" : {
         "h" : %.2f,

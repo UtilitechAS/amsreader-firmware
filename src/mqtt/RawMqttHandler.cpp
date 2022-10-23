@@ -92,7 +92,9 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccountin
     }
     mqtt->publish(topic + "/realtime/import/hour", String(ea->getUseThisHour(), 3));
     mqtt->publish(topic + "/realtime/import/day", String(ea->getUseToday(), 2));
-    for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
+    uint8_t peakCount = ea->getConfig()->hours;
+    if(peakCount > 5) peakCount = 5;
+    for(uint8_t i = 1; i <= peakCount; i++) {
         mqtt->publish(topic + "/realtime/import/peak/" + String(i, 10), String(ea->getPeak(i), 10), true, 0);
     }
     mqtt->publish(topic + "/realtime/import/threshold", String(ea->getCurrentThreshold(), 10), true, 0);

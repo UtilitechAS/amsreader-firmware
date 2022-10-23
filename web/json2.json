@@ -2,7 +2,7 @@
     "id" : "%s",
     "name" : "%s",
     "up" : %u,
-    "t" : %lld,
+    "t" : %lu,
     "vcc" : %.3f,
     "rssi": %d,
     "temp": %.2f,

@@ -54,7 +54,8 @@ struct WiFiConfig {
 	char hostname[32];
 	bool mdns;
 	uint8_t power;
-}; // 210
+	uint8_t sleep;
+}; // 211
 
 struct MqttConfig86 {
 	char host[128];

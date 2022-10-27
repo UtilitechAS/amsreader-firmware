@@ -1054,7 +1054,6 @@ void WiFi_connect() {
 			}	
 		#endif
 		WiFi.mode(WIFI_STA);
-		WiFi.setSleep(WIFI_PS_MAX_MODEM);
 		#if defined(ESP32)
 			if(wifi.power >= 195)
 				WiFi.setTxPower(WIFI_POWER_19_5dBm);
@@ -1115,6 +1114,9 @@ void WiFi_connect() {
 		WiFi.setAutoReconnect(true);
 		WiFi.persistent(true);
 		if(WiFi.begin(wifi.ssid, wifi.psk)) {
+			if(wifi.sleep <= 2) {
+				WiFi.setSleep(wifi.sleep);
+			}
 			yield();
 		} else {
 			if (Debug.isActive(RemoteDebug::ERROR)) debugI("Unable to start WiFi");

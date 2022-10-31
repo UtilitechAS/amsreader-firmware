@@ -1015,8 +1015,10 @@ void AmsWebServer::handleSetup() {
 
 		DebugConfig debugConfig;
 		config->getDebugConfig(debugConfig);
-
 		config->clear();
+
+		WiFiConfig wifi;
+		config->clearWifi(wifi);
 
 		switch(sys.boardType) {
 			case 0: // roarfred
@@ -1042,6 +1044,7 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->ledInverted = true;
 				gpioConfig->tempSensorPin = 5;
 				gpioConfig->vccBootLimit = 33;
+				wifi.sleep = 1;
 				break;
 			case 3: // Pow UART0
 				gpioConfig->hanPin = 3;
@@ -1051,6 +1054,7 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->ledPinRed = 13;
 				gpioConfig->ledPinGreen = 14;
 				gpioConfig->ledRgbInverted = true;
+				wifi.sleep = 1;
 				break;
 			case 4: // Pow GPIO12
 				gpioConfig->hanPin = 12;
@@ -1060,6 +1064,7 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->ledPinRed = 13;
 				gpioConfig->ledPinGreen = 14;
 				gpioConfig->ledRgbInverted = true;
+				wifi.sleep = 1;
 				break;
 			case 5: // Pow-K+ UART2
 				gpioConfig->hanPin = 16;
@@ -1070,6 +1075,7 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->vccPin = 10;
 				gpioConfig->vccResistorGnd = 22;
 				gpioConfig->vccResistorVcc = 33;
+				wifi.sleep = 1;
 				break;
 			case 6: // Pow-P1
 				gpioConfig->hanPin = 16;
@@ -1090,6 +1096,7 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->vccPin = 10;
 				gpioConfig->vccResistorGnd = 22;
 				gpioConfig->vccResistorVcc = 33;
+				wifi.sleep = 2;
 				break;
 			case 101: // D1
 				gpioConfig->hanPin = 5;
@@ -1126,17 +1133,16 @@ void AmsWebServer::handleSetup() {
 				break;
 			case 50: // S2
 				gpioConfig->hanPin = 18;
+				wifi.sleep = 1;
 				break;
 			case 51: // S2-mini
 				gpioConfig->hanPin = 18;
 				gpioConfig->ledPin = 15;
 				gpioConfig->ledInverted = false;
 				gpioConfig->apPin = 0;
+				wifi.sleep = 1;
 				break;
 		}
-
-		WiFiConfig wifi;
-		config->clearWifi(wifi);
 
 		strcpy(wifi.ssid, server.arg(F("wifiSsid")).c_str());
 		strcpy(wifi.psk, server.arg(F("wifiPassword")).c_str());

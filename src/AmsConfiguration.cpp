@@ -24,7 +24,7 @@ bool AmsConfiguration::getWiFiConfig(WiFiConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_WIFI_START, config);
 		EEPROM.end();
-		if(config.sleep > 2) config.sleep = 0xFF;
+		if(config.sleep > 2) config.sleep = 1;
 		return true;
 	} else {
 		clearWifi(config);
@@ -34,7 +34,7 @@ bool AmsConfiguration::getWiFiConfig(WiFiConfig& config) {
 
 bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 	WiFiConfig existing;
-	if(config.sleep > 2) config.sleep = 0xFF;
+	if(config.sleep > 2) config.sleep = 1;
 	if(getWiFiConfig(existing)) {
 		wifiChanged |= strcmp(config.ssid, existing.ssid) != 0;
 		wifiChanged |= strcmp(config.psk, existing.psk) != 0;

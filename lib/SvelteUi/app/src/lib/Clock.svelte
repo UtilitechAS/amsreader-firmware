@@ -2,7 +2,7 @@
     import { zeropad } from './Helpers.js';
 
     export let timestamp;
-    let monthnames = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    let monthnames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 </script>
 
 {#if Math.abs(new Date().getTime()-timestamp.getTime()) < 300000 }

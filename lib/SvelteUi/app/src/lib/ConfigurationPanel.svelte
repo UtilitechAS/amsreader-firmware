@@ -1,5 +1,10 @@
 <script>
-    import { configurationStore } from './ConfigurationStore'
+    import { getConfiguration, configurationStore } from './ConfigurationStore'
+    import Modal from './Modal.svelte'
+
+    export let sysinfo = {}
+
+    let loadingOrSaving = true;
 
     let configuration = {
         general: {
@@ -9,7 +14,6 @@
             pass: ''
         },
         meter: {
-            pin: 0,
             inv: false,
             dist: 0,
             fuse: 0,
@@ -42,8 +46,7 @@
     let metersources = {};
     configurationStore.subscribe(update => {
         if(update.version) {
-
-            switch(update.chip) {
+            switch(sysinfo.chip) {
                 case "esp8266":
                     metersources = {
                         'UART0' : 3,
@@ -131,10 +134,13 @@
             }
 
             configuration = update;
+            loadingOrSaving = false;
         }
     });
+    getConfiguration();
 
-    const handleSubmit = e => {
+    async function handleSubmit(e) {
+        loadingOrSaving = true;
 		const formData = new FormData(e.target)
 		const data = new URLSearchParams()
 		for (let field of formData) {
@@ -142,10 +148,13 @@
 			data.append(key, value)
 		}
 
-        fetch('/save', {
+        const response = await fetch('/save', {
             method: 'POST',
             body: data
-        })			
+        });
+        let res = (await response.json())
+        loadingOrSaving = false;
+        getConfiguration();
 	}
 </script>
 
@@ -153,6 +162,7 @@
     <div class="grid xl:grid-cols-4 lg:grid-cols-2 md:grid-cols-2">
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">General</strong>
+            <input type="hidden" name="general" value="true"/>
             <div class="my-3">
                 Timezone<br/>
                 <select class="h-10 rounded-md shadow-sm border-gray-300">
@@ -177,20 +187,16 @@
             </div>
             <div class="my-3">
                 Password<br/>
-                <input name="general_pass" bind:value={configuration.general.pass} type="text" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
+                <input name="general_pass" bind:value={configuration.general.pass} type="password" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
             </div>
         </div>
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">Meter</strong>
+            <input type="hidden" name="meter" value="true"/>
             <div class="my-3">
                 <span>Serial configuration</span>
                 <div class="flex">
-                    <select name="meter_pin" bind:value={configuration.meter.pin} class="h-10 rounded-l-md shadow-sm border-r-0 border-gray-300">
-                        {#each Object.entries(metersources) as [label, value] (label)}
-                            <option value={value}>{label}</option>
-                        {/each}
-                    </select>
-                    <select name="meter_baud" bind:value={configuration.meter.baud} class="h-10 shadow-sm border-gray-300">
+                    <select name="meter_baud" bind:value={configuration.meter.baud} class="h-10 rounded-l-md shadow-sm border-gray-300">
                         <option value={2400}>2400</option>
                         <option value={4800}>4800</option>
                         <option value={9600}>9600</option>
@@ -249,6 +255,7 @@
             </div>
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">WiFi</strong>
+            <input type="hidden" name="wifi" value="true"/>
             <div class="my-3">
                 SSID<br/>
                 <input name="wifi_ssid" bind:value={configuration.wifi.ssid} type="text" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
@@ -257,7 +264,7 @@
                 PSK<br/>
                 <input name="wifi_psk" bind:value={configuration.wifi.psk} type="password" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
             </div>
-            <div>
+            <div class="my-3">
                 Power<br/>
                 <label class="flex">
                     <input name="wifi_pwr" bind:value={configuration.wifi.pwr} type="number" min="0" max="20.5" step="0.5" class="h-10 rounded-l-md shadow-sm border-gray-300"/>
@@ -266,17 +273,27 @@
                     </div>                            
                 </label>
             </div>
+            <div class="my-3">
+                Power saving<br/>
+                <select name="wifi_sleep" bind:value={configuration.wifi.sleep} class="h-10 rounded-md shadow-sm border-gray-300">
+                    <option value={255}>Default</option>
+                    <option value={0}>Off</option>
+                    <option value={1}>Minimum</option>
+                    <option value={2}>Maximum</option>
+                </select>
+            </div>
         </div>
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">Network</strong>
+            <input type="hidden" name="net" value="true"/>
             <div class="my-3">
                 IP<br/>
                 <div class="flex">
-                    <select name="net_ip" bind:value={configuration.net.mode} class="h-10 rounded-l-md shadow-sm border-r-0 border-gray-300">
-                        <option value="d">DHCP</option>
-                        <option value="s">Static</option>
+                    <select name="net_mode" bind:value={configuration.net.mode} class="h-10 rounded-l-md shadow-sm border-r-0 border-gray-300">
+                        <option value="dhcp">DHCP</option>
+                        <option value="static">Static</option>
                     </select>
-                    <input type="text" class="h-10 shadow-sm border-gray-300 w-full"/>
+                    <input name="net_ip" bind:value={configuration.net.ip} type="text" class="h-10 shadow-sm border-gray-300 w-full"/>
                     <select class="h-10 rounded-r-md shadow-sm border-l-0 border-gray-300">
                         <option>/24</option>
                     </select>
@@ -305,6 +322,7 @@
         </div>
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">MQTT</strong>
+            <input type="hidden" name="mqtt" value="true"/>
             <div class="my-3">
                 Server<br/>
                 <div class="flex">
@@ -318,7 +336,7 @@
             </div>
             <div class="my-3">
                 Password<br/>
-                <input name="mqtt_pass" bind:value={configuration.mqtt.pass} type="text" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
+                <input name="mqtt_pass" bind:value={configuration.mqtt.pass} type="password" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
             </div>
             <div class="my-3">
                 Client ID<br/>
@@ -350,9 +368,6 @@
             <strong class="text-sm">Webhook</strong>
         </div>
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
-            <strong class="text-sm">Backup and restore</strong>
-        </div>
-        <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">Debugging</strong>
         </div>
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
@@ -365,3 +380,4 @@
     </div>
     <button type="submit" class="font-bold py-2 px-4 rounded bg-blue-500 text-white">Save</button>
 </form>
+<Modal active={loadingOrSaving}/>

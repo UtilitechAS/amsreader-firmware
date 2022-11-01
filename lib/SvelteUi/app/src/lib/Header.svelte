@@ -7,13 +7,14 @@
     import GearIcon from './GearIcon.svelte';
 
     export let data = {}
+    export let sysinfo = {}
     let timestamp = new Date(0);
 </script>
 
 <nav class="bg-violet-600 p-1 rounded-md mx-2">
       <div class="flex flex-wrap space-x-4 text-sm text-gray-300">
         <div class="flex-none text-lg text-gray-100 p-2">
-          <Link to="/">AMS reader <span>v0.0.0</span></Link>
+          <Link to="/">AMS reader <span>{sysinfo.version}</span></Link>
         </div>
         <div class="flex-none my-auto p-2 flex space-x-4">
           <div class="flex-none my-auto"><Uptime epoch={data.u}/></div>

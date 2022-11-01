@@ -1,16 +1,27 @@
 <script>
     export let epoch;
-    let days = Math.round(epoch/86400);
-    let hours = Math.round(epoch/3600);
-    let minutes = Math.round(epoch/60);
+    let days = 0;
+    let hours = 0;
+    let minutes = 0;
+    $: {
+        days = Math.round(epoch/86400);
+        hours = Math.round(epoch/3600);
+        minutes = Math.round(epoch/60);
+    }
 </script>
 Up
-{#if days > 0}
+{#if days > 1}
 {days} days
-{:else if hours > 0}
+{:else if days > 0}
+{days} day
+{:else if hours > 1}
 {hours} hours
-{:else if minutes > 0}
+{:else if hours > 0}
+{hours} hour
+{:else if minutes > 1}
 {minutes} minutes
+{:else if minutes > 0}
+{minutes} minute
 {:else}
 {epoch} seconds
 {/if}

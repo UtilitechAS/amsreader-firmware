@@ -33,17 +33,20 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	this->ea = ea;
 
 	// TODO
-	server.on("/", HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	server.on("/index.css", HTTP_GET, std::bind(&AmsWebServer::indexCss, this));
-	server.on("/index.js", HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
-	server.on("/github.svg", HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
-	server.on("/data.json", HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
-	server.on("/dayplot.json", HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
-	server.on("/monthplot.json", HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
-	server.on("/energyprice.json", HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
-	server.on("/temperature.json", HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
+	server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(F("/configuration"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(F("/index.css"), HTTP_GET, std::bind(&AmsWebServer::indexCss, this));
+	server.on(F("/index.js"), HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
+	server.on(F("/github.svg"), HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
+	server.on(F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
+	server.on(F("/data.json"), HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
+	server.on(F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
+	server.on(F("/monthplot.json"), HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
+	server.on(F("/energyprice.json"), HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
+	server.on(F("/temperature.json"), HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
 
-	server.on("/configuration.json", HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
+	server.on(F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
+	server.on(F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
 		
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
@@ -124,6 +127,25 @@ void AmsWebServer::githubSvg() {
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	server.send_P(200, "image/svg+xml", GITHUB_SVG);
+}
+
+void AmsWebServer::sysinfoJson() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /sysinfo.json over http...\n");
+
+	DynamicJsonDocument doc(256);
+	doc["version"] = VERSION;
+	#if defined(CONFIG_IDF_TARGET_ESP32S2)
+	doc["chip"] = "esp32s2";
+	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+	doc["chip"] = "esp32c3";
+	#elif defined(ESP32)
+	doc["chip"] = "esp32";
+	#elif defined(ESP8266)
+	doc["chip"] = "esp8266";
+	#endif
+
+	serializeJson(doc, buf, BufferSize);
+	server.send(200, MIME_JSON, buf);
 }
 
 void AmsWebServer::dataJson() {
@@ -558,16 +580,6 @@ void AmsWebServer::configurationJson() {
 
 	DynamicJsonDocument doc(1024);
 	doc["version"] = VERSION;
-	#if defined(CONFIG_IDF_TARGET_ESP32S2)
-	doc["chip"] = "esp32s2";
-	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-	doc["chip"] = "esp32c3";
-	#elif defined(ESP32)
-	doc["chip"] = "esp32";
-	#elif defined(ESP8266)
-	doc["chip"] = "esp8266";
-	#endif
-
 
 	WiFiConfig wifiConfig;
 	config->getWiFiConfig(wifiConfig);
@@ -579,9 +591,7 @@ void AmsWebServer::configurationJson() {
 	doc["general"]["user"] = webConfig.username;
 	doc["general"]["pass"] = webConfig.password;
 
-	config->getGpioConfig(*gpioConfig);
 	config->getMeterConfig(*meterConfig);
-	doc["meter"]["pin"] = gpioConfig->hanPin;
 	doc["meter"]["baud"] = meterConfig->baud;
 	doc["meter"]["par"] = meterConfig->parity;
 	doc["meter"]["inv"] = meterConfig->invert;
@@ -597,10 +607,11 @@ void AmsWebServer::configurationJson() {
 	doc["wifi"]["ssid"] = wifiConfig.ssid;
 	doc["wifi"]["psk"] = wifiConfig.psk;
 	doc["wifi"]["pwr"] = wifiConfig.power / 10.0;
+	doc["wifi"]["sleep"] = wifiConfig.sleep;
 
 	NtpConfig ntpConfig;
 	config->getNtpConfig(ntpConfig);
-	doc["net"]["mode"] = strlen(wifiConfig.ip) > 0 ? "s" : "d";
+	doc["net"]["mode"] = strlen(wifiConfig.ip) > 0 ? "static" : "dhcp";
 	doc["net"]["ip"] = wifiConfig.ip;
 	doc["net"]["mask"] = wifiConfig.subnet;
 	doc["net"]["gw"] = wifiConfig.gateway;
@@ -623,4 +634,257 @@ void AmsWebServer::configurationJson() {
 
 	serializeJson(doc, buf, BufferSize);
 	server.send(200, MIME_JSON, buf);
+}
+void AmsWebServer::handleSave() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Handling save method from http"));
+	if(!checkSecurity(1))
+		return;
+
+	if(server.hasArg(F("meter")) && server.arg(F("meter")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received meter config"));
+		config->getMeterConfig(*meterConfig);
+		meterConfig->baud = server.arg(F("meter_baud")).toInt();
+		meterConfig->parity = server.arg(F("meter_par")).toInt();
+		meterConfig->invert = server.hasArg(F("meter_inv")) && server.arg(F("meter_inv")) == F("true");
+		meterConfig->distributionSystem = server.arg(F("meter_dist")).toInt();
+		meterConfig->mainFuse = server.arg(F("meter_fuse")).toInt();
+		meterConfig->productionCapacity = server.arg(F("meter_prod")).toInt();
+		maxPwr = 0;
+
+		String encryptionKeyHex = server.arg(F("meter_enc"));
+		if(!encryptionKeyHex.isEmpty()) {
+			encryptionKeyHex.replace(F("0x"), F(""));
+			fromHex(meterConfig->encryptionKey, encryptionKeyHex, 16);
+		}
+
+		String authenticationKeyHex = server.arg(F("meter_auth"));
+		if(!authenticationKeyHex.isEmpty()) {
+			authenticationKeyHex.replace(F("0x"), F(""));
+			fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
+		}
+		config->setMeterConfig(*meterConfig);
+	}
+
+	if(server.hasArg(F("ma")) && server.arg(F("ma")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received meter advanced config"));
+		config->getMeterConfig(*meterConfig);
+		meterConfig->wattageMultiplier = server.arg(F("wm")).toDouble() * 1000;
+		meterConfig->voltageMultiplier = server.arg(F("vm")).toDouble() * 1000;
+		meterConfig->amperageMultiplier = server.arg(F("am")).toDouble() * 1000;
+		meterConfig->accumulatedMultiplier = server.arg(F("cm")).toDouble() * 1000;
+		config->setMeterConfig(*meterConfig);
+	}
+
+	if(server.hasArg(F("wifi")) && server.arg(F("wifi")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received WiFi config"));
+		WiFiConfig wifi;
+		config->getWiFiConfig(wifi);
+		strcpy(wifi.ssid, server.arg(F("wifi_ssid")).c_str());
+		strcpy(wifi.psk, server.arg(F("wifi_psk")).c_str());
+		wifi.power = server.arg(F("wifi_pwr")).toFloat() * 10;
+		wifi.sleep = server.arg(F("wifi_sleep")).toInt();
+		config->setWiFiConfig(wifi);
+	}
+
+	if(server.hasArg(F("net")) && server.arg(F("net")) == F("true")) {
+		WiFiConfig wifi;
+		config->getWiFiConfig(wifi);
+		if(server.hasArg(F("net_mode")) && server.arg(F("net_mode")) == "static") {
+			strcpy(wifi.ip, server.arg(F("net_ip")).c_str());
+			strcpy(wifi.gateway, server.arg(F("net_gw")).c_str());
+			strcpy(wifi.subnet, server.arg(F("net_sn")).c_str());
+			strcpy(wifi.dns1, server.arg(F("net_dns1")).c_str());
+			strcpy(wifi.dns2, server.arg(F("net_dns2")).c_str());
+		}
+		wifi.mdns = server.hasArg(F("net_mdns")) && server.arg(F("net_mdns")) == F("true");
+		config->setWiFiConfig(wifi);
+
+		NtpConfig ntp;
+		config->getNtpConfig(ntp);
+		ntp.dhcp = server.hasArg(F("net_ntpdhcp")) && server.arg(F("net_ntpdhcp")) == F("true");
+		strcpy(ntp.server, server.arg(F("net_ntp1")).c_str());
+		config->setNtpConfig(ntp);
+	}
+
+	if(server.hasArg(F("mqtt")) && server.arg(F("mqtt")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received MQTT config"));
+		MqttConfig mqtt;
+		if(server.hasArg(F("mqtt_host")) && !server.arg(F("mqtt_host")).isEmpty()) {
+			strcpy(mqtt.host, server.arg(F("mqtt_host")).c_str());
+			strcpy(mqtt.clientId, server.arg(F("mqtt_clid")).c_str());
+			strcpy(mqtt.publishTopic, server.arg(F("mqtt_pub")).c_str());
+			strcpy(mqtt.subscribeTopic, server.arg(F("mqtt_sub")).c_str());
+			strcpy(mqtt.username, server.arg(F("mqtt_user")).c_str());
+			strcpy(mqtt.password, server.arg(F("mqtt_pass")).c_str());
+			mqtt.payloadFormat = server.arg(F("mqtt_mode")).toInt();
+			mqtt.ssl = server.arg(F("mqtt_ssl")) == F("true");
+
+			mqtt.port = server.arg(F("mqtt_port")).toInt();
+			if(mqtt.port == 0) {
+				mqtt.port = mqtt.ssl ? 8883 : 1883;
+			}
+		} else {
+			config->clearMqtt(mqtt);
+		}
+		config->setMqttConfig(mqtt);
+	}
+
+	if(server.hasArg(F("dc")) && server.arg(F("dc")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received Domoticz config"));
+		DomoticzConfig domo {
+			static_cast<uint16_t>(server.arg(F("elidx")).toInt()),
+			static_cast<uint16_t>(server.arg(F("vl1idx")).toInt()),
+			static_cast<uint16_t>(server.arg(F("vl2idx")).toInt()),
+			static_cast<uint16_t>(server.arg(F("vl3idx")).toInt()),
+			static_cast<uint16_t>(server.arg(F("cl1idx")).toInt())
+		};
+		config->setDomoticzConfig(domo);
+	}
+
+
+	if(server.hasArg(F("general")) && server.arg(F("general")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received web config"));
+		webConfig.security = server.arg(F("general_sec")).toInt();
+		if(webConfig.security > 0) {
+			strcpy(webConfig.username, server.arg(F("general_user")).c_str());
+			strcpy(webConfig.password, server.arg(F("general_pass")).c_str());
+			debugger->setPassword(webConfig.password);
+		} else {
+			strcpy_P(webConfig.username, PSTR(""));
+			strcpy_P(webConfig.password, PSTR(""));
+			debugger->setPassword(F(""));
+		}
+		config->setWebConfig(webConfig);
+
+		WiFiConfig wifi;
+		config->getWiFiConfig(wifi);
+		if(server.hasArg(F("general_host")) && !server.arg(F("general_host")).isEmpty()) {
+			strcpy(wifi.hostname, server.arg(F("general_host")).c_str());
+		}
+		config->setWiFiConfig(wifi);
+	}
+
+	if(server.hasArg(F("gc")) && server.arg(F("gc")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received GPIO config"));
+		gpioConfig->hanPin = server.hasArg(F("h")) && !server.arg(F("h")).isEmpty() ? server.arg(F("h")).toInt() : 3;
+		gpioConfig->ledPin = server.hasArg(F("l")) && !server.arg(F("l")).isEmpty() ? server.arg(F("l")).toInt() : 0xFF;
+		gpioConfig->ledInverted = server.hasArg(F("i")) && server.arg(F("i")) == F("true");
+		gpioConfig->ledPinRed = server.hasArg(F("r")) && !server.arg(F("r")).isEmpty() ? server.arg(F("r")).toInt() : 0xFF;
+		gpioConfig->ledPinGreen = server.hasArg(F("e")) && !server.arg(F("e")).isEmpty() ? server.arg(F("e")).toInt() : 0xFF;
+		gpioConfig->ledPinBlue = server.hasArg(F("b")) && !server.arg(F("b")).isEmpty() ? server.arg(F("b")).toInt() : 0xFF;
+		gpioConfig->ledRgbInverted = server.hasArg(F("n")) && server.arg(F("n")) == F("true");
+		gpioConfig->apPin = server.hasArg(F("a")) && !server.arg(F("a")).isEmpty() ? server.arg(F("a")).toInt() : 0xFF;
+		gpioConfig->tempSensorPin = server.hasArg(F("t")) && !server.arg(F("t")).isEmpty() ?server.arg(F("t")).toInt() : 0xFF;
+		gpioConfig->tempAnalogSensorPin = server.hasArg(F("m")) && !server.arg(F("m")).isEmpty() ?server.arg(F("m")).toInt() : 0xFF;
+		gpioConfig->vccPin = server.hasArg(F("v")) && !server.arg(F("v")).isEmpty() ? server.arg(F("v")).toInt() : 0xFF;
+		gpioConfig->vccOffset = server.hasArg(F("o")) && !server.arg(F("o")).isEmpty() ? server.arg(F("o")).toFloat() * 100 : 0;
+		gpioConfig->vccMultiplier = server.hasArg(F("u")) && !server.arg(F("u")).isEmpty() ? server.arg(F("u")).toFloat() * 1000 : 1000;
+		gpioConfig->vccBootLimit = server.hasArg(F("c")) && !server.arg(F("c")).isEmpty() ? server.arg(F("c")).toFloat() * 10 : 0;
+		gpioConfig->vccResistorGnd = server.hasArg(F("d")) && !server.arg(F("d")).isEmpty() ? server.arg(F("d")).toInt() : 0;
+		gpioConfig->vccResistorVcc = server.hasArg(F("s")) && !server.arg(F("s")).isEmpty() ? server.arg(F("s")).toInt() : 0;
+		config->setGpioConfig(*gpioConfig);
+	}
+
+	if(server.hasArg(F("debugConfig")) && server.arg(F("debugConfig")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received Debug config"));
+		DebugConfig debug;
+		config->getDebugConfig(debug);
+		bool active = debug.serial || debug.telnet;
+
+		debug.telnet = server.hasArg(F("debugTelnet")) && server.arg(F("debugTelnet")) == F("true");
+		debug.serial = server.hasArg(F("debugSerial")) && server.arg(F("debugSerial")) == F("true");
+		debug.level = server.arg(F("debugLevel")).toInt();
+
+		if(debug.telnet || debug.serial) {
+			if(webConfig.security > 0) {
+				debugger->setPassword(webConfig.password);
+			} else {
+				debugger->setPassword(F(""));
+			}
+			debugger->setSerialEnabled(debug.serial);
+			WiFiConfig wifi;
+			if(config->getWiFiConfig(wifi) && strlen(wifi.hostname) > 0) {
+				debugger->begin(wifi.hostname, (uint8_t) debug.level);
+				if(!debug.telnet) {
+					debugger->stop();
+				}
+			}
+		} else if(active) {
+			performRestart = true;
+		}
+		config->setDebugConfig(debug);
+	}
+
+	if(server.hasArg(F("nc")) && server.arg(F("nc")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received NTP config"));
+		NtpConfig ntp {
+			server.hasArg(F("n")) && server.arg(F("n")) == F("true"),
+			server.hasArg(F("nd")) && server.arg(F("nd")) == F("true"),
+			static_cast<int16_t>(server.arg(F("o")).toInt() / 10),
+			static_cast<int16_t>(server.arg(F("so")).toInt() / 10)
+		};
+		strcpy(ntp.server, server.arg(F("ns")).c_str());
+		config->setNtpConfig(ntp);
+	}
+
+	if(server.hasArg(F("ec")) && server.arg(F("ec")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received ENTSO-E config"));
+		EntsoeConfig entsoe;
+		strcpy(entsoe.token, server.arg(F("et")).c_str());
+		strcpy(entsoe.area, server.arg(F("ea")).c_str());
+		strcpy(entsoe.currency, server.arg(F("ecu")).c_str());
+		entsoe.multiplier = server.arg(F("em")).toFloat() * 1000;
+		config->setEntsoeConfig(entsoe);
+	}
+
+	if(server.hasArg(F("cc")) && server.arg(F("cc")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received energy accounting config"));
+		EnergyAccountingConfig eac;
+		eac.thresholds[0] = server.arg(F("t0")).toInt();
+		eac.thresholds[1] = server.arg(F("t1")).toInt();
+		eac.thresholds[2] = server.arg(F("t2")).toInt();
+		eac.thresholds[3] = server.arg(F("t3")).toInt();
+		eac.thresholds[4] = server.arg(F("t4")).toInt();
+		eac.thresholds[5] = server.arg(F("t5")).toInt();
+		eac.thresholds[6] = server.arg(F("t6")).toInt();
+		eac.thresholds[7] = server.arg(F("t7")).toInt();
+		eac.thresholds[8] = server.arg(F("t8")).toInt();
+		eac.hours = server.arg(F("h")).toInt();
+		config->setEnergyAccountingConfig(eac);
+	}
+
+	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Saving configuration now..."));
+
+	DynamicJsonDocument doc(128);
+	if (config->save()) {
+		doc["success"] = true;
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Successfully saved."));
+		if(config->isWifiChanged() || performRestart) {
+			performRestart = true;
+			doc["reboot"] = true;
+		} else {
+			doc["reboot"] = false;
+			hw->setup(gpioConfig, config);
+		}
+	} else {
+		doc["success"] = false;
+	}
+	serializeJson(doc, buf, BufferSize);
+	server.send(200, MIME_JSON, buf);
+
+	delay(100);
+
+	if(performRestart || rebootForUpgrade) {
+		if(ds != NULL) {
+			ds->save();
+		}
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Rebooting"));
+		delay(1000);
+		#if defined(ESP8266)
+			ESP.reset();
+		#elif defined(ESP32)
+			ESP.restart();
+		#endif
+		performRestart = false;
+	}
 }

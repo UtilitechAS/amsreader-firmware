@@ -76,6 +76,7 @@ private:
 	void indexCss();
 	void githubSvg();
 
+    void sysinfoJson();
     void dataJson();
 	void dayplotJson();
 	void monthplotJson();
@@ -83,6 +84,7 @@ private:
 	void temperatureJson();
 
 	void configurationJson();
+	void handleSave();
 
 	void notFound();
 };

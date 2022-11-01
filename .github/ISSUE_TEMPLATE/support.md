@@ -20,6 +20,7 @@ A clear and concise description of what the problem is.
 **Relevant firmware information:**
  - Version: [e.g. 2.1.0]
  - MQTT: [yes/no]
+ - MQTT payload type: [e.g. JSON]
  - HAN GPIO: [e.g. GPIO5]
  - HAN baud and parity: [e.g. 2400 8E1]
  - Temperature sensors [e.g. 3xDS18B20]

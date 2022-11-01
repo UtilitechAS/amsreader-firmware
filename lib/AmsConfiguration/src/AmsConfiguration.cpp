@@ -24,6 +24,7 @@ bool AmsConfiguration::getWiFiConfig(WiFiConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_WIFI_START, config);
 		EEPROM.end();
+		if(config.sleep > 2) config.sleep = 1;
 		return true;
 	} else {
 		clearWifi(config);
@@ -33,6 +34,7 @@ bool AmsConfiguration::getWiFiConfig(WiFiConfig& config) {
 
 bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 	WiFiConfig existing;
+	if(config.sleep > 2) config.sleep = 1;
 	if(getWiFiConfig(existing)) {
 		wifiChanged |= strcmp(config.ssid, existing.ssid) != 0;
 		wifiChanged |= strcmp(config.psk, existing.psk) != 0;
@@ -45,6 +47,7 @@ bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 		}
 		wifiChanged |= strcmp(config.hostname, existing.hostname) != 0;
 		wifiChanged |= config.power != existing.power;
+		wifiChanged |= config.sleep != existing.sleep;
 	} else {
 		wifiChanged = true;
 	}
@@ -70,6 +73,7 @@ void AmsConfiguration::clearWifi(WiFiConfig& config) {
 	#endif
 	strcpy(config.hostname, (String("ams-") + String(chipId, HEX)).c_str());
 	config.mdns = true;
+	config.sleep = 0xFF;
 }
 
 void AmsConfiguration::clearWifiIp(WiFiConfig& config) {
@@ -510,6 +514,7 @@ bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config)
 		if(config.thresholds[9] != 255) {
 			clearEnergyAccountingConfig(config);
 		}
+		if(config.hours > 5) config.hours = 5;
 		return true;
 	} else {
 		return false;
@@ -549,6 +554,7 @@ void AmsConfiguration::clearEnergyAccountingConfig(EnergyAccountingConfig& confi
 	config.thresholds[7] = 100;
 	config.thresholds[8] = 150;
 	config.thresholds[9] = 255;
+	config.hours = 3;
 }
 
 bool AmsConfiguration::isEnergyAccountingChanged() {

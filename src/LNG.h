@@ -4,6 +4,7 @@
 #include "AmsData.h"
 #include "AmsConfiguration.h"
 #include "ams/DataParser.h"
+#include "ams/Cosem.h"
 #include "RemoteDebug.h"
 
 struct LngHeader {
@@ -25,6 +26,7 @@ struct LngObisDescriptor {
 class LNG : public AmsData {
 public:
     LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger);
+    uint64_t getNumber(CosemData* item);
 };
 
 #endif

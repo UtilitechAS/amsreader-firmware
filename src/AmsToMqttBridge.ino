@@ -1116,7 +1116,17 @@ void WiFi_connect() {
 		WiFi.persistent(true);
 		if(WiFi.begin(wifi.ssid, wifi.psk)) {
 			if(wifi.sleep <= 2) {
-				WiFi.setSleep(wifi.sleep);
+				switch(wifi.sleep) {
+					case 0:
+						WiFi.setSleep(WIFI_PS_NONE);
+						break;
+					case 1:
+						WiFi.setSleep(WIFI_PS_MIN_MODEM);
+						break;
+					case 2:
+						WiFi.setSleep(WIFI_PS_MAX_MODEM);
+						break;
+				}
 			}
 			yield();
 		} else {

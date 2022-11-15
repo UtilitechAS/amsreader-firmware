@@ -4,7 +4,7 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 95 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 96 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
@@ -88,6 +88,23 @@ struct WebConfig {
 }; // 129
 
 struct MeterConfig {
+	uint32_t baud;
+	uint8_t parity;
+	bool invert;
+	uint8_t distributionSystem;
+	uint8_t mainFuse;
+	uint8_t productionCapacity;
+	uint8_t encryptionKey[16];
+	uint8_t authenticationKey[16];
+	uint32_t wattageMultiplier;
+	uint32_t voltageMultiplier;
+	uint32_t amperageMultiplier;
+	uint32_t accumulatedMultiplier;
+	uint8_t source;
+	uint8_t parser;
+}; // 50
+
+struct MeterConfig95 {
 	uint32_t baud;
 	uint8_t parity;
 	bool invert;
@@ -270,6 +287,7 @@ private:
 	bool relocateConfig92(); // 2.0.3
 	bool relocateConfig93(); // 2.1.0
 	bool relocateConfig94(); // 2.1.4
+	bool relocateConfig95(); // 2.1.13
 
 	void saveToFs();
 	bool loadFromFs(uint8_t version);

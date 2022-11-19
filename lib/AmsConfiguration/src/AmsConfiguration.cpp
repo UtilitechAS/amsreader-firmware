@@ -7,6 +7,11 @@ bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 		EEPROM.end();
 		return true;
 	} else {
+		config.boardType = 0xFF;
+		config.vendorConfigured = false;
+		config.userConfigured = false;
+		config.dataCollectionConsent = 0;
+		strcpy(config.country, "");
 		return false;
 	}
 }
@@ -619,22 +624,6 @@ bool AmsConfiguration::hasConfig() {
 		}
 	} else {
 		switch(configVersion) {
-			case 86:
-				configVersion = -1; // Prevent loop
-				if(relocateConfig86()) {
-					configVersion = 87;
-				} else {
-					configVersion = 0;
-					return false;
-				}
-			case 87:
-				configVersion = -1; // Prevent loop
-				if(relocateConfig87()) {
-					configVersion = 88;
-				} else {
-					configVersion = 0;
-					return false;
-				}
 			case 90:
 				configVersion = -1; // Prevent loop
 				if(relocateConfig90()) {
@@ -679,6 +668,14 @@ bool AmsConfiguration::hasConfig() {
 				configVersion = -1; // Prevent loop
 				if(relocateConfig95()) {
 					configVersion = 96;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 96:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig96()) {
+					configVersion = 100;
 				} else {
 					configVersion = 0;
 					return false;
@@ -733,51 +730,6 @@ void AmsConfiguration::saveTempSensors() {
 			address += sizeof(*tsc);
 		}
 	}
-}
-
-bool AmsConfiguration::relocateConfig86() {
-	MqttConfig86 mqtt86;
-	MqttConfig mqtt;
-	EEPROM.begin(EEPROM_SIZE);
-	EEPROM.get(CONFIG_MQTT_START_86, mqtt86);
-	strcpy(mqtt.host, mqtt86.host);
-	mqtt.port = mqtt86.port;
-	strcpy(mqtt.clientId, mqtt86.clientId);
-	strcpy(mqtt.publishTopic, mqtt86.publishTopic);
-	strcpy(mqtt.subscribeTopic, mqtt86.subscribeTopic);
-	strcpy(mqtt.username, mqtt86.username);
-	strcpy(mqtt.password, mqtt86.password);
-	mqtt.payloadFormat = mqtt86.payloadFormat;
-	mqtt.ssl = mqtt86.ssl;
-	EEPROM.put(CONFIG_MQTT_START, mqtt);
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 87);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
-}
-
-bool AmsConfiguration::relocateConfig87() {
-	MeterConfig87 meter87 = {0,0,0,0,0,0,0};
-	MeterConfig meter;
-	EEPROM.begin(EEPROM_SIZE);
-    EEPROM.get(CONFIG_METER_START_87, meter87);
-	if(meter87.type < 5) {
-		meter.baud = 2400;
-		meter.parity = meter87.type == 3 || meter87.type == 4 ? 3 : 11;
-		meter.invert = false;
-	} else {
-		meter.baud = 115200;
-		meter.parity = 3;
-		meter.invert = meter87.type == 6;
-	}
-	meter.distributionSystem = meter87.distributionSystem;
-	meter.mainFuse = meter87.mainFuse;
-	meter.productionCapacity = meter87.productionCapacity;
-	EEPROM.put(CONFIG_METER_START, meter);
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 88);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
 }
 
 bool AmsConfiguration::relocateConfig90() {
@@ -872,6 +824,27 @@ bool AmsConfiguration::relocateConfig95() {
 	meter.accumulatedMultiplier = meter95.accumulatedMultiplier;
 	EEPROM.put(CONFIG_METER_START, meter);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 96);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig96() {
+	SystemConfig sys;
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.get(CONFIG_SYSTEM_START, sys);
+	sys.vendorConfigured = false;
+	sys.userConfigured = false;
+	sys.dataCollectionConsent = 0;
+	strcpy(sys.country, "");
+	EEPROM.put(CONFIG_SYSTEM_START, sys);
+
+	WiFiConfig wifi;
+	EEPROM.get(CONFIG_WIFI_START, wifi);
+	wifi.mode = 1; // WIFI_STA
+	EEPROM.put(CONFIG_WIFI_START, wifi);
+
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 100);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;

@@ -82,9 +82,11 @@ private:
 	void monthplotJson();
 	void energyPriceJson();
 	void temperatureJson();
+	void wifiScanJson();
 
 	void configurationJson();
 	void handleSave();
+	void reboot();
 
 	void notFound();
 };

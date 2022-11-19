@@ -4,7 +4,7 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 96 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 100 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
@@ -29,7 +29,11 @@
 
 struct SystemConfig {
 	uint8_t boardType;
-}; // 1
+	bool vendorConfigured;
+	bool userConfigured;
+	uint8_t dataCollectionConsent; // 0 = unknown, 1 = accepted, 2 = declined
+	char country[2];
+}; // 6
 
 struct WiFiConfig91 {
 	char ssid[32];
@@ -55,7 +59,8 @@ struct WiFiConfig {
 	bool mdns;
 	uint8_t power;
 	uint8_t sleep;
-}; // 211
+	uint8_t mode;
+}; // 212
 
 struct MqttConfig86 {
 	char host[128];
@@ -280,14 +285,13 @@ private:
 	uint8_t tempSensorCount = 0;
 	TempSensorConfig** tempSensors = NULL;
 
-	bool relocateConfig86(); // 1.5.0
-	bool relocateConfig87(); // 1.5.4
 	bool relocateConfig90(); // 2.0.0
 	bool relocateConfig91(); // 2.0.2
 	bool relocateConfig92(); // 2.0.3
 	bool relocateConfig93(); // 2.1.0
-	bool relocateConfig94(); // 2.1.4
-	bool relocateConfig95(); // 2.1.13
+	bool relocateConfig94(); // 2.1.0
+	bool relocateConfig95(); // 2.1.4
+	bool relocateConfig96(); // 2.1.14
 
 	void saveToFs();
 	bool loadFromFs(uint8_t version);

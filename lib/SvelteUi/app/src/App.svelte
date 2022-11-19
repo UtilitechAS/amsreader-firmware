@@ -1,15 +1,20 @@
 <script>
   import { Router, Route } from "svelte-navigator";
 
-  import { sysinfoStore, dataStore } from './lib/DataStores.js';
+  import { getSysinfo, sysinfoStore, dataStore } from './lib/DataStores.js';
   import Header from './lib/Header.svelte';
   import Dashboard from './lib/Dashboard.svelte';
   import ConfigurationPanel from './lib/ConfigurationPanel.svelte';
+  import StatusPage from './lib/StatusPage.svelte';
+  import VendorModal from './lib/VendorModal.svelte';
+  import SetupModal from './lib/SetupModal.svelte';
+  import Mask from './lib/Mask.svelte';
 
   let sysinfo = {};
   sysinfoStore.subscribe(update => {
     sysinfo = update;
   });
+  getSysinfo();
   let data = {};
   dataStore.subscribe(update => {
     data = update;
@@ -25,6 +30,13 @@
     <Route path="/configuration">
       <ConfigurationPanel sysinfo={sysinfo}/>
     </Route>
+    <Route path="/status">
+      <StatusPage sysinfo={sysinfo} data={data}/>
+    </Route>
   </Router>
-  
+  {#if sysinfo.vndcfg === false}
+  <VendorModal sysinfo={sysinfo}/>
+  {:else if sysinfo.usrcfg === false}
+  <SetupModal sysinfo={sysinfo}/>
+  {/if}
 </div>

@@ -34,9 +34,19 @@
       <StatusPage sysinfo={sysinfo} data={data}/>
     </Route>
   </Router>
-  {#if sysinfo.vndcfg === false}
+  {#if sysinfo.upgrading}
+  <Mask active=true message="Device is upgrading, please wait"/>
+  {:else if sysinfo.vndcfg === false}
+  {#if sysinfo.booting}
+  <Mask active=true message="Device is booting, please wait"/>
+  {:else}
   <VendorModal sysinfo={sysinfo}/>
+  {/if}
   {:else if sysinfo.usrcfg === false}
+  {#if sysinfo.booting}
+  <Mask active=true message="Device is booting, please wait"/>
+  {:else}
   <SetupModal sysinfo={sysinfo}/>
+  {/if}
   {/if}
 </div>

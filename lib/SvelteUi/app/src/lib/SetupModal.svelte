@@ -5,9 +5,40 @@
     export let sysinfo = {}
 
     let staticIp = false;
-    let ntpDhcp = true;
-
     let loadingOrSaving = false;
+
+    let tries = 0; 
+    function scanForDevice() {
+        var url = "";
+        tries++;
+
+        if(sysinfo.net.ip && tries%3 == 0) {
+            url = "http://" + sysinfo.net.ip;
+        } else if(sysinfo.hostname && tries%3 == 1) {
+            url = "http://" + sysinfo.hostname;
+        } else if(sysinfo.hostname && tries%3 == 2) {
+            url = "http://" + sysinfo.hostname + ".local";
+        } else {
+            url = "";
+        }
+        if(console) console.log("Trying url " + url);
+
+        var retry = function() {
+            setTimeout(scanForDevice, 1000);
+        };
+        
+        var xhr = new XMLHttpRequest();
+        xhr.timeout = 5000;
+        xhr.addEventListener('abort', retry);
+        xhr.addEventListener('error', retry);
+        xhr.addEventListener('timeout', retry);
+        xhr.addEventListener('load', function(e) {
+            window.location.href = url ? url : "/";
+        });
+        xhr.open("GET", url + "/is-alive", true);
+        xhr.send();
+    };
+
     async function handleSubmit(e) {
         loadingOrSaving = true;
         const formData = new FormData(e.target)
@@ -27,6 +58,7 @@
         sysinfoStore.update(s => {
             s.usrcfg = res.success;
             s.booting = res.reboot;
+            setTimeout(scanForDevice, 5000);
             return s;
         });
     }
@@ -49,7 +81,7 @@
                 </div>
                 <div>
                     Hostname:
-                    <input name="sh" type="text" class="h-10 rounded-md shadow-sm border-gray-300 w-full" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader" value="ams-{sysinfo.chipId}"/>
+                    <input name="sh" bind:value={sysinfo.hostname} type="text" class="h-10 rounded-md shadow-sm border-gray-300 w-full" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader"/>
                 </div>
                 <div class="my-3">
                     <label><input type="checkbox" name="sm" value="static" class="rounded mb-1" bind:checked={staticIp} /> Static IP</label>

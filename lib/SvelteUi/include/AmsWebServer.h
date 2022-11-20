@@ -87,6 +87,12 @@ private:
 	void configurationJson();
 	void handleSave();
 	void reboot();
+	void upgrade();
+	void firmwarePost();
+	void firmwareUpload();
+	void isAliveCheck();
+
+	HTTPUpload& uploadFile(const char* path);
 
 	void notFound();
 };

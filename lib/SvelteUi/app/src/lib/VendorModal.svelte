@@ -39,14 +39,14 @@
                 <strong class="text-sm">Vendor configuration</strong>
                 <div class="my-3">
                     Board type<br/>
-                    <select name="b" class="h-10 rounded-md shadow-sm border-gray-300 p-0 w-full" bind:value={sysinfo.board}>
+                    <select name="vb" bind:value={sysinfo.board} class="h-10 rounded-md shadow-sm border-gray-300 p-0 w-full">
                         <BoardTypeSelectOptions chip={sysinfo.chip}/>
                     </select>
                 </div>
                 {#if sysinfo.board && sysinfo.board > 20}
                     <div class="my-3">
                         HAN GPIO<br/>
-                        <select name="h" class="h-10 rounded-md shadow-sm border-gray-300">
+                        <select name="vh" class="h-10 rounded-md shadow-sm border-gray-300">
                             <UartSelectOptions chip={sysinfo.chip}/>
                         </select>
                     </div>

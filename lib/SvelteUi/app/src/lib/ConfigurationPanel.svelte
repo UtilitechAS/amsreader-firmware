@@ -518,6 +518,7 @@
             </div> 
             {/if}
             {#if configuration.i.v.p > 0 || sysinfo.chip == 'esp8266'}
+            <input type="hidden" name="iv" value="true"/>
             <div class="my-1 flex flex-wrap">
                 <div>
                     Vcc offset<br/>

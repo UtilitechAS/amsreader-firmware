@@ -17,6 +17,10 @@
 
 #include "version.h"
 
+#if defined(ESP32)
+#include <esp_task_wdt.h>
+#endif
+
 
 AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw) {
 	this->debugger = Debug;
@@ -51,6 +55,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 	server.on(F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
 	server.on(F("/reboot"), HTTP_POST, std::bind(&AmsWebServer::reboot, this));
+	server.on(F("/upgrade"), HTTP_POST, std::bind(&AmsWebServer::upgrade, this));
+	server.on(F("/firmware"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::firmwareUpload, this));
+	server.on(F("/is-alive"), HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
 		
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
@@ -154,7 +161,8 @@ void AmsWebServer::sysinfoJson() {
 	#else
 		chipId = ESP.getChipId();
 	#endif
-	doc["chipId"] = String(chipId, HEX);
+	String chipIdStr = String(chipId, HEX);;
+	doc["chipId"] = chipIdStr;
 
 	SystemConfig sys;
 	config->getSystemConfig(sys);
@@ -163,6 +171,17 @@ void AmsWebServer::sysinfoJson() {
 	doc["usrcfg"] = sys.userConfigured;
 	doc["fwconsent"] = sys.dataCollectionConsent;
 	doc["country"] = sys.country;
+
+	if(sys.userConfigured) {
+		WiFiConfig wifiConfig;
+		config->getWiFiConfig(wifiConfig);
+		doc["hostname"] = wifiConfig.hostname;
+	} else {
+		doc["hostname"] = "ams-"+chipIdStr;
+	}
+
+	doc["booting"] = performRestart;
+	doc["upgrading"] = rebootForUpgrade;
 
 	doc["net"]["ip"] = WiFi.localIP().toString();
 	doc["net"]["mask"] = WiFi.subnetMask().toString();
@@ -176,6 +195,23 @@ void AmsWebServer::sysinfoJson() {
 
 	serializeJson(doc, buf, BufferSize);
 	server.send(200, MIME_JSON, buf);
+
+	server.handleClient();
+	delay(250);
+
+	if(performRestart || rebootForUpgrade) {
+		if(ds != NULL) {
+			ds->save();
+		}
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Rebooting"));
+		delay(1000);
+		#if defined(ESP8266)
+			ESP.reset();
+		#elif defined(ESP32)
+			ESP.restart();
+		#endif
+		performRestart = false;
+	}
 }
 
 void AmsWebServer::dataJson() {
@@ -802,8 +838,9 @@ void AmsWebServer::handleSave() {
 
 	bool success = true;
 	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
-		int boardType = server.arg(F("b")).toInt();
-		int hanPin = server.arg(F("h")).toInt();
+		int boardType = server.arg(F("vb")).toInt();
+		int hanPin = server.arg(F("vh")).toInt();
+		config->clear();
 
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
 			switch(boardType) {
@@ -854,7 +891,14 @@ void AmsWebServer::handleSave() {
 				case 2: // spenceme
 					config->clearGpio(*gpioConfig);
 					gpioConfig->vccBootLimit = 33;
+					gpioConfig->hanPin = 3;
+					gpioConfig->apPin = 0;
+					gpioConfig->ledPin = 2;
+					gpioConfig->ledInverted = true;
+					gpioConfig->tempSensorPin = 5;
+					break;
 				case 0: // roarfred
+					config->clearGpio(*gpioConfig);
 					gpioConfig->hanPin = 3;
 					gpioConfig->apPin = 0;
 					gpioConfig->ledPin = 2;
@@ -900,6 +944,7 @@ void AmsWebServer::handleSave() {
 					success = false;
 			}
 		#endif
+		config->setGpioConfig(*gpioConfig);
 
 		SystemConfig sys;
 		config->getSystemConfig(sys);
@@ -1119,11 +1164,16 @@ void AmsWebServer::handleSave() {
 		gpioConfig->tempSensorPin = server.hasArg(F("itd")) && !server.arg(F("itd")).isEmpty() ?server.arg(F("itd")).toInt() : 0xFF;
 		gpioConfig->tempAnalogSensorPin = server.hasArg(F("ita")) && !server.arg(F("ita")).isEmpty() ?server.arg(F("ita")).toInt() : 0xFF;
 		gpioConfig->vccPin = server.hasArg(F("ivp")) && !server.arg(F("ivp")).isEmpty() ? server.arg(F("ivp")).toInt() : 0xFF;
+		gpioConfig->vccResistorGnd = server.hasArg(F("ivdg")) && !server.arg(F("ivdg")).isEmpty() ? server.arg(F("ivdg")).toInt() : 0;
+		gpioConfig->vccResistorVcc = server.hasArg(F("ivdv")) && !server.arg(F("ivdv")).isEmpty() ? server.arg(F("ivdv")).toInt() : 0;
+		config->setGpioConfig(*gpioConfig);
+	}
+
+	if(server.hasArg(F("iv")) && server.arg(F("iv")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received Vcc config"));
 		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toFloat() * 100 : 0;
 		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toFloat() * 1000 : 1000;
 		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? server.arg(F("ivb")).toFloat() * 10 : 0;
-		gpioConfig->vccResistorGnd = server.hasArg(F("ivdg")) && !server.arg(F("ivdg")).isEmpty() ? server.arg(F("ivdg")).toInt() : 0;
-		gpioConfig->vccResistorVcc = server.hasArg(F("ivdv")) && !server.arg(F("ivdv")).isEmpty() ? server.arg(F("ivdv")).toInt() : 0;
 		config->setGpioConfig(*gpioConfig);
 	}
 
@@ -1250,4 +1300,160 @@ void AmsWebServer::reboot() {
 		ESP.restart();
 	#endif
 	performRestart = false;
+}
+
+void AmsWebServer::upgrade() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /upgrade over http...\n");
+
+	DynamicJsonDocument doc(128);
+	doc["reboot"] = true;
+
+	serializeJson(doc, buf, BufferSize);
+	server.send(200, MIME_JSON, buf);
+
+	server.handleClient();
+	delay(250);
+
+	String customFirmwareUrl = "";
+	if(server.hasArg(F("url"))) {
+		customFirmwareUrl = server.arg(F("url"));
+	}
+
+	String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith(F("http")) ? F("http://ams2mqtt.rewiredinvent.no/hub/firmware/update") : customFirmwareUrl;
+
+	if(server.hasArg(F("version"))) {
+		url += "/" + server.arg(F("version"));
+	}
+
+	WiFiClient client;
+	#if defined(ESP8266)
+		String chipType = F("esp8266");
+	#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+		String chipType = F("esp32s2");
+	#elif defined(ESP32)
+		#if defined(CONFIG_FREERTOS_UNICORE)
+			String chipType = F("esp32solo");
+		#else
+			String chipType = F("esp32");
+		#endif
+	#endif
+
+	#if defined(ESP8266)
+		ESPhttpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+		t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
+	#elif defined(ESP32)
+		HTTPUpdate httpUpdate;
+		httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+		HTTPUpdateResult ret = httpUpdate.update(client, url, String(VERSION) + "-" + chipType);
+	#endif
+
+	switch(ret) {
+		case HTTP_UPDATE_FAILED:
+			debugger->printf(PSTR("Update failed"));
+			break;
+		case HTTP_UPDATE_NO_UPDATES:
+			debugger->printf(PSTR("No Update"));
+			break;
+		case HTTP_UPDATE_OK:
+			debugger->printf(PSTR("Update OK"));
+			break;
+	}
+}
+
+void AmsWebServer::firmwarePost() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Handling firmware post..."));
+	if(!checkSecurity(1))
+		return;
+
+	server.send(200);
+}
+
+
+void AmsWebServer::firmwareUpload() {
+	if(!checkSecurity(1))
+		return;
+
+	HTTPUpload& upload = server.upload();
+    if(upload.status == UPLOAD_FILE_START) {
+        String filename = upload.filename;
+        if(!filename.endsWith(".bin")) {
+            server.send(500, MIME_PLAIN, "500: couldn't create file");
+		} else {
+			#if defined(ESP32)
+				esp_task_wdt_delete(NULL);
+				esp_task_wdt_deinit();
+			#elif defined(ESP8266)
+				ESP.wdtDisable();
+			#endif
+		}
+	}
+	uploadFile(FILE_FIRMWARE);
+	if(upload.status == UPLOAD_FILE_END) {
+		rebootForUpgrade = true;
+		server.sendHeader("Location","/");
+		server.send(302);
+	}
+}
+
+HTTPUpload& AmsWebServer::uploadFile(const char* path) {
+    HTTPUpload& upload = server.upload();
+    if(upload.status == UPLOAD_FILE_START){
+		if(uploading) {
+			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("Upload already in progress"));
+			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Upload already in progress!</h1></body></html>"));
+		} else if (!LittleFS.begin()) {
+			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("An Error has occurred while mounting LittleFS"));
+			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Unable to mount LittleFS!</h1></body></html>"));
+		} else {
+			uploading = true;
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf_P(PSTR("handleFileUpload file: %s\n"), path);
+			}
+			if(LittleFS.exists(path)) {
+				LittleFS.remove(path);
+			}
+		    file = LittleFS.open(path, "w");
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf_P(PSTR("handleFileUpload Open file and write: %u\n"), upload.currentSize);
+			}
+            size_t written = file.write(upload.buf, upload.currentSize);
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf_P(PSTR("handleFileUpload Written: %u\n"), written);
+			}
+	    } 
+    } else if(upload.status == UPLOAD_FILE_WRITE) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) {
+			debugger->printf_P(PSTR("handleFileUpload Writing: %u\n"), upload.currentSize);
+		}
+        if(file) {
+            size_t written = file.write(upload.buf, upload.currentSize);
+			if(debugger->isActive(RemoteDebug::DEBUG)) {
+				debugger->printf_P(PSTR("handleFileUpload Written: %u\n"), written);
+			}
+			delay(1);
+			if(written != upload.currentSize) {
+				file.flush();
+				file.close();
+				LittleFS.remove(path);
+				LittleFS.end();
+
+				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("An Error has occurred while writing file"));
+				server.send_P(500, MIME_JSON, PSTR("{ \"success\": false, \"message\": \"Unable to upload\" }"));
+			}
+		}
+    } else if(upload.status == UPLOAD_FILE_END) {
+        if(file) {
+			file.flush();
+            file.close();
+//			LittleFS.end();
+        } else {
+			server.send_P(500, MIME_JSON, PSTR("{ \"success\": false, \"message\": \"Unable to upload\" }"));
+        }
+    }
+	return upload;
+}
+
+void AmsWebServer::isAliveCheck() {
+	server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
+	server.send(200);
 }

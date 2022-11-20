@@ -4,7 +4,7 @@
     export let chip;
 </script>
 
-<option value=""></option>
+<option value={-1}></option>
 {#if chip == 'esp8266'}
     <optgroup label="amsleser.no">
         <option value={7}>{boardtype(chip, 7)}</option>

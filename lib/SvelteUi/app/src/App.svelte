@@ -6,8 +6,8 @@
   import Dashboard from './lib/Dashboard.svelte';
   import ConfigurationPanel from './lib/ConfigurationPanel.svelte';
   import StatusPage from './lib/StatusPage.svelte';
-  import VendorModal from './lib/VendorModal.svelte';
-  import SetupModal from './lib/SetupModal.svelte';
+  import VendorPanel from './lib/VendorPanel.svelte';
+  import SetupPanel from './lib/SetupPanel.svelte';
   import Mask from './lib/Mask.svelte';
 
   let sysinfo = {};
@@ -25,7 +25,13 @@
   <Router>
     <Header data={data} sysinfo={sysinfo}/>
     <Route path="/">
+      {#if sysinfo.vndcfg === false}
+      <VendorPanel sysinfo={sysinfo}/>
+      {:else if sysinfo.usrcfg === false}
+      <SetupPanel sysinfo={sysinfo}/>
+      {:else}
       <Dashboard data={data}/>
+      {/if}
     </Route>
     <Route path="/configuration">
       <ConfigurationPanel sysinfo={sysinfo}/>
@@ -34,19 +40,10 @@
       <StatusPage sysinfo={sysinfo} data={data}/>
     </Route>
   </Router>
+
   {#if sysinfo.upgrading}
   <Mask active=true message="Device is upgrading, please wait"/>
-  {:else if sysinfo.vndcfg === false}
-  {#if sysinfo.booting}
+  {:else if sysinfo.booting}
   <Mask active=true message="Device is booting, please wait"/>
-  {:else}
-  <VendorModal sysinfo={sysinfo}/>
-  {/if}
-  {:else if sysinfo.usrcfg === false}
-  {#if sysinfo.booting}
-  <Mask active=true message="Device is booting, please wait"/>
-  {:else}
-  <SetupModal sysinfo={sysinfo}/>
-  {/if}
   {/if}
 </div>

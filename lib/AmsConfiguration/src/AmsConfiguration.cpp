@@ -1,8 +1,9 @@
 #include "AmsConfiguration.h"
 
 bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
-	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
+	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
+	if(configVersion == EEPROM_CHECK_SUM || configVersion == EEPROM_CLEARED_INDICATOR) {
 		EEPROM.get(CONFIG_SYSTEM_START, config);
 		EEPROM.end();
 		return true;
@@ -573,6 +574,15 @@ void AmsConfiguration::ackEnergyAccountingChange() {
 
 void AmsConfiguration::clear() {
 	EEPROM.begin(EEPROM_SIZE);
+
+	SystemConfig sys;
+	EEPROM.get(CONFIG_SYSTEM_START, sys);
+	sys.userConfigured = false;
+	sys.dataCollectionConsent = 0;
+	strcpy(sys.country, "");
+	EEPROM.put(CONFIG_SYSTEM_START, sys);
+
+
 	MeterConfig meter;
 	clearMeter(meter);
 	EEPROM.put(CONFIG_METER_START, meter);
@@ -605,7 +615,7 @@ void AmsConfiguration::clear() {
 	clearEnergyAccountingConfig(eac);
 	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
 
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, -1);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CLEARED_INDICATOR);
 	EEPROM.commit();
 	EEPROM.end();
 }
@@ -833,8 +843,8 @@ bool AmsConfiguration::relocateConfig96() {
 	SystemConfig sys;
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.get(CONFIG_SYSTEM_START, sys);
-	sys.vendorConfigured = false;
-	sys.userConfigured = false;
+	sys.vendorConfigured = true;
+	sys.userConfigured = true;
 	sys.dataCollectionConsent = 0;
 	strcpy(sys.country, "");
 	EEPROM.put(CONFIG_SYSTEM_START, sys);

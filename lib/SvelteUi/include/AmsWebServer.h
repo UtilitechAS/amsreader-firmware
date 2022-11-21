@@ -94,6 +94,8 @@ private:
 
 	HTTPUpload& uploadFile(const char* path);
 
+	void factoryResetPost();
+
 	void notFound();
 };
 

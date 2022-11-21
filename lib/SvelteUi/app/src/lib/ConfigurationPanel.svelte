@@ -53,10 +53,24 @@
     });
     getConfiguration();
 
+    let isFactoryReset = false;
+    async function factoryReset() {
+        if(confirm("Are you sure you want to factory reset the device?")) {
+            const data = new URLSearchParams();
+            data.append("perform", "true");
+            const response = await fetch('/reset', {
+                method: 'POST',
+                body: data
+            });
+            let res = (await response.json());
+            isFactoryReset = res.success;
+        }
+    }
+
     async function handleSubmit(e) {
         loadingOrSaving = true;
-		const formData = new FormData(e.target)
-		const data = new URLSearchParams()
+		const formData = new FormData(e.target);
+		const data = new URLSearchParams();
 		for (let field of formData) {
 			const [key, value] = field
 			data.append(key, value)
@@ -460,10 +474,6 @@
         </div>
         {/if}
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
-            <strong class="text-sm">Cloud</strong>
-
-        </div>
-        <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">Hardware</strong>
             {#if sysinfo.board > 20}
             <input type="hidden" name="i" value="true"/>
@@ -557,6 +567,8 @@
             {/if}
         </div>
     </div>
-    <button type="submit" class="font-bold py-2 px-4 rounded bg-blue-500 text-white float-right mr-3">Save</button>
+    <button type="button" on:click={factoryReset} class="font-bold py-2 px-4 rounded bg-red-500 text-white ml-2">Factory reset</button>
+    <button type="submit" class="font-bold py-2 px-4 rounded bg-blue-500 text-white float-right mr-2">Save</button>
 </form>
 <Mask active={loadingOrSaving} message="Loading configuration"/>
+<Mask active={isFactoryReset} message="Device have been factory reset and switched to AP mode"/>

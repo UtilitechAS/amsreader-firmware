@@ -32,16 +32,20 @@
 
 <div class="grid xl:grid-cols-6 lg:grid-cols-4  md:grid-cols-3 sm:grid-cols-2">
     <div class="bg-white m-2 p-2 rounded shadow-lg">
-        <PowerGauge val={data.i ? data.i : 0} max={data.im} unit="W" label="Import"/>
         <div class="grid grid-cols-2">
+            <div class="col-span-2">
+                <PowerGauge val={data.i ? data.i : 0} max={data.im} unit="W" label="Import"/>
+            </div>
             <div>{data.mt ? metertype(data.mt) : '-'}</div>
             <div class="text-right">{data.ic ? data.ic.toFixed(1) : '-'} kWh</div>
         </div>
     </div>
-    {#if data.om}
+    {#if data.om || data.e > 0}
         <div class="bg-white m-2 p-2 rounded shadow-lg">
-            <PowerGauge val={data.e ? data.e : 0} max={data.om} unit="W" label="Export"/>
             <div class="grid grid-cols-2">
+                <div class="col-span-2">
+                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om : 10000} unit="W" label="Export"/>
+                </div>
                 <div></div>
                 <div class="text-right">{data.ec ? data.ec.toFixed(1) : '-'} kWh</div>
             </div>
@@ -60,18 +64,18 @@
         <AccountingData data={data.ea} currency={prices.currency}/>
     </div>
     {#if prices.currency}
-        <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-3 md:col-span-3 sm:col-span-2">
+        <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-3 md:col-span-3 sm:col-span-2 h-64">
             <PricePlot json={prices}/>
         </div>
     {/if}
-    <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2">
+    <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
         <DayPlot json={dayPlot} />
     </div>
-    <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2">
+    <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
         <MonthPlot json={monthPlot} />
     </div>
     {#if data.t && data.t != -127 && temperatures.c > 1}
-    <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2">
+    <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
         <TemperaturePlot json={temperatures} />
     </div>
     {/if}

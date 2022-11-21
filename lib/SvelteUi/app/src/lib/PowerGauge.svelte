@@ -31,7 +31,6 @@
 }
 .plot-value {
     font-size: 1.7rem;
-    //cursor: pointer;
 }
 .plot-unit {
     font-size: 1.0rem;

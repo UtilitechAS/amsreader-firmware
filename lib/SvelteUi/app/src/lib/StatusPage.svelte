@@ -81,13 +81,18 @@
         </div>
         <div class="my-2 flex">
             Latest version: 
-            {#if sysinfo.fwconsent && nextVersion && nextVersion.tag_name}
             <a href={nextVersion.html_url} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{nextVersion.tag_name}</a>
+            {#if sysinfo.fwconsent === 1 && nextVersion && nextVersion.tag_name}
             <div class="flex-none ml-2 text-green-500" title="Install this version">
                 <button on:click={askUpgrade}><DownloadIcon/></button>
             </div>
             {/if}
         </div>
+        {#if sysinfo.fwconsent === 2}
+        <div class="my-2">
+            <div class="my-auto bg-yellow-500 text-yellow-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">You have not consented to OTA firmware upgrade, link to self-upgrade is disabled</div>
+        </div>
+        {/if}
         {#if sysinfo.board == 2 || sysinfo.board == 4 || sysinfo.board == 7 }
         <div class="my-auto bg-red-500 text-red-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">
             {boardtype(sysinfo.chip, sysinfo.board)} must be connected to an external power supply during firmware upgrade. Failure to do so may cause power-down during upload resulting in non-functioning unit. 

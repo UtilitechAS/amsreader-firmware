@@ -63,8 +63,7 @@
         }
 
         config = {
-            height: 226,
-            width: 1520,
+            title: "Future energy price (" + json.currency + ")",
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
             y: {
                 min: min,
@@ -79,7 +78,5 @@
     };
 
 </script>
-<div class="mx-2">
-    <strong class="text-sm">Future energy price ({json.currency})</strong>
-    <BarChart config={config} />
-</div>
+
+<BarChart config={config} />

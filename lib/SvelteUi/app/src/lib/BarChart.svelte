@@ -1,30 +1,37 @@
 <script>
     export let config;
 
+    let width;
+    let height;
     let barWidth;
     let xScale;
     let yScale;
+    let heightAvailable;
 
     $: {
-	    let innerWidth = config.width - (config.padding.left + config.padding.right);
+        heightAvailable = height-(config.title ? 20 : 0);
+	    let innerWidth = width - (config.padding.left + config.padding.right);
 	    barWidth = innerWidth / config.points.length;
 
-        let yPerUnit = (config.height-config.padding.top-config.padding.bottom)/(config.y.max-config.y.min);
+        let yPerUnit = (heightAvailable-config.padding.top-config.padding.bottom)/(config.y.max-config.y.min);
 
         xScale = function(i) {
             return (i*barWidth)+config.padding.left;
         };
         yScale = function(i) {
-            if(!i) return config.height-config.padding.bottom;
-            if(i > config.y.max) return config.height;
-            let ret = config.height-config.padding.bottom-((i-config.y.min)*yPerUnit);
-            return ret > config.height || ret < 0 ? 0 : ret;
+            if(!i) return heightAvailable-config.padding.bottom;
+            if(i > config.y.max) return heightAvailable;
+            let ret = heightAvailable-config.padding.bottom-((i-config.y.min)*yPerUnit);
+            return ret > heightAvailable || ret < 0 ? 0 : ret;
         };
     };
 </script>
 
-<div class="chart" bind:clientWidth={config.width} bind:clientHeight={config.height}>
-    <svg height="{config.height}">
+<div class="chart" bind:clientWidth={width} bind:clientHeight={height}>
+    {#if config.title}
+    <strong class="text-sm">{config.title}</strong>
+    {/if}
+    <svg height="{heightAvailable}">
         <!-- y axis -->
         <g class="axis y-axis">
             {#each config.y.ticks as tick}
@@ -38,7 +45,7 @@
         <!-- x axis -->
         <g class="axis x-axis">
             {#each config.x.ticks as point, i}
-                <g class="tick" transform="translate({xScale(i)},{config.height})">
+                <g class="tick" transform="translate({xScale(i)},{heightAvailable})">
                     <text x="{barWidth/2}" y="-4">{point.label}</text>
                 </g>
             {/each}
@@ -60,7 +67,7 @@
                     dominant-baseline="middle"
                     text-anchor="{barWidth < 25 ? 'left' : 'middle'}"
                     fill="{yScale(point.value) > yScale(0)-15 ? point.color : 'white'}"
-                    transform="rotate({barWidth < 25 ? 90 : 0}, {xScale(i) + (barWidth/2)}, {yScale(point.value) > yScale(0)-12 ? yScale(point.value) - 12 : yScale(point.value)+10})"
+                    transform="rotate({barWidth < 25 ? 90 : 0}, {xScale(i) + (barWidth/2)}, {yScale(point.value) > yScale(0)-12 ? yScale(point.value) - 12 : yScale(point.value)+9})"
                 >{point.label}</text>
             {/each}
         </g>
@@ -70,6 +77,7 @@
 <style>
 	.chart {
 		width: 100%;
+        height: 100%;
 		margin: 0 auto;
 	}
 

@@ -71,6 +71,7 @@
         }
 
         config = {
+            title: "Energy use last month (kWh)",
             height: 226,
             width: 1520,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
@@ -87,7 +88,5 @@
     };
 
 </script>
-<div class="mx-2">
-    <strong class="text-sm">Energy use last month (kWh)</strong>
-    <BarChart config={config} />
-</div>
+
+<BarChart config={config} />

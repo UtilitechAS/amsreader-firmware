@@ -40,8 +40,6 @@
             });
         }
         config = {
-            height: 250,
-            width: 224,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
             y: {
                 min: 0,

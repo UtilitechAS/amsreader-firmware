@@ -50,6 +50,7 @@
         }
 
         config = {
+            title: "Temperature sensors (°C)",
             height: 226,
             width: 1520,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
@@ -66,7 +67,5 @@
     };
 
 </script>
-<div class="mx-2">
-    <strong class="text-sm">Temperature sensors (&deg;C)</strong>
-    <BarChart config={config} />
-</div>
+
+<BarChart config={config} />

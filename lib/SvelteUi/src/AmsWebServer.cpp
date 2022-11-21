@@ -58,6 +58,8 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/upgrade"), HTTP_POST, std::bind(&AmsWebServer::upgrade, this));
 	server.on(F("/firmware"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::firmwareUpload, this));
 	server.on(F("/is-alive"), HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
+
+	server.on(F("/reset"), HTTP_POST, std::bind(&AmsWebServer::factoryResetPost, this));
 		
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
@@ -226,7 +228,7 @@ void AmsWebServer::dataJson() {
 
 	uint8_t espStatus;
 	#if defined(ESP8266)
-	if(vcc == 0) {
+	if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
 		espStatus = 1;
 	} else if(vcc > 3.1 && vcc < 3.5) {
 		espStatus = 1;
@@ -236,7 +238,7 @@ void AmsWebServer::dataJson() {
 		espStatus = 3;
 	}
 	#elif defined(ESP32)
-	if(vcc == 0) {
+	if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
 		espStatus = 1;
 	} else if(vcc > 2.8 && vcc < 3.5) {
 		espStatus = 1;
@@ -1010,6 +1012,8 @@ void AmsWebServer::handleSave() {
 		//TODO sys.country 
 		sys.dataCollectionConsent = server.hasArg(F("sf")) && server.arg(F("sf")) == F("true") ? 1 : 2;
 		config->setSystemConfig(sys);
+
+		performRestart = true;
 	}
 
 	if(server.hasArg(F("m")) && server.arg(F("m")) == F("true")) {
@@ -1305,58 +1309,64 @@ void AmsWebServer::reboot() {
 void AmsWebServer::upgrade() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /upgrade over http...\n");
 
+	SystemConfig sys;
+	config->getSystemConfig(sys);
+
 	DynamicJsonDocument doc(128);
-	doc["reboot"] = true;
+	doc["success"] = sys.dataCollectionConsent == 1;
+	doc["reboot"] = sys.dataCollectionConsent == 1;
 
 	serializeJson(doc, buf, BufferSize);
 	server.send(200, MIME_JSON, buf);
 
-	server.handleClient();
-	delay(250);
+	if(sys.dataCollectionConsent == 1) {
+		server.handleClient();
+		delay(250);
 
-	String customFirmwareUrl = "";
-	if(server.hasArg(F("url"))) {
-		customFirmwareUrl = server.arg(F("url"));
-	}
+		String customFirmwareUrl = "";
+		if(server.hasArg(F("url"))) {
+			customFirmwareUrl = server.arg(F("url"));
+		}
 
-	String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith(F("http")) ? F("http://ams2mqtt.rewiredinvent.no/hub/firmware/update") : customFirmwareUrl;
+		String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith(F("http")) ? F("http://ams2mqtt.rewiredinvent.no/hub/firmware/update") : customFirmwareUrl;
 
-	if(server.hasArg(F("version"))) {
-		url += "/" + server.arg(F("version"));
-	}
+		if(server.hasArg(F("version"))) {
+			url += "/" + server.arg(F("version"));
+		}
 
-	WiFiClient client;
-	#if defined(ESP8266)
-		String chipType = F("esp8266");
-	#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-		String chipType = F("esp32s2");
-	#elif defined(ESP32)
-		#if defined(CONFIG_FREERTOS_UNICORE)
-			String chipType = F("esp32solo");
-		#else
-			String chipType = F("esp32");
+		WiFiClient client;
+		#if defined(ESP8266)
+			String chipType = F("esp8266");
+		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+			String chipType = F("esp32s2");
+		#elif defined(ESP32)
+			#if defined(CONFIG_FREERTOS_UNICORE)
+				String chipType = F("esp32solo");
+			#else
+				String chipType = F("esp32");
+			#endif
 		#endif
-	#endif
 
-	#if defined(ESP8266)
-		ESPhttpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-		t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
-	#elif defined(ESP32)
-		HTTPUpdate httpUpdate;
-		httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-		HTTPUpdateResult ret = httpUpdate.update(client, url, String(VERSION) + "-" + chipType);
-	#endif
+		#if defined(ESP8266)
+			ESPhttpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
+		#elif defined(ESP32)
+			HTTPUpdate httpUpdate;
+			httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+			HTTPUpdateResult ret = httpUpdate.update(client, url, String(VERSION) + "-" + chipType);
+		#endif
 
-	switch(ret) {
-		case HTTP_UPDATE_FAILED:
-			debugger->printf(PSTR("Update failed"));
-			break;
-		case HTTP_UPDATE_NO_UPDATES:
-			debugger->printf(PSTR("No Update"));
-			break;
-		case HTTP_UPDATE_OK:
-			debugger->printf(PSTR("Update OK"));
-			break;
+		switch(ret) {
+			case HTTP_UPDATE_FAILED:
+				debugger->printf(PSTR("Update failed"));
+				break;
+			case HTTP_UPDATE_NO_UPDATES:
+				debugger->printf(PSTR("No Update"));
+				break;
+			case HTTP_UPDATE_OK:
+				debugger->printf(PSTR("Update OK"));
+				break;
+		}
 	}
 }
 
@@ -1456,4 +1466,39 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 void AmsWebServer::isAliveCheck() {
 	server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
 	server.send(200);
+}
+
+void AmsWebServer::factoryResetPost() {
+	if(!checkSecurity(1))
+		return;
+
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Performing factory reset"));
+
+	bool success = false;
+	if(server.hasArg(F("perform")) && server.arg(F("perform")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Formatting LittleFS"));
+		LittleFS.format();
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Clearing configuration"));
+		config->clear();
+
+		success = true;
+	}
+
+	DynamicJsonDocument doc(128);
+	doc["success"] = success;
+	doc["reboot"] = success;
+
+	serializeJson(doc, buf, BufferSize);
+	server.send(200, MIME_JSON, buf);
+
+	server.handleClient();
+	delay(250);
+
+	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Rebooting"));
+	delay(1000);
+	#if defined(ESP8266)
+		ESP.reset();
+	#elif defined(ESP32)
+		ESP.restart();
+	#endif
 }

@@ -55,7 +55,7 @@
 
 <nav class="bg-violet-600 p-1 rounded-md mx-2">
       <div class="flex flex-wrap space-x-4 text-sm text-gray-300">
-        <div class="flex-none text-lg text-gray-100 p-2">
+        <div class="flex text-lg text-gray-100 p-2">
           <Link to="/">AMS reader <span>{sysinfo.version}</span></Link>
         </div>
         <div class="flex-none my-auto p-2 flex space-x-4">
@@ -66,12 +66,12 @@
           <div class="flex-none my-auto">Free mem: {data.m ? (data.m/1000).toFixed(1) : '-'}kb</div>
         </div>
         <div class="flex-auto my-auto justify-center p-2">
-          <Badge title="ESP" text={sysinfo.booting ? 'Booting' : data.v > 1.0 ? data.v.toFixed(2)+"V" : "ESP"} color={sysinfo.booting ? 'yellow' : data.em === 1 ? 'green' : data.em === 2 ? 'yellow' : data.em === 3 ? 'red' : 'gray'}/>
+          <Badge title="ESP" text={sysinfo.booting ? 'Booting' : data.v > 2.0 ? data.v.toFixed(2)+"V" : "ESP"} color={sysinfo.booting ? 'yellow' : data.em === 1 ? 'green' : data.em === 2 ? 'yellow' : data.em === 3 ? 'red' : 'gray'}/>
           <Badge title="HAN" text="HAN" color={sysinfo.booting ? 'gray' : data.hm === 1 ? 'green' : data.hm === 2 ? 'yellow' : data.hm === 3 ? 'red' : 'gray'}/>
           <Badge title="WiFi" text={data.r ? data.r.toFixed(0)+"dBm" : "WiFi"} color={sysinfo.booting ? 'gray' : data.wm === 1 ? 'green' : data.wm === 2 ? 'yellow' : data.wm === 3 ? 'red' : 'gray'}/>
           <Badge title="MQTT" text="MQTT" color={sysinfo.booting ? 'gray' : data.mm === 1 ? 'green' : data.mm === 2 ? 'yellow' : data.mm === 3 ? 'red' : 'gray'}/>
         </div>
-        <div class="flex-auto p-2 flex flex-row-reverse">
+        <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">
           <div class="flex-none">
             <a class="float-right" href='https://github.com/gskjold/AmsToMqttBridge' target='_blank' rel="noreferrer" aria-label="GitHub"><img class="gh-logo" src={GitHubLogo} alt="GitHub repo"/></a>
           </div>
@@ -90,8 +90,8 @@
           <div class="flex-none px-1 mt-1" title="Documentation">
             <a href="https://github.com/gskjold/AmsToMqttBridge/wiki" target='_blank' rel="noreferrer"><HelpIcon/></a>
           </div>
-          {#if sysinfo.fwconsent && nextVersion}
-          <div class="flex-none px-4 mt-1 text-yellow-500" title="New version: {nextVersion.tag_name}">
+          {#if sysinfo.fwconsent === 1 && nextVersion}
+          <div class="flex-none mr-3 text-yellow-500" title="New version: {nextVersion.tag_name}">
             <button on:click={askUpgrade} class="flex"><DownloadIcon/> <span class="mt-1">{nextVersion.tag_name}</span></button>
           </div>
           {/if}

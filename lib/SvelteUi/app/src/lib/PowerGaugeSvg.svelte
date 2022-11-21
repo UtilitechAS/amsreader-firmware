@@ -1,8 +1,6 @@
 <script>
     export let pct = 0;
     export let color = "red";
-    let width = 300;
-    let height = 300;
 
     function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
         var angleInRadians = (angleInDegrees-90) * Math.PI / 180.0;
@@ -27,13 +25,7 @@
     }
 </script>
 
-<div class="gauge" bind:clientWidth={width} bind:clientHeight={height}>
-    <svg height="100%"
-        width="100%"
-        viewBox="0 0 300 300"
-        xmlns="http://www.w3.org/2000/svg">
-
+<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" height="100%">
     <path d="{ describeArc(150, 150, 115, 210, 510) }" stroke="#eee" fill="none" stroke-width="55"/>
     <path d="{ describeArc(150, 150, 115, 210, 210 + (300*pct/100)) }" stroke={color} fill="none" stroke-width="55"/>
-    </svg>
-</div>
+</svg>

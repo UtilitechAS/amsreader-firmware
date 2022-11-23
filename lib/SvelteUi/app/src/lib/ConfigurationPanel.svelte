@@ -1,11 +1,10 @@
 <script>
     import { getConfiguration, configurationStore } from './ConfigurationStore'
     import { sysinfoStore } from './DataStores.js';
-    import BoardTypeSelectOptions from './BoardTypeSelectOptions.svelte';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
-    import { metertype } from './Helpers';
     import Badge from './Badge.svelte';
+    import HelpIcon from './HelpIcon.svelte';
 
     export let sysinfo = {}
 
@@ -194,6 +193,7 @@
         </div>
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">Meter</strong>
+            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/Meter-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="m" value="true"/>
             <div class="my-1">
                 <span>Serial configuration</span>
@@ -219,11 +219,11 @@
 
             <div class="my-1 flex">
                 <div class="w-32">
-                    Distribution<br/>
+                    Voltage<br/>
                     <select name="md" bind:value={configuration.m.d} class="h-10 rounded-l-md shadow-sm border-gray-300 w-full">
                         <option value={0}></option>
-                        <option value={1}>IT/TT</option>
-                        <option value={2}>TN</option>
+                        <option value={1}>230V</option>
+                        <option value={2}>400V</option>
                     </select>
                 </div>
                 <div>
@@ -245,7 +245,7 @@
             </div>
             
             <div class="my-1">
-                <label><input type="checkbox" name="me" value="true" bind:checked={configuration.m.e.e} class="rounded mb-1"/> Meter uses encryption</label>
+                <label><input type="checkbox" name="me" value="true" bind:checked={configuration.m.e.e} class="rounded mb-1"/> Meter is encrypted</label>
                 {#if configuration.m.e.e}
                 <br/><input name="mek" bind:value={configuration.m.e.k} type="text" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
                 {/if}
@@ -281,13 +281,14 @@
         </div>
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">WiFi</strong>
+            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/WiFi-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="w" value="true"/>
             <div class="my-1">
                 SSID<br/>
                 <input name="ws" bind:value={configuration.w.s} type="text" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
             </div>
             <div class="my-1">
-                PSK<br/>
+                Password<br/>
                 <input name="wp" bind:value={configuration.w.p} type="password" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
             </div>
             <div class="my-1 flex">
@@ -303,7 +304,7 @@
                 <div class="ml-2">
                     Power<br/>
                     <label class="flex">
-                        <input name="ww" bind:value={configuration.w.w} type="number" min="0" max="20.5" step="0.5" class="h-10 rounded-l-md shadow-sm border-gray-300 text-right"/>
+                        <input name="ww" bind:value={configuration.w.w} type="number" min="0" max="20.5" step="0.5" class="h-10 rounded-l-md shadow-sm border-gray-300 text-right w-full"/>
                         <span class="flex items-center bg-gray-100 rounded-r-md border-l-0 border border-gray-300 px-3 whitespace-no-wrap text-grey-dark text-sm">dBm</span>
                     </label>
                 </div>
@@ -311,6 +312,7 @@
         </div>
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">Network</strong>
+            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/Network-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <div class="my-1">
                 IP<br/>
                 <div class="flex">
@@ -352,6 +354,7 @@
         </div>
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">MQTT</strong>
+            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/MQTT-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="q" value="true"/>
             <div class="my-1">
                 Server
@@ -418,6 +421,7 @@
         {#if configuration.p.r.startsWith("10YNO") || configuration.p.r == '10Y1001A1001A48H'}
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">Tariff thresholds</strong>
+            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/Threshold-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="t" value="true"/>
             <div class="flex flex-wrap my-1">
                 <label class="flex w-40 m-1">
@@ -473,8 +477,10 @@
             </label>
         </div>
         {/if}
+        {#if sysinfo.board > 20 || sysinfo.chip == 'esp8266'}
         <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
             <strong class="text-sm">Hardware</strong>
+            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/GPIO-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             {#if sysinfo.board > 20}
             <input type="hidden" name="i" value="true"/>
             <div class="flex flex-wrap">
@@ -527,7 +533,7 @@
                 {/if}
             </div> 
             {/if}
-            {#if configuration.i.v.p > 0 || sysinfo.chip == 'esp8266'}
+            {#if sysinfo.chip == 'esp8266'}
             <input type="hidden" name="iv" value="true"/>
             <div class="my-1 flex flex-wrap">
                 <div>
@@ -536,14 +542,20 @@
                 </div>
                 <div>
                     multiplier<br/>
-                    <input name="ivm" bind:value={configuration.i.v.m} type="number" min="0.1" max="10" step="0.01" class="h-10 border-x-0 shadow-sm border-gray-300 w-24 text-right"/>
+                    <input name="ivm" bind:value={configuration.i.v.m} type="number" min="0.1" max="10" step="0.01" class="h-10 border-l-0 rounded-r-md shadow-sm border-gray-300 w-24 text-right"/>
                 </div>
-                <div>
+                {#if sysinfo.board == 2 || sysinfo.board == 100}
+                <div class="ml-2">
                     boot limit<br/>
-                    <input name="ivb" bind:value={configuration.i.v.b} type="number" min="2.5" max="3.5" step="0.1" class="h-10 rounded-r-md shadow-sm border-gray-300 w-24 text-right"/>
+                    <input name="ivb" bind:value={configuration.i.v.b} type="number" min="2.5" max="3.5" step="0.1" class="h-10 rounded-md shadow-sm border-gray-300 w-24 text-right"/>
                 </div>
+                {/if}
             </div>
             {/if}
+        </div>
+        {/if}
+        <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
+            <strong class="text-sm">Debugging</strong>
             <input type="hidden" name="d" value="true"/>
             <div class="mt-3">
                 <label><input type="checkbox" name="ds" value="true" bind:checked={configuration.d.s} class="rounded mb-1"/> Enable debugging</label>

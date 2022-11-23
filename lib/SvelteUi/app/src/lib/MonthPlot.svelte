@@ -9,12 +9,7 @@
     let min = 0;
 
     $: {
-        let hour = new Date().getUTCHours();
         let i = 0;
-        let val = 0;
-        let imp = 0;
-        let exp = 0;
-        let h = 0;
         let yTicks = [];
         let xTicks = [];
         let points = [];
@@ -23,47 +18,61 @@
         lm.setDate(0);
 
         for(i = cur.getDate(); i<=lm.getDate(); i++) {
-            imp = json["i"+zeropad(i)];
-            exp = json["e"+zeropad(i)];
-            val = imp-exp;
-            if(!val) val = 0;
+            let imp = json["i"+zeropad(i)];
+            let exp = json["e"+zeropad(i)];
+            if(imp === undefined) imp = 0;
+            if(exp === undefined) exp = 0;
 
             xTicks.push({
                 label: zeropad(i)
             });
             points.push({
-                label: val.toFixed(0), 
-                value: val, 
+                label: imp.toFixed(0), 
+                value: imp, 
+                label2: exp.toFixed(0), 
+                value2: exp,
                 color: '#7c3aed' 
             });
-            min = Math.min(min, val);
-            max = Math.max(max, val);
+            min = Math.max(min, exp);
+            max = Math.max(max, imp);
         }
         for(i = 1; i < cur.getDate(); i++) {
-            imp = json["i"+zeropad(i)];
-            exp = json["e"+zeropad(i)];
-            val = imp-exp;
-            if(!val) val = 0;
+            let imp = json["i"+zeropad(i)];
+            let exp = json["e"+zeropad(i)];
+            if(imp === undefined) imp = 0;
+            if(exp === undefined) exp = 0;
 
             xTicks.push({
                 label: zeropad(i)
             });
             points.push({
-                label: val.toFixed(0), 
-                value: val, 
+                label: imp.toFixed(0), 
+                value: imp, 
+                label2: exp.toFixed(0), 
+                value2: exp,
                 color: '#7c3aed' 
             });
-            min = Math.min(min, val);
-            max = Math.max(max, val);
+            min = Math.max(min, exp);
+            max = Math.max(max, imp);
         }
 
-        max = Math.ceil(max/10)*10;
-        min = Math.floor(min/10)*10;
-        let range = max;
-        if(min < 0) range += Math.abs(min);
-        let yTickDist = range/4;
+        let boundary = Math.ceil(Math.max(min, max)/10)*10;
+
+        max = boundary;
+        min = min == 0 ? 0 : boundary*-1;
+
+        let yTickDistDown = min/4;
         for(i = 0; i < 5; i++) {
-            val = min + (yTickDist*i);
+            let val = (yTickDistDown*i);
+            yTicks.push({
+                value: val,
+                label: val.toFixed(0)
+            });
+        }
+
+        let yTickDistUp = max/4;
+        for(i = 0; i < 5; i++) {
+            let val = (yTickDistUp*i);
             yTicks.push({
                 value: val,
                 label: val.toFixed(0)

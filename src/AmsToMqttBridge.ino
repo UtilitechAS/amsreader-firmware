@@ -762,14 +762,14 @@ void swapWifiMode() {
 
 	if (mode != WIFI_AP || !config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to AP mode");
-		WiFi.softAP((char*) F("AMS2MQTT"));
+		WiFi.softAP(PSTR("AMS2MQTT"));
 		WiFi.mode(WIFI_AP);
 
 		if(dnsServer == NULL) {
 			dnsServer = new DNSServer();
 		}
 		dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
-		dnsServer->start(53, (char*) F("*"), WiFi.softAPIP());
+		dnsServer->start(53, PSTR("*"), WiFi.softAPIP());
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to STA mode");
 		if(dnsServer != NULL) {

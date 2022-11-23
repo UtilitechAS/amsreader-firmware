@@ -17,23 +17,6 @@
     export let sysinfo = {}
 
     let nextVersion = {};
-
-    async function reboot() {
-      const response = await fetch('/reboot', {
-            method: 'POST'
-        });
-        let res = (await response.json())
-    }
-
-    const askReload = function() {
-      if(confirm('Are you sure you want to reboot the device?')) {
-        sysinfoStore.update(s => {
-            s.booting = true;
-            return s;
-        });
-        reboot();
-      }
-    }
  
     function askUpgrade() {
         if(confirm('Do you want to upgrade this device to ' + nextVersion.tag_name + '?')) {
@@ -78,15 +61,14 @@
           <div class="flex-none my-auto px-2">
             <Clock timestamp={ data.c ? new Date(data.c * 1000) : new Date(0) } />
           </div>
+          {#if sysinfo.vndcfg && sysinfo.usrcfg}
           <div class="flex-none px-1 mt-1" title="Configuration">
             <Link to="/configuration"><GearIcon/></Link>
-          </div>
-          <div class="flex-none px-1 mt-1" title="Reboot">
-            <button on:click={askReload} class={sysinfo.booting ? 'text-yellow-300' : ''}><ReloadIcon/></button>
           </div>
           <div class="flex-none px-1 mt-1" title="Device information">
             <Link to="/status"><InfoIcon/></Link>
           </div>
+          {/if}
           <div class="flex-none px-1 mt-1" title="Documentation">
             <a href="https://github.com/gskjold/AmsToMqttBridge/wiki" target='_blank' rel="noreferrer"><HelpIcon/></a>
           </div>

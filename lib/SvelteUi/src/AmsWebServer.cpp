@@ -43,6 +43,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/index.css"), HTTP_GET, std::bind(&AmsWebServer::indexCss, this));
 	server.on(F("/index.js"), HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
 	server.on(F("/github.svg"), HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
+	server.on(F("/favicon.ico"), HTTP_GET, std::bind(&AmsWebServer::faviconIco, this)); 
 	server.on(F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
 	server.on(F("/data.json"), HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
 	server.on(F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
@@ -60,7 +61,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/is-alive"), HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
 
 	server.on(F("/reset"), HTTP_POST, std::bind(&AmsWebServer::factoryResetPost, this));
-		
+
+	server.on(F("/robots.txt"), HTTP_GET, std::bind(&AmsWebServer::robotstxt, this));
+
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
 	server.begin(); // Web server start
@@ -132,14 +135,22 @@ bool AmsWebServer::checkSecurity(byte level) {
 }
 
 void AmsWebServer::notFound() {
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
-		server.send(404);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+	server.send_P(404, MIME_HTML, PSTR("Not found"));
 }
+
 void AmsWebServer::githubSvg() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /github.svg over http...\n");
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	server.send_P(200, "image/svg+xml", GITHUB_SVG);
+}
+
+void AmsWebServer::faviconIco() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /favicon.ico over http...\n");
+	notFound(); //TODO
 }
 
 void AmsWebServer::sysinfoJson() {
@@ -165,6 +176,7 @@ void AmsWebServer::sysinfoJson() {
 	#endif
 	String chipIdStr = String(chipId, HEX);;
 	doc["chipId"] = chipIdStr;
+	doc["mac"] = WiFi.macAddress();
 
 	SystemConfig sys;
 	config->getSystemConfig(sys);
@@ -251,7 +263,7 @@ void AmsWebServer::dataJson() {
 
 
 	uint8_t hanStatus;
-	if(meterConfig->baud == 0) {
+	if(meterConfig->baud == 0 || meterState->getLastUpdateMillis() == 0) {
 		hanStatus = 0;
 	} else if(now - meterState->getLastUpdateMillis() < 15000) {
 		hanStatus = 1;
@@ -1501,4 +1513,8 @@ void AmsWebServer::factoryResetPost() {
 	#elif defined(ESP32)
 		ESP.restart();
 	#endif
+}
+
+void AmsWebServer::robotstxt() {
+	server.send_P(200, MIME_HTML, PSTR("User-agent: *\nDisallow: /\n"));
 }

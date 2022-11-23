@@ -35,7 +35,7 @@
     <div class="bg-white m-2 p-3 rounded-md shadow-lg pb-4 text-gray-700">
         <form on:submit|preventDefault={handleSubmit}>
             <input type="hidden" name="v" value="true"/>
-            <strong class="text-sm">Vendor configuration</strong>
+            <strong class="text-sm">Initial configuration</strong>
             <div class="my-3">
                 Board type<br/>
                 <select name="vb" bind:value={sysinfo.board} class="h-10 rounded-md shadow-sm border-gray-300 p-0 w-full">

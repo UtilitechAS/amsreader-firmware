@@ -582,7 +582,6 @@ void AmsConfiguration::clear() {
 	strcpy(sys.country, "");
 	EEPROM.put(CONFIG_SYSTEM_START, sys);
 
-
 	MeterConfig meter;
 	clearMeter(meter);
 	EEPROM.put(CONFIG_METER_START, meter);
@@ -614,6 +613,10 @@ void AmsConfiguration::clear() {
 	EnergyAccountingConfig eac;
 	clearEnergyAccountingConfig(eac);
 	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
+
+	DebugConfig debug;
+	clearDebug(debug);
+	EEPROM.put(CONFIG_DEBUG_START, debug);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CLEARED_INDICATOR);
 	EEPROM.commit();

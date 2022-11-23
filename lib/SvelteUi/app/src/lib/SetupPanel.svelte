@@ -109,8 +109,8 @@
             </div>
             {/if}
             <div class="my-3">
-                <label><input type="checkbox" name="sf" value="true" class="rounded mb-1"/> Enable OTA upgrade (implies data collection)</label><br/>
-                <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/Data-collection-on-OTA-firmware-upgrade" target="_blank" class="text-blue-600 hover:text-blue-800">Read more</a>
+                <label><input type="checkbox" name="sf" value="true" class="rounded mb-1"/> Enable one-click upgrade (implies data collection)</label><br/>
+                <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/Data-collection-on-one-click-firmware-upgrade" target="_blank" class="text-blue-600 hover:text-blue-800">Read more</a>
             </div>
             <div class="my-3">
                 <button type="submit" class="font-bold py-1 px-4 rounded bg-blue-500 text-white float-right">Save</button>

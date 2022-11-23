@@ -75,6 +75,7 @@ private:
 	void indexJs();
 	void indexCss();
 	void githubSvg();
+	void faviconIco();
 
     void sysinfoJson();
     void dataJson();
@@ -97,6 +98,7 @@ private:
 	void factoryResetPost();
 
 	void notFound();
+	void robotstxt();
 };
 
 #endif

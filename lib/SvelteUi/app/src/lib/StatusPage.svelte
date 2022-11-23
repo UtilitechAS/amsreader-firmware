@@ -28,6 +28,24 @@
         }
     }
 
+    async function reboot() {
+      const response = await fetch('/reboot', {
+            method: 'POST'
+        });
+        let res = (await response.json())
+    }
+
+    const askReboot = function() {
+      if(confirm('Are you sure you want to reboot the device?')) {
+        sysinfoStore.update(s => {
+            s.booting = true;
+            return s;
+        });
+        reboot();
+      }
+    }
+
+
     let fileinput;
 
     getSysinfo();
@@ -42,7 +60,13 @@
         <div class="my-2">
             Device: {boardtype(sysinfo.chip, sysinfo.board)}
         </div>
-    </div>
+        <div class="my-2">
+            MAC: {sysinfo.mac}
+        </div>
+        <div class="my-2">
+            <button on:click={askReboot} class="text-xs py-1 px-2 rounded bg-yellow-500 text-white mr-3">Reboot</button>
+        </div>
+     </div>
     {#if sysinfo.meter}
     <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
         <strong class="text-sm">Meter</strong>
@@ -79,6 +103,7 @@
         <div class="my-2">
             Installed version: {sysinfo.version}
         </div>
+        {#if nextVersion}
         <div class="my-2 flex">
             Latest version: 
             <a href={nextVersion.html_url} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{nextVersion.tag_name}</a>
@@ -90,8 +115,9 @@
         </div>
         {#if sysinfo.fwconsent === 2}
         <div class="my-2">
-            <div class="my-auto bg-yellow-500 text-yellow-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">You have not consented to OTA firmware upgrade, link to self-upgrade is disabled</div>
+            <div class="my-auto bg-yellow-500 text-yellow-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">You have disabled one-click firmware upgrade, link to self-upgrade is disabled</div>
         </div>
+        {/if}
         {/if}
         {#if sysinfo.board == 2 || sysinfo.board == 4 || sysinfo.board == 7 }
         <div class="my-auto bg-red-500 text-red-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">
@@ -102,7 +128,7 @@
             <form action="/firmware" enctype="multipart/form-data" method="post">
                 <input style="display:none" name="file" type="file" accept=".bin" bind:this={fileinput}>
                 {#if fileinput && fileinput.files.length == 0}
-                <button type="button" on:click={()=>{fileinput.click();}} class="text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Choose firmware file</button>
+                <button type="button" on:click={()=>{fileinput.click();}} class="text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Select firmware file for upgrade</button>
                 {:else if fileinput}
                 {fileinput.files[0].name}
                 <button type="submit" class="ml-2 text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Upload</button>

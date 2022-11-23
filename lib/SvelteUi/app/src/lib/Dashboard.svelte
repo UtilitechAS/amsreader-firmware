@@ -10,6 +10,7 @@
     import DayPlot from './DayPlot.svelte';
     import MonthPlot from './MonthPlot.svelte';
     import TemperaturePlot from './TemperaturePlot.svelte';
+    import TariffPeakChart from './TariffPeakChart.svelte';
 
     export let data = {}
     let prices = {}
@@ -63,6 +64,11 @@
     <div class="bg-white m-2 p-2 rounded shadow-lg">
         <AccountingData data={data.ea} currency={prices.currency}/>
     </div>
+    {#if prices.currency == 'NOK'}
+    <div class="bg-white m-2 p-2 rounded shadow-lg h-64">
+        <TariffPeakChart data={data.ea} />
+    </div>
+    {/if}
     {#if prices.currency}
         <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-3 md:col-span-3 sm:col-span-2 h-64">
             <PricePlot json={prices}/>

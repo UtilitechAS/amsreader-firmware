@@ -9,63 +9,70 @@
     let min = 0;
 
     $: {
-        let hour = new Date().getUTCHours();
         let i = 0;
-        let val = 0;
-        let imp = 0;
-        let exp = 0;
-        let h = 0;
         let yTicks = [];
         let xTicks = [];
         let points = [];
         let cur = new Date();
-        for(i = hour; i<24; i++) {
-            imp = json["i"+zeropad(i)];
-            exp = json["e"+zeropad(i)];
-            val = imp-exp;
-            if(!val) val = 0;
+        for(i = cur.getUTCHours(); i<24; i++) {
+            let imp = json["i"+zeropad(i)];
+            let exp = json["e"+zeropad(i)];
+            if(imp === undefined) imp = 0;
+            if(exp === undefined) exp = 0;
 
-            cur.setUTCHours(i);
             xTicks.push({
-                label: zeropad(cur.getHours())
+                label: zeropad(i)
             });
             points.push({
-                label: val.toFixed(2), 
-                value: val, 
+                label: imp.toFixed(1), 
+                value: imp*10, 
+                label2: exp.toFixed(1), 
+                value2: exp*10,
                 color: '#7c3aed' 
             });
-            min = Math.min(min, val);
-            max = Math.max(max, val);
+            min = Math.max(min, exp*10);
+            max = Math.max(max, imp*10);
         };
-        for(i = 0; i < hour; i++) {
-            imp = json["i"+zeropad(i)];
-            exp = json["e"+zeropad(i)];
-            val = imp-exp;
-            if(!val) val = 0;
+        for(i = 0; i < cur.getUTCHours(); i++) {
+            let imp = json["i"+zeropad(i)];
+            let exp = json["e"+zeropad(i)];
+            if(imp === undefined) imp = 0;
+            if(exp === undefined) exp = 0;
 
-            cur.setUTCHours(i);
             xTicks.push({
-                label: zeropad(cur.getHours())
+                label: zeropad(i)
             });
             points.push({
-                label: val.toFixed(2), 
-                value: val, 
+                label: imp.toFixed(1), 
+                value: imp*10, 
+                label2: exp.toFixed(1), 
+                value2: exp*10,
                 color: '#7c3aed' 
             });
-            min = Math.min(min, val);
-            max = Math.max(max, val);
+            min = Math.max(min, exp*10);
+            max = Math.max(max, imp*10);
         };
 
-        max = Math.ceil(max);
-        min = Math.floor(min);
-        let range = max;
-        if(min < 0) range += Math.abs(min);
-        let yTickDist = range/4;
+        let boundary = Math.ceil(Math.max(min, max));
+
+        max = boundary;
+        min = min == 0 ? 0 : boundary*-1;
+
+        let yTickDistDown = min/4;
         for(i = 0; i < 5; i++) {
-            val = min + (yTickDist*i);
+            let val = (yTickDistDown*i);
             yTicks.push({
                 value: val,
-                label: val.toFixed(1)
+                label: (val/10).toFixed(1)
+            });
+        }
+
+        let yTickDistUp = max/4;
+        for(i = 0; i < 5; i++) {
+            let val = (yTickDistUp*i);
+            yTicks.push({
+                value: val,
+                label: (val/10).toFixed(1)
             });
         }
 

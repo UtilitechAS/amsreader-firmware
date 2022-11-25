@@ -14,6 +14,7 @@
 #include "html/monthplot_json.h"
 #include "html/energyprice_json.h"
 #include "html/tempsensor_json.h"
+#include "html/response_json.h"
 
 #include "version.h"
 
@@ -40,6 +41,10 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/configuration"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/status"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(F("/mqtt-ca"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(F("/mqtt-cert"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	
 	server.on(F("/index.css"), HTTP_GET, std::bind(&AmsWebServer::indexCss, this));
 	server.on(F("/index.js"), HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
 	server.on(F("/github.svg"), HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
@@ -50,6 +55,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/monthplot.json"), HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
 	server.on(F("/energyprice.json"), HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
 	server.on(F("/temperature.json"), HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
+	server.on(F("/tariff.json"), HTTP_GET, std::bind(&AmsWebServer::tariffJson, this));
 
 	server.on(F("/wifiscan.json"), HTTP_GET, std::bind(&AmsWebServer::wifiScanJson, this));
 
@@ -63,6 +69,10 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/reset"), HTTP_POST, std::bind(&AmsWebServer::factoryResetPost, this));
 
 	server.on(F("/robots.txt"), HTTP_GET, std::bind(&AmsWebServer::robotstxt, this));
+
+	server.on(F("/mqtt-ca"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::mqttCaUpload, this));
+	server.on(F("/mqtt-cert"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::mqttCertUpload, this));
+	server.on(F("/mqtt-key"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
 
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
@@ -157,55 +167,55 @@ void AmsWebServer::sysinfoJson() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /sysinfo.json over http...\n");
 
 	DynamicJsonDocument doc(512);
-	doc["version"] = VERSION;
+	doc[PSTR("version")] = VERSION;
 	#if defined(CONFIG_IDF_TARGET_ESP32S2)
-	doc["chip"] = "esp32s2";
+	doc[PSTR("chip")] = "esp32s2";
 	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-	doc["chip"] = "esp32c3";
+	doc[PSTR("chip")] = "esp32c3";
 	#elif defined(ESP32)
-	doc["chip"] = "esp32";
+	doc[PSTR("chip")] = "esp32";
 	#elif defined(ESP8266)
-	doc["chip"] = "esp8266";
+	doc[PSTR("chip")] = "esp8266";
 	#endif
 
-	uint16_t chipId;
+	uint32_t chipId;
 	#if defined(ESP32)
-		chipId = ESP.getEfuseMac();
+		chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
 	#else
 		chipId = ESP.getChipId();
 	#endif
 	String chipIdStr = String(chipId, HEX);;
-	doc["chipId"] = chipIdStr;
-	doc["mac"] = WiFi.macAddress();
+	doc[PSTR("chipId")] = chipIdStr;
+	doc[PSTR("mac")] = WiFi.macAddress();
 
 	SystemConfig sys;
 	config->getSystemConfig(sys);
-	doc["board"] = sys.boardType;
-	doc["vndcfg"] = sys.vendorConfigured;
-	doc["usrcfg"] = sys.userConfigured;
-	doc["fwconsent"] = sys.dataCollectionConsent;
-	doc["country"] = sys.country;
+	doc[PSTR("board")] = sys.boardType;
+	doc[PSTR("vndcfg")] = sys.vendorConfigured;
+	doc[PSTR("usrcfg")] = sys.userConfigured;
+	doc[PSTR("fwconsent")] = sys.dataCollectionConsent;
+	doc[PSTR("country")] = sys.country;
 
 	if(sys.userConfigured) {
 		WiFiConfig wifiConfig;
 		config->getWiFiConfig(wifiConfig);
-		doc["hostname"] = wifiConfig.hostname;
+		doc[PSTR("hostname")] = wifiConfig.hostname;
 	} else {
-		doc["hostname"] = "ams-"+chipIdStr;
+		doc[PSTR("hostname")] = "ams-"+chipIdStr;
 	}
 
-	doc["booting"] = performRestart;
-	doc["upgrading"] = rebootForUpgrade;
+	doc[PSTR("booting")] = performRestart;
+	doc[PSTR("upgrading")] = rebootForUpgrade;
 
-	doc["net"]["ip"] = WiFi.localIP().toString();
-	doc["net"]["mask"] = WiFi.subnetMask().toString();
-	doc["net"]["gw"] = WiFi.gatewayIP().toString();
-	doc["net"]["dns1"] = WiFi.dnsIP(0).toString();
-	doc["net"]["dns2"] = WiFi.dnsIP(1).toString();
+	doc[PSTR("net")][PSTR("ip")] = WiFi.localIP().toString();
+	doc[PSTR("net")][PSTR("mask")] = WiFi.subnetMask().toString();
+	doc[PSTR("net")][PSTR("gw")] = WiFi.gatewayIP().toString();
+	doc[PSTR("net")][PSTR("dns1")] = WiFi.dnsIP(0).toString();
+	doc[PSTR("net")][PSTR("dns2")] = WiFi.dnsIP(1).toString();
 
-	doc["meter"]["mfg"] = meterState->getMeterType();
-	doc["meter"]["model"] = meterState->getMeterModel();
-	doc["meter"]["id"] = meterState->getMeterId();
+	doc[PSTR("meter")][PSTR("mfg")] = meterState->getMeterType();
+	doc[PSTR("meter")][PSTR("model")] = meterState->getMeterModel();
+	doc[PSTR("meter")][PSTR("id")] = meterState->getMeterId();
 
 	serializeJson(doc, buf, BufferSize);
 	server.send(200, MIME_JSON, buf);
@@ -300,7 +310,7 @@ void AmsWebServer::dataJson() {
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
 		if(!peaks.isEmpty()) peaks += ",";
-		peaks += String(ea->getPeak(i));
+		peaks += String(ea->getPeak(i).value);
 	}
 
 	snprintf_P(buf, BufferSize, DATA_JSON,
@@ -350,6 +360,7 @@ void AmsWebServer::dataJson() {
 		ea->getUseThisMonth(),
 		ea->getCostThisMonth(),
 		ea->getProducedThisMonth(),
+		eapi == NULL ? "" : eapi->getArea(),
 		(uint32_t) time(nullptr)
 	);
 
@@ -659,7 +670,7 @@ void AmsWebServer::configurationJson() {
 		return;
 
 	DynamicJsonDocument doc(2048);
-	doc["version"] = VERSION;
+	doc[PSTR("version")] = VERSION;
 
 	NtpConfig ntpConfig;
 	config->getNtpConfig(ntpConfig);
@@ -668,15 +679,11 @@ void AmsWebServer::configurationJson() {
 	WebConfig webConfig;
 	config->getWebConfig(webConfig);
 
-	if(ntpConfig.offset == 0 && ntpConfig.summerOffset == 0)
-		doc["g"]["t"] = "UTC";
-	else if(ntpConfig.offset == 360 && ntpConfig.summerOffset == 360)
-		doc["g"]["t"] = "CET/CEST";
-
-	doc["g"]["h"] = wifiConfig.hostname;
-	doc["g"]["s"] = webConfig.security;
-	doc["g"]["u"] = webConfig.username;
-	doc["g"]["p"] = strlen(webConfig.password) > 0 ? "***" : "";
+	doc[PSTR("g")][PSTR("t")] = ntpConfig.timezone;
+	doc[PSTR("g")][PSTR("h")] = wifiConfig.hostname;
+	doc[PSTR("g")][PSTR("s")] = webConfig.security;
+	doc[PSTR("g")][PSTR("u")] = webConfig.username;
+	doc[PSTR("g")][PSTR("p")] = strlen(webConfig.password) > 0 ? "***" : "";
 
 	bool encen = false;
 	for(uint8_t i = 0; i < 16; i++) {
@@ -686,161 +693,161 @@ void AmsWebServer::configurationJson() {
 	}
 
 	config->getMeterConfig(*meterConfig);
-	doc["m"]["b"] = meterConfig->baud;
-	doc["m"]["p"] = meterConfig->parity;
-	doc["m"]["i"] = meterConfig->invert;
-	doc["m"]["d"] = meterConfig->distributionSystem;
-	doc["m"]["f"] = meterConfig->mainFuse;
-	doc["m"]["r"] = meterConfig->productionCapacity;
-	doc["m"]["e"]["e"] = encen;
-	doc["m"]["e"]["k"] = toHex(meterConfig->encryptionKey, 16);
-	doc["m"]["e"]["a"] = toHex(meterConfig->authenticationKey, 16);
-	doc["m"]["m"]["e"] = meterConfig->wattageMultiplier > 1 || meterConfig->voltageMultiplier > 1 || meterConfig->amperageMultiplier > 1 || meterConfig->accumulatedMultiplier > 1;
-	doc["m"]["m"]["w"] = meterConfig->wattageMultiplier / 1000.0;
-	doc["m"]["m"]["v"] = meterConfig->voltageMultiplier / 1000.0;
-	doc["m"]["m"]["a"] = meterConfig->amperageMultiplier / 1000.0;
-	doc["m"]["m"]["c"] = meterConfig->accumulatedMultiplier / 1000.0;
+	doc[PSTR("m")][PSTR("b")] = meterConfig->baud;
+	doc[PSTR("m")][PSTR("p")] = meterConfig->parity;
+	doc[PSTR("m")][PSTR("i")] = meterConfig->invert;
+	doc[PSTR("m")][PSTR("d")] = meterConfig->distributionSystem;
+	doc[PSTR("m")][PSTR("f")] = meterConfig->mainFuse;
+	doc[PSTR("m")][PSTR("r")] = meterConfig->productionCapacity;
+	doc[PSTR("m")][PSTR("e")][PSTR("e")] = encen;
+	doc[PSTR("m")][PSTR("e")][PSTR("k")] = toHex(meterConfig->encryptionKey, 16);
+	doc[PSTR("m")][PSTR("e")][PSTR("a")] = toHex(meterConfig->authenticationKey, 16);
+	doc[PSTR("m")][PSTR("m")][PSTR("e")] = meterConfig->wattageMultiplier > 1 || meterConfig->voltageMultiplier > 1 || meterConfig->amperageMultiplier > 1 || meterConfig->accumulatedMultiplier > 1;
+	doc[PSTR("m")][PSTR("m")][PSTR("w")] = meterConfig->wattageMultiplier / 1000.0;
+	doc[PSTR("m")][PSTR("m")][PSTR("v")] = meterConfig->voltageMultiplier / 1000.0;
+	doc[PSTR("m")][PSTR("m")][PSTR("a")] = meterConfig->amperageMultiplier / 1000.0;
+	doc[PSTR("m")][PSTR("m")][PSTR("c")] = meterConfig->accumulatedMultiplier / 1000.0;
 
 	EnergyAccountingConfig eac;
 	config->getEnergyAccountingConfig(eac);
-	doc["t"]["t"][0] = eac.thresholds[0];
-	doc["t"]["t"][1] = eac.thresholds[1];
-	doc["t"]["t"][2] = eac.thresholds[2];
-	doc["t"]["t"][3] = eac.thresholds[3];
-	doc["t"]["t"][4] = eac.thresholds[4];
-	doc["t"]["t"][5] = eac.thresholds[5];
-	doc["t"]["t"][6] = eac.thresholds[6];
-	doc["t"]["t"][7] = eac.thresholds[7];
-	doc["t"]["t"][8] = eac.thresholds[8];
-	doc["t"]["t"][9] = eac.thresholds[9];
-	doc["t"]["h"] = eac.hours;
+	doc[PSTR("t")][PSTR("t")][0] = eac.thresholds[0];
+	doc[PSTR("t")][PSTR("t")][1] = eac.thresholds[1];
+	doc[PSTR("t")][PSTR("t")][2] = eac.thresholds[2];
+	doc[PSTR("t")][PSTR("t")][3] = eac.thresholds[3];
+	doc[PSTR("t")][PSTR("t")][4] = eac.thresholds[4];
+	doc[PSTR("t")][PSTR("t")][5] = eac.thresholds[5];
+	doc[PSTR("t")][PSTR("t")][6] = eac.thresholds[6];
+	doc[PSTR("t")][PSTR("t")][7] = eac.thresholds[7];
+	doc[PSTR("t")][PSTR("t")][8] = eac.thresholds[8];
+	doc[PSTR("t")][PSTR("t")][9] = eac.thresholds[9];
+	doc[PSTR("t")][PSTR("h")] = eac.hours;
 
-	doc["w"]["s"] = wifiConfig.ssid;
-	doc["w"]["p"] = strlen(wifiConfig.psk) > 0 ? "***" : "";
-	doc["w"]["w"] = wifiConfig.power / 10.0;
-	doc["w"]["z"] = wifiConfig.sleep;
+	doc[PSTR("w")][PSTR("s")] = wifiConfig.ssid;
+	doc[PSTR("w")][PSTR("p")] = strlen(wifiConfig.psk) > 0 ? "***" : "";
+	doc[PSTR("w")][PSTR("w")] = wifiConfig.power / 10.0;
+	doc[PSTR("w")][PSTR("z")] = wifiConfig.sleep;
 
-	doc["n"]["m"] = strlen(wifiConfig.ip) > 0 ? "static" : "dhcp";
-	doc["n"]["i"] = wifiConfig.ip;
-	doc["n"]["s"] = wifiConfig.subnet;
-	doc["n"]["g"] = wifiConfig.gateway;
-	doc["n"]["d1"] = wifiConfig.dns1;
-	doc["n"]["d2"] = wifiConfig.dns2;
-	doc["n"]["d"] = wifiConfig.mdns;
-	doc["n"]["n1"] = ntpConfig.server;
-	doc["n"]["h"] = ntpConfig.dhcp;
+	doc[PSTR("n")][PSTR("m")] = strlen(wifiConfig.ip) > 0 ? "static" : "dhcp";
+	doc[PSTR("n")][PSTR("i")] = wifiConfig.ip;
+	doc[PSTR("n")][PSTR("s")] = wifiConfig.subnet;
+	doc[PSTR("n")][PSTR("g")] = wifiConfig.gateway;
+	doc[PSTR("n")][PSTR("d1")] = wifiConfig.dns1;
+	doc[PSTR("n")][PSTR("d2")] = wifiConfig.dns2;
+	doc[PSTR("n")][PSTR("d")] = wifiConfig.mdns;
+	doc[PSTR("n")][PSTR("n1")] = ntpConfig.server;
+	doc[PSTR("n")][PSTR("h")] = ntpConfig.dhcp;
 
 	MqttConfig mqttConfig;
 	config->getMqttConfig(mqttConfig);
-	doc["q"]["h"] = mqttConfig.host;
-	doc["q"]["p"] = mqttConfig.port;
-	doc["q"]["u"] = mqttConfig.username;
-	doc["q"]["a"] = strlen(mqttConfig.password) > 0 ? "***" : "";
-	doc["q"]["c"] = mqttConfig.clientId;
-	doc["q"]["b"] = mqttConfig.publishTopic;
-	doc["q"]["m"] = mqttConfig.payloadFormat;
-	doc["q"]["s"]["e"] = mqttConfig.ssl;
+	doc[PSTR("q")][PSTR("h")] = mqttConfig.host;
+	doc[PSTR("q")][PSTR("p")] = mqttConfig.port;
+	doc[PSTR("q")][PSTR("u")] = mqttConfig.username;
+	doc[PSTR("q")][PSTR("a")] = strlen(mqttConfig.password) > 0 ? "***" : "";
+	doc[PSTR("q")][PSTR("c")] = mqttConfig.clientId;
+	doc[PSTR("q")][PSTR("b")] = mqttConfig.publishTopic;
+	doc[PSTR("q")][PSTR("m")] = mqttConfig.payloadFormat;
+	doc[PSTR("q")][PSTR("s")][PSTR("e")] = mqttConfig.ssl;
 
 	if(LittleFS.begin()) {
-		doc["q"]["s"]["c"] = LittleFS.exists(FILE_MQTT_CA);
-		doc["q"]["s"]["r"] = LittleFS.exists(FILE_MQTT_CERT);
-		doc["q"]["s"]["k"] = LittleFS.exists(FILE_MQTT_KEY);
+		doc[PSTR("q")][PSTR("s")][PSTR("c")] = LittleFS.exists(FILE_MQTT_CA);
+		doc[PSTR("q")][PSTR("s")][PSTR("r")] = LittleFS.exists(FILE_MQTT_CERT);
+		doc[PSTR("q")][PSTR("s")][PSTR("k")] = LittleFS.exists(FILE_MQTT_KEY);
 		LittleFS.end();
 	} else {
-		doc["q"]["s"]["c"] = false;
-		doc["q"]["s"]["r"] = false;
-		doc["q"]["s"]["k"] = false;
+		doc[PSTR("q")][PSTR("s")][PSTR("c")] = false;
+		doc[PSTR("q")][PSTR("s")][PSTR("r")] = false;
+		doc[PSTR("q")][PSTR("s")][PSTR("k")] = false;
 	}
 
 	EntsoeConfig entsoe;
 	config->getEntsoeConfig(entsoe);
-	doc["p"]["e"] = strlen(entsoe.token) > 0;
-	doc["p"]["t"] = entsoe.token;
-	doc["p"]["r"] = entsoe.area;
-	doc["p"]["c"] = entsoe.currency;
-	doc["p"]["m"] = entsoe.multiplier / 1000.0;
+	doc[PSTR("p")][PSTR("e")] = strlen(entsoe.token) > 0;
+	doc[PSTR("p")][PSTR("t")] = entsoe.token;
+	doc[PSTR("p")][PSTR("r")] = entsoe.area;
+	doc[PSTR("p")][PSTR("c")] = entsoe.currency;
+	doc[PSTR("p")][PSTR("m")] = entsoe.multiplier / 1000.0;
 
 	DebugConfig debugConfig;
 	config->getDebugConfig(debugConfig);
-	doc["d"]["s"] = debugConfig.serial;
-	doc["d"]["t"] = debugConfig.telnet;
-	doc["d"]["l"] = debugConfig.level;
+	doc[PSTR("d")][PSTR("s")] = debugConfig.serial;
+	doc[PSTR("d")][PSTR("t")] = debugConfig.telnet;
+	doc[PSTR("d")][PSTR("l")] = debugConfig.level;
 
 	GpioConfig gpioConfig;
 	config->getGpioConfig(gpioConfig);
 	if(gpioConfig.hanPin == 0xff)
-		doc["i"]["h"] = nullptr;
+		doc[PSTR("i")][PSTR("h")] = nullptr;
 	else
-		doc["i"]["h"] = gpioConfig.hanPin;
+		doc[PSTR("i")][PSTR("h")] = gpioConfig.hanPin;
 	
 	if(gpioConfig.apPin == 0xff)
-		doc["i"]["a"] = nullptr;
+		doc[PSTR("i")][PSTR("a")] = nullptr;
 	else
-		doc["i"]["a"] = gpioConfig.apPin;
+		doc[PSTR("i")][PSTR("a")] = gpioConfig.apPin;
 	
 	if(gpioConfig.ledPin == 0xff)
-		doc["i"]["l"]["p"] = nullptr;
+		doc[PSTR("i")][PSTR("l")][PSTR("p")] = nullptr;
 	else
-		doc["i"]["l"]["p"] = gpioConfig.ledPin;
+		doc[PSTR("i")][PSTR("l")][PSTR("p")] = gpioConfig.ledPin;
 	
-	doc["i"]["l"]["i"] = gpioConfig.ledInverted;
+	doc[PSTR("i")][PSTR("l")][PSTR("i")] = gpioConfig.ledInverted;
 	
 	if(gpioConfig.ledPinRed == 0xff)
-		doc["i"]["r"]["r"] = nullptr;
+		doc[PSTR("i")][PSTR("r")][PSTR("r")] = nullptr;
 	else
-		doc["i"]["r"]["r"] = gpioConfig.ledPinRed;
+		doc[PSTR("i")][PSTR("r")][PSTR("r")] = gpioConfig.ledPinRed;
 
 	if(gpioConfig.ledPinGreen == 0xff)
-		doc["i"]["r"]["g"] = nullptr;
+		doc[PSTR("i")][PSTR("r")][PSTR("g")] = nullptr;
 	else
-		doc["i"]["r"]["g"] = gpioConfig.ledPinGreen;
+		doc[PSTR("i")][PSTR("r")][PSTR("g")] = gpioConfig.ledPinGreen;
 
 	if(gpioConfig.ledPinBlue == 0xff)
-		doc["i"]["r"]["b"] = nullptr;
+		doc[PSTR("i")][PSTR("r")][PSTR("b")] = nullptr;
 	else
-		doc["i"]["r"]["b"] = gpioConfig.ledPinBlue;
+		doc[PSTR("i")][PSTR("r")][PSTR("b")] = gpioConfig.ledPinBlue;
 
-	doc["i"]["r"]["i"] = gpioConfig.ledRgbInverted;
+	doc[PSTR("i")][PSTR("r")][PSTR("i")] = gpioConfig.ledRgbInverted;
 
 	if(gpioConfig.tempSensorPin == 0xff)
-		doc["i"]["t"]["d"] = nullptr;
+		doc[PSTR("i")][PSTR("t")][PSTR("d")] = nullptr;
 	else
-		doc["i"]["t"]["d"] = gpioConfig.tempSensorPin;
+		doc[PSTR("i")][PSTR("t")][PSTR("d")] = gpioConfig.tempSensorPin;
 
 	if(gpioConfig.tempAnalogSensorPin == 0xff)
-		doc["i"]["t"]["a"] = nullptr;
+		doc[PSTR("i")][PSTR("t")][PSTR("a")] = nullptr;
 	else
-		doc["i"]["t"]["a"] = gpioConfig.tempAnalogSensorPin;
+		doc[PSTR("i")][PSTR("t")][PSTR("a")] = gpioConfig.tempAnalogSensorPin;
 
 	if(gpioConfig.vccPin == 0xff)
-		doc["i"]["v"]["p"] = nullptr;
+		doc[PSTR("i")][PSTR("v")][PSTR("p")] = nullptr;
 	else
-		doc["i"]["v"]["p"] = gpioConfig.vccPin;
+		doc[PSTR("i")][PSTR("v")][PSTR("p")] = gpioConfig.vccPin;
 
 	if(gpioConfig.vccOffset == 0)
-		doc["i"]["v"]["o"] = nullptr;
+		doc[PSTR("i")][PSTR("v")][PSTR("o")] = nullptr;
 	else
-		doc["i"]["v"]["o"] = gpioConfig.vccOffset / 100.0;
+		doc[PSTR("i")][PSTR("v")][PSTR("o")] = gpioConfig.vccOffset / 100.0;
 
 	if(gpioConfig.vccMultiplier == 0)
-		doc["i"]["v"]["m"] = nullptr;
+		doc[PSTR("i")][PSTR("v")][PSTR("m")] = nullptr;
 	else
-		doc["i"]["v"]["m"] = gpioConfig.vccMultiplier / 1000.0;
+		doc[PSTR("i")][PSTR("v")][PSTR("m")] = gpioConfig.vccMultiplier / 1000.0;
 
 	if(gpioConfig.vccResistorVcc == 0)
-		doc["i"]["v"]["d"]["v"] = nullptr;
+		doc[PSTR("i")][PSTR("v")][PSTR("d")][PSTR("v")] = nullptr;
 	else
-		doc["i"]["v"]["d"]["v"] = gpioConfig.vccResistorVcc;
+		doc[PSTR("i")][PSTR("v")][PSTR("d")][PSTR("v")] = gpioConfig.vccResistorVcc;
 
 	if(gpioConfig.vccResistorGnd == 0)
-		doc["i"]["v"]["d"]["g"] = nullptr;
+		doc[PSTR("i")][PSTR("v")][PSTR("d")][PSTR("g")] = nullptr;
 	else
-		doc["i"]["v"]["d"]["g"] = gpioConfig.vccResistorGnd;
+		doc[PSTR("i")][PSTR("v")][PSTR("d")][PSTR("g")] = gpioConfig.vccResistorGnd;
 
 	if(gpioConfig.vccBootLimit == 0)
-		doc["i"]["v"]["b"] = nullptr;
+		doc[PSTR("i")][PSTR("v")][PSTR("b")] = nullptr;
 	else
-		doc["i"]["v"]["b"] = gpioConfig.vccBootLimit / 10.0;
+		doc[PSTR("i")][PSTR("v")][PSTR("b")] = gpioConfig.vccBootLimit / 10.0;
 
 	serializeJson(doc, buf, BufferSize);
 	server.send(200, MIME_JSON, buf);
@@ -1094,18 +1101,23 @@ void AmsWebServer::handleSave() {
 	if(server.hasArg(F("q")) && server.arg(F("q")) == F("true")) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received MQTT config"));
 		MqttConfig mqtt;
+		config->getMqttConfig(mqtt);
 		if(server.hasArg(F("qh")) && !server.arg(F("qh")).isEmpty()) {
 			strcpy(mqtt.host, server.arg(F("qh")).c_str());
 			strcpy(mqtt.clientId, server.arg(F("qc")).c_str());
 			strcpy(mqtt.publishTopic, server.arg(F("qb")).c_str());
 			strcpy(mqtt.subscribeTopic, server.arg(F("qr")).c_str());
 			strcpy(mqtt.username, server.arg(F("qu")).c_str());
-			String pass = server.arg(F("qp"));
+			String pass = server.arg(F("qa"));
 			if(!pass.equals("***")) {
 				strcpy(mqtt.password, pass.c_str());
 			}
 			mqtt.payloadFormat = server.arg(F("qm")).toInt();
+			#if defined(ESP8266)
+			mqtt.ssl = false;
+			#else
 			mqtt.ssl = server.arg(F("qs")) == F("true");
+			#endif
 
 			mqtt.port = server.arg(F("qp")).toInt();
 			if(mqtt.port == 0) {
@@ -1156,14 +1168,7 @@ void AmsWebServer::handleSave() {
 
 		NtpConfig ntp;
 		config->getNtpConfig(ntp);
-		String tz = server.arg(F("gt"));
-		if(tz.equals("UTC")) {
-			ntp.offset = 0;
-			ntp.summerOffset = 0;
-		} else if(tz.equals("CET/CEST")) {
-			ntp.offset = 360;
-			ntp.summerOffset = 360;
-		}
+		strcpy(ntp.timezone, server.arg(F("gt")).c_str());
 		config->setNtpConfig(ntp);
 	}
 
@@ -1251,22 +1256,23 @@ void AmsWebServer::handleSave() {
 
 	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Saving configuration now..."));
 
-	DynamicJsonDocument doc(128);
 	if (config->save()) {
-		doc["success"] = success;
 		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Successfully saved."));
 		if(config->isWifiChanged() || performRestart) {
 			performRestart = true;
-			doc["reboot"] = true;
 		} else {
-			doc["reboot"] = false;
 			hw->setup(gpioConfig, config);
 		}
 	} else {
-		doc["success"] = false;
-		doc["reboot"] = false;
+		success = false;
 	}
-	serializeJson(doc, buf, BufferSize);
+
+	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+		success ? "true" : "false",
+		"",
+		performRestart ? "true" : "false"
+	);
+	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
 	server.handleClient();
@@ -1300,7 +1306,7 @@ void AmsWebServer::reboot() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /reboot over http...\n");
 
 	DynamicJsonDocument doc(128);
-	doc["reboot"] = true;
+	doc[PSTR("reboot")] = true;
 
 	serializeJson(doc, buf, BufferSize);
 	server.send(200, MIME_JSON, buf);
@@ -1321,14 +1327,18 @@ void AmsWebServer::reboot() {
 void AmsWebServer::upgrade() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /upgrade over http...\n");
 
+	if(!checkSecurity(1))
+		return;
+
 	SystemConfig sys;
 	config->getSystemConfig(sys);
 
-	DynamicJsonDocument doc(128);
-	doc["success"] = sys.dataCollectionConsent == 1;
-	doc["reboot"] = sys.dataCollectionConsent == 1;
-
-	serializeJson(doc, buf, BufferSize);
+	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+		sys.dataCollectionConsent == 1 ? "true" : "false",
+		"",
+		sys.dataCollectionConsent == 1 ? "true" : "false"
+	);
+	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
 	if(sys.dataCollectionConsent == 1) {
@@ -1460,7 +1470,13 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 				LittleFS.end();
 
 				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("An Error has occurred while writing file"));
-				server.send_P(500, MIME_JSON, PSTR("{ \"success\": false, \"message\": \"Unable to upload\" }"));
+				snprintf_P(buf, BufferSize, RESPONSE_JSON,
+					"false",
+					"Unable to upload",
+					"false"
+				);
+				server.setContentLength(strlen(buf));
+				server.send(500, MIME_JSON, buf);
 			}
 		}
     } else if(upload.status == UPLOAD_FILE_END) {
@@ -1469,7 +1485,13 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
             file.close();
 //			LittleFS.end();
         } else {
-			server.send_P(500, MIME_JSON, PSTR("{ \"success\": false, \"message\": \"Unable to upload\" }"));
+			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+				"false",
+				"Unable to upload",
+				"false"
+			);
+			server.setContentLength(strlen(buf));
+			server.send(500, MIME_JSON, buf);
         }
     }
 	return upload;
@@ -1496,11 +1518,12 @@ void AmsWebServer::factoryResetPost() {
 		success = true;
 	}
 
-	DynamicJsonDocument doc(128);
-	doc["success"] = success;
-	doc["reboot"] = success;
-
-	serializeJson(doc, buf, BufferSize);
+	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+		success ? "true" : "false",
+		"",
+		"true"
+	);
+	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
 	server.handleClient();
@@ -1517,4 +1540,86 @@ void AmsWebServer::factoryResetPost() {
 
 void AmsWebServer::robotstxt() {
 	server.send_P(200, MIME_HTML, PSTR("User-agent: *\nDisallow: /\n"));
+}
+
+void AmsWebServer::mqttCaUpload() {
+	if(!checkSecurity(1))
+		return;
+
+	uploadFile(FILE_MQTT_CA);
+    HTTPUpload& upload = server.upload();
+    if(upload.status == UPLOAD_FILE_END) {
+		server.sendHeader(HEADER_LOCATION,F("/configuration"));
+		server.send(303);
+
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
+			config->setMqttChanged();
+		}
+	}
+}
+
+void AmsWebServer::mqttCertUpload() {
+	if(!checkSecurity(1))
+		return;
+
+	uploadFile(FILE_MQTT_CERT);
+    HTTPUpload& upload = server.upload();
+    if(upload.status == UPLOAD_FILE_END) {
+		server.sendHeader(HEADER_LOCATION,F("/configuration"));
+		server.send(303);
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
+			config->setMqttChanged();
+		}
+	}
+}
+
+void AmsWebServer::mqttKeyUpload() {
+	if(!checkSecurity(1))
+		return;
+
+	uploadFile(FILE_MQTT_KEY);
+    HTTPUpload& upload = server.upload();
+    if(upload.status == UPLOAD_FILE_END) {
+		server.sendHeader(HEADER_LOCATION,F("/configuration"));
+		server.send(303);
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
+			config->setMqttChanged();
+		}
+	}
+}
+
+void AmsWebServer::tariffJson() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /tariff.json over http...\n");
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	if(!checkSecurity(1))
+		return;
+
+	EnergyAccountingConfig* eac = ea->getConfig();
+	EnergyAccountingData data = ea->getData();
+
+	DynamicJsonDocument doc(512);
+	JsonArray thresholds = doc.createNestedArray(PSTR("t"));
+    for(uint8_t x = 0;x < 10; x++) {
+		thresholds.add(eac->thresholds[x]);
+	}
+	JsonArray peaks = doc.createNestedArray(PSTR("p"));
+    for(uint8_t x = 0;x < min((uint8_t) 5, eac->hours); x++) {
+		JsonObject p = peaks.createNestedObject();
+		EnergyAccountingPeak peak = ea->getPeak(x);
+		p["d"] = peak.day;
+		p["v"] = peak.value / 100.0;
+	}
+	doc["c"] = ea->getCurrentThreshold();
+	doc["m"] = ea->getMonthMax();
+
+	serializeJson(doc, buf, BufferSize);
+	server.send(200, MIME_JSON, buf);
+
 }

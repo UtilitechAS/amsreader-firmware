@@ -32,7 +32,7 @@
 </script>
 
 <div class="grid xl:grid-cols-6 lg:grid-cols-4  md:grid-cols-3 sm:grid-cols-2">
-    <div class="bg-white m-2 p-2 rounded shadow-lg">
+    <div class="cnt">
         <div class="grid grid-cols-2">
             <div class="col-span-2">
                 <PowerGauge val={data.i ? data.i : 0} max={data.im} unit="W" label="Import"/>
@@ -42,7 +42,7 @@
         </div>
     </div>
     {#if data.om || data.e > 0}
-        <div class="bg-white m-2 p-2 rounded shadow-lg">
+        <div class="cnt">
             <div class="grid grid-cols-2">
                 <div class="col-span-2">
                     <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om : 10000} unit="W" label="Export"/>
@@ -52,36 +52,40 @@
             </div>
         </div>
     {/if}
-    <div class="bg-white m-2 p-2 rounded shadow-lg">
+    {#if data.u1 > 100 || data.u2 > 100 || data.u3 > 100}
+    <div class="cnt">
         <VoltPlot u1={data.u1} u2={data.u2} u3={data.u3} ds={data.ds}/>
     </div>
-    <div class="bg-white m-2 p-2 rounded shadow-lg">
+    {/if}
+    {#if data.i1 > 0.01 || data.i2 > 0.01 || data.i3 > 0.01}
+    <div class="cnt">
         <AmpPlot u1={data.u1} u2={data.u2} u3={data.u3} i1={data.i1} i2={data.i2} i3={data.i3} max={data.mf ? data.mf : 32}/>
     </div>
-    <div class="bg-white m-2 p-2 rounded shadow-lg">
+    {/if}
+    <div class="cnt">
         <ReactiveData importInstant={data.ri} exportInstant={data.re} importTotal={data.ric} exportTotal={data.rec}/>
     </div>
-    <div class="bg-white m-2 p-2 rounded shadow-lg">
+    <div class="cnt">
         <AccountingData data={data.ea} currency={prices.currency}/>
     </div>
-    {#if prices.currency == 'NOK'}
-    <div class="bg-white m-2 p-2 rounded shadow-lg h-64">
+    {#if data && data.ea}
+    <div class="cnt h-64">
         <TariffPeakChart data={data.ea} />
     </div>
     {/if}
     {#if prices.currency}
-        <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-3 md:col-span-3 sm:col-span-2 h-64">
+        <div class="cnt xl:col-span-6 lg:col-span-3 md:col-span-3 sm:col-span-2 h-64">
             <PricePlot json={prices}/>
         </div>
     {/if}
-    <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
+    <div class="cnt xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
         <DayPlot json={dayPlot} />
     </div>
-    <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
+    <div class="cnt xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
         <MonthPlot json={monthPlot} />
     </div>
     {#if data.t && data.t != -127 && temperatures.c > 1}
-    <div class="bg-white m-2 p-2 rounded shadow-lg xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
+    <div class="cnt xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
         <TemperaturePlot json={temperatures} />
     </div>
     {/if}

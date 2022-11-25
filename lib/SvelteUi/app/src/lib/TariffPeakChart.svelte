@@ -1,16 +1,17 @@
 <script>
-    import { zeropad } from './Helpers.js';
+    import { monthnames, zeropad } from './Helpers.js';
     import BarChart from './BarChart.svelte';
+    import { tariffStore, getTariff } from './DataStores';
 
-    let monthnames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-    export let data;
-    
     let config = {};
     let max = 0;
     let min = 0;
 
-    let thresholds = [5,10,15,20,25,50,75,100,150];
+    let tariffData;
+    tariffStore.subscribe(update => {
+        tariffData = update;
+    });
+    getTariff();
 
     $: {
         let i = 0;
@@ -23,10 +24,25 @@
             label: 0
         });
 
-        if(data && data.x) {
-            for(i = 0; i < thresholds.length; i++) {
-                let val = thresholds[i];
-                if(val >= data.x) break;
+        if(tariffData && tariffData.p) {
+            for(i = 0; i < tariffData.p.length; i++) {
+                let peak = tariffData.p[i];
+                points.push({
+                    label: peak.v.toFixed(2), 
+                    value: peak.v, 
+                    color: '#7c3aed' 
+                });
+                xTicks.push({
+                    label: peak.d > 0 ? zeropad(peak.d) + "." + monthnames[new Date().getMonth()] : "-"
+                })
+                max = Math.max(max, peak.v);
+            }
+        }
+
+        if(tariffData && tariffData.t) {
+            for(i = 0; i < tariffData.t.length; i++) {
+                let val = tariffData.t[i];
+                if(val >= max) break;
                 yTicks.push({
                     value: val,
                     label: val
@@ -34,34 +50,20 @@
             }
 
             yTicks.push({
-                label: data.x.toFixed(1), 
+                label: tariffData.m.toFixed(1), 
                 align: 'right',
                 color: 'green',
-                value: data.x, 
+                value: tariffData.m, 
             });
         }
 
-        if(data && data.t) {
+        if(tariffData && tariffData.c) {
             yTicks.push({
-                label: data.t.toFixed(1), 
+                label: tariffData.c.toFixed(1), 
                 color: 'orange',
-                value: data.t, 
+                value: tariffData.c, 
             });
-        }
-
-        if(data && data.p) {
-            for(i = 0; i < data.p.length; i++) {
-                let val = data.p[i];
-                points.push({
-                    label: val.toFixed(2), 
-                    value: val, 
-                    color: '#7c3aed' 
-                });
-                xTicks.push({
-                    label: monthnames[new Date().getMonth()]
-                })
-                max = Math.max(max, val);
-            }
+            max = Math.max(max, tariffData.c);
         }
 
         max = Math.ceil(max);

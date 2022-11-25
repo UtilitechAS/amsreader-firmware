@@ -3,11 +3,9 @@
     import { getSysinfo, gitHubReleaseStore, sysinfoStore } from './DataStores.js';
     import { upgrade, getNextVersion } from './UpgradeHelper';
     import DownloadIcon from './DownloadIcon.svelte';
-    import UploadIcon from './UploadIcon.svelte';
   
-    export let sysinfo = {}
-    export let data = {}
-
+    export let sysinfo;
+  
     let nextVersion = {};
     gitHubReleaseStore.subscribe(releases => {
       nextVersion = getNextVersion(sysinfo.version, releases);
@@ -45,14 +43,12 @@
       }
     }
 
-
     let fileinput;
-
     getSysinfo();
 </script>
 
 <div class="grid xl:grid-cols-4 lg:grid-cols-2 md:grid-cols-2">
-    <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
+    <div class="cnt">
         <strong class="text-sm">Device information</strong>
         <div class="my-2">
             Chip: {sysinfo.chip}
@@ -68,7 +64,7 @@
         </div>
      </div>
     {#if sysinfo.meter}
-    <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
+    <div class="cnt">
         <strong class="text-sm">Meter</strong>
         <div class="my-2">
             Manufacturer: {metertype(sysinfo.meter.mfg)}
@@ -82,7 +78,7 @@
     </div>
     {/if}
     {#if sysinfo.net}
-    <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
+    <div class="cnt">
         <strong class="text-sm">Network</strong>
         <div class="my-2">
             IP: {sysinfo.net.ip}
@@ -98,7 +94,7 @@
         </div>
     </div>
     {/if}
-    <div class="bg-white m-2 p-2 rounded-md shadow-lg pb-4 text-gray-700">
+    <div class="cnt">
         <strong class="text-sm">Firmware</strong>
         <div class="my-2">
             Installed version: {sysinfo.version}
@@ -115,12 +111,12 @@
         </div>
         {#if sysinfo.fwconsent === 2}
         <div class="my-2">
-            <div class="my-auto bg-yellow-500 text-yellow-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">You have disabled one-click firmware upgrade, link to self-upgrade is disabled</div>
+            <div class="bd-ylo">You have disabled one-click firmware upgrade, link to self-upgrade is disabled</div>
         </div>
         {/if}
         {/if}
         {#if sysinfo.board == 2 || sysinfo.board == 4 || sysinfo.board == 7 }
-        <div class="my-auto bg-red-500 text-red-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded">
+        <div class="bd-red">
             {boardtype(sysinfo.chip, sysinfo.board)} must be connected to an external power supply during firmware upgrade. Failure to do so may cause power-down during upload resulting in non-functioning unit. 
         </div>
         {/if}

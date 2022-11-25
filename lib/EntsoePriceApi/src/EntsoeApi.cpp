@@ -41,6 +41,10 @@ char* EntsoeApi::getCurrency() {
     return this->config->currency;
 }
 
+char* EntsoeApi::getArea() {
+    return this->config->area;
+}
+
 float EntsoeApi::getValueForHour(int8_t hour) {
     time_t cur = time(nullptr);
     return getValueForHour(cur, hour);

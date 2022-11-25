@@ -84,6 +84,7 @@ private:
 	void energyPriceJson();
 	void temperatureJson();
 	void wifiScanJson();
+	void tariffJson();
 
 	void configurationJson();
 	void handleSave();
@@ -93,6 +94,9 @@ private:
 	void firmwareUpload();
 	void isAliveCheck();
 
+	void mqttCaUpload();
+	void mqttCertUpload();
+	void mqttKeyUpload();
 	HTTPUpload& uploadFile(const char* path);
 
 	void factoryResetPost();

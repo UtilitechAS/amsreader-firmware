@@ -25,6 +25,7 @@ public:
 
     char* getToken();
     char* getCurrency();
+    char* getArea();
     float getValueForHour(int8_t);
     float getValueForHour(time_t, int8_t);
 

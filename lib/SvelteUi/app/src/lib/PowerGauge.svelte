@@ -8,35 +8,12 @@
     export let label;
 </script>
 
-<div class="overlay-plot">
+<div class="pl-root">
     <PowerGaugeSvg pct={val/max * 100} color={ampcol(val/max * 100)}/>
-    <span class="plot-overlay">
-        <span class="plot-value">{val}</span> 
-        <span class="plot-unit">{unit}</span>
+    <span class="pl-ov">
+        <span class="pl-val">{val}</span> 
+        <span class="pl-unt">{unit}</span>
         <br/>
-        <span class="plot-label">{label}</span>
+        <span class="pl-lab">{label}</span>
     </span>
 </div>
-
-<style>
-.overlay-plot {
-    position: relative;
-}
-.plot-overlay {
-    position: absolute;
-    top: 35%;
-    left: 25%;
-    width: 50%;
-    text-align: center;
-}
-.plot-value {
-    font-size: 1.7rem;
-}
-.plot-unit {
-    font-size: 1.0rem;
-    color: grey;
-}
-.plot-label {
-    font-size: 1.0rem;
-}
-</style>

@@ -9,6 +9,7 @@
   import VendorPanel from './lib/VendorPanel.svelte';
   import SetupPanel from './lib/SetupPanel.svelte';
   import Mask from './lib/Mask.svelte';
+    import FileUploadComponent from "./lib/FileUploadComponent.svelte";
 
   let sysinfo = {};
   sysinfoStore.subscribe(update => {
@@ -37,7 +38,16 @@
       <ConfigurationPanel sysinfo={sysinfo}/>
     </Route>
     <Route path="/status">
-      <StatusPage sysinfo={sysinfo} data={data}/>
+      <StatusPage sysinfo={sysinfo}/>
+    </Route>
+    <Route path="/mqtt-ca">
+      <FileUploadComponent title="CA" action="/mqtt-ca"/>
+    </Route>
+    <Route path="/mqtt-cert">
+      <FileUploadComponent title="certificate" action="/mqtt-cert"/>
+    </Route>
+    <Route path="/mqtt-key">
+      <FileUploadComponent title="private key" action="/mqtt-key"/>
     </Route>
   </Router>
 

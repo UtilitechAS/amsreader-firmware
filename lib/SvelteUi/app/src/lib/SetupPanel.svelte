@@ -65,30 +65,30 @@
 </script>
 
 
-<div class="grid xl:grid-cols-4 lg:grid-cols-3  md:grid-cols-2">
-    <div class="bg-white m-2 p-3 rounded-md shadow-lg pb-4 text-gray-700">
+<div class="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2">
+    <div class="cnt">
         <form on:submit|preventDefault={handleSubmit}>
             <input type="hidden" name="s" value="true"/>
             <strong class="text-sm">Setup</strong>
             <div class="my-3">
                 SSID<br/>
-                <input name="ss" type="text" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
+                <input name="ss" type="text" class="in-s"/>
             </div>
             <div class="my-3">
                 PSK<br/>
-                <input name="sp" type="password" class="h-10 rounded-md shadow-sm border-gray-300 w-full"/>
+                <input name="sp" type="password" class="in-s"/>
             </div>
             <div>
                 Hostname:
-                <input name="sh" bind:value={sysinfo.hostname} type="text" class="h-10 rounded-md shadow-sm border-gray-300 w-full" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader"/>
+                <input name="sh" bind:value={sysinfo.hostname} type="text" class="in-s" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader"/>
             </div>
             <div class="my-3">
                 <label><input type="checkbox" name="sm" value="static" class="rounded mb-1" bind:checked={staticIp} /> Static IP</label>
                 {#if staticIp}
                 <br/>
                 <div class="flex">
-                    <input name="si" type="text" class="h-10 rounded-l-md shadow-sm border-gray-300 w-full" required={staticIp}/>
-                    <select name="su" class="h-10 rounded-r-md shadow-sm border-l-0 border-gray-300" required={staticIp}>
+                    <input name="si" type="text" class="in-f w-full" required={staticIp}/>
+                    <select name="su" class="in-l" required={staticIp}>
                         <option value="255.255.255.0">/24</option>
                         <option value="255.255.0.0">/16</option>
                         <option value="255.0.0.0">/8</option>
@@ -100,11 +100,11 @@
             <div class="my-3 flex">
                 <div>
                     Gateway<br/>
-                    <input name="sg" type="text" class="h-10 rounded-l-md shadow-sm border-gray-300 w-full"/>
+                    <input name="sg" type="text" class="in-f w-full"/>
                 </div>
                 <div>
                     DNS<br/>
-                    <input name="sd" type="text" class="h-10 rounded-r-md border-l-0 shadow-sm border-gray-300 w-full"/>
+                    <input name="sd" type="text" class="in-l w-full"/>
                 </div>
             </div>
             {/if}
@@ -113,7 +113,7 @@
                 <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/Data-collection-on-one-click-firmware-upgrade" target="_blank" class="text-blue-600 hover:text-blue-800">Read more</a>
             </div>
             <div class="my-3">
-                <button type="submit" class="font-bold py-1 px-4 rounded bg-blue-500 text-white float-right">Save</button>
+                <button type="submit" class="btn-pri">Save</button>
             </div>
         </form>
     </div>

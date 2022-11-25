@@ -10,7 +10,6 @@
     import GearIcon from './GearIcon.svelte';
     import InfoIcon from "./InfoIcon.svelte";
     import HelpIcon from "./HelpIcon.svelte";
-    import ReloadIcon from "./ReloadIcon.svelte";
     import DownloadIcon from "./DownloadIcon.svelte";
 
     export let data = {}

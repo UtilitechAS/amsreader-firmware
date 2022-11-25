@@ -61,13 +61,15 @@
         max = boundary;
         min = min == 0 ? 0 : boundary*-1;
 
-        let yTickDistDown = min/4;
-        for(i = 0; i < 5; i++) {
-            let val = (yTickDistDown*i);
-            yTicks.push({
-                value: val,
-                label: val.toFixed(0)
-            });
+        if(min < 0) {
+            let yTickDistDown = min/4;
+            for(i = 0; i < 5; i++) {
+                let val = (yTickDistDown*i);
+                yTicks.push({
+                    value: val,
+                    label: val.toFixed(0)
+                });
+            }
         }
 
         let yTickDistUp = max/4;

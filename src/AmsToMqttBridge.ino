@@ -72,6 +72,7 @@ ADC_MODE(ADC_VCC);
 #include "LNG.h"
 
 #include "ams/DataParsers.h"
+#include "Timezones.h"
 
 uint8_t commonBuffer[BUF_SIZE_COMMON];
 uint8_t hanBuffer[BUF_SIZE_HAN];
@@ -358,12 +359,10 @@ void setup() {
 		
 		NtpConfig ntp;
 		if(config.getNtpConfig(ntp)) {
-			configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : (char*) F("pool.ntp.org") : (char*) F("")); // Add NTP server by default if none is configured
+			tz = resolveTimezone(ntp.timezone);
+			configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : (char*) F("pool.ntp.org") : (char*) F("")); // Add NTP server by default if none is configured
 			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
 			ntpEnabled = ntp.enable;
-			TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
-			TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
-			tz = new Timezone(dst, std);
 			ws.setTimezone(tz);
 			ds.setTimezone(tz);
 			ea.setTimezone(tz);
@@ -489,14 +488,11 @@ void loop() {
 			if(config.isNtpChanged()) {
 				NtpConfig ntp;
 				if(config.getNtpConfig(ntp)) {
-					configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? ntp.server : "");
+					tz = resolveTimezone(ntp.timezone);
+					configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : (char*) F("pool.ntp.org") : (char*) F("")); // Add NTP server by default if none is configured
 					sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
 					ntpEnabled = ntp.enable;
 
-					if(tz != NULL) delete tz;
-					TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
-					TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
-					tz = new Timezone(dst, std);
 					ws.setTimezone(tz);
 					ds.setTimezone(tz);
 					ea.setTimezone(tz);
@@ -1324,12 +1320,19 @@ void MQTT_connect() {
 			break;
 	}
 
+	time_t epoch = time(nullptr);
 	if(mqttConfig.ssl) {
+		if(epoch < BUILD_EPOCH) {
+			debugI("NTP not ready for MQTT SSL");
+			return;
+		}
 		debugI("MQTT SSL is configured (%dkb free heap)", ESP.getFreeHeap());
 		if(mqttSecureClient == NULL) {
 			mqttSecureClient = new WiFiClientSecure();
 			#if defined(ESP8266)
 				mqttSecureClient->setBufferSizes(512, 512);
+				debugD("ESP8266 firmware does not have enough memory...");
+				return;
 			#endif
 		
 			if(LittleFS.begin()) {
@@ -1345,40 +1348,43 @@ void MQTT_connect() {
 						mqttSecureClient->loadCACert(file, file.size());
 					#endif
 					file.close();
+
+					if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
+						#if defined(ESP8266)
+							debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
+							file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
+							BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
+							file.close();
+
+							debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
+							file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
+							BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
+							file.close();
+
+							debugD("Setting client certificates (%dkb free heap)", ESP.getFreeHeap());
+							mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
+						#elif defined(ESP32)
+							debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
+							file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
+							mqttSecureClient->loadCertificate(file, file.size());
+							file.close();
+
+							debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
+							file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
+							mqttSecureClient->loadPrivateKey(file, file.size());
+							file.close();
+						#endif
+						mqttClient = mqttSecureClient;
+					}
 				}
 
-				if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
-					#if defined(ESP8266)
-						debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
-						BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
-						file.close();
-
-						debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
-						BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
-						file.close();
-
-						debugD("Setting client certificates (%dkb free heap)", ESP.getFreeHeap());
-						mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
-					#elif defined(ESP32)
-						debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
-						mqttSecureClient->loadCertificate(file, file.size());
-						file.close();
-
-						debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
-						mqttSecureClient->loadPrivateKey(file, file.size());
-						file.close();
-					#endif
-				}
 				LittleFS.end();
 				debugD("MQTT SSL setup complete (%dkb free heap)", ESP.getFreeHeap());
 			}
 		}
-		mqttClient = mqttSecureClient;
-	} else if(mqttClient == NULL) {
+	}
+	
+	if(mqttClient == NULL) {
 		mqttClient = new WiFiClient();
 	}
 
@@ -1390,7 +1396,6 @@ void MQTT_connect() {
 
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
-			time_t epoch = time(nullptr);
 			debugD("Setting NTP time %lld for secure MQTT connection", epoch);
 			mqttSecureClient->setX509Time(epoch);
 		}
@@ -1424,7 +1429,6 @@ void MQTT_connect() {
 	}
 	yield();
 }
-
 
 void configFileParse() {
 	debugD("Parsing config file");
@@ -1623,15 +1627,12 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("ntpDhcp "), 8) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			ntp.dhcp = String(buf+8).toInt() == 1;
-		} else if(strncmp_P(buf, PSTR("ntpOffset "), 10) == 0) {
-			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
-			ntp.offset = String(buf+10).toInt() / 10;
-		} else if(strncmp_P(buf, PSTR("ntpSummerOffset "), 16) == 0) {
-			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
-			ntp.summerOffset = String(buf+16).toInt() / 10;
 		} else if(strncmp_P(buf, PSTR("ntpServer "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			memcpy(ntp.server, buf+10, size-10);
+		} else if(strncmp_P(buf, PSTR("ntpTimezone "), 12) == 0) {
+			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
+			memcpy(ntp.timezone, buf+12, size-12);
 		} else if(strncmp_P(buf, PSTR("entsoeToken "), 12) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
 			memcpy(entsoe.token, buf+12, size-12);

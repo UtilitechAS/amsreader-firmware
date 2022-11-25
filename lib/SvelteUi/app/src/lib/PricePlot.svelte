@@ -56,13 +56,15 @@
         max = Math.ceil(max);
         min = Math.floor(min);
 
-        let yTickDistDown = min/4;
-        for(i = 0; i < 5; i++) {
-            let val = (yTickDistDown*i);
-            yTicks.push({
-                value: val,
-                label: (val/100).toFixed(2)
-            });
+        if(min < 0) {
+            let yTickDistDown = min/4;
+            for(i = 1; i < 5; i++) {
+                let val = (yTickDistDown*i);
+                yTicks.push({
+                    value: val,
+                    label: (val/100).toFixed(2)
+                });
+            }
         }
 
         let yTickDistUp = max/4;
@@ -73,6 +75,8 @@
                 label: (val/100).toFixed(2)
             });
         }
+
+        console.log(yTicks);
 
         config = {
             title: "Future energy price (" + json.currency + ")",

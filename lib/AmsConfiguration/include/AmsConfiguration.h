@@ -173,6 +173,13 @@ struct DomoticzConfig {
 struct NtpConfig {
 	bool enable;
 	bool dhcp;
+	char server[64];
+	char timezone[32];
+}; // 98
+
+struct NtpConfig96 {
+	bool enable;
+	bool dhcp;
 	int16_t offset;
 	int16_t summerOffset;
 	char server[64];

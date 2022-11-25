@@ -14,6 +14,7 @@
         let xTicks = [];
         let points = [];
         let cur = new Date();
+        let offset = -cur.getTimezoneOffset()/60;
         for(i = cur.getUTCHours(); i<24; i++) {
             let imp = json["i"+zeropad(i)];
             let exp = json["e"+zeropad(i)];
@@ -21,7 +22,7 @@
             if(exp === undefined) exp = 0;
 
             xTicks.push({
-                label: zeropad(i)
+                label: zeropad((i+offset)%24)
             });
             points.push({
                 label: imp.toFixed(1), 
@@ -40,7 +41,7 @@
             if(exp === undefined) exp = 0;
 
             xTicks.push({
-                label: zeropad(i)
+                label: zeropad((i+offset)%24)
             });
             points.push({
                 label: imp.toFixed(1), 
@@ -58,13 +59,15 @@
         max = boundary;
         min = min == 0 ? 0 : boundary*-1;
 
-        let yTickDistDown = min/4;
-        for(i = 0; i < 5; i++) {
-            let val = (yTickDistDown*i);
-            yTicks.push({
-                value: val,
-                label: (val/10).toFixed(1)
-            });
+        if(min < 0) {
+            let yTickDistDown = min/4;
+            for(i = 1; i < 5; i++) {
+                let val = (yTickDistDown*i);
+                yTicks.push({
+                    value: val,
+                    label: (val/10).toFixed(1)
+                });
+            }
         }
 
         let yTickDistUp = max/4;

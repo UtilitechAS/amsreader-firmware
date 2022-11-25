@@ -436,9 +436,8 @@ bool AmsConfiguration::setNtpConfig(NtpConfig& config) {
 			}
 		}
 		ntpChanged |= config.dhcp != existing.dhcp;
-		ntpChanged |= config.offset != existing.offset;
-		ntpChanged |= config.summerOffset != existing.summerOffset;
 		ntpChanged |= strcmp(config.server, existing.server) != 0;
+		ntpChanged |= strcmp(config.timezone, existing.timezone) != 0;
 	} else {
 		ntpChanged = true;
 	}
@@ -460,9 +459,8 @@ void AmsConfiguration::ackNtpChange() {
 void AmsConfiguration::clearNtp(NtpConfig& config) {
 	config.enable = true;
 	config.dhcp = true;
-	config.offset = 360;
-	config.summerOffset = 360;
 	strcpy(config.server, "pool.ntp.org");
+	strcpy(config.timezone, "Europe/Oslo");
 }
 
 bool AmsConfiguration::getEntsoeConfig(EntsoeConfig& config) {
@@ -857,6 +855,18 @@ bool AmsConfiguration::relocateConfig96() {
 	wifi.mode = 1; // WIFI_STA
 	EEPROM.put(CONFIG_WIFI_START, wifi);
 
+	NtpConfig ntp;
+	NtpConfig96 ntp96;
+	EEPROM.get(CONFIG_NTP_START, ntp96);
+	ntp.enable = ntp96.enable;
+	ntp.dhcp = ntp96.dhcp;
+	if(ntp96.offset == 0 && ntp96.summerOffset == 0) {
+		strcpy(ntp.timezone, "GMT");
+	} else if(ntp96.offset == 360 && ntp96.summerOffset == 360) {
+		strcpy(ntp.timezone, "Europe/Oslo");
+	}
+	EEPROM.get(CONFIG_NTP_START, ntp);
+
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 100);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -1066,8 +1076,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->println("--NTP configuration--");
 		debugger->printf("Enabled:              %s\r\n", ntp.enable ? "Yes" : "No");
 		if(ntp.enable) {
-			debugger->printf("Offset:               %i\r\n", ntp.offset);
-			debugger->printf("Summer offset:        %i\r\n", ntp.summerOffset);
+			debugger->printf("Timezone:             %s\r\n", ntp.timezone);
 			debugger->printf("Server:               %s\r\n", ntp.server);
 			debugger->printf("DHCP:                 %s\r\n", ntp.dhcp ? "Yes" : "No");
 		}

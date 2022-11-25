@@ -261,8 +261,8 @@ float EnergyAccounting::getMonthMax() {
     return maxHour > 0 ? maxHour / count / 100.0 : 0.0;
 }
 
-float EnergyAccounting::getPeak(uint8_t num) {
-    if(num < 1 || num > 5) return 0.0;
+EnergyAccountingPeak EnergyAccounting::getPeak(uint8_t num) {
+    if(num < 1 || num > 5) return EnergyAccountingPeak({0,0});
 
     uint8_t count = 0;
     bool included[5] = { false, false, false, false, false };
@@ -288,10 +288,10 @@ float EnergyAccounting::getPeak(uint8_t num) {
         if(!included[i]) continue;
         pos++;
         if(pos == num) {
-            return data.peaks[i].value / 100.0;
+            return data.peaks[i];
         }
     }
-    return 0.0;
+    return EnergyAccountingPeak({0,0});
 }
 
 bool EnergyAccounting::load() {

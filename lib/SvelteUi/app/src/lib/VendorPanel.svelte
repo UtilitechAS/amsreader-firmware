@@ -31,27 +31,27 @@
 	}
 </script>
 
-<div class="grid xl:grid-cols-4 lg:grid-cols-3  md:grid-cols-2">
-    <div class="bg-white m-2 p-3 rounded-md shadow-lg pb-4 text-gray-700">
+<div class="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2">
+    <div class="cnt">
         <form on:submit|preventDefault={handleSubmit}>
             <input type="hidden" name="v" value="true"/>
             <strong class="text-sm">Initial configuration</strong>
             <div class="my-3">
                 Board type<br/>
-                <select name="vb" bind:value={sysinfo.board} class="h-10 rounded-md shadow-sm border-gray-300 p-0 w-full">
+                <select name="vb" bind:value={sysinfo.board} class="in-s">
                     <BoardTypeSelectOptions chip={sysinfo.chip}/>
                 </select>
             </div>
             {#if sysinfo.board && sysinfo.board > 20}
                 <div class="my-3">
                     HAN GPIO<br/>
-                    <select name="vh" class="h-10 rounded-md shadow-sm border-gray-300">
+                    <select name="vh" class="in-s">
                         <UartSelectOptions chip={sysinfo.chip}/>
                     </select>
                 </div>
             {/if}
             <div class="my-3">
-                <button type="submit" class="font-bold py-1 px-4 rounded bg-blue-500 text-white float-right">Save</button>
+                <button type="submit" class="btn-pri">Save</button>
             </div>
             <span class="clear-both">&nbsp;</span>
         </form>

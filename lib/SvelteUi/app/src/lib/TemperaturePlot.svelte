@@ -1,5 +1,4 @@
 <script>
-    import { zeropad } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
     export let json;
@@ -9,12 +8,8 @@
     let min = 0;
 
     $: {
-        let hour = new Date().getUTCHours();
         let i = 0;
         let val = 0;
-        let imp = 0;
-        let exp = 0;
-        let h = 0;
         let yTicks = [];
         let xTicks = [];
         let points = [];

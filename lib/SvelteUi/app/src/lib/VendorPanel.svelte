@@ -3,6 +3,7 @@
     import BoardTypeSelectOptions from './BoardTypeSelectOptions.svelte';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
+    import { navigate } from 'svelte-navigator';
 
     export let sysinfo = {}
 
@@ -28,6 +29,7 @@
             s.booting = res.reboot;
             return s;
         });
+        navigate("/");
 	}
 </script>
 

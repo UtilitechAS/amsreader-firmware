@@ -41,6 +41,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/configuration"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/status"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(F("/consent"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(F("/vendor"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(F("/setup"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/mqtt-ca"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/mqtt-cert"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
@@ -184,7 +187,7 @@ void AmsWebServer::sysinfoJson() {
 	#else
 		chipId = ESP.getChipId();
 	#endif
-	String chipIdStr = String(chipId, HEX);;
+	String chipIdStr = String(chipId, HEX);
 	doc[PSTR("chipId")] = chipIdStr;
 	doc[PSTR("mac")] = WiFi.macAddress();
 
@@ -1033,6 +1036,11 @@ void AmsWebServer::handleSave() {
 		config->setSystemConfig(sys);
 
 		performRestart = true;
+	} else if(server.hasArg(F("sf")) && !server.arg(F("sf")).isEmpty()) {
+		SystemConfig sys;
+		config->getSystemConfig(sys);
+		sys.dataCollectionConsent = server.hasArg(F("sf")) && (server.arg(F("sf")) == F("true") || server.arg(F("sf")) == F("1")) ? 1 : 2;
+		config->setSystemConfig(sys);
 	}
 
 	if(server.hasArg(F("m")) && server.arg(F("m")) == F("true")) {
@@ -1612,7 +1620,7 @@ void AmsWebServer::tariffJson() {
 	JsonArray peaks = doc.createNestedArray(PSTR("p"));
     for(uint8_t x = 0;x < min((uint8_t) 5, eac->hours); x++) {
 		JsonObject p = peaks.createNestedObject();
-		EnergyAccountingPeak peak = ea->getPeak(x);
+		EnergyAccountingPeak peak = ea->getPeak(x+1);
 		p["d"] = peak.day;
 		p["v"] = peak.value / 100.0;
 	}

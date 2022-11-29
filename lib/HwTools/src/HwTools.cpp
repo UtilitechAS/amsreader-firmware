@@ -373,7 +373,7 @@ bool HwTools::ledBlink(uint8_t color, uint8_t blink) {
         if(!ledOn(color)) return false;
         delay(75);
         ledOff(color);
-        delay(75);
+        if(i != blink) delay(75);
     }
     return true;
 }

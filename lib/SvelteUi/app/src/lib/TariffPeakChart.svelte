@@ -59,7 +59,7 @@
 
         if(tariffData && tariffData.c) {
             yTicks.push({
-                label: tariffData.c.toFixed(1), 
+                label: tariffData.c.toFixed(0), 
                 color: 'orange',
                 value: tariffData.c, 
             });
@@ -70,7 +70,7 @@
 
         config = {
             title: "Tariff peaks",
-            padding: { top: 20, right: 15, bottom: 20, left: 35 },
+            padding: { top: 20, right: 35, bottom: 20, left: 35 },
             y: {
                 min: min,
                 max: max,

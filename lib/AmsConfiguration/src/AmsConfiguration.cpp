@@ -860,12 +860,13 @@ bool AmsConfiguration::relocateConfig96() {
 	EEPROM.get(CONFIG_NTP_START, ntp96);
 	ntp.enable = ntp96.enable;
 	ntp.dhcp = ntp96.dhcp;
-	if(ntp96.offset == 0 && ntp96.summerOffset == 0) {
-		strcpy(ntp.timezone, "GMT");
-	} else if(ntp96.offset == 360 && ntp96.summerOffset == 360) {
+	if(ntp96.offset == 360 && ntp96.summerOffset == 360) {
 		strcpy(ntp.timezone, "Europe/Oslo");
+	} else {
+		strcpy(ntp.timezone, "GMT");
 	}
-	EEPROM.get(CONFIG_NTP_START, ntp);
+	strcpy(ntp.server, ntp96.server);
+	EEPROM.put(CONFIG_NTP_START, ntp);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 100);
 	bool ret = EEPROM.commit();

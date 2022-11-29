@@ -11,7 +11,8 @@
 
     export let sysinfo = {}
 
-    let loadingOrSaving = true;
+    let loading = true;
+    let saving = false;
 
     let configuration = {
         g: {
@@ -50,7 +51,7 @@
     configurationStore.subscribe(update => {
         if(update.version) {
             configuration = update;
-            loadingOrSaving = false;
+            loading = false;
         }
     });
     getConfiguration();
@@ -70,7 +71,7 @@
     }
 
     async function handleSubmit(e) {
-        loadingOrSaving = true;
+        saving = true;
 		const formData = new FormData(e.target);
 		const data = new URLSearchParams();
 		for (let field of formData) {
@@ -89,7 +90,7 @@
             return s;
         });
 
-        loadingOrSaving = false;
+        saving = false;
         navigate("/");
 	}
 
@@ -176,18 +177,18 @@
             </div>
             <div class="my-1">
                 <div class="flex">
-                    <div>
+                    <div class="w-1/2">
                         Currency<br/>
-                        <select name="pc" bind:value={configuration.p.c} class="in-f">
+                        <select name="pc" bind:value={configuration.p.c} class="in-f w-full">
                             <option value="NOK">NOK</option>
                             <option value="SEK">SEK</option>
                             <option value="DKK">DKK</option>
                             <option value="EUR">EUR</option>
                         </select>
                     </div>
-                    <div>
+                    <div class="w-1/2">
                         Multiplier<br/>
-                        <input name="pm" bind:value={configuration.p.m} type="number" min="0.001" max="1000" step="0.001" class="in-l tr"/>
+                        <input name="pm" bind:value={configuration.p.m} type="number" min="0.001" max="1000" step="0.001" class="in-l tr w-full"/>
                     </div>
                 </div>
             </div>
@@ -256,14 +257,14 @@
                 <div class="mx-1">
                     Main fuse<br/>
                     <label class="flex">
-                        <input name="mf" bind:value={configuration.m.f} type="number" min="5" max="255" class="in-f tr"/>
+                        <input name="mf" bind:value={configuration.m.f} type="number" min="5" max="255" class="in-f tr w-full"/>
                         <span class="in-post">A</span>
                     </label>
                 </div>
                 <div class="mx-1">
                     Production<br/>
                     <label class="flex">
-                        <input name="mr" bind:value={configuration.m.r} type="number" min="0" max="255" class="in-f tr"/>
+                        <input name="mr" bind:value={configuration.m.r} type="number" min="0" max="255" class="in-f tr w-full"/>
                         <span class="in-post">kWp</span>
                     </label>
                 </div>
@@ -293,11 +294,11 @@
                 </div>
                 <div class="w-1/4">
                     Volt<br/>
-                    <input name="mmv" bind:value={configuration.m.m.v} type="number" min="0.00" max="655.35" step="0.01" class="in-m tr"/>
+                    <input name="mmv" bind:value={configuration.m.m.v} type="number" min="0.00" max="655.35" step="0.01" class="in-m tr w-full"/>
                 </div>
                 <div class="w-1/4">
                     Amp<br/>
-                    <input name="mma" bind:value={configuration.m.m.a} type="number" min="0.00" max="655.35" step="0.01" class="in-m tr"/>
+                    <input name="mma" bind:value={configuration.m.m.a} type="number" min="0.00" max="655.35" step="0.01" class="in-m tr w-full"/>
                 </div>
                 <div class="w-1/4">
                     Acc.<br/>
@@ -319,7 +320,7 @@
                 <input name="wp" bind:value={configuration.w.p} type="password" class="in-s"/>
             </div>
             <div class="my-1 flex">
-                <div>
+                <div class="w-1/2">
                     Power saving<br/>
                     <select name="wz" bind:value={configuration.w.z} class="in-s">
                         <option value={255}>Default</option>
@@ -328,12 +329,12 @@
                         <option value={2}>Maximum</option>
                     </select>
                 </div>
-                <div class="ml-2">
+                <div class="ml-2 w-1/2">
                     Power<br/>
-                    <label class="flex">
-                        <input name="ww" bind:value={configuration.w.w} type="number" min="0" max="20.5" step="0.5" class="in-f tr"/>
+                    <div class="flex">
+                        <input name="ww" bind:value={configuration.w.w} type="number" min="0" max="20.5" step="0.5" class="in-f tr w-full"/>
                         <span class="in-post">dBm</span>
-                    </label>
+                    </div>
                 </div>
             </div>
         </div>
@@ -347,7 +348,7 @@
                         <option value="dhcp">DHCP</option>
                         <option value="static">Static</option>
                     </select>
-                    <input name="ni" bind:value={configuration.n.i} type="text" class="in-m" disabled={configuration.n.m == 'dhcp'}/>
+                    <input name="ni" bind:value={configuration.n.i} type="text" class="in-m w-full" disabled={configuration.n.m == 'dhcp'}/>
                     <select name="ns" bind:value={configuration.n.s} class="in-l" disabled={configuration.n.m == 'dhcp'}>
                         <option value="255.255.255.0">/24</option>
                         <option value="255.255.0.0">/16</option>
@@ -390,8 +391,8 @@
                 {/if}
                 <br/>
                 <div class="flex">
-                    <input name="qh" bind:value={configuration.q.h} type="text" class="in-f w-full"/>
-                    <input name="qp" bind:value={configuration.q.p} type="number" min="1024" max="65535" class="in-l tr"/>
+                    <input name="qh" bind:value={configuration.q.h} type="text" class="in-f w-3/4"/>
+                    <input name="qp" bind:value={configuration.q.p} type="number" min="1024" max="65535" class="in-l tr w-1/4"/>
                 </div>
             </div>
             {#if configuration.q.s.e}
@@ -519,42 +520,42 @@
             {#if sysinfo.board > 20}
             <input type="hidden" name="i" value="true"/>
             <div class="flex flex-wrap">
-                <div>
+                <div class="w-1/3">
                     HAN<br/>
-                    <select name="ih" bind:value={configuration.i.h} class="in-f">
+                    <select name="ih" bind:value={configuration.i.h} class="in-f w-full">
                         <UartSelectOptions chip={sysinfo.chip}/>
                     </select>
                 </div>
-                <div>
+                <div class="w-1/3">
                     AP button<br/>
-                    <input name="ia" bind:value={configuration.i.a} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-m tr"/>
+                    <input name="ia" bind:value={configuration.i.a} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-m tr w-full"/>
                 </div>
-                <div>
+                <div class="w-1/3">
                     LED<label class="ml-4"><input name="ili" value="true" bind:checked={configuration.i.l.i} type="checkbox" class="rounded mb-1"/> inv</label><br/>
                     <div class="flex">
-                        <input name="ilp" bind:value={configuration.i.l.p} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-l tr"/>
+                        <input name="ilp" bind:value={configuration.i.l.p} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-l tr w-full"/>
                     </div>
                 </div>
-                <div>
+                <div class="w-full">
                     RGB<label class="ml-4"><input name="iri" value="true" bind:checked={configuration.i.r.i} type="checkbox" class="rounded mb-1"/> inverted</label><br/>
                     <div class="flex">
-                        <input name="irr" bind:value={configuration.i.r.r} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-f tr"/>
-                        <input name="irg" bind:value={configuration.i.r.g} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-m tr"/>
-                        <input name="irb" bind:value={configuration.i.r.b} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-l tr"/>
+                        <input name="irr" bind:value={configuration.i.r.r} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-f tr w-1/3"/>
+                        <input name="irg" bind:value={configuration.i.r.g} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-m tr w-1/3"/>
+                        <input name="irb" bind:value={configuration.i.r.b} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-l tr w-1/3"/>
                     </div>
                 </div>
-                <div class="my-1">
+                <div class="my-1 w-1/3">
                     Temperature<br/>
-                    <input name="itd" bind:value={configuration.i.t.d} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-f tr"/>
+                    <input name="itd" bind:value={configuration.i.t.d} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-f tr w-full"/>
                 </div>
-                <div class="my-1">
+                <div class="my-1 pr-1 w-1/3">
                     Analog temp<br/>
-                    <input name="ita" bind:value={configuration.i.t.a} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-l tr"/>
+                    <input name="ita" bind:value={configuration.i.t.a} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-l tr w-full"/>
                 </div>
                 {#if sysinfo.chip != 'esp8266'}
-                <div class="my-1">
+                <div class="my-1 pl-1 w-1/3">
                     Vcc<br/>
-                    <input name="ivp" bind:value={configuration.i.v.p} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-s tr"/>
+                    <input name="ivp" bind:value={configuration.i.v.p} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-s tr w-full"/>
                 </div>
                 {/if}
                 {#if configuration.i.v.p > 0}
@@ -571,18 +572,18 @@
             {#if sysinfo.chip == 'esp8266'}
             <input type="hidden" name="iv" value="true"/>
             <div class="my-1 flex flex-wrap">
-                <div>
+                <div class="w-1/3">
                     Vcc offset<br/>
-                    <input name="ivo" bind:value={configuration.i.v.o} type="number" min="0.0" max="3.5" step="0.01" class="in-f tr"/>
+                    <input name="ivo" bind:value={configuration.i.v.o} type="number" min="0.0" max="3.5" step="0.01" class="in-f tr w-full"/>
                 </div>
-                <div>
+                <div class="w-1/3 pr-1">
                     Multiplier<br/>
-                    <input name="ivm" bind:value={configuration.i.v.m} type="number" min="0.1" max="10" step="0.01" class="in-l tr"/>
+                    <input name="ivm" bind:value={configuration.i.v.m} type="number" min="0.1" max="10" step="0.01" class="in-l tr w-full"/>
                 </div>
                 {#if sysinfo.board == 2 || sysinfo.board == 100}
-                <div>
+                <div class="w-1/3 pl-1">
                     Boot limit<br/>
-                    <input name="ivb" bind:value={configuration.i.v.b} type="number" min="2.5" max="3.5" step="0.1" class="in-s tr"/>
+                    <input name="ivb" bind:value={configuration.i.v.b} type="number" min="2.5" max="3.5" step="0.1" class="in-s tr w-full"/>
                 </div>
                 {/if}
             </div>
@@ -627,5 +628,7 @@
         </div>
     </div>
 </form>
-<Mask active={loadingOrSaving} message="Loading configuration"/>
+
+<Mask active={loading} message="Loading configuration"/>
+<Mask active={saving} message="Saving configuration"/>
 <Mask active={isFactoryReset} message="Device have been factory reset and switched to AP mode"/>

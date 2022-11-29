@@ -3,6 +3,7 @@
     import { getSysinfo, gitHubReleaseStore, sysinfoStore } from './DataStores.js';
     import { upgrade, getNextVersion } from './UpgradeHelper';
     import DownloadIcon from './DownloadIcon.svelte';
+    import { Link } from 'svelte-navigator';
   
     export let sysinfo;
   
@@ -60,7 +61,10 @@
             MAC: {sysinfo.mac}
         </div>
         <div class="my-2">
-            <button on:click={askReboot} class="text-xs py-1 px-2 rounded bg-yellow-500 text-white mr-3">Reboot</button>
+            <Link to="/consent">
+                <span class="text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3 ">Change consents</span>
+            </Link>
+            <button on:click={askReboot} class="text-xs py-1 px-2 rounded bg-yellow-500 text-white mr-3 float-right">Reboot</button>
         </div>
      </div>
     {#if sysinfo.meter}

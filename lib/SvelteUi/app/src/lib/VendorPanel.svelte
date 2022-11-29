@@ -29,7 +29,7 @@
             s.booting = res.reboot;
             return s;
         });
-        navigate("/");
+        navigate("/setup");
 	}
 </script>
 

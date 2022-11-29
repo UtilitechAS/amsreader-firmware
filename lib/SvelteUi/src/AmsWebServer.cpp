@@ -1031,8 +1031,7 @@ void AmsWebServer::handleSave() {
 		config->setMeterConfig(*meterConfig);
 		
 		sys.userConfigured = success;
-		//TODO sys.country 
-		sys.dataCollectionConsent = server.hasArg(F("sf")) && server.arg(F("sf")) == F("true") ? 1 : 2;
+		sys.dataCollectionConsent = 0;
 		config->setSystemConfig(sys);
 
 		performRestart = true;

@@ -766,6 +766,10 @@ void swapWifiMode() {
 		}
 		dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
 		dnsServer->start(53, PSTR("*"), WiFi.softAPIP());
+		#if defined(DEBUG_MODE)
+			Debug.setSerialEnabled(true);
+			Debug.begin("192.168.4.1", 23, RemoteDebug::VERBOSE);
+		#endif
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to STA mode");
 		if(dnsServer != NULL) {

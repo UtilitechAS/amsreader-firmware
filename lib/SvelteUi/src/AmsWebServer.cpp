@@ -170,15 +170,15 @@ void AmsWebServer::sysinfoJson() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /sysinfo.json over http...\n");
 
 	DynamicJsonDocument doc(512);
-	doc[PSTR("version")] = VERSION;
+	doc[F("version")] = VERSION;
 	#if defined(CONFIG_IDF_TARGET_ESP32S2)
-	doc[PSTR("chip")] = "esp32s2";
+	doc[F("chip")] = "esp32s2";
 	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-	doc[PSTR("chip")] = "esp32c3";
+	doc[F("chip")] = "esp32c3";
 	#elif defined(ESP32)
-	doc[PSTR("chip")] = "esp32";
+	doc[F("chip")] = "esp32";
 	#elif defined(ESP8266)
-	doc[PSTR("chip")] = "esp8266";
+	doc[F("chip")] = "esp8266";
 	#endif
 
 	uint32_t chipId;
@@ -188,37 +188,37 @@ void AmsWebServer::sysinfoJson() {
 		chipId = ESP.getChipId();
 	#endif
 	String chipIdStr = String(chipId, HEX);
-	doc[PSTR("chipId")] = chipIdStr;
-	doc[PSTR("mac")] = WiFi.macAddress();
+	doc[F("chipId")] = chipIdStr;
+	doc[F("mac")] = WiFi.macAddress();
 
 	SystemConfig sys;
 	config->getSystemConfig(sys);
-	doc[PSTR("board")] = sys.boardType;
-	doc[PSTR("vndcfg")] = sys.vendorConfigured;
-	doc[PSTR("usrcfg")] = sys.userConfigured;
-	doc[PSTR("fwconsent")] = sys.dataCollectionConsent;
-	doc[PSTR("country")] = sys.country;
+	doc[F("board")] = sys.boardType;
+	doc[F("vndcfg")] = sys.vendorConfigured;
+	doc[F("usrcfg")] = sys.userConfigured;
+	doc[F("fwconsent")] = sys.dataCollectionConsent;
+	doc[F("country")] = sys.country;
 
 	if(sys.userConfigured) {
 		WiFiConfig wifiConfig;
 		config->getWiFiConfig(wifiConfig);
-		doc[PSTR("hostname")] = wifiConfig.hostname;
+		doc[F("hostname")] = wifiConfig.hostname;
 	} else {
-		doc[PSTR("hostname")] = "ams-"+chipIdStr;
+		doc[F("hostname")] = "ams-"+chipIdStr;
 	}
 
-	doc[PSTR("booting")] = performRestart;
-	doc[PSTR("upgrading")] = rebootForUpgrade;
+	doc[F("booting")] = performRestart;
+	doc[F("upgrading")] = rebootForUpgrade;
 
-	doc[PSTR("net")][PSTR("ip")] = WiFi.localIP().toString();
-	doc[PSTR("net")][PSTR("mask")] = WiFi.subnetMask().toString();
-	doc[PSTR("net")][PSTR("gw")] = WiFi.gatewayIP().toString();
-	doc[PSTR("net")][PSTR("dns1")] = WiFi.dnsIP(0).toString();
-	doc[PSTR("net")][PSTR("dns2")] = WiFi.dnsIP(1).toString();
+	doc[F("net")][F("ip")] = WiFi.localIP().toString();
+	doc[F("net")][F("mask")] = WiFi.subnetMask().toString();
+	doc[F("net")][F("gw")] = WiFi.gatewayIP().toString();
+	doc[F("net")][F("dns1")] = WiFi.dnsIP(0).toString();
+	doc[F("net")][F("dns2")] = WiFi.dnsIP(1).toString();
 
-	doc[PSTR("meter")][PSTR("mfg")] = meterState->getMeterType();
-	doc[PSTR("meter")][PSTR("model")] = meterState->getMeterModel();
-	doc[PSTR("meter")][PSTR("id")] = meterState->getMeterId();
+	doc[F("meter")][F("mfg")] = meterState->getMeterType();
+	doc[F("meter")][F("model")] = meterState->getMeterModel();
+	doc[F("meter")][F("id")] = meterState->getMeterId();
 
 	serializeJson(doc, buf, BufferSize);
 	server.send(200, MIME_JSON, buf);
@@ -673,7 +673,7 @@ void AmsWebServer::configurationJson() {
 		return;
 
 	DynamicJsonDocument doc(2048);
-	doc[PSTR("version")] = VERSION;
+	doc[F("version")] = VERSION;
 
 	NtpConfig ntpConfig;
 	config->getNtpConfig(ntpConfig);
@@ -682,11 +682,11 @@ void AmsWebServer::configurationJson() {
 	WebConfig webConfig;
 	config->getWebConfig(webConfig);
 
-	doc[PSTR("g")][PSTR("t")] = ntpConfig.timezone;
-	doc[PSTR("g")][PSTR("h")] = wifiConfig.hostname;
-	doc[PSTR("g")][PSTR("s")] = webConfig.security;
-	doc[PSTR("g")][PSTR("u")] = webConfig.username;
-	doc[PSTR("g")][PSTR("p")] = strlen(webConfig.password) > 0 ? "***" : "";
+	doc[F("g")][F("t")] = ntpConfig.timezone;
+	doc[F("g")][F("h")] = wifiConfig.hostname;
+	doc[F("g")][F("s")] = webConfig.security;
+	doc[F("g")][F("u")] = webConfig.username;
+	doc[F("g")][F("p")] = strlen(webConfig.password) > 0 ? "***" : "";
 
 	bool encen = false;
 	for(uint8_t i = 0; i < 16; i++) {
@@ -696,161 +696,161 @@ void AmsWebServer::configurationJson() {
 	}
 
 	config->getMeterConfig(*meterConfig);
-	doc[PSTR("m")][PSTR("b")] = meterConfig->baud;
-	doc[PSTR("m")][PSTR("p")] = meterConfig->parity;
-	doc[PSTR("m")][PSTR("i")] = meterConfig->invert;
-	doc[PSTR("m")][PSTR("d")] = meterConfig->distributionSystem;
-	doc[PSTR("m")][PSTR("f")] = meterConfig->mainFuse;
-	doc[PSTR("m")][PSTR("r")] = meterConfig->productionCapacity;
-	doc[PSTR("m")][PSTR("e")][PSTR("e")] = encen;
-	doc[PSTR("m")][PSTR("e")][PSTR("k")] = toHex(meterConfig->encryptionKey, 16);
-	doc[PSTR("m")][PSTR("e")][PSTR("a")] = toHex(meterConfig->authenticationKey, 16);
-	doc[PSTR("m")][PSTR("m")][PSTR("e")] = meterConfig->wattageMultiplier > 1 || meterConfig->voltageMultiplier > 1 || meterConfig->amperageMultiplier > 1 || meterConfig->accumulatedMultiplier > 1;
-	doc[PSTR("m")][PSTR("m")][PSTR("w")] = meterConfig->wattageMultiplier / 1000.0;
-	doc[PSTR("m")][PSTR("m")][PSTR("v")] = meterConfig->voltageMultiplier / 1000.0;
-	doc[PSTR("m")][PSTR("m")][PSTR("a")] = meterConfig->amperageMultiplier / 1000.0;
-	doc[PSTR("m")][PSTR("m")][PSTR("c")] = meterConfig->accumulatedMultiplier / 1000.0;
+	doc[F("m")][F("b")] = meterConfig->baud;
+	doc[F("m")][F("p")] = meterConfig->parity;
+	doc[F("m")][F("i")] = meterConfig->invert;
+	doc[F("m")][F("d")] = meterConfig->distributionSystem;
+	doc[F("m")][F("f")] = meterConfig->mainFuse;
+	doc[F("m")][F("r")] = meterConfig->productionCapacity;
+	doc[F("m")][F("e")][F("e")] = encen;
+	doc[F("m")][F("e")][F("k")] = toHex(meterConfig->encryptionKey, 16);
+	doc[F("m")][F("e")][F("a")] = toHex(meterConfig->authenticationKey, 16);
+	doc[F("m")][F("m")][F("e")] = meterConfig->wattageMultiplier > 1 || meterConfig->voltageMultiplier > 1 || meterConfig->amperageMultiplier > 1 || meterConfig->accumulatedMultiplier > 1;
+	doc[F("m")][F("m")][F("w")] = meterConfig->wattageMultiplier / 1000.0;
+	doc[F("m")][F("m")][F("v")] = meterConfig->voltageMultiplier / 1000.0;
+	doc[F("m")][F("m")][F("a")] = meterConfig->amperageMultiplier / 1000.0;
+	doc[F("m")][F("m")][F("c")] = meterConfig->accumulatedMultiplier / 1000.0;
 
 	EnergyAccountingConfig eac;
 	config->getEnergyAccountingConfig(eac);
-	doc[PSTR("t")][PSTR("t")][0] = eac.thresholds[0];
-	doc[PSTR("t")][PSTR("t")][1] = eac.thresholds[1];
-	doc[PSTR("t")][PSTR("t")][2] = eac.thresholds[2];
-	doc[PSTR("t")][PSTR("t")][3] = eac.thresholds[3];
-	doc[PSTR("t")][PSTR("t")][4] = eac.thresholds[4];
-	doc[PSTR("t")][PSTR("t")][5] = eac.thresholds[5];
-	doc[PSTR("t")][PSTR("t")][6] = eac.thresholds[6];
-	doc[PSTR("t")][PSTR("t")][7] = eac.thresholds[7];
-	doc[PSTR("t")][PSTR("t")][8] = eac.thresholds[8];
-	doc[PSTR("t")][PSTR("t")][9] = eac.thresholds[9];
-	doc[PSTR("t")][PSTR("h")] = eac.hours;
+	doc[F("t")][F("t")][0] = eac.thresholds[0];
+	doc[F("t")][F("t")][1] = eac.thresholds[1];
+	doc[F("t")][F("t")][2] = eac.thresholds[2];
+	doc[F("t")][F("t")][3] = eac.thresholds[3];
+	doc[F("t")][F("t")][4] = eac.thresholds[4];
+	doc[F("t")][F("t")][5] = eac.thresholds[5];
+	doc[F("t")][F("t")][6] = eac.thresholds[6];
+	doc[F("t")][F("t")][7] = eac.thresholds[7];
+	doc[F("t")][F("t")][8] = eac.thresholds[8];
+	doc[F("t")][F("t")][9] = eac.thresholds[9];
+	doc[F("t")][F("h")] = eac.hours;
 
-	doc[PSTR("w")][PSTR("s")] = wifiConfig.ssid;
-	doc[PSTR("w")][PSTR("p")] = strlen(wifiConfig.psk) > 0 ? "***" : "";
-	doc[PSTR("w")][PSTR("w")] = wifiConfig.power / 10.0;
-	doc[PSTR("w")][PSTR("z")] = wifiConfig.sleep;
+	doc[F("w")][F("s")] = wifiConfig.ssid;
+	doc[F("w")][F("p")] = strlen(wifiConfig.psk) > 0 ? "***" : "";
+	doc[F("w")][F("w")] = wifiConfig.power / 10.0;
+	doc[F("w")][F("z")] = wifiConfig.sleep;
 
-	doc[PSTR("n")][PSTR("m")] = strlen(wifiConfig.ip) > 0 ? "static" : "dhcp";
-	doc[PSTR("n")][PSTR("i")] = wifiConfig.ip;
-	doc[PSTR("n")][PSTR("s")] = wifiConfig.subnet;
-	doc[PSTR("n")][PSTR("g")] = wifiConfig.gateway;
-	doc[PSTR("n")][PSTR("d1")] = wifiConfig.dns1;
-	doc[PSTR("n")][PSTR("d2")] = wifiConfig.dns2;
-	doc[PSTR("n")][PSTR("d")] = wifiConfig.mdns;
-	doc[PSTR("n")][PSTR("n1")] = ntpConfig.server;
-	doc[PSTR("n")][PSTR("h")] = ntpConfig.dhcp;
+	doc[F("n")][F("m")] = strlen(wifiConfig.ip) > 0 ? "static" : "dhcp";
+	doc[F("n")][F("i")] = wifiConfig.ip;
+	doc[F("n")][F("s")] = wifiConfig.subnet;
+	doc[F("n")][F("g")] = wifiConfig.gateway;
+	doc[F("n")][F("d1")] = wifiConfig.dns1;
+	doc[F("n")][F("d2")] = wifiConfig.dns2;
+	doc[F("n")][F("d")] = wifiConfig.mdns;
+	doc[F("n")][F("n1")] = ntpConfig.server;
+	doc[F("n")][F("h")] = ntpConfig.dhcp;
 
 	MqttConfig mqttConfig;
 	config->getMqttConfig(mqttConfig);
-	doc[PSTR("q")][PSTR("h")] = mqttConfig.host;
-	doc[PSTR("q")][PSTR("p")] = mqttConfig.port;
-	doc[PSTR("q")][PSTR("u")] = mqttConfig.username;
-	doc[PSTR("q")][PSTR("a")] = strlen(mqttConfig.password) > 0 ? "***" : "";
-	doc[PSTR("q")][PSTR("c")] = mqttConfig.clientId;
-	doc[PSTR("q")][PSTR("b")] = mqttConfig.publishTopic;
-	doc[PSTR("q")][PSTR("m")] = mqttConfig.payloadFormat;
-	doc[PSTR("q")][PSTR("s")][PSTR("e")] = mqttConfig.ssl;
+	doc[F("q")][F("h")] = mqttConfig.host;
+	doc[F("q")][F("p")] = mqttConfig.port;
+	doc[F("q")][F("u")] = mqttConfig.username;
+	doc[F("q")][F("a")] = strlen(mqttConfig.password) > 0 ? "***" : "";
+	doc[F("q")][F("c")] = mqttConfig.clientId;
+	doc[F("q")][F("b")] = mqttConfig.publishTopic;
+	doc[F("q")][F("m")] = mqttConfig.payloadFormat;
+	doc[F("q")][F("s")][F("e")] = mqttConfig.ssl;
 
 	if(LittleFS.begin()) {
-		doc[PSTR("q")][PSTR("s")][PSTR("c")] = LittleFS.exists(FILE_MQTT_CA);
-		doc[PSTR("q")][PSTR("s")][PSTR("r")] = LittleFS.exists(FILE_MQTT_CERT);
-		doc[PSTR("q")][PSTR("s")][PSTR("k")] = LittleFS.exists(FILE_MQTT_KEY);
+		doc[F("q")][F("s")][F("c")] = LittleFS.exists(FILE_MQTT_CA);
+		doc[F("q")][F("s")][F("r")] = LittleFS.exists(FILE_MQTT_CERT);
+		doc[F("q")][F("s")][F("k")] = LittleFS.exists(FILE_MQTT_KEY);
 		LittleFS.end();
 	} else {
-		doc[PSTR("q")][PSTR("s")][PSTR("c")] = false;
-		doc[PSTR("q")][PSTR("s")][PSTR("r")] = false;
-		doc[PSTR("q")][PSTR("s")][PSTR("k")] = false;
+		doc[F("q")][F("s")][F("c")] = false;
+		doc[F("q")][F("s")][F("r")] = false;
+		doc[F("q")][F("s")][F("k")] = false;
 	}
 
 	EntsoeConfig entsoe;
 	config->getEntsoeConfig(entsoe);
-	doc[PSTR("p")][PSTR("e")] = strlen(entsoe.token) > 0;
-	doc[PSTR("p")][PSTR("t")] = entsoe.token;
-	doc[PSTR("p")][PSTR("r")] = entsoe.area;
-	doc[PSTR("p")][PSTR("c")] = entsoe.currency;
-	doc[PSTR("p")][PSTR("m")] = entsoe.multiplier / 1000.0;
+	doc[F("p")][F("e")] = strlen(entsoe.token) > 0;
+	doc[F("p")][F("t")] = entsoe.token;
+	doc[F("p")][F("r")] = entsoe.area;
+	doc[F("p")][F("c")] = entsoe.currency;
+	doc[F("p")][F("m")] = entsoe.multiplier / 1000.0;
 
 	DebugConfig debugConfig;
 	config->getDebugConfig(debugConfig);
-	doc[PSTR("d")][PSTR("s")] = debugConfig.serial;
-	doc[PSTR("d")][PSTR("t")] = debugConfig.telnet;
-	doc[PSTR("d")][PSTR("l")] = debugConfig.level;
+	doc[F("d")][F("s")] = debugConfig.serial;
+	doc[F("d")][F("t")] = debugConfig.telnet;
+	doc[F("d")][F("l")] = debugConfig.level;
 
 	GpioConfig gpioConfig;
 	config->getGpioConfig(gpioConfig);
 	if(gpioConfig.hanPin == 0xff)
-		doc[PSTR("i")][PSTR("h")] = nullptr;
+		doc[F("i")][F("h")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("h")] = gpioConfig.hanPin;
+		doc[F("i")][F("h")] = gpioConfig.hanPin;
 	
 	if(gpioConfig.apPin == 0xff)
-		doc[PSTR("i")][PSTR("a")] = nullptr;
+		doc[F("i")][F("a")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("a")] = gpioConfig.apPin;
+		doc[F("i")][F("a")] = gpioConfig.apPin;
 	
 	if(gpioConfig.ledPin == 0xff)
-		doc[PSTR("i")][PSTR("l")][PSTR("p")] = nullptr;
+		doc[F("i")][F("l")][F("p")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("l")][PSTR("p")] = gpioConfig.ledPin;
+		doc[F("i")][F("l")][F("p")] = gpioConfig.ledPin;
 	
-	doc[PSTR("i")][PSTR("l")][PSTR("i")] = gpioConfig.ledInverted;
+	doc[F("i")][F("l")][F("i")] = gpioConfig.ledInverted;
 	
 	if(gpioConfig.ledPinRed == 0xff)
-		doc[PSTR("i")][PSTR("r")][PSTR("r")] = nullptr;
+		doc[F("i")][F("r")][F("r")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("r")][PSTR("r")] = gpioConfig.ledPinRed;
+		doc[F("i")][F("r")][F("r")] = gpioConfig.ledPinRed;
 
 	if(gpioConfig.ledPinGreen == 0xff)
-		doc[PSTR("i")][PSTR("r")][PSTR("g")] = nullptr;
+		doc[F("i")][F("r")][F("g")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("r")][PSTR("g")] = gpioConfig.ledPinGreen;
+		doc[F("i")][F("r")][F("g")] = gpioConfig.ledPinGreen;
 
 	if(gpioConfig.ledPinBlue == 0xff)
-		doc[PSTR("i")][PSTR("r")][PSTR("b")] = nullptr;
+		doc[F("i")][F("r")][F("b")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("r")][PSTR("b")] = gpioConfig.ledPinBlue;
+		doc[F("i")][F("r")][F("b")] = gpioConfig.ledPinBlue;
 
-	doc[PSTR("i")][PSTR("r")][PSTR("i")] = gpioConfig.ledRgbInverted;
+	doc[F("i")][F("r")][F("i")] = gpioConfig.ledRgbInverted;
 
 	if(gpioConfig.tempSensorPin == 0xff)
-		doc[PSTR("i")][PSTR("t")][PSTR("d")] = nullptr;
+		doc[F("i")][F("t")][F("d")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("t")][PSTR("d")] = gpioConfig.tempSensorPin;
+		doc[F("i")][F("t")][F("d")] = gpioConfig.tempSensorPin;
 
 	if(gpioConfig.tempAnalogSensorPin == 0xff)
-		doc[PSTR("i")][PSTR("t")][PSTR("a")] = nullptr;
+		doc[F("i")][F("t")][F("a")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("t")][PSTR("a")] = gpioConfig.tempAnalogSensorPin;
+		doc[F("i")][F("t")][F("a")] = gpioConfig.tempAnalogSensorPin;
 
 	if(gpioConfig.vccPin == 0xff)
-		doc[PSTR("i")][PSTR("v")][PSTR("p")] = nullptr;
+		doc[F("i")][F("v")][F("p")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("v")][PSTR("p")] = gpioConfig.vccPin;
+		doc[F("i")][F("v")][F("p")] = gpioConfig.vccPin;
 
 	if(gpioConfig.vccOffset == 0)
-		doc[PSTR("i")][PSTR("v")][PSTR("o")] = nullptr;
+		doc[F("i")][F("v")][F("o")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("v")][PSTR("o")] = gpioConfig.vccOffset / 100.0;
+		doc[F("i")][F("v")][F("o")] = gpioConfig.vccOffset / 100.0;
 
 	if(gpioConfig.vccMultiplier == 0)
-		doc[PSTR("i")][PSTR("v")][PSTR("m")] = nullptr;
+		doc[F("i")][F("v")][F("m")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("v")][PSTR("m")] = gpioConfig.vccMultiplier / 1000.0;
+		doc[F("i")][F("v")][F("m")] = gpioConfig.vccMultiplier / 1000.0;
 
 	if(gpioConfig.vccResistorVcc == 0)
-		doc[PSTR("i")][PSTR("v")][PSTR("d")][PSTR("v")] = nullptr;
+		doc[F("i")][F("v")][F("d")][F("v")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("v")][PSTR("d")][PSTR("v")] = gpioConfig.vccResistorVcc;
+		doc[F("i")][F("v")][F("d")][F("v")] = gpioConfig.vccResistorVcc;
 
 	if(gpioConfig.vccResistorGnd == 0)
-		doc[PSTR("i")][PSTR("v")][PSTR("d")][PSTR("g")] = nullptr;
+		doc[F("i")][F("v")][F("d")][F("g")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("v")][PSTR("d")][PSTR("g")] = gpioConfig.vccResistorGnd;
+		doc[F("i")][F("v")][F("d")][F("g")] = gpioConfig.vccResistorGnd;
 
 	if(gpioConfig.vccBootLimit == 0)
-		doc[PSTR("i")][PSTR("v")][PSTR("b")] = nullptr;
+		doc[F("i")][F("v")][F("b")] = nullptr;
 	else
-		doc[PSTR("i")][PSTR("v")][PSTR("b")] = gpioConfig.vccBootLimit / 10.0;
+		doc[F("i")][F("v")][F("b")] = gpioConfig.vccBootLimit / 10.0;
 
 	serializeJson(doc, buf, BufferSize);
 	server.send(200, MIME_JSON, buf);
@@ -1314,7 +1314,7 @@ void AmsWebServer::reboot() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /reboot over http...\n");
 
 	DynamicJsonDocument doc(128);
-	doc[PSTR("reboot")] = true;
+	doc[F("reboot")] = true;
 
 	serializeJson(doc, buf, BufferSize);
 	server.send(200, MIME_JSON, buf);
@@ -1613,11 +1613,11 @@ void AmsWebServer::tariffJson() {
 	EnergyAccountingData data = ea->getData();
 
 	DynamicJsonDocument doc(512);
-	JsonArray thresholds = doc.createNestedArray(PSTR("t"));
+	JsonArray thresholds = doc.createNestedArray(F("t"));
     for(uint8_t x = 0;x < 10; x++) {
 		thresholds.add(eac->thresholds[x]);
 	}
-	JsonArray peaks = doc.createNestedArray(PSTR("p"));
+	JsonArray peaks = doc.createNestedArray(F("p"));
     for(uint8_t x = 0;x < min((uint8_t) 5, eac->hours); x++) {
 		JsonObject p = peaks.createNestedObject();
 		EnergyAccountingPeak peak = ea->getPeak(x+1);

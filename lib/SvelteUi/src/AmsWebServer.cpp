@@ -169,7 +169,7 @@ void AmsWebServer::faviconIco() {
 void AmsWebServer::sysinfoJson() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /sysinfo.json over http...\n");
 
-	DynamicJsonDocument doc(512);
+	DynamicJsonDocument doc(1024);
 	doc[F("version")] = VERSION;
 	#if defined(CONFIG_IDF_TARGET_ESP32S2)
 	doc[F("chip")] = "esp32s2";

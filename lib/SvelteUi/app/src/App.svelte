@@ -1,6 +1,5 @@
 <script>
   import { Router, Route, navigate } from "svelte-navigator";
-
   import { getSysinfo, sysinfoStore, dataStore } from './lib/DataStores.js';
   import Header from './lib/Header.svelte';
   import Dashboard from './lib/Dashboard.svelte';
@@ -9,8 +8,8 @@
   import VendorPanel from './lib/VendorPanel.svelte';
   import SetupPanel from './lib/SetupPanel.svelte';
   import Mask from './lib/Mask.svelte';
-    import FileUploadComponent from "./lib/FileUploadComponent.svelte";
-    import ConsentComponent from "./lib/ConsentComponent.svelte";
+  import FileUploadComponent from "./lib/FileUploadComponent.svelte";
+  import ConsentComponent from "./lib/ConsentComponent.svelte";
 
   let sysinfo = {};
   sysinfoStore.subscribe(update => {

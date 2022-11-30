@@ -1,0 +1,6 @@
+{
+    "command" : "udevice",
+    "idx" : %d,
+    "nvalue" : 0,
+    "svalue" : "%s"
+}

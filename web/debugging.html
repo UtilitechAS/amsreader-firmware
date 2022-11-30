@@ -1,0 +1,43 @@
+<div class="alert alert-danger">
+    !!WARNING!!<br/>
+    Telnet debugging is not considered safe and should be switched off when not in use.<br/>
+    <br/>
+    !!WARNING!!<br/>
+    Enabling debugging can cause sudden reboots. Do not leave this on unless you are debugging!
+</div>
+<form method="post" action="/save">
+    <input type="hidden" name="debugConfig" value="true"/>
+    <div class="my-3 p-3 bg-white rounded shadow">
+        <h6>Debugging</h6>
+        <div class="row">
+            <div class="col-xl-2 col-md-3">
+                <label><input type="checkbox" name="debugTelnet" value="true" %s/> Telnet debugger</label>
+            </div>
+            <div class="col-xl-2 col-md-3">
+                <label><input type="checkbox" name="debugSerial" value="true" %s/> Serial debugger</label>
+            </div>
+            <div class="col-xl-3 col-md-4">
+                <div class="row form-group">
+                    <label class="col-6">Debug level</label>
+                    <div class="col-6">
+                        <select class="form-control form-control-sm" name="debugLevel">
+                            <option value="1" %s>Verbose</option>
+                            <option value="2" %s>Debug</option>
+                            <option value="3" %s>Info</option>
+                            <option value="4" %s>Warning</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <hr/>
+    <div class="row form-group">
+        <div class="col-6">
+            <a href="/" class="btn btn-outline-secondary">Back</a>
+        </div>
+        <div class="col-6 text-right">
+            <button class="btn btn-primary">Save</button>
+        </div>
+    </div>
+</form>

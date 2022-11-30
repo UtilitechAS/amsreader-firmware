@@ -1,0 +1,20 @@
+{
+    "max" : %.1f,
+    "peaks" : [ %s ],
+    "threshold" : %d,
+    "hour" : {
+        "use" : %.2f,
+        "cost" : %.2f,
+        "produced" : %.2f
+    },
+    "day" : {
+        "use" : %.2f,
+        "cost" : %.2f,
+        "produced" : %.2f
+    },
+    "month" : {
+        "use" : %.2f,
+        "cost" : %.2f,
+        "produced" : %.2f
+    }
+}

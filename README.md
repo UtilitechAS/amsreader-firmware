@@ -3,6 +3,7 @@ Still very similar to original AMS2MQTT Bridge.
 Changes are:
 1) Translations to German language
 2) Plots are now interactive and show the individual values when clicking on the bar of the plot.
+3) Export shows in green and positive. Import in purple and negative.
 
 ## Original README.md :
 

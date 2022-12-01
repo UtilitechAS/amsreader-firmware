@@ -1264,6 +1264,7 @@ void AmsWebServer::handleSave() {
 		if(server.hasArg(F("h")) && !server.arg(F("h")).isEmpty()) {
 			strcpy(wifi.hostname, server.arg(F("h")).c_str());
 		}
+		wifi.mdns = server.arg(F("m")) == F("true");
 		wifi.power = server.arg(F("w")).toFloat() * 10;
 		wifi.sleep = server.arg(F("z")).toInt();
 		config->setWiFiConfig(wifi);

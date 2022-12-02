@@ -802,7 +802,7 @@ void AmsWebServer::configurationJson() {
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_PRICE_JSON,
-		strlen(entsoe.token) > 0 ? "true" : "false",
+		entsoe.enabled ? "true" : "false",
 		entsoe.token,
 		entsoe.area,
 		entsoe.currency,
@@ -1220,6 +1220,7 @@ void AmsWebServer::handleSave() {
 	if(server.hasArg(F("p")) && server.arg(F("p")) == F("true")) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received price API config"));
 		EntsoeConfig entsoe;
+		entsoe.enabled = server.hasArg(F("pe")) && server.arg(F("pe")) == F("true");
 		strcpy(entsoe.token, server.arg(F("pt")).c_str());
 		strcpy(entsoe.area, server.arg(F("pr")).c_str());
 		strcpy(entsoe.currency, server.arg(F("pc")).c_str());

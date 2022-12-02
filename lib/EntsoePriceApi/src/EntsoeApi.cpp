@@ -131,6 +131,8 @@ bool EntsoeApi::loop() {
         return false;
     }
     #endif
+    if(!config->enabled)
+        return false;
     if(strlen(config->area) == 0)
         return false;
     if(strlen(config->currency) == 0)

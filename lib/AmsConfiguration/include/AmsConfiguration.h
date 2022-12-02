@@ -190,6 +190,7 @@ struct EntsoeConfig {
 	char area[17];
 	char currency[4];
 	uint32_t multiplier;
+	bool enabled;
 }; // 62
 
 struct EnergyAccountingConfig {

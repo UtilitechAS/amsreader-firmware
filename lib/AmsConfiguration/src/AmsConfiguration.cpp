@@ -868,6 +868,11 @@ bool AmsConfiguration::relocateConfig96() {
 	strcpy(ntp.server, ntp96.server);
 	EEPROM.put(CONFIG_NTP_START, ntp);
 
+	EntsoeConfig entsoe;
+	EEPROM.get(CONFIG_ENTSOE_START, entsoe);
+	entsoe.enabled = strlen(entsoe.token) > 0;
+	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
+
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 100);
 	bool ret = EEPROM.commit();
 	EEPROM.end();

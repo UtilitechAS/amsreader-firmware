@@ -192,14 +192,12 @@
                     </div>
                 </div>
             </div>
-            {#if sysinfo.chip != 'esp8266'}
             <div class="my-1">
-                <label><input type="checkbox" name="pe" bind:checked={configuration.p.e} class="rounded mb-1"/> ENTSO-E token</label>
-                {#if configuration.p.e}
+                <label><input type="checkbox" name="pe" bind:checked={configuration.p.e} class="rounded mb-1"/> Enable price fetch from remote server</label>
+                {#if configuration.p.e && sysinfo.chip != 'esp8266'}
                 <br/><input name="pt" bind:value={configuration.p.t} type="text" class="in-s"/>
                 {/if}
             </div>
-            {/if}
             <div class="my-1">
                 Security<br/>
                 <select name="gs" bind:value={configuration.g.s} class="in-s">

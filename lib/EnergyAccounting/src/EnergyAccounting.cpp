@@ -45,8 +45,9 @@ bool EnergyAccounting::update(AmsData* amsData) {
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Initializing data at %lld\n", (int64_t) now);
         if(!load()) {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Unable to load existing data\n");
-            data = { 4, local.Month, 
-                0, 0, 0,
+            data = { 5, local.Month, 
+                0, 0, 0, // Cost
+                0, 0, 0, // Income
                 0, 0, // Peak 1
                 0, 0, // Peak 2
                 0, 0, // Peak 3
@@ -58,6 +59,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
                 debugger->printf("(EnergyAccounting) Peak hour from day %d: %d\n", data.peaks[i].day, data.peaks[i].value*10);
             }
             debugger->printf("(EnergyAccounting) Loaded cost yesterday: %.2f, this month: %d, last month: %d\n", data.costYesterday / 10.0, data.costThisMonth, data.costLastMonth);
+            debugger->printf("(EnergyAccounting) Loaded income yesterday: %.2f, this month: %d, last month: %d\n", data.incomeYesterday / 10.0, data.incomeThisMonth, data.incomeLastMonth);
         }
         init = true;
     }
@@ -70,11 +72,14 @@ bool EnergyAccounting::update(AmsData* amsData) {
     if(local.Hour != currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New local hour %d\n", local.Hour);
 
-        tmElements_t oneHrAgo;
+        tmElements_t oneHrAgo, oneHrAgoLocal;
         breakTime(now-3600, oneHrAgo);
         uint16_t val = ds->getHourImport(oneHrAgo.Hour) / 10;
-        ret |= updateMax(val, local.Day);
 
+        breakTime(tz->toLocal(now-3600), oneHrAgoLocal);
+        ret |= updateMax(val, oneHrAgoLocal.Day);
+
+        currentHour = local.Hour; // Need to be defined here so that day cost is correctly calculated
         if(local.Hour > 0) {
             calcDayCost();
         }
@@ -82,13 +87,18 @@ bool EnergyAccounting::update(AmsData* amsData) {
         use = 0;
         produce = 0;
         costHour = 0;
-        currentHour = local.Hour;
+        incomeHour = 0;
 
         if(local.Day != currentDay) {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New day %d\n", local.Day);
             data.costYesterday = costDay * 10;
             data.costThisMonth += costDay;
             costDay = 0;
+
+            data.incomeYesterday = incomeDay * 10;
+            data.incomeThisMonth += incomeDay;
+            incomeDay = 0;
+
             currentDay = local.Day;
             ret = true;
         }
@@ -97,6 +107,8 @@ bool EnergyAccounting::update(AmsData* amsData) {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New month %d\n", local.Month);
             data.costLastMonth = data.costThisMonth;
             data.costThisMonth = 0;
+            data.incomeLastMonth = data.incomeThisMonth;
+            data.incomeThisMonth = 0;
             for(uint8_t i = 0; i < 5; i++) {
                 data.peaks[i] = { 0, 0 };
             }
@@ -124,6 +136,13 @@ bool EnergyAccounting::update(AmsData* amsData) {
     if(kwhe > 0) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting) Adding %.4f kWh export\n", kwhe);
         produce += kwhe;
+        if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
+            float price = eapi->getValueForHour(0);
+            float income = price * kwhe;
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  and %.4f %s\n", income / 100.0, eapi->getCurrency());
+            incomeHour += income;
+            incomeDay += income;
+        }
     }
 
     if(config != NULL) {
@@ -141,13 +160,20 @@ void EnergyAccounting::calcDayCost() {
     breakTime(tz->toLocal(now), local);
 
     if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
-        if(initPrice) costDay = 0;
+        if(initPrice) {
+            costDay = 0;
+            incomeDay = 0;
+        }
         for(int i = 0; i < currentHour; i++) {
-            float price = eapi->getValueForHour(i - currentHour);
+            float price = eapi->getValueForHour(i - local.Hour);
             if(price == ENTSOE_NO_VALUE) break;
-            breakTime(now - ((currentHour - i) * 3600), utc);
+            breakTime(now - ((local.Hour - i) * 3600), utc);
+
             int16_t wh = ds->getHourImport(utc.Hour);
             costDay += price * (wh / 1000.0);
+
+            wh = ds->getHourExport(utc.Hour);
+            incomeDay += price * (wh / 1000.0);
         }
         initPrice = true;
     }
@@ -161,9 +187,10 @@ double EnergyAccounting::getUseToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0;
-    tmElements_t utc;
+    tmElements_t utc, local;
+    breakTime(tz->toLocal(now), local);
     for(int i = 0; i < currentHour; i++) {
-        breakTime(now - ((currentHour - i) * 3600), utc);
+        breakTime(now - ((local.Hour - i) * 3600), utc);
         ret += ds->getHourImport(utc.Hour) / 1000.0;
     }
     return ret + getUseThisHour();
@@ -224,6 +251,26 @@ double EnergyAccounting::getCostThisMonth() {
 
 uint16_t EnergyAccounting::getCostLastMonth() {
     return data.costLastMonth;
+}
+
+double EnergyAccounting::getIncomeThisHour() {
+    return incomeHour;
+}
+
+double EnergyAccounting::getIncomeToday() {
+    return incomeDay;
+}
+
+double EnergyAccounting::getIncomeYesterday() {
+    return data.incomeYesterday / 10.0;
+}
+
+double EnergyAccounting::getIncomeThisMonth() {
+    return data.incomeThisMonth + getIncomeToday();
+}
+
+uint16_t EnergyAccounting::getIncomeLastMonth() {
+    return data.incomeLastMonth;
 }
 
 uint8_t EnergyAccounting::getCurrentThreshold() {
@@ -309,14 +356,27 @@ bool EnergyAccounting::load() {
         file.readBytes(buf, file.size());
 
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Data version %d\n", buf[0]);
-        if(buf[0] == 4) {
+        if(buf[0] == 5) {
             EnergyAccountingData* data = (EnergyAccountingData*) buf;
             memcpy(&this->data, data, sizeof(this->data));
             ret = true;
+        } else if(buf[0] == 4) {
+            EnergyAccountingData4* data = (EnergyAccountingData4*) buf;
+            this->data = { 5, data->month, 
+                (uint16_t) (data->costYesterday / 10), (uint16_t) (data->costThisMonth / 100), (uint16_t) (data->costLastMonth / 100),
+                0,0,0, // Income from production
+                data->peaks[0].day, data->peaks[0].value,
+                data->peaks[1].day, data->peaks[1].value,
+                data->peaks[2].day, data->peaks[2].value,
+                data->peaks[3].day, data->peaks[3].value,
+                data->peaks[4].day, data->peaks[4].value
+            };
+            ret = true;
         } else if(buf[0] == 3) {
             EnergyAccountingData* data = (EnergyAccountingData*) buf;
-            this->data = { 4, data->month, 
+            this->data = { 5, data->month, 
                 (uint16_t) (data->costYesterday / 10), (uint16_t) (data->costThisMonth / 100), (uint16_t) (data->costLastMonth / 100),
+                0,0,0, // Income from production
                 data->peaks[0].day, data->peaks[0].value,
                 data->peaks[1].day, data->peaks[1].value,
                 data->peaks[2].day, data->peaks[2].value,
@@ -325,8 +385,9 @@ bool EnergyAccounting::load() {
             };
             ret = true;
         } else {
-            data = { 4, 0, 
-                0, 0, 0,
+            data = { 5, 0, 
+                0, 0, 0, // Cost
+                0,0,0, // Income from production
                 0, 0, // Peak 1
                 0, 0, // Peak 2
                 0, 0, // Peak 3

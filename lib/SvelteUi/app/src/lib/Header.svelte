@@ -2,7 +2,7 @@
     import { Link } from "svelte-navigator";
     import { sysinfoStore, getGitHubReleases, gitHubReleaseStore } from './DataStores.js';
     import { upgrade, getNextVersion } from './UpgradeHelper';
-    import { boardtype } from './Helpers.js';
+    import { boardtype, hanError, mqttError } from './Helpers.js';
     import GitHubLogo from './../assets/github.svg';
     import Uptime from "./Uptime.svelte";
     import Badge from './Badge.svelte';
@@ -13,7 +13,7 @@
     import DownloadIcon from "./DownloadIcon.svelte";
 
     export let data = {}
-    export let sysinfo = {}
+    let sysinfo = {}
 
     let nextVersion = {};
  
@@ -28,11 +28,16 @@
             }
         }
     }
+    sysinfoStore.subscribe(update => {
+      sysinfo = update;
+      if(update.fwconsent === 1) {
+        getGitHubReleases();
+      }
+    });
 
     gitHubReleaseStore.subscribe(releases => {
       nextVersion = getNextVersion(sysinfo.version, releases);
     });
-    getGitHubReleases();
 </script>
 
 <nav class="bg-violet-600 p-1 rounded-md mx-2">
@@ -47,13 +52,19 @@
           {/if}
           <div class="flex-none my-auto">Free mem: {data.m ? (data.m/1000).toFixed(1) : '-'}kb</div>
         </div>
-        <div class="flex-auto my-auto justify-center p-2">
+        <div class="flex-auto flex-wrap my-auto justify-center p-2">
           <Badge title="ESP" text={sysinfo.booting ? 'Booting' : data.v > 2.0 ? data.v.toFixed(2)+"V" : "ESP"} color={sysinfo.booting ? 'yellow' : data.em === 1 ? 'green' : data.em === 2 ? 'yellow' : data.em === 3 ? 'red' : 'gray'}/>
           <Badge title="HAN" text="HAN" color={sysinfo.booting ? 'gray' : data.hm === 1 ? 'green' : data.hm === 2 ? 'yellow' : data.hm === 3 ? 'red' : 'gray'}/>
           <Badge title="WiFi" text={data.r ? data.r.toFixed(0)+"dBm" : "WiFi"} color={sysinfo.booting ? 'gray' : data.wm === 1 ? 'green' : data.wm === 2 ? 'yellow' : data.wm === 3 ? 'red' : 'gray'}/>
           <Badge title="MQTT" text="MQTT" color={sysinfo.booting ? 'gray' : data.mm === 1 ? 'green' : data.mm === 2 ? 'yellow' : data.mm === 3 ? 'red' : 'gray'}/>
         </div>
-        <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">
+        {#if data.he < 0}
+        <div class="bd-red">{ 'HAN error: ' + hanError(data.he) }</div>
+        {/if}
+        {#if data.me < 0}
+        <div class="bd-red">{ 'MQTT error: ' + mqttError(data.me) }</div>
+        {/if}
+      <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">
           <div class="flex-none">
             <a class="float-right" href='https://github.com/gskjold/AmsToMqttBridge' target='_blank' rel="noreferrer" aria-label="GitHub"><img class="gh-logo" src={GitHubLogo} alt="GitHub repo"/></a>
           </div>

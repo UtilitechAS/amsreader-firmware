@@ -31,7 +31,7 @@
 
 <div class="container mx-auto m-3">
   <Router>
-    <Header data={data} sysinfo={sysinfo}/>
+    <Header data={data}/>
     <Route path="/">
       <Dashboard data={data}/>
     </Route>

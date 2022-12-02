@@ -214,3 +214,11 @@ bool AmsData::isThreePhase() {
 bool AmsData::isTwoPhase() {
     return this->twoPhase;
 }
+
+int8_t AmsData::getLastError() {
+    return lastError;
+}
+
+void AmsData::setLastError(int8_t lastError) {
+    this->lastError = lastError;
+}

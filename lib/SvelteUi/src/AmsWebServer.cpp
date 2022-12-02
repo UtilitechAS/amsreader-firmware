@@ -3,8 +3,6 @@
 #include "base64.h"
 #include "hexutils.h"
 
-#include <ArduinoJson.h>
-
 #include "html/index_html.h"
 #include "html/index_css.h"
 #include "html/index_js.h"
@@ -15,6 +13,18 @@
 #include "html/energyprice_json.h"
 #include "html/tempsensor_json.h"
 #include "html/response_json.h"
+#include "html/sysinfo_json.h"
+#include "html/tariff_json.h"
+#include "html/peak_json.h"
+#include "html/conf_general_json.h"
+#include "html/conf_meter_json.h"
+#include "html/conf_wifi_json.h"
+#include "html/conf_net_json.h"
+#include "html/conf_mqtt_json.h"
+#include "html/conf_price_json.h"
+#include "html/conf_thresholds_json.h"
+#include "html/conf_debug_json.h"
+#include "html/conf_gpio_json.h"
 
 #include "version.h"
 
@@ -59,8 +69,6 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/energyprice.json"), HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
 	server.on(F("/temperature.json"), HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
 	server.on(F("/tariff.json"), HTTP_GET, std::bind(&AmsWebServer::tariffJson, this));
-
-	server.on(F("/wifiscan.json"), HTTP_GET, std::bind(&AmsWebServer::wifiScanJson, this));
 
 	server.on(F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 	server.on(F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
@@ -169,17 +177,8 @@ void AmsWebServer::faviconIco() {
 void AmsWebServer::sysinfoJson() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /sysinfo.json over http...\n");
 
-	DynamicJsonDocument doc(1024);
-	doc[F("version")] = VERSION;
-	#if defined(CONFIG_IDF_TARGET_ESP32S2)
-	doc[F("chip")] = "esp32s2";
-	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-	doc[F("chip")] = "esp32c3";
-	#elif defined(ESP32)
-	doc[F("chip")] = "esp32";
-	#elif defined(ESP8266)
-	doc[F("chip")] = "esp8266";
-	#endif
+	SystemConfig sys;
+	config->getSystemConfig(sys);
 
 	uint32_t chipId;
 	#if defined(ESP32)
@@ -188,39 +187,54 @@ void AmsWebServer::sysinfoJson() {
 		chipId = ESP.getChipId();
 	#endif
 	String chipIdStr = String(chipId, HEX);
-	doc[F("chipId")] = chipIdStr;
-	doc[F("mac")] = WiFi.macAddress();
 
-	SystemConfig sys;
-	config->getSystemConfig(sys);
-	doc[F("board")] = sys.boardType;
-	doc[F("vndcfg")] = sys.vendorConfigured;
-	doc[F("usrcfg")] = sys.userConfigured;
-	doc[F("fwconsent")] = sys.dataCollectionConsent;
-	doc[F("country")] = sys.country;
-
+	String hostname;
 	if(sys.userConfigured) {
 		WiFiConfig wifiConfig;
 		config->getWiFiConfig(wifiConfig);
-		doc[F("hostname")] = wifiConfig.hostname;
+		hostname = String(wifiConfig.hostname);
 	} else {
-		doc[F("hostname")] = "ams-"+chipIdStr;
+		hostname = "ams-"+chipIdStr;
 	}
 
-	doc[F("booting")] = performRestart;
-	doc[F("upgrading")] = rebootForUpgrade;
+	IPAddress dns1 = WiFi.dnsIP(0);
+	IPAddress dns2 = WiFi.dnsIP(1);
 
-	doc[F("net")][F("ip")] = WiFi.localIP().toString();
-	doc[F("net")][F("mask")] = WiFi.subnetMask().toString();
-	doc[F("net")][F("gw")] = WiFi.gatewayIP().toString();
-	doc[F("net")][F("dns1")] = WiFi.dnsIP(0).toString();
-	doc[F("net")][F("dns2")] = WiFi.dnsIP(1).toString();
+	snprintf_P(buf, BufferSize, SYSINFO_JSON,
+		VERSION,
+		#if defined(CONFIG_IDF_TARGET_ESP32S2)
+		"esp32s2",
+		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+		"esp32c3",
+		#elif defined(ESP32)
+		"esp32",
+		#elif defined(ESP8266)
+		"esp8266",
+		#endif
+		chipIdStr.c_str(),
+		WiFi.macAddress().c_str(),
+		sys.boardType,
+		sys.vendorConfigured ? "true" : "false",
+		sys.userConfigured ? "true" : "false",
+		sys.dataCollectionConsent,
+		hostname.c_str(),
+		performRestart ? "true" : "false",
+		rebootForUpgrade ? "true" : "false",
+		WiFi.localIP().toString().c_str(),
+		WiFi.subnetMask().toString().c_str(),
+		WiFi.gatewayIP().toString().c_str(),
+		dns1.isSet() ? dns1.toString().c_str() : "",
+		dns2.isSet() ? dns2.toString().c_str() : "",
+		meterState->getMeterType(),
+		meterState->getMeterModel().c_str(),
+		meterState->getMeterId().c_str()
+	);
 
-	doc[F("meter")][F("mfg")] = meterState->getMeterType();
-	doc[F("meter")][F("model")] = meterState->getMeterModel();
-	doc[F("meter")][F("id")] = meterState->getMeterId();
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-	serializeJson(doc, buf, BufferSize);
+	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
 	server.handleClient();
@@ -276,7 +290,9 @@ void AmsWebServer::dataJson() {
 
 
 	uint8_t hanStatus;
-	if(meterConfig->baud == 0 || meterState->getLastUpdateMillis() == 0) {
+	if(meterState->getLastError() < 0) {
+		hanStatus = 3;
+	} else if((meterConfig->baud == 0 || meterState->getLastUpdateMillis() == 0) && now < 15000) {
 		hanStatus = 0;
 	} else if(now - meterState->getLastUpdateMillis() < 15000) {
 		hanStatus = 1;
@@ -313,7 +329,7 @@ void AmsWebServer::dataJson() {
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
 		if(!peaks.isEmpty()) peaks += ",";
-		peaks += String(ea->getPeak(i).value);
+		peaks += String(ea->getPeak(i).value / 100.0);
 	}
 
 	snprintf_P(buf, BufferSize, DATA_JSON,
@@ -357,13 +373,17 @@ void AmsWebServer::dataJson() {
 		ea->getUseThisHour(),
 		ea->getCostThisHour(),
 		ea->getProducedThisHour(),
+		ea->getIncomeThisHour(),
 		ea->getUseToday(),
 		ea->getCostToday(),
 		ea->getProducedToday(),
+		ea->getIncomeToday(),
 		ea->getUseThisMonth(),
 		ea->getCostThisMonth(),
 		ea->getProducedThisMonth(),
+		ea->getIncomeThisMonth(),
 		eapi == NULL ? "" : eapi->getArea(),
+		meterState->getLastError(),
 		(uint32_t) time(nullptr)
 	);
 
@@ -665,28 +685,13 @@ void AmsWebServer::indexJs() {
 void AmsWebServer::configurationJson() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /configuration.json over http...\n");
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
-	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
-	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
-
 	if(!checkSecurity(1))
 		return;
-
-	DynamicJsonDocument doc(2048);
-	doc[F("version")] = VERSION;
 
 	NtpConfig ntpConfig;
 	config->getNtpConfig(ntpConfig);
 	WiFiConfig wifiConfig;
 	config->getWiFiConfig(wifiConfig);
-	WebConfig webConfig;
-	config->getWebConfig(webConfig);
-
-	doc[F("g")][F("t")] = ntpConfig.timezone;
-	doc[F("g")][F("h")] = wifiConfig.hostname;
-	doc[F("g")][F("s")] = webConfig.security;
-	doc[F("g")][F("u")] = webConfig.username;
-	doc[F("g")][F("p")] = strlen(webConfig.password) > 0 ? "***" : "";
 
 	bool encen = false;
 	for(uint8_t i = 0; i < 16; i++) {
@@ -695,166 +700,143 @@ void AmsWebServer::configurationJson() {
 		}
 	}
 
-	config->getMeterConfig(*meterConfig);
-	doc[F("m")][F("b")] = meterConfig->baud;
-	doc[F("m")][F("p")] = meterConfig->parity;
-	doc[F("m")][F("i")] = meterConfig->invert;
-	doc[F("m")][F("d")] = meterConfig->distributionSystem;
-	doc[F("m")][F("f")] = meterConfig->mainFuse;
-	doc[F("m")][F("r")] = meterConfig->productionCapacity;
-	doc[F("m")][F("e")][F("e")] = encen;
-	doc[F("m")][F("e")][F("k")] = toHex(meterConfig->encryptionKey, 16);
-	doc[F("m")][F("e")][F("a")] = toHex(meterConfig->authenticationKey, 16);
-	doc[F("m")][F("m")][F("e")] = meterConfig->wattageMultiplier > 1 || meterConfig->voltageMultiplier > 1 || meterConfig->amperageMultiplier > 1 || meterConfig->accumulatedMultiplier > 1;
-	doc[F("m")][F("m")][F("w")] = meterConfig->wattageMultiplier / 1000.0;
-	doc[F("m")][F("m")][F("v")] = meterConfig->voltageMultiplier / 1000.0;
-	doc[F("m")][F("m")][F("a")] = meterConfig->amperageMultiplier / 1000.0;
-	doc[F("m")][F("m")][F("c")] = meterConfig->accumulatedMultiplier / 1000.0;
-
-	EnergyAccountingConfig eac;
-	config->getEnergyAccountingConfig(eac);
-	doc[F("t")][F("t")][0] = eac.thresholds[0];
-	doc[F("t")][F("t")][1] = eac.thresholds[1];
-	doc[F("t")][F("t")][2] = eac.thresholds[2];
-	doc[F("t")][F("t")][3] = eac.thresholds[3];
-	doc[F("t")][F("t")][4] = eac.thresholds[4];
-	doc[F("t")][F("t")][5] = eac.thresholds[5];
-	doc[F("t")][F("t")][6] = eac.thresholds[6];
-	doc[F("t")][F("t")][7] = eac.thresholds[7];
-	doc[F("t")][F("t")][8] = eac.thresholds[8];
-	doc[F("t")][F("t")][9] = eac.thresholds[9];
-	doc[F("t")][F("h")] = eac.hours;
-
-	doc[F("w")][F("s")] = wifiConfig.ssid;
-	doc[F("w")][F("p")] = strlen(wifiConfig.psk) > 0 ? "***" : "";
-	doc[F("w")][F("w")] = wifiConfig.power / 10.0;
-	doc[F("w")][F("z")] = wifiConfig.sleep;
-
-	doc[F("n")][F("m")] = strlen(wifiConfig.ip) > 0 ? "static" : "dhcp";
-	doc[F("n")][F("i")] = wifiConfig.ip;
-	doc[F("n")][F("s")] = wifiConfig.subnet;
-	doc[F("n")][F("g")] = wifiConfig.gateway;
-	doc[F("n")][F("d1")] = wifiConfig.dns1;
-	doc[F("n")][F("d2")] = wifiConfig.dns2;
-	doc[F("n")][F("d")] = wifiConfig.mdns;
-	doc[F("n")][F("n1")] = ntpConfig.server;
-	doc[F("n")][F("h")] = ntpConfig.dhcp;
-
+	EnergyAccountingConfig* eac = ea->getConfig();
 	MqttConfig mqttConfig;
 	config->getMqttConfig(mqttConfig);
-	doc[F("q")][F("h")] = mqttConfig.host;
-	doc[F("q")][F("p")] = mqttConfig.port;
-	doc[F("q")][F("u")] = mqttConfig.username;
-	doc[F("q")][F("a")] = strlen(mqttConfig.password) > 0 ? "***" : "";
-	doc[F("q")][F("c")] = mqttConfig.clientId;
-	doc[F("q")][F("b")] = mqttConfig.publishTopic;
-	doc[F("q")][F("m")] = mqttConfig.payloadFormat;
-	doc[F("q")][F("s")][F("e")] = mqttConfig.ssl;
-
-	if(LittleFS.begin()) {
-		doc[F("q")][F("s")][F("c")] = LittleFS.exists(FILE_MQTT_CA);
-		doc[F("q")][F("s")][F("r")] = LittleFS.exists(FILE_MQTT_CERT);
-		doc[F("q")][F("s")][F("k")] = LittleFS.exists(FILE_MQTT_KEY);
-		LittleFS.end();
-	} else {
-		doc[F("q")][F("s")][F("c")] = false;
-		doc[F("q")][F("s")][F("r")] = false;
-		doc[F("q")][F("s")][F("k")] = false;
-	}
 
 	EntsoeConfig entsoe;
 	config->getEntsoeConfig(entsoe);
-	doc[F("p")][F("e")] = strlen(entsoe.token) > 0;
-	doc[F("p")][F("t")] = entsoe.token;
-	doc[F("p")][F("r")] = entsoe.area;
-	doc[F("p")][F("c")] = entsoe.currency;
-	doc[F("p")][F("m")] = entsoe.multiplier / 1000.0;
-
 	DebugConfig debugConfig;
 	config->getDebugConfig(debugConfig);
-	doc[F("d")][F("s")] = debugConfig.serial;
-	doc[F("d")][F("t")] = debugConfig.telnet;
-	doc[F("d")][F("l")] = debugConfig.level;
 
-	GpioConfig gpioConfig;
-	config->getGpioConfig(gpioConfig);
-	if(gpioConfig.hanPin == 0xff)
-		doc[F("i")][F("h")] = nullptr;
-	else
-		doc[F("i")][F("h")] = gpioConfig.hanPin;
-	
-	if(gpioConfig.apPin == 0xff)
-		doc[F("i")][F("a")] = nullptr;
-	else
-		doc[F("i")][F("a")] = gpioConfig.apPin;
-	
-	if(gpioConfig.ledPin == 0xff)
-		doc[F("i")][F("l")][F("p")] = nullptr;
-	else
-		doc[F("i")][F("l")][F("p")] = gpioConfig.ledPin;
-	
-	doc[F("i")][F("l")][F("i")] = gpioConfig.ledInverted;
-	
-	if(gpioConfig.ledPinRed == 0xff)
-		doc[F("i")][F("r")][F("r")] = nullptr;
-	else
-		doc[F("i")][F("r")][F("r")] = gpioConfig.ledPinRed;
+	bool qsc = false;
+	bool qsr = false;
+	bool qsk = false;
 
-	if(gpioConfig.ledPinGreen == 0xff)
-		doc[F("i")][F("r")][F("g")] = nullptr;
-	else
-		doc[F("i")][F("r")][F("g")] = gpioConfig.ledPinGreen;
+	if(LittleFS.begin()) {
+		qsc = LittleFS.exists(FILE_MQTT_CA);
+		qsr = LittleFS.exists(FILE_MQTT_CERT);
+		qsk = LittleFS.exists(FILE_MQTT_KEY);
+		LittleFS.end();
+	}
 
-	if(gpioConfig.ledPinBlue == 0xff)
-		doc[F("i")][F("r")][F("b")] = nullptr;
-	else
-		doc[F("i")][F("r")][F("b")] = gpioConfig.ledPinBlue;
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-	doc[F("i")][F("r")][F("i")] = gpioConfig.ledRgbInverted;
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+	server.send_P(200, MIME_JSON, PSTR("{\"version\":\""));
+	server.sendContent_P(VERSION);
+	server.sendContent_P(PSTR("\","));
+	snprintf_P(buf, BufferSize, CONF_GENERAL_JSON,
+		ntpConfig.timezone,
+		wifiConfig.hostname,
+		webConfig.security,
+		webConfig.username,
+		strlen(webConfig.password) > 0 ? "***" : ""
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_METER_JSON,
+		meterConfig->baud,
+		meterConfig->parity,
+		meterConfig->invert ? "true" : "false",
+		meterConfig->distributionSystem,
+		meterConfig->mainFuse,
+		meterConfig->productionCapacity,
+		encen ? "true" : "false",
+		toHex(meterConfig->encryptionKey, 16).c_str(),
+		toHex(meterConfig->authenticationKey, 16).c_str(),
+		meterConfig->wattageMultiplier > 1 || meterConfig->voltageMultiplier > 1 || meterConfig->amperageMultiplier > 1 || meterConfig->accumulatedMultiplier > 1 ? "true" : "false",
+		meterConfig->wattageMultiplier / 1000.0,
+		meterConfig->voltageMultiplier / 1000.0,
+		meterConfig->amperageMultiplier / 1000.0,
+		meterConfig->accumulatedMultiplier / 1000.0
+	);
+	server.sendContent(buf);
 
-	if(gpioConfig.tempSensorPin == 0xff)
-		doc[F("i")][F("t")][F("d")] = nullptr;
-	else
-		doc[F("i")][F("t")][F("d")] = gpioConfig.tempSensorPin;
-
-	if(gpioConfig.tempAnalogSensorPin == 0xff)
-		doc[F("i")][F("t")][F("a")] = nullptr;
-	else
-		doc[F("i")][F("t")][F("a")] = gpioConfig.tempAnalogSensorPin;
-
-	if(gpioConfig.vccPin == 0xff)
-		doc[F("i")][F("v")][F("p")] = nullptr;
-	else
-		doc[F("i")][F("v")][F("p")] = gpioConfig.vccPin;
-
-	if(gpioConfig.vccOffset == 0)
-		doc[F("i")][F("v")][F("o")] = nullptr;
-	else
-		doc[F("i")][F("v")][F("o")] = gpioConfig.vccOffset / 100.0;
-
-	if(gpioConfig.vccMultiplier == 0)
-		doc[F("i")][F("v")][F("m")] = nullptr;
-	else
-		doc[F("i")][F("v")][F("m")] = gpioConfig.vccMultiplier / 1000.0;
-
-	if(gpioConfig.vccResistorVcc == 0)
-		doc[F("i")][F("v")][F("d")][F("v")] = nullptr;
-	else
-		doc[F("i")][F("v")][F("d")][F("v")] = gpioConfig.vccResistorVcc;
-
-	if(gpioConfig.vccResistorGnd == 0)
-		doc[F("i")][F("v")][F("d")][F("g")] = nullptr;
-	else
-		doc[F("i")][F("v")][F("d")][F("g")] = gpioConfig.vccResistorGnd;
-
-	if(gpioConfig.vccBootLimit == 0)
-		doc[F("i")][F("v")][F("b")] = nullptr;
-	else
-		doc[F("i")][F("v")][F("b")] = gpioConfig.vccBootLimit / 10.0;
-
-	serializeJson(doc, buf, BufferSize);
-	server.send(200, MIME_JSON, buf);
+	snprintf_P(buf, BufferSize, CONF_THRESHOLDS_JSON,
+		eac->thresholds[0],
+		eac->thresholds[1],
+		eac->thresholds[2],
+		eac->thresholds[3],
+		eac->thresholds[4],
+		eac->thresholds[5],
+		eac->thresholds[6],
+		eac->thresholds[7],
+		eac->thresholds[8],
+		eac->thresholds[9],
+		eac->hours
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_WIFI_JSON,
+		wifiConfig.ssid,
+		strlen(wifiConfig.psk) > 0 ? "***" : "",
+		wifiConfig.power / 10.0,
+		wifiConfig.sleep
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_NET_JSON,
+		strlen(wifiConfig.ip) > 0 ? "static" : "dhcp",
+		wifiConfig.ip,
+		wifiConfig.subnet,
+		wifiConfig.gateway,
+		wifiConfig.dns1,
+		wifiConfig.dns2,
+		wifiConfig.mdns ? "true" : "false",
+		ntpConfig.server,
+		ntpConfig.dhcp ? "true" : "false"
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_MQTT_JSON,
+		mqttConfig.host,
+		mqttConfig.port,
+		mqttConfig.username,
+		strlen(mqttConfig.password) > 0 ? "***" : "",
+		mqttConfig.clientId,
+		mqttConfig.publishTopic,
+		mqttConfig.payloadFormat,
+		mqttConfig.ssl ? "true" : "false",
+		qsc ? "true" : "false",
+		qsr ? "true" : "false",
+		qsk ? "true" : "false"
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_PRICE_JSON,
+		strlen(entsoe.token) > 0 ? "true" : "false",
+		entsoe.token,
+		entsoe.area,
+		entsoe.currency,
+		entsoe.multiplier / 1000.0
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_DEBUG_JSON,
+		debugConfig.serial ? "true" : "false",
+		debugConfig.telnet ? "true" : "false",
+		debugConfig.level
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_GPIO_JSON,
+		gpioConfig->hanPin == 0xff ? "null" : String(gpioConfig->hanPin, 10).c_str(),
+		gpioConfig->apPin == 0xff ? "null" : String(gpioConfig->apPin, 10).c_str(),
+		gpioConfig->hanPin == 0xff ? "null" : String(gpioConfig->hanPin, 10).c_str(),
+		gpioConfig->ledInverted ? "true" : "false",
+		gpioConfig->ledPinRed == 0xff ? "null" : String(gpioConfig->ledPinRed, 10).c_str(),
+		gpioConfig->ledPinGreen == 0xff ? "null" : String(gpioConfig->ledPinGreen, 10).c_str(),
+		gpioConfig->ledPinBlue == 0xff ? "null" : String(gpioConfig->ledPinBlue, 10).c_str(),
+		gpioConfig->ledRgbInverted ? "true" : "false",
+		gpioConfig->tempSensorPin == 0xff ? "null" : String(gpioConfig->tempSensorPin, 10).c_str(),
+		gpioConfig->tempAnalogSensorPin == 0xff ? "null" : String(gpioConfig->tempAnalogSensorPin, 10).c_str(),
+		gpioConfig->vccPin == 0xff ? "null" : String(gpioConfig->vccPin, 10).c_str(),
+		gpioConfig->vccOffset / 100.0,
+		gpioConfig->vccMultiplier / 1000.0,
+		gpioConfig->vccResistorVcc,
+		gpioConfig->vccResistorGnd,
+		gpioConfig->vccBootLimit / 10.0
+	);
+	server.sendContent(buf);
+	server.sendContent("}");
 }
+
 void AmsWebServer::handleSave() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Handling save method from http"));
 	if(!checkSecurity(1))
@@ -1300,23 +1282,10 @@ void AmsWebServer::handleSave() {
 	}
 }
 
-void AmsWebServer::wifiScanJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /wifiscan.json over http...\n");
-
-	DynamicJsonDocument doc(512);
-
-	serializeJson(doc, buf, BufferSize);
-	server.send(200, MIME_JSON, buf);
-}
-
 void AmsWebServer::reboot() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /reboot over http...\n");
 
-	DynamicJsonDocument doc(128);
-	doc[F("reboot")] = true;
-
-	serializeJson(doc, buf, BufferSize);
-	server.send(200, MIME_JSON, buf);
+	server.send(200, MIME_JSON, "{\"reboot\":true}");
 
 	server.handleClient();
 	delay(250);
@@ -1601,32 +1570,43 @@ void AmsWebServer::mqttKeyUpload() {
 void AmsWebServer::tariffJson() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /tariff.json over http...\n");
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
-	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
-	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
-
 	if(!checkSecurity(1))
 		return;
 
 	EnergyAccountingConfig* eac = ea->getConfig();
-	EnergyAccountingData data = ea->getData();
 
-	DynamicJsonDocument doc(512);
-	JsonArray thresholds = doc.createNestedArray(F("t"));
-    for(uint8_t x = 0;x < 10; x++) {
-		thresholds.add(eac->thresholds[x]);
-	}
-	JsonArray peaks = doc.createNestedArray(F("p"));
+	String peaks;
     for(uint8_t x = 0;x < min((uint8_t) 5, eac->hours); x++) {
-		JsonObject p = peaks.createNestedObject();
 		EnergyAccountingPeak peak = ea->getPeak(x+1);
-		p["d"] = peak.day;
-		p["v"] = peak.value / 100.0;
+		int len = snprintf_P(buf, BufferSize, PEAK_JSON,
+			peak.day,
+			peak.value / 100.0
+		);
+		buf[len] = '\0';
+		if(!peaks.isEmpty()) peaks += ",";
+		peaks += String(buf);
 	}
-	doc["c"] = ea->getCurrentThreshold();
-	doc["m"] = ea->getMonthMax();
 
-	serializeJson(doc, buf, BufferSize);
+	snprintf_P(buf, BufferSize, TARIFF_JSON,
+		eac->thresholds[0],
+		eac->thresholds[1],
+		eac->thresholds[2],
+		eac->thresholds[3],
+		eac->thresholds[4],
+		eac->thresholds[5],
+		eac->thresholds[6],
+		eac->thresholds[7],
+		eac->thresholds[8],
+		eac->thresholds[9],
+		peaks.c_str(),
+		ea->getCurrentThreshold(),
+		ea->getMonthMax()
+	);
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
-
 }

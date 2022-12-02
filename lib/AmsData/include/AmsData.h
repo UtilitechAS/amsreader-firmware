@@ -70,6 +70,9 @@ public:
     bool isThreePhase();
     bool isTwoPhase();
 
+    int8_t getLastError();
+    void setLastError(int8_t);
+
 protected:
     unsigned long lastUpdateMillis = 0;
     unsigned long lastList2 = 0;
@@ -84,6 +87,8 @@ protected:
     float powerFactor = 0, l1PowerFactor = 0, l2PowerFactor = 0, l3PowerFactor = 0;
     double activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
     bool threePhase = false, twoPhase = false, counterEstimated = false;
+
+    int8_t lastError = 0x00;
 };
 
 #endif

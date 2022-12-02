@@ -776,12 +776,15 @@ void AmsWebServer::dataJson() {
 		ea->getUseThisHour(),
 		ea->getCostThisHour(),
 		ea->getProducedThisHour(),
+		ea->getIncomeThisHour(),
 		ea->getUseToday(),
 		ea->getCostToday(),
 		ea->getProducedToday(),
+		ea->getIncomeToday(),
 		ea->getUseThisMonth(),
 		ea->getCostThisMonth(),
 		ea->getProducedThisMonth(),
+		ea->getIncomeThisMonth(),
 		(uint32_t) time(nullptr)
 	);
 

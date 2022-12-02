@@ -25,15 +25,15 @@
         {#if hasExport}
         <div class="flex">
             <div>Hour</div>
-            <div class="flex-auto text-right">{data.h.p ? data.h.p.toFixed(2) : '-'} kWh {#if currency}/ {data.h.pc ? data.h.pc.toFixed(2) : '-'} {currency}{/if}</div>
+            <div class="flex-auto text-right">{data.h.p ? data.h.p.toFixed(2) : '-'} kWh {#if currency}/ {data.h.i ? data.h.i.toFixed(2) : '-'} {currency}{/if}</div>
         </div>
         <div class="flex">
             <div>Day</div>
-            <div class="flex-auto text-right">{data.d.p ? data.d.p.toFixed(1) : '-'} kWh {#if currency}/ {data.d.pc ? data.d.pc.toFixed(2) : '-'} {currency}{/if}</div>
+            <div class="flex-auto text-right">{data.d.p ? data.d.p.toFixed(1) : '-'} kWh {#if currency}/ {data.d.i ? data.d.i.toFixed(2) : '-'} {currency}{/if}</div>
         </div>
         <div class="flex">
             <div>Month</div>
-            <div class="flex-auto text-right">{data.m.p ? data.m.p.toFixed(0) : '-'} kWh {#if currency}/ {data.m.pc ? data.m.pc.toFixed(2) : '-'} {currency}{/if}</div>
+            <div class="flex-auto text-right">{data.m.p ? data.m.p.toFixed(0) : '-'} kWh {#if currency}/ {data.m.i ? data.m.i.toFixed(2) : '-'} {currency}{/if}</div>
         </div>
         {:else}
         <div class="flex">

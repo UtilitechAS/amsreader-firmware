@@ -36,7 +36,7 @@
     <div class="cnt">
         <form on:submit|preventDefault={handleSubmit}>
             <div>
-                Below are some stuff we need to know
+                Various permissions we need to do stuff:
             </div>
             <hr/>
             <div class="my-3">

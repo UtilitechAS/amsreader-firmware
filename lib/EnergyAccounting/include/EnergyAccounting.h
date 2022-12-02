@@ -17,6 +17,18 @@ struct EnergyAccountingData {
     uint16_t costYesterday;
     uint16_t costThisMonth;
     uint16_t costLastMonth;
+    uint16_t incomeYesterday;
+    uint16_t incomeThisMonth;
+    uint16_t incomeLastMonth;
+    EnergyAccountingPeak peaks[5];
+};
+
+struct EnergyAccountingData4 {
+    uint8_t version;
+    uint8_t month;
+    uint16_t costYesterday;
+    uint16_t costThisMonth;
+    uint16_t costLastMonth;
     EnergyAccountingPeak peaks[5];
 };
 
@@ -55,6 +67,12 @@ public:
     double getCostThisMonth();
     uint16_t getCostLastMonth();
 
+    double getIncomeThisHour();
+    double getIncomeToday();
+    double getIncomeYesterday();
+    double getIncomeThisMonth();
+    uint16_t getIncomeLastMonth();
+
     float getMonthMax();
     uint8_t getCurrentThreshold();
     EnergyAccountingPeak getPeak(uint8_t);
@@ -72,7 +90,7 @@ private:
     Timezone *tz = NULL;
     uint8_t currentHour = 0, currentDay = 0, currentThresholdIdx = 0;
     double use, costHour, costDay;
-    double produce;
+    double produce, incomeHour, incomeDay;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0 };
 
     void calcDayCost();

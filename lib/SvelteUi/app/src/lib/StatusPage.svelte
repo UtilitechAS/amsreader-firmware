@@ -4,6 +4,7 @@
     import { upgrade, getNextVersion } from './UpgradeHelper';
     import DownloadIcon from './DownloadIcon.svelte';
     import { Link } from 'svelte-navigator';
+    import Mask from './Mask.svelte';
   
     export let sysinfo;
   
@@ -45,6 +46,8 @@
     }
 
     let fileinput;
+    let files = [];
+    let uploading = false;
     getSysinfo();
 </script>
 
@@ -125,15 +128,16 @@
         </div>
         {/if}
         <div class="my-2 flex">
-            <form action="/firmware" enctype="multipart/form-data" method="post">
-                <input style="display:none" name="file" type="file" accept=".bin" bind:this={fileinput}>
-                {#if fileinput && fileinput.files.length == 0}
+            <form action="/firmware" enctype="multipart/form-data" method="post" on:submit={() => uploading=true}>
+                <input style="display:none" name="file" type="file" accept=".bin" bind:this={fileinput} bind:files={files}>
+                {#if files.length == 0}
                 <button type="button" on:click={()=>{fileinput.click();}} class="text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Select firmware file for upgrade</button>
-                {:else if fileinput}
-                {fileinput.files[0].name}
+                {:else}
+                {files[0].name}
                 <button type="submit" class="ml-2 text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Upload</button>
                 {/if}
             </form>
         </div>
     </div>
 </div>
+<Mask active={uploading} message="Uploading firmware, please wait"/>

@@ -826,6 +826,7 @@ bool readHanPort() {
 	if(pos == DATA_PARSE_INCOMPLETE) {
 		return false;
 	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
+		meterState.setLastError(pos);
 		debugV("Unknown data payload:");
 		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
 		debugPrint(hanBuffer, 0, len);
@@ -837,6 +838,7 @@ bool readHanPort() {
 		len = 0;
 		return false;
 	} else if(pos < 0) {
+		meterState.setLastError(pos);
 		printHanReadError(pos);
 		len += hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
 		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
@@ -852,6 +854,7 @@ bool readHanPort() {
 	for(int i = pos+ctx.length; i<BUF_SIZE_HAN; i++) {
 		hanBuffer[i] = 0x00;
 	}
+	meterState.setLastError(DATA_PARSE_OK);
 
 	AmsData data;
 	char* payload = ((char *) (hanBuffer)) + pos;
@@ -1706,8 +1709,9 @@ void configFileParse() {
 			sDs = true;
 		} else if(strncmp_P(buf, PSTR("energyaccounting "), 17) == 0) {
 			uint8_t i = 0;
-			EnergyAccountingData ead = { 4, 0, 
-                0, 0, 0,
+			EnergyAccountingData ead = { 0, 0, 
+                0, 0, 0, // Cost
+                0, 0, 0, // Income
                 0, 0, // Peak 1
                 0, 0, // Peak 2
                 0, 0, // Peak 3
@@ -1716,33 +1720,73 @@ void configFileParse() {
             };
 			char * pch = strtok (buf+17," ");
 			while (pch != NULL) {
-				if(i == 0) {
-					// Ignore version
-				} else if(i == 1) {
-					long val = String(pch).toInt();
-					ead.month = val;
-				} else if(i == 2) {
-					double val = String(pch).toDouble();
-					if(val > 0.0) {
-						ead.peaks[0] = { 1, (uint16_t) (val*100) };
-					}
-				} else if(i == 3) {
-					double val = String(pch).toDouble();
-					ead.costYesterday = val * 10;
-				} else if(i == 4) {
-					double val = String(pch).toDouble();
-					ead.costThisMonth = val;
-				} else if(i == 5) {
-					double val = String(pch).toDouble();
-					ead.costLastMonth = val;
-				} else if(i >= 6 && i < 18) {
-					uint8_t hour = i-6;					
-					if(hour%2 == 0) {
+				if(ead.version < 5) {
+					if(i == 0) {
 						long val = String(pch).toInt();
-						ead.peaks[hour/2].day = val;
-					} else {
+						ead.version = val;
+					} else if(i == 1) {
+						long val = String(pch).toInt();
+						ead.month = val;
+					} else if(i == 2) {
 						double val = String(pch).toDouble();
-						ead.peaks[hour/2].value = val * 100;
+						if(val > 0.0) {
+							ead.peaks[0] = { 1, (uint16_t) (val*100) };
+						}
+					} else if(i == 3) {
+						double val = String(pch).toDouble();
+						ead.costYesterday = val * 10;
+					} else if(i == 4) {
+						double val = String(pch).toDouble();
+						ead.costThisMonth = val;
+					} else if(i == 5) {
+						double val = String(pch).toDouble();
+						ead.costLastMonth = val;
+					} else if(i >= 6 && i < 18) {
+						uint8_t hour = i-6;					
+						if(hour%2 == 0) {
+							long val = String(pch).toInt();
+							ead.peaks[hour/2].day = val;
+						} else {
+							double val = String(pch).toDouble();
+							ead.peaks[hour/2].value = val * 100;
+						}
+					}
+				} else {
+					if(i == 1) {
+						long val = String(pch).toInt();
+						ead.month = val;
+					} else if(i == 2) {
+						double val = String(pch).toDouble();
+						if(val > 0.0) {
+							ead.peaks[0] = { 1, (uint16_t) (val*100) };
+						}
+					} else if(i == 3) {
+						double val = String(pch).toDouble();
+						ead.costYesterday = val * 10;
+					} else if(i == 4) {
+						double val = String(pch).toDouble();
+						ead.costThisMonth = val;
+					} else if(i == 5) {
+						double val = String(pch).toDouble();
+						ead.costLastMonth = val;
+					} else if(i == 6) {
+						double val = String(pch).toDouble();
+						ead.incomeYesterday= val * 10;
+					} else if(i == 7) {
+						double val = String(pch).toDouble();
+						ead.incomeThisMonth = val;
+					} else if(i == 8) {
+						double val = String(pch).toDouble();
+						ead.incomeLastMonth = val;
+					} else if(i >= 9 && i < 21) {
+						uint8_t hour = i-9;					
+						if(hour%2 == 0) {
+							long val = String(pch).toInt();
+							ead.peaks[hour/2].day = val;
+						} else {
+							double val = String(pch).toDouble();
+							ead.peaks[hour/2].value = val * 100;
+						}
 					}
 				}
 				pch = strtok (NULL, " ");

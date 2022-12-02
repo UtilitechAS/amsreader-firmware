@@ -1,0 +1,25 @@
+{
+    "version": "%s",
+    "chip": "%s",
+    "chipId": "%s",
+    "mac": "%s",
+    "board": %d,
+    "vndcfg": %s,
+    "usrcfg": %s,
+    "fwconsent": %d,
+    "hostname": "%s",
+    "booting": %s,
+    "upgrading": %s,
+    "net": {
+        "ip": "%s",
+        "mask": "%s",
+        "gw": "%s",
+        "dns1": "%s",
+        "dns2": "%s"
+    },
+    "meter": {
+        "mfg": %d,
+        "model": "%s",
+        "id": "%s"
+    }
+}

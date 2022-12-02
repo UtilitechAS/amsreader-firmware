@@ -5,6 +5,8 @@
 #include "DnbCurrParser.h"
 #include "version.h"
 
+#include "ams/GcmParser.h"
+
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #endif
@@ -31,6 +33,26 @@ void EntsoeApi::setup(EntsoeConfig& config) {
     if(today != NULL) delete today;
     if(tomorrow != NULL) delete tomorrow;
     today = tomorrow = NULL;
+
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    http.setReuse(false);
+    http.setTimeout(60000);
+    http.setUserAgent("ams2mqtt/" + String(VERSION));
+    http.useHTTP10(true);
+
+    #if defined(AMS2MQTT_PRICE_KEY)
+        key = new uint8_t[16] AMS2MQTT_PRICE_KEY;
+        hub = true;
+    #else
+        hub = false;
+    #endif
+    #if defined(AMS2MQTT_PRICE_AUTHENTICATION)
+        auth = new uint8_t[16] AMS2MQTT_PRICE_AUTHENTICATION;
+        hub = hub && true;
+    #else
+        hub = false;
+    #endif
+
 }
 
 char* EntsoeApi::getToken() {
@@ -64,25 +86,33 @@ float EntsoeApi::getValueForHour(time_t cur, int8_t hour) {
     if(pos > 23) {
         if(tomorrow == NULL)
             return ENTSOE_NO_VALUE;
-        value = tomorrow->getPoint(pos-24);
-        if(value != ENTSOE_NO_VALUE && strcmp(tomorrow->getMeasurementUnit(), "MWH") == 0) {
+        if(tomorrow->points[pos-24] == ENTSOE_NO_VALUE)
+            return ENTSOE_NO_VALUE;
+        value = tomorrow->points[pos-24] / 10000.0;
+        if(strcmp(tomorrow->measurementUnit, "KWH") == 0) {
+            // Multiplier is 1
+        } else if(strcmp(tomorrow->measurementUnit, "MWH") == 0) {
             multiplier *= 0.001;
         } else {
             return ENTSOE_NO_VALUE;
         }
-        float mult = getCurrencyMultiplier(tomorrow->getCurrency(), config->currency);
+        float mult = getCurrencyMultiplier(tomorrow->currency, config->currency);
         if(mult == 0) return ENTSOE_NO_VALUE;
         multiplier *= mult;
     } else if(pos >= 0) {
         if(today == NULL)
             return ENTSOE_NO_VALUE;
-        value = today->getPoint(pos);
-        if(value != ENTSOE_NO_VALUE && strcmp(today->getMeasurementUnit(), "MWH") == 0) {
+        if(today->points[pos] == ENTSOE_NO_VALUE)
+            return ENTSOE_NO_VALUE;
+        value = today->points[pos] / 10000.0;
+        if(strcmp(today->measurementUnit, "KWH") == 0) {
+            // Multiplier is 1
+        } else if(strcmp(today->measurementUnit, "MWH") == 0) {
             multiplier *= 0.001;
         } else {
             return ENTSOE_NO_VALUE;
         }
-        float mult = getCurrencyMultiplier(today->getCurrency(), config->currency);
+        float mult = getCurrencyMultiplier(today->currency, config->currency);
         if(mult == 0) return ENTSOE_NO_VALUE;
         multiplier *= mult;
     }
@@ -90,14 +120,21 @@ float EntsoeApi::getValueForHour(time_t cur, int8_t hour) {
 }
 
 bool EntsoeApi::loop() {
-    if(strlen(getToken()) == 0)
-        return false;
-
     uint64_t now = millis64();
     if(now < 10000) return false; // Grace period
 
     time_t t = time(nullptr);
     if(t < BUILD_EPOCH) return false;
+
+    #ifndef AMS2MQTT_PRICE_KEY
+    if(strlen(getToken()) == 0) {
+        return false;
+    }
+    #endif
+    if(strlen(config->area) == 0)
+        return false;
+    if(strlen(config->currency) == 0)
+        return false;
 
     bool ret = false;
     tmElements_t tm;
@@ -124,39 +161,10 @@ bool EntsoeApi::loop() {
         midnightMillis = 0; // Force new midnight millis calculation
         return true;
     } else {
-        breakTime(t, tm); // Break UTC to find UTC midnight
         if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > 60000)) {
             lastTodayFetch = now;
-            time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // UTC midnight
-            time_t e2 = e1 + SECS_PER_DAY;
-            tmElements_t d1, d2;
-            breakTime(tz->toUTC(e1), d1); // To get day and hour for CET/CEST at UTC midnight
-            breakTime(tz->toUTC(e2), d2);
-
-            snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-            "https://transparency.entsoe.eu/api", getToken(), 
-            d1.Year+1970, d1.Month, d1.Day, d1.Hour, 00,
-            d2.Year+1970, d2.Month, d2.Day, d2.Hour, 00,
-            config->area, config->area);
-
-            #if defined(ESP32)
-                esp_task_wdt_reset();
-            #elif defined(ESP8266)
-                ESP.wdtFeed();
-            #endif
-
-
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for today\n");
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", buf);
-            EntsoeA44Parser* a44 = new EntsoeA44Parser();
-            if(retrieve(buf, a44) && a44->getPoint(0) != ENTSOE_NO_VALUE) {
-                today = a44;
-                return true;
-            } else if(a44 != NULL) {
-                delete a44;
-                today = NULL;
-                return false;
-            }
+            today = fetchPrices(t);
+            return today != NULL;
         }
 
         // Prices for next day are published at 13:00 CE(S)T, but to avoid heavy server traffic at that time, we will 
@@ -165,49 +173,18 @@ bool EntsoeApi::loop() {
             && midnightMillis - now < tomorrowFetchMillis
             && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 900000)
         ) {
+            breakTime(t+SECS_PER_DAY, tm); // Break UTC tomorrow to find UTC midnight
             lastTomorrowFetch = now;
-            time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second + (SECS_PER_DAY);
-            time_t e2 = e1 + SECS_PER_DAY;
-            tmElements_t d1, d2;
-            breakTime(tz->toUTC(e1), d1);
-            breakTime(tz->toUTC(e2), d2);
-
-            snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-            "https://transparency.entsoe.eu/api", getToken(), 
-            d1.Year+1970, d1.Month, d1.Day, d1.Hour, 00,
-            d2.Year+1970, d2.Month, d2.Day, d2.Hour, 00,
-            config->area, config->area);
-
-            #if defined(ESP32)
-                esp_task_wdt_reset();
-            #elif defined(ESP8266)
-                ESP.wdtFeed();
-            #endif
-
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for tomorrow\n");
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", buf);
-            EntsoeA44Parser* a44 = new EntsoeA44Parser();
-            if(retrieve(buf, a44) && a44->getPoint(0) != ENTSOE_NO_VALUE) {
-                tomorrow = a44;
-                return true;
-            } else if(a44 != NULL) {
-                delete a44;
-                tomorrow = NULL;
-                return false;
-            }
+            tomorrow = fetchPrices(t+SECS_PER_DAY);
+            return tomorrow != NULL;
         }
     }
     return ret;
 }
 
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {
-    HTTPClient https;
-    https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-    https.setReuse(false);
-    https.setTimeout(50000);
-    https.setUserAgent("ams2mqtt");
     #if defined(ESP32)
-        if(https.begin(url)) {
+        if(http.begin(url)) {
             printD("Connection established");
 
             #if defined(ESP32)
@@ -216,7 +193,7 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
                 ESP.wdtFeed();
             #endif
 
-            int status = https.GET();
+            int status = http.GET();
 
             #if defined(ESP32)
                 esp_task_wdt_reset();
@@ -226,15 +203,15 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
 
             if(status == HTTP_CODE_OK) {
                 printD("Receiving data");
-                https.writeToStream(doc);
-                https.end();
+                http.writeToStream(doc);
+                http.end();
                 return true;
             } else {
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Communication error, returned status: %d\n", status);
-                printE(https.errorToString(status));
-                printD(https.getString());
+                printE(http.errorToString(status));
+                printD(http.getString());
 
-                https.end();
+                http.end();
                 return false;
             }
         } else {
@@ -286,6 +263,104 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
     return currencyMultiplier;
 }
 
+PricesContainer* EntsoeApi::fetchPrices(time_t t) {
+    tmElements_t tm;
+    breakTime(t, tm);
+    if(strlen(getToken()) > 0) {
+        time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // UTC midnight
+        time_t e2 = e1 + SECS_PER_DAY;
+        tmElements_t d1, d2;
+        breakTime(tz->toUTC(e1), d1); // To get day and hour for CET/CEST at UTC midnight
+        breakTime(tz->toUTC(e2), d2);
+
+        snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
+        "https://transparency.entsoe.eu/api", getToken(), 
+        d1.Year+1970, d1.Month, d1.Day, d1.Hour, 00,
+        d2.Year+1970, d2.Month, d2.Day, d2.Hour, 00,
+        config->area, config->area);
+
+        #if defined(ESP32)
+            esp_task_wdt_reset();
+        #elif defined(ESP8266)
+            ESP.wdtFeed();
+        #endif
+
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Fetching prices for %d.%d.%d\n", tm.Day, tm.Month, tm.Year+1970);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi)  url: %s\n", buf);
+        EntsoeA44Parser a44;
+        if(retrieve(buf, &a44) && a44.getPoint(0) != ENTSOE_NO_VALUE) {
+            PricesContainer* ret = new PricesContainer();
+            a44.get(ret);
+            return ret;
+        } else {
+            return NULL;
+        }
+    } else if(hub) {
+        String data;
+        snprintf(buf, BufferSize, "%s/%s/%d/%d/%d?currency=%s",
+            "http://ams2mqtt.rewiredinvent.no/hub/price",
+            config->area,
+            tm.Year+1970,
+            tm.Month,
+            tm.Day,
+            config->currency
+        );
+        #if defined(ESP8266)
+        WiFiClient client;
+        client.setTimeout(5000);
+        if(http.begin(client, buf)) {
+        #elif defined(ESP32)
+        if(http.begin(buf)) {
+        #endif
+            int status = http.GET();
+
+            #if defined(ESP32)
+                esp_task_wdt_reset();
+            #elif defined(ESP8266)
+                ESP.wdtFeed();
+            #endif
+
+            if(status == HTTP_CODE_OK) {
+                printD("Receiving data");
+                data = http.getString();
+                http.end();
+            } else {
+                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Communication error, returned status: %d\n", status);
+                printE(http.errorToString(status));
+                printD(http.getString());
+
+                http.end();
+            }
+        }
+        uint8_t* content = (uint8_t*) (data.c_str());
+        if(debugger->isActive(RemoteDebug::DEBUG)) {
+            printD("Received content for prices:");
+            debugPrint(content, 0, data.length());
+        }
+
+        DataParserContext ctx;
+        ctx.length = data.length();
+        GCMParser gcm(key, auth);
+        int8_t gcmRet = gcm.parse(content, ctx);
+        if(debugger->isActive(RemoteDebug::DEBUG)) {
+            printD("Decrypted content for prices:");
+            debugPrint(content, 0, data.length());
+        }
+        if(gcmRet > 0) {
+            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi) Price data starting at: %d\n", gcmRet);
+            PricesContainer* ret = new PricesContainer();
+            memcpy(ret, content+gcmRet, sizeof(*ret));
+            for(uint8_t i = 0; i < 24; i++) {
+                ret->points[i] = ntohl(ret->points[i]);
+            }
+            return ret;
+        } else {
+            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Error code while decrypting prices: %d\n", gcmRet);
+        }
+    }
+    return NULL;
+}
+
 void EntsoeApi::printD(String fmt, ...) {
 	va_list args;
  	va_start(args, fmt);
@@ -298,4 +373,20 @@ void EntsoeApi::printE(String fmt, ...) {
  	va_start(args, fmt);
 	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(String("(EntsoeApi)" + fmt + "\n").c_str(), args);
 	va_end(args);
+}
+
+void EntsoeApi::debugPrint(byte *buffer, int start, int length) {
+	for (int i = start; i < start + length; i++) {
+		if (buffer[i] < 0x10)
+			debugger->print("0");
+		debugger->print(buffer[i], HEX);
+		debugger->print(" ");
+		if ((i - start + 1) % 16 == 0)
+			debugger->println("");
+		else if ((i - start + 1) % 4 == 0)
+			debugger->print(" ");
+
+		yield(); // Let other get some resources too
+	}
+	debugger->println("");
 }

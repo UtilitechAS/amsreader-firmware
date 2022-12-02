@@ -89,7 +89,7 @@ private:
 	void configMqttHtml();
 	void configWebHtml();
 	void configDomoticzHtml();
-	void configEntsoeHtml();
+	void configPriceApiHtml();
 	void configNtpHtml();
 	void configGpioHtml();
 	void configDebugHtml();

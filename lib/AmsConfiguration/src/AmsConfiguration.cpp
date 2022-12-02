@@ -1088,12 +1088,12 @@ void AmsConfiguration::print(Print* debugger)
 
 	EntsoeConfig entsoe;
 	if(getEntsoeConfig(entsoe)) {
-		debugger->println("--ENTSO-E configuration--");
-		debugger->printf("Token:                %s\r\n", entsoe.token);
-		if(strlen(entsoe.token) > 0) {
+		if(strlen(entsoe.area) > 0) {
+			debugger->println("--ENTSO-E configuration--");
 			debugger->printf("Area:                 %s\r\n", entsoe.area);
 			debugger->printf("Currency:             %s\r\n", entsoe.currency);
 			debugger->printf("Multiplier:           %f\r\n", entsoe.multiplier / 1000.0);
+			debugger->printf("Token:                %s\r\n", entsoe.token);
 		}
 		debugger->println("");
 		delay(10);

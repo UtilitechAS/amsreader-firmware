@@ -18,7 +18,7 @@
 #include "root/mqtt_html.h"
 #include "root/web_html.h"
 #include "root/domoticz_html.h"
-#include "root/entsoe_html.h"
+#include "root/priceapi_html.h"
 #include "root/ntp_html.h"
 #include "root/gpio_html.h"
 #include "root/debugging_html.h"
@@ -71,7 +71,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/mqtt"), HTTP_GET, std::bind(&AmsWebServer::configMqttHtml, this));
 	server.on(F("/web"), HTTP_GET, std::bind(&AmsWebServer::configWebHtml, this));
 	server.on(F("/domoticz"),HTTP_GET, std::bind(&AmsWebServer::configDomoticzHtml, this));
-	server.on(F("/entsoe"),HTTP_GET, std::bind(&AmsWebServer::configEntsoeHtml, this));
+	server.on(F("/priceapi"),HTTP_GET, std::bind(&AmsWebServer::configPriceApiHtml, this));
 	server.on(F("/thresholds"),HTTP_GET, std::bind(&AmsWebServer::configThresholdsHtml, this));
 	server.on(F("/boot.css"), HTTP_GET, std::bind(&AmsWebServer::bootCss, this));
 	server.on(F("/github.svg"), HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
@@ -543,8 +543,8 @@ void AmsWebServer::configDomoticzHtml() {
 	server.sendContent_P(FOOT_HTML);
 }
 
-void AmsWebServer::configEntsoeHtml() {
-	printD(F("Serving /entsoe.html over http..."));
+void AmsWebServer::configPriceApiHtml() {
+	printD(F("Serving /priceapi.html over http..."));
 
 	if(!checkSecurity(1))
 		return;
@@ -552,52 +552,54 @@ void AmsWebServer::configEntsoeHtml() {
 	EntsoeConfig entsoe;
 	config->getEntsoeConfig(entsoe);
 
-	if(ESP.getFreeHeap() > 25000) {
-		String html = String((const __FlashStringHelper*) ENTSOE_HTML);
+	String html = String((const __FlashStringHelper*) PRICEAPI_HTML);
 
-		html.replace(F("{et}"), entsoe.token);
-		html.replace(F("{em}"), String(entsoe.multiplier / 1000.0, 3));
-
-		html.replace(F("{eaNo1}"), strcmp(entsoe.area, "10YNO-1--------2") == 0 ? F("selected") : F(""));
-		html.replace(F("{eaNo2}"), strcmp(entsoe.area, "10YNO-2--------T") == 0 ? F("selected") : F(""));
-		html.replace(F("{eaNo3}"), strcmp(entsoe.area, "10YNO-3--------J") == 0 ? F("selected") : F(""));
-		html.replace(F("{eaNo4}"), strcmp(entsoe.area, "10YNO-4--------9") == 0 ? F("selected") : F(""));
-		html.replace(F("{eaNo5}"), strcmp(entsoe.area, "10Y1001A1001A48H") == 0 ? F("selected") : F(""));
-
-		html.replace(F("{eaSe1}"), strcmp(entsoe.area, "10Y1001A1001A44P") == 0 ? F("selected") : F(""));
-		html.replace(F("{eaSe2}"), strcmp(entsoe.area, "10Y1001A1001A45N") == 0 ? F("selected") : F(""));
-		html.replace(F("{eaSe3}"), strcmp(entsoe.area, "10Y1001A1001A46L") == 0 ? F("selected") : F(""));
-		html.replace(F("{eaSe4}"), strcmp(entsoe.area, "10Y1001A1001A47J") == 0 ? F("selected") : F(""));
-
-		html.replace(F("{eaDk1}"), strcmp(entsoe.area, "10YDK-1--------W") == 0 ? F("selected") : F(""));
-		html.replace(F("{eaDk2}"), strcmp(entsoe.area, "10YDK-2--------M") == 0 ? F("selected") : F(""));
-
-		html.replace(F("{at}"), strcmp(entsoe.area, "10YAT-APG------L") == 0 ? F("selected") : F(""));
-		html.replace(F("{be}"), strcmp(entsoe.area, "10YBE----------2") == 0 ? F("selected") : F(""));
-		html.replace(F("{cz}"), strcmp(entsoe.area, "10YCZ-CEPS-----N") == 0 ? F("selected") : F(""));
-		html.replace(F("{ee}"), strcmp(entsoe.area, "10Y1001A1001A39I") == 0 ? F("selected") : F(""));
-		html.replace(F("{fi}"), strcmp(entsoe.area, "10YFI-1--------U") == 0 ? F("selected") : F(""));
-		html.replace(F("{fr}"), strcmp(entsoe.area, "10YFR-RTE------C") == 0 ? F("selected") : F(""));
-		html.replace(F("{de}"), strcmp(entsoe.area, "10Y1001A1001A83F") == 0 ? F("selected") : F(""));
-		html.replace(F("{gb}"), strcmp(entsoe.area, "10YGB----------A") == 0 ? F("selected") : F(""));
-		html.replace(F("{lv}"), strcmp(entsoe.area, "10YLV-1001A00074") == 0 ? F("selected") : F(""));
-		html.replace(F("{lt}"), strcmp(entsoe.area, "10YLT-1001A0008Q") == 0 ? F("selected") : F(""));
-		html.replace(F("{nl}"), strcmp(entsoe.area, "10YNL----------L") == 0 ? F("selected") : F(""));
-		html.replace(F("{pl}"), strcmp(entsoe.area, "10YPL-AREA-----S") == 0 ? F("selected") : F(""));
-		html.replace(F("{ch}"), strcmp(entsoe.area, "10YCH-SWISSGRIDZ") == 0 ? F("selected") : F(""));
-
-		html.replace(F("{ecNOK}"), strcmp(entsoe.currency, "NOK") == 0 ? F("selected") : F(""));
-		html.replace(F("{ecSEK}"), strcmp(entsoe.currency, "SEK") == 0 ? F("selected") : F(""));
-		html.replace(F("{ecDKK}"), strcmp(entsoe.currency, "DKK") == 0 ? F("selected") : F(""));
-		html.replace(F("{ecEUR}"), strcmp(entsoe.currency, "EUR") == 0 ? F("selected") : F(""));
-
-		server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
-		server.send_P(200, MIME_HTML, HEAD_HTML);
-		server.sendContent(html);
-		server.sendContent_P(FOOT_HTML);
+	if(ESP.getFreeHeap() > 32000) {
+		html.replace("{et}", entsoe.token);
+		html.replace("{dt}", "");
 	} else {
-		notFound();
+		html.replace("{et}", "");
+		html.replace("{dt}", "d-none");
 	}
+	html.replace("{em}", String(entsoe.multiplier / 1000.0, 3));
+
+	html.replace(F("{no1}"), strcmp(entsoe.area, "10YNO-1--------2") == 0 ? "selected" : "");
+	html.replace(F("{no2}"), strcmp(entsoe.area, "10YNO-2--------T") == 0 ? "selected" : "");
+	html.replace(F("{no3}"), strcmp(entsoe.area, "10YNO-3--------J") == 0 ? "selected" : "");
+	html.replace(F("{no4}"), strcmp(entsoe.area, "10YNO-4--------9") == 0 ? "selected" : "");
+	html.replace(F("{no5}"), strcmp(entsoe.area, "10Y1001A1001A48H") == 0 ? "selected" : "");
+
+	html.replace(F("{se1}"), strcmp(entsoe.area, "10Y1001A1001A44P") == 0 ? "selected" : "");
+	html.replace(F("{se2}"), strcmp(entsoe.area, "10Y1001A1001A45N") == 0 ? "selected" : "");
+	html.replace(F("{se3}"), strcmp(entsoe.area, "10Y1001A1001A46L") == 0 ? "selected" : "");
+	html.replace(F("{se4}"), strcmp(entsoe.area, "10Y1001A1001A47J") == 0 ? "selected" : "");
+
+	html.replace(F("{dk1}"), strcmp(entsoe.area, "10YDK-1--------W") == 0 ? "selected" : "");
+	html.replace(F("{dk2}"), strcmp(entsoe.area, "10YDK-2--------M") == 0 ? "selected" : "");
+
+	html.replace(F("{at}"), strcmp(entsoe.area, "10YAT-APG------L") == 0 ? F("selected") : F(""));
+	html.replace(F("{be}"), strcmp(entsoe.area, "10YBE----------2") == 0 ? F("selected") : F(""));
+	html.replace(F("{cz}"), strcmp(entsoe.area, "10YCZ-CEPS-----N") == 0 ? F("selected") : F(""));
+	html.replace(F("{ee}"), strcmp(entsoe.area, "10Y1001A1001A39I") == 0 ? F("selected") : F(""));
+	html.replace(F("{fi}"), strcmp(entsoe.area, "10YFI-1--------U") == 0 ? F("selected") : F(""));
+	html.replace(F("{fr}"), strcmp(entsoe.area, "10YFR-RTE------C") == 0 ? F("selected") : F(""));
+	html.replace(F("{de}"), strcmp(entsoe.area, "10Y1001A1001A83F") == 0 ? F("selected") : F(""));
+	html.replace(F("{gb}"), strcmp(entsoe.area, "10YGB----------A") == 0 ? F("selected") : F(""));
+	html.replace(F("{lv}"), strcmp(entsoe.area, "10YLV-1001A00074") == 0 ? F("selected") : F(""));
+	html.replace(F("{lt}"), strcmp(entsoe.area, "10YLT-1001A0008Q") == 0 ? F("selected") : F(""));
+	html.replace(F("{nl}"), strcmp(entsoe.area, "10YNL----------L") == 0 ? F("selected") : F(""));
+	html.replace(F("{pl}"), strcmp(entsoe.area, "10YPL-AREA-----S") == 0 ? F("selected") : F(""));
+	html.replace(F("{ch}"), strcmp(entsoe.area, "10YCH-SWISSGRIDZ") == 0 ? F("selected") : F(""));
+
+	html.replace(F("{nok}"), strcmp(entsoe.currency, "NOK") == 0 ? "selected" : "");
+	html.replace(F("{sek}"), strcmp(entsoe.currency, "SEK") == 0 ? "selected" : "");
+	html.replace(F("{dkk}"), strcmp(entsoe.currency, "DKK") == 0 ? "selected" : "");
+	html.replace(F("{eur}"), strcmp(entsoe.currency, "EUR") == 0 ? "selected" : "");
+
+	server.setContentLength(html.length() + HEAD_HTML_LEN + FOOT_HTML_LEN);
+	server.send_P(200, MIME_HTML, HEAD_HTML);
+	server.sendContent(html);
+	server.sendContent_P(FOOT_HTML);
 }
 
 void AmsWebServer::configThresholdsHtml() {
@@ -724,7 +726,7 @@ void AmsWebServer::dataJson() {
 	}
 
 	float price = ENTSOE_NO_VALUE;
-	if(eapi != NULL && strlen(eapi->getToken()) > 0)
+	if(eapi != NULL)
 		price = eapi->getValueForHour(0);
 
 	String peaks = "";

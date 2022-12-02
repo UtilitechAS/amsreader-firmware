@@ -200,15 +200,12 @@ void setup() {
 	hw.ledBlink(LED_GREEN, 1);
 	hw.ledBlink(LED_BLUE, 1);
 
-	#if defined(ESP32)
 	EntsoeConfig entsoe;
-	if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
+	if(config.getEntsoeConfig(entsoe) && strlen(entsoe.area) > 0) {
 		eapi = new EntsoeApi(&Debug);
 		eapi->setup(entsoe);
 		ws.setEntsoeApi(eapi);
 	}
-	#endif
-
 	bool shared = false;
 	config.getMeterConfig(meterConfig);
 	Serial.flush();
@@ -514,7 +511,6 @@ void loop() {
 				mqtt->disconnect();
 			}
 
-			#if defined(ESP32)
 			try {
 				if(eapi != NULL && ntpEnabled) {
 					if(eapi->loop() && mqtt != NULL && mqttHandler != NULL && mqtt->connected()) {
@@ -524,7 +520,7 @@ void loop() {
 				
 				if(config.isEntsoeChanged()) {
 					EntsoeConfig entsoe;
-					if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
+					if(config.getEntsoeConfig(entsoe) && strlen(entsoe.area) > 0) {
 						if(eapi == NULL) {
 							eapi = new EntsoeApi(&Debug);
 							ea.setEapi(eapi);
@@ -541,7 +537,6 @@ void loop() {
 			} catch(const std::exception& e) {
 				debugE("Exception in ENTSO-E loop (%s)", e.what());
 			}
-			#endif
 			ws.loop();
 		}
 		if(mqtt != NULL) {

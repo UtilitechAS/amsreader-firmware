@@ -193,9 +193,9 @@
                 </div>
             </div>
             <div class="my-1">
-                <label><input type="checkbox" name="pe" bind:checked={configuration.p.e} class="rounded mb-1"/> Enable price fetch from remote server</label>
+                <label><input type="checkbox" name="pe" value="true" bind:checked={configuration.p.e} class="rounded mb-1"/> Enable price fetch from remote server</label>
                 {#if configuration.p.e && sysinfo.chip != 'esp8266'}
-                <br/><input name="pt" bind:value={configuration.p.t} type="text" class="in-s"/>
+                <br/><input name="pt" bind:value={configuration.p.t} type="text" class="in-s" placeholder="Optional, read docs"/>
                 {/if}
             </div>
             <div class="my-1">
@@ -443,7 +443,7 @@
                         <option value={2}>Raw (full)</option>
                         <option value={3}>Domoticz</option>
                         <option value={4}>HomeAssistant</option>
-                        <option value={255}>Raw bytes</option>
+                        <option value={255}>HEX dump</option>
                     </select>
                 </div>
             </div>

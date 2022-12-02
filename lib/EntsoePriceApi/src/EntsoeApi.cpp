@@ -5,7 +5,7 @@
 #include "DnbCurrParser.h"
 #include "version.h"
 
-#include "ams/GcmParser.h"
+#include "GcmParser.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>

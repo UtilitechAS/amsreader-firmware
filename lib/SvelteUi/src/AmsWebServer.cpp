@@ -25,6 +25,7 @@
 #include "html/conf_thresholds_json.h"
 #include "html/conf_debug_json.h"
 #include "html/conf_gpio_json.h"
+#include "html/firmware_html.h"
 
 #include "version.h"
 
@@ -74,6 +75,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
 	server.on(F("/reboot"), HTTP_POST, std::bind(&AmsWebServer::reboot, this));
 	server.on(F("/upgrade"), HTTP_POST, std::bind(&AmsWebServer::upgrade, this));
+	server.on(F("/firmware"), HTTP_GET, std::bind(&AmsWebServer::firmwareHtml, this));
 	server.on(F("/firmware"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::firmwareUpload, this));
 	server.on(F("/is-alive"), HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
 
@@ -223,8 +225,13 @@ void AmsWebServer::sysinfoJson() {
 		WiFi.localIP().toString().c_str(),
 		WiFi.subnetMask().toString().c_str(),
 		WiFi.gatewayIP().toString().c_str(),
+		#if defined(ESP8266)
 		dns1.isSet() ? dns1.toString().c_str() : "",
 		dns2.isSet() ? dns2.toString().c_str() : "",
+		#else
+		dns1.toString().c_str(),
+		dns2.toString().c_str(),
+		#endif
 		meterState->getMeterType(),
 		meterState->getMeterModel().c_str(),
 		meterState->getMeterId().c_str()
@@ -323,7 +330,7 @@ void AmsWebServer::dataJson() {
 	}
 
 	float price = ENTSOE_NO_VALUE;
-	if(eapi != NULL && strlen(eapi->getToken()) > 0)
+	if(eapi != NULL)
 		price = eapi->getValueForHour(0);
 
 	String peaks = "";
@@ -382,7 +389,7 @@ void AmsWebServer::dataJson() {
 		ea->getCostThisMonth(),
 		ea->getProducedThisMonth(),
 		ea->getIncomeThisMonth(),
-		eapi == NULL ? "" : eapi->getArea(),
+		priceRegion.c_str(),
 		meterState->getLastError(),
 		(uint32_t) time(nullptr)
 	);
@@ -1219,10 +1226,13 @@ void AmsWebServer::handleSave() {
 
 	if(server.hasArg(F("p")) && server.arg(F("p")) == F("true")) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received price API config"));
+
+		priceRegion = server.arg(F("pr"));
+
 		EntsoeConfig entsoe;
 		entsoe.enabled = server.hasArg(F("pe")) && server.arg(F("pe")) == F("true");
 		strcpy(entsoe.token, server.arg(F("pt")).c_str());
-		strcpy(entsoe.area, server.arg(F("pr")).c_str());
+		strcpy(entsoe.area, priceRegion.c_str());
 		strcpy(entsoe.currency, server.arg(F("pc")).c_str());
 		entsoe.multiplier = server.arg(F("pm")).toFloat() * 1000;
 		config->setEntsoeConfig(entsoe);
@@ -1367,6 +1377,19 @@ void AmsWebServer::upgrade() {
 				break;
 		}
 	}
+}
+void AmsWebServer::firmwareHtml() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Serving /firmware.html over http..."));
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	if(!checkSecurity(1))
+		return;
+
+	server.setContentLength(FIRMWARE_HTML_LEN);
+	server.send_P(200, MIME_HTML, FIRMWARE_HTML);
 }
 
 void AmsWebServer::firmwarePost() {
@@ -1610,4 +1633,8 @@ void AmsWebServer::tariffJson() {
 
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
+}
+
+void AmsWebServer::setPriceRegion(String priceRegion) {
+	this->priceRegion = priceRegion;
 }

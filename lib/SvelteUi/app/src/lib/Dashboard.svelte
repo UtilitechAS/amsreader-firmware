@@ -68,12 +68,12 @@
     <div class="cnt">
         <AccountingData data={data.ea} currency={prices.currency}/>
     </div>
-    {#if data && data.ea}
+    {#if data && data.pr && (data.pr.startsWith("10YNO") || data.pr == '10Y1001A1001A48H')}
     <div class="cnt h-64">
-        <TariffPeakChart data={data.ea} />
+        <TariffPeakChart />
     </div>
     {/if}
-    {#if prices.currency}
+    {#if (typeof data.p == "number") && !Number.isNaN(data.p)}
         <div class="cnt xl:col-span-6 lg:col-span-3 md:col-span-3 sm:col-span-2 h-64">
             <PricePlot json={prices}/>
         </div>

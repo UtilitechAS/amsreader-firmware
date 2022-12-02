@@ -71,7 +71,7 @@ ADC_MODE(ADC_VCC);
 #include "IEC6205675.h"
 #include "LNG.h"
 
-#include "ams/DataParsers.h"
+#include "DataParsers.h"
 #include "Timezones.h"
 
 uint8_t commonBuffer[BUF_SIZE_COMMON];
@@ -201,11 +201,12 @@ void setup() {
 	hw.ledBlink(LED_BLUE, 1);
 
 	EntsoeConfig entsoe;
-	if(config.getEntsoeConfig(entsoe) && strlen(entsoe.area) > 0) {
+	if(config.getEntsoeConfig(entsoe) && entsoe.enabled && strlen(entsoe.area) > 0) {
 		eapi = new EntsoeApi(&Debug);
 		eapi->setup(entsoe);
 		ws.setEntsoeApi(eapi);
 	}
+	ws.setPriceRegion(entsoe.area);
 	bool shared = false;
 	config.getMeterConfig(meterConfig);
 	Serial.flush();
@@ -520,7 +521,7 @@ void loop() {
 				
 				if(config.isEntsoeChanged()) {
 					EntsoeConfig entsoe;
-					if(config.getEntsoeConfig(entsoe) && strlen(entsoe.area) > 0) {
+					if(config.getEntsoeConfig(entsoe) && entsoe.enabled && strlen(entsoe.area) > 0) {
 						if(eapi == NULL) {
 							eapi = new EntsoeApi(&Debug);
 							ea.setEapi(eapi);
@@ -532,6 +533,7 @@ void loop() {
 						eapi = NULL;
 						ws.setEntsoeApi(NULL);
 					}
+					ws.setPriceRegion(entsoe.area);
 					config.ackEntsoeChange();
 				}
 			} catch(const std::exception& e) {

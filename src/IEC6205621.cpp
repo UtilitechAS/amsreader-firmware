@@ -1,5 +1,5 @@
 #include "IEC6205621.h"
-#include "ams/crc.h"
+#include "crc.h"
 
 IEC6205621::IEC6205621(const char* p) {
 	if(strlen(p) < 16)

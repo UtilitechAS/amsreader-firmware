@@ -38,6 +38,7 @@ public:
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
 	void setEntsoeApi(EntsoeApi* eapi);
+	void setPriceRegion(String);
 
 private:
 	RemoteDebug* debugger;
@@ -59,6 +60,7 @@ private:
 	bool performRestart = false;
 	bool performUpgrade = false;
 	bool rebootForUpgrade = false;
+	String priceRegion;
 
     static const uint16_t BufferSize = 2048;
     char* buf;
@@ -89,6 +91,7 @@ private:
 	void handleSave();
 	void reboot();
 	void upgrade();
+	void firmwareHtml();
 	void firmwarePost();
 	void firmwareUpload();
 	void isAliveCheck();

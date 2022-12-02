@@ -1,7 +1,7 @@
 #include "IEC6205675.h"
 #include "lwip/def.h"
 #include "Timezone.h"
-#include "ams/ntohll.h"
+#include "ntohll.h"
 
 IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx) {
     double val;

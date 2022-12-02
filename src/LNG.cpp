@@ -1,6 +1,6 @@
 #include "LNG.h"
 #include "lwip/def.h"
-#include "ams/ntohll.h"
+#include "ntohll.h"
 
 LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
     LngHeader* h = (LngHeader*) payload;

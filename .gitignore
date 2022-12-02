@@ -17,3 +17,4 @@ platformio-user.ini
 /*.zip
 node_modules
 /gui/dist
+/scripts/*dev

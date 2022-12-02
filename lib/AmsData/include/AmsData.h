@@ -89,6 +89,7 @@ protected:
     bool threePhase = false, twoPhase = false, counterEstimated = false;
 
     int8_t lastError = 0x00;
+    uint8_t lastErrorCount = 0;
 };
 
 #endif

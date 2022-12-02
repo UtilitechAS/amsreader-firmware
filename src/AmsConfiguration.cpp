@@ -24,6 +24,7 @@ bool AmsConfiguration::getWiFiConfig(WiFiConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_WIFI_START, config);
 		EEPROM.end();
+		if(config.sleep > 2) config.sleep = 1;
 		return true;
 	} else {
 		clearWifi(config);
@@ -33,6 +34,7 @@ bool AmsConfiguration::getWiFiConfig(WiFiConfig& config) {
 
 bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 	WiFiConfig existing;
+	if(config.sleep > 2) config.sleep = 1;
 	if(getWiFiConfig(existing)) {
 		wifiChanged |= strcmp(config.ssid, existing.ssid) != 0;
 		wifiChanged |= strcmp(config.psk, existing.psk) != 0;
@@ -45,6 +47,7 @@ bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 		}
 		wifiChanged |= strcmp(config.hostname, existing.hostname) != 0;
 		wifiChanged |= config.power != existing.power;
+		wifiChanged |= config.sleep != existing.sleep;
 	} else {
 		wifiChanged = true;
 	}
@@ -70,6 +73,7 @@ void AmsConfiguration::clearWifi(WiFiConfig& config) {
 	#endif
 	strcpy(config.hostname, (String("ams-") + String(chipId, HEX)).c_str());
 	config.mdns = true;
+	config.sleep = 0xFF;
 }
 
 void AmsConfiguration::clearWifiIp(WiFiConfig& config) {
@@ -671,6 +675,14 @@ bool AmsConfiguration::hasConfig() {
 					configVersion = 0;
 					return false;
 				}
+			case 95:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig95()) {
+					configVersion = 96;
+				} else {
+					configVersion = 0;
+					return false;
+				}
 			case EEPROM_CHECK_SUM:
 				return true;
 			default:
@@ -843,6 +855,23 @@ bool AmsConfiguration::relocateConfig94() {
 	eac.hours = 1;
 	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 95);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig95() {
+	MeterConfig meter;
+	MeterConfig95 meter95;
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.get(CONFIG_METER_START, meter);
+	EEPROM.get(CONFIG_METER_START, meter95);
+	meter.wattageMultiplier = meter95.wattageMultiplier;
+	meter.voltageMultiplier = meter95.voltageMultiplier;
+	meter.amperageMultiplier = meter95.amperageMultiplier;
+	meter.accumulatedMultiplier = meter95.accumulatedMultiplier;
+	EEPROM.put(CONFIG_METER_START, meter);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 96);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;

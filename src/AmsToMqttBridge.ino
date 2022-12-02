@@ -805,7 +805,7 @@ bool readHanPort() {
 		hanBuffer[len++] = hanSerial->read();
 		ctx.length = len;
 		pos = unwrapData((uint8_t *) hanBuffer, ctx);
-		if(pos >= 0) {
+		if(ctx.type > 0 && pos >= 0) {
 			if(ctx.type == DATA_TAG_DLMS) {
 				debugV("Received valid DLMS at %d", pos);
 			} else if(ctx.type == DATA_TAG_DSMR) {
@@ -821,6 +821,7 @@ bool readHanPort() {
 	if(pos == DATA_PARSE_INCOMPLETE) {
 		return false;
 	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
+		debugV("Unknown data payload:");
 		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
 		debugPrint(hanBuffer, 0, len);
 		len = 0;
@@ -1049,7 +1050,6 @@ void WiFi_connect() {
 			}	
 		#endif
 		WiFi.mode(WIFI_STA);
-		WiFi.setSleep(WIFI_PS_MAX_MODEM);
 		#if defined(ESP32)
 			if(wifi.power >= 195)
 				WiFi.setTxPower(WIFI_POWER_19_5dBm);
@@ -1110,6 +1110,19 @@ void WiFi_connect() {
 		WiFi.setAutoReconnect(true);
 		WiFi.persistent(true);
 		if(WiFi.begin(wifi.ssid, wifi.psk)) {
+			if(wifi.sleep <= 2) {
+				switch(wifi.sleep) {
+					case 0:
+						WiFi.setSleep(WIFI_PS_NONE);
+						break;
+					case 1:
+						WiFi.setSleep(WIFI_PS_MIN_MODEM);
+						break;
+					case 2:
+						WiFi.setSleep(WIFI_PS_MAX_MODEM);
+						break;
+				}
+			}
 			yield();
 		} else {
 			if (Debug.isActive(RemoteDebug::ERROR)) debugI("Unable to start WiFi");
@@ -1168,7 +1181,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 				if(res >= 0) doRet = true;
 				break;
 			default:
-				debugE("Ended up in default case while unwrapping...");
+				debugE("Ended up in default case while unwrapping...(tag %02X)", tag);
 				return DATA_PARSE_UNKNOWN_DATA;
 		}
 		lastTag = tag;

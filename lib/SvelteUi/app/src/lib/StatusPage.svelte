@@ -45,13 +45,18 @@
       }
     }
 
-    let fileinput;
-    let files = [];
-    let uploading = false;
+    let firmwareFileInput;
+    let firmwareFiles = [];
+    let firmwareUploading = false;
+
+    let configFileInput;
+    let configFiles = [];
+    let configUploading = false;
+
     getSysinfo();
 </script>
 
-<div class="grid xl:grid-cols-4 lg:grid-cols-2 md:grid-cols-2">
+<div class="grid xl:grid-cols-5 lg:grid-cols-3 md:grid-cols-2">
     <div class="cnt">
         <strong class="text-sm">Device information</strong>
         <div class="my-2">
@@ -65,7 +70,7 @@
         </div>
         <div class="my-2">
             <Link to="/consent">
-                <span class="text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3 ">Change consents</span>
+                <span class="text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3 ">Update consents</span>
             </Link>
             <button on:click={askReboot} class="text-xs py-1 px-2 rounded bg-yellow-500 text-white mr-3 float-right">Reboot</button>
         </div>
@@ -128,16 +133,47 @@
         </div>
         {/if}
         <div class="my-2 flex">
-            <form action="/firmware" enctype="multipart/form-data" method="post" on:submit={() => uploading=true}>
-                <input style="display:none" name="file" type="file" accept=".bin" bind:this={fileinput} bind:files={files}>
-                {#if files.length == 0}
-                <button type="button" on:click={()=>{fileinput.click();}} class="text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Select firmware file for upgrade</button>
+            <form action="/firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true}>
+                <input style="display:none" name="file" type="file" accept=".bin" bind:this={firmwareFileInput} bind:files={firmwareFiles}>
+                {#if firmwareFiles.length == 0}
+                <button type="button" on:click={()=>{firmwareFileInput.click();}} class="text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Select firmware file for upgrade</button>
                 {:else}
-                {files[0].name}
+                {firmwareFiles[0].name}
                 <button type="submit" class="ml-2 text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Upload</button>
                 {/if}
             </form>
         </div>
     </div>
+    <div class="cnt">
+        <strong class="text-sm">Configuration</strong>
+        <form method="get" action="/configfile.cfg">
+            <div class="grid grid-cols-2">
+                <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="iw" value="true" checked/> WiFi</label>
+                <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="im" value="true" checked/> MQTT</label>
+                <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="ie" value="true" checked/> Web</label>
+                <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="it" value="true" checked/> Meter</label>
+                <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="ih" value="true" checked/> Thresholds</label>
+                <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="ig" value="true" checked/> GPIO</label>
+                <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="id" value="true" checked/> Domoticz</label>
+                <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="in" value="true" checked/> NTP</label>
+                <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="is" value="true" checked/> Price API</label>
+                <label class="my-1 mx-3 col-span-2"><input type="checkbox" class="rounded" name="ic" value="true"/> Include Secrets<br/><small>(SSID, PSK, passwords and tokens)</small></label>
+            </div>
+            {#if firmwareFiles.length == 0}
+            <button type="submit" class="ml-2 text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Download</button>
+            {/if}
+        </form>
+        <form action="/configfile" enctype="multipart/form-data" method="post" on:submit={() => configUploading=true}>
+            <input style="display:none" name="file" type="file" accept=".cfg" bind:this={configFileInput} bind:files={firmwareFiles}>
+            {#if firmwareFiles.length == 0}
+            <button type="button" on:click={()=>{configFileInput.click();}} class="text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3">Select file...</button>
+            {:else}
+            {firmwareFiles[0].name}
+            <button type="submit" class="ml-2 text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3">Upload</button>
+            {/if}
+        </form>
+
+    </div>
 </div>
-<Mask active={uploading} message="Uploading firmware, please wait"/>
+<Mask active={firmwareUploading} message="Uploading firmware, please wait"/>
+<Mask active={configUploading} message="Uploading configuration, please wait"/>

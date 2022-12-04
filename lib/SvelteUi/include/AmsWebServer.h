@@ -101,6 +101,8 @@ private:
 	void mqttKeyUpload();
 	HTTPUpload& uploadFile(const char* path);
 
+	void configFileDownload();
+	void configFileUpload();
 	void factoryResetPost();
 
 	void notFound();

@@ -841,9 +841,38 @@ bool AmsConfiguration::relocateConfig95() {
 }
 
 bool AmsConfiguration::relocateConfig96() {
-	SystemConfig sys;
 	EEPROM.begin(EEPROM_SIZE);
+	SystemConfig sys;
 	EEPROM.get(CONFIG_SYSTEM_START, sys);
+
+	#if defined(ESP8266)
+	MeterConfig meter;
+	EEPROM.get(CONFIG_METER_START, meter);
+	GpioConfig gpio;
+	EEPROM.get(CONFIG_GPIO_START, gpio);
+
+	switch(sys.boardType) {
+		case 3: // Pow UART0 -- Now Pow-K UART0
+		case 4: // Pow GPIO12 -- Now Pow-U UART0
+		case 5: // Pow-K+ -- Now also Pow-K GPIO12
+		case 7: // Pow-U+ -- Now also Pow-U GPIO12
+			if(meter.baud == 2400 && meter.parity == 3) { // 3 == 8N1, assuming Pow-K
+				if(gpio.hanPin == 3) { // UART0
+					sys.boardType = 3;
+				} else if(gpio.hanPin == 12) {
+					sys.boardType = 5;
+				}
+			} else { // Assuming Pow-U
+				if(gpio.hanPin == 3) { // UART0
+					sys.boardType = 4;
+				} else if(gpio.hanPin == 12) {
+					sys.boardType = 7;
+				}
+			}
+			break;
+	}
+	#endif
+
 	sys.vendorConfigured = true;
 	sys.userConfigured = true;
 	sys.dataCollectionConsent = 0;

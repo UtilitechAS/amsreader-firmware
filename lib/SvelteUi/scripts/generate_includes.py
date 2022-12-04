@@ -54,7 +54,9 @@ for webroot in ["lib/SvelteUi/app/dist", "lib/SvelteUi/json"]:
         varname = basename.upper()
 
         with open(srcfile, encoding="utf-8") as f:
-            content = f.read().replace("${version}", version)
+            content = f.read()
+            content = content.replace("index.js", "index-"+version+".js")
+            content = content.replace("index.css", "index-"+version+".css")
 
         try:    
             if filename.endswith(".html"):

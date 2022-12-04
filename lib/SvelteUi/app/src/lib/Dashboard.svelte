@@ -35,7 +35,7 @@
     <div class="cnt">
         <div class="grid grid-cols-2">
             <div class="col-span-2">
-                <PowerGauge val={data.i ? data.i : 0} max={data.im} unit="W" label="Import"/>
+                <PowerGauge val={data.i ? data.i : 0} max={data.im} unit="W" label="Import" sub={data.p} subunit={prices.currency}/>
             </div>
             <div>{data.mt ? metertype(data.mt) : '-'}</div>
             <div class="text-right">{data.ic ? data.ic.toFixed(1) : '-'} kWh</div>
@@ -74,7 +74,7 @@
     </div>
     {/if}
     {#if (typeof data.p == "number") && !Number.isNaN(data.p)}
-        <div class="cnt xl:col-span-6 lg:col-span-3 md:col-span-3 sm:col-span-2 h-64">
+        <div class="cnt xl:col-span-6 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
             <PricePlot json={prices}/>
         </div>
     {/if}

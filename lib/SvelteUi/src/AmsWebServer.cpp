@@ -48,8 +48,13 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	this->ds = ds;
 	this->ea = ea;
 
-	// TODO
+
 	server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	snprintf_P(buf, 32, PSTR("/index-%s.js"), VERSION);
+	server.on(buf, HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
+	snprintf_P(buf, 32, PSTR("/index-%s.css"), VERSION);
+	server.on(buf, HTTP_GET, std::bind(&AmsWebServer::indexCss, this));
+
 	server.on(F("/configuration"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/status"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/consent"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
@@ -59,8 +64,6 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/mqtt-cert"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	
-	server.on(F("/index.css"), HTTP_GET, std::bind(&AmsWebServer::indexCss, this));
-	server.on(F("/index.js"), HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
 	server.on(F("/github.svg"), HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
 	server.on(F("/favicon.ico"), HTTP_GET, std::bind(&AmsWebServer::faviconIco, this)); 
 	server.on(F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
@@ -86,6 +89,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/mqtt-ca"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::mqttCaUpload, this));
 	server.on(F("/mqtt-cert"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::mqttCertUpload, this));
 	server.on(F("/mqtt-key"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
+
+	server.on(F("/configfile"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::configFileUpload, this));
+	server.on(F("/configfile.cfg"),HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
 
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
@@ -664,13 +670,10 @@ void AmsWebServer::indexHtml() {
 void AmsWebServer::indexCss() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /index.css over http...\n");
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
-	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
-	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
-
 	if(!checkSecurity(2))
 		return;
 
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	server.setContentLength(INDEX_CSS_LEN);
 	server.send_P(200, MIME_CSS, INDEX_CSS);
 }
@@ -678,13 +681,10 @@ void AmsWebServer::indexCss() {
 void AmsWebServer::indexJs() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /index.js over http...\n");
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
-	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
-	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
-
 	if(!checkSecurity(2))
 		return;
 
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	server.setContentLength(INDEX_JS_LEN);
 	server.send_P(200, MIME_JS, INDEX_JS);
 }
@@ -1637,4 +1637,354 @@ void AmsWebServer::tariffJson() {
 
 void AmsWebServer::setPriceRegion(String priceRegion) {
 	this->priceRegion = priceRegion;
+}
+
+void AmsWebServer::configFileDownload() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /configfile.cfg over http...\n");
+
+	if(!checkSecurity(1))
+		return;
+
+	bool includeSecrets = server.hasArg(F("ic")) && server.arg(F("ic")) == F("true");
+	bool includeWifi = server.hasArg(F("iw")) && server.arg(F("iw")) == F("true");
+	bool includeMqtt = server.hasArg(F("im")) && server.arg(F("im")) == F("true");
+	bool includeWeb = server.hasArg(F("ie")) && server.arg(F("ie")) == F("true");
+	bool includeMeter = server.hasArg(F("it")) && server.arg(F("it")) == F("true");
+	bool includeGpio = server.hasArg(F("ig")) && server.arg(F("ig")) == F("true");
+	bool includeDomo = server.hasArg(F("id")) && server.arg(F("id")) == F("true");
+	bool includeNtp = server.hasArg(F("in")) && server.arg(F("in")) == F("true");
+	bool includeEntsoe = server.hasArg(F("is")) && server.arg(F("is")) == F("true");
+	bool includeThresholds = server.hasArg(F("ih")) && server.arg(F("ih")) == F("true");
+	
+	SystemConfig sys;
+	config->getSystemConfig(sys);
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+	server.sendHeader(F("Content-Disposition"), F("attachment; filename=configfile.cfg"));
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+
+	server.send_P(200, MIME_PLAIN, PSTR("amsconfig\n"));
+	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("version %s\n"), VERSION));
+	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("boardType %d\n"), sys.boardType));
+	
+	if(includeWifi) {
+		WiFiConfig wifi;
+		config->getWiFiConfig(wifi);
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("hostname %s\n"), wifi.hostname));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ssid %s\n"), wifi.ssid));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("psk %s\n"), wifi.psk));
+		if(strlen(wifi.ip) > 0) {
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ip %s\n"), wifi.ip));
+			if(strlen(wifi.gateway) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gateway %s\n"), wifi.gateway));
+			if(strlen(wifi.subnet) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("subnet %s\n"), wifi.subnet));
+			if(strlen(wifi.dns1) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dns1 %s\n"), wifi.dns1));
+			if(strlen(wifi.dns2) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dns2 %s\n"), wifi.dns2));
+		}
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mdns %d\n"), wifi.mdns ? 1 : 0));
+	}
+	
+	if(includeMqtt) {
+		MqttConfig mqtt;
+		config->getMqttConfig(mqtt);
+		if(strlen(mqtt.host) > 0) {
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttHost %s\n"), mqtt.host));
+			if(mqtt.port > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPort %d\n"), mqtt.port));
+			if(strlen(mqtt.clientId) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttClientId %s\n"), mqtt.clientId));
+			if(strlen(mqtt.publishTopic) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPublishTopic %s\n"), mqtt.publishTopic));
+			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttUsername %s\n"), mqtt.username));
+			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPassword %s\n"), mqtt.password));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPayloadFormat %d\n"), mqtt.payloadFormat));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttSsl %d\n"), mqtt.ssl ? 1 : 0));
+		}
+	}
+
+	if(includeWeb && includeSecrets) {
+		WebConfig web;
+		config->getWebConfig(web);
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("webSecurity %d\n"), web.security));
+		if(web.security > 0) {
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("webUsername %s\n"), web.username));
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("webPassword %s\n"), web.password));
+		}
+	}
+
+	if(includeMeter) {
+		MeterConfig meter;
+		config->getMeterConfig(meter);
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterBaud %d\n"), meter.baud));
+		char parity[4] = "";
+		switch(meter.parity) {
+			case 2:
+				strcpy_P(parity, PSTR("7N1"));
+				break;
+			case 3:
+				strcpy_P(parity, PSTR("8N1"));
+				break;
+			case 10:
+				strcpy_P(parity, PSTR("7E1"));
+				break;
+			case 11:
+				strcpy_P(parity, PSTR("8E1"));
+				break;
+		}
+		if(strlen(parity) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterParity %s\n"), parity));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterInvert %d\n"), meter.invert ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterDistributionSystem %d\n"), meter.distributionSystem));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterMainFuse %d\n"), meter.mainFuse));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterProductionCapacity %d\n"), meter.productionCapacity));
+		if(includeSecrets) {
+			if(meter.encryptionKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterEncryptionKey %s\n"), toHex(meter.encryptionKey, 16).c_str()));
+			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAuthenticationKey %s\n"), toHex(meter.authenticationKey, 16).c_str()));
+		}
+	}
+
+	if(includeGpio) {
+		GpioConfig gpio;
+		config->getGpioConfig(gpio);
+		if(gpio.hanPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioHanPin %d\n"), gpio.hanPin));
+		if(gpio.apPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioApPin %d\n"), gpio.apPin));
+		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPin %d\n"), gpio.ledPin));
+		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedInverted %d\n"), gpio.ledInverted ? 1 : 0));
+		if(gpio.ledPinRed != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPinRed %d\n"), gpio.ledPinRed));
+		if(gpio.ledPinGreen != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPinGreen %d\n"), gpio.ledPinGreen));
+		if(gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPinBlue %d\n"), gpio.ledPinBlue));
+		if(gpio.ledPinRed != 0xFF || gpio.ledPinGreen != 0xFF || gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedRgbInverted %d\n"), gpio.ledRgbInverted ? 1 : 0));
+		if(gpio.tempSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioTempSensorPin %d\n"), gpio.tempSensorPin));
+		if(gpio.tempAnalogSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioTempAnalogSensorPin %d\n"), gpio.tempAnalogSensorPin));
+		if(gpio.vccPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccPin %d\n"), gpio.vccPin));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccOffset %.2f\n"), gpio.vccOffset / 100.0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccMultiplier %.3f\n"), gpio.vccMultiplier / 1000.0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccBootLimit %.1f\n"), gpio.vccBootLimit / 10.0));
+		if(gpio.vccPin != 0xFF && gpio.vccResistorGnd != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccResistorGnd %d\n"), gpio.vccResistorGnd));
+		if(gpio.vccPin != 0xFF && gpio.vccResistorVcc != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccResistorVcc %d\n"), gpio.vccResistorVcc));
+	}
+
+	if(includeDomo) {
+		DomoticzConfig domo;
+		config->getDomoticzConfig(domo);
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzElidx %d\n"), domo.elidx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl1idx %d\n"), domo.vl1idx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl2idx %d\n"), domo.vl2idx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl3idx %d\n"), domo.vl3idx));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzCl1idx %d\n"), domo.cl1idx));
+	}
+
+	if(includeNtp) {
+		NtpConfig ntp;
+		config->getNtpConfig(ntp);
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpEnable %d\n"), ntp.enable ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpDhcp %d\n"), ntp.dhcp ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpTimezone %s\n"), ntp.timezone));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpServer %s\n"), ntp.server));
+	}
+
+	if(includeEntsoe) {
+		EntsoeConfig entsoe;
+		config->getEntsoeConfig(entsoe);
+		if(strlen(entsoe.token) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeToken %s\n"), entsoe.token));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeArea %s\n"), entsoe.area));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeCurrency %s\n"), entsoe.currency));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeMultiplier %.3f\n"), entsoe.multiplier / 1000.0));
+	}
+
+	if(includeThresholds) {
+		EnergyAccountingConfig eac;
+		config->getEnergyAccountingConfig(eac);
+
+		if(eac.thresholds[9] > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("thresholds %d %d %d %d %d %d %d %d %d %d %d\n"), 
+			eac.thresholds[0],
+			eac.thresholds[1],
+			eac.thresholds[2],
+			eac.thresholds[3],
+			eac.thresholds[4],
+			eac.thresholds[5],
+			eac.thresholds[6],
+			eac.thresholds[7],
+			eac.thresholds[8],
+			eac.thresholds[9],
+			eac.hours
+		));
+	}
+
+
+	if(ds != NULL) {
+		DayDataPoints day = ds->getDayData();
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dayplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+			day.version,
+			(int64_t) day.lastMeterReadTime,
+			day.activeImport,
+			ds->getHourImport(0),
+			ds->getHourImport(1),
+			ds->getHourImport(2),
+			ds->getHourImport(3),
+			ds->getHourImport(4),
+			ds->getHourImport(5),
+			ds->getHourImport(6),
+			ds->getHourImport(7),
+			ds->getHourImport(8),
+			ds->getHourImport(9),
+			ds->getHourImport(10),
+			ds->getHourImport(11),
+			ds->getHourImport(12),
+			ds->getHourImport(13),
+			ds->getHourImport(14),
+			ds->getHourImport(15),
+			ds->getHourImport(16),
+			ds->getHourImport(17),
+			ds->getHourImport(18),
+			ds->getHourImport(19),
+			ds->getHourImport(20),
+			ds->getHourImport(21),
+			ds->getHourImport(22),
+			ds->getHourImport(23)
+		));
+		if(day.activeExport > 0) {
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR(" %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
+				day.activeExport,
+				ds->getHourExport(0),
+				ds->getHourExport(1),
+				ds->getHourExport(2),
+				ds->getHourExport(3),
+				ds->getHourExport(4),
+				ds->getHourExport(5),
+				ds->getHourExport(6),
+				ds->getHourExport(7),
+				ds->getHourExport(8),
+				ds->getHourExport(9),
+				ds->getHourExport(10),
+				ds->getHourExport(11),
+				ds->getHourExport(12),
+				ds->getHourExport(13),
+				ds->getHourExport(14),
+				ds->getHourExport(15),
+				ds->getHourExport(16),
+				ds->getHourExport(17),
+				ds->getHourExport(18),
+				ds->getHourExport(19),
+				ds->getHourExport(20),
+				ds->getHourExport(21),
+				ds->getHourExport(22),
+				ds->getHourExport(23)
+			));
+		} else {
+			server.sendContent(F("\n"));
+		}
+
+		MonthDataPoints month = ds->getMonthData();
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("monthplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+			month.version,
+			(int64_t) month.lastMeterReadTime,
+			month.activeImport,
+			ds->getDayImport(1),
+			ds->getDayImport(2),
+			ds->getDayImport(3),
+			ds->getDayImport(4),
+			ds->getDayImport(5),
+			ds->getDayImport(6),
+			ds->getDayImport(7),
+			ds->getDayImport(8),
+			ds->getDayImport(9),
+			ds->getDayImport(10),
+			ds->getDayImport(11),
+			ds->getDayImport(12),
+			ds->getDayImport(13),
+			ds->getDayImport(14),
+			ds->getDayImport(15),
+			ds->getDayImport(16),
+			ds->getDayImport(17),
+			ds->getDayImport(18),
+			ds->getDayImport(19),
+			ds->getDayImport(20),
+			ds->getDayImport(21),
+			ds->getDayImport(22),
+			ds->getDayImport(23),
+			ds->getDayImport(24),
+			ds->getDayImport(25),
+			ds->getDayImport(26),
+			ds->getDayImport(27),
+			ds->getDayImport(28),
+			ds->getDayImport(29),
+			ds->getDayImport(30),
+			ds->getDayImport(31)
+		));
+		if(month.activeExport > 0) {
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR(" %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
+				month.activeExport,
+				ds->getDayExport(1),
+				ds->getDayExport(2),
+				ds->getDayExport(3),
+				ds->getDayExport(4),
+				ds->getDayExport(5),
+				ds->getDayExport(6),
+				ds->getDayExport(7),
+				ds->getDayExport(8),
+				ds->getDayExport(9),
+				ds->getDayExport(10),
+				ds->getDayExport(11),
+				ds->getDayExport(12),
+				ds->getDayExport(13),
+				ds->getDayExport(14),
+				ds->getDayExport(15),
+				ds->getDayExport(16),
+				ds->getDayExport(17),
+				ds->getDayExport(18),
+				ds->getDayExport(19),
+				ds->getDayExport(20),
+				ds->getDayExport(21),
+				ds->getDayExport(22),
+				ds->getDayExport(23),
+				ds->getDayExport(24),
+				ds->getDayExport(25),
+				ds->getDayExport(26),
+				ds->getDayExport(27),
+				ds->getDayExport(28),
+				ds->getDayExport(29),
+				ds->getDayExport(30),
+				ds->getDayExport(31)
+			));
+		} else {
+			server.sendContent(F("\n"));
+		}
+	}
+
+	if(ea != NULL) {
+		EnergyAccountingConfig eac;
+		config->getEnergyAccountingConfig(eac);
+		EnergyAccountingData ead = ea->getData();
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("energyaccounting %d %d %.2f %.2f %.2f %.2f %d %.2f %d %.2f %d %.2f %d %.2f %d %.2f"), 
+			ead.version,
+			ead.month,
+			ead.costYesterday / 10.0,
+			ead.costThisMonth / 1.0,
+			ead.costLastMonth / 1.0,
+			ead.incomeYesterday / 10.0,
+			ead.incomeThisMonth / 1.0,
+			ead.incomeLastMonth / 1.0,
+			ead.peaks[0].day,
+			ead.peaks[0].value / 100.0,
+			ead.peaks[1].day,
+			ead.peaks[1].value / 100.0,
+			ead.peaks[2].day,
+			ead.peaks[2].value / 100.0,
+			ead.peaks[3].day,
+			ead.peaks[3].value / 100.0,
+			ead.peaks[4].day,
+			ead.peaks[4].value / 100.0
+		));
+		server.sendContent("\n");
+	}
+}
+
+void AmsWebServer::configFileUpload() {
+	if(!checkSecurity(1))
+		return;
+
+	HTTPUpload& upload = uploadFile(FILE_CFG);
+    if(upload.status == UPLOAD_FILE_END) {
+		performRestart = true;
+		server.sendHeader("Location","/");
+		server.send(303);
+	}
 }

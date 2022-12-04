@@ -484,6 +484,7 @@ bool AmsConfiguration::setEntsoeConfig(EntsoeConfig& config) {
 		entsoeChanged |= strcmp(config.area, existing.area) != 0;
 		entsoeChanged |= strcmp(config.currency, existing.currency) != 0;
 		entsoeChanged |= config.multiplier != existing.multiplier;
+		entsoeChanged |= config.enabled != existing.enabled;
 	} else {
 		entsoeChanged = true;
 	}

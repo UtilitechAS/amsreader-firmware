@@ -159,16 +159,16 @@
                 <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="is" value="true" checked/> Price API</label>
                 <label class="my-1 mx-3 col-span-2"><input type="checkbox" class="rounded" name="ic" value="true"/> Include Secrets<br/><small>(SSID, PSK, passwords and tokens)</small></label>
             </div>
-            {#if firmwareFiles.length == 0}
+            {#if configFiles.length == 0}
             <button type="submit" class="ml-2 text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Download</button>
             {/if}
         </form>
         <form action="/configfile" enctype="multipart/form-data" method="post" on:submit={() => configUploading=true}>
-            <input style="display:none" name="file" type="file" accept=".cfg" bind:this={configFileInput} bind:files={firmwareFiles}>
-            {#if firmwareFiles.length == 0}
+            <input style="display:none" name="file" type="file" accept=".cfg" bind:this={configFileInput} bind:files={configFiles}>
+            {#if configFiles.length == 0}
             <button type="button" on:click={()=>{configFileInput.click();}} class="text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3">Select file...</button>
             {:else}
-            {firmwareFiles[0].name}
+            {configFiles[0].name}
             <button type="submit" class="ml-2 text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3">Upload</button>
             {/if}
         </form>

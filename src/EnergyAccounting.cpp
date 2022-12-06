@@ -70,11 +70,14 @@ bool EnergyAccounting::update(AmsData* amsData) {
     if(local.Hour != currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) New local hour %d\n", local.Hour);
 
-        tmElements_t oneHrAgo;
+        tmElements_t oneHrAgo, oneHrAgoLocal;
         breakTime(now-3600, oneHrAgo);
         uint16_t val = ds->getHourImport(oneHrAgo.Hour) / 10;
-        ret |= updateMax(val, local.Day);
 
+        breakTime(tz->toLocal(now-3600), oneHrAgoLocal);
+        ret |= updateMax(val, oneHrAgoLocal.Day);
+
+        currentHour = local.Hour; // Need to be defined here so that day cost is correctly calculated
         if(local.Hour > 0) {
             calcDayCost();
         }
@@ -143,9 +146,9 @@ void EnergyAccounting::calcDayCost() {
     if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
         if(initPrice) costDay = 0;
         for(int i = 0; i < currentHour; i++) {
-            float price = eapi->getValueForHour(i - currentHour);
+            float price = eapi->getValueForHour(i - local.Hour);
             if(price == ENTSOE_NO_VALUE) break;
-            breakTime(now - ((currentHour - i) * 3600), utc);
+            breakTime(now - ((local.Hour - i) * 3600), utc);
             int16_t wh = ds->getHourImport(utc.Hour);
             costDay += price * (wh / 1000.0);
         }
@@ -161,9 +164,10 @@ double EnergyAccounting::getUseToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0;
-    tmElements_t utc;
+    tmElements_t utc, local;
+    breakTime(tz->toLocal(now), local);
     for(int i = 0; i < currentHour; i++) {
-        breakTime(now - ((currentHour - i) * 3600), utc);
+        breakTime(now - ((local.Hour - i) * 3600), utc);
         ret += ds->getHourImport(utc.Hour) / 1000.0;
     }
     return ret + getUseThisHour();

@@ -168,7 +168,6 @@ void EnergyAccounting::calcDayCost() {
             float price = eapi->getValueForHour(i - local.Hour);
             if(price == ENTSOE_NO_VALUE) break;
             breakTime(now - ((local.Hour - i) * 3600), utc);
-
             int16_t wh = ds->getHourImport(utc.Hour);
             costDay += price * (wh / 1000.0);
 

@@ -347,6 +347,7 @@ void AmsWebServer::configMeterHtml() {
 	html.replace(F("{mod}"), meterState->getMeterModel());
 	html.replace(F("{mid}"), meterState->getMeterId());
 	html.replace(F("{b}"), String(meterConfig->baud));
+	html.replace(F("{b300}"), meterConfig->baud == 300 ? F("selected") : F(""));
 	html.replace(F("{b2400}"), meterConfig->baud == 2400 ? F("selected") : F(""));
 	html.replace(F("{b4800}"), meterConfig->baud == 4800 ? F("selected") : F(""));
 	html.replace(F("{b9600}"), meterConfig->baud == 9600 ? F("selected") : F(""));

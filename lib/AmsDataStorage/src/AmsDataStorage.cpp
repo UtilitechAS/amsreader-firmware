@@ -67,7 +67,7 @@ bool AmsDataStorage::update(AmsData* data) {
         }
         tmElements_t last;
         breakTime(day.lastMeterReadTime, last);
-        for(int i = last.Hour; i <= utc.Hour; i++) {
+        for(int i = last.Hour; i < utc.Hour; i++) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) {
                 debugger->printf("(AmsDataStorage) Clearing hour: %d\n", i);
             }
@@ -90,7 +90,7 @@ bool AmsDataStorage::update(AmsData* data) {
         }
         tmElements_t last;
         breakTime(tz->toLocal(month.lastMeterReadTime), last);
-        for(int i = last.Day; i <= ltz.Day; i++) {
+        for(int i = last.Day; i < ltz.Day; i++) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) {
                 debugger->printf("(AmsDataStorage) Clearing day: %d\n", i);
             }

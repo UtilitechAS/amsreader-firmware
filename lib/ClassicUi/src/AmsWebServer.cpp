@@ -735,7 +735,7 @@ void AmsWebServer::dataJson() {
     if(peakCount > 5) peakCount = 5;
 	for(uint8_t i = 1; i <= peakCount; i++) {
 		if(!peaks.isEmpty()) peaks += ",";
-		peaks += String(ea->getPeak(i));
+		peaks += String(ea->getPeak(i).value / 100.0);
 	}
 
 	snprintf_P(buf, BufferSize, DATA_JSON,

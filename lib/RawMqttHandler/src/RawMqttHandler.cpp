@@ -95,7 +95,7 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccountin
     uint8_t peakCount = ea->getConfig()->hours;
     if(peakCount > 5) peakCount = 5;
     for(uint8_t i = 1; i <= peakCount; i++) {
-        mqtt->publish(topic + "/realtime/import/peak/" + String(i, 10), String(ea->getPeak(i).value, 10), true, 0);
+        mqtt->publish(topic + "/realtime/import/peak/" + String(i, 10), String(ea->getPeak(i).value / 100.0, 10), true, 0);
     }
     mqtt->publish(topic + "/realtime/import/threshold", String(ea->getCurrentThreshold(), 10), true, 0);
     mqtt->publish(topic + "/realtime/import/monthmax", String(ea->getMonthMax(), 3), true, 0);

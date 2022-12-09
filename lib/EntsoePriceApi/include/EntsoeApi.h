@@ -29,6 +29,8 @@ public:
     float getValueForHour(int8_t);
     float getValueForHour(time_t, int8_t);
 
+    int16_t getLastError();
+
 private:
     RemoteDebug* debugger;
     EntsoeConfig* config = NULL;
@@ -53,6 +55,8 @@ private:
     uint8_t* auth = NULL;
 
     float currencyMultiplier = 0;
+
+    int16_t lastError = 0;
 
     PricesContainer* fetchPrices(time_t);
     bool retrieve(const char* url, Stream* doc);

@@ -164,8 +164,13 @@ bool EntsoeApi::loop() {
         return true;
     } else {
         if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > 60000)) {
-            lastTodayFetch = now;
-            today = fetchPrices(t);
+            try {
+                lastTodayFetch = now;
+                today = fetchPrices(t);
+            } catch(const std::exception& e) {
+                if(lastError == 0) lastError = 900;
+                today = NULL;
+            }
             return today != NULL;
         }
 
@@ -175,9 +180,14 @@ bool EntsoeApi::loop() {
             && midnightMillis - now < tomorrowFetchMillis
             && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 900000)
         ) {
-            breakTime(t+SECS_PER_DAY, tm); // Break UTC tomorrow to find UTC midnight
-            lastTomorrowFetch = now;
-            tomorrow = fetchPrices(t+SECS_PER_DAY);
+            try {
+                breakTime(t+SECS_PER_DAY, tm); // Break UTC tomorrow to find UTC midnight
+                lastTomorrowFetch = now;
+                tomorrow = fetchPrices(t+SECS_PER_DAY);
+            } catch(const std::exception& e) {
+                if(lastError == 0) lastError = 900;
+                tomorrow = NULL;
+            }
             return tomorrow != NULL;
         }
     }
@@ -207,8 +217,10 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
                 printD("Receiving data");
                 http.writeToStream(doc);
                 http.end();
+                lastError = 0;
                 return true;
             } else {
+                lastError = status;
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Communication error, returned status: %d\n", status);
                 printE(http.errorToString(status));
                 printD(http.getString());
@@ -326,7 +338,9 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
                 printD("Receiving data");
                 data = http.getString();
                 http.end();
+                lastError = 0;
             } else {
+                lastError = status;
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Communication error, returned status: %d\n", status);
                 printE(http.errorToString(status));
                 printD(http.getString());
@@ -355,8 +369,10 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
             for(uint8_t i = 0; i < 24; i++) {
                 ret->points[i] = ntohl(ret->points[i]);
             }
+            lastError = 0;
             return ret;
         } else {
+            lastError = gcmRet;
             if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Error code while decrypting prices: %d\n", gcmRet);
         }
     }
@@ -391,4 +407,8 @@ void EntsoeApi::debugPrint(byte *buffer, int start, int length) {
 		yield(); // Let other get some resources too
 	}
 	debugger->println("");
+}
+
+int16_t EntsoeApi::getLastError() {
+    return lastError;
 }

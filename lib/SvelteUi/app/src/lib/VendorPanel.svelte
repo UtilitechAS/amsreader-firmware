@@ -29,7 +29,7 @@
             s.booting = res.reboot;
             return s;
         });
-        navigate("/setup");
+        navigate(sysinfo.usrcfg ? "/" : "/setup");
 	}
 </script>
 
@@ -52,6 +52,9 @@
                     </select>
                 </div>
             {/if}
+            <div class="my-3">
+                <label><input type="checkbox" name="vr" value="true" class="rounded mb-1" checked /> Clear all other configuration</label>
+            </div>
             <div class="my-3">
                 <button type="submit" class="btn-pri">Save</button>
             </div>

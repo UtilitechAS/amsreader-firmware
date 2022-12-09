@@ -2,7 +2,7 @@
     import { Link } from "svelte-navigator";
     import { sysinfoStore, getGitHubReleases, gitHubReleaseStore } from './DataStores.js';
     import { upgrade, getNextVersion } from './UpgradeHelper';
-    import { boardtype, hanError, mqttError } from './Helpers.js';
+    import { boardtype, hanError, mqttError, priceError } from './Helpers.js';
     import GitHubLogo from './../assets/github.svg';
     import Uptime from "./Uptime.svelte";
     import Badge from './Badge.svelte';
@@ -59,10 +59,13 @@
           <Badge title="MQTT" text="MQTT" color={sysinfo.booting ? 'gray' : data.mm === 1 ? 'green' : data.mm === 2 ? 'yellow' : data.mm === 3 ? 'red' : 'gray'}/>
         </div>
         {#if data.he < 0}
-        <div class="bd-red">{ 'HAN error: ' + hanError(data.he) }</div>
+        <div class="bd-red">{ 'HAN: ' + hanError(data.he) }</div>
         {/if}
         {#if data.me < 0}
-        <div class="bd-red">{ 'MQTT error: ' + mqttError(data.me) }</div>
+        <div class="bd-red">{ 'MQTT: ' + mqttError(data.me) }</div>
+        {/if}
+        {#if data.ee != 0}
+        <div class="bd-red">{ 'PriceAPI: ' + priceError(data.ee) }</div>
         {/if}
       <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">
           <div class="flex-none">

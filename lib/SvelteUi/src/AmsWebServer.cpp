@@ -403,6 +403,7 @@ void AmsWebServer::dataJson() {
 		ea->getIncomeThisMonth(),
 		priceRegion.c_str(),
 		meterState->getLastError(),
+		eapi == NULL ? 0 : eapi->getLastError(),
 		(uint32_t) time(nullptr)
 	);
 
@@ -859,7 +860,9 @@ void AmsWebServer::handleSave() {
 	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
 		int boardType = server.arg(F("vb")).toInt();
 		int hanPin = server.arg(F("vh")).toInt();
-		config->clear();
+		if(server.hasArg(F("vr")) && server.arg(F("vr")) == F("true")) {
+			config->clear();
+		}
 
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
 			switch(boardType) {

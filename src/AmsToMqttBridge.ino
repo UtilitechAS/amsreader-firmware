@@ -572,25 +572,29 @@ void loop() {
 		ea.setup(&ds, eac);
 		config.ackEnergyAccountingChange();
 	}
+	try {
+		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
+			if(now - lastTemperatureRead > 15000) {
+				unsigned long start = millis();
+				hw.updateTemperatures();
+				lastTemperatureRead = now;
 
-	if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
-		if(now - lastTemperatureRead > 15000) {
-			unsigned long start = millis();
-			hw.updateTemperatures();
-			lastTemperatureRead = now;
-
-			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-				mqttHandler->publishTemperatures(&config, &hw);
+				if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
+					mqttHandler->publishTemperatures(&config, &hw);
+				}
+				debugD("Used %ld ms to update temperature", millis()-start);
 			}
-			debugD("Used %ld ms to update temperature", millis()-start);
-		}
-		if(now - lastSysupdate > 10000) {
-			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-				mqttHandler->publishSystem(&hw, eapi, &ea);
+			if(now - lastSysupdate > 10000) {
+				if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
+					mqttHandler->publishSystem(&hw, eapi, &ea);
+				}
+				lastSysupdate = now;
 			}
-			lastSysupdate = now;
 		}
+	} catch(const std::exception& e) {
+		debugE("Exception in readHanPort (%s)", e.what());
 	}
+
 	delay(1); // Needed for auto modem sleep
 	#if defined(ESP32)
 		esp_task_wdt_reset();

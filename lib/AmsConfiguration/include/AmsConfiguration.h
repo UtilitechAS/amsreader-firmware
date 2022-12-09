@@ -61,7 +61,8 @@ struct WiFiConfig {
 	uint8_t power;
 	uint8_t sleep;
 	uint8_t mode;
-}; // 212
+	bool autoreboot;
+}; // 213
 
 struct MqttConfig86 {
 	char host[128];

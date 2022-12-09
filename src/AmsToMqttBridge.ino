@@ -1016,8 +1016,14 @@ void WiFi_connect() {
 	lastWifiRetry = millis();
 
 	if (WiFi.status() != WL_CONNECTED) {
+		WiFiConfig wifi;
+		if(!config.getWiFiConfig(wifi) || strlen(wifi.ssid) == 0) {
+			swapWifiMode();
+			return;
+		}
+
 		if(WiFi.getMode() != WIFI_OFF) {
-			if(wifiReconnectCount > 3) {
+			if(wifiReconnectCount > 3 && wifi.autoreboot) {
 				ESP.restart();
 				return;
 			}
@@ -1055,12 +1061,6 @@ void WiFi_connect() {
 			return;
 		}
 		wifiTimeout = WIFI_CONNECTION_TIMEOUT;
-
-		WiFiConfig wifi;
-		if(!config.getWiFiConfig(wifi) || strlen(wifi.ssid) == 0) {
-			swapWifiMode();
-			return;
-		}
 
 		if (Debug.isActive(RemoteDebug::INFO)) debugI("Connecting to WiFi network: %s", wifi.ssid);
 

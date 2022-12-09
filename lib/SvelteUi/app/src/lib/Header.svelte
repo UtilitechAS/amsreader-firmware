@@ -64,7 +64,7 @@
         {#if data.me < 0}
         <div class="bd-red">{ 'MQTT: ' + mqttError(data.me) }</div>
         {/if}
-        {#if data.ee != 0}
+        {#if data.ee > 0 || data.ee < 0}
         <div class="bd-red">{ 'PriceAPI: ' + priceError(data.ee) }</div>
         {/if}
       <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">

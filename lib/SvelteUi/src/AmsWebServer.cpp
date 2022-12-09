@@ -185,6 +185,7 @@ void AmsWebServer::githubSvg() {
 
 void AmsWebServer::faviconIco() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /favicon.ico over http...\n");
+
 	notFound(); //TODO
 }
 
@@ -271,12 +272,22 @@ void AmsWebServer::sysinfoJson() {
 			ESP.restart();
 		#endif
 		performRestart = false;
+	} else {
+		time_t now = time(nullptr);
+		if(now < BUILD_EPOCH && server.hasArg(F("t"))) {
+			time_t clientTime = server.arg(F("t")).toInt();
+			if(clientTime > BUILD_EPOCH) {
+				timeval tv { clientTime, 0};
+				settimeofday(&tv, nullptr);
+				if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("Internal clock synchronized with client\n");
+			}
+		}
 	}
 }
 
 void AmsWebServer::dataJson() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /data.json over http...\n");
-	uint64_t now = millis64();
+	uint64_t millis = millis64();
 
 	if(!checkSecurity(2))
 		return;
@@ -311,11 +322,11 @@ void AmsWebServer::dataJson() {
 	uint8_t hanStatus;
 	if(meterState->getLastError() < 0) {
 		hanStatus = 3;
-	} else if((meterConfig->baud == 0 || meterState->getLastUpdateMillis() == 0) && now < 15000) {
+	} else if((meterConfig->baud == 0 || meterState->getLastUpdateMillis() == 0) && millis < 15000) {
 		hanStatus = 0;
-	} else if(now - meterState->getLastUpdateMillis() < 15000) {
+	} else if(millis - meterState->getLastUpdateMillis() < 15000) {
 		hanStatus = 1;
-	} else if(now - meterState->getLastUpdateMillis() < 30000) {
+	} else if(millis - meterState->getLastUpdateMillis() < 30000) {
 		hanStatus = 2;
 	} else {
 		hanStatus = 3;
@@ -351,6 +362,8 @@ void AmsWebServer::dataJson() {
 		peaks += String(ea->getPeak(i).value / 100.0);
 	}
 
+	time_t now = time(nullptr);
+
 	snprintf_P(buf, BufferSize, DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		meterConfig->productionCapacity,
@@ -376,7 +389,7 @@ void AmsWebServer::dataJson() {
 		vcc,
 		rssi,
 		hw->getTemperature(),
-		(uint32_t) (now / 1000),
+		(uint32_t) (millis / 1000),
 		ESP.getFreeHeap(),
 		espStatus,
 		hanStatus,
@@ -404,7 +417,7 @@ void AmsWebServer::dataJson() {
 		priceRegion.c_str(),
 		meterState->getLastError(),
 		eapi == NULL ? 0 : eapi->getLastError(),
-		(uint32_t) time(nullptr)
+		(uint32_t) now
 	);
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -786,7 +799,8 @@ void AmsWebServer::configurationJson() {
 		wifiConfig.ssid,
 		strlen(wifiConfig.psk) > 0 ? "***" : "",
 		wifiConfig.power / 10.0,
-		wifiConfig.sleep
+		wifiConfig.sleep,
+		wifiConfig.autoreboot ? "true" : "false"
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_NET_JSON,
@@ -1081,6 +1095,7 @@ void AmsWebServer::handleSave() {
 		}
 		wifi.power = server.arg(F("ww")).toFloat() * 10;
 		wifi.sleep = server.arg(F("wz")).toInt();
+		wifi.autoreboot = server.hasArg(F("wa")) && server.arg(F("wa")) == F("true");
 		config->setWiFiConfig(wifi);
 
 		if(server.hasArg(F("nm")) && server.arg(F("nm")) == "static") {

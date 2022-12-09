@@ -755,6 +755,19 @@ void swapWifiMode() {
 
 	if (mode != WIFI_AP || !config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to AP mode");
+
+		//wifi_softap_set_dhcps_offer_option(OFFER_ROUTER, 0); // Disable default gw
+
+		/* Example code to set captive portal option in DHCP
+		auto& server = WiFi.softAPDhcpServer();
+		server.onSendOptions([](const DhcpServer& server, auto& options) {
+			// Captive Portal URI
+			const IPAddress gateway = netif_ip4_addr(server.getNetif());
+			const String captive = F("http://") + gateway.toString();
+			options.add(114, captive.c_str(), captive.length());
+		});
+		*/
+
 		WiFi.softAP(PSTR("AMS2MQTT"));
 		WiFi.mode(WIFI_AP);
 

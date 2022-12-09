@@ -106,6 +106,7 @@ private:
 	void factoryResetPost();
 
 	void notFound();
+	void redirectToMain();
 	void robotstxt();
 };
 

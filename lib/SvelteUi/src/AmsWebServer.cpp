@@ -48,7 +48,6 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	this->ds = ds;
 	this->ea = ea;
 
-
 	server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	snprintf_P(buf, 32, PSTR("/index-%s.js"), VERSION);
 	server.on(buf, HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
@@ -91,7 +90,14 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/mqtt-key"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
 
 	server.on(F("/configfile"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::configFileUpload, this));
-	server.on(F("/configfile.cfg"),HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
+	server.on(F("/configfile.cfg"), HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
+
+	/* These trigger captive portal. Only problem is that after you have "signed in", the portal is closed and the user has no idea how to reach the device
+	server.on(F("/generate_204"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Android captive portal check: http://connectivitycheck.gstatic.com/generate_204
+	server.on(F("/ncsi.txt"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check: http://www.msftncsi.com/ncsi.txt 
+	server.on(F("/fwlink"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check
+	server.on(F("/library/test/success.html"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Apple connectivity check: http://www.apple.com/library/test/success.html
+	*/
 
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
@@ -1987,4 +1993,9 @@ void AmsWebServer::configFileUpload() {
 		server.sendHeader("Location","/");
 		server.send(303);
 	}
+}
+
+void AmsWebServer::redirectToMain() {
+	server.sendHeader("Location","/");
+	server.send(302);
 }

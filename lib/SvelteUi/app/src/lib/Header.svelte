@@ -87,7 +87,11 @@
           </div>
           {#if sysinfo.fwconsent === 1 && nextVersion}
           <div class="flex-none mr-3 text-yellow-500" title="New version: {nextVersion.tag_name}">
-            <button on:click={askUpgrade} class="flex"><DownloadIcon/> <span class="mt-1">{nextVersion.tag_name}</span></button>
+            {#if sysinfo.security == 0 || data.a}
+            <button on:click={askUpgrade} class="flex"><span class="mt-1">New version: {nextVersion.tag_name}</span> <DownloadIcon/></button>
+            {:else}
+            <span>New version: {nextVersion.tag_name}</span>
+            {/if}
           </div>
           {/if}
         </div> 

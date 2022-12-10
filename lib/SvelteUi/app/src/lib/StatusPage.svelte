@@ -6,6 +6,7 @@
     import { Link } from 'svelte-navigator';
     import Mask from './Mask.svelte';
   
+    export let data;
     export let sysinfo;
   
     let nextVersion = {};
@@ -112,26 +113,27 @@
             Installed version: {sysinfo.version}
         </div>
         {#if nextVersion}
-        <div class="my-2 flex">
-            Latest version: 
-            <a href={nextVersion.html_url} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{nextVersion.tag_name}</a>
-            {#if sysinfo.fwconsent === 1 && nextVersion && nextVersion.tag_name}
-            <div class="flex-none ml-2 text-green-500" title="Install this version">
-                <button on:click={askUpgrade}><DownloadIcon/></button>
+            <div class="my-2 flex">
+                Latest version: 
+                <a href={nextVersion.html_url} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{nextVersion.tag_name}</a>
+                {#if (sysinfo.security == 0 || data.a) && sysinfo.fwconsent === 1 && nextVersion && nextVersion.tag_name}
+                <div class="flex-none ml-2 text-green-500" title="Install this version">
+                    <button on:click={askUpgrade}><DownloadIcon/></button>
+                </div>
+                {/if}
+            </div>
+            {#if sysinfo.fwconsent === 2}
+            <div class="my-2">
+                <div class="bd-ylo">You have disabled one-click firmware upgrade, link to self-upgrade is disabled</div>
             </div>
             {/if}
-        </div>
-        {#if sysinfo.fwconsent === 2}
-        <div class="my-2">
-            <div class="bd-ylo">You have disabled one-click firmware upgrade, link to self-upgrade is disabled</div>
-        </div>
         {/if}
-        {/if}
-        {#if sysinfo.board == 2 || sysinfo.board == 4 || sysinfo.board == 7 }
+        {#if (sysinfo.security == 0 || data.a) && (sysinfo.board == 2 || sysinfo.board == 4 || sysinfo.board == 7) }
         <div class="bd-red">
             {boardtype(sysinfo.chip, sysinfo.board)} must be connected to an external power supply during firmware upgrade. Failure to do so may cause power-down during upload resulting in non-functioning unit. 
         </div>
         {/if}
+        {#if sysinfo.security == 0 || data.a}
         <div class="my-2 flex">
             <form action="/firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true}>
                 <input style="display:none" name="file" type="file" accept=".bin" bind:this={firmwareFileInput} bind:files={firmwareFiles}>
@@ -143,7 +145,9 @@
                 {/if}
             </form>
         </div>
+        {/if}
     </div>
+    {#if sysinfo.security == 0 || data.a}
     <div class="cnt">
         <strong class="text-sm">Configuration</strong>
         <form method="get" action="/configfile.cfg">
@@ -172,8 +176,8 @@
             <button type="submit" class="ml-2 text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3">Upload</button>
             {/if}
         </form>
-
     </div>
+    {/if}
 </div>
 <Mask active={firmwareUploading} message="Uploading firmware, please wait"/>
 <Mask active={configUploading} message="Uploading configuration, please wait"/>

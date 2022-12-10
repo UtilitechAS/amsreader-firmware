@@ -71,7 +71,7 @@ private:
 	WebServer server;
 #endif
 
-	bool checkSecurity(byte level);
+	bool checkSecurity(byte level, bool send401 = true);
 
 	void indexHtml();
 	void indexJs();

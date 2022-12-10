@@ -39,7 +39,7 @@
       <ConfigurationPanel sysinfo={sysinfo}/>
     </Route>
     <Route path="/status">
-      <StatusPage sysinfo={sysinfo}/>
+      <StatusPage sysinfo={sysinfo} data={data}/>
     </Route>
     <Route path="/mqtt-ca">
       <FileUploadComponent title="CA" action="/mqtt-ca"/>

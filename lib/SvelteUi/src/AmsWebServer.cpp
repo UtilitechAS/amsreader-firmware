@@ -141,7 +141,7 @@ void AmsWebServer::loop() {
 	}
 }
 
-bool AmsWebServer::checkSecurity(byte level) {
+bool AmsWebServer::checkSecurity(byte level, bool send401) {
 	bool access = WiFi.getMode() == WIFI_AP || webConfig.security < level;
 	if(!access && webConfig.security >= level && server.hasHeader("Authorization")) {
 		String expectedAuth = String(webConfig.username) + ":" + String(webConfig.password);
@@ -161,7 +161,7 @@ bool AmsWebServer::checkSecurity(byte level) {
 		access = providedPwd.equals(expectedBase64);
 	}
 
-	if(!access) {
+	if(!access && send401) {
 		server.sendHeader(HEADER_AUTHENTICATE, AUTHENTICATE_BASIC);
 		server.setContentLength(0);
 		server.send(401, MIME_HTML, "");
@@ -247,7 +247,8 @@ void AmsWebServer::sysinfoJson() {
 		#endif
 		meterState->getMeterType(),
 		meterState->getMeterModel().c_str(),
-		meterState->getMeterId().c_str()
+		meterState->getMeterId().c_str(),
+		webConfig.security
 	);
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -417,7 +418,8 @@ void AmsWebServer::dataJson() {
 		priceRegion.c_str(),
 		meterState->getLastError(),
 		eapi == NULL ? 0 : eapi->getLastError(),
-		(uint32_t) now
+		(uint32_t) now,
+		checkSecurity(1, false) ? "true" : "false"
 	);
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -1618,7 +1620,7 @@ void AmsWebServer::mqttKeyUpload() {
 void AmsWebServer::tariffJson() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /tariff.json over http...\n");
 
-	if(!checkSecurity(1))
+	if(!checkSecurity(2))
 		return;
 
 	EnergyAccountingConfig* eac = ea->getConfig();

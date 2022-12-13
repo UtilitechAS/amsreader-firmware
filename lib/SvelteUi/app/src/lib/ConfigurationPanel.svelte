@@ -225,6 +225,7 @@
                 <span>Serial configuration</span>
                 <div class="flex">
                     <select name="mb" bind:value={configuration.m.b} class="in-f">
+                        <option value={0} disabled={configuration.m.b != 0}>Autodetect</option>
                         <option value={2400}>2400</option>
                         <option value={4800}>4800</option>
                         <option value={9600}>9600</option>
@@ -233,7 +234,8 @@
                         <option value={57600}>57600</option>
                         <option value={115200}>115200</option>
                     </select>
-                    <select name="mp" bind:value={configuration.m.p} class="in-l">
+                    <select name="mp" bind:value={configuration.m.p} class="in-l" disabled={configuration.m.b == 0}>
+                        <option value={0} disabled={configuration.m.b != 0}>-</option>
                         <option value={2}>7N1</option>
                         <option value={3}>8N1</option>
                         <option value={10}>7E1</option>

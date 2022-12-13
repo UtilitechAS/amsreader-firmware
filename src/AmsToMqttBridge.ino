@@ -233,9 +233,9 @@ void setup() {
 				break;
 		}
 		#if defined(ESP32)
-			Serial.begin(meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
+			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud: , serialConfig, -1, -1, meterConfig.invert);
 		#else
-			Serial.begin(meterConfig.baud, serialConfig, SERIAL_FULL, 1, meterConfig.invert);
+			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, SERIAL_FULL, 1, meterConfig.invert);
 		#endif
 	}
 
@@ -403,6 +403,13 @@ unsigned long lastTemperatureRead = 0;
 unsigned long lastSysupdate = 0;
 unsigned long lastErrorBlink = 0; 
 int lastError = 0;
+
+bool meterAutodetect = false;
+unsigned long meterAutodetectLastChange = 0;
+uint8_t meterAutoIndex = 0;
+uint32_t bauds[] = { 2400, 2400, 115200, 115200 };
+uint8_t parities[] = { 11, 3, 3, 3 };
+bool inverts[] = { false, false, false, true };
 
 void loop() {
 	Debug.handle();
@@ -593,6 +600,31 @@ void loop() {
 		}
 	} catch(const std::exception& e) {
 		debugE("Exception in readHanPort (%s)", e.what());
+		meterState.setLastError(98);
+	}
+	try {
+		if(meterState.getLastError() > 0) {
+			if(now - meterAutodetectLastChange > 15000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
+				meterAutodetect = true;
+				meterAutoIndex++; // Default is to try the first one in setup()
+				debugI("Meter serial autodetect, swapping to: %d, %d, %s", bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
+				if(meterAutoIndex >= 4) meterAutoIndex = 0;
+				setupHanPort(gpioConfig.hanPin, bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex]);
+				meterAutodetectLastChange = now;
+			}
+		} else if(meterAutodetect) {
+			meterAutoIndex--; // Last one worked, so lets use that
+			debugI("Meter serial autodetected, saving: %d, %d, %s", bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
+			meterAutodetect = false;
+			meterConfig.baud = bauds[meterAutoIndex];
+			meterConfig.parity = parities[meterAutoIndex];
+			meterConfig.invert = inverts[meterAutoIndex];
+			config.setMeterConfig(meterConfig);
+			setupHanPort(gpioConfig.hanPin, meterConfig.baud, meterConfig.parity, meterConfig.invert);
+		}
+	} catch(const std::exception& e) {
+		debugE("Exception in meter autodetect (%s)", e.what());
+		meterState.setLastError(99);
 	}
 
 	delay(1); // Needed for auto modem sleep
@@ -605,6 +637,15 @@ void loop() {
 
 void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert) {
 	if(Debug.isActive(RemoteDebug::INFO)) Debug.printf((char*) F("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n"), pin, baud, parityOrdinal);
+
+	if(baud == 0) {
+		baud = bauds[meterAutoIndex];
+		parityOrdinal = parities[meterAutoIndex];
+		invert = inverts[meterAutoIndex];
+	}
+	if(parityOrdinal == 0) {
+		parityOrdinal = 3; // 8N1
+	}
 
 	HardwareSerial *hwSerial = NULL;
 	if(pin == 3 || pin == 113) {
@@ -723,6 +764,7 @@ void errorBlink() {
 				if(lastErrorBlink - meterState.getLastUpdateMillis() > 30000) {
 					debugW("No HAN data received last 30s, single blink");
 					hw.ledBlink(LED_RED, 1); // If no message received from AMS in 30 sec, blink once
+					if(meterState.getLastError() == 0) meterState.setLastError(90);
 					return;
 				}
 				break;

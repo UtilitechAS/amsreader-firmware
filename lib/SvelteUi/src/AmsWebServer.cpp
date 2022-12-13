@@ -273,16 +273,6 @@ void AmsWebServer::sysinfoJson() {
 			ESP.restart();
 		#endif
 		performRestart = false;
-	} else {
-		time_t now = time(nullptr);
-		if(now < BUILD_EPOCH && server.hasArg(F("t"))) {
-			time_t clientTime = server.arg(F("t")).toInt();
-			if(clientTime > BUILD_EPOCH) {
-				timeval tv { clientTime, 0};
-				settimeofday(&tv, nullptr);
-				if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("Internal clock synchronized with client\n");
-			}
-		}
 	}
 }
 
@@ -290,7 +280,7 @@ void AmsWebServer::dataJson() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /data.json over http...\n");
 	uint64_t millis = millis64();
 
-	if(!checkSecurity(2))
+	if(!checkSecurity(2, true))
 		return;
 
 	float vcc = hw->getVcc();
@@ -1322,6 +1312,9 @@ void AmsWebServer::handleSave() {
 void AmsWebServer::reboot() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /reboot over http...\n");
 
+	if(!checkSecurity(1))
+		return;
+
 	server.send(200, MIME_JSON, "{\"reboot\":true}");
 
 	server.handleClient();
@@ -1407,12 +1400,12 @@ void AmsWebServer::upgrade() {
 void AmsWebServer::firmwareHtml() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Serving /firmware.html over http..."));
 
+	if(!checkSecurity(1))
+		return;
+
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
-
-	if(!checkSecurity(1))
-		return;
 
 	server.setContentLength(FIRMWARE_HTML_LEN);
 	server.send_P(200, MIME_HTML, FIRMWARE_HTML);
@@ -1979,15 +1972,15 @@ void AmsWebServer::configFileDownload() {
 		EnergyAccountingConfig eac;
 		config->getEnergyAccountingConfig(eac);
 		EnergyAccountingData ead = ea->getData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("energyaccounting %d %d %.2f %.2f %.2f %.2f %d %.2f %d %.2f %d %.2f %d %.2f %d %.2f"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("energyaccounting %d %d %.2f %d %d %.2f %d %d %d %.2f %d %.2f %d %.2f %d %.2f %d %.2f"), 
 			ead.version,
 			ead.month,
 			ead.costYesterday / 10.0,
-			ead.costThisMonth / 1.0,
-			ead.costLastMonth / 1.0,
+			ead.costThisMonth,
+			ead.costLastMonth,
 			ead.incomeYesterday / 10.0,
-			ead.incomeThisMonth / 1.0,
-			ead.incomeLastMonth / 1.0,
+			ead.incomeThisMonth,
+			ead.incomeLastMonth,
 			ead.peaks[0].day,
 			ead.peaks[0].value / 100.0,
 			ead.peaks[1].day,

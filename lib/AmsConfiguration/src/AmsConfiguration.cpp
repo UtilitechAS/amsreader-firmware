@@ -218,8 +218,8 @@ bool AmsConfiguration::setMeterConfig(MeterConfig& config) {
 }
 
 void AmsConfiguration::clearMeter(MeterConfig& config) {
-	config.baud = 2400;
-	config.parity = 11; // 8E1
+	config.baud = 0;
+	config.parity = 0;
 	config.invert = false;
 	config.distributionSystem = 0;
 	config.mainFuse = 0;

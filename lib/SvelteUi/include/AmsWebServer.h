@@ -60,7 +60,7 @@ private:
 	bool performRestart = false;
 	bool performUpgrade = false;
 	bool rebootForUpgrade = false;
-	String priceRegion;
+	String priceRegion = "";
 
     static const uint16_t BufferSize = 2048;
     char* buf;

@@ -233,7 +233,7 @@ void setup() {
 				break;
 		}
 		#if defined(ESP32)
-			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud: , serialConfig, -1, -1, meterConfig.invert);
+			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
 		#else
 			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, SERIAL_FULL, 1, meterConfig.invert);
 		#endif

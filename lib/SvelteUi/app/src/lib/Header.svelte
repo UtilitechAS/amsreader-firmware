@@ -58,7 +58,7 @@
           <Badge title="WiFi" text={data.r ? data.r.toFixed(0)+"dBm" : "WiFi"} color={sysinfo.booting ? 'gray' : data.wm === 1 ? 'green' : data.wm === 2 ? 'yellow' : data.wm === 3 ? 'red' : 'gray'}/>
           <Badge title="MQTT" text="MQTT" color={sysinfo.booting ? 'gray' : data.mm === 1 ? 'green' : data.mm === 2 ? 'yellow' : data.mm === 3 ? 'red' : 'gray'}/>
         </div>
-        {#if data.he < 0}
+        {#if data.he < 0 || data.he > 0}
         <div class="bd-red">{ 'HAN: ' + hanError(data.he) }</div>
         {/if}
         {#if data.me < 0}

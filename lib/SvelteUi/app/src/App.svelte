@@ -64,6 +64,6 @@
   {#if sysinfo.upgrading}
   <Mask active=true message="Device is upgrading, please wait"/>
   {:else if sysinfo.booting}
-  <Mask active=true message="Device is booting, please wait"/>
+  <Mask active=true message={sysinfo.hostname}/>
   {/if}
 </div>

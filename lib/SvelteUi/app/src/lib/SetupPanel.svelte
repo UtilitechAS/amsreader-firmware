@@ -41,11 +41,12 @@
 
     async function handleSubmit(e) {
         loadingOrSaving = true;
-        const formData = new FormData(e.target)
-        const data = new URLSearchParams()
+        const formData = new FormData(e.target);
+        let hostname = sysinfo.hostname;
+        const data = new URLSearchParams();
         for (let field of formData) {
-            const [key, value] = field
-            data.append(key, value)
+            const [key, value] = field;
+            if(key == 'sh') hostname = value;
         }
 
         const response = await fetch('/save', {
@@ -56,6 +57,7 @@
         loadingOrSaving = false;
 
         sysinfoStore.update(s => {
+            s.hostname = hostname;
             s.usrcfg = res.success;
             s.booting = res.reboot;
             setTimeout(scanForDevice, 5000);

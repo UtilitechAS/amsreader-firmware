@@ -311,9 +311,9 @@ void AmsWebServer::dataJson() {
 
 
 	uint8_t hanStatus;
-	if(meterState->getLastError() < 0) {
+	if(meterState->getLastError() != 0) {
 		hanStatus = 3;
-	} else if((meterConfig->baud == 0 || meterState->getLastUpdateMillis() == 0) && millis < 15000) {
+	} else if((meterConfig->baud == 0 || meterState->getLastUpdateMillis() == 0) && millis < 30000) {
 		hanStatus = 0;
 	} else if(millis - meterState->getLastUpdateMillis() < 15000) {
 		hanStatus = 1;

@@ -153,7 +153,7 @@ bool EntsoeApi::loop() {
         currentDay = tm.Day;
         return false;
     } else if(now > midnightMillis && currentDay != tm.Day) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Rotating price objects at %lld\n", t);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Rotating price objects at %lu\n", t);
         if(today != NULL) delete today;
         if(tomorrow != NULL) {
             today = tomorrow;

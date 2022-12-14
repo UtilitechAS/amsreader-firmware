@@ -1830,9 +1830,9 @@ void AmsWebServer::configFileDownload() {
 
 	if(ds != NULL) {
 		DayDataPoints day = ds->getDayData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dayplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dayplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			day.version,
-			(int64_t) day.lastMeterReadTime,
+			(int32_t) day.lastMeterReadTime,
 			day.activeImport,
 			ds->getHourImport(0),
 			ds->getHourImport(1),
@@ -1892,9 +1892,9 @@ void AmsWebServer::configFileDownload() {
 		}
 
 		MonthDataPoints month = ds->getMonthData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("monthplot %d %lld %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("monthplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			month.version,
-			(int64_t) month.lastMeterReadTime,
+			(int32_t) month.lastMeterReadTime,
 			month.activeImport,
 			ds->getDayImport(1),
 			ds->getDayImport(2),

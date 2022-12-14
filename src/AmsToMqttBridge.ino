@@ -381,6 +381,7 @@ void setup() {
 		config.ackEnergyAccountingChange();
 	}
 	ea.setup(&ds, eac);
+	ea.load();
 	ea.setEapi(eapi);
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
 
@@ -452,9 +453,39 @@ void loop() {
 			wifiReconnectCount = 0;
 			if(!wifiConnected) {
 				wifiConnected = true;
-				
+
 				WiFiConfig wifi;
 				if(config.getWiFiConfig(wifi)) {
+					#if defined(ESP32)
+						if(wifi.power >= 195)
+							WiFi.setTxPower(WIFI_POWER_19_5dBm);
+						else if(wifi.power >= 190)
+							WiFi.setTxPower(WIFI_POWER_19dBm);
+						else if(wifi.power >= 185)
+							WiFi.setTxPower(WIFI_POWER_18_5dBm);
+						else if(wifi.power >= 170)
+							WiFi.setTxPower(WIFI_POWER_17dBm);
+						else if(wifi.power >= 150)
+							WiFi.setTxPower(WIFI_POWER_15dBm);
+						else if(wifi.power >= 130)
+							WiFi.setTxPower(WIFI_POWER_13dBm);
+						else if(wifi.power >= 110)
+							WiFi.setTxPower(WIFI_POWER_11dBm);
+						else if(wifi.power >= 85)
+							WiFi.setTxPower(WIFI_POWER_8_5dBm);
+						else if(wifi.power >= 70)
+							WiFi.setTxPower(WIFI_POWER_7dBm);
+						else if(wifi.power >= 50)
+							WiFi.setTxPower(WIFI_POWER_5dBm);
+						else if(wifi.power >= 20)
+							WiFi.setTxPower(WIFI_POWER_2dBm);
+						else
+							WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
+					#elif defined(ESP8266)
+						WiFi.setOutputPower(wifi.power / 10.0);
+					#endif
+					
+
 					WebConfig web;
 					if(config.getWebConfig(web) && web.security > 0) {
 						Debug.setPassword(web.password);
@@ -1114,34 +1145,7 @@ void WiFi_connect() {
 			}	
 		#endif
 		WiFi.mode(WIFI_STA);
-		#if defined(ESP32)
-			if(wifi.power >= 195)
-				WiFi.setTxPower(WIFI_POWER_19_5dBm);
-			else if(wifi.power >= 190)
-				WiFi.setTxPower(WIFI_POWER_19dBm);
-			else if(wifi.power >= 185)
-				WiFi.setTxPower(WIFI_POWER_18_5dBm);
-			else if(wifi.power >= 170)
-				WiFi.setTxPower(WIFI_POWER_17dBm);
-			else if(wifi.power >= 150)
-				WiFi.setTxPower(WIFI_POWER_15dBm);
-			else if(wifi.power >= 130)
-				WiFi.setTxPower(WIFI_POWER_13dBm);
-			else if(wifi.power >= 110)
-				WiFi.setTxPower(WIFI_POWER_11dBm);
-			else if(wifi.power >= 85)
-				WiFi.setTxPower(WIFI_POWER_8_5dBm);
-			else if(wifi.power >= 70)
-				WiFi.setTxPower(WIFI_POWER_7dBm);
-			else if(wifi.power >= 50)
-				WiFi.setTxPower(WIFI_POWER_5dBm);
-			else if(wifi.power >= 20)
-				WiFi.setTxPower(WIFI_POWER_2dBm);
-			else
-				WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
-		#elif defined(ESP8266)
-			WiFi.setOutputPower(wifi.power / 10.0);
-		#endif
+
 		if(strlen(wifi.ip) > 0) {
 			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
 			ip.fromString(wifi.ip);
@@ -1459,7 +1463,7 @@ void MQTT_connect() {
 
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
-			debugD("Setting NTP time %lld for secure MQTT connection", epoch);
+			debugD("Setting NTP time %lu for secure MQTT connection", epoch);
 			mqttSecureClient->setX509Time(epoch);
 		}
 	#endif

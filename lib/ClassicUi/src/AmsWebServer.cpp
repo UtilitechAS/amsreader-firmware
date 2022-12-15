@@ -330,7 +330,7 @@ void AmsWebServer::configMeterHtml() {
 			manufacturer = F("Iskra");
 			break;
 		case AmsTypeLandis:
-			manufacturer = F("Landis + Gyro");
+			manufacturer = F("Landis+Gyr");
 			break;
 		case AmsTypeSagemcom:
 			manufacturer = F("Sagemcom");

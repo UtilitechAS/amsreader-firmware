@@ -79,6 +79,14 @@ IEC6205621::IEC6205621(const char* p) {
 	l1current = extractDouble(payload, "31.7.0");
 	l2current = extractDouble(payload, "51.7.0");
 	l3current = extractDouble(payload, "71.7.0");
+
+	l1activeImportPower = extractDouble(payload, "21.7.0");
+	l2activeImportPower = extractDouble(payload, "41.7.0");
+	l3activeImportPower = extractDouble(payload, "61.7.0");
+	
+	l1activeExportPower = extractDouble(payload, "22.7.0");
+	l2activeExportPower = extractDouble(payload, "42.7.0");
+	l3activeExportPower = extractDouble(payload, "62.7.0");
 	
 	if(l1voltage > 0 || l2voltage > 0 || l3voltage > 0)
 		listType = 2;

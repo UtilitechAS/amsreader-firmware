@@ -33,6 +33,9 @@ IEC6205621::IEC6205621(const char* p) {
 	} else if(listId.startsWith("Ene") || listId.startsWith("EST")) {
 		meterType = AmsTypeSagemcom;
 		listId = listId.substring(0,4);
+	} else if(listId.startsWith("LGF")) {
+		meterType = AmsTypeLandis;
+		listId = listId.substring(0,4);
 	} else {
 		meterType = AmsTypeUnknown;
 		listId = listId.substring(0,4);

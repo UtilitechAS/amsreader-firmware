@@ -28,13 +28,13 @@ IEC6205621::IEC6205621(const char* p) {
 		meterType = AmsTypeIskra;
 		listId = listId.substring(0,5);
 	} else if(listId.startsWith("XMX")) {
-		meterType = AmsTypeLandis;
+		meterType = AmsTypeLandisGyr;
 		listId = listId.substring(0,6);
 	} else if(listId.startsWith("Ene") || listId.startsWith("EST")) {
 		meterType = AmsTypeSagemcom;
 		listId = listId.substring(0,4);
 	} else if(listId.startsWith("LGF")) {
-		meterType = AmsTypeLandis;
+		meterType = AmsTypeLandisGyr;
 		listId = listId.substring(0,4);
 	} else {
 		meterType = AmsTypeUnknown;

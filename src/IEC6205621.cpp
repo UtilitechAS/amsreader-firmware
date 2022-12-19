@@ -1,16 +1,10 @@
 #include "IEC6205621.h"
-#include "ams/crc.h"
 
 IEC6205621::IEC6205621(const char* p) {
 	if(strlen(p) < 16)
 		return;
 
 	String payload(p+1);
-	int crc_pos = payload.lastIndexOf("!");
-	String crc = payload.substring(crc_pos+1, crc_pos+5);
-	//uint16_t crc_calc = crc16_x25((uint8_t*) (payload.startsWith("/") ? p+1 : p), crc_pos);
-
-	//Serial.printf("CRC %s :: %04X\n", crc.c_str(), crc_calc);
 
 	lastUpdateMillis = millis();
 	listId = payload.substring(payload.startsWith("/") ? 1 : 0, payload.indexOf("\n"));

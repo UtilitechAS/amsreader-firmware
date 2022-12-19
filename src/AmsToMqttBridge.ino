@@ -1391,7 +1391,7 @@ void MQTT_connect() {
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
 			time_t epoch = time(nullptr);
-			debugD("Setting NTP time %lld for secure MQTT connection", epoch);
+			debugD("Setting NTP time %lu for secure MQTT connection", epoch);
 			mqttSecureClient->setX509Time(epoch);
 		}
 	#endif

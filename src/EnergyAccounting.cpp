@@ -42,7 +42,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     if(!init) {
         currentHour = local.Hour;
         currentDay = local.Day;
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Initializing data at %lld\n", (int64_t) now);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Initializing data at %lu\n", (int32_t) now);
         if(!load()) {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EnergyAccounting) Unable to load existing data\n");
             data = { 4, local.Month, 
@@ -63,7 +63,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     }
 
     if(!initPrice && eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Initializing prices at %lld\n", (int64_t) now);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Initializing prices at %lu\n", (int32_t) now);
         calcDayCost();
     }
 

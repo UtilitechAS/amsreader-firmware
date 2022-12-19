@@ -289,7 +289,7 @@
             {#if configuration.m.m.e}
             <div class="flex my-1">
                 <div class="w-1/4">
-                    Instant<br/>
+                    Watt<br/>
                     <input name="mmw" bind:value={configuration.m.m.w} type="number" min="0.00" max="655.35" step="0.01" class="in-f tr w-full"/>
                 </div>
                 <div class="w-1/4">
@@ -301,7 +301,7 @@
                     <input name="mma" bind:value={configuration.m.m.a} type="number" min="0.00" max="655.35" step="0.01" class="in-m tr w-full"/>
                 </div>
                 <div class="w-1/4">
-                    Acc.<br/>
+                    kWh<br/>
                     <input name="mmc" bind:value={configuration.m.m.c} type="number" min="0.00" max="655.35" step="0.01" class="in-l tr w-full"/>
                 </div>
             </div>

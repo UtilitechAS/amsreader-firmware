@@ -854,7 +854,7 @@ var fetch = function() {
                 $('.jmt').html("Iskra");
                 break;
             case 9:
-                $('.jmt').html("Landis");
+                $('.jmt').html("Landis+Gyr");
                 break;
             case 10:
                 $('.jmt').html("Sagemcom");

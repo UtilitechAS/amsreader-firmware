@@ -28,10 +28,13 @@ IEC6205621::IEC6205621(const char* p) {
 		meterType = AmsTypeIskra;
 		listId = listId.substring(0,5);
 	} else if(listId.startsWith("XMX")) {
-		meterType = AmsTypeLandis;
+		meterType = AmsTypeLandisGyr;
 		listId = listId.substring(0,6);
 	} else if(listId.startsWith("Ene") || listId.startsWith("EST")) {
 		meterType = AmsTypeSagemcom;
+		listId = listId.substring(0,4);
+	} else if(listId.startsWith("LGF")) {
+		meterType = AmsTypeLandisGyr;
 		listId = listId.substring(0,4);
 	} else {
 		meterType = AmsTypeUnknown;
@@ -136,6 +139,9 @@ IEC6205621::IEC6205621(const char* p) {
 			l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
 		}
 	}
+
+	if (l1activeImportPower > 0 || l2activeImportPower > 0 || l3activeImportPower > 0 || l1activeExportPower > 0 || l2activeExportPower > 0 || l3activeExportPower > 0)
+		listType = 4;
 }
 
 String IEC6205621::extract(String payload, String obis) {

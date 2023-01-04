@@ -10,7 +10,7 @@ enum AmsType {
     AmsTypeKaifa = 0x02,
     AmsTypeKamstrup = 0x03,
     AmsTypeIskra = 0x08,
-    AmsTypeLandis = 0x09,
+    AmsTypeLandisGyr = 0x09,
     AmsTypeSagemcom = 0x0A,
     AmsTypeLng = 0x0B,
     AmsTypeCustom = 0x88,

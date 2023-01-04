@@ -10,3 +10,20 @@ uint16_t crc16_x25(const uint8_t* p, int len)
 
 	return (~crc << 8) | (~crc >> 8 & 0xff);
 }
+
+uint16_t crc16 (const uint8_t *p, int len) {
+    uint16_t crc = 0;
+
+    while (len--) {
+		int i;
+		crc ^= *p++;
+		for (i = 0 ; i < 8 ; ++i) {
+			if (crc & 1)
+				crc = (crc >> 1) ^ 0xa001;
+			else
+				crc = (crc >> 1);
+		}    			
+    }
+    
+    return crc;
+}

@@ -1,16 +1,10 @@
 #include "IEC6205621.h"
-#include "crc.h"
 
 IEC6205621::IEC6205621(const char* p) {
 	if(strlen(p) < 16)
 		return;
 
 	String payload(p+1);
-	int crc_pos = payload.lastIndexOf("!");
-	String crc = payload.substring(crc_pos+1, crc_pos+5);
-	//uint16_t crc_calc = crc16_x25((uint8_t*) (payload.startsWith("/") ? p+1 : p), crc_pos);
-
-	//Serial.printf("CRC %s :: %04X\n", crc.c_str(), crc_calc);
 
 	lastUpdateMillis = millis();
 	listId = payload.substring(payload.startsWith("/") ? 1 : 0, payload.indexOf("\n"));
@@ -28,10 +22,13 @@ IEC6205621::IEC6205621(const char* p) {
 		meterType = AmsTypeIskra;
 		listId = listId.substring(0,5);
 	} else if(listId.startsWith("XMX")) {
-		meterType = AmsTypeLandis;
+		meterType = AmsTypeLandisGyr;
 		listId = listId.substring(0,6);
 	} else if(listId.startsWith("Ene") || listId.startsWith("EST")) {
 		meterType = AmsTypeSagemcom;
+		listId = listId.substring(0,4);
+	} else if(listId.startsWith("LGF")) {
+		meterType = AmsTypeLandisGyr;
 		listId = listId.substring(0,4);
 	} else {
 		meterType = AmsTypeUnknown;
@@ -136,6 +133,9 @@ IEC6205621::IEC6205621(const char* p) {
 			l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
 		}
 	}
+
+	if (l1activeImportPower > 0 || l2activeImportPower > 0 || l3activeImportPower > 0 || l1activeExportPower > 0 || l2activeExportPower > 0 || l3activeExportPower > 0)
+		listType = 4;
 }
 
 String IEC6205621::extract(String payload, String obis) {

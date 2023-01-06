@@ -34,7 +34,7 @@
 
 <div class="grid xl:grid-cols-3 lg:grid-cols-2">
     <div class="cnt">
-        <form on:submit|preventDefault={handleSubmit}>
+        <form on:submit|preventDefault={handleSubmit} autocomplete="off">
             <div>
                 Various permissions we need to do stuff:
             </div>

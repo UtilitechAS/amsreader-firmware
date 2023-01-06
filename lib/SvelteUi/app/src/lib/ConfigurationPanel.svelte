@@ -31,6 +31,13 @@
             h: '', p: 1883, u: '', a: '', b: '',
             s: { e: false, c: false, r: true, k: false }
         },
+        o: {
+            e: '',
+            c: '',
+            u1: '',
+            u2: '',
+            u3: ''
+        },
         t: {
             t: [0,0,0,0,0,0,0,0,0,0], h: 1
         },
@@ -120,7 +127,7 @@
     }
 </script>
 
-<form on:submit|preventDefault={handleSubmit}>
+<form on:submit|preventDefault={handleSubmit} autocomplete="off">
     <div class="grid xl:grid-cols-4 lg:grid-cols-2 md:grid-cols-2">
         <div class="cnt">
             <strong class="text-sm">General</strong>
@@ -257,14 +264,14 @@
                 <div class="mx-1">
                     Main fuse<br/>
                     <label class="flex">
-                        <input name="mf" bind:value={configuration.m.f} type="number" min="5" max="255" class="in-f tr w-full"/>
+                        <input name="mf" bind:value={configuration.m.f} type="number" min="5" max="65535" class="in-f tr w-full"/>
                         <span class="in-post">A</span>
                     </label>
                 </div>
                 <div class="mx-1">
                     Production<br/>
                     <label class="flex">
-                        <input name="mr" bind:value={configuration.m.r} type="number" min="0" max="255" class="in-f tr w-full"/>
+                        <input name="mr" bind:value={configuration.m.r} type="number" min="0" max="65535" class="in-f tr w-full"/>
                         <span class="in-post">kWp</span>
                     </label>
                 </div>
@@ -457,6 +464,31 @@
                 <input name="qb" bind:value={configuration.q.b} type="text" class="in-s"/>
             </div>
         </div>
+        {#if configuration.q.m == 3}
+        <div class="cnt">
+            <strong class="text-sm">Domoticz</strong>
+            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/MQTT-configuration#domoticz" target="_blank" class="float-right"><HelpIcon/></a>
+            <input type="hidden" name="o" value="true"/>
+            <div class="my-1 flex">
+                <div class="w-1/2">
+                    Electricity IDX<br/>
+                    <input name="oe" bind:value={configuration.o.e} type="text" class="in-f tr w-full"/>
+                </div>
+                <div class="w-1/2">
+                    Current IDX<br/>
+                    <input name="oc" bind:value={configuration.o.c} type="text" class="in-l tr w-full"/>
+                </div>
+            </div>
+            <div class="my-1">
+                Voltage IDX: L1, L2 & L3
+                <div class="flex">
+                    <input name="ou1" bind:value={configuration.o.u1} type="text" class="in-f tr w-1/3"/>
+                    <input name="ou2" bind:value={configuration.o.u2} type="text" class="in-m tr w-1/3"/>
+                    <input name="ou2" bind:value={configuration.o.u3} type="text" class="in-l tr w-1/3"/>
+                </div>
+            </div>
+        </div>
+        {/if}
         {#if configuration.p.r.startsWith("10YNO") || configuration.p.r == '10Y1001A1001A48H'}
         <div class="cnt">
             <strong class="text-sm">Tariff thresholds</strong>

@@ -69,7 +69,7 @@
 
 <div class="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2">
     <div class="cnt">
-        <form on:submit|preventDefault={handleSubmit}>
+        <form on:submit|preventDefault={handleSubmit} autocomplete="off">
             <input type="hidden" name="s" value="true"/>
             <strong class="text-sm">Setup</strong>
             <div class="my-3">

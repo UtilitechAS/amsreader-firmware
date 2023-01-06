@@ -19,8 +19,13 @@
             return (i*barWidth)+config.padding.left;
         };
         yScale = function(i) {
-            if(i > config.y.max) return heightAvailable;
-            let ret = heightAvailable-config.padding.bottom-((i-config.y.min)*yPerUnit);
+            let ret = 0;
+            if(i > config.y.max) 
+                ret = config.padding.bottom;
+            else if(i < config.y.min)
+                ret = heightAvailable-config.padding.bottom;
+            else 
+                ret = heightAvailable-config.padding.bottom-((i-config.y.min)*yPerUnit);
             return ret > heightAvailable || ret < 0.0 ? 0.0 : ret;
         };
     };

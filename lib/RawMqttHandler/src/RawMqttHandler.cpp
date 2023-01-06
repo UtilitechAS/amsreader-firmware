@@ -92,6 +92,7 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccountin
     }
     mqtt->publish(topic + "/realtime/import/hour", String(ea->getUseThisHour(), 3));
     mqtt->publish(topic + "/realtime/import/day", String(ea->getUseToday(), 2));
+    mqtt->publish(topic + "/realtime/import/month", String(ea->getUseThisMonth(), 1));
     uint8_t peakCount = ea->getConfig()->hours;
     if(peakCount > 5) peakCount = 5;
     for(uint8_t i = 1; i <= peakCount; i++) {
@@ -101,6 +102,7 @@ bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccountin
     mqtt->publish(topic + "/realtime/import/monthmax", String(ea->getMonthMax(), 3), true, 0);
     mqtt->publish(topic + "/realtime/export/hour", String(ea->getProducedThisHour(), 3));
     mqtt->publish(topic + "/realtime/export/day", String(ea->getProducedToday(), 2));
+    mqtt->publish(topic + "/realtime/export/month", String(ea->getProducedThisMonth(), 1));
     return true;
 }
 

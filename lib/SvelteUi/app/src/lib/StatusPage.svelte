@@ -135,7 +135,7 @@
         {/if}
         {#if sysinfo.security == 0 || data.a}
         <div class="my-2 flex">
-            <form action="/firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true}>
+            <form action="/firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true} autocomplete="off">
                 <input style="display:none" name="file" type="file" accept=".bin" bind:this={firmwareFileInput} bind:files={firmwareFiles}>
                 {#if firmwareFiles.length == 0}
                 <button type="button" on:click={()=>{firmwareFileInput.click();}} class="text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Select firmware file for upgrade</button>
@@ -150,7 +150,7 @@
     {#if sysinfo.security == 0 || data.a}
     <div class="cnt">
         <strong class="text-sm">Configuration</strong>
-        <form method="get" action="/configfile.cfg">
+        <form method="get" action="/configfile.cfg" autocomplete="off">
             <div class="grid grid-cols-2">
                 <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="iw" value="true" checked/> WiFi</label>
                 <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="im" value="true" checked/> MQTT</label>
@@ -167,7 +167,7 @@
             <button type="submit" class="ml-2 text-xs py-1 px-2 rounded bg-blue-500 text-white float-right mr-3">Download</button>
             {/if}
         </form>
-        <form action="/configfile" enctype="multipart/form-data" method="post" on:submit={() => configUploading=true}>
+        <form action="/configfile" enctype="multipart/form-data" method="post" on:submit={() => configUploading=true} autocomplete="off">
             <input style="display:none" name="file" type="file" accept=".cfg" bind:this={configFileInput} bind:files={configFiles}>
             {#if configFiles.length == 0}
             <button type="button" on:click={()=>{configFileInput.click();}} class="text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3">Select file...</button>

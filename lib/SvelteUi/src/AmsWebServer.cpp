@@ -25,6 +25,7 @@
 #include "html/conf_thresholds_json.h"
 #include "html/conf_debug_json.h"
 #include "html/conf_gpio_json.h"
+#include "html/conf_domoticz_json.h"
 #include "html/firmware_html.h"
 
 #include "version.h"
@@ -727,6 +728,8 @@ void AmsWebServer::configurationJson() {
 	config->getEntsoeConfig(entsoe);
 	DebugConfig debugConfig;
 	config->getDebugConfig(debugConfig);
+	DomoticzConfig domo;
+	config->getDomoticzConfig(domo);
 
 	bool qsc = false;
 	bool qsr = false;
@@ -852,6 +855,14 @@ void AmsWebServer::configurationJson() {
 		gpioConfig->vccResistorVcc,
 		gpioConfig->vccResistorGnd,
 		gpioConfig->vccBootLimit / 10.0
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_DOMOTICZ_JSON,
+		domo.elidx,
+		domo.cl1idx,
+		domo.vl1idx,
+		domo.vl2idx,
+		domo.vl3idx
 	);
 	server.sendContent(buf);
 	server.sendContent("}");
@@ -1141,14 +1152,14 @@ void AmsWebServer::handleSave() {
 		config->setMqttConfig(mqtt);
 	}
 
-	if(server.hasArg(F("dc")) && server.arg(F("dc")) == F("true")) {
+	if(server.hasArg(F("o")) && server.arg(F("o")) == F("true")) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received Domoticz config"));
 		DomoticzConfig domo {
-			static_cast<uint16_t>(server.arg(F("elidx")).toInt()),
-			static_cast<uint16_t>(server.arg(F("vl1idx")).toInt()),
-			static_cast<uint16_t>(server.arg(F("vl2idx")).toInt()),
-			static_cast<uint16_t>(server.arg(F("vl3idx")).toInt()),
-			static_cast<uint16_t>(server.arg(F("cl1idx")).toInt())
+			static_cast<uint16_t>(server.arg(F("oe")).toInt()),
+			static_cast<uint16_t>(server.arg(F("ou1")).toInt()),
+			static_cast<uint16_t>(server.arg(F("ou2")).toInt()),
+			static_cast<uint16_t>(server.arg(F("ou3")).toInt()),
+			static_cast<uint16_t>(server.arg(F("oc")).toInt())
 		};
 		config->setDomoticzConfig(domo);
 	}
@@ -1830,10 +1841,11 @@ void AmsWebServer::configFileDownload() {
 
 	if(ds != NULL) {
 		DayDataPoints day = ds->getDayData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dayplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dayplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			day.version,
 			(int32_t) day.lastMeterReadTime,
 			day.activeImport,
+			day.accuracy,
 			ds->getHourImport(0),
 			ds->getHourImport(1),
 			ds->getHourImport(2),
@@ -1892,10 +1904,11 @@ void AmsWebServer::configFileDownload() {
 		}
 
 		MonthDataPoints month = ds->getMonthData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("monthplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("monthplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			month.version,
 			(int32_t) month.lastMeterReadTime,
 			month.activeImport,
+			month.accuracy,
 			ds->getDayImport(1),
 			ds->getDayImport(2),
 			ds->getDayImport(3),

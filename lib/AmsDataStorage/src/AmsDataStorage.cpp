@@ -5,8 +5,10 @@
 #include "version.h"
 
 AmsDataStorage::AmsDataStorage(RemoteDebug* debugger) {
-    day.version = 4;
-    month.version = 5;
+    day.version = 5;
+    day.accuracy = 1;
+    month.version = 6;
+    month.accuracy = 1;
     this->debugger = debugger;
 }
 
@@ -237,44 +239,160 @@ bool AmsDataStorage::update(AmsData* data) {
     return ret;
 }
 
-void AmsDataStorage::setHourImport(uint8_t hour, int32_t val) {
+void AmsDataStorage::setHourImport(uint8_t hour, uint32_t val) {
     if(hour < 0 || hour > 24) return;
-    day.hImport[hour] = val / 10;
+    
+    uint8_t accuracy = day.accuracy;
+    uint32_t update = val / pow(10, accuracy);
+    while(update > UINT16_MAX) {
+        accuracy++;
+        update = val / pow(10, accuracy);
+    }
+   
+    if(accuracy != day.accuracy) {
+        setDayAccuracy(accuracy);
+    }
+    
+    day.hImport[hour] = update;
+
+    uint32_t max = 0;
+    for(uint8_t i = 0; i < 24; i++) {
+        if(day.hImport[i] > max)
+            max = day.hImport[i];
+        if(day.hExport[i] > max)
+            max = day.hExport[i];
+    }
+
+    while(max < UINT16_MAX/10 && accuracy > 0) {
+        accuracy--;
+        max = max*10;
+    }
+    
+    if(accuracy != day.accuracy) {
+        setDayAccuracy(accuracy);
+    }
 }
 
-int32_t AmsDataStorage::getHourImport(uint8_t hour) {
+uint32_t AmsDataStorage::getHourImport(uint8_t hour) {
     if(hour < 0 || hour > 24) return 0;
-    return day.hImport[hour] * 10;
+    return day.hImport[hour] * pow(10, day.accuracy);
 }
 
-void AmsDataStorage::setHourExport(uint8_t hour, int32_t val) {
+void AmsDataStorage::setHourExport(uint8_t hour, uint32_t val) {
     if(hour < 0 || hour > 24) return;
-    day.hExport[hour] = val / 10;
+    
+    uint8_t accuracy = day.accuracy;
+    uint32_t update = val / pow(10, accuracy);
+    while(update > UINT16_MAX) {
+        accuracy++;
+        update = val / pow(10, accuracy);
+    }
+    
+    if(accuracy != day.accuracy) {
+        setDayAccuracy(accuracy);
+    }
+
+    day.hExport[hour] = update;
+
+    uint32_t max = 0;
+    for(uint8_t i = 0; i < 24; i++) {
+        if(day.hImport[i] > max)
+            max = day.hImport[i];
+        if(day.hExport[i] > max)
+            max = day.hExport[i];
+    }
+
+    while(max < UINT16_MAX/10 && accuracy > 0) {
+        accuracy--;
+        max = max*10;
+    }
+    
+    if(accuracy != day.accuracy) {
+        setDayAccuracy(accuracy);
+    }
 }
 
-int32_t AmsDataStorage::getHourExport(uint8_t hour) {
+uint32_t AmsDataStorage::getHourExport(uint8_t hour) {
     if(hour < 0 || hour > 24) return 0;
-    return day.hExport[hour] * 10;
+    return day.hExport[hour] * pow(10, day.accuracy);
 }
 
-void AmsDataStorage::setDayImport(uint8_t day, int32_t val) {
+void AmsDataStorage::setDayImport(uint8_t day, uint32_t val) {
     if(day < 1 || day > 31) return;
-    month.dImport[day-1] = val / 10;
+    
+    uint8_t accuracy = month.accuracy;
+    uint32_t update = val / pow(10, accuracy);
+    while(update > UINT16_MAX) {
+        accuracy++;
+        update = val / pow(10, accuracy);
+    }
+    
+    if(accuracy != month.accuracy) {
+        setMonthAccuracy(accuracy);
+    }
+
+    month.dImport[day-1] = update;
+
+    uint32_t max = 0;
+    for(uint8_t i = 0; i < 31; i++) {
+        if(month.dImport[i] > max)
+            max = month.dImport[i];
+        if(month.dExport[i] > max)
+            max = month.dExport[i];
+    }
+
+    while(max < UINT16_MAX/10 && accuracy > 0) {
+        accuracy--;
+        max = max*10;
+    }
+    
+    if(accuracy != month.accuracy) {
+        setMonthAccuracy(accuracy);
+    }
 }
 
-int32_t AmsDataStorage::getDayImport(uint8_t day) {
+uint32_t AmsDataStorage::getDayImport(uint8_t day) {
     if(day < 1 || day > 31) return 0;
-    return (month.dImport[day-1] * 10);
+    return (month.dImport[day-1] * pow(10, month.accuracy));
 }
 
-void AmsDataStorage::setDayExport(uint8_t day, int32_t val) {
+void AmsDataStorage::setDayExport(uint8_t day, uint32_t val) {
     if(day < 1 || day > 31) return;
-    month.dExport[day-1] = val / 10;
+    
+    uint8_t accuracy = month.accuracy;
+    uint32_t update = val / pow(10, accuracy);
+    while(update > UINT16_MAX) {
+        accuracy++;
+        update = val / pow(10, accuracy);
+    }
+    
+    if(accuracy != month.accuracy) {
+        setMonthAccuracy(accuracy);
+    }
+
+    month.dExport[day-1] = update;
+
+    uint32_t max = 0;
+    for(uint8_t i = 0; i < 31; i++) {
+        if(month.dImport[i] > max)
+            max = month.dImport[i];
+        if(month.dExport[i] > max)
+            max = month.dExport[i];
+    }
+
+    while(max < UINT16_MAX/10 && accuracy > 0) {
+        accuracy--;
+        max = max*10;
+    }
+    
+    if(accuracy != month.accuracy) {
+        setMonthAccuracy(accuracy);
+    }
 }
 
-int32_t AmsDataStorage::getDayExport(uint8_t day) {
+uint32_t AmsDataStorage::getDayExport(uint8_t day) {
     if(day < 1 || day > 31) return 0;
-    return (month.dExport[day-1] * 10);
+    return (month.dExport[day-1] * pow(10, month.accuracy));
 }
 
 bool AmsDataStorage::load() {
@@ -348,29 +466,72 @@ MonthDataPoints AmsDataStorage::getMonthData() {
 }
 
 bool AmsDataStorage::setDayData(DayDataPoints& day) {
-    if(day.version == 4) {
+    if(day.version == 5) {
         this->day = day;
+        return true;
+    } else if(day.version == 4) {
+        this->day = day;
+        this->day.accuracy = 1;
+        this->day.version = 5;
         return true;
     } else if(day.version == 3) {
         this->day = day;
         for(uint8_t i = 0; i < 24; i++) this->day.hExport[i] = 0;
-        this->day.version = 4;
+        this->day.accuracy = 1;
+        this->day.version = 5;
         return true;
     }
     return false;
 }
 
 bool AmsDataStorage::setMonthData(MonthDataPoints& month) {
-    if(month.version == 5) {
+    if(month.version == 6) {
         this->month = month;
+        return true;
+    } else if(month.version == 5) {
+        this->month = month;
+        this->month.accuracy = 1;
+        this->month.version = 6;
         return true;
     } else if(month.version == 4) {
         this->month = month;
         for(uint8_t i = 0; i < 31; i++) this->month.dExport[i] = 0;
-        this->month.version = 5;
+        this->month.accuracy = 1;
+        this->month.version = 6;
         return true;
     }
     return false;
+}
+
+uint8_t AmsDataStorage::getDayAccuracy() {
+    return day.accuracy;
+}
+
+void AmsDataStorage::setDayAccuracy(uint8_t accuracy) {
+    if(day.accuracy != accuracy) {
+        uint16_t multiplier = pow(10, day.accuracy)/pow(10, accuracy);
+        for(uint8_t i = 0; i < 24; i++) {
+            day.hImport[i] = day.hImport[i] * multiplier;
+            day.hExport[i] = day.hExport[i] * multiplier;
+        }
+        day.accuracy = accuracy;
+    }
+}
+
+uint8_t AmsDataStorage::getMonthAccuracy() {
+    return month.accuracy;
+}
+
+void AmsDataStorage::setMonthAccuracy(uint8_t accuracy) {
+    if(month.accuracy != accuracy) {
+        uint16_t multiplier = pow(10, month.accuracy)/pow(10, accuracy);
+        for(uint8_t i = 0; i < 31; i++) {
+            month.dImport[i] = month.dImport[i] * multiplier;
+            month.dExport[i] = month.dExport[i] * multiplier;
+        }
+        month.accuracy = accuracy;
+    }
+    month.accuracy = accuracy;
 }
 
 bool AmsDataStorage::isHappy() {

@@ -1724,20 +1724,38 @@ void configFileParse() {
 			eac.hours = String(pch).toInt();
 		} else if(strncmp_P(buf, PSTR("dayplot "), 8) == 0) {
 			int i = 0;
-			DayDataPoints day = { 4 }; // Use a version we know the multiplier of the data points
+			DayDataPoints day = { 0 };
 			char * pch = strtok (buf+8," ");
 			while (pch != NULL) {
 				int64_t val = String(pch).toInt();
-				if(i == 1) {
-					day.lastMeterReadTime = val;
-				} else if(i == 2) {
-					day.activeImport = val;
-				} else if(i > 2 && i < 27) {
-					day.hImport[i-3] = val / 10;
-				} else if(i == 27) {
-					day.activeExport = val;
-				} else if(i > 27 && i < 52) {
-					day.hExport[i-28] = val / 10;
+				if(day.version < 5) {
+					if(i == 0) {
+						day.version = val;
+					} else if(i == 1) {
+						day.lastMeterReadTime = val;
+					} else if(i == 2) {
+						day.activeImport = val;
+					} else if(i > 2 && i < 27) {
+						day.hImport[i-3] = val / 10;
+					} else if(i == 27) {
+						day.activeExport = val;
+					} else if(i > 27 && i < 52) {
+						day.hExport[i-28] = val / 10;
+					}
+				} else {
+					if(i == 1) {
+						day.lastMeterReadTime = val;
+					} else if(i == 2) {
+						day.activeImport = val;
+					} else if(i == 3) {
+						day.accuracy = val;
+					} else if(i > 3 && i < 28) {
+						day.hImport[i-4] = val / pow(10, day.accuracy);
+					} else if(i == 28) {
+						day.activeExport = val;
+					} else if(i > 28 && i < 53) {
+						day.hExport[i-29] = val / pow(10, day.accuracy);
+					}
 				}
 
 				pch = strtok (NULL, " ");
@@ -1747,22 +1765,39 @@ void configFileParse() {
 			sDs = true;
 		} else if(strncmp_P(buf, PSTR("monthplot "), 10) == 0) {
 			int i = 0;
-			MonthDataPoints month = { 5 }; // Use a version we know the multiplier of the data points
+			MonthDataPoints month = { 0 };
 			char * pch = strtok (buf+10," ");
 			while (pch != NULL) {
 				int64_t val = String(pch).toInt();
-				if(i == 1) {
-					month.lastMeterReadTime = val;
-				} else if(i == 2) {
-					month.activeImport = val;
-				} else if(i > 2 && i < 34) {
-					month.dImport[i-3] = val / 10;
-				} else if(i == 34) {
-					month.activeExport = val;
-				} else if(i > 34 && i < 66) {
-					month.dExport[i-35] = val / 10;
+				if(month.version < 6) {
+					if(i == 0) {
+						month.version = val;
+					} else if(i == 1) {
+						month.lastMeterReadTime = val;
+					} else if(i == 2) {
+						month.activeImport = val;
+					} else if(i > 2 && i < 34) {
+						month.dImport[i-3] = val / 10;
+					} else if(i == 34) {
+						month.activeExport = val;
+					} else if(i > 34 && i < 66) {
+						month.dExport[i-35] = val / 10;
+					}
+				} else {
+					if(i == 1) {
+						month.lastMeterReadTime = val;
+					} else if(i == 2) {
+						month.activeImport = val;
+					} else if(i == 3) {
+						month.accuracy = val;
+					} else if(i > 3 && i < 35) {
+						month.dImport[i-4] = val / pow(10, month.accuracy);
+					} else if(i == 35) {
+						month.activeExport = val;
+					} else if(i > 35 && i < 67) {
+						month.dExport[i-36] = val / pow(10, month.accuracy);
+					}
 				}
-
 				pch = strtok (NULL, " ");
 				i++;
 			}

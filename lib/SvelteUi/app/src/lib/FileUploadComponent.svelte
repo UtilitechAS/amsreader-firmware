@@ -11,7 +11,7 @@
     <div class="cnt">
         <strong>Upload {title}</strong>
         <p class="mb-4">Select a suitable file and click upload</p>
-        <form action="{action}" enctype="multipart/form-data" method="post" on:submit={() => uploading=true}>
+        <form action="{action}" enctype="multipart/form-data" method="post" on:submit={() => uploading=true} autocomplete="off">
             <input name="file" type="file">
             <div class="w-full text-right mt-4">
                 <button type="submit" class="btn-pri">Upload</button>

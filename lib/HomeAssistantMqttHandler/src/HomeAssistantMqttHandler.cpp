@@ -286,6 +286,9 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
                 if(peaks >= peakCount) continue;
                 peaks++;
             }
+            if(strncmp(sensor.path, "temp", 4) == 0) {
+                if(hw->getTemperature() < 0) continue;
+            }
             snprintf_P(json, BufferSize, HADISCOVER_JSON,
                 sensor.name,
                 topic.c_str(), sensor.topic,

@@ -230,6 +230,8 @@ void AmsConfiguration::clearMeter(MeterConfig& config) {
 	config.voltageMultiplier = 0;
 	config.amperageMultiplier = 0;
 	config.accumulatedMultiplier = 0;
+	config.source = 1; // Serial
+	config.parser = 0; // Auto
 }
 
 bool AmsConfiguration::isMeterChanged() {
@@ -694,6 +696,14 @@ bool AmsConfiguration::hasConfig() {
 					configVersion = 0;
 					return false;
 				}
+			case 100:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig100()) {
+					configVersion = 101;
+				} else {
+					configVersion = 0;
+					return false;
+				}
 			case EEPROM_CHECK_SUM:
 				return true;
 			default:
@@ -848,9 +858,13 @@ bool AmsConfiguration::relocateConfig96() {
 	SystemConfig sys;
 	EEPROM.get(CONFIG_SYSTEM_START, sys);
 
-	#if defined(ESP8266)
 	MeterConfig meter;
 	EEPROM.get(CONFIG_METER_START, meter);
+	meter.source = 1; // Serial
+	meter.parser = 0; // Auto
+	EEPROM.put(CONFIG_METER_START, meter);
+
+	#if defined(ESP8266)
 	GpioConfig gpio;
 	EEPROM.get(CONFIG_GPIO_START, gpio);
 
@@ -907,6 +921,35 @@ bool AmsConfiguration::relocateConfig96() {
 	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 100);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig100() {
+	EEPROM.begin(EEPROM_SIZE);
+
+	MeterConfig100 meter100;
+	EEPROM.get(CONFIG_METER_START, meter100);
+	MeterConfig meter;
+	meter.baud = meter100.baud;
+	meter.parity = meter100.parity;
+	meter.invert = meter100.invert;
+	meter.distributionSystem = meter100.distributionSystem;
+	meter.mainFuse = meter100.mainFuse;
+	meter.productionCapacity = meter100.productionCapacity;
+	memcpy(meter.encryptionKey, meter100.encryptionKey, 16);
+	memcpy(meter.authenticationKey, meter100.authenticationKey, 16);
+	meter.wattageMultiplier = meter100.wattageMultiplier;
+	meter.voltageMultiplier = meter100.voltageMultiplier;
+	meter.amperageMultiplier = meter100.amperageMultiplier;
+	meter.accumulatedMultiplier = meter100.accumulatedMultiplier;
+	meter.source = meter100.source;
+	meter.parser = meter100.parser;
+
+	EEPROM.put(CONFIG_METER_START, meter);
+
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 101);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;

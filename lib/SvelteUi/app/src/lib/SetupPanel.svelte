@@ -46,6 +46,7 @@
         const data = new URLSearchParams();
         for (let field of formData) {
             const [key, value] = field;
+			data.append(key, value)
             if(key == 'sh') hostname = value;
         }
 

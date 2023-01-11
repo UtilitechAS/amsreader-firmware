@@ -21,7 +21,7 @@ EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
 	TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
 	tz = new Timezone(CEST, CET);
 
-    tomorrowFetchMillis = 36000000 + (random(1800) * 1000); // Random between 13:30 and 14:00
+    tomorrowFetchMinute = 15 + random(45); // Random between 13:15 and 14:00
 }
 
 void EntsoeApi::setup(EntsoeConfig& config) {
@@ -96,7 +96,7 @@ float EntsoeApi::getValueForHour(time_t cur, int8_t hour) {
         } else {
             return ENTSOE_NO_VALUE;
         }
-        float mult = getCurrencyMultiplier(tomorrow->currency, config->currency);
+        float mult = getCurrencyMultiplier(tomorrow->currency, config->currency, cur);
         if(mult == 0) return ENTSOE_NO_VALUE;
         multiplier *= mult;
     } else if(pos >= 0) {
@@ -112,7 +112,7 @@ float EntsoeApi::getValueForHour(time_t cur, int8_t hour) {
         } else {
             return ENTSOE_NO_VALUE;
         }
-        float mult = getCurrencyMultiplier(today->currency, config->currency);
+        float mult = getCurrencyMultiplier(today->currency, config->currency, cur);
         if(mult == 0) return ENTSOE_NO_VALUE;
         multiplier *= mult;
     }
@@ -138,21 +138,15 @@ bool EntsoeApi::loop() {
     if(strlen(config->currency) == 0)
         return false;
 
-    bool ret = false;
     tmElements_t tm;
     breakTime(tz->toLocal(t), tm);
-    if(currentHour != tm.Hour) {
-        currentHour = tm.Hour;
-        ret = today != NULL; // Only trigger MQTT publish if we have todays prices.
-    }
 
-    if(midnightMillis == 0) {
-        uint32_t curDayMillis = (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000);
-        midnightMillis = now + (SECS_PER_DAY * 1000) - curDayMillis;
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Setting midnight millis %llu\n", midnightMillis);
+    if(currentDay == 0) {
         currentDay = tm.Day;
-        return false;
-    } else if(now > midnightMillis && currentDay != tm.Day) {
+        currentHour = tm.Hour;
+    }
+    
+    if(currentDay != tm.Day) {
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(EntsoeApi) Rotating price objects at %lu\n", t);
         if(today != NULL) delete today;
         if(tomorrow != NULL) {
@@ -160,38 +154,38 @@ bool EntsoeApi::loop() {
             tomorrow = NULL;
         }
         currentDay = tm.Day;
-        midnightMillis = 0; // Force new midnight millis calculation
-        return true;
-    } else {
-        if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > 60000)) {
-            try {
-                lastTodayFetch = now;
-                today = fetchPrices(t);
-            } catch(const std::exception& e) {
-                if(lastError == 0) lastError = 900;
-                today = NULL;
-            }
-            return today != NULL;
-        }
-
-        // Prices for next day are published at 13:00 CE(S)T, but to avoid heavy server traffic at that time, we will 
-        // fetch 1 hr after that (with some random delay) and retry every 15 minutes
-        if(tomorrow == NULL
-            && midnightMillis - now < tomorrowFetchMillis
-            && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 900000)
-        ) {
-            try {
-                breakTime(t+SECS_PER_DAY, tm); // Break UTC tomorrow to find UTC midnight
-                lastTomorrowFetch = now;
-                tomorrow = fetchPrices(t+SECS_PER_DAY);
-            } catch(const std::exception& e) {
-                if(lastError == 0) lastError = 900;
-                tomorrow = NULL;
-            }
-            return tomorrow != NULL;
-        }
+        currentHour = tm.Hour;
+        return today != NULL; // Only trigger MQTT publish if we have todays prices.
+    } else if(currentHour != tm.Hour) {
+        currentHour = tm.Hour;
+        return today != NULL; // Only trigger MQTT publish if we have todays prices.
     }
-    return ret;
+
+    if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > 60000)) {
+        try {
+            lastTodayFetch = now;
+            today = fetchPrices(t);
+        } catch(const std::exception& e) {
+            if(lastError == 0) lastError = 900;
+            today = NULL;
+        }
+        return today != NULL; // Only trigger MQTT publish if we have todays prices.
+    }
+
+    // Prices for next day are published at 13:00 CE(S)T, but to avoid heavy server traffic at that time, we will 
+    // fetch with one hour (with some random delay) and retry every 15 minutes
+    if(tomorrow == NULL && (tm.Hour > 13 || (tm.Hour == 13 && tm.Minute >= tomorrowFetchMinute)) && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 900000)) {
+        try {
+            lastTomorrowFetch = now;
+            tomorrow = fetchPrices(t+SECS_PER_DAY);
+        } catch(const std::exception& e) {
+            if(lastError == 0) lastError = 900;
+            tomorrow = NULL;
+        }
+        return tomorrow != NULL;
+    }
+
+    return false;
 }
 
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {
@@ -235,7 +229,7 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     return false;
 }
 
-float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
+float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t t) {
     if(strcmp(from, to) == 0)
         return 1.00;
 
@@ -272,7 +266,9 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to) {
             return 0;
         }
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi) Resulting currency multiplier: %.4f\n", currencyMultiplier);
-        lastCurrencyFetch = midnightMillis;
+        tmElements_t tm;
+        breakTime(t, tm);
+        lastCurrencyFetch = now + (SECS_PER_DAY * 1000) - (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000);
     }
     return currencyMultiplier;
 }

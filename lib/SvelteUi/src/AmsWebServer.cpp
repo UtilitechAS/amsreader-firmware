@@ -26,12 +26,14 @@
 #include "html/conf_debug_json.h"
 #include "html/conf_gpio_json.h"
 #include "html/conf_domoticz_json.h"
+#include "html/conf_ui_json.h"
 #include "html/firmware_html.h"
 
 #include "version.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
+#include <esp_wifi.h>
 #endif
 
 
@@ -216,6 +218,26 @@ void AmsWebServer::sysinfoJson() {
 	IPAddress dns1 = WiFi.dnsIP(0);
 	IPAddress dns2 = WiFi.dnsIP(1);
 
+    char macStr[18] = { 0 };
+    char apMacStr[18] = { 0 };
+
+	uint8_t mac[6];
+	uint8_t apmac[6];
+
+	#if defined(ESP8266)
+    wifi_get_macaddr(STATION_IF, mac);
+    wifi_get_macaddr(SOFTAP_IF, apmac);
+	#elif defined(ESP32)
+    esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_STA, mac);
+    esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_AP, apmac);
+	#endif
+
+    sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    sprintf(apMacStr, "%02X:%02X:%02X:%02X:%02X:%02X", apmac[0], apmac[1], apmac[2], apmac[3], apmac[4], apmac[5]);
+
+	UiConfig ui;
+	config->getUiConfig(ui);
+
 	snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		VERSION,
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -228,7 +250,8 @@ void AmsWebServer::sysinfoJson() {
 		"esp8266",
 		#endif
 		chipIdStr.c_str(),
-		WiFi.macAddress().c_str(),
+		macStr,
+		apMacStr,
 		sys.boardType,
 		sys.vendorConfigured ? "true" : "false",
 		sys.userConfigured ? "true" : "false",
@@ -249,6 +272,17 @@ void AmsWebServer::sysinfoJson() {
 		meterState->getMeterType(),
 		meterState->getMeterModel().c_str(),
 		meterState->getMeterId().c_str(),
+		ui.showImport,
+		ui.showExport,
+		ui.showVoltage,
+		ui.showAmperage,
+		ui.showReactive,
+		ui.showRealtime,
+		ui.showPeaks,
+		ui.showPricePlot,
+		ui.showDayPlot,
+		ui.showMonthPlot,
+		ui.showTemperaturePlot,
 		webConfig.security
 	);
 
@@ -730,6 +764,8 @@ void AmsWebServer::configurationJson() {
 	config->getDebugConfig(debugConfig);
 	DomoticzConfig domo;
 	config->getDomoticzConfig(domo);
+	UiConfig ui;
+	config->getUiConfig(ui);
 
 	bool qsc = false;
 	bool qsr = false;
@@ -855,6 +891,20 @@ void AmsWebServer::configurationJson() {
 		gpioConfig->vccResistorVcc,
 		gpioConfig->vccResistorGnd,
 		gpioConfig->vccBootLimit / 10.0
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_UI_JSON,
+		ui.showImport,
+		ui.showExport,
+		ui.showVoltage,
+		ui.showAmperage,
+		ui.showReactive,
+		ui.showRealtime,
+		ui.showPeaks,
+		ui.showPricePlot,
+		ui.showDayPlot,
+		ui.showMonthPlot,
+		ui.showTemperaturePlot
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_DOMOTICZ_JSON,
@@ -1249,6 +1299,23 @@ void AmsWebServer::handleSave() {
 			performRestart = true;
 		}
 		config->setDebugConfig(debug);
+	}
+
+	if(server.hasArg(F("u")) && server.arg(F("u")) == F("true")) {
+		UiConfig ui;
+		config->getUiConfig(ui);
+		ui.showImport = server.arg(F("ui")).toInt();
+		ui.showExport = server.arg(F("ue")).toInt();
+		ui.showVoltage = server.arg(F("uv")).toInt();
+		ui.showAmperage = server.arg(F("ua")).toInt();
+		ui.showReactive = server.arg(F("ur")).toInt();
+		ui.showRealtime = server.arg(F("uc")).toInt();
+		ui.showPeaks = server.arg(F("ut")).toInt();
+		ui.showPricePlot = server.arg(F("up")).toInt();
+		ui.showDayPlot = server.arg(F("ud")).toInt();
+		ui.showMonthPlot = server.arg(F("um")).toInt();
+		ui.showTemperaturePlot = server.arg(F("us")).toInt();
+		config->setUiConfig(ui);
 	}
 
 	if(server.hasArg(F("p")) && server.arg(F("p")) == F("true")) {

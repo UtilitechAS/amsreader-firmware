@@ -1,5 +1,5 @@
 <script>
-    import { metertype, boardtype } from './Helpers.js';
+    import { metertype, boardtype, isBusPowered } from './Helpers.js';
     import { getSysinfo, gitHubReleaseStore, sysinfoStore } from './DataStores.js';
     import { upgrade, getNextVersion } from './UpgradeHelper';
     import DownloadIcon from './DownloadIcon.svelte';
@@ -69,6 +69,11 @@
         <div class="my-2">
             MAC: {sysinfo.mac}
         </div>
+        {#if sysinfo.apmac && sysinfo.apmac != sysinfo.mac}
+        <div class="my-2">
+            AP MAC: {sysinfo.apmac}
+        </div>
+        {/if}
         <div class="my-2">
             <Link to="/consent">
                 <span class="text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3 ">Update consents</span>
@@ -128,7 +133,7 @@
             </div>
             {/if}
         {/if}
-        {#if (sysinfo.security == 0 || data.a) && (sysinfo.board == 2 || sysinfo.board == 4 || sysinfo.board == 7) }
+        {#if (sysinfo.security == 0 || data.a) && isBusPowered(sysinfo.board) }
         <div class="bd-red">
             {boardtype(sysinfo.chip, sysinfo.board)} must be connected to an external power supply during firmware upgrade. Failure to do so may cause power-down during upload resulting in non-functioning unit. 
         </div>

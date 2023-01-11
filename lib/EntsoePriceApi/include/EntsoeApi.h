@@ -37,8 +37,7 @@ private:
     HTTPClient http;
 
     uint8_t currentDay = 0, currentHour = 0;
-    uint32_t tomorrowFetchMillis = 36000000; // Number of ms before midnight. Default fetch 10hrs before midnight (14:00 CE(S)T)
-    uint64_t midnightMillis = 0;
+    uint8_t tomorrowFetchMinute = 15; // How many minutes over 13:00 should it fetch prices
     uint64_t lastTodayFetch = 0;
     uint64_t lastTomorrowFetch = 0;
     uint64_t lastCurrencyFetch = 0;
@@ -60,7 +59,7 @@ private:
 
     PricesContainer* fetchPrices(time_t);
     bool retrieve(const char* url, Stream* doc);
-    float getCurrencyMultiplier(const char* from, const char* to);
+    float getCurrencyMultiplier(const char* from, const char* to, time_t t);
 
 	void printD(String fmt, ...);
 	void printE(String fmt, ...);

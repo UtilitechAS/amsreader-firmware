@@ -18,7 +18,7 @@
         if(u1 > 0) {
             xTicks.push({ label: 'L1' });
             points.push({
-                label: i1 ? i1 + 'A' : '-', 
+                label: i1 ? (i1 > 10 ? i1.toFixed(0) : i1.toFixed(1)) + 'A' : '-', 
                 value: i1 ? i1 : 0, 
                 color: ampcol(i1 ? (i1)/(max)*100 : 0) 
             });
@@ -26,7 +26,7 @@
         if(u2 > 0) {
             xTicks.push({ label: 'L2' });
             points.push({
-                label: i2 ? i2 + 'A' : '-', 
+                label: i2 ? (i2 > 10 ? i2.toFixed(0) : i2.toFixed(1)) + 'A' : '-', 
                 value: i2 ? i2 : 0, 
                 color: ampcol(i2 ? (i2)/(max)*100 : 0) 
             });
@@ -34,7 +34,7 @@
         if(u3 > 0) {
             xTicks.push({ label: 'L3' });
             points.push({
-                label: i3 ? i3 + 'A' : '-', 
+                label: i3 ? (i3 > 10 ? i3.toFixed(0) : i3.toFixed(1)) + 'A' : '-', 
                 value: i3 ? i3 : 0, 
                 color: ampcol(i3 ? (i3)/(max)*100 : 0) 
             });

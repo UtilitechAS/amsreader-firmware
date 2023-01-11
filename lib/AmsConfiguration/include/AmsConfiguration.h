@@ -11,6 +11,7 @@
 
 #define CONFIG_SYSTEM_START 8
 #define CONFIG_METER_START 32
+#define CONFIG_UI_START 248
 #define CONFIG_GPIO_START 266
 #define CONFIG_ENTSOE_START 290
 #define CONFIG_WIFI_START 360
@@ -216,6 +217,20 @@ struct EnergyAccountingConfig {
 	uint8_t hours;
 }; // 11
 
+struct UiConfig {
+	uint8_t showImport;
+	uint8_t showExport;
+	uint8_t showVoltage;
+	uint8_t showAmperage;
+	uint8_t showReactive;
+	uint8_t showRealtime;
+	uint8_t showPeaks;
+	uint8_t showPricePlot;
+	uint8_t showDayPlot;
+	uint8_t showMonthPlot;
+	uint8_t showTemperaturePlot;
+}; // 11
+
 struct TempSensorConfig {
 	uint8_t address[8];
 	char name[16];
@@ -291,6 +306,10 @@ public:
 	void clearEnergyAccountingConfig(EnergyAccountingConfig&);
 	bool isEnergyAccountingChanged();
 	void ackEnergyAccountingChange();
+
+	bool getUiConfig(UiConfig&);
+	bool setUiConfig(UiConfig&);
+	void clearUiConfig(UiConfig&);
 
 	void loadTempSensors();
 	void saveTempSensors();

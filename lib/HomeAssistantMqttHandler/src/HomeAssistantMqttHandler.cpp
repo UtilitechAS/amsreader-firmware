@@ -136,7 +136,7 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
-	if(strlen(eapi->getToken()) == 0)
+	if(eapi->getValueForHour(0) == ENTSOE_NO_VALUE)
 		return false;
 
 	time_t now = time(nullptr);

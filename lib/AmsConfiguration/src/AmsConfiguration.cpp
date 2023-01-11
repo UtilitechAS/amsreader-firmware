@@ -549,7 +549,6 @@ bool AmsConfiguration::setEnergyAccountingConfig(EnergyAccountingConfig& config)
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;
-
 }
 
 void AmsConfiguration::clearEnergyAccountingConfig(EnergyAccountingConfig& config) {
@@ -572,6 +571,42 @@ bool AmsConfiguration::isEnergyAccountingChanged() {
 
 void AmsConfiguration::ackEnergyAccountingChange() {
 	energyAccountingChanged = false;
+}
+
+bool AmsConfiguration::getUiConfig(UiConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_UI_START, config);
+		if(config.showImport > 2) clearUiConfig(config); // Must be wrong
+		EEPROM.end();
+		return true;
+	} else {
+		clearUiConfig(config);
+		return false;
+	}
+}
+
+bool AmsConfiguration::setUiConfig(UiConfig& config) {
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_UI_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+void AmsConfiguration::clearUiConfig(UiConfig& config) {
+	// 1 = Always, 2 = If value present, 0 = Hidden
+	config.showImport = 1;
+	config.showExport = 2;
+	config.showVoltage = 2;
+	config.showAmperage = 2;
+	config.showReactive = 0;
+	config.showRealtime = 1;
+	config.showPeaks = 2;
+	config.showPricePlot = 2;
+	config.showDayPlot = 1;
+	config.showMonthPlot = 1;
+	config.showTemperaturePlot = 2;
 }
 
 
@@ -620,6 +655,10 @@ void AmsConfiguration::clear() {
 	DebugConfig debug;
 	clearDebug(debug);
 	EEPROM.put(CONFIG_DEBUG_START, debug);
+
+	UiConfig ui;
+	clearUiConfig(ui);
+	EEPROM.put(CONFIG_UI_START, ui);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CLEARED_INDICATOR);
 	EEPROM.commit();
@@ -948,6 +987,10 @@ bool AmsConfiguration::relocateConfig100() {
 	meter.parser = meter100.parser;
 
 	EEPROM.put(CONFIG_METER_START, meter);
+
+	UiConfig ui;
+	clearUiConfig(ui);
+	EEPROM.put(CONFIG_UI_START, ui);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 101);
 	bool ret = EEPROM.commit();

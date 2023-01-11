@@ -2,7 +2,7 @@
     import { Link } from "svelte-navigator";
     import { sysinfoStore, getGitHubReleases, gitHubReleaseStore } from './DataStores.js';
     import { upgrade, getNextVersion } from './UpgradeHelper';
-    import { boardtype, hanError, mqttError, priceError } from './Helpers.js';
+    import { boardtype, hanError, mqttError, priceError, isBusPowered } from './Helpers.js';
     import GitHubLogo from './../assets/github.svg';
     import Uptime from "./Uptime.svelte";
     import Badge from './Badge.svelte';
@@ -19,7 +19,7 @@
  
     function askUpgrade() {
         if(confirm('Do you want to upgrade this device to ' + nextVersion.tag_name + '?')) {
-          if((sysinfo.board != 2 && sysinfo.board != 4 && sysinfo.board != 7) || confirm('WARNING: ' + boardtype(sysinfo.chip, sysinfo.board) + ' must be connected to an external power supply during firmware upgrade. Failure to do so may cause power-down during upload resulting in non-functioning unit.')) {
+          if(!isBusPowered(sysinfo.board) || confirm('WARNING: ' + boardtype(sysinfo.chip, sysinfo.board) + ' must be connected to an external power supply during firmware upgrade. Failure to do so may cause power-down during upload resulting in non-functioning unit.')) {
                 sysinfoStore.update(s => {
                     s.upgrading = true;
                     return s;

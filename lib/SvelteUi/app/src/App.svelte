@@ -33,7 +33,7 @@
   <Router>
     <Header data={data}/>
     <Route path="/">
-      <Dashboard data={data}/>
+      <Dashboard data={data} sysinfo={sysinfo}/>
     </Route>
     <Route path="/configuration">
       <ConfigurationPanel sysinfo={sysinfo}/>

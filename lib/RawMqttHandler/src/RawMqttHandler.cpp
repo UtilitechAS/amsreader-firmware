@@ -123,7 +123,7 @@ bool RawMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) 
 bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
-	if(strcmp(eapi->getToken(), "") == 0)
+	if(eapi->getValueForHour(0) == ENTSOE_NO_VALUE)
 		return false;
 
 	time_t now = time(nullptr);

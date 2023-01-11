@@ -3,6 +3,7 @@
     "chip": "%s",
     "chipId": "%s",
     "mac": "%s",
+    "apmac": "%s",
     "board": %d,
     "vndcfg": %s,
     "usrcfg": %s,
@@ -21,6 +22,19 @@
         "mfg": %d,
         "model": "%s",
         "id": "%s"
+    },
+    "ui": {
+        "i": %d,
+        "e": %d,
+        "v": %d,
+        "a": %d,
+        "r": %d,
+        "c": %d,
+        "t": %d,
+        "p": %d,
+        "d": %d,
+        "m": %d,
+        "s": %d
     },
     "security": %d
 }

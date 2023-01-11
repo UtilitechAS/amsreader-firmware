@@ -47,6 +47,9 @@
         d: {
             s: false, t: false, l: 5
         },
+        u: {
+            i: 0, e: 0, v: 0, a: 0, r: 0, c: 0, t: 0, p: 0, d: 0, m: 0, s: 0
+        },
         i: {
             h: null, a: null,
             l: { p: null, i: false },
@@ -94,6 +97,7 @@
 
         sysinfoStore.update(s => {
             s.booting = res.reboot;
+            s.ui = configuration.u;
             return s;
         });
 
@@ -548,6 +552,100 @@
             </label>
         </div>
         {/if}
+        <div class="cnt">
+            <strong class="text-sm">User interface</strong>
+            <input type="hidden" name="u" value="true"/>
+            <div class="flex flex-wrap">
+                <div class="w-1/2">
+                    Import gauge<br/>
+                    <select name="ui" bind:value={configuration.u.i} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+                <div class="w-1/2">
+                    Export gauge<br/>
+                    <select name="ue" bind:value={configuration.u.e} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+                <div class="w-1/2">
+                    Voltage<br/>
+                    <select name="uv" bind:value={configuration.u.v} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+                <div class="w-1/2">
+                    Amperage<br/>
+                    <select name="ua" bind:value={configuration.u.a} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+                <div class="w-1/2">
+                    Reactive<br/>
+                    <select name="ur" bind:value={configuration.u.r} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+                <div class="w-1/2">
+                    Realtime<br/>
+                    <select name="uc" bind:value={configuration.u.c} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+                <div class="w-1/2">
+                    Peaks<br/>
+                    <select name="ut" bind:value={configuration.u.t} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+                <div class="w-1/2">
+                    Price<br/>
+                    <select name="up" bind:value={configuration.u.p} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+                <div class="w-1/2">
+                    Day plot<br/>
+                    <select name="ud" bind:value={configuration.u.d} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+                <div class="w-1/2">
+                    Month plot<br/>
+                    <select name="um" bind:value={configuration.u.m} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+                <div class="w-1/2">
+                    Temperature plot<br/>
+                    <select name="us" bind:value={configuration.u.s} class="in-s">
+                        <option value={0}>Hide</option>
+                        <option value={1}>Show</option>
+                        <option value={2}>Dynamic</option>
+                    </select>
+                </div>
+            </div>
+        </div>
         {#if sysinfo.board > 20 || sysinfo.chip == 'esp8266'}
         <div class="cnt">
             <strong class="text-sm">Hardware</strong>

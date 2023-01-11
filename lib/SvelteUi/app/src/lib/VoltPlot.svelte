@@ -17,7 +17,7 @@
         if(u1 > 0) {
             xTicks.push({ label: ds === 1 ? 'L1-L2' : 'L1' });
             points.push({
-                label: u1 ? u1 + 'V' : '-', 
+                label: u1 ? u1.toFixed(0) + 'V' : '-', 
                 value: u1 ? u1 : 0, 
                 color: voltcol(u1 ? (u1-min)/(max-min)*100 : 0) 
             });
@@ -25,7 +25,7 @@
         if(u2 > 0) {
             xTicks.push({ label: ds === 1 ? 'L1-L3' : 'L2' });
             points.push({ 
-                label: u2 ? u2 + 'V' : '-', 
+                label: u2 ? u2.toFixed(0) + 'V' : '-', 
                 value: u2 ? u2 : 0, 
                 color: voltcol(u2 ? (u2-min)/(max-min)*100 : 0) 
             });
@@ -33,7 +33,7 @@
         if(u3 > 0) {
             xTicks.push({ label: ds === 1 ? 'L2-L3' : 'L3' });
             points.push({ 
-                label: u3 ? u3 + 'V' : '-', 
+                label: u3 ? u3.toFixed(0) + 'V' : '-', 
                 value: u3 ? u3 : 0, 
                 color: voltcol(u3 ? (u3-min)/(max-min)*100 : 0) 
             });

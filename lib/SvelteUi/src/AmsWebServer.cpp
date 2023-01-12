@@ -1549,10 +1549,12 @@ void AmsWebServer::firmwareUpload() {
 		return;
 
 	HTTPUpload& upload = server.upload();
-	if(upload.totalSize == 0) {
-		return;
-	} else if(upload.status == UPLOAD_FILE_START) {
+	if(upload.status == UPLOAD_FILE_START) {
         String filename = upload.filename;
+		if(filename.isEmpty()) {
+			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("No file, falling back to post\n"));
+			return;
+		}
         if(!filename.endsWith(".bin")) {
             server.send(500, MIME_PLAIN, "500: couldn't create file");
 		} else {
@@ -1576,10 +1578,10 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START){
 		if(uploading) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("Upload already in progress"));
+			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("Upload already in progress\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Upload already in progress!</h1></body></html>"));
 		} else if (!LittleFS.begin()) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("An Error has occurred while mounting LittleFS"));
+			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("An Error has occurred while mounting LittleFS\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Unable to mount LittleFS!</h1></body></html>"));
 		} else {
 			uploading = true;
@@ -1617,7 +1619,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("An Error has occurred while writing file"));
 				snprintf_P(buf, BufferSize, RESPONSE_JSON,
 					"false",
-					"Unable to upload",
+					"File size does not match",
 					"false"
 				);
 				server.setContentLength(strlen(buf));
@@ -1625,14 +1627,18 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 			}
 		}
     } else if(upload.status == UPLOAD_FILE_END) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) {
+			debugger->printf_P(PSTR("handleFileUpload Ended\n"));
+		}
         if(file) {
 			file.flush();
             file.close();
 //			LittleFS.end();
         } else {
+			debugger->printf_P(PSTR("File was not valid in the end... Write error: %d, \n"), file.getWriteError());
 			snprintf_P(buf, BufferSize, RESPONSE_JSON,
 				"false",
-				"Unable to upload",
+				"Upload ended, but file is missing",
 				"false"
 			);
 			server.setContentLength(strlen(buf));

@@ -1,9 +1,11 @@
 <html>
     <form action="/firmware" enctype="multipart/form-data" method="post" autocomplete="off">
-        File: <input name="file" type="file" accept=".bin"><br/>
-        or<br/>
-        URL: <input name="url" type="text"/><br/>
-        <br/>
+        File: <input name="file" type="file" accept=".bin">
+        <button type="submit" class="">Upload</button>
+    </form>
+    or<br/><br/>
+    <form action="/firmware" method="post" autocomplete="off">
+        URL: <input name="url" type="text"/>
         <button type="submit" class="">Install</button>
     </form>
 </html>

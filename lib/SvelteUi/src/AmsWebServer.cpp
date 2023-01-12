@@ -1429,7 +1429,6 @@ void AmsWebServer::upgrade() {
 		server.handleClient();
 		delay(250);
 
-		String customFirmwareUrl = "";
 		if(server.hasArg(F("url"))) {
 			customFirmwareUrl = server.arg(F("url"));
 		}
@@ -1493,8 +1492,55 @@ void AmsWebServer::firmwarePost() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Handling firmware post..."));
 	if(!checkSecurity(1))
 		return;
+	
+	if(rebootForUpgrade) {
+		server.send(200);
+	} else {
+		if(server.hasArg(F("url"))) {
+			String url = server.arg(F("url"));
+			if(!url.isEmpty() && (url.startsWith(F("http://")) || url.startsWith(F("https://")))) {
+				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Custom firmware URL was provided"));
 
-	server.send(200);
+				WiFiClient client;
+				#if defined(ESP8266)
+					String chipType = F("esp8266");
+				#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+					String chipType = F("esp32s2");
+				#elif defined(ESP32)
+					#if defined(CONFIG_FREERTOS_UNICORE)
+						String chipType = F("esp32solo");
+					#else
+						String chipType = F("esp32");
+					#endif
+				#endif
+
+				#if defined(ESP8266)
+					ESPhttpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+					t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
+				#elif defined(ESP32)
+					HTTPUpdate httpUpdate;
+					httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+					HTTPUpdateResult ret = httpUpdate.update(client, url, String(VERSION) + "-" + chipType);
+				#endif
+
+				switch(ret) {
+					case HTTP_UPDATE_FAILED:
+						debugger->printf(PSTR("Update failed"));
+						break;
+					case HTTP_UPDATE_NO_UPDATES:
+						debugger->printf(PSTR("No Update"));
+						break;
+					case HTTP_UPDATE_OK:
+						debugger->printf(PSTR("Update OK"));
+						break;
+				}			
+				server.send(200, MIME_PLAIN, "OK");
+				return;
+			}
+		}
+		server.sendHeader(HEADER_LOCATION,F("/firmware"));
+		server.send(303);
+	}
 }
 
 
@@ -1503,7 +1549,9 @@ void AmsWebServer::firmwareUpload() {
 		return;
 
 	HTTPUpload& upload = server.upload();
-    if(upload.status == UPLOAD_FILE_START) {
+	if(upload.totalSize == 0) {
+		return;
+	} else if(upload.status == UPLOAD_FILE_START) {
         String filename = upload.filename;
         if(!filename.endsWith(".bin")) {
             server.send(500, MIME_PLAIN, "500: couldn't create file");

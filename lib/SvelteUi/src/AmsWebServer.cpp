@@ -7,6 +7,7 @@
 #include "html/index_css.h"
 #include "html/index_js.h"
 #include "html/github_svg.h"
+#include "html/favicon_svg.h"
 #include "html/data_json.h"
 #include "html/dayplot_json.h"
 #include "html/monthplot_json.h"
@@ -67,7 +68,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	
 	server.on(F("/github.svg"), HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
-	server.on(F("/favicon.ico"), HTTP_GET, std::bind(&AmsWebServer::faviconIco, this)); 
+	server.on(F("/favicon.svg"), HTTP_GET, std::bind(&AmsWebServer::faviconSvg, this)); 
 	server.on(F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
 	server.on(F("/data.json"), HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
 	server.on(F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
@@ -186,10 +187,11 @@ void AmsWebServer::githubSvg() {
 	server.send_P(200, "image/svg+xml", GITHUB_SVG);
 }
 
-void AmsWebServer::faviconIco() {
+void AmsWebServer::faviconSvg() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /favicon.ico over http...\n");
 
-	notFound(); //TODO
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
+	server.send_P(200, "image/svg+xml", FAVICON_SVG);
 }
 
 void AmsWebServer::sysinfoJson() {

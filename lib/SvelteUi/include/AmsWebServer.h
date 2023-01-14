@@ -82,7 +82,7 @@ private:
 	void indexJs();
 	void indexCss();
 	void githubSvg();
-	void faviconIco();
+	void faviconSvg();
 
     void sysinfoJson();
     void dataJson();

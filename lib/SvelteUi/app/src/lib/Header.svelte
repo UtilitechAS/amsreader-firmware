@@ -3,6 +3,7 @@
     import { sysinfoStore, getGitHubReleases, gitHubReleaseStore } from './DataStores.js';
     import { upgrade, getNextVersion } from './UpgradeHelper';
     import { boardtype, hanError, mqttError, priceError, isBusPowered } from './Helpers.js';
+    import AmsleserSvg from "./../assets/favicon.svg";
     import GitHubLogo from './../assets/github.svg';
     import Uptime from "./Uptime.svelte";
     import Badge from './Badge.svelte';

@@ -10,7 +10,7 @@
   import Mask from './lib/Mask.svelte';
   import FileUploadComponent from "./lib/FileUploadComponent.svelte";
   import ConsentComponent from "./lib/ConsentComponent.svelte";
-
+  
   let sysinfo = {};
   sysinfoStore.subscribe(update => {
     sysinfo = update;

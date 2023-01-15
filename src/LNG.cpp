@@ -96,6 +96,7 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                     activeImportPower = sum;
                 } else {
                     activeExportPower = sum * -1;
+                    listType = listType >= 2 ? listType : 2;
                 }
             }
 

@@ -64,7 +64,6 @@ void AmsData::apply(AmsData& other) {
             this->meterType = other.getMeterType();
             this->meterModel = other.getMeterModel();
             this->reactiveImportPower = other.getReactiveImportPower();
-            this->activeExportPower = other.getActiveExportPower();
             this->reactiveExportPower = other.getReactiveExportPower();
             this->l1current = other.getL1Current();
             this->l2current = other.getL2Current();
@@ -74,9 +73,13 @@ void AmsData::apply(AmsData& other) {
             this->l3voltage = other.getL3Voltage();
             this->threePhase = other.isThreePhase();
             this->twoPhase = other.isTwoPhase();
-        case 1:
-            this->activeImportPower = other.getActiveImportPower();
     }
+
+    // Moved outside switch to handle meters alternating between sending active and accumulated values
+    if(other.getListType() == 1 || (other.getActiveImportPower() > 0 || other.getActiveExportPower() > 0))
+        this->activeImportPower = other.getActiveImportPower();
+    if(other.getListType() == 2 || (other.getActiveImportPower() > 0 || other.getActiveExportPower() > 0))
+        this->activeExportPower = other.getActiveExportPower();
 }
 
 unsigned long AmsData::getLastUpdateMillis() {

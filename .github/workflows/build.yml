@@ -40,6 +40,18 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -U platformio css_html_js_minify
+    - name: Set up node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '16.x'
+      - name: Build with node
+        run: |
+          cd lib/SvelteUi/app
+          npm ci
+          npm run build
+          cd -
+        env:
+          CI: false
     - name: PlatformIO lib install
       run: pio lib install
     - name: PlatformIO run

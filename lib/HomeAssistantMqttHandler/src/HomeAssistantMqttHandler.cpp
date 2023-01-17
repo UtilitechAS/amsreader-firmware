@@ -280,7 +280,11 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
             String uom = String(sensor.uom);
             if(strncmp(sensor.devcl, "monetary", 8) == 0) {
                 if(eapi == NULL) continue;
-                uom = String(eapi->getCurrency());
+                if(strncmp(sensor.path, "prices", 5) == 0) {
+                    uom = String(eapi->getCurrency()) + "/kWh";
+                } else {
+                    uom = String(eapi->getCurrency());
+                }
             }
             if(strncmp(sensor.path, "peaks[", 6) == 0) {
                 if(peaks >= peakCount) continue;

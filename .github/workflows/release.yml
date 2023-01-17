@@ -23,6 +23,12 @@ jobs:
       env:
         GITHUB_REF: ${{ github.ref }}
       run: echo "GITHUB_TAG=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
+
+    - name: Inject secrets into ini file
+      run: |
+        sed -i 's/NO_AMS2MQTT_PRICE_KEY/AMS2MQTT_PRICE_KEY="${{secrets.AMS2MQTT_PRICE_KEY}}"/g' platformio.ini
+        sed -i 's/NO_AMS2MQTT_PRICE_AUTHENTICATION/AMS2MQTT_PRICE_AUTHENTICATION="${{secrets.AMS2MQTT_PRICE_AUTHENTICATION}}"/g' platformio.ini
+
     - name: Cache Python dependencies
       uses: actions/cache@v1
       with:

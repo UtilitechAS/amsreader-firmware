@@ -879,7 +879,7 @@ void AmsWebServer::configurationJson() {
 	snprintf_P(buf, BufferSize, CONF_GPIO_JSON,
 		gpioConfig->hanPin == 0xff ? "null" : String(gpioConfig->hanPin, 10).c_str(),
 		gpioConfig->apPin == 0xff ? "null" : String(gpioConfig->apPin, 10).c_str(),
-		gpioConfig->hanPin == 0xff ? "null" : String(gpioConfig->hanPin, 10).c_str(),
+		gpioConfig->ledPin == 0xff ? "null" : String(gpioConfig->ledPin, 10).c_str(),
 		gpioConfig->ledInverted ? "true" : "false",
 		gpioConfig->ledPinRed == 0xff ? "null" : String(gpioConfig->ledPinRed, 10).c_str(),
 		gpioConfig->ledPinGreen == 0xff ? "null" : String(gpioConfig->ledPinGreen, 10).c_str(),

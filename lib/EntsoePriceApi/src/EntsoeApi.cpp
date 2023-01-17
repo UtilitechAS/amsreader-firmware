@@ -41,14 +41,12 @@ void EntsoeApi::setup(EntsoeConfig& config) {
     http.useHTTP10(true);
 
     #if defined(AMS2MQTT_PRICE_KEY)
-        #pragma message("Using AMS2MQTT_PRICE_KEY from environment")
         key = new uint8_t[16] AMS2MQTT_PRICE_KEY;
         hub = true;
     #else
         hub = false;
     #endif
     #if defined(AMS2MQTT_PRICE_AUTHENTICATION)
-        #pragma message("Using AMS2MQTT_PRICE_AUTHENTICATION from environment")
         auth = new uint8_t[16] AMS2MQTT_PRICE_AUTHENTICATION;
         hub = hub && true;
     #else

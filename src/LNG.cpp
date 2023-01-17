@@ -5,7 +5,7 @@
 LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
     LngHeader* h = (LngHeader*) payload;
     if(h->tag == CosemTypeStructure && h->arrayTag == CosemTypeArray) {
-        meterType = AmsTypeLng;
+        meterType = AmsTypeLandisGyr;
         this->packageTimestamp = ctx.timestamp;
 
         uint8_t* ptr = (uint8_t*) &h[1];

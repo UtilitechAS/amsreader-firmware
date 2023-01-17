@@ -8,6 +8,7 @@ on:
       - scripts/**
       - web/**
       - platformio.ini
+      - .github/workflows/**
     branches:
       - '*'
     tags:

@@ -2,19 +2,16 @@
 default_envs = dev
 
 [env:dev]
-platform = espressif8266
+platform = espressif8266@3.2.0
+framework = arduino
 board = esp12e
 board_build.ldscript = eagle.flash.4m2m.ld
-framework = arduino
-lib_deps = ${common.lib_deps}
-lib_ignore = ${common.lib_ignore}
+build_flags = ${common.build_flags} -D DEBUG_MODE=1
+lib_ldf_mode = off
 lib_compat_mode = off
-build_flags =
-    -D WEBSOCKET_DISABLED=1
-    -D DEBUG_MODE=1
-extra_scripts =
-    pre:scripts/addversion.py
-    scripts/makeweb.py
+lib_deps = ESP8266WiFi, ESP8266mDNS, ESP8266WebServer, ESP8266HTTPClient, ESP8266httpUpdate, ${common.lib_deps}
+lib_ignore = ${common.lib_ignore}
+extra_scripts = ${common.extra_scripts}
 monitor_speed = 115200 ; If serial port is shared with HAN, use baud and parity configured for meter
 monitor_flags = 
     --parity

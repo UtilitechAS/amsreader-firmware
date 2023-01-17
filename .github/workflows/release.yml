@@ -41,12 +41,39 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -U platformio css_html_js_minify
+
+    - name: Set up node
+      uses: actions/setup-node@v1
+      with:
+        node-version: '16.x'
+    - name: Build with node
+      run: |
+        cd lib/SvelteUi/app
+        npm ci
+        npm run build
+        cd -
+      env:
+        CI: false
+
     - name: PlatformIO lib install
       run: pio lib install
-    - name: PlatformIO run
-      run: pio run
-    - name: Create zip files
-      run: /bin/sh scripts/mkzip.sh
+    - name: Build ESP8266 firmware
+      run: pio run -e esp8266
+    - name: Create ESP8266 zip file
+      run: /bin/sh scripts/esp8266/mkzip.sh
+    - name: Build ESP32 firmware
+      run: pio run -e esp32
+    - name: Create ESP32 zip file
+      run: /bin/sh scripts/esp32/mkzip.sh
+    - name: Build ESP32-S2 firmware
+      run: pio run -e esp32s2
+    - name: Create ESP32-S2 zip file
+      run: /bin/sh scripts/esp32s2/mkzip.sh
+    - name: Build ESP32-SOLO firmware
+      run: pio run -e esp32solo
+    - name: Create ESP32-SOLO zip file
+      run: /bin/sh scripts/esp32solo/mkzip.sh
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1.0.0

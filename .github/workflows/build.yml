@@ -52,7 +52,7 @@ jobs:
         npm run build
         cd -
       env:
-        CI: false
+        CI: true
     - name: PlatformIO lib install
       run: pio lib install
     - name: PlatformIO run

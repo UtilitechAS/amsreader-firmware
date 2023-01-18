@@ -1023,6 +1023,7 @@ void AmsWebServer::handleSetup() {
 
 		switch(sys.boardType) {
 			case 0: // roarfred
+				config->clearGpio(*gpioConfig);
 				gpioConfig->hanPin = 3;
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPin = 2;
@@ -1030,6 +1031,7 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->tempSensorPin = 5;
 				break;
 			case 1: // Arnio Kamstrup
+				config->clearGpio(*gpioConfig);
 				gpioConfig->hanPin = 3;
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPin = 2;
@@ -1039,6 +1041,7 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->ledRgbInverted = true;
 				break;
 			case 2: // spenceme
+				config->clearGpio(*gpioConfig);
 				gpioConfig->hanPin = 3;
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPin = 2;
@@ -1048,6 +1051,7 @@ void AmsWebServer::handleSetup() {
 				wifi.sleep = 1;
 				break;
 			case 3: // Pow UART0
+				config->clearGpio(*gpioConfig);
 				gpioConfig->hanPin = 3;
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPin = 2;
@@ -1058,6 +1062,7 @@ void AmsWebServer::handleSetup() {
 				wifi.sleep = 1;
 				break;
 			case 4: // Pow GPIO12
+				config->clearGpio(*gpioConfig);
 				gpioConfig->hanPin = 12;
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPin = 2;
@@ -1068,6 +1073,7 @@ void AmsWebServer::handleSetup() {
 				wifi.sleep = 1;
 				break;
 			case 5: // Pow-K+ UART2
+				config->clearGpio(*gpioConfig);
 				gpioConfig->hanPin = 16;
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPinRed = 13;
@@ -1079,6 +1085,7 @@ void AmsWebServer::handleSetup() {
 				wifi.sleep = 1;
 				break;
 			case 6: // Pow-P1
+				config->clearGpio(*gpioConfig);
 				gpioConfig->hanPin = 16;
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPinRed = 13;
@@ -1089,6 +1096,7 @@ void AmsWebServer::handleSetup() {
 				gpioConfig->vccResistorVcc = 33;
 				break;
 			case 7: // Pow-U+
+				config->clearGpio(*gpioConfig);
 				gpioConfig->hanPin = 16;
 				gpioConfig->apPin = 0;
 				gpioConfig->ledPinRed = 13;

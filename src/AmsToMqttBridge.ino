@@ -121,47 +121,6 @@ DSMRParser *dsmrParser = NULL;
 void setup() {
 	Serial.begin(115200);
 
-	if(!config.getGpioConfig(gpioConfig)) {
-		#if HW_ROARFRED
-			gpioConfig.hanPin = 3;
-			gpioConfig.apPin = 0;
-			gpioConfig.ledPin = 2;
-			gpioConfig.ledInverted = true;
-			gpioConfig.tempSensorPin = 5;
-		#elif defined(ARDUINO_ESP8266_WEMOS_D1MINI)
-			gpioConfig.hanPin = 5;
-			gpioConfig.apPin = 4;
-			gpioConfig.ledPin = 2;
-			gpioConfig.ledInverted = true;
-			gpioConfig.tempSensorPin = 14;
-			gpioConfig.vccMultiplier = 1100;
-		#elif defined(ARDUINO_LOLIN_D32)
-			gpioConfig.hanPin = 16;
-			gpioConfig.ledPin = 5;
-			gpioConfig.ledInverted = true;
-			gpioConfig.tempSensorPin = 14;
-		#elif defined(ARDUINO_FEATHER_ESP32)
-			gpioConfig.hanPin = 16;
-			gpioConfig.ledPin = 2;
-			gpioConfig.tempSensorPin = 14;
-		#elif defined(ARDUINO_ESP32_DEV)
-			gpioConfig.hanPin = 16;
-			gpioConfig.ledPin = 2;
-			gpioConfig.ledInverted = true;
-		#elif defined(ESP8266)
-			gpioConfig.hanPin = 3;
-			gpioConfig.ledPin = 2;
-			gpioConfig.ledInverted = true;
-		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-			gpioConfig.hanPin = 18;
-		#elif defined(ESP32)
-			gpioConfig.hanPin = 16;
-			gpioConfig.ledPin = 2;
-			gpioConfig.ledInverted = true;
-			gpioConfig.tempSensorPin = 14;
-		#endif
-	}
-
 	delay(1);
 	config.loadTempSensors();
 	hw.setup(&gpioConfig, &config);

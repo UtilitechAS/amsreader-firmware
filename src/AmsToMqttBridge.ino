@@ -122,7 +122,7 @@ DSMRParser *dsmrParser = NULL;
 void setup() {
 	Serial.begin(115200);
 
-	if(!config.hasConfig()) {
+	if(!config.getGpioConfig(gpioConfig)) {
 		config.clearGpio(gpioConfig);
 	}
 

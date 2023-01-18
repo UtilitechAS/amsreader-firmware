@@ -121,6 +121,10 @@ DSMRParser *dsmrParser = NULL;
 void setup() {
 	Serial.begin(115200);
 
+	if(!config.hasConfig()) {
+		config.clearGpio(gpioConfig);
+	}
+
 	delay(1);
 	config.loadTempSensors();
 	hw.setup(&gpioConfig, &config);

@@ -70,7 +70,7 @@
         {/if}
       <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">
           <div class="flex-none">
-            <a class="float-right" href='https://github.com/gskjold/AmsToMqttBridge' target='_blank' rel="noreferrer" aria-label="GitHub"><img class="gh-logo" src={GitHubLogo} alt="GitHub repo"/></a>
+            <a class="float-right" href='https://github.com/UtilitechAS/amsreader-firmware' target='_blank' rel="noreferrer" aria-label="GitHub"><img class="gh-logo" src={GitHubLogo} alt="GitHub repo"/></a>
           </div>
           <div class="flex-none my-auto px-2">
             <Clock timestamp={ data.c ? new Date(data.c * 1000) : new Date(0) } />
@@ -84,7 +84,7 @@
           </div>
           {/if}
           <div class="flex-none px-1 mt-1" title="Documentation">
-            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki" target='_blank' rel="noreferrer"><HelpIcon/></a>
+            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki" target='_blank' rel="noreferrer"><HelpIcon/></a>
           </div>
           {#if sysinfo.fwconsent === 1 && nextVersion}
           <div class="flex-none mr-3 text-yellow-500" title="New version: {nextVersion.tag_name}">

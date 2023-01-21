@@ -230,7 +230,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">Meter</strong>
-            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/Meter-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/Meter-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="m" value="true"/>
             <div class="my-1">
                 <span>Serial configuration</span>
@@ -320,7 +320,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">WiFi</strong>
-            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/WiFi-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/WiFi-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="w" value="true"/>
             <div class="my-1">
                 SSID<br/>
@@ -354,7 +354,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">Network</strong>
-            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/Network-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/Network-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <div class="my-1">
                 IP<br/>
                 <div class="flex">
@@ -396,7 +396,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">MQTT</strong>
-            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/MQTT-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/MQTT-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="q" value="true"/>
             <div class="my-1">
                 Server
@@ -471,7 +471,7 @@
         {#if configuration.q.m == 3}
         <div class="cnt">
             <strong class="text-sm">Domoticz</strong>
-            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/MQTT-configuration#domoticz" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/MQTT-configuration#domoticz" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="o" value="true"/>
             <div class="my-1 flex">
                 <div class="w-1/2">
@@ -488,7 +488,7 @@
                 <div class="flex">
                     <input name="ou1" bind:value={configuration.o.u1} type="text" class="in-f tr w-1/3"/>
                     <input name="ou2" bind:value={configuration.o.u2} type="text" class="in-m tr w-1/3"/>
-                    <input name="ou2" bind:value={configuration.o.u3} type="text" class="in-l tr w-1/3"/>
+                    <input name="ou3" bind:value={configuration.o.u3} type="text" class="in-l tr w-1/3"/>
                 </div>
             </div>
         </div>
@@ -496,7 +496,7 @@
         {#if configuration.p.r.startsWith("10YNO") || configuration.p.r == '10Y1001A1001A48H'}
         <div class="cnt">
             <strong class="text-sm">Tariff thresholds</strong>
-            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/Threshold-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/Threshold-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="t" value="true"/>
             <div class="flex flex-wrap my-1">
                 <label class="flex w-40 m-1">
@@ -649,7 +649,7 @@
         {#if sysinfo.board > 20 || sysinfo.chip == 'esp8266'}
         <div class="cnt">
             <strong class="text-sm">Hardware</strong>
-            <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/GPIO-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/GPIO-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             {#if sysinfo.board > 20}
             <input type="hidden" name="i" value="true"/>
             <div class="flex flex-wrap">

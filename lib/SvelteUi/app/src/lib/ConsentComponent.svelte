@@ -41,7 +41,7 @@
             <hr/>
             <div class="my-3">
                 Enable one-click upgrade? (implies data collection)<br/>
-                <a href="https://github.com/gskjold/AmsToMqttBridge/wiki/Data-collection-on-one-click-firmware-upgrade" target="_blank" class="text-blue-600 hover:text-blue-800">Read more</a><br/>
+                <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/Data-collection-on-one-click-firmware-upgrade" target="_blank" class="text-blue-600 hover:text-blue-800">Read more</a><br/>
                 <label><input type="radio" name="sf" value={1} checked={sysinfo.fwconsent === 1} class="rounded m-2" required/> Yes</label><label><input type="radio" name="sf" value={2} checked={sysinfo.fwconsent === 2} class="rounded m-2" required/> No</label><br/>
             </div>
             <div class="my-3">

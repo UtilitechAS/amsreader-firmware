@@ -17,7 +17,7 @@ const uint8_t HA_SENSOR_COUNT PROGMEM = 60;
 HomeAssistantSensor HA_SENSORS[HA_SENSOR_COUNT] PROGMEM = {
     {"Status",                     "/state",   "rssi",              "dBm",  "signal_strength", "\"measurement\""},
     {"Supply volt",                "/state",   "vcc",               "V",    "voltage",         "\"measurement\""},
-    {"Temperature",                "/state",   "temp",              "C",    "temperature",     "\"measurement\""},
+    {"Temperature",                "/state",   "temp",              "°C",   "temperature",     "\"measurement\""},
     {"Active import",              "/power",   "P",                 "W",    "power",           "\"measurement\""},
     {"L1 active import",           "/power",   "P1",                "W",    "power",           "\"measurement\""},
     {"L2 active import",           "/power",   "P2",                "W",    "power",           "\"measurement\""},

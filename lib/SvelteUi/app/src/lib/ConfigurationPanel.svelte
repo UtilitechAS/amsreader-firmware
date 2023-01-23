@@ -135,12 +135,13 @@
     <div class="grid xl:grid-cols-4 lg:grid-cols-2 md:grid-cols-2">
         <div class="cnt">
             <strong class="text-sm">General</strong>
+            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/General-configuration" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="g" value="true"/>
             <div class="my-1">
                 <div class="flex">
                     <div>
                         Hostname<br/>
-                        <input name="gh" bind:value={configuration.g.h} type="text" class="in-f w-full"/>
+                        <input name="gh" bind:value={configuration.g.h} type="text" class="in-f w-full" pattern="[A-Za-z0-9-]+"/>
                     </div>
                     <div>
                         Time zone<br/>
@@ -554,6 +555,7 @@
         {/if}
         <div class="cnt">
             <strong class="text-sm">User interface</strong>
+            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/User-interface" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="u" value="true"/>
             <div class="flex flex-wrap">
                 <div class="w-1/2">

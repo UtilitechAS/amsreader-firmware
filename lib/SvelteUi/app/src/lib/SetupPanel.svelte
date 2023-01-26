@@ -70,7 +70,7 @@
 
 <div class="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2">
     <div class="cnt">
-        <form on:submit|preventDefault={handleSubmit} autocomplete="off">
+        <form on:submit|preventDefault={handleSubmit}>
             <input type="hidden" name="s" value="true"/>
             <strong class="text-sm">Setup</strong>
             <div class="my-3">
@@ -79,11 +79,11 @@
             </div>
             <div class="my-3">
                 PSK<br/>
-                <input name="sp" type="password" class="in-s"/>
+                <input name="sp" type="password" class="in-s" autocomplete="off"/>
             </div>
             <div>
                 Hostname:
-                <input name="sh" bind:value={sysinfo.hostname} type="text" class="in-s" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader"/>
+                <input name="sh" bind:value={sysinfo.hostname} type="text" class="in-s" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader" autocomplete="off"/>
             </div>
             <div class="my-3">
                 <label><input type="checkbox" name="sm" value="static" class="rounded mb-1" bind:checked={staticIp} /> Static IP</label>

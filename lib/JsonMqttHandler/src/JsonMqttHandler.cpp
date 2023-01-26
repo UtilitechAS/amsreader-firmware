@@ -231,6 +231,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 	}
 
 	char ts1hr[24];
+    memset(ts1hr, 0, 24);
 	if(min1hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
         //Serial.printf("1hr: %d %lu\n", min1hrIdx, ts);
@@ -239,6 +240,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts3hr[24];
+    memset(ts3hr, 0, 24);
 	if(min3hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
         //Serial.printf("3hr: %d %lu\n", min3hrIdx, ts);
@@ -247,6 +249,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts6hr[24];
+    memset(ts6hr, 0, 24);
 	if(min6hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
         //Serial.printf("6hr: %d %lu\n", min6hrIdx, ts);
@@ -279,7 +282,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 }
 
 bool JsonMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
-	if(init || topic.isEmpty() || !mqtt->connected())
+	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 
     snprintf_P(json, BufferSize, JSONSYS_JSON,
@@ -291,6 +294,5 @@ bool JsonMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounti
         hw->getTemperature(),
         VERSION
     );
-    init = mqtt->publish(topic, json);
-    return init;
+    return mqtt->publish(topic, json);
 }

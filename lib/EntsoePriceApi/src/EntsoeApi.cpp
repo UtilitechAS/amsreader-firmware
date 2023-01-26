@@ -308,7 +308,7 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
     } else if(hub) {
         String data;
         snprintf(buf, BufferSize, "%s/%s/%d/%d/%d?currency=%s",
-            "http://ams2mqtt.rewiredinvent.no/hub/price",
+            "http://hub.amsleser.no/hub/price",
             config->area,
             tm.Year+1970,
             tm.Month,

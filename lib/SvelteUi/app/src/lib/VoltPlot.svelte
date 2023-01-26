@@ -19,7 +19,7 @@
             points.push({
                 label: u1 ? u1.toFixed(0) + 'V' : '-', 
                 value: u1 ? u1 : 0, 
-                color: voltcol(u1 ? (u1-min)/(max-min)*100 : 0) 
+                color: voltcol(u1 ? u1 : 0) 
             });
         }
         if(u2 > 0) {
@@ -27,7 +27,7 @@
             points.push({ 
                 label: u2 ? u2.toFixed(0) + 'V' : '-', 
                 value: u2 ? u2 : 0, 
-                color: voltcol(u2 ? (u2-min)/(max-min)*100 : 0) 
+                color: voltcol(u2 ? u2 : 0) 
             });
         }
         if(u3 > 0) {
@@ -35,7 +35,7 @@
             points.push({ 
                 label: u3 ? u3.toFixed(0) + 'V' : '-', 
                 value: u3 ? u3 : 0, 
-                color: voltcol(u3 ? (u3-min)/(max-min)*100 : 0) 
+                color: voltcol(u3 ? u3 : 0) 
             });
         }
         config = {

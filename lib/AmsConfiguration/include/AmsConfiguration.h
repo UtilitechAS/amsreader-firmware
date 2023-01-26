@@ -34,8 +34,8 @@ struct SystemConfig {
 	bool vendorConfigured;
 	bool userConfigured;
 	uint8_t dataCollectionConsent; // 0 = unknown, 1 = accepted, 2 = declined
-	char country[2];
-}; // 6
+	char country[3];
+}; // 7
 
 struct WiFiConfig91 {
 	char ssid[32];

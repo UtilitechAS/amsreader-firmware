@@ -240,7 +240,7 @@ void AmsWebServer::sysinfoJson() {
 	UiConfig ui;
 	config->getUiConfig(ui);
 
-	snprintf_P(buf, BufferSize, SYSINFO_JSON,
+	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		VERSION,
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
 		"esp32s2",
@@ -287,6 +287,8 @@ void AmsWebServer::sysinfoJson() {
 		ui.showTemperaturePlot,
 		webConfig.security
 	);
+
+	stripNonAscii((uint8_t*) buf, size+1);
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -981,7 +983,7 @@ void AmsWebServer::handleSave() {
 			switch(boardType) {
 				case 2: // spenceme
 					config->clearGpio(*gpioConfig);
-					gpioConfig->vccBootLimit = 33;
+					gpioConfig->vccBootLimit = 32;
 					gpioConfig->hanPin = 3;
 					gpioConfig->apPin = 0;
 					gpioConfig->ledPin = 2;
@@ -1435,7 +1437,7 @@ void AmsWebServer::upgrade() {
 			customFirmwareUrl = server.arg(F("url"));
 		}
 
-		String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith(F("http")) ? F("http://ams2mqtt.rewiredinvent.no/hub/firmware/update") : customFirmwareUrl;
+		String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith(F("http")) ? F("http://hub.amsleser.no/hub/firmware/update") : customFirmwareUrl;
 
 		if(server.hasArg(F("version"))) {
 			url += "/" + server.arg(F("version"));

@@ -216,7 +216,7 @@ void setup() {
 		debugI("Voltage: %.2fV", vcc);
 	}
 
-	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : gpioConfig.vccBootLimit / 10.0;
+	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
 	if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
 		if (vcc < vccBootLimit) {
 			if(Debug.isActive(RemoteDebug::INFO)) {
@@ -585,7 +585,7 @@ void loop() {
 				}
 				debugD("Used %ld ms to update temperature", millis()-start);
 			}
-			if(now - lastSysupdate > 10000) {
+			if(now - lastSysupdate > 60000) {
 				if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
 					mqttHandler->publishSystem(&hw, eapi, &ea);
 				}
@@ -1447,7 +1447,7 @@ void MQTT_connect() {
 		if (strlen(mqttConfig.subscribeTopic) > 0) {
             mqtt->onMessage(mqttMessageReceived);
 			mqtt->subscribe(String(mqttConfig.subscribeTopic) + "/#");
-			debugI("  Subscribing to [%s]\r\n", mqttConfig.subscribeTopic);
+			debugI("  Subscribing to [%s]\n", mqttConfig.subscribeTopic);
 		}
 	} else {
 		if (Debug.isActive(RemoteDebug::ERROR)) {

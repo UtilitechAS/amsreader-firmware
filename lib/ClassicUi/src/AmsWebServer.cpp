@@ -1835,7 +1835,7 @@ void AmsWebServer::restartWaitHtml() {
 		performRestart = false;
 	} else if(performUpgrade) {
 		WiFiClient client;
-		String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith(F("http")) ? F("http://ams2mqtt.rewiredinvent.no/hub/firmware/update") : customFirmwareUrl;
+		String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith(F("http")) ? F("http://hub.amsleser.no/hub/firmware/update") : customFirmwareUrl;
 		#if defined(ESP8266)
 			String chipType = F("esp8266");
 		#elif defined(CONFIG_IDF_TARGET_ESP32S2)

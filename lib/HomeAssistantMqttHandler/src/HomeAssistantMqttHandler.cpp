@@ -16,7 +16,6 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 
-    listType = data->getListType(); // for discovery stuff in publishSystem()
     if(data->getListType() >= 3) { // publish energy counts
         snprintf_P(json, BufferSize, HA2_JSON,
             data->getActiveImportCounter(),
@@ -192,6 +191,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 	}
 
 	char ts1hr[24];
+    memset(ts1hr, 0, 24);
 	if(min1hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
         //Serial.printf("1hr: %d %lu\n", min1hrIdx, ts);
@@ -200,6 +200,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts3hr[24];
+    memset(ts3hr, 0, 24);
 	if(min3hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
         //Serial.printf("3hr: %d %lu\n", min3hrIdx, ts);
@@ -208,6 +209,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts6hr[24];
+    memset(ts6hr, 0, 24);
 	if(min6hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
         //Serial.printf("6hr: %d %lu\n", min6hrIdx, ts);
@@ -240,23 +242,19 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 }
 
 bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
-	if(topic.isEmpty() || !mqtt->connected()){
-        sequence = 0;
+	if(topic.isEmpty() || !mqtt->connected())
 		return false;
-    }
 
-    if(sequence % 3 == 0){
-        snprintf_P(json, BufferSize, JSONSYS_JSON,
-            WiFi.macAddress().c_str(),
-            clientId.c_str(),
-            (uint32_t) (millis64()/1000),
-            hw->getVcc(),
-            hw->getWifiRssi(),
-            hw->getTemperature(),
-            VERSION
-        );
-        mqtt->publish(topic + "/state", json);
-    }
+    snprintf_P(json, BufferSize, JSONSYS_JSON,
+        WiFi.macAddress().c_str(),
+        clientId.c_str(),
+        (uint32_t) (millis64()/1000),
+        hw->getVcc(),
+        hw->getWifiRssi(),
+        hw->getTemperature(),
+        VERSION
+    );
+    mqtt->publish(topic + "/state", json);
 
     if(!autodiscoverInit) {
         #if defined(ESP8266)
@@ -315,6 +313,5 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
 
         autodiscoverInit = true;
     }
-    if(listType>0) sequence++;
     return true;
 }

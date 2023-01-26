@@ -260,9 +260,8 @@
             <div class="my-1">
                 Voltage<br/>
                 <select name="md" bind:value={configuration.m.d} class="in-s">
-                    <option value={0}></option>
-                    <option value={1}>230V (IT/TT)</option>
                     <option value={2}>400V (TN)</option>
+                    <option value={1}>230V (IT/TT)</option>
                 </select>
             </div>
             <div class="my-1 flex">

@@ -31,6 +31,5 @@ private:
     String clientId;
     String topic;
     HwTools* hw;
-    uint8_t sequence = 0, listType = 0;
 };
 #endif

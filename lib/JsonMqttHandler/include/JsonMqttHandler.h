@@ -19,6 +19,5 @@ private:
     String clientId;
     String topic;
     HwTools* hw;
-    bool init = false;
 };
 #endif

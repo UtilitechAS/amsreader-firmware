@@ -1,4 +1,5 @@
 #include "AmsConfiguration.h"
+#include "hexutils.h"
 
 bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 	EEPROM.begin(EEPROM_SIZE);
@@ -19,6 +20,7 @@ bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 
 bool AmsConfiguration::setSystemConfig(SystemConfig& config) {
 	EEPROM.begin(EEPROM_SIZE);
+	stripNonAscii((uint8_t*) config.country, 2);
 	EEPROM.put(CONFIG_SYSTEM_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -59,6 +61,16 @@ bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 	} else {
 		wifiChanged = true;
 	}
+	
+	stripNonAscii((uint8_t*) config.ssid, 32);
+	stripNonAscii((uint8_t*) config.psk, 64);
+	stripNonAscii((uint8_t*) config.ip, 16);
+	stripNonAscii((uint8_t*) config.gateway, 16);
+	stripNonAscii((uint8_t*) config.subnet, 16);
+	stripNonAscii((uint8_t*) config.dns1, 16);
+	stripNonAscii((uint8_t*) config.dns2, 16);
+	stripNonAscii((uint8_t*) config.hostname, 32);
+
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_WIFI_START, config);
 	bool ret = EEPROM.commit();
@@ -127,6 +139,14 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 	} else {
 		mqttChanged = true;
 	}
+
+	stripNonAscii((uint8_t*) config.host, 128);
+	stripNonAscii((uint8_t*) config.clientId, 32);
+	stripNonAscii((uint8_t*) config.publishTopic, 64);
+	stripNonAscii((uint8_t*) config.subscribeTopic, 64);
+	stripNonAscii((uint8_t*) config.username, 128);
+	stripNonAscii((uint8_t*) config.password, 256);
+
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_MQTT_START, config);
 	bool ret = EEPROM.commit();
@@ -171,6 +191,10 @@ bool AmsConfiguration::getWebConfig(WebConfig& config) {
 }
 
 bool AmsConfiguration::setWebConfig(WebConfig& config) {
+
+	stripNonAscii((uint8_t*) config.username, 64);
+	stripNonAscii((uint8_t*) config.password, 64);
+
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_WEB_START, config);
 	bool ret = EEPROM.commit();
@@ -221,8 +245,8 @@ void AmsConfiguration::clearMeter(MeterConfig& config) {
 	config.baud = 0;
 	config.parity = 0;
 	config.invert = false;
-	config.distributionSystem = 0;
-	config.mainFuse = 0;
+	config.distributionSystem = 2;
+	config.mainFuse = 40;
 	config.productionCapacity = 0;
 	memset(config.encryptionKey, 0, 16);
 	memset(config.authenticationKey, 0, 16);
@@ -445,6 +469,10 @@ bool AmsConfiguration::setNtpConfig(NtpConfig& config) {
 	} else {
 		ntpChanged = true;
 	}
+
+	stripNonAscii((uint8_t*) config.server, 64);
+	stripNonAscii((uint8_t*) config.timezone, 32);
+
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_NTP_START, config);
 	bool ret = EEPROM.commit();
@@ -492,6 +520,11 @@ bool AmsConfiguration::setEntsoeConfig(EntsoeConfig& config) {
 	} else {
 		entsoeChanged = true;
 	}
+
+	stripNonAscii((uint8_t*) config.token, 37);
+	stripNonAscii((uint8_t*) config.area, 17);
+	stripNonAscii((uint8_t*) config.currency, 4);
+
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_ENTSOE_START, config);
 	bool ret = EEPROM.commit();

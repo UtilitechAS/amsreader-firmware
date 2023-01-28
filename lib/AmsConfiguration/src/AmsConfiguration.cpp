@@ -537,6 +537,7 @@ void AmsConfiguration::clearEntsoe(EntsoeConfig& config) {
 	strcpy(config.area, "");
 	strcpy(config.currency, "");
 	config.multiplier = 1000;
+	config.enabled = false;
 }
 
 bool AmsConfiguration::isEntsoeChanged() {

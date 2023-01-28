@@ -240,12 +240,20 @@ void AmsWebServer::sysinfoJson() {
 	UiConfig ui;
 	config->getUiConfig(ui);
 
+	String meterModel = meterState->getMeterModel();
+	meterModel.replace(F("/"), F(""));
+
+	String meterId = meterState->getMeterId();
+	meterId.replace(F("/"), F(""));
+
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		VERSION,
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
 		"esp32s2",
 		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
 		"esp32c3",
+		#elif defined(CONFIG_FREERTOS_UNICORE)
+		"esp32solo",
 		#elif defined(ESP32)
 		"esp32",
 		#elif defined(ESP8266)
@@ -272,8 +280,8 @@ void AmsWebServer::sysinfoJson() {
 		dns2.toString().c_str(),
 		#endif
 		meterState->getMeterType(),
-		meterState->getMeterModel().c_str(),
-		meterState->getMeterId().c_str(),
+		meterModel.c_str(),
+		meterId.c_str(),
 		ui.showImport,
 		ui.showExport,
 		ui.showVoltage,

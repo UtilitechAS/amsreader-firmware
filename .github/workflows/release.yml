@@ -23,6 +23,12 @@ jobs:
       env:
         GITHUB_REF: ${{ github.ref }}
       run: echo "GITHUB_TAG=$(echo ${GITHUB_REF##*/})" >> $GITHUB_ENV
+
+    - name: Inject secrets into ini file
+      run: |
+        sed -i 's/NO_AMS2MQTT_PRICE_KEY/AMS2MQTT_PRICE_KEY="${{secrets.AMS2MQTT_PRICE_KEY}}"/g' platformio.ini
+        sed -i 's/NO_AMS2MQTT_PRICE_AUTHENTICATION/AMS2MQTT_PRICE_AUTHENTICATION="${{secrets.AMS2MQTT_PRICE_AUTHENTICATION}}"/g' platformio.ini
+
     - name: Cache Python dependencies
       uses: actions/cache@v1
       with:
@@ -41,12 +47,23 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -U platformio css_html_js_minify
+
+    - name: Set up node
+      uses: actions/setup-node@v1
+      with:
+        node-version: '16.x'
+    - name: Build with node
+      run: |
+        cd lib/SvelteUi/app
+        npm ci
+        npm run build
+        cd -
+      env:
+        CI: false
+
     - name: PlatformIO lib install
       run: pio lib install
-    - name: PlatformIO run
-      run: pio run
-    - name: Create zip files
-      run: /bin/sh scripts/mkzip.sh
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1.0.0
@@ -58,6 +75,19 @@ jobs:
         draft: false
         prerelease: false
 
+    - name: Build esp8266 firmware
+      run: pio run -e esp8266
+    - name: Create esp8266 zip file
+      run: /bin/sh scripts/esp8266/mkzip.sh
+    - name: Upload esp8266 binary to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: .pio/build/esp8266/firmware.bin
+        asset_name: ams2mqtt-esp8266-${{ steps.release_tag.outputs.tag }}.bin
+        asset_content_type: application/octet-stream
     - name: Upload esp8266 zip to release
       uses: actions/upload-release-asset@v1
       env:
@@ -67,6 +97,20 @@ jobs:
         asset_path: esp8266.zip
         asset_name: ams2mqtt-esp8266-${{ steps.release_tag.outputs.tag }}.zip
         asset_content_type: application/zip
+
+    - name: Build esp32 firmware
+      run: pio run -e esp32
+    - name: Create esp32 zip file
+      run: /bin/sh scripts/esp32/mkzip.sh
+    - name: Upload esp32 binary to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: .pio/build/esp32/firmware.bin
+        asset_name: ams2mqtt-esp32-${{ steps.release_tag.outputs.tag }}.bin
+        asset_content_type: application/octet-stream
     - name: Upload esp32 zip to release
       uses: actions/upload-release-asset@v1
       env:
@@ -76,6 +120,20 @@ jobs:
         asset_path: esp32.zip
         asset_name: ams2mqtt-esp32-${{ steps.release_tag.outputs.tag }}.zip
         asset_content_type: application/zip
+
+    - name: Build esp32s2 firmware
+      run: pio run -e esp32s2
+    - name: Create esp32s2 zip file
+      run: /bin/sh scripts/esp32s2/mkzip.sh
+    - name: Upload esp32s2 binary to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: .pio/build/esp32s2/firmware.bin
+        asset_name: ams2mqtt-esp32s2-${{ steps.release_tag.outputs.tag }}.bin
+        asset_content_type: application/octet-stream
     - name: Upload esp32s2 zip to release
       uses: actions/upload-release-asset@v1
       env:
@@ -86,24 +144,10 @@ jobs:
         asset_name: ams2mqtt-esp32s2-${{ steps.release_tag.outputs.tag }}.zip
         asset_content_type: application/zip
 
-    - name: Upload esp8266 binary to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/esp8266/firmware.bin
-        asset_name: ams2mqtt-esp8266-${{ steps.release_tag.outputs.tag }}.bin
-        asset_content_type: application/octet-stream
-    - name: Upload esp32 binary to release
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/esp32/firmware.bin
-        asset_name: ams2mqtt-esp32-${{ steps.release_tag.outputs.tag }}.bin
-        asset_content_type: application/octet-stream
+    - name: Build esp32solo firmware
+      run: pio run -e esp32solo
+    - name: Create esp32solo zip file
+      run: /bin/sh scripts/esp32solo/mkzip.sh
     - name: Upload esp32solo binary to release
       uses: actions/upload-release-asset@v1
       env:
@@ -113,12 +157,12 @@ jobs:
         asset_path: .pio/build/esp32solo/firmware.bin
         asset_name: ams2mqtt-esp32solo-${{ steps.release_tag.outputs.tag }}.bin
         asset_content_type: application/octet-stream
-    - name: Upload esp32s2 binary to release
+    - name: Upload esp32solo zip to release
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: .pio/build/esp32s2/firmware.bin
-        asset_name: ams2mqtt-esp32s2-${{ steps.release_tag.outputs.tag }}.bin
-        asset_content_type: application/octet-stream
+        asset_path: esp32solo.zip
+        asset_name: ams2mqtt-esp32solo-${{ steps.release_tag.outputs.tag }}.zip
+        asset_content_type: application/zip

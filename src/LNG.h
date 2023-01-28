@@ -3,8 +3,8 @@
 
 #include "AmsData.h"
 #include "AmsConfiguration.h"
-#include "ams/DataParser.h"
-#include "ams/Cosem.h"
+#include "DataParser.h"
+#include "Cosem.h"
 #include "RemoteDebug.h"
 
 struct LngHeader {

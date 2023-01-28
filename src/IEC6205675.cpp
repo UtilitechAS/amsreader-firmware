@@ -1,7 +1,7 @@
 #include "IEC6205675.h"
 #include "lwip/def.h"
 #include "Timezone.h"
-#include "ams/ntohll.h"
+#include "ntohll.h"
 
 IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx) {
     double val;
@@ -351,13 +351,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 l2PowerFactor /= 100;
             if(l3PowerFactor != 0)
                 l3PowerFactor /= 100;
-
-            int watt = abs((l1voltage * l1current) + (l2voltage * l2current) + (l3voltage * l3current));
-            if(watt / (activeImportPower + activeExportPower  + reactiveImportPower + reactiveExportPower) > 2) {
-                l1current = l1current != 0 ? l1current / 10 : 0;
-                l2current = l2current != 0 ? l2current / 10 : 0;
-                l3current = l3current != 0 ? l3current / 10 : 0;
-            }
         } else if(meterType == AmsTypeSagemcom) {
             CosemData* meterTs = getCosemDataAt(1, ((char *) (d)));
             if(meterTs != NULL) {

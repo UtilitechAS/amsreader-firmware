@@ -1,11 +1,11 @@
 #include "LNG.h"
 #include "lwip/def.h"
-#include "ams/ntohll.h"
+#include "ntohll.h"
 
 LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
     LngHeader* h = (LngHeader*) payload;
     if(h->tag == CosemTypeStructure && h->arrayTag == CosemTypeArray) {
-        meterType = AmsTypeLng;
+        meterType = AmsTypeLandisGyr;
         this->packageTimestamp = ctx.timestamp;
 
         uint8_t* ptr = (uint8_t*) &h[1];
@@ -26,6 +26,7 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                 if(descriptor->obis[3] == 7) {
                     if(descriptor->obis[4] == 0) {
                         o170 = getNumber(item);
+                        listType = listType >= 1 ? listType : 1;
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu", o170);
                     }
                 } else if(descriptor->obis[3] == 8) {
@@ -36,9 +37,11 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                         activeImportCounter = o180 / 1000.0;
                     } else if(descriptor->obis[4] == 1) {
                         o181 = getNumber(item);
+                        listType = listType >= 3 ? listType : 3;
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu", o181);
                     } else if(descriptor->obis[4] == 2) {
                         o182 = getNumber(item);
+                        listType = listType >= 3 ? listType : 3;
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu", o182);
                     }
                 } 
@@ -46,6 +49,7 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                 if(descriptor->obis[3] == 7) {
                     if(descriptor->obis[4] == 0) {
                         o270 = getNumber(item);
+                        listType = listType >= 2 ? listType : 2;
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu", o270);
                     }
                 } else if(descriptor->obis[3] == 8) {
@@ -56,9 +60,11 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                         activeExportCounter = o280 / 1000.0;
                     } else if(descriptor->obis[4] == 1) {
                         o281 = getNumber(item);
+                        listType = listType >= 3 ? listType : 3;
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu", o281);
                     } else if(descriptor->obis[4] == 2) {
                         o282 = getNumber(item);
+                        listType = listType >= 3 ? listType : 3;
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %lu", o282);
                     }
                 } 
@@ -69,12 +75,14 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                         memcpy(str, item->oct.data, item->oct.length);
                         str[item->oct.length] = '\0';
                         meterId = String(str);
+                        listType = listType >= 2 ? listType : 2;
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %s (oct)", str);
                     } else if(descriptor->obis[4] == 1) {
                         char str[item->oct.length+1];
                         memcpy(str, item->oct.data, item->oct.length);
                         str[item->oct.length] = '\0';
                         meterModel = String(str);
+                        listType = listType >= 2 ? listType : 2;
                         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf(" and value %s (oct)", str);
                     }
                 }
@@ -85,21 +93,18 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
             if(o170 > 0 || o270 > 0) {
                 int32_t sum = o170-o270;
                 if(sum > 0) {
-                    listType = listType >= 1 ? listType : 1;
                     activeImportPower = sum;
                 } else {
-                    listType = listType >= 2 ? listType : 2;
                     activeExportPower = sum * -1;
+                    listType = listType >= 2 ? listType : 2;
                 }
             }
 
             if(o181 > 0 || o182 > 0) {
                 activeImportCounter = (o181 + o182) / 1000.0;
-                listType = listType >= 3 ? listType : 3;
             }
             if(o281 > 0 || o282 > 0) {
                 activeExportCounter = (o281 + o282) / 1000.0;
-                listType = listType >= 3 ? listType : 3;
             }
 
             if((*data) == 0x09) {

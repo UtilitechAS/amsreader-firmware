@@ -49,16 +49,16 @@ ADC_MODE(ADC_VCC);
 #include "hexutils.h"
 #include "HwTools.h"
 
-#include "entsoe/EntsoeApi.h"
+#include "EntsoeApi.h"
 
-#include "web/AmsWebServer.h"
+#include "AmsWebServer.h"
 #include "AmsConfiguration.h"
 
-#include "mqtt/AmsMqttHandler.h"
-#include "mqtt/JsonMqttHandler.h"
-#include "mqtt/RawMqttHandler.h"
-#include "mqtt/DomoticzMqttHandler.h"
-#include "mqtt/HomeAssistantMqttHandler.h"
+#include "AmsMqttHandler.h"
+#include "JsonMqttHandler.h"
+#include "RawMqttHandler.h"
+#include "DomoticzMqttHandler.h"
+#include "HomeAssistantMqttHandler.h"
 
 #include "Uptime.h"
 
@@ -71,7 +71,8 @@ ADC_MODE(ADC_VCC);
 #include "IEC6205675.h"
 #include "LNG.h"
 
-#include "ams/DataParsers.h"
+#include "DataParsers.h"
+#include "Timezones.h"
 
 uint8_t commonBuffer[BUF_SIZE_COMMON];
 uint8_t hanBuffer[BUF_SIZE_HAN];
@@ -162,15 +163,13 @@ void setup() {
 	hw.ledBlink(LED_GREEN, 1);
 	hw.ledBlink(LED_BLUE, 1);
 
-	#if defined(ESP32)
 	EntsoeConfig entsoe;
-	if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
+	if(config.getEntsoeConfig(entsoe) && entsoe.enabled && strlen(entsoe.area) > 0) {
 		eapi = new EntsoeApi(&Debug);
 		eapi->setup(entsoe);
 		ws.setEntsoeApi(eapi);
 	}
-	#endif
-
+	ws.setPriceRegion(entsoe.area);
 	bool shared = false;
 	config.getMeterConfig(meterConfig);
 	Serial.flush();
@@ -197,9 +196,9 @@ void setup() {
 				break;
 		}
 		#if defined(ESP32)
-			Serial.begin(meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
+			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
 		#else
-			Serial.begin(meterConfig.baud, serialConfig, SERIAL_FULL, 1, meterConfig.invert);
+			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, SERIAL_FULL, 1, meterConfig.invert);
 		#endif
 	}
 
@@ -217,7 +216,7 @@ void setup() {
 		debugI("Voltage: %.2fV", vcc);
 	}
 
-	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : gpioConfig.vccBootLimit / 10.0;
+	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
 	if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
 		if (vcc < vccBootLimit) {
 			if(Debug.isActive(RemoteDebug::INFO)) {
@@ -321,12 +320,10 @@ void setup() {
 		
 		NtpConfig ntp;
 		if(config.getNtpConfig(ntp)) {
-			configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : (char*) F("pool.ntp.org") : (char*) F("")); // Add NTP server by default if none is configured
+			tz = resolveTimezone(ntp.timezone);
+			configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : (char*) F("pool.ntp.org") : (char*) F("")); // Add NTP server by default if none is configured
 			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
 			ntpEnabled = ntp.enable;
-			TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
-			TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
-			tz = new Timezone(dst, std);
 			ws.setTimezone(tz);
 			ds.setTimezone(tz);
 			ea.setTimezone(tz);
@@ -347,6 +344,7 @@ void setup() {
 		config.ackEnergyAccountingChange();
 	}
 	ea.setup(&ds, eac);
+	ea.load();
 	ea.setEapi(eapi);
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
 
@@ -369,6 +367,13 @@ unsigned long lastTemperatureRead = 0;
 unsigned long lastSysupdate = 0;
 unsigned long lastErrorBlink = 0; 
 int lastError = 0;
+
+bool meterAutodetect = false;
+unsigned long meterAutodetectLastChange = 0;
+uint8_t meterAutoIndex = 0;
+uint32_t bauds[] = { 2400, 2400, 115200, 115200 };
+uint8_t parities[] = { 11, 3, 3, 3 };
+bool inverts[] = { false, false, false, true };
 
 void loop() {
 	Debug.handle();
@@ -411,9 +416,39 @@ void loop() {
 			wifiReconnectCount = 0;
 			if(!wifiConnected) {
 				wifiConnected = true;
-				
+
 				WiFiConfig wifi;
 				if(config.getWiFiConfig(wifi)) {
+					#if defined(ESP32)
+						if(wifi.power >= 195)
+							WiFi.setTxPower(WIFI_POWER_19_5dBm);
+						else if(wifi.power >= 190)
+							WiFi.setTxPower(WIFI_POWER_19dBm);
+						else if(wifi.power >= 185)
+							WiFi.setTxPower(WIFI_POWER_18_5dBm);
+						else if(wifi.power >= 170)
+							WiFi.setTxPower(WIFI_POWER_17dBm);
+						else if(wifi.power >= 150)
+							WiFi.setTxPower(WIFI_POWER_15dBm);
+						else if(wifi.power >= 130)
+							WiFi.setTxPower(WIFI_POWER_13dBm);
+						else if(wifi.power >= 110)
+							WiFi.setTxPower(WIFI_POWER_11dBm);
+						else if(wifi.power >= 85)
+							WiFi.setTxPower(WIFI_POWER_8_5dBm);
+						else if(wifi.power >= 70)
+							WiFi.setTxPower(WIFI_POWER_7dBm);
+						else if(wifi.power >= 50)
+							WiFi.setTxPower(WIFI_POWER_5dBm);
+						else if(wifi.power >= 20)
+							WiFi.setTxPower(WIFI_POWER_2dBm);
+						else
+							WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
+					#elif defined(ESP8266)
+						WiFi.setOutputPower(wifi.power / 10.0);
+					#endif
+					
+
 					WebConfig web;
 					if(config.getWebConfig(web) && web.security > 0) {
 						Debug.setPassword(web.password);
@@ -452,14 +487,11 @@ void loop() {
 			if(config.isNtpChanged()) {
 				NtpConfig ntp;
 				if(config.getNtpConfig(ntp)) {
-					configTime(ntp.offset*10, ntp.summerOffset*10, ntp.enable ? ntp.server : "");
+					tz = resolveTimezone(ntp.timezone);
+					configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : (char*) F("pool.ntp.org") : (char*) F("")); // Add NTP server by default if none is configured
 					sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
 					ntpEnabled = ntp.enable;
 
-					if(tz != NULL) delete tz;
-					TimeChangeRule std = {"STD", Last, Sun, Oct, 3, ntp.offset / 6};
-					TimeChangeRule dst = {"DST", Last, Sun, Mar, 2, (ntp.offset + ntp.summerOffset) / 6};
-					tz = new Timezone(dst, std);
 					ws.setTimezone(tz);
 					ds.setTimezone(tz);
 					ea.setTimezone(tz);
@@ -481,7 +513,6 @@ void loop() {
 				mqtt->disconnect();
 			}
 
-			#if defined(ESP32)
 			try {
 				if(eapi != NULL && ntpEnabled) {
 					if(eapi->loop() && mqtt != NULL && mqttHandler != NULL && mqtt->connected()) {
@@ -491,7 +522,7 @@ void loop() {
 				
 				if(config.isEntsoeChanged()) {
 					EntsoeConfig entsoe;
-					if(config.getEntsoeConfig(entsoe) && strlen(entsoe.token) > 0) {
+					if(config.getEntsoeConfig(entsoe) && entsoe.enabled && strlen(entsoe.area) > 0) {
 						if(eapi == NULL) {
 							eapi = new EntsoeApi(&Debug);
 							ea.setEapi(eapi);
@@ -503,12 +534,12 @@ void loop() {
 						eapi = NULL;
 						ws.setEntsoeApi(NULL);
 					}
+					ws.setPriceRegion(entsoe.area);
 					config.ackEntsoeChange();
 				}
 			} catch(const std::exception& e) {
 				debugE("Exception in ENTSO-E loop (%s)", e.what());
 			}
-			#endif
 			ws.loop();
 		}
 		if(mqtt != NULL) {
@@ -542,25 +573,54 @@ void loop() {
 		ea.setup(&ds, eac);
 		config.ackEnergyAccountingChange();
 	}
+	try {
+		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
+			if(now - lastTemperatureRead > 15000) {
+				unsigned long start = millis();
+				hw.updateTemperatures();
+				lastTemperatureRead = now;
 
-	if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
-		if(now - lastTemperatureRead > 15000) {
-			unsigned long start = millis();
-			hw.updateTemperatures();
-			lastTemperatureRead = now;
-
-			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-				mqttHandler->publishTemperatures(&config, &hw);
+				if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
+					mqttHandler->publishTemperatures(&config, &hw);
+				}
+				debugD("Used %ld ms to update temperature", millis()-start);
 			}
-			debugD("Used %ld ms to update temperature", millis()-start);
-		}
-		if(now - lastSysupdate > 10000) {
-			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-				mqttHandler->publishSystem(&hw, eapi, &ea);
+			if(now - lastSysupdate > 60000) {
+				if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
+					mqttHandler->publishSystem(&hw, eapi, &ea);
+				}
+				lastSysupdate = now;
 			}
-			lastSysupdate = now;
 		}
+	} catch(const std::exception& e) {
+		debugE("Exception in readHanPort (%s)", e.what());
+		meterState.setLastError(98);
 	}
+	try {
+		if(meterState.getLastError() > 0) {
+			if(now - meterAutodetectLastChange > 15000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
+				meterAutodetect = true;
+				meterAutoIndex++; // Default is to try the first one in setup()
+				debugI("Meter serial autodetect, swapping to: %d, %d, %s", bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
+				if(meterAutoIndex >= 4) meterAutoIndex = 0;
+				setupHanPort(gpioConfig.hanPin, bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex]);
+				meterAutodetectLastChange = now;
+			}
+		} else if(meterAutodetect) {
+			meterAutoIndex--; // Last one worked, so lets use that
+			debugI("Meter serial autodetected, saving: %d, %d, %s", bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
+			meterAutodetect = false;
+			meterConfig.baud = bauds[meterAutoIndex];
+			meterConfig.parity = parities[meterAutoIndex];
+			meterConfig.invert = inverts[meterAutoIndex];
+			config.setMeterConfig(meterConfig);
+			setupHanPort(gpioConfig.hanPin, meterConfig.baud, meterConfig.parity, meterConfig.invert);
+		}
+	} catch(const std::exception& e) {
+		debugE("Exception in meter autodetect (%s)", e.what());
+		meterState.setLastError(99);
+	}
+
 	delay(1); // Needed for auto modem sleep
 	#if defined(ESP32)
 		esp_task_wdt_reset();
@@ -571,6 +631,15 @@ void loop() {
 
 void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert) {
 	if(Debug.isActive(RemoteDebug::INFO)) Debug.printf((char*) F("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n"), pin, baud, parityOrdinal);
+
+	if(baud == 0) {
+		baud = bauds[meterAutoIndex];
+		parityOrdinal = parities[meterAutoIndex];
+		invert = inverts[meterAutoIndex];
+	}
+	if(parityOrdinal == 0) {
+		parityOrdinal = 3; // 8N1
+	}
 
 	HardwareSerial *hwSerial = NULL;
 	if(pin == 3 || pin == 113) {
@@ -689,6 +758,7 @@ void errorBlink() {
 				if(lastErrorBlink - meterState.getLastUpdateMillis() > 30000) {
 					debugW("No HAN data received last 30s, single blink");
 					hw.ledBlink(LED_RED, 1); // If no message received from AMS in 30 sec, blink once
+					if(meterState.getLastError() == 0) meterState.setLastError(90);
 					return;
 				}
 				break;
@@ -725,14 +795,31 @@ void swapWifiMode() {
 
 	if (mode != WIFI_AP || !config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to AP mode");
-		WiFi.softAP((char*) F("AMS2MQTT"));
+
+		//wifi_softap_set_dhcps_offer_option(OFFER_ROUTER, 0); // Disable default gw
+
+		/* Example code to set captive portal option in DHCP
+		auto& server = WiFi.softAPDhcpServer();
+		server.onSendOptions([](const DhcpServer& server, auto& options) {
+			// Captive Portal URI
+			const IPAddress gateway = netif_ip4_addr(server.getNetif());
+			const String captive = F("http://") + gateway.toString();
+			options.add(114, captive.c_str(), captive.length());
+		});
+		*/
+
+		WiFi.softAP(PSTR("AMS2MQTT"));
 		WiFi.mode(WIFI_AP);
 
 		if(dnsServer == NULL) {
 			dnsServer = new DNSServer();
 		}
 		dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
-		dnsServer->start(53, (char*) F("*"), WiFi.softAPIP());
+		dnsServer->start(53, PSTR("*"), WiFi.softAPIP());
+		#if defined(DEBUG_MODE)
+			Debug.setSerialEnabled(true);
+			Debug.begin("192.168.4.1", 23, RemoteDebug::VERBOSE);
+		#endif
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to STA mode");
 		if(dnsServer != NULL) {
@@ -789,6 +876,7 @@ bool readHanPort() {
 	if(pos == DATA_PARSE_INCOMPLETE) {
 		return false;
 	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
+		meterState.setLastError(pos);
 		debugV("Unknown data payload:");
 		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
 		debugPrint(hanBuffer, 0, len);
@@ -800,6 +888,7 @@ bool readHanPort() {
 		len = 0;
 		return false;
 	} else if(pos < 0) {
+		meterState.setLastError(pos);
 		printHanReadError(pos);
 		len += hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
 		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
@@ -815,6 +904,7 @@ bool readHanPort() {
 	for(int i = pos+ctx.length; i<BUF_SIZE_HAN; i++) {
 		hanBuffer[i] = 0x00;
 	}
+	meterState.setLastError(DATA_PARSE_OK);
 
 	AmsData data;
 	char* payload = ((char *) (hanBuffer)) + pos;
@@ -962,8 +1052,14 @@ void WiFi_connect() {
 	lastWifiRetry = millis();
 
 	if (WiFi.status() != WL_CONNECTED) {
+		WiFiConfig wifi;
+		if(!config.getWiFiConfig(wifi) || strlen(wifi.ssid) == 0) {
+			swapWifiMode();
+			return;
+		}
+
 		if(WiFi.getMode() != WIFI_OFF) {
-			if(wifiReconnectCount > 3) {
+			if(wifiReconnectCount > 3 && wifi.autoreboot) {
 				ESP.restart();
 				return;
 			}
@@ -991,7 +1087,6 @@ void WiFi_connect() {
 			#endif
 
 			MDNS.end();
-			WiFi.persistent(false);
 			WiFi.disconnect(true);
 			WiFi.softAPdisconnect(true);
 			WiFi.enableAP(false);
@@ -1001,12 +1096,6 @@ void WiFi_connect() {
 			return;
 		}
 		wifiTimeout = WIFI_CONNECTION_TIMEOUT;
-
-		WiFiConfig wifi;
-		if(!config.getWiFiConfig(wifi) || strlen(wifi.ssid) == 0) {
-			swapWifiMode();
-			return;
-		}
 
 		if (Debug.isActive(RemoteDebug::INFO)) debugI("Connecting to WiFi network: %s", wifi.ssid);
 
@@ -1018,34 +1107,7 @@ void WiFi_connect() {
 			}	
 		#endif
 		WiFi.mode(WIFI_STA);
-		#if defined(ESP32)
-			if(wifi.power >= 195)
-				WiFi.setTxPower(WIFI_POWER_19_5dBm);
-			else if(wifi.power >= 190)
-				WiFi.setTxPower(WIFI_POWER_19dBm);
-			else if(wifi.power >= 185)
-				WiFi.setTxPower(WIFI_POWER_18_5dBm);
-			else if(wifi.power >= 170)
-				WiFi.setTxPower(WIFI_POWER_17dBm);
-			else if(wifi.power >= 150)
-				WiFi.setTxPower(WIFI_POWER_15dBm);
-			else if(wifi.power >= 130)
-				WiFi.setTxPower(WIFI_POWER_13dBm);
-			else if(wifi.power >= 110)
-				WiFi.setTxPower(WIFI_POWER_11dBm);
-			else if(wifi.power >= 85)
-				WiFi.setTxPower(WIFI_POWER_8_5dBm);
-			else if(wifi.power >= 70)
-				WiFi.setTxPower(WIFI_POWER_7dBm);
-			else if(wifi.power >= 50)
-				WiFi.setTxPower(WIFI_POWER_5dBm);
-			else if(wifi.power >= 20)
-				WiFi.setTxPower(WIFI_POWER_2dBm);
-			else
-				WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
-		#elif defined(ESP8266)
-			WiFi.setOutputPower(wifi.power / 10.0);
-		#endif
+
 		if(strlen(wifi.ip) > 0) {
 			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
 			ip.fromString(wifi.ip);
@@ -1075,8 +1137,11 @@ void WiFi_connect() {
 				WiFi.hostname(wifi.hostname);
 			}	
 		#endif
+		#if defined(ESP32)
+			WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+			WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
+		#endif
 		WiFi.setAutoReconnect(true);
-		WiFi.persistent(true);
 		if(WiFi.begin(wifi.ssid, wifi.psk)) {
 			if(wifi.sleep <= 2) {
 				switch(wifi.sleep) {
@@ -1287,12 +1352,19 @@ void MQTT_connect() {
 			break;
 	}
 
+	time_t epoch = time(nullptr);
 	if(mqttConfig.ssl) {
+		if(epoch < BUILD_EPOCH) {
+			debugI("NTP not ready for MQTT SSL");
+			return;
+		}
 		debugI("MQTT SSL is configured (%dkb free heap)", ESP.getFreeHeap());
 		if(mqttSecureClient == NULL) {
 			mqttSecureClient = new WiFiClientSecure();
 			#if defined(ESP8266)
 				mqttSecureClient->setBufferSizes(512, 512);
+				debugD("ESP8266 firmware does not have enough memory...");
+				return;
 			#endif
 		
 			if(LittleFS.begin()) {
@@ -1308,40 +1380,43 @@ void MQTT_connect() {
 						mqttSecureClient->loadCACert(file, file.size());
 					#endif
 					file.close();
+
+					if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
+						#if defined(ESP8266)
+							debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
+							file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
+							BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
+							file.close();
+
+							debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
+							file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
+							BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
+							file.close();
+
+							debugD("Setting client certificates (%dkb free heap)", ESP.getFreeHeap());
+							mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
+						#elif defined(ESP32)
+							debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
+							file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
+							mqttSecureClient->loadCertificate(file, file.size());
+							file.close();
+
+							debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
+							file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
+							mqttSecureClient->loadPrivateKey(file, file.size());
+							file.close();
+						#endif
+						mqttClient = mqttSecureClient;
+					}
 				}
 
-				if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
-					#if defined(ESP8266)
-						debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
-						BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
-						file.close();
-
-						debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
-						BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
-						file.close();
-
-						debugD("Setting client certificates (%dkb free heap)", ESP.getFreeHeap());
-						mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
-					#elif defined(ESP32)
-						debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
-						mqttSecureClient->loadCertificate(file, file.size());
-						file.close();
-
-						debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
-						mqttSecureClient->loadPrivateKey(file, file.size());
-						file.close();
-					#endif
-				}
 				LittleFS.end();
 				debugD("MQTT SSL setup complete (%dkb free heap)", ESP.getFreeHeap());
 			}
 		}
-		mqttClient = mqttSecureClient;
-	} else if(mqttClient == NULL) {
+	}
+	
+	if(mqttClient == NULL) {
 		mqttClient = new WiFiClient();
 	}
 
@@ -1372,7 +1447,7 @@ void MQTT_connect() {
 		if (strlen(mqttConfig.subscribeTopic) > 0) {
             mqtt->onMessage(mqttMessageReceived);
 			mqtt->subscribe(String(mqttConfig.subscribeTopic) + "/#");
-			debugI("  Subscribing to [%s]\r\n", mqttConfig.subscribeTopic);
+			debugI("  Subscribing to [%s]\n", mqttConfig.subscribeTopic);
 		}
 	} else {
 		if (Debug.isActive(RemoteDebug::ERROR)) {
@@ -1387,7 +1462,6 @@ void MQTT_connect() {
 	}
 	yield();
 }
-
 
 void configFileParse() {
 	debugD("Parsing config file");
@@ -1427,54 +1501,62 @@ void configFileParse() {
 	char* buf = (char*) commonBuffer;
 	memset(buf, 0, 1024);
 	while((size = file.readBytesUntil('\n', buf, 1024)) > 0) {
+		for(uint16_t i = 0; i < size; i++) {
+			if(buf[i] < 32 || buf[i] > 126) {
+				memset(buf+i, 0, size-i);
+				debugD("Found non-ascii, shortening line from %d to %d", size, i);
+				size = i;
+				break;
+			}
+		}
 		if(strncmp_P(buf, PSTR("boardType "), 10) == 0) {
 			if(!lSys) { config.getSystemConfig(sys); lSys = true; };
 			sys.boardType = String(buf+10).toInt();
 		} else if(strncmp_P(buf, PSTR("ssid "), 5) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			memcpy(wifi.ssid, buf+5, size-5);
+			strcpy(wifi.ssid, buf+5);
 		} else if(strncmp_P(buf, PSTR("psk "), 4) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			memcpy(wifi.psk, buf+4, size-4);
+			strcpy(wifi.psk, buf+4);
 		} else if(strncmp_P(buf, PSTR("ip "), 3) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			memcpy(wifi.ip, buf+3, size-3);
+			strcpy(wifi.ip, buf+3);
 		} else if(strncmp_P(buf, PSTR("gateway "), 8) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			memcpy(wifi.gateway, buf+8, size-8);
+			strcpy(wifi.gateway, buf+8);
 		} else if(strncmp_P(buf, PSTR("subnet "), 7) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			memcpy(wifi.subnet, buf+7, size-7);
+			strcpy(wifi.subnet, buf+7);
 		} else if(strncmp_P(buf, PSTR("dns1 "), 5) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			memcpy(wifi.dns1, buf+5, size-5);
+			strcpy(wifi.dns1, buf+5);
 		} else if(strncmp_P(buf, PSTR("dns2 "), 5) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			memcpy(wifi.dns2, buf+5, size-5);
+			strcpy(wifi.dns2, buf+5);
 		} else if(strncmp_P(buf, PSTR("hostname "), 9) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			memcpy(wifi.hostname, buf+9, size-9);
+			strcpy(wifi.hostname, buf+9);
 		} else if(strncmp_P(buf, PSTR("mdns "), 5) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			wifi.mdns = String(buf+5).toInt() == 1;;
 		} else if(strncmp_P(buf, PSTR("mqttHost "), 9) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			memcpy(mqtt.host, buf+9, size-9);
+			strcpy(mqtt.host, buf+9);
 		} else if(strncmp_P(buf, PSTR("mqttPort "), 9) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			mqtt.port = String(buf+9).toInt();
 		} else if(strncmp_P(buf, PSTR("mqttClientId "), 13) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			memcpy(mqtt.clientId, buf+13, size-13);
+			strcpy(mqtt.clientId, buf+13);
 		} else if(strncmp_P(buf, PSTR("mqttPublishTopic "), 17) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			memcpy(mqtt.publishTopic, buf+17, size-17);
+			strcpy(mqtt.publishTopic, buf+17);
 		} else if(strncmp_P(buf, PSTR("mqttUsername "), 13) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			memcpy(mqtt.username, buf+13, size-13);
+			strcpy(mqtt.username, buf+13);
 		} else if(strncmp_P(buf, PSTR("mqttPassword "), 13) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			memcpy(mqtt.password, buf+13, size-13);
+			strcpy(mqtt.password, buf+13);
 		} else if(strncmp_P(buf, PSTR("mqttPayloadFormat "), 18) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			mqtt.payloadFormat = String(buf+18).toInt();
@@ -1486,10 +1568,10 @@ void configFileParse() {
 			web.security = String(buf+12).toInt();
 		} else if(strncmp_P(buf, PSTR("webUsername "), 12) == 0) {
 			if(!lWeb) { config.getWebConfig(web); lWeb = true; };
-			memcpy(web.username, buf+12, size-12);
+			strcpy(web.username, buf+12);
 		} else if(strncmp_P(buf, PSTR("webPassword "), 12) == 0) {
 			if(!lWeb) { config.getWebConfig(web); lWeb = true; };
-			memcpy(web.username, buf+12, size-12);
+			strcpy(web.username, buf+12);
 		} else if(strncmp_P(buf, PSTR("meterBaud "), 10) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.baud = String(buf+10).toInt();
@@ -1586,24 +1668,21 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("ntpDhcp "), 8) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			ntp.dhcp = String(buf+8).toInt() == 1;
-		} else if(strncmp_P(buf, PSTR("ntpOffset "), 10) == 0) {
-			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
-			ntp.offset = String(buf+10).toInt() / 10;
-		} else if(strncmp_P(buf, PSTR("ntpSummerOffset "), 16) == 0) {
-			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
-			ntp.summerOffset = String(buf+16).toInt() / 10;
 		} else if(strncmp_P(buf, PSTR("ntpServer "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
-			memcpy(ntp.server, buf+10, size-10);
+			strcpy(ntp.server, buf+10);
+		} else if(strncmp_P(buf, PSTR("ntpTimezone "), 12) == 0) {
+			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
+			strcpy(ntp.timezone, buf+12);
 		} else if(strncmp_P(buf, PSTR("entsoeToken "), 12) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			memcpy(entsoe.token, buf+12, size-12);
+			strcpy(entsoe.token, buf+12);
 		} else if(strncmp_P(buf, PSTR("entsoeArea "), 11) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			memcpy(entsoe.area, buf+11, size-11);
+			strcpy(entsoe.area, buf+11);
 		} else if(strncmp_P(buf, PSTR("entsoeCurrency "), 15) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			memcpy(entsoe.currency, buf+15, size-15);
+			strcpy(entsoe.currency, buf+15);
 		} else if(strncmp_P(buf, PSTR("entsoeMultiplier "), 17) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
 			entsoe.multiplier = String(buf+17).toDouble() * 1000;
@@ -1618,20 +1697,38 @@ void configFileParse() {
 			eac.hours = String(pch).toInt();
 		} else if(strncmp_P(buf, PSTR("dayplot "), 8) == 0) {
 			int i = 0;
-			DayDataPoints day = { 4 }; // Use a version we know the multiplier of the data points
+			DayDataPoints day = { 0 };
 			char * pch = strtok (buf+8," ");
 			while (pch != NULL) {
 				int64_t val = String(pch).toInt();
-				if(i == 1) {
-					day.lastMeterReadTime = val;
-				} else if(i == 2) {
-					day.activeImport = val;
-				} else if(i > 2 && i < 27) {
-					day.hImport[i-3] = val / 10;
-				} else if(i == 27) {
-					day.activeExport = val;
-				} else if(i > 27 && i < 52) {
-					day.hExport[i-28] = val / 10;
+				if(day.version < 5) {
+					if(i == 0) {
+						day.version = val;
+					} else if(i == 1) {
+						day.lastMeterReadTime = val;
+					} else if(i == 2) {
+						day.activeImport = val;
+					} else if(i > 2 && i < 27) {
+						day.hImport[i-3] = val / 10;
+					} else if(i == 27) {
+						day.activeExport = val;
+					} else if(i > 27 && i < 52) {
+						day.hExport[i-28] = val / 10;
+					}
+				} else {
+					if(i == 1) {
+						day.lastMeterReadTime = val;
+					} else if(i == 2) {
+						day.activeImport = val;
+					} else if(i == 3) {
+						day.accuracy = val;
+					} else if(i > 3 && i < 28) {
+						day.hImport[i-4] = val / pow(10, day.accuracy);
+					} else if(i == 28) {
+						day.activeExport = val;
+					} else if(i > 28 && i < 53) {
+						day.hExport[i-29] = val / pow(10, day.accuracy);
+					}
 				}
 
 				pch = strtok (NULL, " ");
@@ -1641,22 +1738,39 @@ void configFileParse() {
 			sDs = true;
 		} else if(strncmp_P(buf, PSTR("monthplot "), 10) == 0) {
 			int i = 0;
-			MonthDataPoints month = { 5 }; // Use a version we know the multiplier of the data points
+			MonthDataPoints month = { 0 };
 			char * pch = strtok (buf+10," ");
 			while (pch != NULL) {
 				int64_t val = String(pch).toInt();
-				if(i == 1) {
-					month.lastMeterReadTime = val;
-				} else if(i == 2) {
-					month.activeImport = val;
-				} else if(i > 2 && i < 34) {
-					month.dImport[i-3] = val / 10;
-				} else if(i == 34) {
-					month.activeExport = val;
-				} else if(i > 34 && i < 66) {
-					month.dExport[i-35] = val / 10;
+				if(month.version < 6) {
+					if(i == 0) {
+						month.version = val;
+					} else if(i == 1) {
+						month.lastMeterReadTime = val;
+					} else if(i == 2) {
+						month.activeImport = val;
+					} else if(i > 2 && i < 34) {
+						month.dImport[i-3] = val / 10;
+					} else if(i == 34) {
+						month.activeExport = val;
+					} else if(i > 34 && i < 66) {
+						month.dExport[i-35] = val / 10;
+					}
+				} else {
+					if(i == 1) {
+						month.lastMeterReadTime = val;
+					} else if(i == 2) {
+						month.activeImport = val;
+					} else if(i == 3) {
+						month.accuracy = val;
+					} else if(i > 3 && i < 35) {
+						month.dImport[i-4] = val / pow(10, month.accuracy);
+					} else if(i == 35) {
+						month.activeExport = val;
+					} else if(i > 35 && i < 67) {
+						month.dExport[i-36] = val / pow(10, month.accuracy);
+					}
 				}
-
 				pch = strtok (NULL, " ");
 				i++;
 			}
@@ -1664,48 +1778,94 @@ void configFileParse() {
 			sDs = true;
 		} else if(strncmp_P(buf, PSTR("energyaccounting "), 17) == 0) {
 			uint8_t i = 0;
-			EnergyAccountingData ead = { 4, 0, 
-                0, 0, 0,
+			EnergyAccountingData ead = { 0, 0, 
+                0, 0, 0, // Cost
+                0, 0, 0, // Income
                 0, 0, // Peak 1
                 0, 0, // Peak 2
                 0, 0, // Peak 3
                 0, 0, // Peak 4
                 0, 0 // Peak 5
             };
+			uint8_t peak = 0;
 			char * pch = strtok (buf+17," ");
 			while (pch != NULL) {
-				if(i == 0) {
-					// Ignore version
-				} else if(i == 1) {
-					long val = String(pch).toInt();
-					ead.month = val;
-				} else if(i == 2) {
-					double val = String(pch).toDouble();
-					if(val > 0.0) {
-						ead.peaks[0] = { 1, (uint16_t) (val*100) };
-					}
-				} else if(i == 3) {
-					double val = String(pch).toDouble();
-					ead.costYesterday = val * 10;
-				} else if(i == 4) {
-					double val = String(pch).toDouble();
-					ead.costThisMonth = val;
-				} else if(i == 5) {
-					double val = String(pch).toDouble();
-					ead.costLastMonth = val;
-				} else if(i >= 6 && i < 18) {
-					uint8_t hour = i-6;					
-					if(hour%2 == 0) {
+				if(ead.version < 5) {
+					if(i == 0) {
 						long val = String(pch).toInt();
-						ead.peaks[hour/2].day = val;
-					} else {
+						ead.version = val;
+					} else if(i == 1) {
+						long val = String(pch).toInt();
+						ead.month = val;
+					} else if(i == 2) {
 						double val = String(pch).toDouble();
-						ead.peaks[hour/2].value = val * 100;
+						if(val > 0.0) {
+							ead.peaks[0] = { 1, (uint16_t) (val*100) };
+						}
+					} else if(i == 3) {
+						double val = String(pch).toDouble();
+						ead.costYesterday = val * 10;
+					} else if(i == 4) {
+						double val = String(pch).toDouble();
+						ead.costThisMonth = val;
+					} else if(i == 5) {
+						double val = String(pch).toDouble();
+						ead.costLastMonth = val;
+					} else if(i >= 6 && i < 18) {
+						uint8_t hour = i-6;					
+						{			
+							long val = String(pch).toInt();
+							ead.peaks[peak].day = val;
+						} 
+						pch = strtok (NULL, " ");
+						i++;
+						{
+							double val = String(pch).toDouble();
+							ead.peaks[peak].value = val * 100;
+						}
+						peak++;
+					}
+				} else {
+					if(i == 1) {
+						long val = String(pch).toInt();
+						ead.month = val;
+					} else if(i == 2) {
+						double val = String(pch).toDouble();
+						ead.costYesterday = val * 10;
+					} else if(i == 3) {
+						double val = String(pch).toDouble();
+						ead.costThisMonth = val;
+					} else if(i == 4) {
+						double val = String(pch).toDouble();
+						ead.costLastMonth = val;
+					} else if(i == 5) {
+						double val = String(pch).toDouble();
+						ead.incomeYesterday= val * 10;
+					} else if(i == 6) {
+						double val = String(pch).toDouble();
+						ead.incomeThisMonth = val;
+					} else if(i == 7) {
+						double val = String(pch).toDouble();
+						ead.incomeLastMonth = val;
+					} else if(i >= 8 && i < 20) {
+						uint8_t hour = i-8;		
+						{			
+							long val = String(pch).toInt();
+							ead.peaks[peak].day = val;
+						} 
+						pch = strtok (NULL, " ");
+						i++;
+						{
+							double val = String(pch).toDouble();
+							ead.peaks[peak].value = val * 100;
+						}
+						peak++;
 					}
 				}
 				pch = strtok (NULL, " ");
 				i++;
 			}
+			ead.version = 5;
 			ea.setData(ead);
 			sEa = true;
 		}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AMS reader</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css" integrity="sha384-zCbKRCUGaJDkqS1kPbPd7TveP5iyJE0EjAuZQTgFLD2ylzuqKfdKlfG/eSrtxUkn" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <style>
+        .navbar-expand .navbar-nav .nav-link,.navbar-brand {
+            padding-top: 0px;
+            padding-bottom: 0px;
+            margin-top: 0px;
+            margin-bottom: 0px;
+        }
+        .plot1 {
+            width: 100%;
+            height: 200px;
+        }
+        .plot2 {
+            width: 100%;
+            height: 224px;
+        }
+        .overlay-plot {
+            position: relative;
+        }
+        .plot-overlay {
+            position: absolute;
+            top: 70px;
+            left: 25%;
+            width: 50%;
+            text-align: center;
+        }
+        .ipo,.epo {
+            font-size: 1.7rem;
+            cursor: pointer;
+        }
+        .ipoa,.epoa {
+            font-size: 1.0rem;
+            color: grey;
+        }
+        .pol {
+            font-size: 1.0rem;
+        }
+    </style>
+</head>
+<body class="bg-light">
+<main role="main" class="container">
+    <header class="navbar navbar-expand navbar-dark flex-column flex-lg-row rounded shadow mt-2 mb-3" style="background-color: var(--purple);">
+        <a href="/" class="">
+            <h6 class="navbar-brand">AMS reader <small id="swVersion" data-url="https://api.github.com/repos/UtilitechAS/amsreader-firmware/releases">${version}</small></h6>
+        </a>
+        <div class="navbar-nav-scroll">
+            <ul class="navbar-nav bd-navbar-nav flex-row">
+                <li class="nav-item">
+                    <div class="dropdown">
+                        <a class="dropdown-toggle nav-link" href="#" role="button" id="config-link" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Config<span class="d-none d-md-inline d-lg-none d-xl-inline">uration</span>
+                        </a>
+                      
+                        <div class="dropdown-menu" aria-labelledby="config-link">
+                            <a class="dropdown-item" href="/meter">Meter</a>
+                            <a class="dropdown-item" href="/wifi">WiFi</a>
+                            <a class="dropdown-item" href="/mqtt">MQTT</a>
+                            <a class="dropdown-item" href="/web">Web</a>
+                            <a class="dropdown-item" href="/ntp">NTP</a>
+                            <a class="dropdown-item" href="/priceapi">Price API</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="https://github.com/UtilitechAS/amsreader-firmware/wiki" target="_blank">Documentation</a>
+                        </div>
+                    </div>
+                </li>
+                <li class="nav-item">
+                    <div class="dropdown">
+                        <a class="dropdown-toggle nav-link" href="#" role="button" id="system-link" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Sys<span class="d-none d-sm-inline">tem</span>
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="system-link">
+                            <a class="dropdown-item" href="/gpio">GPIO</a>
+                            <a class="dropdown-item" href="/debugging">Debugging</a>
+                            <a class="dropdown-item" href="/configfile">Configuration file</a>
+                            <a class="dropdown-item" href="/firmware">Firmware</a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="/restart">Restart</a>
+                            <a class="dropdown-item text-danger" href="/reset">Factory reset</a>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+        </div>
+        <div class="flex-row">
+            <div id="esp" class="d-none m-2">ESP</div>
+            <div id="han" class="d-none m-2">HAN</div>
+            <div id="wifi" class="d-none m-2">WiFi</div>
+            <div id="mqtt" class="d-none m-2">MQTT</div>
+        </div>
+        <ul class="navbar-nav flex-row ml-md-auto d-none d-lg-flex">
+            <li class="nav-item">
+                <a class="nav-link p-2" href="https://github.com/UtilitechAS/amsreader-firmware" target="_blank" rel="noopener" aria-label="GitHub">
+                    <img class="d-inline-block align-text-top" style="width: 2rem; height: 2rem;" src="github.svg"/>
+                </a>
+            </li>
+        </ul>
+    </header>

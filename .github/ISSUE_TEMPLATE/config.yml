@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Meter configuration
-    url: https://github.com/gskjold/AmsToMqttBridge/wiki/Known-hardware-configurations
+    url: https://github.com/UtilitechAS/amsreader-firmware/wiki/Known-hardware-configurations
     about: Please check your meter configuration here first.
   - name: Frequently asked questions
-    url: https://github.com/gskjold/AmsToMqttBridge/wiki/FAQ
+    url: https://github.com/UtilitechAS/amsreader-firmware/wiki/FAQ
     about: Please check frequently asked questions first.

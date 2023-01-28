@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.gh-logo {
+  width: 2rem;
+  height: 2rem;
+}
+
+.cnt {
+  @apply bg-white m-2 p-2 rounded shadow-lg
+}
+
+.in-pre {
+  @apply flex items-center bg-gray-100 rounded-l-md border border-r-0 border-gray-300 px-3 whitespace-nowrap text-sm
+}
+
+.in-post {
+  @apply flex items-center bg-gray-100 rounded-r-md border border-l-0 border-gray-300 px-3 whitespace-nowrap text-sm
+}
+
+.in-txt {
+  @apply h-10 shadow-sm border-gray-300 disabled:bg-gray-200
+}
+.in-f {
+  @apply in-txt rounded-l-md
+}
+.in-m {
+  @apply in-txt border-l-0
+}
+.in-l {
+  @apply in-txt border-l-0 rounded-r-md
+}
+.in-s {
+  @apply in-txt rounded-md w-full
+}
+.tr {
+  @apply text-right
+}
+
+.bd-grn {
+  @apply my-auto bg-green-500 text-green-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+}
+.bd-ylo {
+  @apply my-auto bg-yellow-500 text-yellow-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+}
+.bd-red {
+  @apply my-auto bg-red-500 text-red-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+}
+.bd-blu {
+  @apply my-auto bg-blue-500 text-blue-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+}
+.bd-gry {
+  @apply my-auto bg-gray-500 text-gray-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+}
+
+.btn-pri {
+  @apply py-2 px-4 rounded bg-blue-500 text-white mr-3
+}
+
+.pl-root {
+    position: relative;
+}
+.pl-ov {
+    position: absolute;
+    top: 27%;
+    left: 25%;
+    width: 50%;
+    text-align: center;
+}
+.pl-val {
+    font-size: 1.7rem;
+}
+.pl-unt {
+    font-size: 1.0rem;
+    color: grey;
+}
+.pl-sub {
+    padding-top: 10px;
+    font-size: 1.0rem;
+}
+.pl-snt {
+    font-size: 0.7rem;
+    color: grey;
+}
+.pl-lab {
+    font-size: 1.0rem;
+}
+
+.chart {
+  width: 100%;
+  height: 100%;
+  margin: 0 auto;
+}
+
+svg {
+  position: relative;
+  width: 100%;
+}
+
+.tick {
+  font-family: Helvetica, Arial;
+  font-size: 0.85em;
+  font-weight: 200;
+}
+
+.tick line {
+  stroke: #e2e2e2;
+  stroke-dasharray: 2;
+}
+
+.tick text {
+  fill: #999;
+  text-anchor: start;
+}
+
+.tick.tick-0 line {
+  stroke-dasharray: 0;
+}
+
+.tick.tick-green line {
+  stroke: #32d900 !important;
+}
+
+.tick.tick-green text {
+  fill: #32d900 !important;
+}
+
+.tick.tick-orange line {
+  stroke: #d95600 !important;
+}
+
+.tick.tick-orange text {
+  fill: #d95600 !important;
+}
+
+.x-axis .tick text {
+  text-anchor: middle;
+}
+
+.bars rect {
+  stroke: rgb(0,0,0);
+  stroke-opacity: 0.25;
+  opacity: 0.9;
+}
+
+.bars text {
+  font-family: Helvetica, Arial;
+  font-size: 0.85em;
+  display: block;
+  text-align: center;
+}

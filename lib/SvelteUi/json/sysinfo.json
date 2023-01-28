@@ -1,0 +1,40 @@
+{
+    "version": "%s",
+    "chip": "%s",
+    "chipId": "%s",
+    "mac": "%s",
+    "apmac": "%s",
+    "board": %d,
+    "vndcfg": %s,
+    "usrcfg": %s,
+    "fwconsent": %d,
+    "hostname": "%s",
+    "booting": %s,
+    "upgrading": %s,
+    "net": {
+        "ip": "%s",
+        "mask": "%s",
+        "gw": "%s",
+        "dns1": "%s",
+        "dns2": "%s"
+    },
+    "meter": {
+        "mfg": %d,
+        "model": "%s",
+        "id": "%s"
+    },
+    "ui": {
+        "i": %d,
+        "e": %d,
+        "v": %d,
+        "a": %d,
+        "r": %d,
+        "c": %d,
+        "t": %d,
+        "p": %d,
+        "d": %d,
+        "m": %d,
+        "s": %d
+    },
+    "security": %d
+}

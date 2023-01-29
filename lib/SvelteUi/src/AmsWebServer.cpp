@@ -241,10 +241,12 @@ void AmsWebServer::sysinfoJson() {
 	config->getUiConfig(ui);
 
 	String meterModel = meterState->getMeterModel();
-	meterModel.replace("\\", "\\\\");
+	if(!meterModel.isEmpty())
+		meterModel.replace("\\", "\\\\");
 
 	String meterId = meterState->getMeterId();
-	meterId.replace("\\", "\\\\");
+	if(!meterId.isEmpty())
+		meterId.replace("\\", "\\\\");
 
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		VERSION,

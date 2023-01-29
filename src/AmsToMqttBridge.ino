@@ -577,13 +577,14 @@ void loop() {
 		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
 			if(now - lastTemperatureRead > 15000) {
 				unsigned long start = millis();
-				hw.updateTemperatures();
-				lastTemperatureRead = now;
+				if(hw.updateTemperatures()) {
+					lastTemperatureRead = now;
 
-				if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-					mqttHandler->publishTemperatures(&config, &hw);
+					if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
+						mqttHandler->publishTemperatures(&config, &hw);
+					}
+					debugD("Used %ld ms to update temperature", millis()-start);
 				}
-				debugD("Used %ld ms to update temperature", millis()-start);
 			}
 			if(now - lastSysupdate > 60000) {
 				if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
@@ -862,9 +863,9 @@ bool readHanPort() {
 		pos = unwrapData((uint8_t *) hanBuffer, ctx);
 		if(ctx.type > 0 && pos >= 0) {
 			if(ctx.type == DATA_TAG_DLMS) {
-				debugV("Received valid DLMS at %d", pos);
+				debugD("Received valid DLMS at %d", pos);
 			} else if(ctx.type == DATA_TAG_DSMR) {
-				debugV("Received valid DSMR at %d", pos);
+				debugD("Received valid DSMR at %d", pos);
 			} else {
 				// TODO: Move this so that payload is sent to MQTT
 				debugE("Unknown tag %02X at pos %d", ctx.type, pos);
@@ -879,7 +880,7 @@ bool readHanPort() {
 		meterState.setLastError(pos);
 		debugV("Unknown data payload:");
 		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
-		debugPrint(hanBuffer, 0, len);
+		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint(hanBuffer, 0, len);
 		len = 0;
 		return false;
 	}
@@ -962,7 +963,7 @@ bool readHanPort() {
 
 		bool saveData = false;
 		if(!ds.isHappy() && now > BUILD_EPOCH) {
-			debugV("Its time to update data storage");
+			debugD("Its time to update data storage");
 			tmElements_t tm;
 			breakTime(now, tm);
 			if(tm.Minute == 0) {

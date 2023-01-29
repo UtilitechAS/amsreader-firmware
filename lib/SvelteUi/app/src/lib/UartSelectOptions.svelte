@@ -31,7 +31,9 @@
 <option value={13}>GPIO13</option>
 <option value={14}>GPIO14</option>
 <option value={15}>GPIO15</option>
-
+{#if chip == 'esp32s2'}
+<option value={16}>GPIO16</option>
+{/if}
 {#if chip.startsWith('esp32')}
 <option value={17}>GPIO17</option>
 {#if chip != 'esp32s2'}

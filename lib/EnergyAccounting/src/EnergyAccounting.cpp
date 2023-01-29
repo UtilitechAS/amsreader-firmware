@@ -362,7 +362,9 @@ bool EnergyAccounting::load() {
         } else if(buf[0] == 4) {
             EnergyAccountingData4* data = (EnergyAccountingData4*) buf;
             this->data = { 5, data->month, 
-                (uint16_t) (data->costYesterday / 10), (uint16_t) (data->costThisMonth / 100), (uint16_t) (data->costLastMonth / 100),
+                data->costYesterday,
+                data->costThisMonth,
+                data->costLastMonth,
                 0,0,0, // Income from production
                 data->peaks[0].day, data->peaks[0].value,
                 data->peaks[1].day, data->peaks[1].value,

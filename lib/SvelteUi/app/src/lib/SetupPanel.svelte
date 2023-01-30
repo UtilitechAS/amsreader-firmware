@@ -19,7 +19,7 @@
 
         if(sysinfo.net.ip && tries%3 == 0) {
             if(sysinfo.net.ip == '0.0.0.0') {
-                retry;
+                retry();
                 return;
             };
             url = "http://" + sysinfo.net.ip;

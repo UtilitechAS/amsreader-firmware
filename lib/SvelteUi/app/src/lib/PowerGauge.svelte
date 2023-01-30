@@ -8,10 +8,15 @@
     export let label;
     export let sub = "";
     export let subunit = "";
+
+    let pct = 0;
+    $: {
+        pct = (Math.min(val,max)/max) * 100
+    }
 </script>
 
 <div class="pl-root">
-    <PowerGaugeSvg pct={val/max * 100} color={ampcol(val/max * 100)}/>
+    <PowerGaugeSvg pct={pct} color={ampcol(pct)}/>
     <span class="pl-ov">
         <span class="pl-lab">{label}</span>
         <br/>

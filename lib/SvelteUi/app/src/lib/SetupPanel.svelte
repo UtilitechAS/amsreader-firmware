@@ -1,6 +1,7 @@
 <script>
     import { sysinfoStore } from './DataStores.js';
     import Mask from './Mask.svelte'
+    import SubnetOptions from './SubnetOptions.svelte';
 
     export let sysinfo = {}
 
@@ -92,9 +93,7 @@
                 <div class="flex">
                     <input name="si" type="text" class="in-f w-full" required={staticIp}/>
                     <select name="su" class="in-l" required={staticIp}>
-                        <option value="255.255.255.0">/24</option>
-                        <option value="255.255.0.0">/16</option>
-                        <option value="255.0.0.0">/8</option>
+                        <SubnetOptions/>
                     </select>
                 </div>
                 {/if}

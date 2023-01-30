@@ -48,7 +48,7 @@
         <div class="cnt">
             <div class="grid grid-cols-2">
                 <div class="col-span-2">
-                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om : 10000} unit="W" label="Export"/>
+                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om * 1000 : 10000} unit="W" label="Export"/>
                 </div>
                 <div></div>
                 <div class="text-right">{data.ec ? data.ec.toFixed(1) : '-'} kWh</div>

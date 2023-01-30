@@ -358,8 +358,9 @@ bool AmsConfiguration::pinUsed(uint8_t pin, GpioConfig& config) {
 }
 
 bool AmsConfiguration::getGpioConfig(GpioConfig& config) {
-	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
+	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
+	if(configVersion == EEPROM_CHECK_SUM || configVersion == EEPROM_CLEARED_INDICATOR) {
 		EEPROM.get(CONFIG_GPIO_START, config);
 		EEPROM.end();
 		return true;

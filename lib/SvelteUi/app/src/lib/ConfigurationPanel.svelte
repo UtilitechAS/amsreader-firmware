@@ -7,6 +7,7 @@
     import HelpIcon from './HelpIcon.svelte';
     import CountrySelectOptions from './CountrySelectOptions.svelte';
     import { Link, navigate } from 'svelte-navigator';
+    import SubnetOptions from './SubnetOptions.svelte';
     
 
     export let sysinfo = {}
@@ -362,11 +363,9 @@
                         <option value="dhcp">DHCP</option>
                         <option value="static">Static</option>
                     </select>
-                    <input name="ni" bind:value={configuration.n.i} type="text" class="in-m w-full" disabled={configuration.n.m == 'dhcp'}/>
-                    <select name="ns" bind:value={configuration.n.s} class="in-l" disabled={configuration.n.m == 'dhcp'}>
-                        <option value="255.255.255.0">/24</option>
-                        <option value="255.255.0.0">/16</option>
-                        <option value="255.0.0.0">/8</option>
+                    <input name="ni" bind:value={configuration.n.i} type="text" class="in-m w-full" disabled={configuration.n.m == 'dhcp'} required={configuration.n.m == 'static'}/>
+                    <select name="ns" bind:value={configuration.n.s} class="in-l" disabled={configuration.n.m == 'dhcp'} required={configuration.n.m == 'static'}>
+                        <SubnetOptions/>
                     </select>
                 </div>
             </div>

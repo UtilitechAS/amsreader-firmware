@@ -598,7 +598,7 @@ void loop() {
 		meterState.setLastError(98);
 	}
 	try {
-		if(meterState.getLastError() > 0) {
+		if(meterState.getListType() == 0) {
 			if(now - meterAutodetectLastChange > 20000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
 				meterAutodetect = true;
 				meterAutoIndex++; // Default is to try the first one in setup()

@@ -506,6 +506,7 @@ bool AmsConfiguration::getEntsoeConfig(EntsoeConfig& config) {
 		}
 		return true;
 	} else {
+		clearEntsoe(config);
 		return false;
 	}
 }
@@ -561,6 +562,7 @@ bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config)
 		if(config.hours > 5) config.hours = 5;
 		return true;
 	} else {
+		clearEnergyAccountingConfig(config);
 		return false;
 	}
 }

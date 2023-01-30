@@ -358,7 +358,6 @@ void AmsWebServer::dataJson() {
 	}
 	#endif
 
-
 	uint8_t hanStatus;
 	if(meterState->getLastError() != 0) {
 		hanStatus = 3;
@@ -1047,16 +1046,18 @@ void AmsWebServer::handleSave() {
 					success = false;
 			}
 		#endif
-		config->setGpioConfig(*gpioConfig);
+		if(success) {
+			config->setGpioConfig(*gpioConfig);
 
-		SystemConfig sys;
-		config->getSystemConfig(sys);
-		sys.boardType = success ? boardType : 0xFF;
-		sys.vendorConfigured = success;
-		config->setSystemConfig(sys);
+			SystemConfig sys;
+			config->getSystemConfig(sys);
+			sys.boardType = success ? boardType : 0xFF;
+			sys.vendorConfigured = success;
+			config->setSystemConfig(sys);
+		}
 	}
 
-	if(server.hasArg(F("s")) && server.arg(F("s")) == F("true")) {
+	if(server.hasArg(F("s")) && server.arg(F("s")) == F("true") && server.hasArg(F("ss")) && !server.arg(F("ss")).isEmpty()) {
 		SystemConfig sys;
 		config->getSystemConfig(sys);
 

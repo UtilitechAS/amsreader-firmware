@@ -185,7 +185,8 @@ double EnergyAccounting::getUseThisHour() {
 double EnergyAccounting::getUseToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return 0;
+    if(now < BUILD_EPOCH) return 0.0;
+    if(tz == NULL) return 0.0;
     tmElements_t utc, local;
     breakTime(tz->toLocal(now), local);
     for(int i = 0; i < currentHour; i++) {
@@ -197,7 +198,7 @@ double EnergyAccounting::getUseToday() {
 
 double EnergyAccounting::getUseThisMonth() {
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return 0;
+    if(now < BUILD_EPOCH) return 0.0;
     float ret = 0;
     for(int i = 0; i < currentDay; i++) {
         ret += ds->getDayImport(i) / 1000.0;
@@ -212,7 +213,7 @@ double EnergyAccounting::getProducedThisHour() {
 double EnergyAccounting::getProducedToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return 0;
+    if(now < BUILD_EPOCH) return 0.0;
     tmElements_t utc;
     for(int i = 0; i < currentHour; i++) {
         breakTime(now - ((currentHour - i) * 3600), utc);
@@ -223,7 +224,7 @@ double EnergyAccounting::getProducedToday() {
 
 double EnergyAccounting::getProducedThisMonth() {
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return 0;
+    if(now < BUILD_EPOCH) return 0.0;
     float ret = 0;
     for(int i = 0; i < currentDay; i++) {
         ret += ds->getDayExport(i) / 1000.0;
@@ -279,6 +280,8 @@ uint8_t EnergyAccounting::getCurrentThreshold() {
 }
 
 float EnergyAccounting::getMonthMax() {
+    if(config == NULL)
+        return 0.0;
     uint8_t count = 0;
     uint32_t maxHour = 0.0;
     bool included[5] = { false, false, false, false, false };
@@ -308,6 +311,8 @@ float EnergyAccounting::getMonthMax() {
 }
 
 EnergyAccountingPeak EnergyAccounting::getPeak(uint8_t num) {
+    if(config == NULL)
+        return EnergyAccountingPeak({0,0});
     if(num < 1 || num > 5) return EnergyAccountingPeak({0,0});
 
     uint8_t count = 0;

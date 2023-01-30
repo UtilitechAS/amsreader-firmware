@@ -13,7 +13,15 @@
         var url = "";
         tries++;
 
+        var retry = function() {
+            setTimeout(scanForDevice, 1000);
+        };
+
         if(sysinfo.net.ip && tries%3 == 0) {
+            if(sysinfo.net.ip == '0.0.0.0') {
+                retry;
+                return;
+            };
             url = "http://" + sysinfo.net.ip;
         } else if(sysinfo.hostname && tries%3 == 1) {
             url = "http://" + sysinfo.hostname;
@@ -23,10 +31,10 @@
             url = "";
         }
         if(console) console.log("Trying url " + url);
-
-        var retry = function() {
-            setTimeout(scanForDevice, 1000);
-        };
+        sysinfoStore.update(s => {
+            s.trying = url;
+            return s;
+        });
         
         var xhr = new XMLHttpRequest();
         xhr.timeout = 5000;
@@ -43,12 +51,10 @@
     async function handleSubmit(e) {
         loadingOrSaving = true;
         const formData = new FormData(e.target);
-        let hostname = sysinfo.hostname;
         const data = new URLSearchParams();
         for (let field of formData) {
             const [key, value] = field;
 			data.append(key, value)
-            if(key == 'sh') hostname = value;
         }
 
         const response = await fetch('/save', {
@@ -59,9 +65,15 @@
         loadingOrSaving = false;
 
         sysinfoStore.update(s => {
-            s.hostname = hostname;
+            s.hostname = formData.get('sh');
             s.usrcfg = res.success;
             s.booting = res.reboot;
+            if(staticIp) {
+                s.net.ip = formData.get('si');
+                s.net.mask = formData.get('su');
+                s.net.gw = formData.get('sg');
+                s.net.dns1 = formData.get('sd');
+            }
             setTimeout(scanForDevice, 5000);
             return s;
         });
@@ -76,7 +88,7 @@
             <strong class="text-sm">Setup</strong>
             <div class="my-3">
                 SSID<br/>
-                <input name="ss" type="text" class="in-s"/>
+                <input name="ss" type="text" class="in-s" required/>
             </div>
             <div class="my-3">
                 PSK<br/>

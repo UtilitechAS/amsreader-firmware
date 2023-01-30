@@ -64,6 +64,10 @@
   {#if sysinfo.upgrading}
   <Mask active=true message="Device is upgrading, please wait"/>
   {:else if sysinfo.booting}
-  <Mask active=true message="Device is booting, please wait"/>
+    {#if sysinfo.trying}
+      <Mask active=true message="Device is booting, please wait. Trying to reach it on {sysinfo.trying}"/>
+    {:else}
+      <Mask active=true message="Device is booting, please wait"/>
+    {/if}
   {/if}
 </div>

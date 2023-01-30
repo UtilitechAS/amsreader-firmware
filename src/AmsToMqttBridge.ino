@@ -599,7 +599,7 @@ void loop() {
 	}
 	try {
 		if(meterState.getLastError() > 0) {
-			if(now - meterAutodetectLastChange > 15000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
+			if(now - meterAutodetectLastChange > 20000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
 				meterAutodetect = true;
 				meterAutoIndex++; // Default is to try the first one in setup()
 				debugI("Meter serial autodetect, swapping to: %d, %d, %s", bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
@@ -608,7 +608,6 @@ void loop() {
 				meterAutodetectLastChange = now;
 			}
 		} else if(meterAutodetect) {
-			meterAutoIndex--; // Last one worked, so lets use that
 			debugI("Meter serial autodetected, saving: %d, %d, %s", bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
 			meterAutodetect = false;
 			meterConfig.baud = bauds[meterAutoIndex];

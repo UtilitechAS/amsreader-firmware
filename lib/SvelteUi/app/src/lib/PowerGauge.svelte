@@ -1,6 +1,5 @@
 <script>
     import PowerGaugeSvg from './PowerGaugeSvg.svelte';
-    import { ampcol } from './Helpers.js';
 
     export let val;
     export let max;
@@ -8,6 +7,7 @@
     export let label;
     export let sub = "";
     export let subunit = "";
+    export let colorFn;
 
     let pct = 0;
     $: {
@@ -16,7 +16,7 @@
 </script>
 
 <div class="pl-root">
-    <PowerGaugeSvg pct={pct} color={ampcol(pct)}/>
+    <PowerGaugeSvg pct={pct} color={colorFn(pct)}/>
     <span class="pl-ov">
         <span class="pl-lab">{label}</span>
         <br/>

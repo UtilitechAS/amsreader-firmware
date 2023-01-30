@@ -68,8 +68,10 @@
     getConfiguration();
 
     let isFactoryReset = false;
+    let isFactoryResetComplete = false;
     async function factoryReset() {
         if(confirm("Are you sure you want to factory reset the device?")) {
+            isFactoryReset = true;
             const data = new URLSearchParams();
             data.append("perform", "true");
             const response = await fetch('/reset', {
@@ -77,7 +79,8 @@
                 body: data
             });
             let res = (await response.json());
-            isFactoryReset = res.success;
+            isFactoryReset = false;
+            isFactoryResetComplete = res.success;
         }
     }
 
@@ -764,4 +767,5 @@
 
 <Mask active={loading} message="Loading configuration"/>
 <Mask active={saving} message="Saving configuration"/>
-<Mask active={isFactoryReset} message="Device have been factory reset and switched to AP mode"/>
+<Mask active={isFactoryReset} message="Performing factory reset"/>
+<Mask active={isFactoryResetComplete} message="Device have been factory reset and switched to AP mode"/>

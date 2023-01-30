@@ -89,8 +89,8 @@ private:
     EnergyAccountingConfig *config = NULL;
     Timezone *tz = NULL;
     uint8_t currentHour = 0, currentDay = 0, currentThresholdIdx = 0;
-    double use, costHour, costDay;
-    double produce, incomeHour, incomeDay;
+    double use = 0, costHour = 0, costDay = 0;
+    double produce = 0, incomeHour = 0, incomeDay = 0;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0 };
 
     void calcDayCost();

@@ -733,7 +733,7 @@ void AmsWebServer::indexCss() {
 	if(!checkSecurity(2))
 		return;
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
 	server.setContentLength(INDEX_CSS_LEN);
 	server.send_P(200, MIME_CSS, INDEX_CSS);
 }
@@ -744,7 +744,7 @@ void AmsWebServer::indexJs() {
 	if(!checkSecurity(2))
 		return;
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
 	server.setContentLength(INDEX_JS_LEN);
 	server.send_P(200, MIME_JS, INDEX_JS);
 }

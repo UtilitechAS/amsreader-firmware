@@ -95,7 +95,7 @@
                 <input name="sp" type="password" class="in-s" autocomplete="off"/>
             </div>
             <div>
-                Hostname:
+                Hostname
                 <input name="sh" bind:value={sysinfo.hostname} type="text" class="in-s" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader" autocomplete="off"/>
             </div>
             <div class="my-3">

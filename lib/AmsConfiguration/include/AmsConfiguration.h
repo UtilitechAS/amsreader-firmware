@@ -22,10 +22,6 @@
 #define CONFIG_NTP_START 872
 #define CONFIG_MQTT_START 1004
 
-#define CONFIG_MQTT_START_86 224
-#define CONFIG_METER_START_87 784
-#define CONFIG_ENTSOE_START_90 286
-#define CONFIG_WIFI_START_91 16
 #define CONFIG_METER_START_93 224
 
 
@@ -36,18 +32,6 @@ struct SystemConfig {
 	uint8_t dataCollectionConsent; // 0 = unknown, 1 = accepted, 2 = declined
 	char country[3];
 }; // 7
-
-struct WiFiConfig91 {
-	char ssid[32];
-	char psk[64];
-    char ip[15];
-    char gateway[15];
-    char subnet[15];
-	char dns1[15];
-	char dns2[15];
-	char hostname[32];
-	bool mdns;
-}; // 204 
 
 struct WiFiConfig {
 	char ssid[32];
@@ -64,18 +48,6 @@ struct WiFiConfig {
 	uint8_t mode;
 	bool autoreboot;
 }; // 213
-
-struct MqttConfig86 {
-	char host[128];
-	uint16_t port;
-	char clientId[32];
-	char publishTopic[64];
-	char subscribeTopic[64];
-	char username[64];
-	char password[64];
-	uint8_t payloadFormat;
-	bool ssl;
-}; // 420
 
 struct MqttConfig {
 	char host[128];
@@ -110,7 +82,7 @@ struct MeterConfig {
 	uint32_t accumulatedMultiplier;
 	uint8_t source;
 	uint8_t parser;
-}; // 52
+}; // 61
 
 struct MeterConfig100 {
 	uint32_t baud;
@@ -127,7 +99,7 @@ struct MeterConfig100 {
 	uint32_t accumulatedMultiplier;
 	uint8_t source;
 	uint8_t parser;
-}; // 50
+}; // 59
 
 struct MeterConfig95 {
 	uint32_t baud;
@@ -145,16 +117,6 @@ struct MeterConfig95 {
 	uint8_t source;
 	uint8_t parser;
 }; // 50
-
-struct MeterConfig87 {
-	uint8_t type;
-	uint8_t distributionSystem;
-	uint8_t mainFuse;
-	uint8_t productionCapacity;
-	uint8_t encryptionKey[16];
-	uint8_t authenticationKey[16];
-	bool substituteMissing;
-}; // 37
 
 struct DebugConfig {
 	bool telnet;
@@ -331,9 +293,6 @@ private:
 	uint8_t tempSensorCount = 0;
 	TempSensorConfig** tempSensors = NULL;
 
-	bool relocateConfig90(); // 2.0.0
-	bool relocateConfig91(); // 2.0.2
-	bool relocateConfig92(); // 2.0.3
 	bool relocateConfig93(); // 2.1.0
 	bool relocateConfig94(); // 2.1.0
 	bool relocateConfig95(); // 2.1.4

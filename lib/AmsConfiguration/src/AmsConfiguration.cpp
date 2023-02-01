@@ -716,30 +716,6 @@ bool AmsConfiguration::hasConfig() {
 		}
 	} else {
 		switch(configVersion) {
-			case 90:
-				configVersion = -1; // Prevent loop
-				if(relocateConfig90()) {
-					configVersion = 91;
-				} else {
-					configVersion = 0;
-					return false;
-				}
-			case 91:
-				configVersion = -1; // Prevent loop
-				if(relocateConfig91()) {
-					configVersion = 92;
-				} else {
-					configVersion = 0;
-					return false;
-				}
-			case 92:
-				configVersion = -1; // Prevent loop
-				if(relocateConfig92()) {
-					configVersion = 93;
-				} else {
-					configVersion = 0;
-					return false;
-				}
 			case 93:
 				configVersion = -1; // Prevent loop
 				if(relocateConfig93()) {
@@ -832,61 +808,8 @@ void AmsConfiguration::saveTempSensors() {
 	}
 }
 
-bool AmsConfiguration::relocateConfig90() {
-	EntsoeConfig entsoe;
-	EEPROM.begin(EEPROM_SIZE);
-    EEPROM.get(CONFIG_ENTSOE_START_90, entsoe);
-	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 91);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
-}
-
-bool AmsConfiguration::relocateConfig91() {
-	WiFiConfig91 wifi91;
-	WiFiConfig wifi;
-	EEPROM.begin(EEPROM_SIZE);
-    EEPROM.get(CONFIG_WIFI_START_91, wifi91);
-	strcpy(wifi.ssid, wifi91.ssid);
-	strcpy(wifi.psk, wifi91.psk);
-	strcpy(wifi.ip, wifi91.ip);
-	strcpy(wifi.gateway, wifi91.gateway);
-	strcpy(wifi.subnet, wifi91.subnet);
-	strcpy(wifi.dns1, wifi91.dns1);
-	strcpy(wifi.dns2, wifi91.dns2);
-	strcpy(wifi.hostname, wifi91.hostname);
-	wifi.mdns = wifi91.mdns;
-	EEPROM.put(CONFIG_WIFI_START, wifi);
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 92);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
-}
-
-bool AmsConfiguration::relocateConfig92() {
-	WiFiConfig wifi;
-	EEPROM.begin(EEPROM_SIZE);
-    EEPROM.get(CONFIG_WIFI_START, wifi);
-	#if defined(ESP32)
-		wifi.power = 195;
-	#elif defined(ESP8266)
-		wifi.power = 205;
-	#endif
-	EEPROM.put(CONFIG_WIFI_START, wifi);
-
-	EnergyAccountingConfig eac;
-	clearEnergyAccountingConfig(eac);
-	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
-
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 93);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
-}
-
 bool AmsConfiguration::relocateConfig93() {
-	MeterConfig meter;
+	MeterConfig95 meter;
 	EEPROM.begin(EEPROM_SIZE);
     EEPROM.get(CONFIG_METER_START_93, meter);
 	meter.wattageMultiplier = 0;
@@ -913,7 +836,7 @@ bool AmsConfiguration::relocateConfig94() {
 }
 
 bool AmsConfiguration::relocateConfig95() {
-	MeterConfig meter;
+	MeterConfig95 meter;
 	MeterConfig95 meter95;
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.get(CONFIG_METER_START, meter);
@@ -934,7 +857,7 @@ bool AmsConfiguration::relocateConfig96() {
 	SystemConfig sys;
 	EEPROM.get(CONFIG_SYSTEM_START, sys);
 
-	MeterConfig meter;
+	MeterConfig95 meter;
 	EEPROM.get(CONFIG_METER_START, meter);
 	meter.source = 1; // Serial
 	meter.parser = 0; // Auto

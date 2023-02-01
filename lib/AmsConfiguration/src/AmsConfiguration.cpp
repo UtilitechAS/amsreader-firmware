@@ -857,7 +857,7 @@ bool AmsConfiguration::relocateConfig96() {
 	SystemConfig sys;
 	EEPROM.get(CONFIG_SYSTEM_START, sys);
 
-	MeterConfig95 meter;
+	MeterConfig100 meter;
 	EEPROM.get(CONFIG_METER_START, meter);
 	meter.source = 1; // Serial
 	meter.parser = 0; // Auto

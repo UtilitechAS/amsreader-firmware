@@ -122,6 +122,8 @@ DSMRParser *dsmrParser = NULL;
 void setup() {
 	Serial.begin(115200);
 
+	config.hasConfig(); // Need to run this to make sure all configuration have been migrated before we load GPIO config
+
 	if(!config.getGpioConfig(gpioConfig)) {
 		config.clearGpio(gpioConfig);
 	}

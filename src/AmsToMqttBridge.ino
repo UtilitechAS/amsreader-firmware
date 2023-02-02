@@ -1600,7 +1600,7 @@ void configFileParse() {
 			fromHex(meter.encryptionKey, String(buf+19), 16);
 		} else if(strncmp_P(buf, PSTR("meterAuthenticationKey "), 23) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			fromHex(meter.authenticationKey, String(buf+19), 16);
+			fromHex(meter.authenticationKey, String(buf+23), 16);
 		} else if(strncmp_P(buf, PSTR("gpioHanPin "), 11) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.hanPin = String(buf+11).toInt();

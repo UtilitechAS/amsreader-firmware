@@ -5,8 +5,8 @@
     export let exportTotal;
 </script>
 
-<div class="mx-2">
-    <strong class="text-sm">Reactive</strong>
+<div class="mx-2 text-sm">
+    <strong>Reactive</strong>
     
     <div class="grid grid-cols-2 mt-4">
         <div>Instant in</div>

@@ -1,6 +1,6 @@
 <script>
     import BarChart from './BarChart.svelte';
-    import { ampcol } from './Helpers.js';
+    import { ampcol, fmtnum } from './Helpers.js';
 
     export let u1;
     export let u2;
@@ -12,32 +12,28 @@
 
     let config = {};
 
+    function point(v) {
+        return {
+            label: fmtnum(v) +'A', 
+            value: isNaN(v) ? 0 : v, 
+            color: ampcol(v ? (v)/(max)*100 : 0) 
+        };
+    };
+
     $: {
         let xTicks = [];
         let points = [];
         if(u1 > 0) {
             xTicks.push({ label: 'L1' });
-            points.push({
-                label: i1 ? (i1 > 10 ? i1.toFixed(0) : i1.toFixed(1)) + 'A' : '-', 
-                value: i1 ? i1 : 0, 
-                color: ampcol(i1 ? (i1)/(max)*100 : 0) 
-            });
+            points.push(point(i1));
         }
         if(u2 > 0) {
             xTicks.push({ label: 'L2' });
-            points.push({
-                label: i2 ? (i2 > 10 ? i2.toFixed(0) : i2.toFixed(1)) + 'A' : '-', 
-                value: i2 ? i2 : 0, 
-                color: ampcol(i2 ? (i2)/(max)*100 : 0) 
-            });
+            points.push(point(i2));
         }
         if(u3 > 0) {
             xTicks.push({ label: 'L3' });
-            points.push({
-                label: i3 ? (i3 > 10 ? i3.toFixed(0) : i3.toFixed(1)) + 'A' : '-', 
-                value: i3 ? i3 : 0, 
-                color: ampcol(i3 ? (i3)/(max)*100 : 0) 
-            });
+            points.push(point(i3));
         }
         config = {
             padding: { top: 20, right: 15, bottom: 20, left: 35 },

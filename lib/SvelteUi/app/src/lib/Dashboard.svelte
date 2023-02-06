@@ -81,22 +81,22 @@
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.p, (typeof data.p == "number") && !Number.isNaN(data.p))}
-        <div class="cnt 2xl:col-span-6 xl:col-span-5 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
+        <div class="cnt gwf">
             <PricePlot json={prices}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.d, dayPlot)}
-        <div class="cnt 2xl:col-span-6 xl:col-span-5 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
+        <div class="cnt gwf">
             <DayPlot json={dayPlot} />
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.m, monthPlot)}
-        <div class="cnt 2xl:col-span-6 xl:col-span-5 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
+        <div class="cnt gwf">
             <MonthPlot json={monthPlot} />
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.s, data.t && data.t != -127 && temperatures.c > 1)}
-        <div class="cnt 2xl:col-span-6 xl:col-span-5 lg:col-span-4 md:col-span-3 sm:col-span-2 h-64">
+        <div class="cnt gwf">
             <TemperaturePlot json={temperatures} />
         </div>
     {/if}

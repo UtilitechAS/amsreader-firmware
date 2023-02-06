@@ -1,6 +1,7 @@
 <script>
     import { getConfiguration, configurationStore } from './ConfigurationStore'
     import { sysinfoStore } from './DataStores.js';
+    import { wiki } from './Helpers.js';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
     import Badge from './Badge.svelte';
@@ -11,6 +12,41 @@
     
 
     export let sysinfo = {}
+
+    let uiElements = [{
+        name: 'Import gauge',
+        key: 'i'
+    },{
+        name: 'Export gauge',
+        key: 'e'
+    },{
+        name: 'Voltage',
+        key: 'v'
+    },{
+        name: 'Amperage',
+        key: 'a'
+    },{
+        name: 'Reactive',
+        key: 'r'
+    },{
+        name: 'Realtime',
+        key: 'c'
+    },{
+        name: 'Peaks',
+        key: 't'
+    },{
+        name: 'Price',
+        key: 'p'
+    },{
+        name: 'Day plot',
+        key: 'd'
+    },{
+        name: 'Month plot',
+        key: 'm'
+    },{
+        name: 'Temperature plot',
+        key: 's'
+    }];
 
     let loading = true;
     let saving = false;
@@ -133,13 +169,18 @@
             if(configuration.q.p == 8883) configuration.q.p = 1883;
         }
     }
+
+    let gpioMax = 44;
+    $: {
+        gpioMax = sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39;
+    }
 </script>
 
 <form on:submit|preventDefault={handleSubmit} autocomplete="off">
     <div class="grid xl:grid-cols-4 lg:grid-cols-2 md:grid-cols-2">
         <div class="cnt">
             <strong class="text-sm">General</strong>
-            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/General-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('General-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="g" value="true"/>
             <div class="my-1">
                 <div class="flex">
@@ -196,10 +237,9 @@
                     <div class="w-1/2">
                         Currency<br/>
                         <select name="pc" bind:value={configuration.p.c} class="in-f w-full">
-                            <option value="NOK">NOK</option>
-                            <option value="SEK">SEK</option>
-                            <option value="DKK">DKK</option>
-                            <option value="EUR">EUR</option>
+                            {#each ["NOK","SEK","DKK","EUR"] as c}
+                            <option value={c}>{c}</option>
+                            {/each}
                         </select>
                     </div>
                     <div class="w-1/2">
@@ -235,20 +275,16 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">Meter</strong>
-            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/Meter-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('Meter-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="m" value="true"/>
             <div class="my-1">
                 <span>Serial configuration</span>
                 <div class="flex">
                     <select name="mb" bind:value={configuration.m.b} class="in-f">
                         <option value={0} disabled={configuration.m.b != 0}>Autodetect</option>
-                        <option value={2400}>2400</option>
-                        <option value={4800}>4800</option>
-                        <option value={9600}>9600</option>
-                        <option value={19200}>19200</option>
-                        <option value={38400}>38400</option>
-                        <option value={57600}>57600</option>
-                        <option value={115200}>115200</option>
+                        {#each [24,48,96,192,384,576,1152] as b}
+                        <option value={b*100}>{b*100}</option>
+                        {/each}
                     </select>
                     <select name="mp" bind:value={configuration.m.p} class="in-l" disabled={configuration.m.b == 0}>
                         <option value={0} disabled={configuration.m.b != 0}>-</option>
@@ -324,7 +360,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">WiFi</strong>
-            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/WiFi-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('WiFi-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="w" value="true"/>
             <div class="my-1">
                 SSID<br/>
@@ -358,7 +394,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">Network</strong>
-            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/Network-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('Network-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
             <div class="my-1">
                 IP<br/>
                 <div class="flex">
@@ -398,7 +434,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">MQTT</strong>
-            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/MQTT-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('MQTT-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="q" value="true"/>
             <div class="my-1">
                 Server
@@ -473,7 +509,7 @@
         {#if configuration.q.m == 3}
         <div class="cnt">
             <strong class="text-sm">Domoticz</strong>
-            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/MQTT-configuration#domoticz" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('MQTT-configuration#domoticz')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="o" value="true"/>
             <div class="my-1 flex">
                 <div class="w-1/2">
@@ -498,54 +534,16 @@
         {#if configuration.p.r.startsWith("10YNO") || configuration.p.r == '10Y1001A1001A48H'}
         <div class="cnt">
             <strong class="text-sm">Tariff thresholds</strong>
-            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/Threshold-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('Threshold-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="t" value="true"/>
             <div class="flex flex-wrap my-1">
+                {#each {length: 9} as _, i}
                 <label class="flex w-40 m-1">
-                    <span class="in-pre">1</span>
-                    <input name="t0" bind:value={configuration.t.t[0]} type="number" min="0" max="255" class="in-txt w-full"/>
+                    <span class="in-pre">{i+1}</span>
+                    <input name="t{i}" bind:value={configuration.t.t[i]} type="number" min="0" max="255" class="in-txt w-full"/>
                     <span class="in-post">kWh</span>
                 </label>
-                <label class="flex w-40 m-1">
-                    <span class="in-pre">2</span>
-                    <input name="t1" bind:value={configuration.t.t[1]} type="number" min="0" max="255" class="in-txt w-full"/>
-                    <span class="in-post">kWh</span>
-                </label>
-                <label class="flex w-40 m-1">
-                    <span class="in-pre">3</span>
-                    <input name="t2" bind:value={configuration.t.t[2]} type="number" min="0" max="255" class="in-txt w-full"/>
-                    <span class="in-post">kWh</span>
-                </label>
-                <label class="flex w-40 m-1">
-                    <span class="in-pre">4</span>
-                    <input name="t3" bind:value={configuration.t.t[3]} type="number" min="0" max="255" class="in-txt w-full"/>
-                    <span class="in-post">kWh</span>
-                </label>
-                <label class="flex w-40 m-1">
-                    <span class="in-pre">5</span>
-                    <input name="t4" bind:value={configuration.t.t[4]} type="number" min="0" max="255" class="in-txt w-full"/>
-                    <span class="in-post">kWh</span>
-                </label>
-                <label class="flex w-40 m-1">
-                    <span class="in-pre">6</span>
-                    <input name="t5" bind:value={configuration.t.t[5]} type="number" min="0" max="255" class="in-txt w-full"/>
-                    <span class="in-post">kWh</span>
-                </label>
-                <label class="flex w-40 m-1">
-                    <span class="in-pre">7</span>
-                    <input name="t6" bind:value={configuration.t.t[6]} type="number" min="0" max="255" class="in-txt w-full"/>
-                    <span class="in-post">kWh</span>
-                </label>
-                <label class="flex w-40 m-1">
-                    <span class="in-pre">8</span>
-                    <input name="t7" bind:value={configuration.t.t[7]} type="number" min="0" max="255" class="in-txt w-full"/>
-                    <span class="in-post">kWh</span>
-                </label>
-                <label class="flex w-40 m-1">
-                    <span class="in-pre">9</span>
-                    <input name="t8" bind:value={configuration.t.t[8]} type="number" min="0" max="255" class="in-txt w-full"/>
-                    <span class="in-post">kWh</span>
-                </label>
+                {/each}
             </div>
             <label class="flex m-1">
                 <span class="in-pre">Average of</span>
@@ -556,103 +554,25 @@
         {/if}
         <div class="cnt">
             <strong class="text-sm">User interface</strong>
-            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/User-interface" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('User-interface')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="u" value="true"/>
             <div class="flex flex-wrap">
-                <div class="w-1/2">
-                    Import gauge<br/>
-                    <select name="ui" bind:value={configuration.u.i} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
-                <div class="w-1/2">
-                    Export gauge<br/>
-                    <select name="ue" bind:value={configuration.u.e} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
-                <div class="w-1/2">
-                    Voltage<br/>
-                    <select name="uv" bind:value={configuration.u.v} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
-                <div class="w-1/2">
-                    Amperage<br/>
-                    <select name="ua" bind:value={configuration.u.a} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
-                <div class="w-1/2">
-                    Reactive<br/>
-                    <select name="ur" bind:value={configuration.u.r} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
-                <div class="w-1/2">
-                    Realtime<br/>
-                    <select name="uc" bind:value={configuration.u.c} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
-                <div class="w-1/2">
-                    Peaks<br/>
-                    <select name="ut" bind:value={configuration.u.t} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
-                <div class="w-1/2">
-                    Price<br/>
-                    <select name="up" bind:value={configuration.u.p} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
-                <div class="w-1/2">
-                    Day plot<br/>
-                    <select name="ud" bind:value={configuration.u.d} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
-                <div class="w-1/2">
-                    Month plot<br/>
-                    <select name="um" bind:value={configuration.u.m} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
-                <div class="w-1/2">
-                    Temperature plot<br/>
-                    <select name="us" bind:value={configuration.u.s} class="in-s">
-                        <option value={0}>Hide</option>
-                        <option value={1}>Show</option>
-                        <option value={2}>Dynamic</option>
-                    </select>
-                </div>
+                {#each uiElements as el}
+                    <div class="w-1/2">
+                        {el.name}<br/>
+                        <select name="u{el.key}" bind:value={configuration.u[el.key]} class="in-s">
+                            <option value={0}>Hide</option>
+                            <option value={1}>Show</option>
+                            <option value={2}>Dynamic</option>
+                        </select>
+                    </div>
+                {/each}
             </div>
         </div>
         {#if sysinfo.board > 20 || sysinfo.chip == 'esp8266'}
         <div class="cnt">
             <strong class="text-sm">Hardware</strong>
-            <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/GPIO-configuration" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('GPIO-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
             {#if sysinfo.board > 20}
             <input type="hidden" name="i" value="true"/>
             <div class="flex flex-wrap">
@@ -664,34 +584,34 @@
                 </div>
                 <div class="w-1/3">
                     AP button<br/>
-                    <input name="ia" bind:value={configuration.i.a} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-m tr w-full"/>
+                    <input name="ia" bind:value={configuration.i.a} type="number" min="0" max={gpioMax} class="in-m tr w-full"/>
                 </div>
                 <div class="w-1/3">
                     LED<label class="ml-4"><input name="ili" value="true" bind:checked={configuration.i.l.i} type="checkbox" class="rounded mb-1"/> inv</label><br/>
                     <div class="flex">
-                        <input name="ilp" bind:value={configuration.i.l.p} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-l tr w-full"/>
+                        <input name="ilp" bind:value={configuration.i.l.p} type="number" min="0" max={gpioMax} class="in-l tr w-full"/>
                     </div>
                 </div>
                 <div class="w-full">
                     RGB<label class="ml-4"><input name="iri" value="true" bind:checked={configuration.i.r.i} type="checkbox" class="rounded mb-1"/> inverted</label><br/>
                     <div class="flex">
-                        <input name="irr" bind:value={configuration.i.r.r} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-f tr w-1/3"/>
-                        <input name="irg" bind:value={configuration.i.r.g} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-m tr w-1/3"/>
-                        <input name="irb" bind:value={configuration.i.r.b} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-l tr w-1/3"/>
+                        <input name="irr" bind:value={configuration.i.r.r} type="number" min="0" max={gpioMax} class="in-f tr w-1/3"/>
+                        <input name="irg" bind:value={configuration.i.r.g} type="number" min="0" max={gpioMax} class="in-m tr w-1/3"/>
+                        <input name="irb" bind:value={configuration.i.r.b} type="number" min="0" max={gpioMax} class="in-l tr w-1/3"/>
                     </div>
                 </div>
                 <div class="my-1 w-1/3">
                     Temperature<br/>
-                    <input name="itd" bind:value={configuration.i.t.d} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-f tr w-full"/>
+                    <input name="itd" bind:value={configuration.i.t.d} type="number" min="0" max={gpioMax} class="in-f tr w-full"/>
                 </div>
                 <div class="my-1 pr-1 w-1/3">
                     Analog temp<br/>
-                    <input name="ita" bind:value={configuration.i.t.a} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-l tr w-full"/>
+                    <input name="ita" bind:value={configuration.i.t.a} type="number" min="0" max={gpioMax} class="in-l tr w-full"/>
                 </div>
                 {#if sysinfo.chip != 'esp8266'}
                 <div class="my-1 pl-1 w-1/3">
                     Vcc<br/>
-                    <input name="ivp" bind:value={configuration.i.v.p} type="number" min="0" max={sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39} class="in-s tr w-full"/>
+                    <input name="ivp" bind:value={configuration.i.v.p} type="number" min="0" max={gpioMax} class="in-s tr w-full"/>
                 </div>
                 {/if}
                 {#if configuration.i.v.p > 0}

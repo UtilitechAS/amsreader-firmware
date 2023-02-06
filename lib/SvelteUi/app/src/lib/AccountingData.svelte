@@ -1,7 +1,15 @@
 <script>
+    import { fmtnum } from "./Helpers";
+
+
     export let data;
     export let currency;
     export let hasExport;
+
+    let cols = 3
+    $: {
+        cols = currency ? 3 : 2;
+    }
 </script>
 
 <div class="mx-2 text-sm">
@@ -9,69 +17,50 @@
     <br/><br/>
 
     {#if data}
-        {#if hasExport && currency}
+        {#if hasExport}
             <strong>Import</strong>
-            <div class="grid grid-cols-3 mb-3">
+            <div class="grid grid-cols-{cols} mb-3">
                 <div>Hour</div>
-                <div class="text-right">{data.h.u ? data.h.u.toFixed(2) : '-'} kWh</div>
-                <div class="text-right">{data.h.c ? data.h.c.toFixed(2) : '-'} {currency}</div>
+                <div class="text-right">{fmtnum(data.h.u,2)} kWh</div>
+                {#if currency}<div class="text-right">{fmtnum(data.h.c,2)} {currency}</div>{/if}
                 <div>Day</div>
-                <div class="text-right">{data.d.u ? data.d.u.toFixed(1) : '-'} kWh</div>
-                <div class="text-right">{data.d.c ? data.d.c.toFixed(1) : '-'} {currency}</div>
+                <div class="text-right">{fmtnum(data.d.u,1)} kWh</div>
+                {#if currency}<div class="text-right">{fmtnum(data.d.c,1)} {currency}</div>{/if}
                 <div>Month</div>
-                <div class="text-right">{data.m.u ? data.m.u.toFixed(0) : '-'} kWh</div>
-                <div class="text-right">{data.m.c ? data.m.c.toFixed(0) : '-'} {currency}</div>
+                <div class="text-right">{fmtnum(data.m.u)} kWh</div>
+                {#if currency}<div class="text-right">{fmtnum(data.m.c)} {currency}</div>{/if}
             </div>
             <strong>Export</strong>
-            <div class="grid grid-cols-3">
+            <div class="grid grid-cols-{cols}">
                 <div>Hour</div>
-                <div class="text-right">{data.h.p ? data.h.p.toFixed(2) : '-'} kWh</div>
-                <div class="text-right">{data.h.i ? data.h.i.toFixed(2) : '-'} {currency}</div>
+                <div class="text-right">{fmtnum(data.h.p,2)} kWh</div>
+                {#if currency}<div class="text-right">{fmtnum(data.h.i,2)} {currency}</div>{/if}
                 <div>Day</div>
-                <div class="text-right">{data.d.p ? data.d.p.toFixed(1) : '-'} kWh</div>
-                <div class="text-right">{data.d.i ? data.d.i.toFixed(1) : '-'} {currency}</div>
+                <div class="text-right">{fmtnum(data.d.p,1)} kWh</div>
+                {#if currency}<div class="text-right">{fmtnum(data.d.i,1)} {currency}</div>{/if}
                 <div>Month</div>
-                <div class="text-right">{data.m.p ? data.m.p.toFixed(0) : '-'} kWh</div>
-                <div class="text-right">{data.m.i ? data.m.i.toFixed(0) : '-'} {currency}</div>
-            </div>
-        {:else if hasExport}
-            <strong>Import</strong>
-            <div class="grid grid-cols-2 mb-3">
-                <div>Hour</div>
-                <div class="text-right">{data.h.u ? data.h.u.toFixed(2) : '-'} kWh</div>
-                <div>Day</div>
-                <div class="text-right">{data.d.u ? data.d.u.toFixed(1) : '-'} kWh</div>
-                <div>Month</div>
-                <div class="text-right">{data.m.u ? data.m.u.toFixed(0) : '-'} kWh</div>
-            </div>
-            <strong>Export</strong>
-            <div class="grid grid-cols-2">
-                <div>Hour</div>
-                <div class="text-right">{data.h.p ? data.h.p.toFixed(2) : '-'} kWh</div>
-                <div>Day</div>
-                <div class="text-right">{data.d.p ? data.d.p.toFixed(1) : '-'} kWh</div>
-                <div>Month</div>
-                <div class="text-right">{data.m.p ? data.m.p.toFixed(0) : '-'} kWh</div>
+                <div class="text-right">{fmtnum(data.m.p)} kWh</div>
+                {#if currency}<div class="text-right">{fmtnum(data.m.i)} {currency}</div>{/if}
             </div>
         {:else}
             <strong>Consumption</strong>
             <div class="grid grid-cols-2 mb-3">
                 <div>Hour</div>
-                <div class="text-right">{data.h.u ? data.h.u.toFixed(2) : '-'} kWh</div>
+                <div class="text-right">{fmtnum(data.h.u,2)} kWh</div>
                 <div>Day</div>
-                <div class="text-right">{data.d.u ? data.d.u.toFixed(1) : '-'} kWh</div>
+                <div class="text-right">{fmtnum(data.d.u,1)} kWh</div>
                 <div>Month</div>
-                <div class="text-right">{data.m.u ? data.m.u.toFixed(0) : '-'} kWh</div>
+                <div class="text-right">{fmtnum(data.m.u)} kWh</div>
             </div>
             {#if currency}
                 <strong>Cost</strong>
                 <div class="grid grid-cols-2">
                     <div>Hour</div>
-                    <div class="text-right">{data.h.c ? data.h.c.toFixed(2) : '-'} {currency}</div>
+                    <div class="text-right">{fmtnum(data.h.c,2)} {currency}</div>
                     <div>Day</div>
-                    <div class="text-right">{data.d.c ? data.d.c.toFixed(1) : '-'} {currency}</div>
+                    <div class="text-right">{fmtnum(data.d.c,1)} {currency}</div>
                     <div>Month</div>
-                    <div class="text-right">{data.m.c ? data.m.c.toFixed(0) : '-'} {currency}</div>
+                    <div class="text-right">{fmtnum(data.m.c)} {currency}</div>
                 </div>
             {/if}
         {/if}

@@ -31,6 +31,11 @@
         });
         navigate(sysinfo.usrcfg ? "/" : "/setup");
 	}
+
+    let cc = false;
+    $: {
+        cc = !sysinfo.usrcfg;
+    }
 </script>
 
 <div class="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2">
@@ -38,6 +43,9 @@
         <form on:submit|preventDefault={handleSubmit} autocomplete="off">
             <input type="hidden" name="v" value="true"/>
             <strong class="text-sm">Initial configuration</strong>
+            {#if sysinfo.usrcfg}
+            <div class="bd-red">WARNING: Changing this configuration will affect basic configuration of your device. Only make changes here if instructed by vendor</div>
+            {/if}
             <div class="my-3">
                 Board type<br/>
                 <select name="vb" bind:value={sysinfo.board} class="in-s">
@@ -53,7 +61,7 @@
                 </div>
             {/if}
             <div class="my-3">
-                <label><input type="checkbox" name="vr" value="true" class="rounded mb-1" checked /> Clear all other configuration</label>
+                <label><input type="checkbox" name="vr" value="true" class="rounded mb-1" bind:checked={cc} /> Clear all other configuration</label>
             </div>
             <div class="my-3">
                 <button type="submit" class="btn-pri">Save</button>

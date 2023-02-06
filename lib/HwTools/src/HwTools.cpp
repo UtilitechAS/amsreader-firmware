@@ -119,68 +119,96 @@ void HwTools::getAdcChannel(uint8_t pin, AdcConfig& config) {
                 config.unit = ADC_UNIT_1;
                 config.channel = ADC1_CHANNEL_4;
                 break;
+            #if defined(ADC1_CHANNEL_5)
             case ADC1_CHANNEL_5_GPIO_NUM:
                 config.unit = ADC_UNIT_1;
                 config.channel = ADC1_CHANNEL_5;
                 break;
+            #endif
+            #if defined(ADC1_CHANNEL_6)
             case ADC1_CHANNEL_6_GPIO_NUM:
                 config.unit = ADC_UNIT_1;
                 config.channel = ADC1_CHANNEL_6;
                 break;
+            #endif
+            #if defined(ADC1_CHANNEL_7)
             case ADC1_CHANNEL_7_GPIO_NUM:
                 config.unit = ADC_UNIT_1;
                 config.channel = ADC1_CHANNEL_7;
                 break;
-            #if defined(CONFIG_IDF_TARGET_ESP32S2)
+            #endif
+            #if defined(ADC1_CHANNEL_8)
             case ADC1_CHANNEL_8_GPIO_NUM:
                 config.unit = ADC_UNIT_1;
                 config.channel = ADC1_CHANNEL_8;
                 break;
+            #endif
+            #if defined(ADC1_CHANNEL_9)
             case ADC1_CHANNEL_9_GPIO_NUM:
                 config.unit = ADC_UNIT_1;
                 config.channel = ADC1_CHANNEL_9;
                 break;
             #endif
+            #if defined(ADC2_CHANNEL_0)
             case ADC2_CHANNEL_0_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_0;
                 break;
+            #endif
+            #if defined(ADC2_CHANNEL_1)
             case ADC2_CHANNEL_1_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_1;
                 break;
+            #endif
+            #if defined(ADC2_CHANNEL_2)
             case ADC2_CHANNEL_2_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_2;
                 break;
+            #endif
+            #if defined(ADC2_CHANNEL_3)
             case ADC2_CHANNEL_3_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_3;
                 break;
+            #endif
+            #if defined(ADC2_CHANNEL_4)
             case ADC2_CHANNEL_4_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_4;
                 break;
+            #endif
+            #if defined(ADC2_CHANNEL_5)
             case ADC2_CHANNEL_5_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_5;
                 break;
+            #endif
+            #if defined(ADC2_CHANNEL_6)
             case ADC2_CHANNEL_6_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_6;
                 break;
+            #endif
+            #if defined(ADC2_CHANNEL_7)
             case ADC2_CHANNEL_7_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_7;
                 break;
+            #endif
+            #if defined(ADC2_CHANNEL_8)
             case ADC2_CHANNEL_8_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_8;
                 break;
+            #endif
+            #if defined(ADC2_CHANNEL_9)
             case ADC2_CHANNEL_9_GPIO_NUM:
                 config.unit = ADC_UNIT_2;
                 config.channel = ADC2_CHANNEL_9;
                 break;
+            #endif
         }
     #endif
 }

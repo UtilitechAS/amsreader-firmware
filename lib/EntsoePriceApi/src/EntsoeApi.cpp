@@ -284,7 +284,7 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
         breakTime(tz->toUTC(e2), d2);
 
         snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-        "https://transparency.entsoe.eu/api", getToken(), 
+        "https://web-api.tp.entsoe.eu/api", getToken(), 
         d1.Year+1970, d1.Month, d1.Day, d1.Hour, 00,
         d2.Year+1970, d2.Month, d2.Day, d2.Hour, 00,
         config->area, config->area);

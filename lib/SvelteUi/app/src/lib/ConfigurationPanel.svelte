@@ -190,7 +190,7 @@
                     </div>
                     <div>
                         Time zone<br/>
-                        <select name="gt" bind:value={configuration.g.t} class="in-l">
+                        <select name="gt" bind:value={configuration.g.t} class="in-l w-full">
                             <CountrySelectOptions/>
                         </select>
                     </div>

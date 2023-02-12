@@ -19,14 +19,12 @@
 <option value={18}>UART1</option>
 {/if}
 
-{#if chip.startsWith('esp32')}
-    {#each {length: gpioMax+1} as _, i}
-        {#if i > 3
-          && !(chip == 'esp32' && (i == 9 || i == 16))
-          && !(chip == 'esp32s2' && i == 18)
-          && !(chip == 'esp8266' && (i == 3 || i == 113))
-        }
-            <option value={i}>GPIO{i}</option>
-        {/if}
-    {/each}
-{/if}
+{#each {length: gpioMax+1} as _, i}
+    {#if i > 3
+        && !(chip == 'esp32' && (i == 9 || i == 16))
+        && !(chip == 'esp32s2' && i == 18)
+        && !(chip == 'esp8266' && (i == 3 || i == 113))
+    }
+        <option value={i}>GPIO{i}</option>
+    {/if}
+{/each}

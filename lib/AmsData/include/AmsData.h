@@ -35,10 +35,10 @@ public:
 
     time_t getMeterTimestamp();
 
-    uint16_t getActiveImportPower();
-    uint16_t getReactiveImportPower();
-    uint16_t getActiveExportPower();
-    uint16_t getReactiveExportPower();
+    uint32_t getActiveImportPower();
+    uint32_t getReactiveImportPower();
+    uint32_t getActiveExportPower();
+    uint32_t getReactiveExportPower();
 
     float getL1Voltage();
     float getL2Voltage();
@@ -79,7 +79,7 @@ protected:
     time_t packageTimestamp = 0;
     String listId = "", meterId = "", meterModel = "";
     time_t meterTimestamp = 0;
-    uint16_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
+    uint32_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
     float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
     float l1activeImportPower = 0, l2activeImportPower = 0, l3activeImportPower = 0;
     float l1activeExportPower = 0, l2activeExportPower = 0, l3activeExportPower = 0;

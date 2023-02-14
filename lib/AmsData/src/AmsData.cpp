@@ -114,19 +114,19 @@ time_t AmsData::getMeterTimestamp() {
     return this->meterTimestamp;
 }
 
-uint16_t AmsData::getActiveImportPower() {
+uint32_t AmsData::getActiveImportPower() {
     return this->activeImportPower;
 }
 
-uint16_t AmsData::getReactiveImportPower() {
+uint32_t AmsData::getReactiveImportPower() {
     return this->reactiveImportPower;
 }
 
-uint16_t AmsData::getActiveExportPower() {
+uint32_t AmsData::getActiveExportPower() {
     return this->activeExportPower;
 }
 
-uint16_t AmsData::getReactiveExportPower() {
+uint32_t AmsData::getReactiveExportPower() {
     return this->reactiveExportPower;
 }
 

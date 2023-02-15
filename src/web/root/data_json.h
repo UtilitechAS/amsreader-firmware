@@ -1,2 +1,0 @@
-static const char DATA_JSON[] PROGMEM = R"=="==({"im":%d,"om":%d,"mf":%d,"i":%d,"e":%d,"ri":%d,"re":%d,"ic":%.3f,"ec":%.3f,"ric":%.3f,"rec":%.3f,"u1":%.2f,"u2":%.2f,"u3":%.2f,"i1":%.2f,"i2":%.2f,"i3":%.2f,"f":%.2f,"f1":%.2f,"f2":%.2f,"f3":%.2f,"v":%.3f,"r":%d,"t":%.2f,"u":%lu,"m":%lu,"em":%d,"hm":%d,"wm":%d,"mm":%d,"me":%d,"p":%s,"mt":%d,"ds":%d,"ea":{"x":%.1f,"p":[%s],"t":%d,"h":{"u":%.2f,"c":%.2f,"p":%.2f},"d":{"u":%.2f,"c":%.2f,"p":%.2f},"m":{"u":%.2f,"c":%.2f,"p":%.2f}},"c":%lu})=="==";
-const int DATA_JSON_LEN PROGMEM = 439;

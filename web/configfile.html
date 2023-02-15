@@ -1,0 +1,71 @@
+<form method="get" action="/configfile.cfg">
+    <div class="my-3 p-3 bg-white rounded shadow">
+        <h6>Download configuration</h6>
+        <div class="row">
+            <div class="col-xl-2 col-md-3 col-sm-6">
+                <label><input type="checkbox" name="iw" value="true" checked/> WiFi</label>
+            </div>
+            <div class="col-xl-2 col-md-3 col-sm-6">
+                <label><input type="checkbox" name="im" value="true" checked/> MQTT</label>
+            </div>
+            <div class="col-xl-2 col-md-3 col-sm-6">
+                <label><input type="checkbox" name="ie" value="true" checked/> Web</label>
+            </div>
+            <div class="col-xl-2 col-md-3 col-sm-6">
+                <label><input type="checkbox" name="it" value="true" checked/> Meter</label>
+            </div>
+            <div class="col-xl-2 col-md-3 col-sm-6">
+                <label><input type="checkbox" name="ih" value="true" checked/> Thresholds</label>
+            </div>
+            <div class="col-xl-2 col-md-3 col-sm-6">
+                <label><input type="checkbox" name="ig" value="true" checked/> GPIO</label>
+            </div>
+            <div class="col-xl-2 col-md-3 col-sm-6">
+                <label><input type="checkbox" name="id" value="true" checked/> Domoticz</label>
+            </div>
+            <div class="col-xl-2 col-md-3 col-sm-6">
+                <label><input type="checkbox" name="in" value="true" checked/> NTP</label>
+            </div>
+            <div class="col-xl-2 col-md-3 col-sm-6">
+                <label><input type="checkbox" name="is" value="true" checked/> ENTSO-E</label>
+            </div>
+            <div class="col-xl-6 col-md-8">
+                <label><input type="checkbox" name="ic" value="true"/> Include Secrets (SSID, PSK, passwords and tokens)</label>
+            </div>
+        </div>    
+        <div class="row">
+            <div class="col-12 text-right">
+                <button class="btn btn-primary">Download</button>
+            </div>
+        </div>
+    </div>
+</form>
+<form method="post" enctype="multipart/form-data" class="upload-form">
+    <div class="my-3 p-3 bg-white rounded shadow">
+        <h6>Upload configuration</h6>
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="input-group mb-3">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text">Upload</span>
+                    </div>
+                    <div class="custom-file">
+                        <input name="file" type="file" class="custom-file-input" id="fileUploadField">
+                        <label class="custom-file-label" for="fileUploadField">Choose file</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 text-right">
+                <button class="btn btn-primary">Upload</button>
+            </div>
+        </div>
+    </div>
+</form>    
+<hr/>
+<div class="row form-group">
+    <div class="col-6">
+        <a href="/" class="btn btn-outline-secondary">Back</a>
+    </div>
+</div>

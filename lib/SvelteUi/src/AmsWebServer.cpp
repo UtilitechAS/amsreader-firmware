@@ -217,6 +217,9 @@ void AmsWebServer::sysinfoJson() {
 		hostname = "ams-"+chipIdStr;
 	}
 
+	IPAddress localIp = WiFi.localIP();
+	IPAddress subnet = WiFi.subnetMask();
+	IPAddress gateway = WiFi.gatewayIP();
 	IPAddress dns1 = WiFi.dnsIP(0);
 	IPAddress dns2 = WiFi.dnsIP(1);
 
@@ -271,15 +274,18 @@ void AmsWebServer::sysinfoJson() {
 		hostname.c_str(),
 		performRestart ? "true" : "false",
 		rebootForUpgrade ? "true" : "false",
-		WiFi.localIP().toString().c_str(),
-		WiFi.subnetMask().toString().c_str(),
-		WiFi.gatewayIP().toString().c_str(),
 		#if defined(ESP8266)
+		localIp.isSet() ? localIp.toString().c_str() : "",
+		subnet.isSet() ? subnet.toString().c_str() : "",
+		gateway.isSet() ? gateway.toString().c_str() : "",
 		dns1.isSet() ? dns1.toString().c_str() : "",
 		dns2.isSet() ? dns2.toString().c_str() : "",
 		#else
-		dns1.toString().c_str(),
-		dns2.toString().c_str(),
+		localIp != INADDR_NONE ? localIp.toString().c_str() : "",
+		subnet != INADDR_NONE ? subnet.toString().c_str() : "",
+		gateway != INADDR_NONE ? gateway.toString().c_str() : "",
+		dns1 != INADDR_NONE ? dns1.toString().c_str() : "",
+		dns2 != INADDR_NONE ? dns2.toString().c_str() : "",
 		#endif
 		meterState->getMeterType(),
 		meterModel.c_str(),

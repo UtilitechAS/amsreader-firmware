@@ -137,7 +137,7 @@
             Gateway: {sysinfo.net.gw}
         </div>
         <div class="my-2">
-            DNS: {sysinfo.net.dns1} {#if sysinfo.net.dns2 && sysinfo.net.dns2 != '0.0.0.0'}/ {sysinfo.net.dns2}{/if}
+            DNS: {sysinfo.net.dns1} {#if sysinfo.net.dns2}/ {sysinfo.net.dns2}{/if}
         </div>
     </div>
     {/if}

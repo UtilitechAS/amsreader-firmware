@@ -18,7 +18,7 @@
         };
 
         if(sysinfo.net.ip && tries%3 == 0) {
-            if(sysinfo.net.ip == '0.0.0.0') {
+            if(!sysinfo.net.ip) {
                 retry();
                 return;
             };

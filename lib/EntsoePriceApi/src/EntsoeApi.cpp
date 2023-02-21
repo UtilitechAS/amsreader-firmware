@@ -334,7 +334,34 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
                 printD("Receiving data");
                 data = http.getString();
                 http.end();
-                lastError = 0;
+                
+                uint8_t* content = (uint8_t*) (data.c_str());
+                if(debugger->isActive(RemoteDebug::DEBUG)) {
+                    printD("Received content for prices:");
+                    debugPrint(content, 0, data.length());
+                }
+
+                DataParserContext ctx;
+                ctx.length = data.length();
+                GCMParser gcm(key, auth);
+                int8_t gcmRet = gcm.parse(content, ctx);
+                if(debugger->isActive(RemoteDebug::DEBUG)) {
+                    printD("Decrypted content for prices:");
+                    debugPrint(content, 0, data.length());
+                }
+                if(gcmRet > 0) {
+                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi) Price data starting at: %d\n", gcmRet);
+                    PricesContainer* ret = new PricesContainer();
+                    memcpy(ret, content+gcmRet, sizeof(*ret));
+                    for(uint8_t i = 0; i < 24; i++) {
+                        ret->points[i] = ntohl(ret->points[i]);
+                    }
+                    lastError = 0;
+                    return ret;
+                } else {
+                    lastError = gcmRet;
+                    if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Error code while decrypting prices: %d\n", gcmRet);
+                }
             } else {
                 lastError = status;
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Communication error, returned status: %d\n", status);
@@ -343,33 +370,6 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
 
                 http.end();
             }
-        }
-        uint8_t* content = (uint8_t*) (data.c_str());
-        if(debugger->isActive(RemoteDebug::DEBUG)) {
-            printD("Received content for prices:");
-            debugPrint(content, 0, data.length());
-        }
-
-        DataParserContext ctx;
-        ctx.length = data.length();
-        GCMParser gcm(key, auth);
-        int8_t gcmRet = gcm.parse(content, ctx);
-        if(debugger->isActive(RemoteDebug::DEBUG)) {
-            printD("Decrypted content for prices:");
-            debugPrint(content, 0, data.length());
-        }
-        if(gcmRet > 0) {
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi) Price data starting at: %d\n", gcmRet);
-            PricesContainer* ret = new PricesContainer();
-            memcpy(ret, content+gcmRet, sizeof(*ret));
-            for(uint8_t i = 0; i < 24; i++) {
-                ret->points[i] = ntohl(ret->points[i]);
-            }
-            lastError = 0;
-            return ret;
-        } else {
-            lastError = gcmRet;
-            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("(EntsoeApi) Error code while decrypting prices: %d\n", gcmRet);
         }
     }
     return NULL;

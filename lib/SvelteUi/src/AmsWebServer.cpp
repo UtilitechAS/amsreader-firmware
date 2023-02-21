@@ -976,6 +976,15 @@ void AmsWebServer::handleSave() {
 					success = false;
 			}
 		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+			switch(boardType) {
+				case 71: // ESP32-C3-DevKitM-1
+					gpioConfig->apPin = 9;
+				case 70: // Generic ESP32-C3
+					gpioConfig->hanPin = hanPin > 0 ? hanPin : 7;
+					break;
+				default:
+					success = false;
+			}
 		#elif defined(ESP32)
 			switch(boardType) {
 				case 201: // D32
@@ -1105,6 +1114,8 @@ void AmsWebServer::handleSave() {
 			case 2: // spenceme
 			case 50: // Generic ESP32-S2
 			case 51: // Wemos S2 mini
+			case 70: // Generic ESP32-C3
+			case 71: // ESP32-C3-DevKitM-1
 				meterConfig->baud = 2400;
 				wifi.sleep = 1; // Modem sleep
 				break;

@@ -1166,12 +1166,20 @@ void AmsWebServer::handleSave() {
 		wifi.autoreboot = server.hasArg(F("wa")) && server.arg(F("wa")) == F("true");
 		config->setWiFiConfig(wifi);
 
-		if(server.hasArg(F("nm")) && server.arg(F("nm")) == "static") {
-			strcpy(wifi.ip, server.arg(F("ni")).c_str());
-			strcpy(wifi.gateway, server.arg(F("ng")).c_str());
-			strcpy(wifi.subnet, server.arg(F("ns")).c_str());
-			strcpy(wifi.dns1, server.arg(F("nd1")).c_str());
-			strcpy(wifi.dns2, server.arg(F("nd2")).c_str());
+		if(server.hasArg(F("nm"))) {
+			if(server.arg(F("nm")) == "static") {
+				strcpy(wifi.ip, server.arg(F("ni")).c_str());
+				strcpy(wifi.gateway, server.arg(F("ng")).c_str());
+				strcpy(wifi.subnet, server.arg(F("ns")).c_str());
+				strcpy(wifi.dns1, server.arg(F("nd1")).c_str());
+				strcpy(wifi.dns2, server.arg(F("nd2")).c_str());
+			} else if(server.arg(F("nm")) == "dhcp") {
+				strcpy(wifi.ip, "");
+				strcpy(wifi.gateway, "");
+				strcpy(wifi.subnet, "");
+				strcpy(wifi.dns1, "");
+				strcpy(wifi.dns2, "");
+			}
 		}
 		wifi.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == F("true");
 		config->setWiFiConfig(wifi);

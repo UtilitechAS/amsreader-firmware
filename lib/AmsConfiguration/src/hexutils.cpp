@@ -22,13 +22,15 @@ void fromHex(uint8_t *out, String in, uint16_t size) {
 	}
 }
 
-void stripNonAscii(uint8_t* in, uint16_t size) {
+void stripNonAscii(uint8_t* in, uint16_t size, bool extended) {
 	for(uint16_t i = 0; i < size; i++) {
 		if(in[i] == 0) { // Clear the rest with null-terminator
 			memset(in+i, 0, size-i);
 			break;
 		}
-		if(in[i] < 32 || in[i] > 126) {
+		if(extended && (in[i] < 32 || in[i] == 127 || in[i] == 129 || in[i] == 141 || in[i] == 143 || in[i] == 144 || in[i] == 157)) {
+			memset(in+i, ' ', 1);
+		} else if(in[i] < 32 || in[i] > 126) {
 			memset(in+i, ' ', 1);
 		}
 	}

@@ -62,7 +62,7 @@ bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 		wifiChanged = true;
 	}
 	
-	stripNonAscii((uint8_t*) config.ssid, 32);
+	stripNonAscii((uint8_t*) config.ssid, 32, true);
 	stripNonAscii((uint8_t*) config.psk, 64);
 	stripNonAscii((uint8_t*) config.ip, 16);
 	stripNonAscii((uint8_t*) config.gateway, 16);

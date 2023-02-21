@@ -556,7 +556,7 @@ bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config)
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_ENERGYACCOUNTING_START, config);
 		EEPROM.end();
-		if(config.thresholds[9] != 255) {
+		if(config.thresholds[9] != 0xFFFF) {
 			clearEnergyAccountingConfig(config);
 		}
 		if(config.hours > 5) config.hours = 5;
@@ -576,7 +576,7 @@ bool AmsConfiguration::setEnergyAccountingConfig(EnergyAccountingConfig& config)
 				energyAccountingChanged = true;
 			}
 		}
-		config.thresholds[9] = 255;
+		config.thresholds[9] = 0xFFFF;
 		energyAccountingChanged |= config.hours != existing.hours;
 	} else {
 		energyAccountingChanged = true;
@@ -598,7 +598,7 @@ void AmsConfiguration::clearEnergyAccountingConfig(EnergyAccountingConfig& confi
 	config.thresholds[6] = 75;
 	config.thresholds[7] = 100;
 	config.thresholds[8] = 150;
-	config.thresholds[9] = 255;
+	config.thresholds[9] = 0xFFFF;
 	config.hours = 3;
 }
 
@@ -752,6 +752,14 @@ bool AmsConfiguration::hasConfig() {
 				configVersion = -1; // Prevent loop
 				if(relocateConfig100()) {
 					configVersion = 101;
+				} else {
+					configVersion = 0;
+					return false;
+				}
+			case 101:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig101()) {
+					configVersion = 102;
 				} else {
 					configVersion = 0;
 					return false;
@@ -953,6 +961,25 @@ bool AmsConfiguration::relocateConfig100() {
 	EEPROM.put(CONFIG_UI_START, ui);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 101);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig101() {
+	EEPROM.begin(EEPROM_SIZE);
+
+	EnergyAccountingConfig config;
+	EnergyAccountingConfig101 config101;
+	EEPROM.get(CONFIG_ENERGYACCOUNTING_START, config101);
+	for(uint8_t i = 0; i < 9; i++) {
+		config.thresholds[i] = config101.thresholds[i];
+	}
+	config.thresholds[9] = 0xFFFF;
+	config.hours = config101.hours;
+	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, config);
+
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 102);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;

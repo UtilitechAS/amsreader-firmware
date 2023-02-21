@@ -540,7 +540,7 @@
                 {#each {length: 9} as _, i}
                 <label class="flex w-40 m-1">
                     <span class="in-pre">{i+1}</span>
-                    <input name="t{i}" bind:value={configuration.t.t[i]} type="number" min="0" max="255" class="in-txt w-full"/>
+                    <input name="t{i}" bind:value={configuration.t.t[i]} type="number" min="0" max="65535" class="in-txt w-full"/>
                     <span class="in-post">kWh</span>
                 </label>
                 {/each}

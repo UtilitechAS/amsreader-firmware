@@ -1116,7 +1116,6 @@ void AmsWebServer::handleSave() {
 			case 51: // Wemos S2 mini
 			case 70: // Generic ESP32-C3
 			case 71: // ESP32-C3-DevKitM-1
-				meterConfig->baud = 2400;
 				wifi.sleep = 1; // Modem sleep
 				break;
 			case 4: // Pow-U UART0

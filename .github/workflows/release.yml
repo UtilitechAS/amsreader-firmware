@@ -166,3 +166,26 @@ jobs:
         asset_path: esp32solo.zip
         asset_name: ams2mqtt-esp32solo-${{ steps.release_tag.outputs.tag }}.zip
         asset_content_type: application/zip
+
+    - name: Build esp32c3 firmware
+      run: pio run -e esp32c3
+    - name: Create esp32c3 zip file
+      run: /bin/sh scripts/esp32c3/mkzip.sh
+    - name: Upload esp32c3 binary to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: .pio/build/esp32c3/firmware.bin
+        asset_name: ams2mqtt-esp32c3-${{ steps.release_tag.outputs.tag }}.bin
+        asset_content_type: application/octet-stream
+    - name: Upload esp32c3 zip to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: esp32c3.zip
+        asset_name: ams2mqtt-esp32c3-${{ steps.release_tag.outputs.tag }}.zip
+        asset_content_type: application/zip

@@ -41,6 +41,12 @@
         <option value={50}>{boardtype(chip, 50)}</option>
     </optgroup>
 {/if}
+{#if chip == 'esp32c3'}
+    <optgroup label="Generic hardware">
+        <option value={71}>{boardtype(chip, 71)}</option>
+        <option value={70}>{boardtype(chip, 70)}</option>
+    </optgroup>
+{/if}
 {#if chip == 'esp32solo'}
     <optgroup label="Generic hardware">
         <option value={200}>{boardtype(chip, 200)}</option>

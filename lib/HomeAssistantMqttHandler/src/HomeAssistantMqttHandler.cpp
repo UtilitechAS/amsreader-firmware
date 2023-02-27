@@ -80,28 +80,30 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
         mqtt->publish(topic + "/power", json);
     }
 
-	String peaks = "";
-    uint8_t peakCount = ea->getConfig()->hours;
-    if(peakCount > 5) peakCount = 5;
-	for(uint8_t i = 1; i <= peakCount; i++) {
-		if(!peaks.isEmpty()) peaks += ",";
-		peaks += String(ea->getPeak(i).value / 100.0, 2);
-	}
-    snprintf_P(json, BufferSize, REALTIME_JSON,
-		ea->getMonthMax(),
-		peaks.c_str(),
-		ea->getCurrentThreshold(),
-		ea->getUseThisHour(),
-		ea->getCostThisHour(),
-		ea->getProducedThisHour(),
-		ea->getUseToday(),
-		ea->getCostToday(),
-		ea->getProducedToday(),
-		ea->getUseThisMonth(),
-		ea->getCostThisMonth(),
-		ea->getProducedThisMonth()
-    );
-    mqtt->publish(topic + "/realtime", json);
+    if(ea->isInitialized()) {
+        String peaks = "";
+        uint8_t peakCount = ea->getConfig()->hours;
+        if(peakCount > 5) peakCount = 5;
+        for(uint8_t i = 1; i <= peakCount; i++) {
+            if(!peaks.isEmpty()) peaks += ",";
+            peaks += String(ea->getPeak(i).value / 100.0, 2);
+        }
+        snprintf_P(json, BufferSize, REALTIME_JSON,
+            ea->getMonthMax(),
+            peaks.c_str(),
+            ea->getCurrentThreshold(),
+            ea->getUseThisHour(),
+            ea->getCostThisHour(),
+            ea->getProducedThisHour(),
+            ea->getUseToday(),
+            ea->getCostToday(),
+            ea->getProducedToday(),
+            ea->getUseThisMonth(),
+            ea->getCostThisMonth(),
+            ea->getProducedThisMonth()
+        );
+        mqtt->publish(topic + "/realtime", json);
+    }
 
     return true;
 }

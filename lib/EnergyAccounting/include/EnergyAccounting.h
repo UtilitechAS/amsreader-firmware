@@ -52,6 +52,7 @@ public:
     bool update(AmsData* amsData);
     bool load();
     bool save();
+    bool isInitialized();
 
     double getUseThisHour();
     double getUseToday();

@@ -26,6 +26,10 @@ void EnergyAccounting::setTimezone(Timezone* tz) {
     this->tz = tz;
 }
 
+bool EnergyAccounting::isInitialized() {
+    return this->init;
+}
+
 bool EnergyAccounting::update(AmsData* amsData) {
     if(config == NULL) return false;
     time_t now = time(nullptr);

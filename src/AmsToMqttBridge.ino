@@ -32,7 +32,7 @@ ADC_MODE(ADC_VCC);
 #endif
 #define WDT_TIMEOUT 60
 
-#if defined(CONFIG_IDF_TARGET_ESP32S2)
+#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
 #include <driver/uart.h>
 #endif
 
@@ -656,9 +656,8 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 			if(pin == 16) {
 				hwSerial = &Serial2;
 			}
-		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+		#elif defined(CONFIG_IDF_TARGET_ESP32S2) ||  defined(CONFIG_IDF_TARGET_ESP32C3)
 			hwSerial = &Serial1;
-		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
 		#endif
 	#endif
 
@@ -690,7 +689,7 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 				break;
 		}
 
-		#if defined(CONFIG_IDF_TARGET_ESP32S2)
+		#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
 			uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 		#elif defined(ESP32)

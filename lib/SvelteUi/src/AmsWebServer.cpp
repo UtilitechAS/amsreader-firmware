@@ -1484,6 +1484,8 @@ void AmsWebServer::upgrade() {
 			String chipType = F("esp8266");
 		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
 			String chipType = F("esp32s2");
+		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+			String chipType = F("esp32c3");
 		#elif defined(ESP32)
 			#if defined(CONFIG_FREERTOS_UNICORE)
 				String chipType = F("esp32solo");
@@ -1546,6 +1548,8 @@ void AmsWebServer::firmwarePost() {
 					String chipType = F("esp8266");
 				#elif defined(CONFIG_IDF_TARGET_ESP32S2)
 					String chipType = F("esp32s2");
+				#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+					String chipType = F("esp32c3");
 				#elif defined(ESP32)
 					#if defined(CONFIG_FREERTOS_UNICORE)
 						String chipType = F("esp32solo");

@@ -214,9 +214,10 @@ double EnergyAccounting::getProducedToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0.0;
-    tmElements_t utc;
+    tmElements_t utc, local;
+    breakTime(tz->toLocal(now), local);
     for(int i = 0; i < currentHour; i++) {
-        breakTime(now - ((currentHour - i) * 3600), utc);
+        breakTime(now - ((local.Hour - i) * 3600), utc);
         ret += ds->getHourExport(utc.Hour) / 1000.0;
     }
     return ret + getProducedThisHour();

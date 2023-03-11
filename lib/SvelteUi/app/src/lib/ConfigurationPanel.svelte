@@ -88,7 +88,8 @@
             i: 0, e: 0, v: 0, a: 0, r: 0, c: 0, t: 0, p: 0, d: 0, m: 0, s: 0
         },
         i: {
-            h: null, a: null,
+            h: { p: null, u: true },
+            a: null,
             l: { p: null, i: false },
             r: { r: null, g: null, b: null, i: false },
             t: { d: null, a: null },
@@ -577,8 +578,8 @@
             <input type="hidden" name="i" value="true"/>
             <div class="flex flex-wrap">
                 <div class="w-1/3">
-                    HAN<br/>
-                    <select name="ih" bind:value={configuration.i.h} class="in-f w-full">
+                    HAN<label class="ml-2"><input name="ihu" value="true" bind:checked={configuration.i.h.u} type="checkbox" class="rounded mb-1"/> pullup</label><br/>
+                    <select name="ihp" bind:value={configuration.i.h.p} class="in-f w-full">
                         <UartSelectOptions chip={sysinfo.chip}/>
                     </select>
                 </div>

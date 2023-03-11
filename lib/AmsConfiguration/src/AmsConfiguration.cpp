@@ -374,6 +374,7 @@ bool AmsConfiguration::setGpioConfig(GpioConfig& config) {
 	GpioConfig existing;
 	if(getGpioConfig(existing)) {
 		meterChanged |= config.hanPin != existing.hanPin;
+		meterChanged |= config.hanPinPullup != existing.hanPinPullup;
 	}
 	/* This currently does not work, as it checks its own pin
 	if(pinUsed(config.hanPin, config)) {
@@ -425,6 +426,7 @@ bool AmsConfiguration::setGpioConfig(GpioConfig& config) {
 
 void AmsConfiguration::clearGpio(GpioConfig& config) {
 	config.hanPin = 3;
+	config.hanPinPullup = true;
 	config.apPin = 0xFF;
 	config.ledPin = 0xFF;
 	config.ledInverted = true;
@@ -764,6 +766,14 @@ bool AmsConfiguration::hasConfig() {
 					configVersion = 0;
 					return false;
 				}
+			case 102:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig102()) {
+					configVersion = 103;
+				} else {
+					configVersion = 0;
+					return false;
+				}
 			case EEPROM_CHECK_SUM:
 				return true;
 			default:
@@ -985,6 +995,20 @@ bool AmsConfiguration::relocateConfig101() {
 	return ret;
 }
 
+bool AmsConfiguration::relocateConfig102() {
+	EEPROM.begin(EEPROM_SIZE);
+
+	GpioConfig gpioConfig;
+	EEPROM.get(CONFIG_GPIO_START, gpioConfig);
+	gpioConfig.hanPinPullup = true;
+	EEPROM.put(CONFIG_GPIO_START, gpioConfig);
+
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 103);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
 bool AmsConfiguration::save() {
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
@@ -1139,6 +1163,7 @@ void AmsConfiguration::print(Print* debugger)
 	if(getGpioConfig(gpio)) {
 		debugger->println("--GPIO configuration--");
 		debugger->printf("HAN pin:              %i\r\n", gpio.hanPin);
+		debugger->printf("HAN pin pullup        %s\r\n", gpio.hanPinPullup ? "Yes" : "No");
 		debugger->printf("LED pin:              %i\r\n", gpio.ledPin);
 		debugger->printf("LED inverted:         %s\r\n", gpio.ledInverted ? "Yes" : "No");
 		debugger->printf("LED red pin:          %i\r\n", gpio.ledPinRed);

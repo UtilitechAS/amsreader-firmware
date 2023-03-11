@@ -16,7 +16,7 @@ public:
 
 private:
     DomoticzConfig config;
-    int energy = 0.0;
+    double energy = 0.0;
 };
 
 #endif

@@ -717,7 +717,6 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 			swSerial->end();
 			delete swSerial;
 		}
-		swSerial = new SoftwareSerial(pin);
 
 		SoftwareSerialConfig serialConfig;
 		switch(parityOrdinal) {
@@ -735,7 +734,7 @@ void setupHanPort(uint8_t pin, uint32_t baud, uint8_t parityOrdinal, bool invert
 				break;
 		}
 
-		SoftwareSerial *swSerial = new SoftwareSerial(pin, -1, invert);
+		swSerial = new SoftwareSerial(pin, -1, invert);
 		swSerial->begin(baud, serialConfig);
 		hanSerial = swSerial;
 

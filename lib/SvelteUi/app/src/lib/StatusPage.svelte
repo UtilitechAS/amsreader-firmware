@@ -183,7 +183,7 @@
     </div>
     {#if sysinfo.security == 0 || data.a}
     <div class="cnt">
-        <strong class="text-sm">Configuration</strong>
+        <strong class="text-sm">Backup & restore</strong>
         <form method="get" action="/configfile.cfg" autocomplete="off">
             <div class="grid grid-cols-2">
                 {#each cfgItems as el}

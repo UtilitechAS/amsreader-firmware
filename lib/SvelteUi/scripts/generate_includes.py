@@ -61,8 +61,6 @@ for webroot in ["lib/SvelteUi/app/dist", "lib/SvelteUi/json"]:
         try:    
             if filename.endswith(".html"):
                 content = html_minify(content)
-            elif filename.endswith(".css"):
-                content = css_minify(content)
             elif filename.endswith(".json"):
                 content = js_minify(content)
         except:

@@ -32,7 +32,7 @@ public:
 private:
     char currency[4];
     char measurementUnit[4];
-    float points[24];
+    float points[25];
 
     char buf[64];
     uint8_t pos = 0;

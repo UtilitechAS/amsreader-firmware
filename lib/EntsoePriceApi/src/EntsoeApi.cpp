@@ -74,21 +74,34 @@ float EntsoeApi::getValueForHour(int8_t hour) {
 
 float EntsoeApi::getValueForHour(time_t cur, int8_t hour) {
     tmElements_t tm;
-    if(tz != NULL)
+    int8_t pos = hour;
+    if(tz != NULL) {
         cur = tz->toLocal(cur);
+    }
     breakTime(cur, tm);
-    int pos = tm.Hour + hour;
+    while(tm.Hour > 0) {
+        cur -= 3600;
+        breakTime(cur, tm);
+        pos++;
+    }
+    uint8_t hoursToday = 0;
+    uint8_t todayDate = tm.Day;
+    while(tm.Day == todayDate) {
+        cur += 3600;
+        breakTime(cur, tm);
+        hoursToday++;
+    }
     if(pos >= 48)
         return ENTSOE_NO_VALUE;
 
     double value = ENTSOE_NO_VALUE;
     double multiplier = config->multiplier / 1000.0;
-    if(pos > 23) {
+    if(pos >= hoursToday) {
         if(tomorrow == NULL)
             return ENTSOE_NO_VALUE;
-        if(tomorrow->points[pos-24] == ENTSOE_NO_VALUE)
+        if(tomorrow->points[pos-hoursToday] == ENTSOE_NO_VALUE)
             return ENTSOE_NO_VALUE;
-        value = tomorrow->points[pos-24] / 10000.0;
+        value = tomorrow->points[pos-hoursToday] / 10000.0;
         if(strcmp(tomorrow->measurementUnit, "KWH") == 0) {
             // Multiplier is 1
         } else if(strcmp(tomorrow->measurementUnit, "MWH") == 0) {
@@ -96,7 +109,7 @@ float EntsoeApi::getValueForHour(time_t cur, int8_t hour) {
         } else {
             return ENTSOE_NO_VALUE;
         }
-        float mult = getCurrencyMultiplier(tomorrow->currency, config->currency, cur);
+        float mult = getCurrencyMultiplier(tomorrow->currency, config->currency, time(nullptr));
         if(mult == 0) return ENTSOE_NO_VALUE;
         multiplier *= mult;
     } else if(pos >= 0) {
@@ -112,7 +125,7 @@ float EntsoeApi::getValueForHour(time_t cur, int8_t hour) {
         } else {
             return ENTSOE_NO_VALUE;
         }
-        float mult = getCurrencyMultiplier(today->currency, config->currency, cur);
+        float mult = getCurrencyMultiplier(today->currency, config->currency, time(nullptr));
         if(mult == 0) return ENTSOE_NO_VALUE;
         multiplier *= mult;
     }
@@ -352,8 +365,11 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
                 if(gcmRet > 0) {
                     if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EntsoeApi) Price data starting at: %d\n", gcmRet);
                     PricesContainer* ret = new PricesContainer();
+                    for(uint8_t i = 0; i < 25; i++) {
+                        ret->points[i] = ENTSOE_NO_VALUE;
+                    }
                     memcpy(ret, content+gcmRet, sizeof(*ret));
-                    for(uint8_t i = 0; i < 24; i++) {
+                    for(uint8_t i = 0; i < 25; i++) {
                         ret->points[i] = ntohl(ret->points[i]);
                     }
                     lastError = 0;

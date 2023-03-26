@@ -72,23 +72,21 @@ float EntsoeApi::getValueForHour(int8_t hour) {
     return getValueForHour(cur, hour);
 }
 
-float EntsoeApi::getValueForHour(time_t cur, int8_t hour) {
+float EntsoeApi::getValueForHour(time_t ts, int8_t hour) {
     tmElements_t tm;
     int8_t pos = hour;
-    if(tz != NULL) {
-        cur = tz->toLocal(cur);
-    }
-    breakTime(cur, tm);
+
+    breakTime(tz->toLocal(ts), tm);
     while(tm.Hour > 0) {
-        cur -= 3600;
-        breakTime(cur, tm);
+        ts -= 3600;
+        breakTime(tz->toLocal(ts), tm);
         pos++;
     }
     uint8_t hoursToday = 0;
     uint8_t todayDate = tm.Day;
     while(tm.Day == todayDate) {
-        cur += 3600;
-        breakTime(cur, tm);
+        ts += 3600;
+        breakTime(tz->toLocal(ts), tm);
         hoursToday++;
     }
     if(pos >= 48)

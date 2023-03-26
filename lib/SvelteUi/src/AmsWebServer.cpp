@@ -1165,16 +1165,25 @@ void AmsWebServer::handleSave() {
 		meterConfig->productionCapacity = server.arg(F("mr")).toInt();
 		maxPwr = 0;
 
-		String encryptionKeyHex = server.arg(F("mek"));
-		if(!encryptionKeyHex.isEmpty()) {
-			encryptionKeyHex.replace(F("0x"), F(""));
-			fromHex(meterConfig->encryptionKey, encryptionKeyHex, 16);
-		}
+		if(server.hasArg(F("me")) && server.arg(F("me")) == F("true")) {
+			String encryptionKeyHex = server.arg(F("mek"));
+			if(!encryptionKeyHex.isEmpty()) {
+				encryptionKeyHex.replace(F("0x"), F(""));
+				fromHex(meterConfig->encryptionKey, encryptionKeyHex, 16);
+			} else {
+				memset(meterConfig->encryptionKey, 0, 16);
+			}
 
-		String authenticationKeyHex = server.arg(F("mea"));
-		if(!authenticationKeyHex.isEmpty()) {
-			authenticationKeyHex.replace(F("0x"), F(""));
-			fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
+			String authenticationKeyHex = server.arg(F("mea"));
+			if(!authenticationKeyHex.isEmpty()) {
+				authenticationKeyHex.replace(F("0x"), F(""));
+				fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
+			} else {
+				memset(meterConfig->authenticationKey, 0, 16);
+			}
+		} else {
+			memset(meterConfig->encryptionKey, 0, 16);
+			memset(meterConfig->authenticationKey, 0, 16);
 		}
 
 		meterConfig->wattageMultiplier = server.arg(F("mmw")).toDouble() * 1000;

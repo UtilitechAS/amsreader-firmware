@@ -172,6 +172,8 @@ bool EntsoeApi::loop() {
         return today != NULL; // Only trigger MQTT publish if we have todays prices.
     }
 
+    bool readyToFetchForTomorrow = tomorrow == NULL && (tm.Hour > 13 || (tm.Hour == 13 && tm.Minute >= tomorrowFetchMinute)) && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 900000);
+
     if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > 60000)) {
         try {
             lastTodayFetch = now;
@@ -180,12 +182,12 @@ bool EntsoeApi::loop() {
             if(lastError == 0) lastError = 900;
             today = NULL;
         }
-        return today != NULL; // Only trigger MQTT publish if we have todays prices.
+        return today != NULL && !readyToFetchForTomorrow; // Only trigger MQTT publish if we have todays prices and we are not immediately ready to fetch price for tomorrow.
     }
 
     // Prices for next day are published at 13:00 CE(S)T, but to avoid heavy server traffic at that time, we will 
     // fetch with one hour (with some random delay) and retry every 15 minutes
-    if(tomorrow == NULL && (tm.Hour > 13 || (tm.Hour == 13 && tm.Minute >= tomorrowFetchMinute)) && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 900000)) {
+    if(readyToFetchForTomorrow) {
         try {
             lastTomorrowFetch = now;
             tomorrow = fetchPrices(t+SECS_PER_DAY);

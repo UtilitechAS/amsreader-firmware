@@ -360,9 +360,9 @@ void AmsWebServer::dataJson() {
 	#if defined(ESP8266)
 	if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
 		espStatus = 1;
-	} else if(vcc > 3.1 && vcc < 3.5) {
+	} else if(vcc > 2.8 && vcc < 3.5) {
 		espStatus = 1;
-	} else if(vcc > 3.0 && vcc < 3.6) {
+	} else if(vcc > 2.7 && vcc < 3.6) {
 		espStatus = 2;
 	} else {
 		espStatus = 3;
@@ -370,9 +370,9 @@ void AmsWebServer::dataJson() {
 	#elif defined(ESP32)
 	if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
 		espStatus = 1;
-	} else if(vcc > 2.8 && vcc < 3.5) {
+	} else if(vcc > 3.1 && vcc < 3.5) {
 		espStatus = 1;
-	} else if(vcc > 2.7 && vcc < 3.6) {
+	} else if(vcc > 3.0 && vcc < 3.6) {
 		espStatus = 2;
 	} else {
 		espStatus = 3;

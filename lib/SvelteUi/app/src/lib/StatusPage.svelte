@@ -1,5 +1,5 @@
 <script>
-    import { metertype, boardtype, isBusPowered } from './Helpers.js';
+    import { metertype, boardtype, isBusPowered, getResetReason } from './Helpers.js';
     import { getSysinfo, gitHubReleaseStore, sysinfoStore } from './DataStores.js';
     import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
     import DownloadIcon from './DownloadIcon.svelte';
@@ -101,6 +101,9 @@
         {#if sysinfo.apmac && sysinfo.apmac != sysinfo.mac}
         <div class="my-2">
             AP MAC: {sysinfo.apmac}
+        </div>
+        <div class="my-2">
+            Last boot: {getResetReason(sysinfo)} ({sysinfo.boot_reason})
         </div>
         {/if}
         <div class="my-2">

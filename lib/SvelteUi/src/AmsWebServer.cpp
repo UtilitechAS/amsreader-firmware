@@ -38,6 +38,16 @@
 #endif
 
 
+#if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
+#include "esp32/rom/rtc.h"
+#elif CONFIG_IDF_TARGET_ESP32S2
+#include "esp32s2/rom/rtc.h"
+#elif CONFIG_IDF_TARGET_ESP32C3
+#include "esp32c3/rom/rtc.h"
+#elif CONFIG_IDF_TARGET_ESP32S3
+#include "esp32s3/rom/rtc.h"
+#endif
+
 AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw) {
 	this->debugger = Debug;
 	this->hw = hw;
@@ -301,7 +311,12 @@ void AmsWebServer::sysinfoJson() {
 		ui.showDayPlot,
 		ui.showMonthPlot,
 		ui.showTemperaturePlot,
-		webConfig.security
+		webConfig.security,
+		#if defined(ESP32)
+		rtc_get_reset_reason(0)
+		#else
+		ESP.getResetInfoPtr()->reason
+		#endif
 	);
 
 	stripNonAscii((uint8_t*) buf, size+1);

@@ -36,5 +36,6 @@
         "m": %d,
         "s": %d
     },
-    "security": %d
+    "security": %d,
+    "boot_reason": %d
 }

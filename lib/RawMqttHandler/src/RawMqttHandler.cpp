@@ -2,7 +2,7 @@
 #include "hexutils.h"
 #include "Uptime.h"
 
-bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccounting* ea) {
+bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccounting* ea, EntsoeApi* eapi) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
         

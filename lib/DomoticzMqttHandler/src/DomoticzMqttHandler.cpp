@@ -1,7 +1,7 @@
 #include "DomoticzMqttHandler.h"
 #include "json/domoticz_json.h"
 
-bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea) {
+bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
     bool ret = false;
     if (config.elidx > 0) {
         if(data->getActiveImportCounter() > 1.0) {

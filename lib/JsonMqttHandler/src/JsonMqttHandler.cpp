@@ -9,7 +9,7 @@
 #include "json/jsonsys_json.h"
 #include "json/jsonprices_json.h"
 
-bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea) {
+bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 
@@ -183,9 +183,9 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 	float min1hr = 0.0, min3hr = 0.0, min6hr = 0.0;
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
-	float values[24];
-    for(int i = 0;i < 24; i++) values[i] = ENTSOE_NO_VALUE;
-	for(uint8_t i = 0; i < 24; i++) {
+	float values[38];
+    for(int i = 0;i < 38; i++) values[i] = ENTSOE_NO_VALUE;
+	for(uint8_t i = 0; i < 38; i++) {
 		float val = eapi->getValueForHour(now, i);
 		values[i] = val;
 
@@ -272,6 +272,32 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
         values[9],
         values[10],
         values[11],
+        values[12],
+        values[13],
+        values[14],
+        values[15],
+        values[16],
+        values[17],
+        values[18],
+        values[19],
+        values[20],
+        values[21],
+        values[22],
+        values[23],
+        values[24],
+        values[25],
+        values[26],
+        values[27],
+        values[28],
+        values[29],
+        values[30],
+        values[31],
+        values[32],
+        values[33],
+        values[34],
+        values[35],
+        values[36],
+        values[37],
         min == INT16_MAX ? 0.0 : min,
         max == INT16_MIN ? 0.0 : max,
         ts1hr,

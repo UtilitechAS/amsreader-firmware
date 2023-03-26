@@ -934,7 +934,7 @@ bool readHanPort() {
 		if(!hw.ledBlink(LED_GREEN, 1))
 			hw.ledBlink(LED_INTERNAL, 1);
 		if(mqttEnabled && mqttHandler != NULL && mqtt != NULL) {
-			if(mqttHandler->publish(&data, &meterState, &ea)) {
+			if(mqttHandler->publish(&data, &meterState, &ea, eapi)) {
 				mqtt->loop();
 				delay(10);
 			}

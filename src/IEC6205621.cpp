@@ -125,17 +125,11 @@ IEC6205621::IEC6205621(const char* p) {
 	if(activeImportCounter > 0 || activeExportCounter > 0 || reactiveImportCounter > 0 || reactiveExportCounter > 0)
 		listType = 3;
 
-	threePhase = l1voltage > 0 && l2voltage > 0 && l3voltage > 0;
-	twoPhase = (l1voltage > 0 && l2voltage > 0) || (l2voltage > 0 && l3voltage > 0) || (l3voltage > 0  && l1voltage > 0);
-
-	if(threePhase) {
-		if(l2current == 0 && l1current != 0 && l3current != 0) {
-			l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
-		}
-	}
-
 	if (l1activeImportPower > 0 || l2activeImportPower > 0 || l3activeImportPower > 0 || l1activeExportPower > 0 || l2activeExportPower > 0 || l3activeExportPower > 0)
 		listType = 4;
+
+	threePhase = l1voltage > 0 && l2voltage > 0 && l3voltage > 0;
+	twoPhase = (l1voltage > 0 && l2voltage > 0) || (l2voltage > 0 && l3voltage > 0) || (l3voltage > 0  && l1voltage > 0);
 }
 
 String IEC6205621::extract(String payload, String obis) {

@@ -163,6 +163,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         if(meterType == AmsTypeUnknown) {
             if(memcmp(ctx.system_title, "SAGY", 4) == 0) {
                 meterType = AmsTypeSagemcom;
+            } else if(memcmp(ctx.system_title, "KFM", 3) == 0) {
+                meterType = AmsTypeKaifa;
             }
         }
 

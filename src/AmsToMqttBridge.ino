@@ -1361,7 +1361,11 @@ void MQTT_connect() {
 			mqttHandler = new DomoticzMqttHandler(mqtt, (char*) commonBuffer, domo);
 			break;
 		case 4:
-			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
+			HomeAssistantConfig haconf;
+			SystemConfig sys;
+			config.getHomeAssistantConfig(haconf);
+			config.getSystemConfig(sys);
+			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.clientId, mqttConfig.publishTopic, sys.boardType, haconf, &hw);
 			break;
 	}
 

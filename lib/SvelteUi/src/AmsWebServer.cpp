@@ -27,6 +27,7 @@
 #include "html/conf_debug_json.h"
 #include "html/conf_gpio_json.h"
 #include "html/conf_domoticz_json.h"
+#include "html/conf_ha_json.h"
 #include "html/conf_ui_json.h"
 #include "html/firmware_html.h"
 
@@ -800,6 +801,8 @@ void AmsWebServer::configurationJson() {
 	config->getDomoticzConfig(domo);
 	UiConfig ui;
 	config->getUiConfig(ui);
+	HomeAssistantConfig haconf;
+	config->getHomeAssistantConfig(haconf);
 
 	bool qsc = false;
 	bool qsr = false;
@@ -947,6 +950,12 @@ void AmsWebServer::configurationJson() {
 		domo.vl1idx,
 		domo.vl2idx,
 		domo.vl3idx
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_HA_JSON,
+		haconf.discoveryTopic,
+		haconf.discoveryHostname,
+		haconf.discoveryNameTag
 	);
 	server.sendContent(buf);
 	server.sendContent("}");
@@ -1278,6 +1287,15 @@ void AmsWebServer::handleSave() {
 		config->setDomoticzConfig(domo);
 	}
 
+	if(server.hasArg(F("h")) && server.arg(F("h")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received Home-Assistant config"));
+		HomeAssistantConfig haconf;
+		config->getHomeAssistantConfig(haconf);
+		strcpy(haconf.discoveryTopic, server.arg(F("ht")).c_str());
+		strcpy(haconf.discoveryHostname, server.arg(F("hh")).c_str());
+		strcpy(haconf.discoveryNameTag, server.arg(F("hn")).c_str());
+		config->setHomeAssistantConfig(haconf);
+	}
 
 	if(server.hasArg(F("g")) && server.arg(F("g")) == F("true")) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received web config"));

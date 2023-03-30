@@ -93,6 +93,9 @@
             r: { r: null, g: null, b: null, i: false },
             t: { d: null, a: null },
             v: { p: null, d: { v: null, g: null }, o: null, m: null, b: null }
+        },
+        h: {
+            t: '', h: '', n: ''
         }
     };
     configurationStore.subscribe(update => {
@@ -528,6 +531,25 @@
                     <input name="ou2" bind:value={configuration.o.u2} type="text" class="in-m tr w-1/3"/>
                     <input name="ou3" bind:value={configuration.o.u3} type="text" class="in-l tr w-1/3"/>
                 </div>
+            </div>
+        </div>
+        {/if}
+        {#if configuration.q.m == 4}
+        <div class="cnt">
+            <strong class="text-sm">Home-Assistant</strong>
+            <a href="{wiki('MQTT-configuration#home-assistant')}" target="_blank" class="float-right"><HelpIcon/></a>
+            <input type="hidden" name="h" value="true"/>
+            <div class="my-1">
+                Discovery topic<br/>
+                <input name="ht" bind:value={configuration.h.t} type="text" class="in-s" placeholder="homeassistant/sensor"/>
+            </div>
+            <div class="my-1">
+                Hostname for URL<br/>
+                <input name="hh" bind:value={configuration.h.h} type="text" class="in-s" placeholder="{configuration.g.h}.local"/>
+            </div>
+            <div class="my-1">
+                Name tag<br/>
+                <input name="hn" bind:value={configuration.h.n} type="text" class="in-s"/>
             </div>
         </div>
         {/if}

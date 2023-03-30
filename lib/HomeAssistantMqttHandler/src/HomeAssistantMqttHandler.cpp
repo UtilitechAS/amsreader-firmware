@@ -304,37 +304,30 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
 }
 
 void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) {
-    #if defined(ESP8266)
-        String haUID = WiFi.hostname();
-    #elif defined(ESP32)
-        String haUID = WiFi.getHostname();
-    #endif
-    String haUrl = "http://" + haUID + ".local/";
-
     String uid = String(sensor.path);
     uid.replace(".", "");
     uid.replace("[", "");
     uid.replace("]", "");
     uid.replace("'", "");
-    String uom = String(sensor.uom);
     snprintf_P(json, BufferSize, HADISCOVER_JSON,
         sensor.name,
+        sensorNamePostFix.c_str(),
         topic.c_str(), sensor.topic,
-        haUID.c_str(), uid.c_str(),
-        haUID.c_str(), uid.c_str(),
-        uom.c_str(),
+        deviceUid.c_str(), uid.c_str(),
+        deviceUid.c_str(), uid.c_str(),
+        sensor.uom,
         sensor.path,
         sensor.devcl,
-        haUID.c_str(),
-        haName.c_str(),
-        haModel.c_str(),
+        deviceUid.c_str(),
+        deviceName.c_str(),
+        deviceModel.c_str(),
         VERSION,
-        haManuf.c_str(),
-        haUrl.c_str(),
+        manufacturer.c_str(),
+        sensorNamePostFix.c_str(),
         strlen_P(sensor.stacl) > 0 ? ", \"stat_cla\" :" : "",
         strlen_P(sensor.stacl) > 0 ? (char *) FPSTR(sensor.stacl) : ""
     );
-    mqtt->publish(haTopic + haUID + "_" + uid.c_str() + "/config", json, true, 0);
+    mqtt->publish(discoveryTopic + deviceUid + "_" + uid.c_str() + "/config", json, true, 0);
 }
 
 void HomeAssistantMqttHandler::publishList1Sensors() {

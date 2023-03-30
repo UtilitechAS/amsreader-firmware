@@ -4,6 +4,7 @@
     import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
     import DownloadIcon from './DownloadIcon.svelte';
     import { Link } from 'svelte-navigator';
+    import Clock from './Clock.svelte';
     import Mask from './Mask.svelte';
   
     export let data;
@@ -103,7 +104,15 @@
             AP MAC: {sysinfo.apmac}
         </div>
         <div class="my-2">
-            Last boot: {getResetReason(sysinfo)} ({sysinfo.boot_reason})
+            Last boot:
+            {#if data.u > 0}
+            <Clock timestamp={new Date(new Date().getTime() - (data.u * 1000))} fullTimeColor="" />
+            {:else}
+            -
+            {/if}
+        </div>
+        <div class="my-2">
+            Reason: {getResetReason(sysinfo)} ({sysinfo.boot_reason})
         </div>
         {/if}
         <div class="my-2">

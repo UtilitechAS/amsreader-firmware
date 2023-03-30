@@ -70,6 +70,7 @@ ADC_MODE(ADC_VCC);
 #include "IEC6205621.h"
 #include "IEC6205675.h"
 #include "LNG.h"
+#include "LNG2.h"
 
 #include "DataParsers.h"
 #include "Timezones.h"
@@ -918,10 +919,22 @@ bool readHanPort() {
 		debugV("Using application data:");
 		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint((byte*) payload, 0, ctx.length);
 
-		// Rudimentary detector for L&G proprietary format
+		// Rudimentary detector for L&G proprietary format, this is terrible code... Fix later
 		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
+			debugV("LNG");
 			data = LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+		} else if(payload[0] == CosemTypeStructure && 
+			payload[2] == CosemTypeLongUnsigned && 
+			payload[5] == CosemTypeLongUnsigned && 
+			payload[8] == CosemTypeLongUnsigned && 
+			payload[11] == CosemTypeLongUnsigned && 
+			payload[14] == CosemTypeLongUnsigned && 
+			payload[17] == CosemTypeLongUnsigned
+		) {
+			debugV("LNG2");
+			data = LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
 		} else {
+			debugV("DLMS");
 			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
 			data = IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx);
 		}

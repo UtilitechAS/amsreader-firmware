@@ -44,6 +44,10 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx) {
 
         ptr += 3;
         headersize += 3;
+    } else {
+        len = *ptr;
+        ptr++;
+        headersize++;
     }
     if(len + headersize > ctx.length)
         return DATA_PARSE_INCOMPLETE;

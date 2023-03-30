@@ -3,6 +3,9 @@
 LNG2::LNG2(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
     CosemBasic* h = (CosemBasic*) payload;
     if(h->length == 0x0e) {
+        meterType = AmsTypeLandisGyr;
+        this->packageTimestamp = ctx.timestamp;
+
         Lng2Data_3p* d = (Lng2Data_3p*) payload;
         this->l1voltage = ntohs(d->u1.data);
         this->l2voltage = ntohs(d->u2.data);

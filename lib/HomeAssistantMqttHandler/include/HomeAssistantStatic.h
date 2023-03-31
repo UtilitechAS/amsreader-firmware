@@ -67,8 +67,8 @@ const HomeAssistantSensor List4ExportSensors[List4ExportSensorCount] PROGMEM = {
 
 const uint8_t RealtimeSensorCount PROGMEM = 8;
 const HomeAssistantSensor RealtimeSensors[RealtimeSensorCount] PROGMEM = {
-    {"Month max",                  "/realtime","max",               "kWh",  "energy",          ""},
-    {"Tariff threshold",           "/realtime","threshold",         "kWh",  "energy",          ""},
+    {"Month max",                  "/realtime","max",               "kWh",  "energy",          "\"total_increasing\""},
+    {"Tariff threshold",           "/realtime","threshold",         "kWh",  "energy",          "\"total_increasing\""},
     {"Current hour used",          "/realtime","hour.use",          "kWh",  "energy",          "\"total_increasing\""},
     {"Current hour cost",          "/realtime","hour.cost",         "",     "monetary",        ""},
     {"Current day used",           "/realtime","day.use",           "kWh",  "energy",          "\"total_increasing\""},

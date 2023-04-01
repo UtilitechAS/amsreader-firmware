@@ -28,13 +28,13 @@ if [ -z "$esptool" ];then
 fi
 
 if [ "$1" = "flash" ];then
-    $esptool --chip esp32c3 --port $2 --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size detect \
-    0x1000 bootloader_qio_40m.bin \
+    $esptool --chip esp32c3 --port $2 --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size detect \
+    0x1000 bootloader_qio_80m.bin \
     0x8000 partitions.bin \
     0xe000 boot_app0.bin \
     0x10000 firmware.bin
     exit $?
 elif [ "$1" = "upgrade" ];then
-    $esptool --chip esp32c3 --port $2 --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 40m --flash_size detect 0x10000 firmware.bin
+    $esptool --chip esp32c3 --port $2 --baud 460800 --before default_reset --after hard_reset write_flash -z --flash_mode dio --flash_freq 80m --flash_size detect 0x10000 firmware.bin
     exit $?
 fi

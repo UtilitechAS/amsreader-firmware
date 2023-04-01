@@ -1699,15 +1699,15 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("domoticzCl1idx "), 15) == 0) {
 			if(!lDomo) { config.getDomoticzConfig(domo); lDomo = true; };
 			domo.cl1idx = String(buf+15).toInt();
-		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryPrefix "), 28) == 0) {
+		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryPrefix "), 29) == 0) {
 			if(!lHa) { config.getHomeAssistantConfig(haconf); lHa = true; };
-			strcpy(haconf.discoveryPrefix, buf+28);
-		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryHostname "), 30) == 0) {
+			strcpy(haconf.discoveryPrefix, buf+29);
+		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryHostname "), 31) == 0) {
 			if(!lHa) { config.getHomeAssistantConfig(haconf); lHa = true; };
-			strcpy(haconf.discoveryHostname, buf+30);
-		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryNameTag "), 29) == 0) {
+			strcpy(haconf.discoveryHostname, buf+31);
+		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryNameTag "), 30) == 0) {
 			if(!lHa) { config.getHomeAssistantConfig(haconf); lHa = true; };
-			strcpy(haconf.discoveryNameTag, buf+29);
+			strcpy(haconf.discoveryNameTag, buf+30);
 		} else if(strncmp_P(buf, PSTR("ntpEnable "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			ntp.enable = String(buf+10).toInt() == 1;

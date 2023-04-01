@@ -154,7 +154,6 @@ struct DomoticzConfig {
 }; // 10
 
 struct HomeAssistantConfig {
-	uint8_t tag; // Just to find out if we have this config already. Can be removed in v2.3
 	char discoveryPrefix[64];
 	char discoveryHostname[64];
 	char discoveryNameTag[16];
@@ -315,7 +314,7 @@ private:
 	bool relocateConfig96(); // 2.1.14
 	bool relocateConfig100(); // 2.2-dev
 	bool relocateConfig101(); // 2.2.0 through 2.2.8
-	bool relocateConfig102(); // 2.2.9
+	bool relocateConfig102(); // 2.2.9 through 2.2.11
 
 	void saveToFs();
 	bool loadFromFs(uint8_t version);

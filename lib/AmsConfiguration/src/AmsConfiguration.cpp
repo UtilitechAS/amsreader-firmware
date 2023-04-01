@@ -336,7 +336,6 @@ bool AmsConfiguration::getHomeAssistantConfig(HomeAssistantConfig& config) {
 	if(hasConfig()) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_HA_START, config);
-		if(config.tag != 0xA7) clearHomeAssistantConfig(config);
 		EEPROM.end();
 		return true;
 	} else {
@@ -367,7 +366,6 @@ bool AmsConfiguration::setHomeAssistantConfig(HomeAssistantConfig& config) {
 }
 
 void AmsConfiguration::clearHomeAssistantConfig(HomeAssistantConfig& config) {
-	config.tag = 0xA7;
 	strcpy(config.discoveryPrefix, "");
 	strcpy(config.discoveryHostname, "");
 	strcpy(config.discoveryNameTag, "");
@@ -1034,6 +1032,10 @@ bool AmsConfiguration::relocateConfig102() {
 	EEPROM.get(CONFIG_GPIO_START, gpioConfig);
 	gpioConfig.hanPinPullup = true;
 	EEPROM.put(CONFIG_GPIO_START, gpioConfig);
+
+	HomeAssistantConfig haconf;
+	clearHomeAssistantConfig(haconf);
+	EEPROM.put(CONFIG_HA_START, haconf);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 103);
 	bool ret = EEPROM.commit();

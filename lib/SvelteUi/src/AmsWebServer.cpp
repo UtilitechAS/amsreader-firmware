@@ -913,6 +913,7 @@ void AmsWebServer::configurationJson() {
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_GPIO_JSON,
 		gpioConfig->hanPin == 0xff ? "null" : String(gpioConfig->hanPin, 10).c_str(),
+		gpioConfig->hanPinPullup ? "true" : "false",
 		gpioConfig->apPin == 0xff ? "null" : String(gpioConfig->apPin, 10).c_str(),
 		gpioConfig->ledPin == 0xff ? "null" : String(gpioConfig->ledPin, 10).c_str(),
 		gpioConfig->ledInverted ? "true" : "false",
@@ -1001,6 +1002,15 @@ void AmsWebServer::handleSave() {
 			}
 		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
 			switch(boardType) {
+				case 8: // dbeinder: HAN mosquito
+					gpioConfig->hanPin = 7;
+					gpioConfig->hanPinPullup = false;
+					gpioConfig->apPin = 9;
+					gpioConfig->ledRgbInverted = true;
+					gpioConfig->ledPinRed = 5;
+					gpioConfig->ledPinGreen = 6;
+					gpioConfig->ledPinBlue = 4;
+					break;
 				case 71: // ESP32-C3-DevKitM-1
 					gpioConfig->apPin = 9;
 				case 70: // Generic ESP32-C3
@@ -1137,6 +1147,7 @@ void AmsWebServer::handleSave() {
 				meterConfig->baud = 2400;
 				meterConfig->parity = 3; // 8N1
 			case 2: // spenceme
+			case 8: // dbeinder: HAN mosquito
 			case 50: // Generic ESP32-S2
 			case 51: // Wemos S2 mini
 			case 70: // Generic ESP32-C3
@@ -1329,7 +1340,8 @@ void AmsWebServer::handleSave() {
 
 	if(server.hasArg(F("i")) && server.arg(F("i")) == F("true")) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received GPIO config"));
-		gpioConfig->hanPin = server.hasArg(F("ih")) && !server.arg(F("ih")).isEmpty() ? server.arg(F("ih")).toInt() : 3;
+		gpioConfig->hanPin = server.hasArg(F("ihp")) && !server.arg(F("ihp")).isEmpty() ? server.arg(F("ihp")).toInt() : 3;
+		gpioConfig->hanPinPullup = server.hasArg(F("ihu")) && server.arg(F("ihu")) == F("true");
 		gpioConfig->ledPin = server.hasArg(F("ilp")) && !server.arg(F("ilp")).isEmpty() ? server.arg(F("ilp")).toInt() : 0xFF;
 		gpioConfig->ledInverted = server.hasArg(F("ili")) && server.arg(F("ili")) == F("true");
 		gpioConfig->ledPinRed = server.hasArg(F("irr")) && !server.arg(F("irr")).isEmpty() ? server.arg(F("irr")).toInt() : 0xFF;
@@ -1996,6 +2008,7 @@ void AmsWebServer::configFileDownload() {
 		GpioConfig gpio;
 		config->getGpioConfig(gpio);
 		if(gpio.hanPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioHanPin %d\n"), gpio.hanPin));
+		if(gpio.hanPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioHanPinPullup %d\n"), gpio.hanPinPullup ? 1 : 0));
 		if(gpio.apPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioApPin %d\n"), gpio.apPin));
 		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPin %d\n"), gpio.ledPin));
 		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedInverted %d\n"), gpio.ledInverted ? 1 : 0));

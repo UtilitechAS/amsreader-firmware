@@ -4,7 +4,7 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 102 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 103 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CLEARED_INDICATOR 0xFC
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
@@ -142,7 +142,8 @@ struct GpioConfig {
 	uint8_t vccBootLimit;
 	uint16_t vccResistorGnd;
 	uint16_t vccResistorVcc;
-}; // 20
+	bool hanPinPullup;
+}; // 21
 
 struct DomoticzConfig {
 	uint16_t elidx;
@@ -314,6 +315,7 @@ private:
 	bool relocateConfig96(); // 2.1.14
 	bool relocateConfig100(); // 2.2-dev
 	bool relocateConfig101(); // 2.2.0 through 2.2.8
+	bool relocateConfig102(); // 2.2.9
 
 	void saveToFs();
 	bool loadFromFs(uint8_t version);

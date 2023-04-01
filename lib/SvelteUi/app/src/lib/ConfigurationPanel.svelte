@@ -79,7 +79,7 @@
             t: [0,0,0,0,0,0,0,0,0,0], h: 1
         },
         p: {
-            e: false, t: '', r: '', c: '', m: 1.0
+            e: false, t: '', r: '', c: '', m: 1.0, f: null
         },
         d: {
             s: false, t: false, l: 5
@@ -202,49 +202,57 @@
             </div>
             <input type="hidden" name="p" value="true"/>
             <div class="my-1">
-                Price region<br/>
-                <select name="pr" bind:value={configuration.p.r} class="in-s">
-                    <optgroup label="Norway">
-                        <option value="10YNO-1--------2">NO1</option>
-                        <option value="10YNO-2--------T">NO2</option>
-                        <option value="10YNO-3--------J">NO3</option>
-                        <option value="10YNO-4--------9">NO4</option>
-                        <option value="10Y1001A1001A48H">NO5</option>
-                    </optgroup>
-                    <optgroup label="Sweden">
-                        <option value="10Y1001A1001A44P">SE1</option>
-                        <option value="10Y1001A1001A45N">SE2</option>
-                        <option value="10Y1001A1001A46L">SE3</option>
-                        <option value="10Y1001A1001A47J">SE4</option>
+                <div class="flex">
+                <div class="w-full">
+                    Price region<br/>
+                    <select name="pr" bind:value={configuration.p.r} class="in-f w-full">
+                        <optgroup label="Norway">
+                            <option value="10YNO-1--------2">NO1</option>
+                            <option value="10YNO-2--------T">NO2</option>
+                            <option value="10YNO-3--------J">NO3</option>
+                            <option value="10YNO-4--------9">NO4</option>
+                            <option value="10Y1001A1001A48H">NO5</option>
                         </optgroup>
-                    <optgroup label="Denmark">
-                        <option value="10YDK-1--------W">DK1</option>
-                        <option value="10YDK-2--------M">DK2</option>
-                    </optgroup>
-                    <option value="10YAT-APG------L">Austria</option>
-                    <option value="10YBE----------2">Belgium</option>
-                    <option value="10YCZ-CEPS-----N">Czech Republic</option>
-                    <option value="10Y1001A1001A39I">Estonia</option>
-                    <option value="10YFI-1--------U">Finland</option>
-                    <option value="10YFR-RTE------C">France</option>
-                    <option value="10Y1001A1001A83F">Germany</option>
-                    <option value="10YGB----------A">Great Britain</option>
-                    <option value="10YLV-1001A00074">Latvia</option>
-                    <option value="10YLT-1001A0008Q">Lithuania</option>
-                    <option value="10YNL----------L">Netherland</option>
-                    <option value="10YPL-AREA-----S">Poland</option>
-                    <option value="10YCH-SWISSGRIDZ">Switzerland</option>
-                </select>
+                        <optgroup label="Sweden">
+                            <option value="10Y1001A1001A44P">SE1</option>
+                            <option value="10Y1001A1001A45N">SE2</option>
+                            <option value="10Y1001A1001A46L">SE3</option>
+                            <option value="10Y1001A1001A47J">SE4</option>
+                            </optgroup>
+                        <optgroup label="Denmark">
+                            <option value="10YDK-1--------W">DK1</option>
+                            <option value="10YDK-2--------M">DK2</option>
+                        </optgroup>
+                        <option value="10YAT-APG------L">Austria</option>
+                        <option value="10YBE----------2">Belgium</option>
+                        <option value="10YCZ-CEPS-----N">Czech Republic</option>
+                        <option value="10Y1001A1001A39I">Estonia</option>
+                        <option value="10YFI-1--------U">Finland</option>
+                        <option value="10YFR-RTE------C">France</option>
+                        <option value="10Y1001A1001A83F">Germany</option>
+                        <option value="10YGB----------A">Great Britain</option>
+                        <option value="10YLV-1001A00074">Latvia</option>
+                        <option value="10YLT-1001A0008Q">Lithuania</option>
+                        <option value="10YNL----------L">Netherland</option>
+                        <option value="10YPL-AREA-----S">Poland</option>
+                        <option value="10YCH-SWISSGRIDZ">Switzerland</option>
+                    </select>
+                </div>
+                <div>
+                    Currency<br/>
+                    <select name="pc" bind:value={configuration.p.c} class="in-l">
+                        {#each ["NOK","SEK","DKK","EUR"] as c}
+                        <option value={c}>{c}</option>
+                        {/each}
+                    </select>
+                </div>
             </div>
+        </div>
             <div class="my-1">
                 <div class="flex">
                     <div class="w-1/2">
-                        Currency<br/>
-                        <select name="pc" bind:value={configuration.p.c} class="in-f w-full">
-                            {#each ["NOK","SEK","DKK","EUR"] as c}
-                            <option value={c}>{c}</option>
-                            {/each}
-                        </select>
+                        Fixed price<br/>
+                        <input name="pf" bind:value={configuration.p.f} type="number" min="0.001" max="65" step="0.001" class="in-f tr w-full"/>
                     </div>
                     <div class="w-1/2">
                         Multiplier<br/>

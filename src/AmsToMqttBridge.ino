@@ -172,7 +172,8 @@ void setup() {
 		eapi->setup(entsoe);
 		ws.setEntsoeApi(eapi);
 	}
-	ws.setPriceRegion(entsoe.area);
+	ws.setPriceSettings(entsoe.area, entsoe.currency);
+	ea.setFixedPrice(entsoe.fixedPrice / 1000.0);
 	bool shared = false;
 	config.getMeterConfig(meterConfig);
 	Serial.flush();
@@ -537,8 +538,9 @@ void loop() {
 						eapi = NULL;
 						ws.setEntsoeApi(NULL);
 					}
-					ws.setPriceRegion(entsoe.area);
+					ws.setPriceSettings(entsoe.area, entsoe.currency);
 					config.ackEntsoeChange();
+					ea.setFixedPrice(entsoe.fixedPrice / 1000.0);
 				}
 			} catch(const std::exception& e) {
 				debugE("Exception in ENTSO-E loop (%s)", e.what());

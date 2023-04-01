@@ -551,6 +551,7 @@ bool AmsConfiguration::setEntsoeConfig(EntsoeConfig& config) {
 		entsoeChanged |= strcmp(config.currency, existing.currency) != 0;
 		entsoeChanged |= config.multiplier != existing.multiplier;
 		entsoeChanged |= config.enabled != existing.enabled;
+		entsoeChanged |= config.fixedPrice != existing.fixedPrice;
 	} else {
 		entsoeChanged = true;
 	}
@@ -1036,6 +1037,11 @@ bool AmsConfiguration::relocateConfig102() {
 	HomeAssistantConfig haconf;
 	clearHomeAssistantConfig(haconf);
 	EEPROM.put(CONFIG_HA_START, haconf);
+
+	EntsoeConfig entsoe;
+	EEPROM.get(CONFIG_ENTSOE_START, entsoe);
+	entsoe.fixedPrice = 0;
+	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 103);
 	bool ret = EEPROM.commit();

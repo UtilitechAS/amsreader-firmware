@@ -413,9 +413,7 @@ void AmsWebServer::dataJson() {
 		mqttStatus = 3;
 	}
 
-	float price = ENTSOE_NO_VALUE;
-	if(eapi != NULL)
-		price = eapi->getValueForHour(0);
+	float price = ea->getPriceForHour(0);
 
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
@@ -475,7 +473,9 @@ void AmsWebServer::dataJson() {
 		ea->getCostThisMonth(),
 		ea->getProducedThisMonth(),
 		ea->getIncomeThisMonth(),
-		eapi == NULL ? "" : priceRegion.c_str(),
+		eapi == NULL ? "false" : "true",
+		priceRegion.c_str(),
+		priceCurrency.c_str(),
 		meterState->getLastError(),
 		eapi == NULL ? 0 : eapi->getLastError(),
 		(uint32_t) now,
@@ -902,7 +902,8 @@ void AmsWebServer::configurationJson() {
 		entsoe.token,
 		entsoe.area,
 		entsoe.currency,
-		entsoe.multiplier / 1000.0
+		entsoe.multiplier / 1000.0,
+		entsoe.fixedPrice == 0 ? "null" : String(entsoe.fixedPrice / 1000.0, 10).c_str()
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_DEBUG_JSON,
@@ -1423,6 +1424,7 @@ void AmsWebServer::handleSave() {
 		strcpy(entsoe.area, priceRegion.c_str());
 		strcpy(entsoe.currency, server.arg(F("pc")).c_str());
 		entsoe.multiplier = server.arg(F("pm")).toFloat() * 1000;
+		entsoe.fixedPrice = server.arg(F("pf")).toFloat() * 1000;
 		config->setEntsoeConfig(entsoe);
 	}
 
@@ -1884,8 +1886,9 @@ void AmsWebServer::tariffJson() {
 	server.send(200, MIME_JSON, buf);
 }
 
-void AmsWebServer::setPriceRegion(String priceRegion) {
-	this->priceRegion = priceRegion;
+void AmsWebServer::setPriceSettings(String region, String currency) {
+	this->priceRegion = region;
+	this->priceCurrency = currency;
 }
 
 void AmsWebServer::configFileDownload() {

@@ -180,7 +180,8 @@ struct EntsoeConfig {
 	char currency[4];
 	uint32_t multiplier;
 	bool enabled;
-}; // 62
+	uint16_t fixedPrice;
+}; // 64
 
 struct EnergyAccountingConfig {
 	uint16_t thresholds[10];

@@ -81,6 +81,9 @@ public:
     EnergyAccountingData getData();
     void setData(EnergyAccountingData&);
 
+    void setFixedPrice(double price);
+    double getPriceForHour(uint8_t h);
+
 private:
     RemoteDebug* debugger = NULL;
     unsigned long lastUpdateMillis = 0;
@@ -93,6 +96,7 @@ private:
     double use = 0, costHour = 0, costDay = 0;
     double produce = 0, incomeHour = 0, incomeDay = 0;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0 };
+    double fixedPrice = 0;
 
     void calcDayCost();
     bool updateMax(uint16_t val, uint8_t day);

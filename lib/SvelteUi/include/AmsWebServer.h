@@ -38,7 +38,7 @@ public:
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
 	void setEntsoeApi(EntsoeApi* eapi);
-	void setPriceRegion(String);
+	void setPriceSettings(String region, String currency);
 
 private:
 	RemoteDebug* debugger;
@@ -61,6 +61,7 @@ private:
 	bool performUpgrade = false;
 	bool rebootForUpgrade = false;
 	String priceRegion = "";
+	String priceCurrency = "";
 	#if defined(AMS2MQTT_FIRMWARE_URL)
 	String customFirmwareUrl = AMS2MQTT_FIRMWARE_URL;
 	#else

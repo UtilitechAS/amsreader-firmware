@@ -37,7 +37,7 @@
         <div class="cnt">
             <div class="grid grid-cols-2">
                 <div class="col-span-2">
-                    <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label="Import" sub={data.p} subunit={prices.currency} colorFn={ampcol}/>
+                    <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label="Import" sub={data.p} subunit={data.pc} colorFn={ampcol}/>
                 </div>
                 <div>{data.mt ? metertype(data.mt) : '-'}</div>
                 <div class="text-right">{data.ic ? data.ic.toFixed(1) : '-'} kWh</div>
@@ -72,7 +72,7 @@
     {/if}
     {#if uiVisibility(sysinfo.ui.c, data.ea)}
         <div class="cnt">
-            <AccountingData data={data.ea} currency={prices.currency} hasExport={data.om > 0 || data.e > 0}/>
+            <AccountingData data={data.ea} currency={data.pc} hasExport={data.om > 0 || data.e > 0}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.t, data.pr && (data.pr.startsWith("10YNO") || data.pr == '10Y1001A1001A48H'))}
@@ -80,7 +80,7 @@
             <TariffPeakChart />
         </div>
     {/if}
-    {#if uiVisibility(sysinfo.ui.p, (typeof data.p == "number") && !Number.isNaN(data.p))}
+    {#if uiVisibility(sysinfo.ui.p, data.pe && !Number.isNaN(data.p))}
         <div class="cnt gwf">
             <PricePlot json={prices}/>
         </div>

@@ -10,7 +10,6 @@ public:
     HomeAssistantMqttHandler(MQTTClient* mqtt, char* buf, const char* clientId, const char* topic, uint8_t boardType, HomeAssistantConfig config, HwTools* hw) : AmsMqttHandler(mqtt, buf) {
         this->clientId = clientId;
         this->topic = String(topic);
-        this->config = config;
         this->hw = hw;
         l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = false;
 
@@ -20,7 +19,7 @@ public:
             snprintf_P(buf, 128, PSTR("[%s] "), config.discoveryNameTag);
             sensorNamePrefix = String(buf);
         } else {
-            deviceName = "AMS reader";
+            deviceName = F("AMS reader");
             sensorNamePrefix = "";
         }
         deviceModel = boardTypeToString(boardType);
@@ -50,7 +49,7 @@ public:
             snprintf_P(buf, 128, PSTR("%s/sensor/"), config.discoveryPrefix);
             discoveryTopic = String(buf);
         } else {
-            discoveryTopic = "homeassistant/sensor/";
+            discoveryTopic = F("homeassistant/sensor/");
         }
     };
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);
@@ -74,7 +73,6 @@ public:
     void publishSystemSensors();
 
 private:
-    HomeAssistantConfig config;
     String deviceName;
     String deviceModel;
     String deviceUid;
@@ -96,70 +94,70 @@ private:
         switch(b) {
             case 5:
                 #if defined(ESP8266)
-                    return "Pow-K";
+                    return F("Pow-K");
                 #elif defined(ESP32)
-                    return "Pow-K+";
+                    return F("Pow-K+");
                 #endif
             case 7:
                 #if defined(ESP8266)
-                    return "Pow-U";
+                    return F("Pow-U");
                 #elif defined(ESP32)
-                    return "Pow-U+";
+                    return F("Pow-U+");
                 #endif
             case 6:
-                return "Pow-P1";
+                return F("Pow-P1");
             case 51:
-                return "S2 mini";
+                return F("S2 mini");
             case 50:
-                return "ESP32-S2";
+                return F("ESP32-S2");
             case 201:
-                return "LOLIN D32";
+                return F("LOLIN D32");
             case 202:
-                return "HUZZAH32";
+                return F("HUZZAH32");
             case 203:
-                return "DevKitC";
+                return F("DevKitC");
             case 200:
-                return "ESP32";
+                return F("ESP32");
             case 2:
-                return "HAN Reader 2.0 by Max Spencer";
+                return F("HAN Reader 2.0 by Max Spencer");
             case 0:
-                return "Custom hardware by Roar Fredriksen";
+                return F("Custom hardware by Roar Fredriksen");
             case 1:
-                return "Kamstrup module by Egil Opsahl";
+                return F("Kamstrup module by Egil Opsahl");
             case 3:
-                return "Pow-K";
+                return F("Pow-K");
             case 4:
-                return "Pow-U";
+                return F("Pow-U");
             case 101:
-                return "D1 mini";
+                return F("D1 mini");
             case 100:
-                return "ESP8266";
+                return F("ESP8266");
             case 70:
-                return "ESP32-C3";
+                return F("ESP32-C3");
             case 71:
-                return "ESP32-C3-DevKitM-1";
+                return F("ESP32-C3-DevKitM-1");
         }
         #if defined(ESP8266)
-            return "ESP8266";
+            return F("ESP8266");
         #elif defined(ESP32)
-            return "ESP32";
+            return F("ESP32");
         #endif
     };
 
     String boardManufacturerToString(uint8_t b) {
         if(b >= 3 && b <= 7)
-            return "amsleser.no";
+            return F("amsleser.no");
         if(b < 50)
-            return "Custom";
+            return F("Custom");
         switch(b) {
             case 51:
             case 101:
             case 201:
-                return "Wemos";
+                return F("Wemos");
             case 202:
-                return "Adafruit";
+                return F("Adafruit");
         }
-        return "Espressif";
+        return F("Espressif");
     };
 };
 #endif

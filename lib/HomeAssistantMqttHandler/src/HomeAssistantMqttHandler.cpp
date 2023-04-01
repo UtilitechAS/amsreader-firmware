@@ -11,6 +11,10 @@
 #include "json/hadiscover_json.h"
 #include "json/realtime_json.h"
 
+#if defined(ESP32)
+#include <esp_task_wdt.h>
+#endif
+
 bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
@@ -27,6 +31,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
         );
         mqtt->publish(topic + "/energy", json);
         mqtt->loop();
+        delay(10);
     }
     String meterModel = data->getMeterModel();
     meterModel.replace("\\", "\\\\");
@@ -126,7 +131,7 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 	int size = 32 + (count * 26);
 
 	char buf[size];
-	snprintf(buf, 24, "{\"temperatures\":{");
+	snprintf_P(buf, 24, PSTR("{\"temperatures\":{"));
 
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
@@ -143,7 +148,7 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
         }
 	}
 	char* pos = buf+strlen(buf);
-	snprintf(count == 0 ? pos : pos-1, 8, "}}");
+	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("}}"));
     return mqtt->publish(topic + "/temperatures", buf);
 }
 
@@ -214,7 +219,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         //Serial.printf("1hr: %d %lu\n", min1hrIdx, ts);
 		tmElements_t tm;
         breakTime(ts, tm);
-		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+		sprintf_P(ts1hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts3hr[24];
     memset(ts3hr, 0, 24);
@@ -223,7 +228,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         //Serial.printf("3hr: %d %lu\n", min3hrIdx, ts);
 		tmElements_t tm;
         breakTime(ts, tm);
-		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+		sprintf_P(ts3hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts6hr[24];
     memset(ts6hr, 0, 24);
@@ -232,7 +237,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         //Serial.printf("6hr: %d %lu\n", min6hrIdx, ts);
 		tmElements_t tm;
         breakTime(ts, tm);
-		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
     snprintf_P(json, BufferSize, JSONPRICES_JSON,
@@ -328,6 +333,14 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
         strlen_P(sensor.stacl) > 0 ? (char *) FPSTR(sensor.stacl) : ""
     );
     mqtt->publish(discoveryTopic + deviceUid + "_" + uid.c_str() + "/config", json, true, 0);
+    mqtt->loop();
+    delay(10);
+
+    #if defined(ESP32)
+    esp_task_wdt_reset();
+    #elif defined(ESP8266)
+    ESP.wdtFeed();
+    #endif
 }
 
 void HomeAssistantMqttHandler::publishList1Sensors() {
@@ -390,7 +403,7 @@ void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, Ents
     if(rtInit) return;
     for(uint8_t i = 0; i < RealtimeSensorCount; i++) {
         HomeAssistantSensor sensor = RealtimeSensors[i];
-        if(strncmp(sensor.devcl, "monetary", 8) == 0) {
+        if(strncmp_P(sensor.devcl, PSTR("monetary"), 8) == 0) {
             if(eapi == NULL) continue;
             sensor.uom = eapi->getCurrency();
         }
@@ -420,7 +433,7 @@ void HomeAssistantMqttHandler::publishRealtimeExportSensors(EnergyAccounting* ea
     if(rteInit) return;
     for(uint8_t i = 0; i < RealtimeExportSensorCount; i++) {
         HomeAssistantSensor sensor = RealtimeExportSensors[i];
-        if(strncmp(sensor.devcl, "monetary", 8) == 0) {
+        if(strncmp_P(sensor.devcl, PSTR("monetary"), 8) == 0) {
             if(eapi == NULL) continue;
             sensor.uom = eapi->getCurrency();
         }
@@ -460,7 +473,7 @@ void HomeAssistantMqttHandler::publishPriceSensors(EntsoeApi* eapi) {
     if(!pInit) {
         for(uint8_t i = 0; i < PriceSensorCount; i++) {
             HomeAssistantSensor sensor = PriceSensors[i];
-            if(strncmp(sensor.devcl, "monetary", 8) == 0) {
+            if(strncmp_P(sensor.devcl, PSTR("monetary"), 8) == 0) {
                 sensor.uom = uom.c_str();
             }
             publishSensor(sensor);

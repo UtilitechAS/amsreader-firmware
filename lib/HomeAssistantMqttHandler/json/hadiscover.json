@@ -1,5 +1,5 @@
 {
-    "name" : "%s",
+    "name" : "%s%s",
     "stat_t" : "%s%s",
     "uniq_id" : "%s_%s",
     "obj_id" : "%s_%s",

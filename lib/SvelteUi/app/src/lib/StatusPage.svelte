@@ -1,9 +1,10 @@
 <script>
-    import { metertype, boardtype, isBusPowered } from './Helpers.js';
+    import { metertype, boardtype, isBusPowered, getResetReason } from './Helpers.js';
     import { getSysinfo, gitHubReleaseStore, sysinfoStore } from './DataStores.js';
     import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
     import DownloadIcon from './DownloadIcon.svelte';
     import { Link } from 'svelte-navigator';
+    import Clock from './Clock.svelte';
     import Mask from './Mask.svelte';
   
     export let data;
@@ -27,9 +28,6 @@
     },{
         name: 'GPIO',
         key: 'ig'
-    },{
-        name: 'Domoticz',
-        key: 'id'
     },{
         name: 'NTP',
         key: 'in'
@@ -101,6 +99,17 @@
         {#if sysinfo.apmac && sysinfo.apmac != sysinfo.mac}
         <div class="my-2">
             AP MAC: {sysinfo.apmac}
+        </div>
+        <div class="my-2">
+            Last boot:
+            {#if data.u > 0}
+            <Clock timestamp={new Date(new Date().getTime() - (data.u * 1000))} fullTimeColor="" />
+            {:else}
+            -
+            {/if}
+        </div>
+        <div class="my-2">
+            Reason: {getResetReason(sysinfo)} ({sysinfo.boot_reason})
         </div>
         {/if}
         <div class="my-2">

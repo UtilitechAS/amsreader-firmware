@@ -21,6 +21,7 @@
 #define CONFIG_DOMOTICZ_START 856 
 #define CONFIG_NTP_START 872
 #define CONFIG_MQTT_START 1004
+#define CONFIG_HA_START 1680
 
 #define CONFIG_METER_START_93 224
 
@@ -152,6 +153,13 @@ struct DomoticzConfig {
 	uint16_t cl1idx;
 }; // 10
 
+struct HomeAssistantConfig {
+	uint8_t tag; // Just to find out if we have this config already. Can be removed in v2.3
+	char discoveryPrefix[64];
+	char discoveryHostname[64];
+	char discoveryNameTag[16];
+}; // 145
+
 struct NtpConfig {
 	bool enable;
 	bool dhcp;
@@ -254,8 +262,10 @@ public:
 	bool getDomoticzConfig(DomoticzConfig&);
 	bool setDomoticzConfig(DomoticzConfig&);
 	void clearDomo(DomoticzConfig&);
-	bool isDomoChanged();
-	void ackDomoChange();
+
+	bool getHomeAssistantConfig(HomeAssistantConfig&);
+	bool setHomeAssistantConfig(HomeAssistantConfig&);
+	void clearHomeAssistantConfig(HomeAssistantConfig&);
 	
 	bool getNtpConfig(NtpConfig&);
 	bool setNtpConfig(NtpConfig&);
@@ -294,7 +304,7 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool wifiChanged, mqttChanged, meterChanged = true, domoChanged, ntpChanged = true, entsoeChanged = false, energyAccountingChanged = true;
+	bool wifiChanged, mqttChanged, meterChanged = true, ntpChanged = true, entsoeChanged = false, energyAccountingChanged = true;
 
 	uint8_t tempSensorCount = 0;
 	TempSensorConfig** tempSensors = NULL;
@@ -312,3 +322,4 @@ private:
 	void deleteFromFs(uint8_t version);
 };
 #endif
+

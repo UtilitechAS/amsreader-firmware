@@ -2,7 +2,7 @@
 #include "HardwareSerial.h"
 
 EntsoeA44Parser::EntsoeA44Parser() {
-    for(int i = 0; i < 24; i++) points[i] = ENTSOE_NO_VALUE;
+    for(int i = 0; i < 25; i++) points[i] = ENTSOE_NO_VALUE;
 }
 
 EntsoeA44Parser::~EntsoeA44Parser() {
@@ -18,7 +18,7 @@ char* EntsoeA44Parser::getMeasurementUnit() {
 }
 
 float EntsoeA44Parser::getPoint(uint8_t position) {
-    if(position >= 24) return ENTSOE_NO_VALUE;
+    if(position >= 25) return ENTSOE_NO_VALUE;
     return points[position];
 }
 
@@ -111,30 +111,7 @@ void EntsoeA44Parser::get(PricesContainer* container) {
     strcpy(container->currency, currency);
     strcpy(container->measurementUnit, measurementUnit);
 
-    container->points[0] = points[0] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[0] * 10000;
-    container->points[1] = points[1] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[1] * 10000;
-    container->points[2] = points[2] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[2] * 10000;
-    container->points[3] = points[3] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[3] * 10000;
-    container->points[4] = points[4] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[4] * 10000;
-    container->points[5] = points[5] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[5] * 10000;
-    container->points[6] = points[6] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[6] * 10000;
-    container->points[7] = points[7] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[7] * 10000;
-    container->points[8] = points[8] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[8] * 10000;
-    container->points[9] = points[9] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[9] * 10000;
-
-    container->points[10] = points[10] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[10] * 10000;
-    container->points[11] = points[11] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[11] * 10000;
-    container->points[12] = points[12] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[12] * 10000;
-    container->points[13] = points[13] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[13] * 10000;
-    container->points[14] = points[14] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[14] * 10000;
-    container->points[15] = points[15] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[15] * 10000;
-    container->points[16] = points[16] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[16] * 10000;
-    container->points[17] = points[17] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[17] * 10000;
-    container->points[18] = points[18] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[18] * 10000;
-    container->points[19] = points[19] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[19] * 10000;
-
-    container->points[20] = points[20] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[20] * 10000;
-    container->points[21] = points[21] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[21] * 10000;
-    container->points[22] = points[22] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[22] * 10000;
-    container->points[23] = points[23] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[23] * 10000;
+    for(uint8_t i = 0; i < 25; i++) {
+        container->points[i] = points[i] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[i] * 10000;
+    }
 }

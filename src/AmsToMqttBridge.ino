@@ -70,6 +70,7 @@ ADC_MODE(ADC_VCC);
 #include "IEC6205621.h"
 #include "IEC6205675.h"
 #include "LNG.h"
+#include "LNG2.h"
 
 #include "DataParsers.h"
 #include "Timezones.h"
@@ -933,10 +934,22 @@ bool readHanPort() {
 		debugV("Using application data:");
 		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint((byte*) payload, 0, ctx.length);
 
-		// Rudimentary detector for L&G proprietary format
+		// Rudimentary detector for L&G proprietary format, this is terrible code... Fix later
 		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
+			debugV("LNG");
 			data = LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+		} else if(payload[0] == CosemTypeStructure && 
+			payload[2] == CosemTypeLongUnsigned && 
+			payload[5] == CosemTypeLongUnsigned && 
+			payload[8] == CosemTypeLongUnsigned && 
+			payload[11] == CosemTypeLongUnsigned && 
+			payload[14] == CosemTypeLongUnsigned && 
+			payload[17] == CosemTypeLongUnsigned
+		) {
+			debugV("LNG2");
+			data = LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
 		} else {
+			debugV("DLMS");
 			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
 			data = IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx);
 		}
@@ -949,7 +962,7 @@ bool readHanPort() {
 		if(!hw.ledBlink(LED_GREEN, 1))
 			hw.ledBlink(LED_INTERNAL, 1);
 		if(mqttEnabled && mqttHandler != NULL && mqtt != NULL) {
-			if(mqttHandler->publish(&data, &meterState, &ea)) {
+			if(mqttHandler->publish(&data, &meterState, &ea, eapi)) {
 				mqtt->loop();
 				delay(10);
 			}
@@ -1363,7 +1376,11 @@ void MQTT_connect() {
 			mqttHandler = new DomoticzMqttHandler(mqtt, (char*) commonBuffer, domo);
 			break;
 		case 4:
-			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.clientId, mqttConfig.publishTopic, &hw);
+			HomeAssistantConfig haconf;
+			SystemConfig sys;
+			config.getHomeAssistantConfig(haconf);
+			config.getSystemConfig(sys);
+			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.clientId, mqttConfig.publishTopic, sys.boardType, haconf, &hw);
 			break;
 	}
 
@@ -1495,6 +1512,7 @@ void configFileParse() {
 	bool lMeter = false;
 	bool lGpio = false;
 	bool lDomo = false;
+	bool lHa = false;
 	bool lNtp = false;
 	bool lEntsoe = false;
 	bool lEac = false;
@@ -1508,6 +1526,7 @@ void configFileParse() {
 	MeterConfig meter;
 	GpioConfig gpio;
 	DomoticzConfig domo;
+	HomeAssistantConfig haconf;
 	NtpConfig ntp;
 	EntsoeConfig entsoe;
 	EnergyAccountingConfig eac;
@@ -1680,6 +1699,15 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("domoticzCl1idx "), 15) == 0) {
 			if(!lDomo) { config.getDomoticzConfig(domo); lDomo = true; };
 			domo.cl1idx = String(buf+15).toInt();
+		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryPrefix "), 28) == 0) {
+			if(!lHa) { config.getHomeAssistantConfig(haconf); lHa = true; };
+			strcpy(haconf.discoveryPrefix, buf+28);
+		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryHostname "), 30) == 0) {
+			if(!lHa) { config.getHomeAssistantConfig(haconf); lHa = true; };
+			strcpy(haconf.discoveryHostname, buf+30);
+		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryNameTag "), 29) == 0) {
+			if(!lHa) { config.getHomeAssistantConfig(haconf); lHa = true; };
+			strcpy(haconf.discoveryNameTag, buf+29);
 		} else if(strncmp_P(buf, PSTR("ntpEnable "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			ntp.enable = String(buf+10).toInt() == 1;
@@ -1903,6 +1931,7 @@ void configFileParse() {
 	if(lMeter) config.setMeterConfig(meter);
 	if(lGpio) config.setGpioConfig(gpio);
 	if(lDomo) config.setDomoticzConfig(domo);
+	if(lHa) config.setHomeAssistantConfig(haconf);
 	if(lNtp) config.setNtpConfig(ntp);
 	if(lEntsoe) config.setEntsoeConfig(entsoe);
 	if(lEac) config.setEnergyAccountingConfig(eac);

@@ -1,5 +1,5 @@
 <script>
-    import { zeropad } from './Helpers.js';
+    import { zeropad, addHours } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
     export let json;
@@ -19,7 +19,6 @@
         let points = [];
         let cur = new Date();
         for(i = hour; i<24; i++) {
-            cur.setUTCHours(i);
             val = json[zeropad(h++)];
             if(val == null) break;
             xTicks.push({
@@ -34,9 +33,9 @@
             });
             min = Math.min(min, val*100);
             max = Math.max(max, val*100);
+            addHours(cur, 1);
         };
         for(i = 0; i < 24; i++) {
-            cur.setUTCHours(i);
             val = json[zeropad(h++)];
             if(val == null) break;
             xTicks.push({
@@ -51,6 +50,7 @@
             });
             min = Math.min(min, val*100);
             max = Math.max(max, val*100);
+            addHours(cur, 1);
         };
 
         max = Math.ceil(max);

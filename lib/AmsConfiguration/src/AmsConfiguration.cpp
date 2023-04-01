@@ -309,15 +309,14 @@ bool AmsConfiguration::getDomoticzConfig(DomoticzConfig& config) {
 bool AmsConfiguration::setDomoticzConfig(DomoticzConfig& config) {
 	DomoticzConfig existing;
 	if(getDomoticzConfig(existing)) {
-		domoChanged |= config.elidx != existing.elidx;
-		domoChanged |= config.vl1idx != existing.vl1idx;
-		domoChanged |= config.vl2idx != existing.vl2idx;
-		domoChanged |= config.vl3idx != existing.vl3idx;
-		domoChanged |= config.cl1idx != existing.cl1idx;
+		mqttChanged |= config.elidx != existing.elidx;
+		mqttChanged |= config.vl1idx != existing.vl1idx;
+		mqttChanged |= config.vl2idx != existing.vl2idx;
+		mqttChanged |= config.vl3idx != existing.vl3idx;
+		mqttChanged |= config.cl1idx != existing.cl1idx;
 	} else {
-		domoChanged = true;
+		mqttChanged = true;
 	}
-	mqttChanged = domoChanged;
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_DOMOTICZ_START, config);
 	bool ret = EEPROM.commit();
@@ -333,12 +332,45 @@ void AmsConfiguration::clearDomo(DomoticzConfig& config) {
 	config.cl1idx = 0;
 }
 
-bool AmsConfiguration::isDomoChanged() {
-	return domoChanged;
+bool AmsConfiguration::getHomeAssistantConfig(HomeAssistantConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_HA_START, config);
+		if(config.tag != 0xA7) clearHomeAssistantConfig(config);
+		EEPROM.end();
+		return true;
+	} else {
+		clearHomeAssistantConfig(config);
+		return false;
+	}
 }
 
-void AmsConfiguration::ackDomoChange() {
-	domoChanged = false;
+bool AmsConfiguration::setHomeAssistantConfig(HomeAssistantConfig& config) {
+	HomeAssistantConfig existing;
+	if(getHomeAssistantConfig(existing)) {
+		mqttChanged |= strcmp(config.discoveryPrefix, existing.discoveryPrefix) != 0;
+		mqttChanged |= strcmp(config.discoveryHostname, existing.discoveryHostname) != 0;
+		mqttChanged |= strcmp(config.discoveryNameTag, existing.discoveryNameTag) != 0;
+	} else {
+		mqttChanged = true;
+	}
+
+	stripNonAscii((uint8_t*) config.discoveryPrefix, 64);
+	stripNonAscii((uint8_t*) config.discoveryHostname, 64);
+	stripNonAscii((uint8_t*) config.discoveryNameTag, 16);
+
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_HA_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+void AmsConfiguration::clearHomeAssistantConfig(HomeAssistantConfig& config) {
+	config.tag = 0xA7;
+	strcpy(config.discoveryPrefix, "");
+	strcpy(config.discoveryHostname, "");
+	strcpy(config.discoveryNameTag, "");
 }
 
 bool AmsConfiguration::pinUsed(uint8_t pin, GpioConfig& config) {

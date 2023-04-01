@@ -17,7 +17,7 @@ public:
     };
     virtual ~AmsMqttHandler() {};
 
-    virtual bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea);
+    virtual bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);
     virtual bool publishTemperatures(AmsConfiguration*, HwTools*);
     virtual bool publishPrices(EntsoeApi* eapi);
     virtual bool publishSystem(HwTools*, EntsoeApi*, EnergyAccounting*);

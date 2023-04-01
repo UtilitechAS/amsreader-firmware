@@ -3,6 +3,6 @@
 struct PricesContainer {
     char currency[4];
     char measurementUnit[4];
-    int32_t points[24];
+    int32_t points[25];
 };
 #endif

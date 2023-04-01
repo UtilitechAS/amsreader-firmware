@@ -27,6 +27,7 @@
 #include "html/conf_debug_json.h"
 #include "html/conf_gpio_json.h"
 #include "html/conf_domoticz_json.h"
+#include "html/conf_ha_json.h"
 #include "html/conf_ui_json.h"
 #include "html/firmware_html.h"
 
@@ -37,6 +38,16 @@
 #include <esp_wifi.h>
 #endif
 
+
+#if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
+#include "esp32/rom/rtc.h"
+#elif CONFIG_IDF_TARGET_ESP32S2
+#include "esp32s2/rom/rtc.h"
+#elif CONFIG_IDF_TARGET_ESP32C3
+#include "esp32c3/rom/rtc.h"
+#elif CONFIG_IDF_TARGET_ESP32S3
+#include "esp32s3/rom/rtc.h"
+#endif
 
 AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw) {
 	this->debugger = Debug;
@@ -301,7 +312,12 @@ void AmsWebServer::sysinfoJson() {
 		ui.showDayPlot,
 		ui.showMonthPlot,
 		ui.showTemperaturePlot,
-		webConfig.security
+		webConfig.security,
+		#if defined(ESP32)
+		rtc_get_reset_reason(0)
+		#else
+		ESP.getResetInfoPtr()->reason
+		#endif
 	);
 
 	stripNonAscii((uint8_t*) buf, size+1);
@@ -345,9 +361,9 @@ void AmsWebServer::dataJson() {
 	#if defined(ESP8266)
 	if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
 		espStatus = 1;
-	} else if(vcc > 3.1 && vcc < 3.5) {
+	} else if(vcc > 2.8 && vcc < 3.5) {
 		espStatus = 1;
-	} else if(vcc > 3.0 && vcc < 3.6) {
+	} else if(vcc > 2.7 && vcc < 3.6) {
 		espStatus = 2;
 	} else {
 		espStatus = 3;
@@ -355,9 +371,9 @@ void AmsWebServer::dataJson() {
 	#elif defined(ESP32)
 	if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
 		espStatus = 1;
-	} else if(vcc > 2.8 && vcc < 3.5) {
+	} else if(vcc > 3.1 && vcc < 3.5) {
 		espStatus = 1;
-	} else if(vcc > 2.7 && vcc < 3.6) {
+	} else if(vcc > 3.0 && vcc < 3.6) {
 		espStatus = 2;
 	} else {
 		espStatus = 3;
@@ -785,6 +801,8 @@ void AmsWebServer::configurationJson() {
 	config->getDomoticzConfig(domo);
 	UiConfig ui;
 	config->getUiConfig(ui);
+	HomeAssistantConfig haconf;
+	config->getHomeAssistantConfig(haconf);
 
 	bool qsc = false;
 	bool qsr = false;
@@ -933,6 +951,12 @@ void AmsWebServer::configurationJson() {
 		domo.vl1idx,
 		domo.vl2idx,
 		domo.vl3idx
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_HA_JSON,
+		haconf.discoveryPrefix,
+		haconf.discoveryHostname,
+		haconf.discoveryNameTag
 	);
 	server.sendContent(buf);
 	server.sendContent("}");
@@ -1161,16 +1185,25 @@ void AmsWebServer::handleSave() {
 		meterConfig->productionCapacity = server.arg(F("mr")).toInt();
 		maxPwr = 0;
 
-		String encryptionKeyHex = server.arg(F("mek"));
-		if(!encryptionKeyHex.isEmpty()) {
-			encryptionKeyHex.replace(F("0x"), F(""));
-			fromHex(meterConfig->encryptionKey, encryptionKeyHex, 16);
-		}
+		if(server.hasArg(F("me")) && server.arg(F("me")) == F("true")) {
+			String encryptionKeyHex = server.arg(F("mek"));
+			if(!encryptionKeyHex.isEmpty()) {
+				encryptionKeyHex.replace(F("0x"), F(""));
+				fromHex(meterConfig->encryptionKey, encryptionKeyHex, 16);
+			} else {
+				memset(meterConfig->encryptionKey, 0, 16);
+			}
 
-		String authenticationKeyHex = server.arg(F("mea"));
-		if(!authenticationKeyHex.isEmpty()) {
-			authenticationKeyHex.replace(F("0x"), F(""));
-			fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
+			String authenticationKeyHex = server.arg(F("mea"));
+			if(!authenticationKeyHex.isEmpty()) {
+				authenticationKeyHex.replace(F("0x"), F(""));
+				fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
+			} else {
+				memset(meterConfig->authenticationKey, 0, 16);
+			}
+		} else {
+			memset(meterConfig->encryptionKey, 0, 16);
+			memset(meterConfig->authenticationKey, 0, 16);
 		}
 
 		meterConfig->wattageMultiplier = server.arg(F("mmw")).toDouble() * 1000;
@@ -1265,6 +1298,15 @@ void AmsWebServer::handleSave() {
 		config->setDomoticzConfig(domo);
 	}
 
+	if(server.hasArg(F("h")) && server.arg(F("h")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received Home-Assistant config"));
+		HomeAssistantConfig haconf;
+		config->getHomeAssistantConfig(haconf);
+		strcpy(haconf.discoveryPrefix, server.arg(F("ht")).c_str());
+		strcpy(haconf.discoveryHostname, server.arg(F("hh")).c_str());
+		strcpy(haconf.discoveryNameTag, server.arg(F("hn")).c_str());
+		config->setHomeAssistantConfig(haconf);
+	}
 
 	if(server.hasArg(F("g")) && server.arg(F("g")) == F("true")) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received web config"));
@@ -1858,7 +1900,6 @@ void AmsWebServer::configFileDownload() {
 	bool includeWeb = server.hasArg(F("ie")) && server.arg(F("ie")) == F("true");
 	bool includeMeter = server.hasArg(F("it")) && server.arg(F("it")) == F("true");
 	bool includeGpio = server.hasArg(F("ig")) && server.arg(F("ig")) == F("true");
-	bool includeDomo = server.hasArg(F("id")) && server.arg(F("id")) == F("true");
 	bool includeNtp = server.hasArg(F("in")) && server.arg(F("in")) == F("true");
 	bool includeEntsoe = server.hasArg(F("is")) && server.arg(F("is")) == F("true");
 	bool includeThresholds = server.hasArg(F("ih")) && server.arg(F("ih")) == F("true");
@@ -1904,6 +1945,22 @@ void AmsWebServer::configFileDownload() {
 			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPassword %s\n"), mqtt.password));
 			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPayloadFormat %d\n"), mqtt.payloadFormat));
 			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttSsl %d\n"), mqtt.ssl ? 1 : 0));
+
+			if(mqtt.payloadFormat == 3) {
+				DomoticzConfig domo;
+				config->getDomoticzConfig(domo);
+				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzElidx %d\n"), domo.elidx));
+				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl1idx %d\n"), domo.vl1idx));
+				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl2idx %d\n"), domo.vl2idx));
+				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl3idx %d\n"), domo.vl3idx));
+				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzCl1idx %d\n"), domo.cl1idx));
+			} else if(mqtt.payloadFormat == 4) {
+				HomeAssistantConfig haconf;
+				config->getHomeAssistantConfig(haconf);
+				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("homeAssistantDiscoveryPrefix %s\n"), haconf.discoveryPrefix));
+				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("homeAssistantDiscoveryHostname %s\n"), haconf.discoveryHostname));
+				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("homeAssistantDiscoveryNameTag %s\n"), haconf.discoveryNameTag));
+			}
 		}
 	}
 
@@ -1967,16 +2024,6 @@ void AmsWebServer::configFileDownload() {
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccBootLimit %.1f\n"), gpio.vccBootLimit / 10.0));
 		if(gpio.vccPin != 0xFF && gpio.vccResistorGnd != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccResistorGnd %d\n"), gpio.vccResistorGnd));
 		if(gpio.vccPin != 0xFF && gpio.vccResistorVcc != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccResistorVcc %d\n"), gpio.vccResistorVcc));
-	}
-
-	if(includeDomo) {
-		DomoticzConfig domo;
-		config->getDomoticzConfig(domo);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzElidx %d\n"), domo.elidx));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl1idx %d\n"), domo.vl1idx));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl2idx %d\n"), domo.vl2idx));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl3idx %d\n"), domo.vl3idx));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzCl1idx %d\n"), domo.cl1idx));
 	}
 
 	if(includeNtp) {

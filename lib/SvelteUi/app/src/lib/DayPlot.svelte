@@ -1,5 +1,5 @@
 <script>
-    import { zeropad } from './Helpers.js';
+    import { zeropad, addHours } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
     export let json;
@@ -13,16 +13,16 @@
         let yTicks = [];
         let xTicks = [];
         let points = [];
-        let cur = new Date();
-        let offset = -cur.getTimezoneOffset()/60;
-        for(i = cur.getUTCHours(); i<24; i++) {
+        let cur = addHours(new Date(), -24);
+        let currentHour = new Date().getUTCHours();
+        for(i = currentHour; i<24; i++) {
             let imp = json["i"+zeropad(i)];
             let exp = json["e"+zeropad(i)];
             if(imp === undefined) imp = 0;
             if(exp === undefined) exp = 0;
 
             xTicks.push({
-                label: zeropad((i+offset)%24)
+                label: zeropad(cur.getHours())
             });
             points.push({
                 label: imp.toFixed(1), 
@@ -33,15 +33,16 @@
             });
             min = Math.max(min, exp*10);
             max = Math.max(max, imp*10);
+            addHours(cur, 1);
         };
-        for(i = 0; i < cur.getUTCHours(); i++) {
+        for(i = 0; i < currentHour; i++) {
             let imp = json["i"+zeropad(i)];
             let exp = json["e"+zeropad(i)];
             if(imp === undefined) imp = 0;
             if(exp === undefined) exp = 0;
 
             xTicks.push({
-                label: zeropad((i+offset)%24)
+                label: zeropad(cur.getHours())
             });
             points.push({
                 label: imp.toFixed(1), 
@@ -52,6 +53,7 @@
             });
             min = Math.max(min, exp*10);
             max = Math.max(max, imp*10);
+            addHours(cur, 1);
         };
 
         let boundary = Math.ceil(Math.max(min, max));

@@ -310,8 +310,8 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
     uid.replace("]", "");
     uid.replace("'", "");
     snprintf_P(json, BufferSize, HADISCOVER_JSON,
+        sensorNamePrefix.c_str(),
         sensor.name,
-        sensorNamePostFix.c_str(),
         topic.c_str(), sensor.topic,
         deviceUid.c_str(), uid.c_str(),
         deviceUid.c_str(), uid.c_str(),

@@ -17,11 +17,11 @@ public:
         if(strlen(config.discoveryNameTag) > 0) {
             snprintf_P(buf, 128, PSTR("AMS reader (%s)"), config.discoveryNameTag);
             deviceName = String(buf);
-            snprintf_P(buf, 128, PSTR(" (%s)"), config.discoveryNameTag);
-            sensorNamePostFix = String(buf);
+            snprintf_P(buf, 128, PSTR("[%s] "), config.discoveryNameTag);
+            sensorNamePrefix = String(buf);
         } else {
             deviceName = "AMS reader";
-            sensorNamePostFix = "";
+            sensorNamePrefix = "";
         }
         deviceModel = boardTypeToString(boardType);
         manufacturer = boardManufacturerToString(boardType);
@@ -82,7 +82,7 @@ private:
     String deviceUrl;
 
     String discoveryTopic;
-    String sensorNamePostFix;
+    String sensorNamePrefix;
 
     bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit;
     bool tInit[32] = {false};

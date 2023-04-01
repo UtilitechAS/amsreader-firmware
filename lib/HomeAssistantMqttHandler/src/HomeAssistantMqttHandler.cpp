@@ -323,7 +323,7 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
         deviceModel.c_str(),
         VERSION,
         manufacturer.c_str(),
-        sensorNamePostFix.c_str(),
+        deviceUrl.c_str(),
         strlen_P(sensor.stacl) > 0 ? ", \"stat_cla\" :" : "",
         strlen_P(sensor.stacl) > 0 ? (char *) FPSTR(sensor.stacl) : ""
     );

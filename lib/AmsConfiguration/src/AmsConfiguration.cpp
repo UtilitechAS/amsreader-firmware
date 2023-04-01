@@ -348,14 +348,14 @@ bool AmsConfiguration::getHomeAssistantConfig(HomeAssistantConfig& config) {
 bool AmsConfiguration::setHomeAssistantConfig(HomeAssistantConfig& config) {
 	HomeAssistantConfig existing;
 	if(getHomeAssistantConfig(existing)) {
-		mqttChanged |= strcmp(config.discoveryTopic, existing.discoveryTopic) != 0;
+		mqttChanged |= strcmp(config.discoveryPrefix, existing.discoveryPrefix) != 0;
 		mqttChanged |= strcmp(config.discoveryHostname, existing.discoveryHostname) != 0;
 		mqttChanged |= strcmp(config.discoveryNameTag, existing.discoveryNameTag) != 0;
 	} else {
 		mqttChanged = true;
 	}
 
-	stripNonAscii((uint8_t*) config.discoveryTopic, 64);
+	stripNonAscii((uint8_t*) config.discoveryPrefix, 64);
 	stripNonAscii((uint8_t*) config.discoveryHostname, 64);
 	stripNonAscii((uint8_t*) config.discoveryNameTag, 16);
 
@@ -368,7 +368,7 @@ bool AmsConfiguration::setHomeAssistantConfig(HomeAssistantConfig& config) {
 
 void AmsConfiguration::clearHomeAssistantConfig(HomeAssistantConfig& config) {
 	config.tag = 0xA7;
-	strcpy(config.discoveryTopic, "");
+	strcpy(config.discoveryPrefix, "");
 	strcpy(config.discoveryHostname, "");
 	strcpy(config.discoveryNameTag, "");
 }

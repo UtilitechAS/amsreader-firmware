@@ -540,8 +540,8 @@
             <a href="{wiki('MQTT-configuration#home-assistant')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="h" value="true"/>
             <div class="my-1">
-                Discovery topic<br/>
-                <input name="ht" bind:value={configuration.h.t} type="text" class="in-s" placeholder="homeassistant/sensor"/>
+                Discovery topic prefix<br/>
+                <input name="ht" bind:value={configuration.h.t} type="text" class="in-s" placeholder="homeassistant"/>
             </div>
             <div class="my-1">
                 Hostname for URL<br/>

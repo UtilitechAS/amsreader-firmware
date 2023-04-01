@@ -35,16 +35,20 @@ public:
         deviceUid = hostname; // Maybe configurable in the future?
 
         if(strlen(config.discoveryHostname) > 0) {
-            snprintf_P(buf, 128, PSTR("http://%s.local/"), config.discoveryHostname);
-            String deviceUrl = String(buf);
+            if(strncmp_P(config.discoveryHostname, PSTR("http"), 4) == 0) {
+                deviceUrl = String(config.discoveryHostname);
+            } else {
+                snprintf_P(buf, 128, PSTR("http://%s/"), config.discoveryHostname);
+                deviceUrl = String(buf);
+            }
         } else {
             snprintf_P(buf, 128, PSTR("http://%s.local/"), hostname);
-            String deviceUrl = String(buf);
+            deviceUrl = String(buf);
         }
 
-        if(strlen(config.discoveryTopic) > 0) {
-            discoveryTopic = String(config.discoveryTopic);
-            if(!discoveryTopic.endsWith("/")) discoveryTopic += "/";
+        if(strlen(config.discoveryPrefix) > 0) {
+            snprintf_P(buf, 128, PSTR("%s/sensor/"), config.discoveryPrefix);
+            discoveryTopic = String(buf);
         } else {
             discoveryTopic = "homeassistant/sensor/";
         }

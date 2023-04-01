@@ -29,9 +29,6 @@
         name: 'GPIO',
         key: 'ig'
     },{
-        name: 'Domoticz',
-        key: 'id'
-    },{
         name: 'NTP',
         key: 'in'
     },{

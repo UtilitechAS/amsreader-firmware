@@ -1607,7 +1607,7 @@ void configFileParse() {
 			strcpy(web.username, buf+12);
 		} else if(strncmp_P(buf, PSTR("webPassword "), 12) == 0) {
 			if(!lWeb) { config.getWebConfig(web); lWeb = true; };
-			strcpy(web.username, buf+12);
+			strcpy(web.password, buf+12);
 		} else if(strncmp_P(buf, PSTR("meterBaud "), 10) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.baud = String(buf+10).toInt();

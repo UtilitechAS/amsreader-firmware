@@ -68,7 +68,8 @@ bool EnergyAccounting::update(AmsData* amsData) {
         init = true;
     }
 
-    if(!initPrice && eapi != NULL && getPriceForHour(0) != ENTSOE_NO_VALUE) {
+    float price = getPriceForHour(0);
+    if(!initPrice && eapi != NULL && price != ENTSOE_NO_VALUE) {
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(EnergyAccounting) Initializing prices at %lu\n", (int32_t) now);
         calcDayCost();
     }
@@ -129,8 +130,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     if(kwhi > 0) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting) Adding %.4f kWh import\n", kwhi);
         use += kwhi;
-        if(getPriceForHour(0) != ENTSOE_NO_VALUE) {
-            float price = getPriceForHour(0);
+        if(price != ENTSOE_NO_VALUE) {
             float cost = price * kwhi;
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  and %.4f %s\n", cost / 100.0, eapi->getCurrency());
             costHour += cost;
@@ -140,8 +140,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     if(kwhe > 0) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting) Adding %.4f kWh export\n", kwhe);
         produce += kwhe;
-        if(getPriceForHour(0) != ENTSOE_NO_VALUE) {
-            float price = getPriceForHour(0);
+        if(price != ENTSOE_NO_VALUE) {
             float income = price * kwhe;
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(EnergyAccounting)  and %.4f %s\n", income / 100.0, eapi->getCurrency());
             incomeHour += income;

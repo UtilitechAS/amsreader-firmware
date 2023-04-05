@@ -1521,6 +1521,8 @@ void configFileParse() {
 	bool sEa = false;
 	bool sDs = false;
 
+	ds.load();
+
 	SystemConfig sys;
 	WiFiConfig wifi;
 	MqttConfig mqtt;

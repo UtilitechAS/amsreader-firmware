@@ -652,6 +652,23 @@ void loop() {
 
 void rxerr(int err) {
 	if(err == 0) return;
+	switch(err) {
+		case 1:
+			debugE("Serial break error");
+			break;
+		case 2:
+			debugE("Serial buffer full");
+			break;
+		case 3:
+			debugE("Serial FIFO overflow");
+			break;
+		case 4:
+			debugE("Serial frame error");
+			break;
+		case 5:
+			debugE("Serial parity error");
+			break;
+	}
 	meterState.setLastError(90+err);
 }
 

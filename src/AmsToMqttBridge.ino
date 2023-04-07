@@ -758,7 +758,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 			}
 		#endif
 
-		//hwSerial->setRxBufferSize(768);
+		hwSerial->setRxBufferSize(768);
 		#if defined(ESP32)
 		hwSerial->onReceiveError(rxerr);
 		#endif

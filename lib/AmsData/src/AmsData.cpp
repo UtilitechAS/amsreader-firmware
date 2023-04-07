@@ -219,7 +219,7 @@ bool AmsData::isTwoPhase() {
 }
 
 int8_t AmsData::getLastError() {
-    return lastErrorCount > 3 ? lastError : 0;
+    return lastErrorCount > 1 ? lastError : 0;
 }
 
 void AmsData::setLastError(int8_t lastError) {

@@ -99,6 +99,7 @@ AmsMqttHandler* mqttHandler = NULL;
 
 Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;
+HardwareSerial *hwSerial = NULL;
 
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
@@ -410,6 +411,21 @@ void loop() {
 		errorBlink();
 	}
 
+	if(hwSerial != NULL) {
+		#if defined ESP8266
+		if(hwSerial->hasRxError()) {
+			meterState.setLastError(METER_ERROR_RX);
+		}
+		if(hwSerial->hasOverrun()) {
+			meterState.setLastError(METER_ERROR_BUFFER);
+		}
+		#endif
+	} else if(swSerial != NULL) {
+		if(swSerial->overflow()) {
+			meterState.setLastError(METER_ERROR_BUFFER);
+		}
+	}
+
 	// Only do normal stuff if we're not booted as AP
 	if (WiFi.getMode() != WIFI_AP) {
 		if (WiFi.status() != WL_CONNECTED) {
@@ -600,7 +616,7 @@ void loop() {
 		}
 	} catch(const std::exception& e) {
 		debugE("Exception in readHanPort (%s)", e.what());
-		meterState.setLastError(98);
+		meterState.setLastError(METER_ERROR_EXCEPTION);
 	}
 	try {
 		if(meterState.getListType() == 0) {
@@ -623,7 +639,7 @@ void loop() {
 		}
 	} catch(const std::exception& e) {
 		debugE("Exception in meter autodetect (%s)", e.what());
-		meterState.setLastError(99);
+		meterState.setLastError(METER_ERROR_AUTODETECT);
 	}
 
 	delay(1); // Needed for auto modem sleep
@@ -632,6 +648,11 @@ void loop() {
 	#elif defined(ESP8266)
 		ESP.wdtFeed();
 	#endif
+}
+
+void rxerr(int err) {
+	if(err == 0) return;
+	meterState.setLastError(90+err);
 }
 
 void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert) {
@@ -656,7 +677,6 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 			break;
 	}
 
-	HardwareSerial *hwSerial = NULL;
 	if(pin == 3 || pin == 113) {
 		hwSerial = &Serial;
 	}
@@ -721,7 +741,12 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 			}
 		#endif
 
+		//hwSerial->setRxBufferSize(768);
+		#if defined(ESP32)
+		hwSerial->onReceiveError(rxerr);
+		#endif
 		hanSerial = hwSerial;
+		swSerial = NULL;
 	} else {
 		debugD("Software serial");
 		Serial.flush();
@@ -753,6 +778,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 
 		Serial.end();
 		Serial.begin(115200);
+		hwSerial = NULL;
 	}
 
 	// The library automatically sets the pullup in Serial.begin()
@@ -776,7 +802,7 @@ void errorBlink() {
 				if(lastErrorBlink - meterState.getLastUpdateMillis() > 30000) {
 					debugW("No HAN data received last 30s, single blink");
 					hw.ledBlink(LED_RED, 1); // If no message received from AMS in 30 sec, blink once
-					if(meterState.getLastError() == 0) meterState.setLastError(90);
+					if(meterState.getLastError() == 0) meterState.setLastError(METER_ERROR_NO_DATA);
 					return;
 				}
 				break;

@@ -9,8 +9,8 @@
     let hasCost = false;
     let cols = 3
     $: {
-        cols = currency ? 3 : 2;
         hasCost = data && data.h && (data.h.c || data.d.c || data.m.c || data.h.i || data.d.i || data.m.i);
+        cols = hasCost ? 3 : 2;
     }
 </script>
 

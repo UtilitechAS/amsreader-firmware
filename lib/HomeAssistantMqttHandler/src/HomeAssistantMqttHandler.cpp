@@ -352,6 +352,7 @@ void HomeAssistantMqttHandler::publishList1Sensors() {
 }
 
 void HomeAssistantMqttHandler::publishList2Sensors() {
+    publishList1Sensors();
     if(l2Init) return;
     for(uint8_t i = 0; i < List2SensorCount; i++) {
         publishSensor(List2Sensors[i]);
@@ -368,6 +369,7 @@ void HomeAssistantMqttHandler::publishList2ExportSensors() {
 }
 
 void HomeAssistantMqttHandler::publishList3Sensors() {
+    publishList2Sensors();
     if(l3Init) return;
     for(uint8_t i = 0; i < List3SensorCount; i++) {
         publishSensor(List3Sensors[i]);
@@ -376,6 +378,7 @@ void HomeAssistantMqttHandler::publishList3Sensors() {
 }
 
 void HomeAssistantMqttHandler::publishList3ExportSensors() {
+    publishList2ExportSensors();
     if(l3eInit) return;
     for(uint8_t i = 0; i < List3ExportSensorCount; i++) {
         publishSensor(List3ExportSensors[i]);
@@ -384,6 +387,7 @@ void HomeAssistantMqttHandler::publishList3ExportSensors() {
 }
 
 void HomeAssistantMqttHandler::publishList4Sensors() {
+    publishList3Sensors();
     if(l4Init) return;
     for(uint8_t i = 0; i < List4SensorCount; i++) {
         publishSensor(List4Sensors[i]);
@@ -392,6 +396,7 @@ void HomeAssistantMqttHandler::publishList4Sensors() {
 }
 
 void HomeAssistantMqttHandler::publishList4ExportSensors() {
+    publishList3ExportSensors();
     if(l4eInit) return;
     for(uint8_t i = 0; i < List4ExportSensorCount; i++) {
         publishSensor(List4ExportSensors[i]);

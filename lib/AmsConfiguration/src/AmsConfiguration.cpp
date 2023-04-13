@@ -710,6 +710,10 @@ void AmsConfiguration::clear() {
 	clearDomo(domo);
 	EEPROM.put(CONFIG_DOMOTICZ_START, domo);
 
+	HomeAssistantConfig haconf;
+	clearHomeAssistantConfig(haconf);
+	EEPROM.put(CONFIG_HA_START, haconf);
+
 	NtpConfig ntp;
 	clearNtp(ntp);
 	EEPROM.put(CONFIG_NTP_START, ntp);

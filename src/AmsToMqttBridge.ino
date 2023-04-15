@@ -100,7 +100,7 @@ AmsMqttHandler* mqttHandler = NULL;
 Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;
 HardwareSerial *hwSerial = NULL;
-size_t rxBufferSize = 256;
+size_t rxBufferSize = 64;
 
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
@@ -420,8 +420,8 @@ void loop() {
 		if(hwSerial->hasOverrun()) {
 			meterState.setLastError(METER_ERROR_BUFFER);
 			if(rxBufferSize < MAX_RX_BUFFER_SIZE) {
-				rxBufferSize += 256;
-				debugI("Incresing RX buffer to %d bytes", rxBufferSize);
+				rxBufferSize += 64;
+				debugI("Increasing RX buffer to %d bytes", rxBufferSize);
 				config.setMeterChanged();
 			}
 		}
@@ -429,8 +429,8 @@ void loop() {
 	} else if(swSerial != NULL) {
 		if(swSerial->overflow()) {
 			meterState.setLastError(METER_ERROR_BUFFER);
-			rxBufferSize += 256;
-			debugI("Incresing RX buffer to %d bytes", rxBufferSize);
+			rxBufferSize += 64;
+			debugI("Increasing RX buffer to %d bytes", rxBufferSize);
 			config.setMeterChanged();
 		}
 	}
@@ -668,8 +668,8 @@ void rxerr(int err) {
 		case 2:
 			debugE("Serial buffer full");
 			if(rxBufferSize < MAX_RX_BUFFER_SIZE) {
-				rxBufferSize += 256;
-				debugI("Incresing RX buffer to %d bytes", rxBufferSize);
+				rxBufferSize += 64;
+				debugI("Increasing RX buffer to %d bytes", rxBufferSize);
 				config.setMeterChanged();
 			}
 			break;
@@ -821,6 +821,13 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 	while (hanSerial->available() > 0) {
 		hanSerial->read();
 	}
+	#if defined(ESP8266)
+	if(hwSerial != NULL) {
+		hwSerial->hasOverrun();
+	} else if(swSerial != NULL) {
+		swSerial->overflow();
+	}
+	#endif
 }
 
 void errorBlink() {

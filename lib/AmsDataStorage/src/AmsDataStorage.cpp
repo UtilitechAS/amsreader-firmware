@@ -18,32 +18,32 @@ void AmsDataStorage::setTimezone(Timezone* tz) {
 
 bool AmsDataStorage::update(AmsData* data) {
     if(isHappy()) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Data is up to date\n");
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Data is up to date\n"));
         return false;
     }
 
     time_t now = time(nullptr);
-    if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Time is: %lu\n", (int32_t) now);
+    if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Time is: %lu\n"), (int32_t) now);
     if(tz == NULL) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Timezone is missing\n");
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Timezone is missing\n"));
         return false;
     }
     if(now < BUILD_EPOCH) {
         if(data->getMeterTimestamp() > BUILD_EPOCH) {
             now = data->getMeterTimestamp();
             if(debugger->isActive(RemoteDebug::DEBUG)) {
-                debugger->printf("(AmsDataStorage) Using meter timestamp, which is: %lu\n", (int32_t) now);
+                debugger->printf_P(PSTR("(AmsDataStorage) Using meter timestamp, which is: %lu\n"), (int32_t) now);
             }
         } else if(data->getPackageTimestamp() > BUILD_EPOCH) {
             now = data->getPackageTimestamp();
             if(debugger->isActive(RemoteDebug::DEBUG)) {
-                debugger->printf("(AmsDataStorage) Using package timestamp, which is: %lu\n", (int32_t) now);
+                debugger->printf_P(PSTR("(AmsDataStorage) Using package timestamp, which is: %lu\n"), (int32_t) now);
             }
         }
     }
     if(now < BUILD_EPOCH) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) {
-            debugger->printf("(AmsDataStorage) Invalid time: %lu\n", (int32_t) now);
+            debugger->printf_P(PSTR("(AmsDataStorage) Invalid time: %lu\n"), (int32_t) now);
         }
         return false;
     }
@@ -60,7 +60,7 @@ bool AmsDataStorage::update(AmsData* data) {
     // Clear hours between last update and now
     if(day.lastMeterReadTime > now) {
         if(debugger->isActive(RemoteDebug::WARNING)) {
-            debugger->printf("(AmsDataStorage) Invalid future timestamp for day plot, resetting\n");
+            debugger->printf_P(PSTR("(AmsDataStorage) Invalid future timestamp for day plot, resetting\n"));
         }
         day.activeImport = importCounter;
         day.activeExport = exportCounter;
@@ -68,13 +68,13 @@ bool AmsDataStorage::update(AmsData* data) {
         return true;
     } else {
         if(debugger->isActive(RemoteDebug::DEBUG)) {
-            debugger->printf("(AmsDataStorage) Last day update: %lu\n", (int32_t) day.lastMeterReadTime);
+            debugger->printf_P(PSTR("(AmsDataStorage) Last day update: %lu\n"), (int32_t) day.lastMeterReadTime);
         }
         tmElements_t last;
         breakTime(day.lastMeterReadTime, last);
         for(int i = last.Hour; i < utc.Hour; i++) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) {
-                debugger->printf("(AmsDataStorage) Clearing hour: %d\n", i);
+                debugger->printf_P(PSTR("(AmsDataStorage) Clearing hour: %d\n"), i);
             }
             setHourImport(i, 0);
             setHourExport(i, 0);
@@ -84,20 +84,20 @@ bool AmsDataStorage::update(AmsData* data) {
     // Clear days between last update and now
     if(month.lastMeterReadTime > now) {
         if(debugger->isActive(RemoteDebug::WARNING)) {
-            debugger->printf("(AmsDataStorage) Invalid future timestamp for month plot, resetting\n");
+            debugger->printf_P(PSTR("(AmsDataStorage) Invalid future timestamp for month plot, resetting\n"));
         }
         month.activeImport = importCounter;
         month.activeExport = exportCounter;
         month.lastMeterReadTime = now;
     } else {
         if(debugger->isActive(RemoteDebug::DEBUG)) {
-            debugger->printf("(AmsDataStorage) Last month update: %lu\n", (int32_t) month.lastMeterReadTime);
+            debugger->printf_P(PSTR("(AmsDataStorage) Last month update: %lu\n"), (int32_t) month.lastMeterReadTime);
         }
         tmElements_t last;
         breakTime(tz->toLocal(month.lastMeterReadTime), last);
         for(int i = last.Day; i < ltz.Day; i++) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) {
-                debugger->printf("(AmsDataStorage) Clearing day: %d\n", i);
+                debugger->printf_P(PSTR("(AmsDataStorage) Clearing day: %d\n"), i);
             }
             setDayImport(i, 0);
             setDayExport(i, 0);
@@ -105,7 +105,7 @@ bool AmsDataStorage::update(AmsData* data) {
     }
 
     if(data->getListType() < 3) {
-        debugger->printf("(AmsDataStorage) Not enough data in list type: %d\n", data->getListType());
+        debugger->printf_P(PSTR("(AmsDataStorage) Not enough data in list type: %d\n"), data->getListType());
         return false;
     }
 
@@ -124,7 +124,7 @@ bool AmsDataStorage::update(AmsData* data) {
             day.activeExport = exportCounter;
             day.lastMeterReadTime = now;
             if(debugger->isActive(RemoteDebug::WARNING)) {
-                debugger->printf("(AmsDataStorage) Too long since last day update, clearing data\n");
+                debugger->printf_P(PSTR("(AmsDataStorage) Too long since last day update, clearing data\n"));
             }
             for(int i = 0; i<24; i++) {
                 setHourImport(i, 0);
@@ -136,7 +136,7 @@ bool AmsDataStorage::update(AmsData* data) {
             setHourImport(utcYesterday.Hour, imp);
             setHourExport(utcYesterday.Hour, exp);
 
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(AmsDataStorage) Usage for hour %d: %d - %d\n", ltzYesterDay.Hour, imp, exp);
+            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(AmsDataStorage) Usage for hour %d: %d - %d\n"), ltzYesterDay.Hour, imp, exp);
             day.activeImport = importCounter;
             day.activeExport = exportCounter;
             day.lastMeterReadTime = now;
@@ -148,7 +148,7 @@ bool AmsDataStorage::update(AmsData* data) {
             float epm = ex / mins;
 
             if(debugger->isActive(RemoteDebug::DEBUG)) {
-                debugger->printf("(AmsDataStorage) Since last day update, minutes: %.1f, import: %d (%.2f/min), export: %d (%.2f/min)\n", mins, im, ipm, ex, epm);
+                debugger->printf_P(PSTR("(AmsDataStorage) Since last day update, minutes: %.1f, import: %d (%.2f/min), export: %d (%.2f/min)\n"), mins, im, ipm, ex, epm);
             }
 
             tmElements_t last;
@@ -167,7 +167,7 @@ bool AmsDataStorage::update(AmsData* data) {
                 setHourExport(last.Hour, exp);
 
                 if(debugger->isActive(RemoteDebug::INFO)) {
-                    debugger->printf("(AmsDataStorage) Estimated usage for hour %u: %.1f - %.1f (%lu)\n", last.Hour, imp, exp, (int32_t) cur);
+                    debugger->printf_P(PSTR("(AmsDataStorage) Estimated usage for hour %u: %.1f - %.1f (%lu)\n"), last.Hour, imp, exp, (int32_t) cur);
                 }
 
                 day.activeImport += imp;
@@ -191,7 +191,7 @@ bool AmsDataStorage::update(AmsData* data) {
             month.activeExport = exportCounter;
             month.lastMeterReadTime = now;
             if(debugger->isActive(RemoteDebug::WARNING)) {
-                debugger->printf("(AmsDataStorage) Too long since last month update, clearing data\n");
+                debugger->printf_P(PSTR("(AmsDataStorage) Too long since last month update, clearing data\n"));
             }
             for(int i = 1; i<=31; i++) {
                 setDayImport(i, 0);
@@ -202,7 +202,7 @@ bool AmsDataStorage::update(AmsData* data) {
             int32_t exp = exportCounter - month.activeExport;
 
             if(debugger->isActive(RemoteDebug::INFO)) {
-                debugger->printf("(AmsDataStorage) Usage for day %d: %d - %d\n", ltzYesterDay.Day, imp, exp);
+                debugger->printf_P(PSTR("(AmsDataStorage) Usage for day %d: %d - %d\n"), ltzYesterDay.Day, imp, exp);
             }
 
             setDayImport(ltzYesterDay.Day, imp);
@@ -216,7 +216,7 @@ bool AmsDataStorage::update(AmsData* data) {
             breakTime(tz->toLocal(month.lastMeterReadTime), last);
             month.lastMeterReadTime = month.lastMeterReadTime - (last.Hour * 3600) - (last.Minute * 60) - last.Second;
             if(debugger->isActive(RemoteDebug::DEBUG)) {
-                debugger->printf("(AmsDataStorage) Last month read after resetting to midnight: %lu\n", (int32_t) month.lastMeterReadTime);
+                debugger->printf_P(PSTR("(AmsDataStorage) Last month read after resetting to midnight: %lu\n"), (int32_t) month.lastMeterReadTime);
             }
 
             float hrs = (now - month.lastMeterReadTime) / 3600.0;
@@ -226,7 +226,7 @@ bool AmsDataStorage::update(AmsData* data) {
             float eph = ex / hrs;
 
             if(debugger->isActive(RemoteDebug::DEBUG)) {
-                debugger->printf("(AmsDataStorage) Since last month update, hours: %.1f, import: %d (%.2f/hr), export: %d (%.2f/hr)\n", hrs, im, iph, ex, eph);
+                debugger->printf_P(PSTR("(AmsDataStorage) Since last month update, hours: %.1f, import: %d (%.2f/hr), export: %d (%.2f/hr)\n"), hrs, im, iph, ex, eph);
             }
 
             time_t stopAt = now - (ltz.Hour * 3600) - (ltz.Minute * 60) - ltz.Second;
@@ -241,7 +241,7 @@ bool AmsDataStorage::update(AmsData* data) {
                 setDayExport(last.Day, exp);
 
                 if(debugger->isActive(RemoteDebug::INFO)) {
-                    debugger->printf("(AmsDataStorage) Estimated usage for day %u: %.1f - %.1f (%lu)\n", last.Day, imp, exp, (int32_t) cur);
+                    debugger->printf_P(PSTR("(AmsDataStorage) Estimated usage for day %u: %.1f - %.1f (%lu)\n"), last.Day, imp, exp, (int32_t) cur);
                 }
 
                 month.activeImport += imp;
@@ -413,7 +413,7 @@ uint32_t AmsDataStorage::getDayExport(uint8_t day) {
 bool AmsDataStorage::load() {
     if(!LittleFS.begin()) {
         if(debugger->isActive(RemoteDebug::ERROR)) {
-            debugger->printf("(AmsDataStorage) Unable to load LittleFS\n");
+            debugger->printf_P(PSTR("(AmsDataStorage) Unable to load LittleFS\n"));
         }
         return false;
     }
@@ -445,7 +445,7 @@ bool AmsDataStorage::load() {
 bool AmsDataStorage::save() {
     if(!LittleFS.begin()) {
         if(debugger->isActive(RemoteDebug::ERROR)) {
-            debugger->printf("(AmsDataStorage) Unable to load LittleFS\n");
+            debugger->printf_P(PSTR("(AmsDataStorage) Unable to load LittleFS\n"));
         }
         return false;
     }
@@ -559,17 +559,17 @@ bool AmsDataStorage::isDayHappy() {
     tmElements_t tm, last;
 
     if(now < day.lastMeterReadTime) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Day data timestamp %lu < %lu\n", (int32_t) now, (int32_t) day.lastMeterReadTime);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Day data timestamp %lu < %lu\n"), (int32_t) now, (int32_t) day.lastMeterReadTime);
         return false;
     }
     breakTime(tz->toLocal(now), tm);
     breakTime(tz->toLocal(day.lastMeterReadTime), last);
     if(now-day.lastMeterReadTime > 3600) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Day data timestamp age %lu - %lu > 3600\n", (int32_t) now, (int32_t) day.lastMeterReadTime);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Day data timestamp age %lu - %lu > 3600\n"), (int32_t) now, (int32_t) day.lastMeterReadTime);
         return false;
     }
     if(tm.Hour > last.Hour) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Day data hour of last timestamp %d > %d\n", tm.Hour, last.Hour);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Day data hour of last timestamp %d > %d\n"), tm.Hour, last.Hour);
         return false;
     }
 
@@ -578,7 +578,7 @@ bool AmsDataStorage::isDayHappy() {
 
 bool AmsDataStorage::isMonthHappy() {
     if(tz == NULL) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Timezone is missing\n");
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Timezone is missing\n"));
         return false;
     }
 
@@ -587,14 +587,14 @@ bool AmsDataStorage::isMonthHappy() {
     tmElements_t tm, last;
     
     if(now < month.lastMeterReadTime) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Month data timestamp %lu < %lu\n", (int32_t) now, (int32_t) month.lastMeterReadTime);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Month data timestamp %lu < %lu\n"), (int32_t) now, (int32_t) month.lastMeterReadTime);
         return false;
     }
 
     breakTime(tz->toLocal(now), tm);
     breakTime(tz->toLocal(month.lastMeterReadTime), last);
     if(tm.Day > last.Day) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf("(AmsDataStorage) Month data day of last timestamp %d > %d\n", tm.Day, last.Day);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Month data day of last timestamp %d > %d\n"), tm.Day, last.Day);
         return false;
     }
 

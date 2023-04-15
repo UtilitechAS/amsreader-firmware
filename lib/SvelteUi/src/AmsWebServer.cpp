@@ -170,9 +170,6 @@ bool AmsWebServer::checkSecurity(byte level, bool send401) {
 		String expectedBase64 = base64::encode(expectedAuth);
 		#endif
 
-		debugger->printf("Expected auth: %s\n", expectedBase64.c_str());
-		debugger->printf("Provided auth: %s\n", providedPwd.c_str());
-
 		access = providedPwd.equals(expectedBase64);
 	}
 
@@ -192,21 +189,21 @@ void AmsWebServer::notFound() {
 }
 
 void AmsWebServer::githubSvg() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /github.svg over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /github.svg over http...\n"));
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	server.send_P(200, "image/svg+xml", GITHUB_SVG);
 }
 
 void AmsWebServer::faviconSvg() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /favicon.ico over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /favicon.ico over http...\n"));
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
 	server.send_P(200, "image/svg+xml", FAVICON_SVG);
 }
 
 void AmsWebServer::sysinfoJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /sysinfo.json over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /sysinfo.json over http...\n"));
 
 	SystemConfig sys;
 	config->getSystemConfig(sys);
@@ -343,7 +340,7 @@ void AmsWebServer::sysinfoJson() {
 		if(ds != NULL) {
 			ds->save();
 		}
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Rebooting"));
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
 		delay(1000);
 		#if defined(ESP8266)
 			ESP.reset();
@@ -355,7 +352,7 @@ void AmsWebServer::sysinfoJson() {
 }
 
 void AmsWebServer::dataJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /data.json over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /data.json over http...\n"));
 	uint64_t millis = millis64();
 
 	if(!checkSecurity(2, true))
@@ -498,7 +495,7 @@ void AmsWebServer::dataJson() {
 }
 
 void AmsWebServer::dayplotJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /dayplot.json over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /dayplot.json over http...\n"));
 
 	if(!checkSecurity(2))
 		return;
@@ -567,7 +564,7 @@ void AmsWebServer::dayplotJson() {
 }
 
 void AmsWebServer::monthplotJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /monthplot.json over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /monthplot.json over http...\n"));
 
 	if(!checkSecurity(2))
 		return;
@@ -650,7 +647,7 @@ void AmsWebServer::monthplotJson() {
 }
 
 void AmsWebServer::energyPriceJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /energyprice.json over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /energyprice.json over http...\n"));
 
 	if(!checkSecurity(2))
 		return;
@@ -709,7 +706,7 @@ void AmsWebServer::energyPriceJson() {
 }
 
 void AmsWebServer::temperatureJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /temperature.json over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /temperature.json over http...\n"));
 
 	if(!checkSecurity(2))
 		return;
@@ -744,7 +741,7 @@ void AmsWebServer::temperatureJson() {
 }
 
 void AmsWebServer::indexHtml() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /index.html over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /index.html over http...\n"));
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -757,7 +754,7 @@ void AmsWebServer::indexHtml() {
 }
 
 void AmsWebServer::indexCss() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /index.css over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /index.css over http...\n"));
 
 	if(!checkSecurity(2))
 		return;
@@ -768,7 +765,7 @@ void AmsWebServer::indexCss() {
 }
 
 void AmsWebServer::indexJs() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /index.js over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /index.js over http...\n"));
 
 	if(!checkSecurity(2))
 		return;
@@ -779,7 +776,7 @@ void AmsWebServer::indexJs() {
 }
 
 void AmsWebServer::configurationJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /configuration.json over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /configuration.json over http...\n"));
 
 	if(!checkSecurity(1))
 		return;
@@ -971,7 +968,7 @@ void AmsWebServer::configurationJson() {
 }
 
 void AmsWebServer::handleSave() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Handling save method from http"));
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Handling save method from http"));
 	if(!checkSecurity(1))
 		return;
 
@@ -1183,7 +1180,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("m")) && server.arg(F("m")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received meter config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received meter config"));
 		config->getMeterConfig(*meterConfig);
 		meterConfig->baud = server.arg(F("mb")).toInt();
 		meterConfig->parity = server.arg(F("mp")).toInt();
@@ -1222,7 +1219,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("w")) && server.arg(F("w")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received WiFi config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received WiFi config"));
 		WiFiConfig wifi;
 		config->getWiFiConfig(wifi);
 		strcpy(wifi.ssid, server.arg(F("ws")).c_str());
@@ -1264,7 +1261,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("q")) && server.arg(F("q")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received MQTT config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received MQTT config"));
 		MqttConfig mqtt;
 		config->getMqttConfig(mqtt);
 		if(server.hasArg(F("qh")) && !server.arg(F("qh")).isEmpty()) {
@@ -1295,7 +1292,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("o")) && server.arg(F("o")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received Domoticz config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Domoticz config"));
 		DomoticzConfig domo {
 			static_cast<uint16_t>(server.arg(F("oe")).toInt()),
 			static_cast<uint16_t>(server.arg(F("ou1")).toInt()),
@@ -1307,7 +1304,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("h")) && server.arg(F("h")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received Home-Assistant config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Home-Assistant config"));
 		HomeAssistantConfig haconf;
 		config->getHomeAssistantConfig(haconf);
 		strcpy(haconf.discoveryPrefix, server.arg(F("ht")).c_str());
@@ -1317,7 +1314,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("g")) && server.arg(F("g")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received web config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received web config"));
 		webConfig.security = server.arg(F("gs")).toInt();
 		if(webConfig.security > 0) {
 			strcpy(webConfig.username, server.arg(F("gu")).c_str());
@@ -1347,7 +1344,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("i")) && server.arg(F("i")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received GPIO config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received GPIO config"));
 		gpioConfig->hanPin = server.hasArg(F("ihp")) && !server.arg(F("ihp")).isEmpty() ? server.arg(F("ihp")).toInt() : 3;
 		gpioConfig->hanPinPullup = server.hasArg(F("ihu")) && server.arg(F("ihu")) == F("true");
 		gpioConfig->ledPin = server.hasArg(F("ilp")) && !server.arg(F("ilp")).isEmpty() ? server.arg(F("ilp")).toInt() : 0xFF;
@@ -1366,7 +1363,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("iv")) && server.arg(F("iv")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received Vcc config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Vcc config"));
 		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toFloat() * 100 : 0;
 		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toFloat() * 1000 : 1000;
 		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? server.arg(F("ivb")).toFloat() * 10 : 0;
@@ -1374,7 +1371,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("d")) && server.arg(F("d")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received Debug config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Debug config"));
 		DebugConfig debug;
 		config->getDebugConfig(debug);
 		bool active = debug.serial || debug.telnet;
@@ -1421,7 +1418,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("p")) && server.arg(F("p")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received price API config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received price API config"));
 
 		priceRegion = server.arg(F("pr"));
 
@@ -1436,7 +1433,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("t")) && server.arg(F("t")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Received energy accounting config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received energy accounting config"));
 		EnergyAccountingConfig eac;
 		eac.thresholds[0] = server.arg(F("t0")).toInt();
 		eac.thresholds[1] = server.arg(F("t1")).toInt();
@@ -1451,10 +1448,10 @@ void AmsWebServer::handleSave() {
 		config->setEnergyAccountingConfig(eac);
 	}
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Saving configuration now..."));
+	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Saving configuration now..."));
 
 	if (config->save()) {
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Successfully saved."));
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully saved."));
 		if(config->isWifiChanged() || performRestart) {
 			performRestart = true;
 		} else {
@@ -1479,7 +1476,7 @@ void AmsWebServer::handleSave() {
 		if(ds != NULL) {
 			ds->save();
 		}
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Rebooting"));
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
 		delay(1000);
 		#if defined(ESP8266)
 			ESP.reset();
@@ -1491,7 +1488,7 @@ void AmsWebServer::handleSave() {
 }
 
 void AmsWebServer::reboot() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /reboot over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /reboot over http...\n"));
 
 	if(!checkSecurity(1))
 		return;
@@ -1501,7 +1498,7 @@ void AmsWebServer::reboot() {
 	server.handleClient();
 	delay(250);
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Rebooting"));
+	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
 	delay(1000);
 	#if defined(ESP8266)
 		ESP.reset();
@@ -1512,7 +1509,7 @@ void AmsWebServer::reboot() {
 }
 
 void AmsWebServer::upgrade() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /upgrade over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /upgrade over http...\n"));
 
 	if(!checkSecurity(1))
 		return;
@@ -1579,13 +1576,13 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 	config->setUpgradeInformation(ret, ret == HTTP_UPDATE_OK ? 0 : lastError, VERSION, nextVersion.c_str());
 	switch(ret) {
 		case HTTP_UPDATE_FAILED:
-			debugger->printf(PSTR("Update failed\n"));
+			debugger->printf_P(PSTR("Update failed\n"));
 			break;
 		case HTTP_UPDATE_NO_UPDATES:
-			debugger->printf(PSTR("No Update\n"));
+			debugger->printf_P(PSTR("No Update\n"));
 			break;
 		case HTTP_UPDATE_OK:
-			debugger->printf(PSTR("Update OK\n"));
+			debugger->printf_P(PSTR("Update OK\n"));
 			debugger->flush();
 			#if defined(ESP8266)
 				ESP.reset();
@@ -1597,7 +1594,7 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 }
 
 void AmsWebServer::firmwareHtml() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Serving /firmware.html over http..."));
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /firmware.html over http..."));
 
 	if(!checkSecurity(1))
 		return;
@@ -1611,7 +1608,7 @@ void AmsWebServer::firmwareHtml() {
 }
 
 void AmsWebServer::firmwarePost() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Handling firmware post..."));
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Handling firmware post..."));
 	if(!checkSecurity(1))
 		return;
 	
@@ -1621,7 +1618,7 @@ void AmsWebServer::firmwarePost() {
 		if(server.hasArg(F("url"))) {
 			String url = server.arg(F("url"));
 			if(!url.isEmpty() && (url.startsWith(F("http://")) || url.startsWith(F("https://")))) {
-				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Custom firmware URL was provided"));
+				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Custom firmware URL was provided"));
 
 				upgradeFromUrl(url, "");
 				server.send(200, MIME_PLAIN, "OK");
@@ -1642,7 +1639,7 @@ void AmsWebServer::firmwareUpload() {
 	if(upload.status == UPLOAD_FILE_START) {
         String filename = upload.filename;
 		if(filename.isEmpty()) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("No file, falling back to post\n"));
+			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("No file, falling back to post\n"));
 			return;
 		}
         if(!filename.endsWith(".bin")) {
@@ -1668,10 +1665,10 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START){
 		if(uploading) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("Upload already in progress\n"));
+			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Upload already in progress\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Upload already in progress!</h1></body></html>"));
 		} else if (!LittleFS.begin()) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("An Error has occurred while mounting LittleFS\n"));
+			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("An Error has occurred while mounting LittleFS\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Unable to mount LittleFS!</h1></body></html>"));
 		} else {
 			uploading = true;
@@ -1706,7 +1703,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 				LittleFS.remove(path);
 				LittleFS.end();
 
-				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(PSTR("An Error has occurred while writing file"));
+				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("An Error has occurred while writing file"));
 				snprintf_P(buf, BufferSize, RESPONSE_JSON,
 					"false",
 					"File size does not match",
@@ -1747,13 +1744,13 @@ void AmsWebServer::factoryResetPost() {
 	if(!checkSecurity(1))
 		return;
 
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Performing factory reset"));
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Performing factory reset"));
 
 	bool success = false;
 	if(server.hasArg(F("perform")) && server.arg(F("perform")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Formatting LittleFS"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Formatting LittleFS"));
 		LittleFS.format();
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Clearing configuration"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Clearing configuration"));
 		config->clear();
 
 		success = true;
@@ -1770,7 +1767,7 @@ void AmsWebServer::factoryResetPost() {
 	server.handleClient();
 	delay(250);
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf(PSTR("Rebooting"));
+	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
 	delay(1000);
 	#if defined(ESP8266)
 		ESP.reset();
@@ -1833,7 +1830,7 @@ void AmsWebServer::mqttKeyUpload() {
 }
 
 void AmsWebServer::tariffJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /tariff.json over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /tariff.json over http...\n"));
 
 	if(!checkSecurity(2))
 		return;
@@ -1882,7 +1879,7 @@ void AmsWebServer::setPriceSettings(String region, String currency) {
 }
 
 void AmsWebServer::configFileDownload() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Serving /configfile.cfg over http...\n");
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /configfile.cfg over http...\n"));
 
 	if(!checkSecurity(1))
 		return;

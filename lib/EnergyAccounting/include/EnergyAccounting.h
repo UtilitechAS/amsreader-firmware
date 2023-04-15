@@ -74,7 +74,7 @@ public:
     double getIncomeThisMonth();
     uint16_t getIncomeLastMonth();
 
-    float getMonthMax();
+    double getMonthMax();
     uint8_t getCurrentThreshold();
     EnergyAccountingPeak getPeak(uint8_t);
 

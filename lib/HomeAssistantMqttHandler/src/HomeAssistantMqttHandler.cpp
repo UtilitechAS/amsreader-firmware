@@ -216,7 +216,6 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
     memset(ts1hr, 0, 24);
 	if(min1hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
-        //Serial.printf("1hr: %d %lu\n", min1hrIdx, ts);
 		tmElements_t tm;
         breakTime(ts, tm);
 		sprintf_P(ts1hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
@@ -225,7 +224,6 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
     memset(ts3hr, 0, 24);
 	if(min3hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
-        //Serial.printf("3hr: %d %lu\n", min3hrIdx, ts);
 		tmElements_t tm;
         breakTime(ts, tm);
 		sprintf_P(ts3hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
@@ -234,7 +232,6 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
     memset(ts6hr, 0, 24);
 	if(min6hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
-        //Serial.printf("6hr: %d %lu\n", min6hrIdx, ts);
 		tmElements_t tm;
         breakTime(ts, tm);
 		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);

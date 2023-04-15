@@ -411,39 +411,39 @@ bool AmsConfiguration::setGpioConfig(GpioConfig& config) {
 	}
 	/* This currently does not work, as it checks its own pin
 	if(pinUsed(config.hanPin, config)) {
-		Serial.println("HAN pin already used");
+		debugger->println(F("HAN pin already used"));
 		return false;
 	}
 	if(pinUsed(config.apPin, config)) {
-		Serial.println("AP pin already used");
+		debugger->println(F("AP pin already used"));
 		return false;
 	}
 	if(pinUsed(config.ledPin, config)) {
-		Serial.println("LED pin already used");
+		debugger->println(F("LED pin already used"));
 		return false;
 	}
 	if(pinUsed(config.ledPinRed, config)) {
-		Serial.println("LED RED pin already used");
+		debugger->println(F("LED RED pin already used"));
 		return false;
 	}
 	if(pinUsed(config.ledPinGreen, config)) {
-		Serial.println("LED GREEN pin already used");
+		debugger->println(F("LED GREEN pin already used"));
 		return false;
 	}
 	if(pinUsed(config.ledPinBlue, config)) {
-		Serial.println("LED BLUE pin already used");
+		debugger->println(F("LED BLUE pin already used"));
 		return false;
 	}
 	if(pinUsed(config.tempSensorPin, config)) {
-		Serial.println("Temp sensor pin already used");
+		debugger->println(F("Temp sensor pin already used"));
 		return false;
 	}
 	if(pinUsed(config.tempAnalogSensorPin, config)) {
-		Serial.println("Analog temp sensor pin already used");
+		debugger->println(F("Analog temp sensor pin already used"));
 		return false;
 	}
 	if(pinUsed(config.vccPin, config)) {
-		Serial.println("Vcc pin already used");
+		debugger->println(F("Vcc pin already used"));
 		return false;
 	}
 	*/
@@ -875,8 +875,6 @@ void AmsConfiguration::loadTempSensors() {
 	int address = EEPROM_TEMP_CONFIG_ADDRESS;
 	int c = 0;
 	int storedCount = EEPROM.read(address++);
-	Serial.print("Sensors: ");
-	Serial.println(storedCount);
 	if(storedCount > 0 && storedCount <= 32) {
 		for(int i = 0; i < storedCount; i++) {
 			TempSensorConfig* tsc = new TempSensorConfig();
@@ -1178,155 +1176,155 @@ void AmsConfiguration::deleteFromFs(uint8_t version) {
 
 void AmsConfiguration::print(Print* debugger)
 {
-	debugger->println("-----------------------------------------------");
+	debugger->println(F("-----------------------------------------------"));
 	WiFiConfig wifi;
 	if(getWiFiConfig(wifi)) {
-		debugger->println("--WiFi configuration--");
-		debugger->printf("SSID:                 '%s'\r\n", wifi.ssid);
-		debugger->printf("Psk:                  '%s'\r\n", wifi.psk);
+		debugger->println(F("--WiFi configuration--"));
+		debugger->printf_P(PSTR("SSID:                 '%s'\r\n"), wifi.ssid);
+		debugger->printf_P(PSTR("Psk:                  '%s'\r\n"), wifi.psk);
 		if(strlen(wifi.ip) > 0) {
-			debugger->printf("IP:                   '%s'\r\n", wifi.ip);
-			debugger->printf("Gateway:              '%s'\r\n", wifi.gateway);
-			debugger->printf("Subnet:               '%s'\r\n", wifi.subnet);
-			debugger->printf("DNS1:                 '%s'\r\n", wifi.dns1);
-			debugger->printf("DNS2:                 '%s'\r\n", wifi.dns2);
+			debugger->printf_P(PSTR("IP:                   '%s'\r\n"), wifi.ip);
+			debugger->printf_P(PSTR("Gateway:              '%s'\r\n"), wifi.gateway);
+			debugger->printf_P(PSTR("Subnet:               '%s'\r\n"), wifi.subnet);
+			debugger->printf_P(PSTR("DNS1:                 '%s'\r\n"), wifi.dns1);
+			debugger->printf_P(PSTR("DNS2:                 '%s'\r\n"), wifi.dns2);
 		}
-		debugger->printf("Hostname:             '%s'\r\n", wifi.hostname);
-		debugger->printf("mDNS:                 '%s'\r\n", wifi.mdns ? "Yes" : "No");
-		debugger->println("");
+		debugger->printf_P(PSTR("Hostname:             '%s'\r\n"), wifi.hostname);
+		debugger->printf_P(PSTR("mDNS:                 '%s'\r\n"), wifi.mdns ? "Yes" : "No");
+		debugger->println(F(""));
 		delay(10);
-		Serial.flush();
+		debugger->flush();
 	}
 
 	MqttConfig mqtt;
 	if(getMqttConfig(mqtt)) {
-		debugger->println("--MQTT configuration--");
+		debugger->println(F("--MQTT configuration--"));
 		if(strlen(mqtt.host) > 0) {
-			debugger->printf("Enabled:              Yes\r\n");
-			debugger->printf("Host:                 '%s'\r\n", mqtt.host);
-			debugger->printf("Port:                 %i\r\n", mqtt.port);
-			debugger->printf("Client ID:            '%s'\r\n", mqtt.clientId);
-			debugger->printf("Publish topic:        '%s'\r\n", mqtt.publishTopic);
-			debugger->printf("Subscribe topic:      '%s'\r\n", mqtt.subscribeTopic);
+			debugger->printf_P(PSTR("Enabled:              Yes\r\n"));
+			debugger->printf_P(PSTR("Host:                 '%s'\r\n"), mqtt.host);
+			debugger->printf_P(PSTR("Port:                 %i\r\n"), mqtt.port);
+			debugger->printf_P(PSTR("Client ID:            '%s'\r\n"), mqtt.clientId);
+			debugger->printf_P(PSTR("Publish topic:        '%s'\r\n"), mqtt.publishTopic);
+			debugger->printf_P(PSTR("Subscribe topic:      '%s'\r\n"), mqtt.subscribeTopic);
 			if (strlen(mqtt.username) > 0) {
-				debugger->printf("Username:             '%s'\r\n", mqtt.username);
-				debugger->printf("Password:             '%s'\r\n", mqtt.password);
+				debugger->printf_P(PSTR("Username:             '%s'\r\n"), mqtt.username);
+				debugger->printf_P(PSTR("Password:             '%s'\r\n"), mqtt.password);
 			}
-			debugger->printf("Payload format:       %i\r\n", mqtt.payloadFormat);
-			debugger->printf("SSL:                  %s\r\n", mqtt.ssl ? "Yes" : "No");
+			debugger->printf_P(PSTR("Payload format:       %i\r\n"), mqtt.payloadFormat);
+			debugger->printf_P(PSTR("SSL:                  %s\r\n"), mqtt.ssl ? "Yes" : "No");
 		} else {
-			debugger->printf("Enabled:              No\r\n");
+			debugger->printf_P(PSTR("Enabled:              No\r\n"));
 		}
-		debugger->println("");
+		debugger->println(F(""));
 		delay(10);
-		Serial.flush();
+		debugger->flush();
 	}
 
 	WebConfig web;
 	if(getWebConfig(web)) {
-		debugger->println("--Web configuration--");
-		debugger->printf("Security:             %i\r\n", web.security);
+		debugger->println(F("--Web configuration--"));
+		debugger->printf_P(PSTR("Security:             %i\r\n"), web.security);
 		if (web.security > 0) {
-			debugger->printf("Username:             '%s'\r\n", web.username);
-			debugger->printf("Password:             '%s'\r\n", web.password);
+			debugger->printf_P(PSTR("Username:             '%s'\r\n"), web.username);
+			debugger->printf_P(PSTR("Password:             '%s'\r\n"), web.password);
 		}
-		debugger->println("");
+		debugger->println(F(""));
 		delay(10);
-		Serial.flush();
+		debugger->flush();
 	}
 
 	MeterConfig meter;
 	if(getMeterConfig(meter)) {
-		debugger->println("--Meter configuration--");
-		debugger->printf("Baud:                 %i\r\n", meter.baud);
-		debugger->printf("Parity:               %i\r\n", meter.parity);
-		debugger->printf("Invert serial:        %s\r\n", meter.invert ? "Yes" : "No");
-		debugger->printf("Distribution system:  %i\r\n", meter.distributionSystem);
-		debugger->printf("Main fuse:            %i\r\n", meter.mainFuse);
-		debugger->printf("Production Capacity:  %i\r\n", meter.productionCapacity);
-		debugger->println("");
+		debugger->println(F("--Meter configuration--"));
+		debugger->printf_P(PSTR("Baud:                 %i\r\n"), meter.baud);
+		debugger->printf_P(PSTR("Parity:               %i\r\n"), meter.parity);
+		debugger->printf_P(PSTR("Invert serial:        %s\r\n"), meter.invert ? "Yes" : "No");
+		debugger->printf_P(PSTR("Distribution system:  %i\r\n"), meter.distributionSystem);
+		debugger->printf_P(PSTR("Main fuse:            %i\r\n"), meter.mainFuse);
+		debugger->printf_P(PSTR("Production Capacity:  %i\r\n"), meter.productionCapacity);
+		debugger->println(F(""));
 		delay(10);
-		Serial.flush();
+		debugger->flush();
 	}
 
 	GpioConfig gpio;
 	if(getGpioConfig(gpio)) {
-		debugger->println("--GPIO configuration--");
-		debugger->printf("HAN pin:              %i\r\n", gpio.hanPin);
-		debugger->printf("HAN pin pullup        %s\r\n", gpio.hanPinPullup ? "Yes" : "No");
-		debugger->printf("LED pin:              %i\r\n", gpio.ledPin);
-		debugger->printf("LED inverted:         %s\r\n", gpio.ledInverted ? "Yes" : "No");
-		debugger->printf("LED red pin:          %i\r\n", gpio.ledPinRed);
-		debugger->printf("LED green pin:        %i\r\n", gpio.ledPinGreen);
-		debugger->printf("LED blue pin:         %i\r\n", gpio.ledPinBlue);
-		debugger->printf("LED inverted:         %s\r\n", gpio.ledRgbInverted ? "Yes" : "No");
-		debugger->printf("AP pin:               %i\r\n", gpio.apPin);
-		debugger->printf("Temperature pin:      %i\r\n", gpio.tempSensorPin);
-		debugger->printf("Temp analog pin:      %i\r\n", gpio.tempAnalogSensorPin);
-		debugger->printf("Vcc pin:              %i\r\n", gpio.vccPin);
+		debugger->println(F("--GPIO configuration--"));
+		debugger->printf_P(PSTR("HAN pin:              %i\r\n"), gpio.hanPin);
+		debugger->printf_P(PSTR("HAN pin pullup        %s\r\n"), gpio.hanPinPullup ? "Yes" : "No");
+		debugger->printf_P(PSTR("LED pin:              %i\r\n"), gpio.ledPin);
+		debugger->printf_P(PSTR("LED inverted:         %s\r\n"), gpio.ledInverted ? "Yes" : "No");
+		debugger->printf_P(PSTR("LED red pin:          %i\r\n"), gpio.ledPinRed);
+		debugger->printf_P(PSTR("LED green pin:        %i\r\n"), gpio.ledPinGreen);
+		debugger->printf_P(PSTR("LED blue pin:         %i\r\n"), gpio.ledPinBlue);
+		debugger->printf_P(PSTR("LED inverted:         %s\r\n"), gpio.ledRgbInverted ? "Yes" : "No");
+		debugger->printf_P(PSTR("AP pin:               %i\r\n"), gpio.apPin);
+		debugger->printf_P(PSTR("Temperature pin:      %i\r\n"), gpio.tempSensorPin);
+		debugger->printf_P(PSTR("Temp analog pin:      %i\r\n"), gpio.tempAnalogSensorPin);
+		debugger->printf_P(PSTR("Vcc pin:              %i\r\n"), gpio.vccPin);
 		if(gpio.vccMultiplier > 0) {
-			debugger->printf("Vcc multiplier:       %f\r\n", gpio.vccMultiplier / 1000.0);
+			debugger->printf_P(PSTR("Vcc multiplier:       %f\r\n"), gpio.vccMultiplier / 1000.0);
 		}
 		if(gpio.vccOffset > 0) {
-			debugger->printf("Vcc offset:           %f\r\n", gpio.vccOffset / 100.0);
+			debugger->printf_P(PSTR("Vcc offset:           %f\r\n"), gpio.vccOffset / 100.0);
 		}
 		if(gpio.vccBootLimit > 0) {
-			debugger->printf("Vcc boot limit:       %f\r\n", gpio.vccBootLimit / 10.0);
+			debugger->printf_P(PSTR("Vcc boot limit:       %f\r\n"), gpio.vccBootLimit / 10.0);
 		}
-		debugger->printf("GND resistor:         %i\r\n", gpio.vccResistorGnd);
-		debugger->printf("Vcc resistor:         %i\r\n", gpio.vccResistorVcc);
-		debugger->println("");
+		debugger->printf_P(PSTR("GND resistor:         %i\r\n"), gpio.vccResistorGnd);
+		debugger->printf_P(PSTR("Vcc resistor:         %i\r\n"), gpio.vccResistorVcc);
+		debugger->println(F(""));
 		delay(10);
-		Serial.flush();
+		debugger->flush();
 	}
 
 	DomoticzConfig domo;
 	if(getDomoticzConfig(domo)) {
-		debugger->println("--Domoticz configuration--");
+		debugger->println(F("--Domoticz configuration--"));
 		if(mqtt.payloadFormat == 3 && domo.elidx > 0) {
-			debugger->printf("Enabled:              Yes\r\n");
-			debugger->printf("Domoticz ELIDX:       %i\r\n", domo.elidx);
-			debugger->printf("Domoticz VL1IDX:      %i\r\n", domo.vl1idx);
-			debugger->printf("Domoticz VL2IDX:      %i\r\n", domo.vl2idx);
-			debugger->printf("Domoticz VL3IDX:      %i\r\n", domo.vl3idx);
-			debugger->printf("Domoticz CL1IDX:      %i\r\n", domo.cl1idx);
+			debugger->printf_P(PSTR("Enabled:              Yes\r\n"));
+			debugger->printf_P(PSTR("Domoticz ELIDX:       %i\r\n"), domo.elidx);
+			debugger->printf_P(PSTR("Domoticz VL1IDX:      %i\r\n"), domo.vl1idx);
+			debugger->printf_P(PSTR("Domoticz VL2IDX:      %i\r\n"), domo.vl2idx);
+			debugger->printf_P(PSTR("Domoticz VL3IDX:      %i\r\n"), domo.vl3idx);
+			debugger->printf_P(PSTR("Domoticz CL1IDX:      %i\r\n"), domo.cl1idx);
 		} else {
-			debugger->printf("Enabled:              No\r\n");
+			debugger->printf_P(PSTR("Enabled:              No\r\n"));
 		}
-		debugger->println("");
+		debugger->println(F(""));
 		delay(10);
-		Serial.flush();
+		debugger->flush();
 	}
 
 	NtpConfig ntp;
 	if(getNtpConfig(ntp)) {
-		debugger->println("--NTP configuration--");
-		debugger->printf("Enabled:              %s\r\n", ntp.enable ? "Yes" : "No");
+		debugger->println(F("--NTP configuration--"));
+		debugger->printf_P(PSTR("Enabled:              %s\r\n"), ntp.enable ? "Yes" : "No");
 		if(ntp.enable) {
-			debugger->printf("Timezone:             %s\r\n", ntp.timezone);
-			debugger->printf("Server:               %s\r\n", ntp.server);
-			debugger->printf("DHCP:                 %s\r\n", ntp.dhcp ? "Yes" : "No");
+			debugger->printf_P(PSTR("Timezone:             %s\r\n"), ntp.timezone);
+			debugger->printf_P(PSTR("Server:               %s\r\n"), ntp.server);
+			debugger->printf_P(PSTR("DHCP:                 %s\r\n"), ntp.dhcp ? "Yes" : "No");
 		}
-		debugger->println("");
+		debugger->println(F(""));
 		delay(10);
-		Serial.flush();
+		debugger->flush();
 	}
 
 	EntsoeConfig entsoe;
 	if(getEntsoeConfig(entsoe)) {
 		if(strlen(entsoe.area) > 0) {
-			debugger->println("--ENTSO-E configuration--");
-			debugger->printf("Area:                 %s\r\n", entsoe.area);
-			debugger->printf("Currency:             %s\r\n", entsoe.currency);
-			debugger->printf("Multiplier:           %f\r\n", entsoe.multiplier / 1000.0);
-			debugger->printf("Token:                %s\r\n", entsoe.token);
+			debugger->println(F("--ENTSO-E configuration--"));
+			debugger->printf_P(PSTR("Area:                 %s\r\n"), entsoe.area);
+			debugger->printf_P(PSTR("Currency:             %s\r\n"), entsoe.currency);
+			debugger->printf_P(PSTR("Multiplier:           %f\r\n"), entsoe.multiplier / 1000.0);
+			debugger->printf_P(PSTR("Token:                %s\r\n"), entsoe.token);
 		}
-		debugger->println("");
+		debugger->println(F(""));
 		delay(10);
-		Serial.flush();
+		debugger->flush();
 	}
 
-	debugger->printf("Temp sensor count:    %i\r\n", this->getTempSensorCount());
+	debugger->printf_P(PSTR("Temp sensor count:    %i\r\n"), this->getTempSensorCount());
 
-	debugger->println("-----------------------------------------------");
+	debugger->println(F("-----------------------------------------------"));
 }

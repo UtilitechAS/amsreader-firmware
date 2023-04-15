@@ -61,8 +61,6 @@ private:
     bool retrieve(const char* url, Stream* doc);
     float getCurrencyMultiplier(const char* from, const char* to, time_t t);
 
-	void printD(String fmt, ...);
-	void printE(String fmt, ...);
     void debugPrint(byte *buffer, int start, int length);
 };
 #endif

@@ -184,7 +184,6 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 	char ts1hr[24];
 	if(min1hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
-        //Serial.printf("1hr: %d %lu\n", min1hrIdx, ts);
 		tmElements_t tm;
         breakTime(ts, tm);
 		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
@@ -192,7 +191,6 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 	char ts3hr[24];
 	if(min3hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
-        //Serial.printf("3hr: %d %lu\n", min3hrIdx, ts);
 		tmElements_t tm;
         breakTime(ts, tm);
 		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
@@ -200,7 +198,6 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 	char ts6hr[24];
 	if(min6hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
-        //Serial.printf("6hr: %d %lu\n", min6hrIdx, ts);
 		tmElements_t tm;
         breakTime(ts, tm);
 		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);

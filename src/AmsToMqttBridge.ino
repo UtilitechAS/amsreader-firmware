@@ -225,7 +225,7 @@ void setup() {
 	if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
 		if (vcc < vccBootLimit) {
 			if(Debug.isActive(RemoteDebug::INFO)) {
-				Debug.printf("(setup) Voltage is too low (%.2f < %.2f), sleeping\n", vcc, vccBootLimit);
+				Debug.printf_P(PSTR("(setup) Voltage is too low (%.2f < %.2f), sleeping\n"), vcc, vccBootLimit);
 				Serial.flush();
 			}
 			ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
@@ -675,7 +675,7 @@ void rxerr(int err) {
 void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert) {
 	uint8_t pin = gpioConfig.hanPin;
 
-	if(Debug.isActive(RemoteDebug::INFO)) Debug.printf((char*) F("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n"), pin, baud, parityOrdinal);
+	if(Debug.isActive(RemoteDebug::INFO)) Debug.printf(PSTR("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n"), pin, baud, parityOrdinal);
 
 	if(baud == 0) {
 		baud = bauds[meterAutoIndex];
@@ -1106,13 +1106,13 @@ void debugPrint(byte *buffer, int start, int length) {
 		Debug.print(buffer[i], HEX);
 		Debug.print(F(" "));
 		if ((i - start + 1) % 16 == 0)
-			Debug.println("");
+			Debug.println(F(""));
 		else if ((i - start + 1) % 4 == 0)
 			Debug.print(F(" "));
 
 		yield(); // Let other get some resources too
 	}
-	Debug.println("");
+	Debug.println(F(""));
 }
 
 unsigned long wifiTimeout = WIFI_CONNECTION_TIMEOUT;

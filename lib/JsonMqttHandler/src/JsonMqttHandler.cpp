@@ -13,6 +13,8 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
 	if(topic.isEmpty() || !mqtt->connected())
 		return false;
 
+    bool ret = false;
+
     String meterModel = data->getMeterModel();
     meterModel.replace("\\", "\\\\");
     if(data->getListType() == 1) {
@@ -32,7 +34,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             ea->getProducedThisHour(),
             ea->getProducedToday()
         );
-        return mqtt->publish(topic, json);
+        ret = mqtt->publish(topic, json);
     } else if(data->getListType() == 2) {
         snprintf_P(json, BufferSize, JSON2_JSON,
             WiFi.macAddress().c_str(),
@@ -62,7 +64,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             ea->getProducedThisHour(),
             ea->getProducedToday()
         );
-        return mqtt->publish(topic, json);
+        ret = mqtt->publish(topic, json);
     } else if(data->getListType() == 3) {
         snprintf_P(json, BufferSize, JSON3_JSON,
             WiFi.macAddress().c_str(),
@@ -97,7 +99,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             ea->getProducedThisHour(),
             ea->getProducedToday()
         );
-        return mqtt->publish(topic, json);
+        ret = mqtt->publish(topic, json);
     } else if(data->getListType() == 4) {
         snprintf_P(json, BufferSize, JSON4_JSON,
             WiFi.macAddress().c_str(),
@@ -142,9 +144,11 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
             ea->getProducedThisHour(),
             ea->getProducedToday()
         );
-        return mqtt->publish(topic, json);
+        ret = mqtt->publish(topic, json);
     }
-    return false;
+    mqtt->loop();
+    delay(10);
+    return ret;
 }
 
 bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {
@@ -169,7 +173,10 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
 	}
 	char* pos = json+strlen(json);
 	snprintf(count == 0 ? pos : pos-1, 8, "}}");
-    return mqtt->publish(topic, json);
+    bool ret = mqtt->publish(topic, json);
+    mqtt->loop();
+    delay(10);
+    return ret;
 }
 
 bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
@@ -301,7 +308,10 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
         ts3hr,
         ts6hr
     );
-    return mqtt->publish(topic, json);
+    bool ret = mqtt->publish(topic, json);
+    mqtt->loop();
+    delay(10);
+    return ret;
 }
 
 bool JsonMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
@@ -317,5 +327,8 @@ bool JsonMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounti
         hw->getTemperature(),
         VERSION
     );
-    return mqtt->publish(topic, json);
+    bool ret = mqtt->publish(topic, json);
+    mqtt->loop();
+    delay(10);
+    return ret;
 }

@@ -25,7 +25,7 @@ public:
 protected:
     MQTTClient* mqtt;
     char* json;
-    uint16_t BufferSize = 1024;
+    uint16_t BufferSize = 2048;
 };
 
 #endif

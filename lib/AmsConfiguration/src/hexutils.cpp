@@ -32,7 +32,7 @@ bool stripNonAscii(uint8_t* in, uint16_t size, bool extended) {
 		if(extended && (in[i] < 32 || in[i] == 127 || in[i] == 129 || in[i] == 141 || in[i] == 143 || in[i] == 144 || in[i] == 157)) {
 			memset(in+i, ' ', 1);
 			ret = true;
-		} else if(in[i] < 32 || in[i] > 126) {
+		} else if(!extended && (in[i] < 32 || in[i] > 126)) {
 			memset(in+i, ' ', 1);
 			ret = true;
 		}

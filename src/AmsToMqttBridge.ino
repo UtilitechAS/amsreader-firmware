@@ -100,6 +100,7 @@ AmsMqttHandler* mqttHandler = NULL;
 Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;
 HardwareSerial *hwSerial = NULL;
+size_t rxBufferSize = 256;
 
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
@@ -418,11 +419,19 @@ void loop() {
 		}
 		if(hwSerial->hasOverrun()) {
 			meterState.setLastError(METER_ERROR_BUFFER);
+			if(rxBufferSize < MAX_RX_BUFFER_SIZE) {
+				rxBufferSize += 256;
+				debugI("Incresing RX buffer to %d bytes", rxBufferSize);
+				config.setMeterChanged();
+			}
 		}
 		#endif
 	} else if(swSerial != NULL) {
 		if(swSerial->overflow()) {
 			meterState.setLastError(METER_ERROR_BUFFER);
+			rxBufferSize += 256;
+			debugI("Incresing RX buffer to %d bytes", rxBufferSize);
+			config.setMeterChanged();
 		}
 	}
 
@@ -658,6 +667,11 @@ void rxerr(int err) {
 			break;
 		case 2:
 			debugE("Serial buffer full");
+			if(rxBufferSize < MAX_RX_BUFFER_SIZE) {
+				rxBufferSize += 256;
+				debugI("Incresing RX buffer to %d bytes", rxBufferSize);
+				config.setMeterChanged();
+			}
 			break;
 		case 3:
 			debugE("Serial FIFO overflow");
@@ -739,6 +753,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 				break;
 		}
 
+		hwSerial->setRxBufferSize(rxBufferSize);
 		#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
 			uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
@@ -758,7 +773,6 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 			}
 		#endif
 
-		hwSerial->setRxBufferSize(768);
 		#if defined(ESP32)
 		hwSerial->onReceiveError(rxerr);
 		#endif
@@ -790,7 +804,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 		}
 
 		swSerial = new SoftwareSerial(pin, -1, invert);
-		swSerial->begin(baud, serialConfig);
+		swSerial->begin(baud, serialConfig, pin, -1, invert, rxBufferSize);
 		hanSerial = swSerial;
 
 		Serial.end();
@@ -1394,7 +1408,7 @@ void MQTT_connect() {
 		}
 		yield();
 	} else {
-		mqtt = new MQTTClient(1024);
+		mqtt = new MQTTClient(1500);
 		ws.setMqtt(mqtt);
 	}
 

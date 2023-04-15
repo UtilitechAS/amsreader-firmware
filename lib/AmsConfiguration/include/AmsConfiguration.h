@@ -252,6 +252,7 @@ public:
 	bool getMeterConfig(MeterConfig&);
 	bool setMeterConfig(MeterConfig&);
 	void clearMeter(MeterConfig&);
+	void setMeterChanged();
 	bool isMeterChanged();
 	void ackMeterChanged();
 

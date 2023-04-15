@@ -266,6 +266,10 @@ void AmsConfiguration::ackMeterChanged() {
 	meterChanged = false;
 }
 
+void AmsConfiguration::setMeterChanged() {
+	meterChanged = true;
+}
+
 bool AmsConfiguration::getDebugConfig(DebugConfig& config) {
 	if(hasConfig()) {
 		EEPROM.begin(EEPROM_SIZE);

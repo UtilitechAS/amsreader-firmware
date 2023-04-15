@@ -7,6 +7,6 @@
 String toHex(uint8_t* in);
 String toHex(uint8_t* in, uint16_t size);
 void fromHex(uint8_t *out, String in, uint16_t size);
-void stripNonAscii(uint8_t* in, uint16_t size, bool extended = false);
+bool stripNonAscii(uint8_t* in, uint16_t size, bool extended = false);
 
 #endif

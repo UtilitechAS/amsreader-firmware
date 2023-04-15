@@ -37,5 +37,11 @@
         "s": %d
     },
     "security": %d,
-    "boot_reason": %d
+    "boot_reason": %d,
+    "upgrade": {
+        "x": %d,
+        "e": %d,
+        "f": "%s",
+        "t": "%s"
+    }
 }

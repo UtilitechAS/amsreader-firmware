@@ -679,6 +679,45 @@ void AmsConfiguration::clearUiConfig(UiConfig& config) {
 	config.showTemperaturePlot = 2;
 }
 
+bool AmsConfiguration::setUpgradeInformation(int16_t exitCode, int16_t errorCode, const char* currentVersion, const char* nextVersion) {
+	UpgradeInformation upinfo;
+	upinfo.exitCode = exitCode;
+	upinfo.errorCode = errorCode;
+	strcpy(upinfo.fromVersion, currentVersion);
+	strcpy(upinfo.toVersion, nextVersion);
+
+	stripNonAscii((uint8_t*) upinfo.fromVersion, 8);
+	stripNonAscii((uint8_t*) upinfo.toVersion, 8);
+
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_UPGRADE_INFO_START, upinfo);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::getUpgradeInformation(UpgradeInformation& upinfo) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_UPGRADE_INFO_START, upinfo);
+		EEPROM.end();
+		if(stripNonAscii((uint8_t*) upinfo.fromVersion, 8) || stripNonAscii((uint8_t*) upinfo.toVersion, 8)) {
+			clearUpgradeInformation(upinfo);
+		}
+		return true;
+	} else {
+		clearUpgradeInformation(upinfo);
+		return false;
+	}
+}
+
+void AmsConfiguration::clearUpgradeInformation(UpgradeInformation& upinfo) {
+	upinfo.exitCode = -1;
+	upinfo.errorCode = 0;
+	memset(upinfo.fromVersion, 0, 8);
+	memset(upinfo.toVersion, 0, 8);
+}
+
 
 void AmsConfiguration::clear() {
 	EEPROM.begin(EEPROM_SIZE);
@@ -733,6 +772,10 @@ void AmsConfiguration::clear() {
 	UiConfig ui;
 	clearUiConfig(ui);
 	EEPROM.put(CONFIG_UI_START, ui);
+
+	UpgradeInformation upinfo;
+	clearUpgradeInformation(upinfo);
+	EEPROM.put(CONFIG_UPGRADE_INFO_START, upinfo);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CLEARED_INDICATOR);
 	EEPROM.commit();

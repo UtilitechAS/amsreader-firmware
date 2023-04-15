@@ -11,6 +11,7 @@
 
 #define CONFIG_SYSTEM_START 8
 #define CONFIG_METER_START 32
+#define CONFIG_UPGRADE_INFO_START 216
 #define CONFIG_UI_START 248
 #define CONFIG_GPIO_START 266
 #define CONFIG_ENTSOE_START 290
@@ -213,6 +214,13 @@ struct TempSensorConfig {
 	bool common;
 };
 
+struct UpgradeInformation {
+	char fromVersion[8];
+	char toVersion[8];
+	int16_t exitCode;
+	int16_t errorCode;
+}; // 20
+
 class AmsConfiguration {
 public:
 	bool hasConfig();
@@ -296,6 +304,10 @@ public:
 	void updateTempSensorConfig(uint8_t address[8], const char name[32], bool common);
 
     bool isSensorAddressEqual(uint8_t a[8], uint8_t b[8]);
+
+	bool getUpgradeInformation(UpgradeInformation&);
+	bool setUpgradeInformation(int16_t exitCode, int16_t errorCode, const char* currentVersion, const char* nextVersion);
+	void clearUpgradeInformation(UpgradeInformation&);
 
 	void clear();
 

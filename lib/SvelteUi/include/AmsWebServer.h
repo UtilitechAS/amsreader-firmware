@@ -97,6 +97,7 @@ private:
 	void handleSave();
 	void reboot();
 	void upgrade();
+	void upgradeFromUrl(String url, String nextVersion);
 	void firmwareHtml();
 	void firmwarePost();
 	void firmwareUpload();

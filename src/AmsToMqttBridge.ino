@@ -30,7 +30,7 @@ ADC_MODE(ADC_VCC);
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #endif
-#define WDT_TIMEOUT 60
+#define WDT_TIMEOUT 90
 
 #if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
 #include <driver/uart.h>

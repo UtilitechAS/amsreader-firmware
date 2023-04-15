@@ -254,6 +254,9 @@ void AmsWebServer::sysinfoJson() {
 	UiConfig ui;
 	config->getUiConfig(ui);
 
+	UpgradeInformation upinfo;
+	config->getUpgradeInformation(upinfo);
+
 	String meterModel = meterState->getMeterModel();
 	if(!meterModel.isEmpty())
 		meterModel.replace("\\", "\\\\");
@@ -314,10 +317,14 @@ void AmsWebServer::sysinfoJson() {
 		ui.showTemperaturePlot,
 		webConfig.security,
 		#if defined(ESP32)
-		rtc_get_reset_reason(0)
+		rtc_get_reset_reason(0),
 		#else
-		ESP.getResetInfoPtr()->reason
+		ESP.getResetInfoPtr()->reason,
 		#endif
+		upinfo.exitCode,
+		upinfo.errorCode,
+		upinfo.fromVersion,
+		upinfo.toVersion
 	);
 
 	stripNonAscii((uint8_t*) buf, size+1);
@@ -1542,44 +1549,61 @@ void AmsWebServer::upgrade() {
 		if(server.hasArg(F("version"))) {
 			url += "/" + server.arg(F("version"));
 		}
-
-		WiFiClient client;
-		#if defined(ESP8266)
-			String chipType = F("esp8266");
-		#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-			String chipType = F("esp32s2");
-		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-			String chipType = F("esp32c3");
-		#elif defined(ESP32)
-			#if defined(CONFIG_FREERTOS_UNICORE)
-				String chipType = F("esp32solo");
-			#else
-				String chipType = F("esp32");
-			#endif
-		#endif
-
-		#if defined(ESP8266)
-			ESPhttpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-			t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
-		#elif defined(ESP32)
-			HTTPUpdate httpUpdate;
-			httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-			HTTPUpdateResult ret = httpUpdate.update(client, url, String(VERSION) + "-" + chipType);
-		#endif
-
-		switch(ret) {
-			case HTTP_UPDATE_FAILED:
-				debugger->printf(PSTR("Update failed"));
-				break;
-			case HTTP_UPDATE_NO_UPDATES:
-				debugger->printf(PSTR("No Update"));
-				break;
-			case HTTP_UPDATE_OK:
-				debugger->printf(PSTR("Update OK"));
-				break;
-		}
+		upgradeFromUrl(url, server.arg(F("expected_version")));
 	}
 }
+
+void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
+	config->setUpgradeInformation(0xFF, 0xFF, VERSION, nextVersion.c_str());
+
+	WiFiClient client;
+	#if defined(ESP8266)
+		String chipType = F("esp8266");
+	#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+		String chipType = F("esp32s2");
+	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+		String chipType = F("esp32c3");
+	#elif defined(ESP32)
+		#if defined(CONFIG_FREERTOS_UNICORE)
+			String chipType = F("esp32solo");
+		#else
+			String chipType = F("esp32");
+		#endif
+	#endif
+
+	#if defined(ESP8266)
+		ESP8266HTTPUpdate httpUpdate = ESP8266HTTPUpdate(60000);
+		String currentVersion = VERSION;
+	#elif defined(ESP32)
+		HTTPUpdate httpUpdate = HTTPUpdate(60000);
+		String currentVersion = String(VERSION) + "-" + chipType;
+	#endif
+
+	httpUpdate.rebootOnUpdate(false);
+	httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+	HTTPUpdateResult ret = httpUpdate.update(client, url, currentVersion);
+	int lastError = httpUpdate.getLastError();
+
+	config->setUpgradeInformation(ret, ret == HTTP_UPDATE_OK ? 0 : lastError, VERSION, nextVersion.c_str());
+	switch(ret) {
+		case HTTP_UPDATE_FAILED:
+			debugger->printf(PSTR("Update failed\n"));
+			break;
+		case HTTP_UPDATE_NO_UPDATES:
+			debugger->printf(PSTR("No Update\n"));
+			break;
+		case HTTP_UPDATE_OK:
+			debugger->printf(PSTR("Update OK\n"));
+			debugger->flush();
+			#if defined(ESP8266)
+				ESP.reset();
+			#elif defined(ESP32)
+				ESP.restart();
+			#endif
+			break;
+	}
+}
+
 void AmsWebServer::firmwareHtml() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Serving /firmware.html over http..."));
 
@@ -1607,41 +1631,7 @@ void AmsWebServer::firmwarePost() {
 			if(!url.isEmpty() && (url.startsWith(F("http://")) || url.startsWith(F("https://")))) {
 				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(PSTR("Custom firmware URL was provided"));
 
-				WiFiClient client;
-				#if defined(ESP8266)
-					String chipType = F("esp8266");
-				#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-					String chipType = F("esp32s2");
-				#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-					String chipType = F("esp32c3");
-				#elif defined(ESP32)
-					#if defined(CONFIG_FREERTOS_UNICORE)
-						String chipType = F("esp32solo");
-					#else
-						String chipType = F("esp32");
-					#endif
-				#endif
-
-				#if defined(ESP8266)
-					ESPhttpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-					t_httpUpdate_return ret = ESPhttpUpdate.update(client, url, VERSION);
-				#elif defined(ESP32)
-					HTTPUpdate httpUpdate;
-					httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-					HTTPUpdateResult ret = httpUpdate.update(client, url, String(VERSION) + "-" + chipType);
-				#endif
-
-				switch(ret) {
-					case HTTP_UPDATE_FAILED:
-						debugger->printf(PSTR("Update failed"));
-						break;
-					case HTTP_UPDATE_NO_UPDATES:
-						debugger->printf(PSTR("No Update"));
-						break;
-					case HTTP_UPDATE_OK:
-						debugger->printf(PSTR("Update OK"));
-						break;
-				}			
+				upgradeFromUrl(url, "");
 				server.send(200, MIME_PLAIN, "OK");
 				return;
 			}

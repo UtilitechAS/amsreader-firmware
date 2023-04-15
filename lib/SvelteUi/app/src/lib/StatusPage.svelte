@@ -155,6 +155,11 @@
         <div class="my-2">
             Installed version: {sysinfo.version}
         </div>
+        {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version}
+        <div class="my-2">
+            <div class="bd-yellow">Previous upgrade attempt ({sysinfo.upgrade.t}) does not match current version ({sysinfo.version}) [{sysinfo.upgrade.x}/{sysinfo.upgrade.e}]</div>
+        </div>
+        {/if}
         {#if nextVersion}
             <div class="my-2 flex">
                 Latest version: 

@@ -22,7 +22,8 @@ void fromHex(uint8_t *out, String in, uint16_t size) {
 	}
 }
 
-void stripNonAscii(uint8_t* in, uint16_t size, bool extended) {
+bool stripNonAscii(uint8_t* in, uint16_t size, bool extended) {
+	bool ret = false;
 	for(uint16_t i = 0; i < size; i++) {
 		if(in[i] == 0) { // Clear the rest with null-terminator
 			memset(in+i, 0, size-i);
@@ -30,9 +31,12 @@ void stripNonAscii(uint8_t* in, uint16_t size, bool extended) {
 		}
 		if(extended && (in[i] < 32 || in[i] == 127 || in[i] == 129 || in[i] == 141 || in[i] == 143 || in[i] == 144 || in[i] == 157)) {
 			memset(in+i, ' ', 1);
+			ret = true;
 		} else if(in[i] < 32 || in[i] > 126) {
 			memset(in+i, ' ', 1);
+			ret = true;
 		}
 	}
 	memset(in+size-1, 0, 1); // Make sure the last character is null-terminator
+	return ret;
 }

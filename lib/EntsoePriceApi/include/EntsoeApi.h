@@ -38,6 +38,7 @@ private:
 
     uint8_t currentDay = 0, currentHour = 0;
     uint8_t tomorrowFetchMinute = 15; // How many minutes over 13:00 should it fetch prices
+    uint8_t nextFetchDelayMinutes = 15;
     uint64_t lastTodayFetch = 0;
     uint64_t lastTomorrowFetch = 0;
     uint64_t lastCurrencyFetch = 0;

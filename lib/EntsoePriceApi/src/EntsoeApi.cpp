@@ -172,14 +172,17 @@ bool EntsoeApi::loop() {
         return today != NULL; // Only trigger MQTT publish if we have todays prices.
     }
 
-    bool readyToFetchForTomorrow = tomorrow == NULL && (tm.Hour > 13 || (tm.Hour == 13 && tm.Minute >= tomorrowFetchMinute)) && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > 900000);
+    bool readyToFetchForTomorrow = tomorrow == NULL && (tm.Hour > 13 || (tm.Hour == 13 && tm.Minute >= tomorrowFetchMinute)) && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > (nextFetchDelayMinutes*60000));
 
-    if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > 60000)) {
+    if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > (nextFetchDelayMinutes*60000))) {
         try {
             lastTodayFetch = now;
             today = fetchPrices(t);
         } catch(const std::exception& e) {
-            if(lastError == 0) lastError = 900;
+            if(lastError == 0) {
+                lastError = 900;
+                nextFetchDelayMinutes = 60;
+            }
             today = NULL;
         }
         return today != NULL && !readyToFetchForTomorrow; // Only trigger MQTT publish if we have todays prices and we are not immediately ready to fetch price for tomorrow.
@@ -192,7 +195,10 @@ bool EntsoeApi::loop() {
             lastTomorrowFetch = now;
             tomorrow = fetchPrices(t+SECS_PER_DAY);
         } catch(const std::exception& e) {
-            if(lastError == 0) lastError = 900;
+            if(lastError == 0) {
+                lastError = 900;
+                nextFetchDelayMinutes = 60;
+            }
             tomorrow = NULL;
         }
         return tomorrow != NULL;
@@ -225,9 +231,17 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
                 http.writeToStream(doc);
                 http.end();
                 lastError = 0;
+                nextFetchDelayMinutes = 1;
                 return true;
             } else {
                 lastError = status;
+                if(status == 429) {
+                    nextFetchDelayMinutes = 60;
+                } else if(status == 404) {
+                    nextFetchDelayMinutes = 180;
+                } else {
+                    nextFetchDelayMinutes = 30;
+                }
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(EntsoeApi) Communication error, returned status: %d\n"), status);
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(http.errorToString(status).c_str());
                 if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http.getString().c_str());
@@ -373,13 +387,22 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
                         ret->points[i] = ntohl(ret->points[i]);
                     }
                     lastError = 0;
+                    nextFetchDelayMinutes = 1;
                     return ret;
                 } else {
                     lastError = gcmRet;
+                    nextFetchDelayMinutes = 60;
                     if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(EntsoeApi) Error code while decrypting prices: %d\n"), gcmRet);
                 }
             } else {
                 lastError = status;
+                if(status == 429) {
+                    nextFetchDelayMinutes = 60;
+                } else if(status == 404) {
+                    nextFetchDelayMinutes = 180;
+                } else {
+                    nextFetchDelayMinutes = 30;
+                }
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(EntsoeApi) Communication error, returned status: %d\n"), status);
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(http.errorToString(status).c_str());
                 if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http.getString().c_str());

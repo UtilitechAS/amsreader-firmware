@@ -805,19 +805,11 @@ void AmsWebServer::configurationJson() {
 	DebugConfig debugConfig;
 	config->getDebugConfig(debugConfig);
 	DomoticzConfig domo;
-	if(mqttConfig.payloadFormat == 3) {
-		config->getDomoticzConfig(domo);
-	} else {
-		config->clearDomo(domo);
-	}
+	config->getDomoticzConfig(domo);
 	UiConfig ui;
 	config->getUiConfig(ui);
 	HomeAssistantConfig haconf;
-	if(mqttConfig.payloadFormat == 4) {
-		config->getHomeAssistantConfig(haconf);
-	} else {
-		config->clearHomeAssistantConfig(haconf);
-	}
+	config->getHomeAssistantConfig(haconf);
 
 	bool qsc = false;
 	bool qsr = false;

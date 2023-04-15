@@ -337,6 +337,9 @@ bool AmsConfiguration::getHomeAssistantConfig(HomeAssistantConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_HA_START, config);
 		EEPROM.end();
+		if(stripNonAscii((uint8_t*) config.discoveryPrefix, 64) || stripNonAscii((uint8_t*) config.discoveryHostname, 64) || stripNonAscii((uint8_t*) config.discoveryNameTag, 16)) {
+			clearHomeAssistantConfig(config);
+		}
 		return true;
 	} else {
 		clearHomeAssistantConfig(config);

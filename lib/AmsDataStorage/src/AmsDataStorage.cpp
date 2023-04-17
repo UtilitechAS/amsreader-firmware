@@ -451,19 +451,17 @@ bool AmsDataStorage::save() {
     }
     {
         File file = LittleFS.open(FILE_DAYPLOT, "w");
-        char buf[sizeof(day)];
-        memcpy(buf, &day, sizeof(day));
-        for(unsigned long i = 0; i < sizeof(day); i++) {
-            file.write(buf[i]);
+        char* data = (char*) &day;
+        for(unsigned long i = 0; i < sizeof(data); i++) {
+            file.write(data[i]);
         }
         file.close();
     }
     {
         File file = LittleFS.open(FILE_MONTHPLOT, "w");
-        char buf[sizeof(month)];
-        memcpy(buf, &month, sizeof(month));
-        for(unsigned long i = 0; i < sizeof(month); i++) {
-            file.write(buf[i]);
+        char* data = (char*) &month;
+        for(unsigned long i = 0; i < sizeof(data); i++) {
+            file.write(data[i]);
         }
         file.close();
     }

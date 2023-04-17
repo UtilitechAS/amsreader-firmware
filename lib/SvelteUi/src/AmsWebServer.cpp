@@ -417,7 +417,7 @@ void AmsWebServer::dataJson() {
 		mqttStatus = 3;
 	}
 
-	float price = ea->getPriceForHour(0);
+	double price = ea->getPriceForHour(0);
 
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {

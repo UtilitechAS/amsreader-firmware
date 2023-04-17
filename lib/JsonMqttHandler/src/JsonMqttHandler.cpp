@@ -157,13 +157,13 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
         return false;
     }
 
-	snprintf(json, 24, "{\"temperatures\":{");
+	snprintf_P(json, 24, PSTR("{\"temperatures\":{"));
 
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
         if(data != NULL) {
             char* pos = json+strlen(json);
-            snprintf(pos, 26, "\"%s\":%.2f,", 
+            snprintf_P(pos, 26, PSTR("\"%s\":%.2f,"), 
                 toHex(data->address, 8).c_str(),
                 data->lastRead
             );
@@ -172,7 +172,7 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
         }
 	}
 	char* pos = json+strlen(json);
-	snprintf(count == 0 ? pos : pos-1, 8, "}}");
+	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("}}"));
     bool ret = mqtt->publish(topic, json);
     mqtt->loop();
     delay(10);
@@ -243,7 +243,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
         time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
 		tmElements_t tm;
         breakTime(ts, tm);
-		sprintf(ts1hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+		sprintf_P(ts1hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts3hr[24];
     memset(ts3hr, 0, 24);
@@ -251,7 +251,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
         time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
 		tmElements_t tm;
         breakTime(ts, tm);
-		sprintf(ts3hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+		sprintf_P(ts3hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 	char ts6hr[24];
     memset(ts6hr, 0, 24);
@@ -259,7 +259,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
         time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
 		tmElements_t tm;
         breakTime(ts, tm);
-		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
     snprintf_P(json, BufferSize, JSONPRICES_JSON,

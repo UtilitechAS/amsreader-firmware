@@ -100,7 +100,7 @@ AmsMqttHandler* mqttHandler = NULL;
 Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;
 HardwareSerial *hwSerial = NULL;
-size_t rxBufferSize = 64;
+size_t rxBufferSize = 128;
 
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
@@ -752,6 +752,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 				serialConfig = SERIAL_8E1;
 				break;
 		}
+		if(rxBufferSize < 256) rxBufferSize = 256; // 64 is default for software serial, 256 for hardware
 
 		hwSerial->setRxBufferSize(rxBufferSize);
 		#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
@@ -777,14 +778,19 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 		hwSerial->onReceiveError(rxerr);
 		#endif
 		hanSerial = hwSerial;
-		swSerial = NULL;
+		if(swSerial != NULL) {
+			swSerial->end();
+			delete swSerial;
+			swSerial = NULL;
+		}
 	} else {
 		debugD("Software serial");
 		Serial.flush();
 		
-		if(swSerial != NULL) {
+		if(swSerial == NULL) {
+			swSerial = new SoftwareSerial(pin, -1, invert);
+		} else {
 			swSerial->end();
-			delete swSerial;
 		}
 
 		SoftwareSerialConfig serialConfig;
@@ -803,7 +809,6 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 				break;
 		}
 
-		swSerial = new SoftwareSerial(pin, -1, invert);
 		swSerial->begin(baud, serialConfig, pin, -1, invert, rxBufferSize);
 		hanSerial = swSerial;
 
@@ -814,6 +819,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 
 	// The library automatically sets the pullup in Serial.begin()
 	if(!gpioConfig.hanPinPullup) {
+		debugI("HAN pin pullup disabled");
 		pinMode(gpioConfig.hanPin, INPUT);
 	}
 
@@ -1415,7 +1421,7 @@ void MQTT_connect() {
 		}
 		yield();
 	} else {
-		mqtt = new MQTTClient(1500);
+		mqtt = new MQTTClient(1024);
 		ws.setMqtt(mqtt);
 	}
 

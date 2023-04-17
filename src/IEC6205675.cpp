@@ -4,7 +4,7 @@
 #include "ntohll.h"
 
 IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx) {
-    double val;
+    float val;
     char str[64];
 
     TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
@@ -24,7 +24,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             memcpy(str, data->oct.data, data->oct.length);
             str[data->oct.length] = 0x00;
             String listId = String(str);
-            if(listId.startsWith("KFM_001")) {
+            if(listId.startsWith(F("KFM_001"))) {
                 this->listId = listId;
                 meterType = AmsTypeKaifa;
 
@@ -160,6 +160,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             } 
         }
         // Try system title
+        /*
         if(meterType == AmsTypeUnknown) {
             if(memcmp(ctx.system_title, "SAGY", 4) == 0) {
                 meterType = AmsTypeSagemcom;
@@ -167,6 +168,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 meterType = AmsTypeKaifa;
             }
         }
+        */
 
         if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
             this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
@@ -539,14 +541,14 @@ uint8_t IEC6205675::getString(uint8_t* obis, int matchlength, const char* ptr, c
     return 0;
 }
 
-double IEC6205675::getNumber(uint8_t* obis, int matchlength, const char* ptr) {
+float IEC6205675::getNumber(uint8_t* obis, int matchlength, const char* ptr) {
     CosemData* item = findObis(obis, matchlength, ptr);
     return getNumber(item);
 }
 
-double IEC6205675::getNumber(CosemData* item) {
+float IEC6205675::getNumber(CosemData* item) {
     if(item != NULL) {
-        double ret = 0.0;
+        float ret = 0.0;
         char* pos = ((char*) item);
         switch(item->base.type) {
             case CosemTypeLongSigned: {

@@ -68,7 +68,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         init = true;
     }
 
-    double price = getPriceForHour(0);
+    float price = getPriceForHour(0);
     if(!initPrice && price != ENTSOE_NO_VALUE) {
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EnergyAccounting) Initializing prices at %lu\n"), (int32_t) now);
         calcDayCost();
@@ -124,14 +124,14 @@ bool EnergyAccounting::update(AmsData* amsData) {
     }
 
     unsigned long ms = this->lastUpdateMillis > amsData->getLastUpdateMillis() ? 0 : amsData->getLastUpdateMillis() - this->lastUpdateMillis;
-    double kwhi = (amsData->getActiveImportPower() * (((double) ms) / 3600000.0)) / 1000.0;
-    double kwhe = (amsData->getActiveExportPower() * (((double) ms) / 3600000.0)) / 1000.0;
+    float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
+    float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
     lastUpdateMillis = amsData->getLastUpdateMillis();
     if(kwhi > 0) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh import\n"), kwhi);
         use += kwhi;
         if(price != ENTSOE_NO_VALUE) {
-            double cost = price * kwhi;
+            float cost = price * kwhi;
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), cost / 100.0, eapi->getCurrency());
             costHour += cost;
             costDay += cost;
@@ -141,7 +141,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh export\n"), kwhe);
         produce += kwhe;
         if(price != ENTSOE_NO_VALUE) {
-            double income = price * kwhe;
+            float income = price * kwhe;
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), income / 100.0, eapi->getCurrency());
             incomeHour += income;
             incomeDay += income;
@@ -168,7 +168,7 @@ void EnergyAccounting::calcDayCost() {
             incomeDay = 0;
         }
         for(int i = 0; i < currentHour; i++) {
-            double price = getPriceForHour(i - local.Hour);
+            float price = getPriceForHour(i - local.Hour);
             if(price == ENTSOE_NO_VALUE) break;
             breakTime(now - ((local.Hour - i) * 3600), utc);
             int16_t wh = ds->getHourImport(utc.Hour);
@@ -181,12 +181,12 @@ void EnergyAccounting::calcDayCost() {
     }
 }
 
-double EnergyAccounting::getUseThisHour() {
+float EnergyAccounting::getUseThisHour() {
     return use;
 }
 
-double EnergyAccounting::getUseToday() {
-    double ret = 0.0;
+float EnergyAccounting::getUseToday() {
+    float ret = 0.0;
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0.0;
     if(tz == NULL) return 0.0;
@@ -199,22 +199,22 @@ double EnergyAccounting::getUseToday() {
     return ret + getUseThisHour();
 }
 
-double EnergyAccounting::getUseThisMonth() {
+float EnergyAccounting::getUseThisMonth() {
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0.0;
-    double ret = 0;
+    float ret = 0;
     for(int i = 0; i < currentDay; i++) {
         ret += ds->getDayImport(i) / 1000.0;
     }
     return ret + getUseToday();
 }
 
-double EnergyAccounting::getProducedThisHour() {
+float EnergyAccounting::getProducedThisHour() {
     return produce;
 }
 
-double EnergyAccounting::getProducedToday() {
-    double ret = 0.0;
+float EnergyAccounting::getProducedToday() {
+    float ret = 0.0;
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0.0;
     tmElements_t utc, local;
@@ -226,10 +226,10 @@ double EnergyAccounting::getProducedToday() {
     return ret + getProducedThisHour();
 }
 
-double EnergyAccounting::getProducedThisMonth() {
+float EnergyAccounting::getProducedThisMonth() {
     time_t now = time(nullptr);
     if(now < BUILD_EPOCH) return 0.0;
-    double ret = 0;
+    float ret = 0;
     for(int i = 0; i < currentDay; i++) {
         ret += ds->getDayExport(i) / 1000.0;
     }
@@ -237,19 +237,19 @@ double EnergyAccounting::getProducedThisMonth() {
 }
 
 
-double EnergyAccounting::getCostThisHour() {
+float EnergyAccounting::getCostThisHour() {
     return costHour;
 }
 
-double EnergyAccounting::getCostToday() {
+float EnergyAccounting::getCostToday() {
     return costDay;
 }
 
-double EnergyAccounting::getCostYesterday() {
+float EnergyAccounting::getCostYesterday() {
     return data.costYesterday / 10.0;
 }
 
-double EnergyAccounting::getCostThisMonth() {
+float EnergyAccounting::getCostThisMonth() {
     return data.costThisMonth + getCostToday();
 }
 
@@ -257,19 +257,19 @@ uint16_t EnergyAccounting::getCostLastMonth() {
     return data.costLastMonth;
 }
 
-double EnergyAccounting::getIncomeThisHour() {
+float EnergyAccounting::getIncomeThisHour() {
     return incomeHour;
 }
 
-double EnergyAccounting::getIncomeToday() {
+float EnergyAccounting::getIncomeToday() {
     return incomeDay;
 }
 
-double EnergyAccounting::getIncomeYesterday() {
+float EnergyAccounting::getIncomeYesterday() {
     return data.incomeYesterday / 10.0;
 }
 
-double EnergyAccounting::getIncomeThisMonth() {
+float EnergyAccounting::getIncomeThisMonth() {
     return data.incomeThisMonth + getIncomeToday();
 }
 
@@ -283,7 +283,7 @@ uint8_t EnergyAccounting::getCurrentThreshold() {
     return config->thresholds[currentThresholdIdx];
 }
 
-double EnergyAccounting::getMonthMax() {
+float EnergyAccounting::getMonthMax() {
     if(config == NULL)
         return 0.0;
     uint8_t count = 0;
@@ -503,11 +503,11 @@ bool EnergyAccounting::updateMax(uint16_t val, uint8_t day) {
     return false;
 }
 
-void EnergyAccounting::setFixedPrice(double price) {
+void EnergyAccounting::setFixedPrice(float price) {
     this->fixedPrice = price;
 }
 
-double EnergyAccounting::getPriceForHour(uint8_t h) {
+float EnergyAccounting::getPriceForHour(uint8_t h) {
     if(fixedPrice > 0.0) return fixedPrice;
     if(eapi == NULL) return ENTSOE_NO_VALUE;
     return eapi->getValueForHour(h);

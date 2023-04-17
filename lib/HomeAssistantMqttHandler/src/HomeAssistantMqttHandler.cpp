@@ -120,7 +120,8 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
         );
         mqtt->publish(topic + "/realtime", json);
     }
-
+    mqtt->loop();
+    delay(10);
     return true;
 }
 
@@ -138,7 +139,7 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
         if(data != NULL) {
             char* pos = buf+strlen(buf);
             String id = toHex(data->address, 8);
-            snprintf(pos, 26, "\"%s\":%.2f,", 
+            snprintf_P(pos, 26, PSTR("\"%s\":%.2f,"), 
                 id.c_str(),
                 data->lastRead
             );

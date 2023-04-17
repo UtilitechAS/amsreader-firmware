@@ -213,8 +213,8 @@ void HwTools::getAdcChannel(uint8_t pin, AdcConfig& config) {
     #endif
 }
 
-double HwTools::getVcc() {
-    double volts = 0.0;
+float HwTools::getVcc() {
+    float volts = 0.0;
     if(config->vccPin != 0xFF) {
         #if defined(ESP32)
             if(voltAdc.unit != 0xFF) {
@@ -257,7 +257,7 @@ double HwTools::getVcc() {
     if(volts == 0.0) return 0.0;
 
     if(config->vccResistorGnd > 0 && config->vccResistorVcc > 0) {
-        volts *= ((double) (config->vccResistorGnd + config->vccResistorVcc) / config->vccResistorGnd);
+        volts *= ((float) (config->vccResistorGnd + config->vccResistorVcc) / config->vccResistorGnd);
     }
 
 
@@ -348,10 +348,10 @@ bool HwTools::isSensorAddressEqual(uint8_t a[8], uint8_t b[8]) {
     return true;
 }
 
-double HwTools::getTemperature() {
+float HwTools::getTemperature() {
     uint8_t c = 0;
-    double ret = 0;
-    double analogTemp = getTemperatureAnalog();
+    float ret = 0;
+    float analogTemp = getTemperatureAnalog();
     if(analogTemp != DEVICE_DISCONNECTED_C) {
         ret += analogTemp;
         c++;
@@ -366,10 +366,10 @@ double HwTools::getTemperature() {
     }
     return c == 0 ? DEVICE_DISCONNECTED_C : ret/c;
 }
-double HwTools::getTemperatureAnalog() {
+float HwTools::getTemperatureAnalog() {
     if(config->tempAnalogSensorPin != 0xFF) {
         float adcCalibrationFactor = 1.06587;
-        int volts = ((double) analogRead(config->tempAnalogSensorPin) / analogRange) * 3.3;
+        int volts = ((float) analogRead(config->tempAnalogSensorPin) / analogRange) * 3.3;
         return ((volts * adcCalibrationFactor) - 0.4) / 0.0195;
     }
     return DEVICE_DISCONNECTED_C;

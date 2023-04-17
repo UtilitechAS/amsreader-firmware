@@ -158,11 +158,11 @@ void AmsWebServer::loop() {
 
 bool AmsWebServer::checkSecurity(byte level, bool send401) {
 	bool access = WiFi.getMode() == WIFI_AP || webConfig.security < level;
-	if(!access && webConfig.security >= level && server.hasHeader("Authorization")) {
+	if(!access && webConfig.security >= level && server.hasHeader(F("Authorization"))) {
 		String expectedAuth = String(webConfig.username) + ":" + String(webConfig.password);
 
-		String providedPwd = server.header("Authorization");
-		providedPwd.replace("Basic ", "");
+		String providedPwd = server.header(F("Authorization"));
+		providedPwd.replace(F("Basic "), F(""));
 
 		#if defined(ESP8266)
 		String expectedBase64 = base64::encode(expectedAuth, false);
@@ -256,11 +256,11 @@ void AmsWebServer::sysinfoJson() {
 
 	String meterModel = meterState->getMeterModel();
 	if(!meterModel.isEmpty())
-		meterModel.replace("\\", "\\\\");
+		meterModel.replace(F("\\"), F("\\\\"));
 
 	String meterId = meterState->getMeterId();
 	if(!meterId.isEmpty())
-		meterId.replace("\\", "\\\\");
+		meterId.replace(F("\\"), F("\\\\"));
 
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		VERSION,
@@ -342,11 +342,7 @@ void AmsWebServer::sysinfoJson() {
 		}
 		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
 		delay(1000);
-		#if defined(ESP8266)
-			ESP.reset();
-		#elif defined(ESP32)
-			ESP.restart();
-		#endif
+		ESP.restart();
 		performRestart = false;
 	}
 }
@@ -417,7 +413,7 @@ void AmsWebServer::dataJson() {
 		mqttStatus = 3;
 	}
 
-	double price = ea->getPriceForHour(0);
+	float price = ea->getPriceForHour(0);
 
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
@@ -712,7 +708,7 @@ void AmsWebServer::temperatureJson() {
 		return;
 
 	int count = hw->getTempSensorCount();
-	snprintf(buf, 16, "{\"c\":%d,\"s\":[", count);
+	snprintf_P(buf, 16, PSTR("{\"c\":%d,\"s\":["), count);
 
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
@@ -730,7 +726,7 @@ void AmsWebServer::temperatureJson() {
 		delay(10);
 	}
 	char* pos = buf+strlen(buf);
-	snprintf(count == 0 ? pos : pos-1, 8, "]}");
+	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("]}"));
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -964,7 +960,7 @@ void AmsWebServer::configurationJson() {
 		haconf.discoveryNameTag
 	);
 	server.sendContent(buf);
-	server.sendContent("}");
+	server.sendContent_P(PSTR("}"));
 }
 
 void AmsWebServer::handleSave() {
@@ -1211,10 +1207,10 @@ void AmsWebServer::handleSave() {
 			memset(meterConfig->authenticationKey, 0, 16);
 		}
 
-		meterConfig->wattageMultiplier = server.arg(F("mmw")).toDouble() * 1000;
-		meterConfig->voltageMultiplier = server.arg(F("mmv")).toDouble() * 1000;
-		meterConfig->amperageMultiplier = server.arg(F("mma")).toDouble() * 1000;
-		meterConfig->accumulatedMultiplier = server.arg(F("mmc")).toDouble() * 1000;
+		meterConfig->wattageMultiplier = server.arg(F("mmw")).toFloat() * 1000;
+		meterConfig->voltageMultiplier = server.arg(F("mmv")).toFloat() * 1000;
+		meterConfig->amperageMultiplier = server.arg(F("mma")).toFloat() * 1000;
+		meterConfig->accumulatedMultiplier = server.arg(F("mmc")).toFloat() * 1000;
 		config->setMeterConfig(*meterConfig);
 	}
 
@@ -1478,11 +1474,7 @@ void AmsWebServer::handleSave() {
 		}
 		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
 		delay(1000);
-		#if defined(ESP8266)
-			ESP.reset();
-		#elif defined(ESP32)
-			ESP.restart();
-		#endif
+		ESP.restart();
 		performRestart = false;
 	}
 }
@@ -1500,11 +1492,7 @@ void AmsWebServer::reboot() {
 
 	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
 	delay(1000);
-	#if defined(ESP8266)
-		ESP.reset();
-	#elif defined(ESP32)
-		ESP.restart();
-	#endif
+	ESP.restart();
 	performRestart = false;
 }
 
@@ -1584,11 +1572,7 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 		case HTTP_UPDATE_OK:
 			debugger->printf_P(PSTR("Update OK\n"));
 			debugger->flush();
-			#if defined(ESP8266)
-				ESP.reset();
-			#elif defined(ESP32)
-				ESP.restart();
-			#endif
+			ESP.restart();
 			break;
 	}
 }
@@ -1642,8 +1626,8 @@ void AmsWebServer::firmwareUpload() {
 			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("No file, falling back to post\n"));
 			return;
 		}
-        if(!filename.endsWith(".bin")) {
-            server.send(500, MIME_PLAIN, "500: couldn't create file");
+        if(!filename.endsWith(F(".bin"))) {
+            server.send_P(500, MIME_PLAIN, PSTR("500: couldn't create file"));
 		} else {
 			#if defined(ESP32)
 				esp_task_wdt_delete(NULL);
@@ -1656,7 +1640,7 @@ void AmsWebServer::firmwareUpload() {
 	uploadFile(FILE_FIRMWARE);
 	if(upload.status == UPLOAD_FILE_END) {
 		rebootForUpgrade = true;
-		server.sendHeader("Location","/");
+		server.sendHeader(HEADER_LOCATION,F("/"));
 		server.send(302);
 	}
 }
@@ -1769,11 +1753,7 @@ void AmsWebServer::factoryResetPost() {
 
 	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
 	delay(1000);
-	#if defined(ESP8266)
-		ESP.reset();
-	#elif defined(ESP32)
-		ESP.restart();
-	#endif
+	ESP.restart();
 }
 
 void AmsWebServer::robotstxt() {
@@ -2220,7 +2200,7 @@ void AmsWebServer::configFileDownload() {
 			ead.peaks[4].day,
 			ead.peaks[4].value / 100.0
 		));
-		server.sendContent("\n");
+		server.sendContent_P(PSTR("\n"));
 	}
 }
 
@@ -2231,12 +2211,12 @@ void AmsWebServer::configFileUpload() {
 	HTTPUpload& upload = uploadFile(FILE_CFG);
     if(upload.status == UPLOAD_FILE_END) {
 		performRestart = true;
-		server.sendHeader("Location","/");
+		server.sendHeader(HEADER_LOCATION,F("/"));
 		server.send(303);
 	}
 }
 
 void AmsWebServer::redirectToMain() {
-	server.sendHeader("Location","/");
+	server.sendHeader(HEADER_LOCATION,F("/"));
 	server.send(302);
 }

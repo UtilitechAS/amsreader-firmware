@@ -37,13 +37,13 @@ struct AdcConfig {
 class HwTools {
 public:
     void setup(GpioConfig*, AmsConfiguration*);
-    double getVcc();
+    float getVcc();
     uint8_t getTempSensorCount();
     TempSensorData* getTempSensorData(uint8_t);
     bool updateTemperatures();
-    double getTemperature();
-    double getTemperatureAnalog();
-    double getTemperature(uint8_t address[8]);
+    float getTemperature();
+    float getTemperatureAnalog();
+    float getTemperature(uint8_t address[8]);
     int getWifiRssi();
     bool ledOn(uint8_t color);
     bool ledOff(uint8_t color);

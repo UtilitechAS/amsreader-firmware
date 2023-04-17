@@ -11,5 +11,6 @@ public:
 private:
     String extract(String payload, String obis);
     double extractDouble(String payload, String obis);
+    float extractFloat(String payload, String obis);
 };
 #endif

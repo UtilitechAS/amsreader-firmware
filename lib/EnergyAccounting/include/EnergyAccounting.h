@@ -54,35 +54,35 @@ public:
     bool save();
     bool isInitialized();
 
-    double getUseThisHour();
-    double getUseToday();
-    double getUseThisMonth();
+    float getUseThisHour();
+    float getUseToday();
+    float getUseThisMonth();
 
-    double getProducedThisHour();
-    double getProducedToday();
-    double getProducedThisMonth();
+    float getProducedThisHour();
+    float getProducedToday();
+    float getProducedThisMonth();
 
-    double getCostThisHour();
-    double getCostToday();
-    double getCostYesterday();
-    double getCostThisMonth();
+    float getCostThisHour();
+    float getCostToday();
+    float getCostYesterday();
+    float getCostThisMonth();
     uint16_t getCostLastMonth();
 
-    double getIncomeThisHour();
-    double getIncomeToday();
-    double getIncomeYesterday();
-    double getIncomeThisMonth();
+    float getIncomeThisHour();
+    float getIncomeToday();
+    float getIncomeYesterday();
+    float getIncomeThisMonth();
     uint16_t getIncomeLastMonth();
 
-    double getMonthMax();
+    float getMonthMax();
     uint8_t getCurrentThreshold();
     EnergyAccountingPeak getPeak(uint8_t);
 
     EnergyAccountingData getData();
     void setData(EnergyAccountingData&);
 
-    void setFixedPrice(double price);
-    double getPriceForHour(uint8_t h);
+    void setFixedPrice(float price);
+    float getPriceForHour(uint8_t h);
 
 private:
     RemoteDebug* debugger = NULL;
@@ -93,10 +93,10 @@ private:
     EnergyAccountingConfig *config = NULL;
     Timezone *tz = NULL;
     uint8_t currentHour = 0, currentDay = 0, currentThresholdIdx = 0;
-    double use = 0, costHour = 0, costDay = 0;
-    double produce = 0, incomeHour = 0, incomeDay = 0;
+    float use = 0, costHour = 0, costDay = 0;
+    float produce = 0, incomeHour = 0, incomeDay = 0;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0 };
-    double fixedPrice = 0;
+    float fixedPrice = 0;
 
     void calcDayCost();
     bool updateMax(uint16_t val, uint8_t day);

@@ -92,8 +92,8 @@ float EntsoeApi::getValueForHour(time_t ts, int8_t hour) {
     if(pos >= 48)
         return ENTSOE_NO_VALUE;
 
-    double value = ENTSOE_NO_VALUE;
-    double multiplier = config->multiplier / 1000.0;
+    float value = ENTSOE_NO_VALUE;
+    float multiplier = config->multiplier / 1000.0;
     if(pos >= hoursToday) {
         if(tomorrow == NULL)
             return ENTSOE_NO_VALUE;
@@ -272,14 +272,14 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t 
             ESP.wdtFeed();
         #endif
 
-        snprintf(buf, BufferSize, "https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1", from);
+        snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1"), from);
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EntsoeApi) Retrieving %s to NOK conversion\n"), from);
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  url: %s\n"), buf);
         if(retrieve(buf, &p)) {
             if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  got exchange rate %.4f\n"), p.getValue());
             currencyMultiplier = p.getValue();
             if(strncmp(to, "NOK", 3) != 0) {
-                snprintf(buf, BufferSize, "https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1", to);
+                snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1"), to);
                 if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EntsoeApi) Retrieving %s to NOK conversion\n"), to);
                 if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  url: %s\n"), buf);
                 if(retrieve(buf, &p)) {
@@ -310,8 +310,8 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
         breakTime(tz->toUTC(e1), d1); // To get day and hour for CET/CEST at UTC midnight
         breakTime(tz->toUTC(e2), d2);
 
-        snprintf(buf, BufferSize, "%s?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s", 
-        "https://web-api.tp.entsoe.eu/api", getToken(), 
+        snprintf_P(buf, BufferSize, PSTR("https://web-api.tp.entsoe.eu/api?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s"), 
+        getToken(), 
         d1.Year+1970, d1.Month, d1.Day, d1.Hour, 00,
         d2.Year+1970, d2.Month, d2.Day, d2.Hour, 00,
         config->area, config->area);
@@ -334,8 +334,7 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
         }
     } else if(hub) {
         String data;
-        snprintf(buf, BufferSize, "%s/%s/%d/%d/%d?currency=%s",
-            "http://hub.amsleser.no/hub/price",
+        snprintf_P(buf, BufferSize, PSTR("http://hub.amsleser.no/hub/price/%s/%d/%d/%d?currency=%s"),
             config->area,
             tm.Year+1970,
             tm.Month,
@@ -368,7 +367,7 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
                     debugPrint(content, 0, data.length());
                 }
 
-                DataParserContext ctx;
+                DataParserContext ctx = {0,0,0,0};
                 ctx.length = data.length();
                 GCMParser gcm(key, auth);
                 int8_t gcmRet = gcm.parse(content, ctx);

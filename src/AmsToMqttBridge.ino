@@ -30,7 +30,7 @@ ADC_MODE(ADC_VCC);
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #endif
-#define WDT_TIMEOUT 90
+#define WDT_TIMEOUT 60
 
 #if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
 #include <driver/uart.h>
@@ -63,6 +63,14 @@ ADC_MODE(ADC_VCC);
 #include "Uptime.h"
 
 #include "RemoteDebug.h"
+
+#define debugV_P(x, ...)	if (Debug.isActive(Debug.VERBOSE)) 	{Debug.printf_P(x,  ##__VA_ARGS__);Debug.println();}
+#define debugD_P(x, ...)	if (Debug.isActive(Debug.DEBUG))	{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
+#define debugI_P(x, ...)	if (Debug.isActive(Debug.INFO)) 	{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
+#define debugW_P(x, ...)	if (Debug.isActive(Debug.WARNING)) 	{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
+#define debugE_P(x, ...)	if (Debug.isActive(Debug.ERROR)) 	{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
+#define debugA_P(x, ...)	if (Debug.isActive(Debug.ANY)) 		{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
+
 
 #define BUF_SIZE_COMMON (2048)
 #define BUF_SIZE_HAN (1280)
@@ -218,8 +226,8 @@ void setup() {
 	float vcc = hw.getVcc();
 
 	if (Debug.isActive(RemoteDebug::INFO)) {
-		debugI("AMS bridge started");
-		debugI("Voltage: %.2fV", vcc);
+		debugI_P(PSTR("AMS bridge started"));
+		debugI_P(PSTR("Voltage: %.2fV"), vcc);
 	}
 
 	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
@@ -239,11 +247,11 @@ void setup() {
 
 	bool hasFs = false;
 #if defined(ESP32)
-	debugD("ESP32 LittleFS");
+	debugD_P(PSTR("ESP32 LittleFS"));
 	hasFs = LittleFS.begin(true);
-	debugD(" size: %d", LittleFS.totalBytes());
+	debugD_P(PSTR(" size: %d"), LittleFS.totalBytes());
 #else
-	debugD("ESP8266 LittleFS");
+	debugD_P(PSTR("ESP8266 LittleFS"));
 	hasFs = LittleFS.begin();
 #endif
 	delay(1);
@@ -255,16 +263,16 @@ void setup() {
 		bool flashed = false;
 		if(LittleFS.exists(FILE_FIRMWARE)) {
 			if (!config.hasConfig()) {
-				debugI("Device has no config, yet a firmware file exists, deleting file.");
+				debugI_P(PSTR("Device has no config, yet a firmware file exists, deleting file."));
 			} else if (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH) {
-				if(Debug.isActive(RemoteDebug::INFO)) debugI("Found firmware");
+				if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Found firmware"));
 				#if defined(ESP8266)
 					WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
 					WiFi.forceSleepBegin();
 				#endif
 				int i = 0;
 				while(hw.getVcc() > 1.0 && hw.getVcc() < 3.2 && i < 3) {
-					if(Debug.isActive(RemoteDebug::INFO)) debugI(" vcc not optimal, light sleep 10s");
+					if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR(" vcc not optimal, light sleep 10s"));
 					#if defined(ESP8266)
 						delay(10000);
 					#elif defined(ESP32)
@@ -274,14 +282,14 @@ void setup() {
 					i++;
 				}
 
-				debugI(" flashing");
+				debugI_P(PSTR(" flashing"));
 				File firmwareFile = LittleFS.open(FILE_FIRMWARE, (char*) "r");
-				debugD(" firmware size: %d", firmwareFile.size());
+				debugD_P(PSTR(" firmware size: %d"), firmwareFile.size());
 				uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-				debugD(" available: %d", maxSketchSpace);
+				debugD_P(PSTR(" available: %d"), maxSketchSpace);
 				if (!Update.begin(maxSketchSpace, U_FLASH)) {
 					if(Debug.isActive(RemoteDebug::ERROR)) {
-						debugE("Unable to start firmware update");
+						debugE_P(PSTR("Unable to start firmware update"));
 						Update.printError(Serial);
 					}
 				} else {
@@ -294,26 +302,22 @@ void setup() {
 				}
 				firmwareFile.close();
 			} else {
-				debugW("AP button pressed, skipping firmware update and deleting firmware file.");
+				debugW_P(PSTR("AP button pressed, skipping firmware update and deleting firmware file."));
 			}
 			LittleFS.remove(FILE_FIRMWARE);
 		} else if(LittleFS.exists(FILE_CFG)) {
-			if(Debug.isActive(RemoteDebug::INFO)) debugI("Found config");
+			if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Found config"));
 			configFileParse();
 			flashed = true;
 		}
 		LittleFS.end();
 		if(flashed) {
 			if(Debug.isActive(RemoteDebug::INFO)) {
-				debugI("Firmware update complete, restarting");
+				debugI_P(PSTR("Firmware update complete, restarting"));
 				Serial.flush();
 			}
 			delay(250);
-#if defined(ESP8266)
-			ESP.reset();
-#elif defined(ESP32)
 			ESP.restart();
-#endif
 			return;
 		}
 	}
@@ -338,7 +342,7 @@ void setup() {
 		ds.load();
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
-			debugI("No configuration, booting AP");
+			debugI_P(PSTR("No configuration, booting AP"));
 		}
 		swapWifiMode();
 	}
@@ -401,7 +405,7 @@ void loop() {
 					longPressActive = false;
 				} else {
 					// Single press action
-					debugD("Button was clicked, no action configured");
+					debugD_P(PSTR("Button was clicked, no action configured"));
 				}
 				buttonActive = false;
 			}
@@ -421,7 +425,7 @@ void loop() {
 			meterState.setLastError(METER_ERROR_BUFFER);
 			if(rxBufferSize < MAX_RX_BUFFER_SIZE) {
 				rxBufferSize += 64;
-				debugI("Increasing RX buffer to %d bytes", rxBufferSize);
+				debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
 				config.setMeterChanged();
 			}
 		}
@@ -430,7 +434,7 @@ void loop() {
 		if(swSerial->overflow()) {
 			meterState.setLastError(METER_ERROR_BUFFER);
 			rxBufferSize += 64;
-			debugI("Increasing RX buffer to %d bytes", rxBufferSize);
+			debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
 			config.setMeterChanged();
 		}
 	}
@@ -492,17 +496,17 @@ void loop() {
 						Debug.stop();
 					}
 					if(Debug.isActive(RemoteDebug::INFO)) {
-						debugI("Successfully connected to WiFi!");
-						debugI("IP:  %s", WiFi.localIP().toString().c_str());
-						debugI("GW:  %s", WiFi.gatewayIP().toString().c_str());
-						debugI("DNS: %s", WiFi.dnsIP().toString().c_str());
+						debugI_P(PSTR("Successfully connected to WiFi!"));
+						debugI_P(PSTR("IP:  %s"), WiFi.localIP().toString().c_str());
+						debugI_P(PSTR("GW:  %s"), WiFi.gatewayIP().toString().c_str());
+						debugI_P(PSTR("DNS: %s"), WiFi.dnsIP().toString().c_str());
 					}
 					if(strlen(wifi.hostname) > 0 && wifi.mdns) {
-						debugD("mDNS is enabled, using host: %s", wifi.hostname);
+						debugD_P(PSTR("mDNS is enabled, using host: %s"), wifi.hostname);
 						if(MDNS.begin(wifi.hostname)) {
 							MDNS.addService(F("http"), F("tcp"), 80);
 						} else {
-							debugE("Failed to set up mDNS!");
+							debugE_P(PSTR("Failed to set up mDNS!"));
 						}
 					}
 				}
@@ -568,7 +572,7 @@ void loop() {
 					ea.setFixedPrice(entsoe.fixedPrice / 1000.0);
 				}
 			} catch(const std::exception& e) {
-				debugE("Exception in ENTSO-E loop (%s)", e.what());
+				debugE_P(PSTR("Exception in ENTSO-E loop (%s)"), e.what());
 			}
 			ws.loop();
 		}
@@ -613,7 +617,7 @@ void loop() {
 					if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
 						mqttHandler->publishTemperatures(&config, &hw);
 					}
-					debugD("Used %ld ms to update temperature", millis()-start);
+					debugD_P(PSTR("Used %ld ms to update temperature"), millis()-start);
 				}
 			}
 			if(now - lastSysupdate > 60000) {
@@ -624,7 +628,7 @@ void loop() {
 			}
 		}
 	} catch(const std::exception& e) {
-		debugE("Exception in readHanPort (%s)", e.what());
+		debugE_P(PSTR("Exception in readHanPort (%s)"), e.what());
 		meterState.setLastError(METER_ERROR_EXCEPTION);
 	}
 	try {
@@ -632,13 +636,13 @@ void loop() {
 			if(now - meterAutodetectLastChange > 20000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
 				meterAutodetect = true;
 				meterAutoIndex++; // Default is to try the first one in setup()
-				debugI("Meter serial autodetect, swapping to: %d, %d, %s", bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
+				debugI_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
 				if(meterAutoIndex >= 4) meterAutoIndex = 0;
 				setupHanPort(gpioConfig, bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex]);
 				meterAutodetectLastChange = now;
 			}
 		} else if(meterAutodetect) {
-			debugI("Meter serial autodetected, saving: %d, %d, %s", bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
+			debugI_P(PSTR("Meter serial autodetected, saving: %d, %d, %s"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
 			meterAutodetect = false;
 			meterConfig.baud = bauds[meterAutoIndex];
 			meterConfig.parity = parities[meterAutoIndex];
@@ -647,7 +651,7 @@ void loop() {
 			setupHanPort(gpioConfig, meterConfig.baud, meterConfig.parity, meterConfig.invert);
 		}
 	} catch(const std::exception& e) {
-		debugE("Exception in meter autodetect (%s)", e.what());
+		debugE_P(PSTR("Exception in meter autodetect (%s)"), e.what());
 		meterState.setLastError(METER_ERROR_AUTODETECT);
 	}
 
@@ -659,37 +663,39 @@ void loop() {
 	#endif
 }
 
+#if defined(ESP32)
 void rxerr(int err) {
 	if(err == 0) return;
 	switch(err) {
 		case 1:
-			debugE("Serial break error");
+			debugE_P(PSTR("Serial break error"));
 			break;
 		case 2:
-			debugE("Serial buffer full");
+			debugE_P(PSTR("Serial buffer full"));
 			if(rxBufferSize < MAX_RX_BUFFER_SIZE) {
 				rxBufferSize += 64;
-				debugI("Increasing RX buffer to %d bytes", rxBufferSize);
+				debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
 				config.setMeterChanged();
 			}
 			break;
 		case 3:
-			debugE("Serial FIFO overflow");
+			debugE_P(PSTR("Serial FIFO overflow"));
 			break;
 		case 4:
-			debugE("Serial frame error");
+			debugE_P(PSTR("Serial frame error"));
 			break;
 		case 5:
-			debugE("Serial parity error");
+			debugE_P(PSTR("Serial parity error"));
 			break;
 	}
 	meterState.setLastError(90+err);
 }
+#endif
 
 void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert) {
 	uint8_t pin = gpioConfig.hanPin;
 
-	if(Debug.isActive(RemoteDebug::INFO)) Debug.printf(PSTR("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n"), pin, baud, parityOrdinal);
+	if(Debug.isActive(RemoteDebug::INFO)) Debug.printf(PSTR("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n")), pin, baud, parityOrdinal;
 
 	if(baud == 0) {
 		baud = bauds[meterAutoIndex];
@@ -726,12 +732,12 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 	#endif
 
 	if(pin == 0) {
-		debugE("Invalid GPIO configured for HAN");
+		debugE_P(PSTR("Invalid GPIO configured for HAN"));
 		return;
 	}
 
 	if(hwSerial != NULL) {
-		debugD("Hardware serial");
+		debugD_P(PSTR("Hardware serial"));
 		Serial.flush();
 		#if defined(ESP8266)
 			SerialConfig serialConfig;
@@ -766,10 +772,10 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 		
 		#if defined(ESP8266)
 			if(pin == 3) {
-				debugI("Switching UART0 to pin 1 & 3");
+				debugI_P(PSTR("Switching UART0 to pin 1 & 3"));
 				Serial.pins(1,3);
 			} else if(pin == 113) {
-				debugI("Switching UART0 to pin 15 & 13");
+				debugI_P(PSTR("Switching UART0 to pin 15 & 13"));
 				Serial.pins(15,13);
 			}
 		#endif
@@ -784,7 +790,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 			swSerial = NULL;
 		}
 	} else {
-		debugD("Software serial");
+		debugD_P(PSTR("Software serial"));
 		Serial.flush();
 		
 		if(swSerial == NULL) {
@@ -819,7 +825,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 
 	// The library automatically sets the pullup in Serial.begin()
 	if(!gpioConfig.hanPinPullup) {
-		debugI("HAN pin pullup disabled");
+		debugI_P(PSTR("HAN pin pullup disabled"));
 		pinMode(gpioConfig.hanPin, INPUT);
 	}
 
@@ -844,7 +850,7 @@ void errorBlink() {
 		switch(lastError++) {
 			case 0:
 				if(lastErrorBlink - meterState.getLastUpdateMillis() > 30000) {
-					debugW("No HAN data received last 30s, single blink");
+					debugW_P(PSTR("No HAN data received last 30s, single blink"));
 					hw.ledBlink(LED_RED, 1); // If no message received from AMS in 30 sec, blink once
 					if(meterState.getLastError() == 0) meterState.setLastError(METER_ERROR_NO_DATA);
 					return;
@@ -852,14 +858,14 @@ void errorBlink() {
 				break;
 			case 1:
 				if(mqttEnabled && mqtt != NULL && mqtt->lastError() != 0) {
-					debugW("MQTT connection not available, double blink");
+					debugW_P(PSTR("MQTT connection not available, double blink"));
 					hw.ledBlink(LED_RED, 2); // If MQTT error, blink twice
 					return;
 				}
 				break;
 			case 2:
 				if(WiFi.getMode() != WIFI_AP && WiFi.status() != WL_CONNECTED) {
-					debugW("WiFi not connected, tripe blink");
+					debugW_P(PSTR("WiFi not connected, tripe blink"));
 					hw.ledBlink(LED_RED, 3); // If WiFi not connected, blink three times
 					return;
 				}
@@ -882,7 +888,7 @@ void swapWifiMode() {
 	yield();
 
 	if (mode != WIFI_AP || !config.hasConfig()) {
-		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to AP mode");
+		if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Swapping to AP mode"));
 
 		//wifi_softap_set_dhcps_offer_option(OFFER_ROUTER, 0); // Disable default gw
 
@@ -906,10 +912,10 @@ void swapWifiMode() {
 		dnsServer->start(53, PSTR("*"), WiFi.softAPIP());
 		#if defined(DEBUG_MODE)
 			Debug.setSerialEnabled(true);
-			Debug.begin("192.168.4.1", 23, RemoteDebug::VERBOSE);
+			Debug.begin(F("192.168.4.1"), 23, RemoteDebug::VERBOSE);
 		#endif
 	} else {
-		if(Debug.isActive(RemoteDebug::INFO)) debugI("Swapping to STA mode");
+		if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Swapping to STA mode"));
 		if(dnsServer != NULL) {
 			delete dnsServer;
 			dnsServer = NULL;
@@ -934,7 +940,8 @@ bool readHanPort() {
 		return false;
 	}
 
-	DataParserContext ctx = {0};
+	DataParserContext ctx = {0,0,0,0};
+	strcpy_P((char*) ctx.system_title, PSTR(""));
 	int pos = DATA_PARSE_INCOMPLETE;
 	// For each byte received, check if we have a complete frame we can handle
 	while(hanSerial->available() && pos == DATA_PARSE_INCOMPLETE) {
@@ -942,7 +949,7 @@ bool readHanPort() {
 		if(len >= BUF_SIZE_HAN) {
 			hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
 			len = 0;
-			debugI("Buffer overflow, resetting");
+			debugI_P(PSTR("Buffer overflow, resetting"));
 			return false;
 		}
 		hanBuffer[len++] = hanSerial->read();
@@ -950,12 +957,12 @@ bool readHanPort() {
 		pos = unwrapData((uint8_t *) hanBuffer, ctx);
 		if(ctx.type > 0 && pos >= 0) {
 			if(ctx.type == DATA_TAG_DLMS) {
-				debugD("Received valid DLMS at %d", pos);
+				debugD_P(PSTR("Received valid DLMS at %d"), pos);
 			} else if(ctx.type == DATA_TAG_DSMR) {
-				debugD("Received valid DSMR at %d", pos);
+				debugD_P(PSTR("Received valid DSMR at %d"), pos);
 			} else {
 				// TODO: Move this so that payload is sent to MQTT
-				debugE("Unknown tag %02X at pos %d", ctx.type, pos);
+				debugE_P(PSTR("Unknown tag %02X at pos %d"), ctx.type, pos);
 				len = 0;
 				return false;
 			}
@@ -965,7 +972,7 @@ bool readHanPort() {
 		return false;
 	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
 		meterState.setLastError(pos);
-		debugV("Unknown data payload:");
+		debugV_P(PSTR("Unknown data payload:"));
 		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
 		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint(hanBuffer, 0, len);
 		len = 0;
@@ -1003,12 +1010,12 @@ bool readHanPort() {
 			mqtt->loop();
 		}
 
-		debugV("Using application data:");
+		debugV_P(PSTR("Using application data:"));
 		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint((byte*) payload, 0, ctx.length);
 
 		// Rudimentary detector for L&G proprietary format, this is terrible code... Fix later
 		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
-			debugV("LNG");
+			debugV_P(PSTR("LNG"));
 			data = LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
 		} else if(payload[0] == CosemTypeStructure && 
 			payload[2] == CosemTypeLongUnsigned && 
@@ -1018,10 +1025,10 @@ bool readHanPort() {
 			payload[14] == CosemTypeLongUnsigned && 
 			payload[17] == CosemTypeLongUnsigned
 		) {
-			debugV("LNG2");
+			debugV_P(PSTR("LNG2"));
 			data = LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
 		} else {
-			debugV("DLMS");
+			debugV_P(PSTR("DLMS"));
 			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
 			data = IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx);
 		}
@@ -1043,10 +1050,10 @@ bool readHanPort() {
 		time_t now = time(nullptr);
 		if(now < BUILD_EPOCH && data.getListType() >= 3) {
 			if(data.getMeterTimestamp() > BUILD_EPOCH) {
-				debugI("Using timestamp from meter");
+				debugI_P(PSTR("Using timestamp from meter"));
 				now = data.getMeterTimestamp();
 			} else if(data.getPackageTimestamp() > BUILD_EPOCH) {
-				debugI("Using timestamp from meter (DLMS)");
+				debugI_P(PSTR("Using timestamp from meter (DLMS)"));
 				now = data.getPackageTimestamp();
 			}
 			if(now > BUILD_EPOCH) {
@@ -1062,24 +1069,24 @@ bool readHanPort() {
 
 		bool saveData = false;
 		if(!ds.isHappy() && now > BUILD_EPOCH) {
-			debugD("Its time to update data storage");
+			debugD_P(PSTR("Its time to update data storage"));
 			tmElements_t tm;
 			breakTime(now, tm);
 			if(tm.Minute == 0) {
-				debugV(" using actual data");
+				debugV_P(PSTR(" using actual data"));
 				saveData = ds.update(&data);
 			} else if(meterState.getListType() >= 3) {
-				debugV(" using estimated data");
+				debugV_P(PSTR(" using estimated data"));
 				saveData = ds.update(&meterState);
 			}
 			if(saveData) {
-				debugI("Saving data");
+				debugI_P(PSTR("Saving data"));
 				ds.save();
 			}
 		}
 
 		if(ea.update(&data)) {
-			debugI("Saving energy accounting");
+			debugI_P(PSTR("Saving energy accounting"));
 			ea.save();
 		}
 	}
@@ -1091,37 +1098,37 @@ void printHanReadError(int pos) {
 	if(Debug.isActive(RemoteDebug::WARNING)) {
 		switch(pos) {
 			case DATA_PARSE_BOUNDRY_FLAG_MISSING:
-				debugW("Boundry flag missing");
+				debugW_P(PSTR("Boundry flag missing"));
 				break;
 			case DATA_PARSE_HEADER_CHECKSUM_ERROR:
-				debugW("Header checksum error");
+				debugW_P(PSTR("Header checksum error"));
 				break;
 			case DATA_PARSE_FOOTER_CHECKSUM_ERROR:
-				debugW("Frame checksum error");
+				debugW_P(PSTR("Frame checksum error"));
 				break;
 			case DATA_PARSE_INCOMPLETE:
-				debugW("Received frame is incomplete");
+				debugW_P(PSTR("Received frame is incomplete"));
 				break;
 			case GCM_AUTH_FAILED:
-				debugW("Decrypt authentication failed");
+				debugW_P(PSTR("Decrypt authentication failed"));
 				break;
 			case GCM_ENCRYPTION_KEY_FAILED:
-				debugW("Setting decryption key failed");
+				debugW_P(PSTR("Setting decryption key failed"));
 				break;
 			case GCM_DECRYPT_FAILED:
-				debugW("Decryption failed");
+				debugW_P(PSTR("Decryption failed"));
 				break;
 			case MBUS_FRAME_LENGTH_NOT_EQUAL:
-				debugW("Frame length mismatch");
+				debugW_P(PSTR("Frame length mismatch"));
 				break;
 			case DATA_PARSE_INTERMEDIATE_SEGMENT:
-				debugI("Intermediate segment received");
+				debugI_P(PSTR("Intermediate segment received"));
 				break;
 			case DATA_PARSE_UNKNOWN_DATA:
-				debugW("Unknown data format %02X", hanBuffer[0]);
+				debugW_P(PSTR("Unknown data format %02X"), hanBuffer[0]);
 				break;
 			default:
-				debugW("Unspecified error while reading data: %d", pos);
+				debugW_P(PSTR("Unspecified error while reading data: %d"), pos);
 		}
 	}
 }
@@ -1163,7 +1170,7 @@ void WiFi_connect() {
 				ESP.restart();
 				return;
 			}
-			if (Debug.isActive(RemoteDebug::INFO)) debugI("Not connected to WiFi, closing resources");
+			if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Not connected to WiFi, closing resources"));
 			if(mqtt != NULL) {
 				mqtt->disconnect();
 				mqtt->loop();
@@ -1197,7 +1204,7 @@ void WiFi_connect() {
 		}
 		wifiTimeout = WIFI_CONNECTION_TIMEOUT;
 
-		if (Debug.isActive(RemoteDebug::INFO)) debugI("Connecting to WiFi network: %s", wifi.ssid);
+		if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Connecting to WiFi network: %s"), wifi.ssid);
 
 		wifiReconnectCount++;
 
@@ -1224,7 +1231,7 @@ void WiFi_connect() {
 				dns2.fromString(F("208.67.220.220")); // Add OpenDNS as second by default if nothing is configured
 			}
 			if(!WiFi.config(ip, gw, sn, dns1, dns2)) {
-				debugE("Static IP configuration is invalid, not using");
+				debugE_P(PSTR("Static IP configuration is invalid, not using"));
 			}
 		} else {
 			#if defined(ESP32)
@@ -1258,13 +1265,13 @@ void WiFi_connect() {
 			}
 			yield();
 		} else {
-			if (Debug.isActive(RemoteDebug::ERROR)) debugI("Unable to start WiFi");
+			if (Debug.isActive(RemoteDebug::ERROR)) debugI_P(PSTR("Unable to start WiFi"));
 		}
   	}
 }
 
 void mqttMessageReceived(String &topic, String &payload) {
-    debugI("Received message for topic %s", topic.c_str() );
+    debugI_P(PSTR("Received message for topic %s"), topic.c_str() );
 	//if(meterConfig.source == METER_SOURCE_MQTT) {
 		//DataParserContext ctx = {static_cast<uint8_t>(payload.length()/2)};
 		//fromHex(hanBuffer, payload, ctx.length);
@@ -1314,7 +1321,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 				if(res >= 0) doRet = true;
 				break;
 			default:
-				debugE("Ended up in default case while unwrapping...(tag %02X)", tag);
+				debugE_P(PSTR("Ended up in default case while unwrapping...(tag %02X)"), tag);
 				return DATA_PARSE_UNKNOWN_DATA;
 		}
 		lastTag = tag;
@@ -1325,7 +1332,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 		if(Debug.isActive(RemoteDebug::VERBOSE)) {
 			switch(tag) {
 				case DATA_TAG_HDLC:
-					debugV("HDLC frame:");
+					debugV_P(PSTR("HDLC frame:"));
 					// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), toHex(buf, curLen));
@@ -1333,7 +1340,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					}
 					break;
 				case DATA_TAG_MBUS:
-					debugV("MBUS frame:");
+					debugV_P(PSTR("MBUS frame:"));
 					// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), toHex(buf, curLen));
@@ -1341,19 +1348,19 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					}
 					break;
 				case DATA_TAG_GBT:
-					debugV("GBT frame:");
+					debugV_P(PSTR("GBT frame:"));
 					break;
 				case DATA_TAG_GCM:
-					debugV("GCM frame:");
+					debugV_P(PSTR("GCM frame:"));
 					break;
 				case DATA_TAG_LLC:
-					debugV("LLC frame:");
+					debugV_P(PSTR("LLC frame:"));
 					break;
 				case DATA_TAG_DLMS:
-					debugV("DLMS frame:");
+					debugV_P(PSTR("DLMS frame:"));
 					break;
 				case DATA_TAG_DSMR:
-					debugV("DSMR frame:");
+					debugV_P(PSTR("DSMR frame:"));
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), (char*) buf);
 						mqtt->loop();
@@ -1384,7 +1391,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 		// Use start byte of new buffer position as tag for next round in loop
 		tag = (*buf);
 	}
-	debugE("Got to end of unwrap method...");
+	debugE_P(PSTR("Got to end of unwrap method..."));
 	return DATA_PARSE_UNKNOWN_DATA;
 }
 
@@ -1392,7 +1399,7 @@ unsigned long lastMqttRetry = -10000;
 void MQTT_connect() {
 	MqttConfig mqttConfig;
 	if(!config.getMqttConfig(mqttConfig) || strlen(mqttConfig.host) == 0) {
-		if(Debug.isActive(RemoteDebug::WARNING)) debugW("No MQTT config");
+		if(Debug.isActive(RemoteDebug::WARNING)) debugW_P(PSTR("No MQTT config"));
 		mqttEnabled = false;
 		ws.setMqttEnabled(false);
 		return;
@@ -1405,7 +1412,7 @@ void MQTT_connect() {
 		lastMqttRetry = millis();
 
 		if(Debug.isActive(RemoteDebug::INFO)) {
-			debugD("Disconnecting MQTT before connecting");
+			debugD_P(PSTR("Disconnecting MQTT before connecting"));
 		}
 
 		mqtt->disconnect();
@@ -1421,7 +1428,8 @@ void MQTT_connect() {
 		}
 		yield();
 	} else {
-		mqtt = new MQTTClient(1024);
+		mqtt = new MQTTClient(128);
+		mqtt->dropOverflow(true);
 		ws.setMqtt(mqtt);
 	}
 
@@ -1459,15 +1467,15 @@ void MQTT_connect() {
 	time_t epoch = time(nullptr);
 	if(mqttConfig.ssl) {
 		if(epoch < BUILD_EPOCH) {
-			debugI("NTP not ready for MQTT SSL");
+			debugI_P(PSTR("NTP not ready for MQTT SSL"));
 			return;
 		}
-		debugI("MQTT SSL is configured (%dkb free heap)", ESP.getFreeHeap());
+		debugI_P(PSTR("MQTT SSL is configured (%dkb free heap)"), ESP.getFreeHeap());
 		if(mqttSecureClient == NULL) {
 			mqttSecureClient = new WiFiClientSecure();
 			#if defined(ESP8266)
 				mqttSecureClient->setBufferSizes(512, 512);
-				debugD("ESP8266 firmware does not have enough memory...");
+				debugD_P(PSTR("ESP8266 firmware does not have enough memory..."));
 				return;
 			#endif
 		
@@ -1475,7 +1483,7 @@ void MQTT_connect() {
 				File file;
 
 				if(LittleFS.exists(FILE_MQTT_CA)) {
-					debugI("Found MQTT CA file (%dkb free heap)", ESP.getFreeHeap());
+					debugI_P(PSTR("Found MQTT CA file (%dkb free heap)"), ESP.getFreeHeap());
 					file = LittleFS.open(FILE_MQTT_CA, (char*) "r");
 					#if defined(ESP8266)
 						BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(file);
@@ -1487,25 +1495,25 @@ void MQTT_connect() {
 
 					if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
 						#if defined(ESP8266)
-							debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
+							debugI_P(PSTR("Found MQTT certificate file (%dkb free heap)"), ESP.getFreeHeap());
 							file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
 							BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
 							file.close();
 
-							debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
+							debugI_P(PSTR("Found MQTT key file (%dkb free heap)"), ESP.getFreeHeap());
 							file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
 							BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
 							file.close();
 
-							debugD("Setting client certificates (%dkb free heap)", ESP.getFreeHeap());
+							debugD_P(PSTR("Setting client certificates (%dkb free heap)"), ESP.getFreeHeap());
 							mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
 						#elif defined(ESP32)
-							debugI("Found MQTT certificate file (%dkb free heap)", ESP.getFreeHeap());
+							debugI_P(PSTR("Found MQTT certificate file (%dkb free heap)"), ESP.getFreeHeap());
 							file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
 							mqttSecureClient->loadCertificate(file, file.size());
 							file.close();
 
-							debugI("Found MQTT key file (%dkb free heap)", ESP.getFreeHeap());
+							debugI_P(PSTR("Found MQTT key file (%dkb free heap)"), ESP.getFreeHeap());
 							file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
 							mqttSecureClient->loadPrivateKey(file, file.size());
 							file.close();
@@ -1515,7 +1523,7 @@ void MQTT_connect() {
 				}
 
 				LittleFS.end();
-				debugD("MQTT SSL setup complete (%dkb free heap)", ESP.getFreeHeap());
+				debugD_P(PSTR("MQTT SSL setup complete (%dkb free heap)"), ESP.getFreeHeap());
 			}
 		}
 	}
@@ -1525,7 +1533,7 @@ void MQTT_connect() {
 	}
 
 	if(Debug.isActive(RemoteDebug::INFO)) {
-		debugI("Connecting to MQTT %s:%d", mqttConfig.host, mqttConfig.port);
+		debugI_P(PSTR("Connecting to MQTT %s:%d"), mqttConfig.host, mqttConfig.port);
 	}
 	
 	mqtt->begin(mqttConfig.host, mqttConfig.port, *mqttClient);
@@ -1533,7 +1541,7 @@ void MQTT_connect() {
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
 			time_t epoch = time(nullptr);
-			debugD("Setting NTP time %lu for secure MQTT connection", epoch);
+			debugD_P(PSTR("Setting NTP time %lu for secure MQTT connection"), epoch);
 			mqttSecureClient->setX509Time(epoch);
 		}
 	#endif
@@ -1541,7 +1549,7 @@ void MQTT_connect() {
 	// Connect to a unsecure or secure MQTT server
 	if ((strlen(mqttConfig.username) == 0 && mqtt->connect(mqttConfig.clientId)) ||
 		(strlen(mqttConfig.username) > 0 && mqtt->connect(mqttConfig.clientId, mqttConfig.username, mqttConfig.password))) {
-		if (Debug.isActive(RemoteDebug::INFO)) debugI("Successfully connected to MQTT!");
+		if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Successfully connected to MQTT!"));
 		
 		if(mqttHandler != NULL) {
 			mqttHandler->publishSystem(&hw, eapi, &ea);
@@ -1551,11 +1559,11 @@ void MQTT_connect() {
 		if (strlen(mqttConfig.subscribeTopic) > 0) {
             mqtt->onMessage(mqttMessageReceived);
 			mqtt->subscribe(String(mqttConfig.subscribeTopic) + "/#");
-			debugI("  Subscribing to [%s]\n", mqttConfig.subscribeTopic);
+			debugI_P(PSTR("  Subscribing to [%s]\n"), mqttConfig.subscribeTopic);
 		}
 	} else {
 		if (Debug.isActive(RemoteDebug::ERROR)) {
-			debugE("Failed to connect to MQTT: %d", mqtt->lastError());
+			debugE_P(PSTR("Failed to connect to MQTT: %d"), mqtt->lastError());
 			#if defined(ESP8266)
 				if(mqttSecureClient) {
 					mqttSecureClient->getLastSSLError((char*) commonBuffer, BUF_SIZE_COMMON);
@@ -1568,10 +1576,10 @@ void MQTT_connect() {
 }
 
 void configFileParse() {
-	debugD("Parsing config file");
+	debugD_P(PSTR("Parsing config file"));
 
 	if(!LittleFS.exists(FILE_CFG)) {
-		debugW("Config file does not exist");
+		debugW_P(PSTR("Config file does not exist"));
 		return;
 	}
 
@@ -1612,7 +1620,7 @@ void configFileParse() {
 		for(uint16_t i = 0; i < size; i++) {
 			if(buf[i] < 32 || buf[i] > 126) {
 				memset(buf+i, 0, size-i);
-				debugD("Found non-ascii, shortening line from %d to %d", size, i);
+				debugD_P(PSTR("Found non-ascii, shortening line from %d to %d"), size, i);
 				size = i;
 				break;
 			}
@@ -1745,13 +1753,13 @@ void configFileParse() {
 			gpio.vccPin = String(buf+11).toInt();
 		} else if(strncmp_P(buf, PSTR("gpioVccOffset "), 14) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.vccOffset = String(buf+14).toDouble() * 100;
+			gpio.vccOffset = String(buf+14).toFloat() * 100;
 		} else if(strncmp_P(buf, PSTR("gpioVccMultiplier "), 18) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.vccMultiplier = String(buf+18).toDouble() * 1000;
+			gpio.vccMultiplier = String(buf+18).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("gpioVccBootLimit "), 17) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.vccBootLimit = String(buf+17).toDouble() * 10;
+			gpio.vccBootLimit = String(buf+17).toFloat() * 10;
 		} else if(strncmp_P(buf, PSTR("gpioVccResistorGnd "), 19) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.vccResistorGnd = String(buf+19).toInt();
@@ -1805,7 +1813,7 @@ void configFileParse() {
 			strcpy(entsoe.currency, buf+15);
 		} else if(strncmp_P(buf, PSTR("entsoeMultiplier "), 17) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			entsoe.multiplier = String(buf+17).toDouble() * 1000;
+			entsoe.multiplier = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("thresholds "), 11) == 0) {
 			if(!lEac) { config.getEnergyAccountingConfig(eac); lEac = true; };
 			int i = 0;
@@ -1918,18 +1926,18 @@ void configFileParse() {
 						long val = String(pch).toInt();
 						ead.month = val;
 					} else if(i == 2) {
-						double val = String(pch).toDouble();
+						float val = String(pch).toFloat();
 						if(val > 0.0) {
 							ead.peaks[0] = { 1, (uint16_t) (val*100) };
 						}
 					} else if(i == 3) {
-						double val = String(pch).toDouble();
+						float val = String(pch).toFloat();
 						ead.costYesterday = val * 10;
 					} else if(i == 4) {
-						double val = String(pch).toDouble();
+						float val = String(pch).toFloat();
 						ead.costThisMonth = val;
 					} else if(i == 5) {
-						double val = String(pch).toDouble();
+						float val = String(pch).toFloat();
 						ead.costLastMonth = val;
 					} else if(i >= 6 && i < 18) {
 						uint8_t hour = i-6;					
@@ -1940,7 +1948,7 @@ void configFileParse() {
 						pch = strtok (NULL, " ");
 						i++;
 						{
-							double val = String(pch).toDouble();
+							float val = String(pch).toFloat();
 							ead.peaks[peak].value = val * 100;
 						}
 						peak++;
@@ -1950,22 +1958,22 @@ void configFileParse() {
 						long val = String(pch).toInt();
 						ead.month = val;
 					} else if(i == 2) {
-						double val = String(pch).toDouble();
+						float val = String(pch).toFloat();
 						ead.costYesterday = val * 10;
 					} else if(i == 3) {
-						double val = String(pch).toDouble();
+						float val = String(pch).toFloat();
 						ead.costThisMonth = val;
 					} else if(i == 4) {
-						double val = String(pch).toDouble();
+						float val = String(pch).toFloat();
 						ead.costLastMonth = val;
 					} else if(i == 5) {
-						double val = String(pch).toDouble();
+						float val = String(pch).toFloat();
 						ead.incomeYesterday= val * 10;
 					} else if(i == 6) {
-						double val = String(pch).toDouble();
+						float val = String(pch).toFloat();
 						ead.incomeThisMonth = val;
 					} else if(i == 7) {
-						double val = String(pch).toDouble();
+						float val = String(pch).toFloat();
 						ead.incomeLastMonth = val;
 					} else if(i >= 8 && i < 20) {
 						uint8_t hour = i-8;		
@@ -1976,7 +1984,7 @@ void configFileParse() {
 						pch = strtok (NULL, " ");
 						i++;
 						{
-							double val = String(pch).toDouble();
+							float val = String(pch).toFloat();
 							ead.peaks[peak].value = val * 100;
 						}
 						peak++;
@@ -1992,11 +2000,11 @@ void configFileParse() {
 		memset(buf, 0, 1024);
 	}
 
-	debugD("Deleting config file");
+	debugD_P(PSTR("Deleting config file"));
 	file.close();
 	LittleFS.remove(FILE_CFG);
 
-	debugI("Saving configuration now...");
+	debugI_P(PSTR("Saving configuration now..."));
 	Serial.flush();
 	if(lSys) config.setSystemConfig(sys);
 	if(lWiFi) config.setWiFiConfig(wifi);

@@ -54,8 +54,8 @@ bool AmsDataStorage::update(AmsData* data) {
     breakTime(now-3600, utcYesterday);
     breakTime(tz->toLocal(now-3600), ltzYesterDay);
 
-    uint64_t importCounter = data->getActiveImportCounter() * 1000;
-    uint64_t exportCounter = data->getActiveExportCounter() * 1000;
+    uint32_t importCounter = data->getActiveImportCounter() * 1000;
+    uint32_t exportCounter = data->getActiveExportCounter() * 1000;
 
     // Clear hours between last update and now
     if(day.lastMeterReadTime > now) {

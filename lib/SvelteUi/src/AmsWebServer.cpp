@@ -1604,6 +1604,7 @@ void AmsWebServer::firmwarePost() {
 	if(rebootForUpgrade) {
 		server.send(200);
 	} else {
+		config->setUpgradeInformation(0xFF, 0xFF, VERSION, "");
 		if(server.hasArg(F("url"))) {
 			String url = server.arg(F("url"));
 			if(!url.isEmpty() && (url.startsWith(F("http://")) || url.startsWith(F("https://")))) {

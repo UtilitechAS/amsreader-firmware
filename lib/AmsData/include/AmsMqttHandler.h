@@ -9,6 +9,10 @@
 #include "HwTools.h"
 #include "EntsoeApi.h"
 
+#if defined(ESP32)
+#include <esp_task_wdt.h>
+#endif
+
 class AmsMqttHandler {
 public:
     AmsMqttHandler(MQTTClient* mqtt, char* buf) {
@@ -26,6 +30,8 @@ protected:
     MQTTClient* mqtt;
     char* json;
     uint16_t BufferSize = 2048;
+
+    bool loop();
 };
 
 #endif

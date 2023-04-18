@@ -20,110 +20,135 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
 		return false;
 
     if(data->getListType() >= 3) { // publish energy counts
-        publishList3Sensors();
-        if(data->getActiveExportCounter() > 0.0) publishList3ExportSensors();
-        snprintf_P(json, BufferSize, HA2_JSON,
-            data->getActiveImportCounter(),
-            data->getActiveExportCounter(),
-            data->getReactiveImportCounter(),
-            data->getReactiveExportCounter(),
-            data->getMeterTimestamp()
-        );
-        mqtt->publish(topic + "/energy", json);
-        mqtt->loop();
-        delay(10);
-    }
-    String meterModel = data->getMeterModel();
-    meterModel.replace("\\", "\\\\");
-    if(data->getListType() == 1) { // publish power counts
-        publishList1Sensors();
-        snprintf_P(json, BufferSize, HA1_JSON,
-            data->getActiveImportPower()
-        );
-        mqtt->publish(topic + "/power", json);
-    } else if(data->getListType() <= 3) { // publish power counts and volts/amps
-        publishList2Sensors();
-        if(data->getActiveExportPower() > 0) publishList2ExportSensors();
-        snprintf_P(json, BufferSize, HA3_JSON,
-            data->getListId().c_str(),
-            data->getMeterId().c_str(),
-            meterModel.c_str(),
-            data->getActiveImportPower(),
-            data->getReactiveImportPower(),
-            data->getActiveExportPower(),
-            data->getReactiveExportPower(),
-            data->getL1Current(),
-            data->getL2Current(),
-            data->getL3Current(),
-            data->getL1Voltage(),
-            data->getL2Voltage(),
-            data->getL3Voltage()
-        );
-        mqtt->publish(topic + "/power", json);
-    } else if(data->getListType() == 4) { // publish power counts and volts/amps/phase power and PF
-        publishList4Sensors();
-        if(data->getL1ActiveExportPower() > 0 || data->getL2ActiveExportPower() > 0 || data->getL3ActiveExportPower() > 0) publishList4ExportSensors();
-        snprintf_P(json, BufferSize, HA4_JSON,
-            data->getListId().c_str(),
-            data->getMeterId().c_str(),
-            meterModel.c_str(),
-            data->getActiveImportPower(),
-            data->getL1ActiveImportPower(),
-            data->getL2ActiveImportPower(),
-            data->getL3ActiveImportPower(),
-            data->getReactiveImportPower(),
-            data->getActiveExportPower(),
-            data->getL1ActiveExportPower(),
-            data->getL2ActiveExportPower(),
-            data->getL3ActiveExportPower(),
-            data->getReactiveExportPower(),
-            data->getL1Current(),
-            data->getL2Current(),
-            data->getL3Current(),
-            data->getL1Voltage(),
-            data->getL2Voltage(),
-            data->getL3Voltage(),
-            data->getPowerFactor() == 0 ? 1 : data->getPowerFactor(),
-            data->getPowerFactor() == 0 ? 1 : data->getL1PowerFactor(),
-            data->getPowerFactor() == 0 ? 1 : data->getL2PowerFactor(),
-            data->getPowerFactor() == 0 ? 1 : data->getL3PowerFactor()
-        );
-        mqtt->publish(topic + "/power", json);
+        publishList3(data, ea);
+        loop();
     }
 
-    if(ea->isInitialized()) {
-        publishRealtimeSensors(ea, eapi);
-        if(ea->getProducedThisHour() > 0.0 || ea->getProducedToday() > 0.0 || ea->getProducedThisMonth() > 0.0) publishRealtimeExportSensors(ea, eapi);
-        String peaks = "";
-        uint8_t peakCount = ea->getConfig()->hours;
-        if(peakCount > 5) peakCount = 5;
-        for(uint8_t i = 1; i <= peakCount; i++) {
-            if(!peaks.isEmpty()) peaks += ",";
-            peaks += String(ea->getPeak(i).value / 100.0, 2);
-        }
-        snprintf_P(json, BufferSize, REALTIME_JSON,
-            ea->getMonthMax(),
-            peaks.c_str(),
-            ea->getCurrentThreshold(),
-            ea->getUseThisHour(),
-            ea->getCostThisHour(),
-            ea->getProducedThisHour(),
-            ea->getIncomeThisHour(),
-            ea->getUseToday(),
-            ea->getCostToday(),
-            ea->getProducedToday(),
-            ea->getIncomeToday(),
-            ea->getUseThisMonth(),
-            ea->getCostThisMonth(),
-            ea->getProducedThisMonth(),
-            ea->getIncomeThisMonth()
-        );
-        mqtt->publish(topic + "/realtime", json);
+    if(data->getListType() == 1) { // publish power counts
+        publishList1(data, ea);
+    } else if(data->getListType() <= 3) { // publish power counts and volts/amps
+        publishList2(data, ea);
+    } else if(data->getListType() == 4) { // publish power counts and volts/amps/phase power and PF
+        publishList4(data, ea);
     }
-    mqtt->loop();
-    delay(10);
+    loop();
+
+    if(ea->isInitialized()) {
+        publishRealtime(data, ea, eapi);
+        loop();
+    }
     return true;
 }
+
+bool HomeAssistantMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
+    publishList1Sensors();
+    snprintf_P(json, BufferSize, HA1_JSON,
+        data->getActiveImportPower()
+    );
+    return mqtt->publish(topic + "/power", json);
+}
+
+bool HomeAssistantMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
+    publishList2Sensors();
+    if(data->getActiveExportPower() > 0) publishList2ExportSensors();
+    snprintf_P(json, BufferSize, HA3_JSON,
+        data->getListId().c_str(),
+        data->getMeterId().c_str(),
+        getMeterModel(data).c_str(),
+        data->getActiveImportPower(),
+        data->getReactiveImportPower(),
+        data->getActiveExportPower(),
+        data->getReactiveExportPower(),
+        data->getL1Current(),
+        data->getL2Current(),
+        data->getL3Current(),
+        data->getL1Voltage(),
+        data->getL2Voltage(),
+        data->getL3Voltage()
+    );
+    return mqtt->publish(topic + "/power", json);
+}
+
+bool HomeAssistantMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
+    publishList3Sensors();
+    if(data->getActiveExportCounter() > 0.0) publishList3ExportSensors();
+    snprintf_P(json, BufferSize, HA2_JSON,
+        data->getActiveImportCounter(),
+        data->getActiveExportCounter(),
+        data->getReactiveImportCounter(),
+        data->getReactiveExportCounter(),
+        data->getMeterTimestamp()
+    );
+    return mqtt->publish(topic + "/energy", json);
+}
+
+bool HomeAssistantMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
+    publishList4Sensors();
+    if(data->getL1ActiveExportPower() > 0 || data->getL2ActiveExportPower() > 0 || data->getL3ActiveExportPower() > 0) publishList4ExportSensors();
+    snprintf_P(json, BufferSize, HA4_JSON,
+        data->getListId().c_str(),
+        data->getMeterId().c_str(),
+        getMeterModel(data).c_str(),
+        data->getActiveImportPower(),
+        data->getL1ActiveImportPower(),
+        data->getL2ActiveImportPower(),
+        data->getL3ActiveImportPower(),
+        data->getReactiveImportPower(),
+        data->getActiveExportPower(),
+        data->getL1ActiveExportPower(),
+        data->getL2ActiveExportPower(),
+        data->getL3ActiveExportPower(),
+        data->getReactiveExportPower(),
+        data->getL1Current(),
+        data->getL2Current(),
+        data->getL3Current(),
+        data->getL1Voltage(),
+        data->getL2Voltage(),
+        data->getL3Voltage(),
+        data->getPowerFactor() == 0 ? 1 : data->getPowerFactor(),
+        data->getPowerFactor() == 0 ? 1 : data->getL1PowerFactor(),
+        data->getPowerFactor() == 0 ? 1 : data->getL2PowerFactor(),
+        data->getPowerFactor() == 0 ? 1 : data->getL3PowerFactor()
+    );
+    return mqtt->publish(topic + "/power", json);
+}
+
+String HomeAssistantMqttHandler::getMeterModel(AmsData* data) {
+    String meterModel = data->getMeterModel();
+    meterModel.replace("\\", "\\\\");
+    return meterModel;
+}
+
+bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* ea, EntsoeApi* eapi) {
+    publishRealtimeSensors(ea, eapi);
+    if(ea->getProducedThisHour() > 0.0 || ea->getProducedToday() > 0.0 || ea->getProducedThisMonth() > 0.0) publishRealtimeExportSensors(ea, eapi);
+    String peaks = "";
+    uint8_t peakCount = ea->getConfig()->hours;
+    if(peakCount > 5) peakCount = 5;
+    for(uint8_t i = 1; i <= peakCount; i++) {
+        if(!peaks.isEmpty()) peaks += ",";
+        peaks += String(ea->getPeak(i).value / 100.0, 2);
+    }
+    snprintf_P(json, BufferSize, REALTIME_JSON,
+        ea->getMonthMax(),
+        peaks.c_str(),
+        ea->getCurrentThreshold(),
+        ea->getUseThisHour(),
+        ea->getCostThisHour(),
+        ea->getProducedThisHour(),
+        ea->getIncomeThisHour(),
+        ea->getUseToday(),
+        ea->getCostToday(),
+        ea->getProducedToday(),
+        ea->getIncomeToday(),
+        ea->getUseThisMonth(),
+        ea->getCostThisMonth(),
+        ea->getProducedThisMonth(),
+        ea->getIncomeThisMonth()
+    );
+    return mqtt->publish(topic + "/realtime", json);
+}
+
 
 bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {
 	int count = hw->getTempSensorCount();
@@ -149,7 +174,9 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 	}
 	char* pos = buf+strlen(buf);
 	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("}}"));
-    return mqtt->publish(topic + "/temperatures", buf);
+    bool ret = mqtt->publish(topic + "/temperatures", buf);
+    loop();
+    return ret;
 }
 
 bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
@@ -283,7 +310,9 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         ts3hr,
         ts6hr
     );
-    return mqtt->publish(topic + "/prices", json, true, 0);
+    bool ret = mqtt->publish(topic + "/prices", json, true, 0);
+    loop();
+    return ret;
 }
 
 bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
@@ -302,7 +331,9 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
         hw->getTemperature(),
         VERSION
     );
-    return mqtt->publish(topic + "/state", json);
+    bool ret = mqtt->publish(topic + "/state", json);
+    loop();
+    return ret;
 }
 
 void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) {
@@ -330,16 +361,7 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
         strlen_P(sensor.stacl) > 0 ? (char *) FPSTR(sensor.stacl) : ""
     );
     mqtt->publish(discoveryTopic + deviceUid + "_" + uid.c_str() + "/config", json, true, 0);
-    mqtt->loop();
-    delay(10);
-
-    #if defined(ESP32)
-    esp_task_wdt_reset();
-    #elif defined(ESP8266)
-    ESP.wdtFeed();
-    #endif
-
-    yield();
+    loop();
 }
 
 void HomeAssistantMqttHandler::publishList1Sensors() {
@@ -513,4 +535,16 @@ void HomeAssistantMqttHandler::publishSystemSensors() {
         publishSensor(SystemSensors[i]);
     }
     sInit = true;
+}
+
+bool HomeAssistantMqttHandler::loop() {
+    bool ret = mqtt->loop();
+    delay(10);
+    yield();
+	#if defined(ESP32)
+		esp_task_wdt_reset();
+	#elif defined(ESP8266)
+		ESP.wdtFeed();
+	#endif
+    return ret;
 }

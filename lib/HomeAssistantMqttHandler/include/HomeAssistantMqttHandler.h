@@ -57,20 +57,8 @@ public:
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
 
-    void publishSensor(const HomeAssistantSensor& sensor);
-    void publishList1Sensors();
-    void publishList1ExportSensors();
-    void publishList2Sensors();
-    void publishList2ExportSensors();
-    void publishList3Sensors();
-    void publishList3ExportSensors();
-    void publishList4Sensors();
-    void publishList4ExportSensors();
-    void publishRealtimeSensors(EnergyAccounting* ea, EntsoeApi* eapi);
-    void publishRealtimeExportSensors(EnergyAccounting* ea, EntsoeApi* eapi);
-    void publishTemperatureSensor(uint8_t index, String id);
-    void publishPriceSensors(EntsoeApi* eapi);
-    void publishSystemSensors();
+protected:
+    bool loop();
 
 private:
     String deviceName;
@@ -89,6 +77,27 @@ private:
     String clientId;
     String topic;
     HwTools* hw;
+
+    bool publishList1(AmsData* data, EnergyAccounting* ea);
+    bool publishList2(AmsData* data, EnergyAccounting* ea);
+    bool publishList3(AmsData* data, EnergyAccounting* ea);
+    bool publishList4(AmsData* data, EnergyAccounting* ea);
+    String getMeterModel(AmsData* data);
+    bool publishRealtime(AmsData* data, EnergyAccounting* ea, EntsoeApi* eapi);
+    void publishSensor(const HomeAssistantSensor& sensor);
+    void publishList1Sensors();
+    void publishList1ExportSensors();
+    void publishList2Sensors();
+    void publishList2ExportSensors();
+    void publishList3Sensors();
+    void publishList3ExportSensors();
+    void publishList4Sensors();
+    void publishList4ExportSensors();
+    void publishRealtimeSensors(EnergyAccounting* ea, EntsoeApi* eapi);
+    void publishRealtimeExportSensors(EnergyAccounting* ea, EntsoeApi* eapi);
+    void publishTemperatureSensor(uint8_t index, String id);
+    void publishPriceSensors(EntsoeApi* eapi);
+    void publishSystemSensors();
 
     String boardTypeToString(uint8_t b) {
         switch(b) {

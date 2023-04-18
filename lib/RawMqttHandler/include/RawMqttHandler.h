@@ -14,8 +14,17 @@ public:
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
 
+protected:
+    bool loop();
+
 private:
     String topic;
     bool full;
+
+    bool publishList1(AmsData* data, AmsData* meterState);
+    bool publishList2(AmsData* data, AmsData* meterState);
+    bool publishList3(AmsData* data, AmsData* meterState);
+    bool publishList4(AmsData* data, AmsData* meterState);
+    bool publishRealtime(EnergyAccounting* ea);
 };
 #endif

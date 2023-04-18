@@ -160,7 +160,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             } 
         }
         // Try system title
-        /*
         if(meterType == AmsTypeUnknown) {
             if(memcmp(ctx.system_title, "SAGY", 4) == 0) {
                 meterType = AmsTypeSagemcom;
@@ -168,7 +167,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 meterType = AmsTypeKaifa;
             }
         }
-        */
 
         if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
             this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;

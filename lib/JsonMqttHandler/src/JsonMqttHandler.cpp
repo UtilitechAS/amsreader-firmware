@@ -15,140 +15,159 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
 
     bool ret = false;
 
+    if(data->getListType() == 1) {
+        ret = publishList1(data, ea);
+    } else if(data->getListType() == 2) {
+        ret = publishList2(data, ea);
+    } else if(data->getListType() == 3) {
+        ret = publishList3(data, ea);
+    } else if(data->getListType() == 4) {
+        ret = publishList4(data, ea);
+    }
+    loop();
+    return ret;
+}
+
+bool JsonMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
+    snprintf_P(json, BufferSize, JSON1_JSON,
+        WiFi.macAddress().c_str(),
+        clientId.c_str(),
+        (uint32_t) (millis64()/1000),
+        data->getPackageTimestamp(),
+        hw->getVcc(),
+        hw->getWifiRssi(),
+        hw->getTemperature(),
+        data->getActiveImportPower(),
+        ea->getUseThisHour(),
+        ea->getUseToday(),
+        ea->getCurrentThreshold(),
+        ea->getMonthMax(),
+        ea->getProducedThisHour(),
+        ea->getProducedToday()
+    );
+    return mqtt->publish(topic, json);
+}
+
+bool JsonMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
+    snprintf_P(json, BufferSize, JSON2_JSON,
+        WiFi.macAddress().c_str(),
+        clientId.c_str(),
+        (uint32_t) (millis64()/1000),
+        data->getPackageTimestamp(),
+        hw->getVcc(),
+        hw->getWifiRssi(),
+        hw->getTemperature(),
+        data->getListId().c_str(),
+        data->getMeterId().c_str(),
+        getMeterModel(data).c_str(),
+        data->getActiveImportPower(),
+        data->getReactiveImportPower(),
+        data->getActiveExportPower(),
+        data->getReactiveExportPower(),
+        data->getL1Current(),
+        data->getL2Current(),
+        data->getL3Current(),
+        data->getL1Voltage(),
+        data->getL2Voltage(),
+        data->getL3Voltage(),
+        ea->getUseThisHour(),
+        ea->getUseToday(),
+        ea->getCurrentThreshold(),
+        ea->getMonthMax(),
+        ea->getProducedThisHour(),
+        ea->getProducedToday()
+    );
+    return mqtt->publish(topic, json);
+}
+
+bool JsonMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
+    snprintf_P(json, BufferSize, JSON3_JSON,
+        WiFi.macAddress().c_str(),
+        clientId.c_str(),
+        (uint32_t) (millis64()/1000),
+        data->getPackageTimestamp(),
+        hw->getVcc(),
+        hw->getWifiRssi(),
+        hw->getTemperature(),
+        data->getListId().c_str(),
+        data->getMeterId().c_str(),
+        getMeterModel(data).c_str(),
+        data->getActiveImportPower(),
+        data->getReactiveImportPower(),
+        data->getActiveExportPower(),
+        data->getReactiveExportPower(),
+        data->getL1Current(),
+        data->getL2Current(),
+        data->getL3Current(),
+        data->getL1Voltage(),
+        data->getL2Voltage(),
+        data->getL3Voltage(),
+        data->getActiveImportCounter(),
+        data->getActiveExportCounter(),
+        data->getReactiveImportCounter(),
+        data->getReactiveExportCounter(),
+        data->getMeterTimestamp(),
+        ea->getUseThisHour(),
+        ea->getUseToday(),
+        ea->getCurrentThreshold(),
+        ea->getMonthMax(),
+        ea->getProducedThisHour(),
+        ea->getProducedToday()
+    );
+    return mqtt->publish(topic, json);
+}
+
+bool JsonMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
+    snprintf_P(json, BufferSize, JSON4_JSON,
+        WiFi.macAddress().c_str(),
+        clientId.c_str(),
+        (uint32_t) (millis64()/1000),
+        data->getPackageTimestamp(),
+        hw->getVcc(),
+        hw->getWifiRssi(),
+        hw->getTemperature(),
+        data->getListId().c_str(),
+        data->getMeterId().c_str(),
+        getMeterModel(data).c_str(),
+        data->getActiveImportPower(),
+        data->getL1ActiveImportPower(),
+        data->getL2ActiveImportPower(),
+        data->getL3ActiveImportPower(),
+        data->getReactiveImportPower(),
+        data->getActiveExportPower(),
+        data->getL1ActiveExportPower(),
+        data->getL2ActiveExportPower(),
+        data->getL3ActiveExportPower(),
+        data->getReactiveExportPower(),
+        data->getL1Current(),
+        data->getL2Current(),
+        data->getL3Current(),
+        data->getL1Voltage(),
+        data->getL2Voltage(),
+        data->getL3Voltage(),
+        data->getPowerFactor(),
+        data->getL1PowerFactor(),
+        data->getL2PowerFactor(),
+        data->getL3PowerFactor(),
+        data->getActiveImportCounter(),
+        data->getActiveExportCounter(),
+        data->getReactiveImportCounter(),
+        data->getReactiveExportCounter(),
+        data->getMeterTimestamp(),
+        ea->getUseThisHour(),
+        ea->getUseToday(),
+        ea->getCurrentThreshold(),
+        ea->getMonthMax(),
+        ea->getProducedThisHour(),
+        ea->getProducedToday()
+    );
+    return mqtt->publish(topic, json);
+}
+
+String JsonMqttHandler::getMeterModel(AmsData* data) {
     String meterModel = data->getMeterModel();
     meterModel.replace("\\", "\\\\");
-    if(data->getListType() == 1) {
-        snprintf_P(json, BufferSize, JSON1_JSON,
-            WiFi.macAddress().c_str(),
-            clientId.c_str(),
-            (uint32_t) (millis64()/1000),
-            data->getPackageTimestamp(),
-            hw->getVcc(),
-            hw->getWifiRssi(),
-            hw->getTemperature(),
-            data->getActiveImportPower(),
-            ea->getUseThisHour(),
-            ea->getUseToday(),
-            ea->getCurrentThreshold(),
-            ea->getMonthMax(),
-            ea->getProducedThisHour(),
-            ea->getProducedToday()
-        );
-        ret = mqtt->publish(topic, json);
-    } else if(data->getListType() == 2) {
-        snprintf_P(json, BufferSize, JSON2_JSON,
-            WiFi.macAddress().c_str(),
-            clientId.c_str(),
-            (uint32_t) (millis64()/1000),
-            data->getPackageTimestamp(),
-            hw->getVcc(),
-            hw->getWifiRssi(),
-            hw->getTemperature(),
-            data->getListId().c_str(),
-            data->getMeterId().c_str(),
-            meterModel.c_str(),
-            data->getActiveImportPower(),
-            data->getReactiveImportPower(),
-            data->getActiveExportPower(),
-            data->getReactiveExportPower(),
-            data->getL1Current(),
-            data->getL2Current(),
-            data->getL3Current(),
-            data->getL1Voltage(),
-            data->getL2Voltage(),
-            data->getL3Voltage(),
-            ea->getUseThisHour(),
-            ea->getUseToday(),
-            ea->getCurrentThreshold(),
-            ea->getMonthMax(),
-            ea->getProducedThisHour(),
-            ea->getProducedToday()
-        );
-        ret = mqtt->publish(topic, json);
-    } else if(data->getListType() == 3) {
-        snprintf_P(json, BufferSize, JSON3_JSON,
-            WiFi.macAddress().c_str(),
-            clientId.c_str(),
-            (uint32_t) (millis64()/1000),
-            data->getPackageTimestamp(),
-            hw->getVcc(),
-            hw->getWifiRssi(),
-            hw->getTemperature(),
-            data->getListId().c_str(),
-            data->getMeterId().c_str(),
-            meterModel.c_str(),
-            data->getActiveImportPower(),
-            data->getReactiveImportPower(),
-            data->getActiveExportPower(),
-            data->getReactiveExportPower(),
-            data->getL1Current(),
-            data->getL2Current(),
-            data->getL3Current(),
-            data->getL1Voltage(),
-            data->getL2Voltage(),
-            data->getL3Voltage(),
-            data->getActiveImportCounter(),
-            data->getActiveExportCounter(),
-            data->getReactiveImportCounter(),
-            data->getReactiveExportCounter(),
-            data->getMeterTimestamp(),
-            ea->getUseThisHour(),
-            ea->getUseToday(),
-            ea->getCurrentThreshold(),
-            ea->getMonthMax(),
-            ea->getProducedThisHour(),
-            ea->getProducedToday()
-        );
-        ret = mqtt->publish(topic, json);
-    } else if(data->getListType() == 4) {
-        snprintf_P(json, BufferSize, JSON4_JSON,
-            WiFi.macAddress().c_str(),
-            clientId.c_str(),
-            (uint32_t) (millis64()/1000),
-            data->getPackageTimestamp(),
-            hw->getVcc(),
-            hw->getWifiRssi(),
-            hw->getTemperature(),
-            data->getListId().c_str(),
-            data->getMeterId().c_str(),
-            meterModel.c_str(),
-            data->getActiveImportPower(),
-            data->getL1ActiveImportPower(),
-            data->getL2ActiveImportPower(),
-            data->getL3ActiveImportPower(),
-            data->getReactiveImportPower(),
-            data->getActiveExportPower(),
-            data->getL1ActiveExportPower(),
-            data->getL2ActiveExportPower(),
-            data->getL3ActiveExportPower(),
-            data->getReactiveExportPower(),
-            data->getL1Current(),
-            data->getL2Current(),
-            data->getL3Current(),
-            data->getL1Voltage(),
-            data->getL2Voltage(),
-            data->getL3Voltage(),
-            data->getPowerFactor(),
-            data->getL1PowerFactor(),
-            data->getL2PowerFactor(),
-            data->getL3PowerFactor(),
-            data->getActiveImportCounter(),
-            data->getActiveExportCounter(),
-            data->getReactiveImportCounter(),
-            data->getReactiveExportCounter(),
-            data->getMeterTimestamp(),
-            ea->getUseThisHour(),
-            ea->getUseToday(),
-            ea->getCurrentThreshold(),
-            ea->getMonthMax(),
-            ea->getProducedThisHour(),
-            ea->getProducedToday()
-        );
-        ret = mqtt->publish(topic, json);
-    }
-    mqtt->loop();
-    delay(10);
-    return ret;
+    return meterModel;
 }
 
 bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {
@@ -173,8 +192,7 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
 	char* pos = json+strlen(json);
 	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("}}"));
     bool ret = mqtt->publish(topic, json);
-    mqtt->loop();
-    delay(10);
+    loop();
     return ret;
 }
 
@@ -308,8 +326,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
         ts6hr
     );
     bool ret = mqtt->publish(topic, json);
-    mqtt->loop();
-    delay(10);
+    loop();
     return ret;
 }
 
@@ -327,7 +344,18 @@ bool JsonMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounti
         VERSION
     );
     bool ret = mqtt->publish(topic, json);
-    mqtt->loop();
+    loop();
+    return ret;
+}
+
+bool JsonMqttHandler::loop() {
+    bool ret = mqtt->loop();
     delay(10);
+    yield();
+	#if defined(ESP32)
+		esp_task_wdt_reset();
+	#elif defined(ESP8266)
+		ESP.wdtFeed();
+	#endif
     return ret;
 }

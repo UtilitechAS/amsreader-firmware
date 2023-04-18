@@ -109,6 +109,7 @@ Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;
 HardwareSerial *hwSerial = NULL;
 size_t rxBufferSize = 128;
+uint8_t rxBufferErrors = 0;
 
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
@@ -116,6 +117,8 @@ bool mqttEnabled = false;
 String topic = "ams";
 AmsData meterState;
 bool ntpEnabled = false;
+
+bool mdnsEnabled = false;
 
 AmsDataStorage ds(&Debug);
 EnergyAccounting ea(&Debug);
@@ -306,6 +309,7 @@ void setup() {
 					}
 					flashed = Update.end(true);
 				}
+				config.setUpgradeInformation(flashed ? 2 : 0, 0xFF, VERSION, "");
 				firmwareFile.close();
 			} else {
 				debugW_P(PSTR("AP button pressed, skipping firmware update and deleting firmware file."));
@@ -430,27 +434,32 @@ void loop() {
 	if(hwSerial != NULL) {
 		#if defined ESP8266
 		if(hwSerial->hasRxError()) {
+			debugE_P(PSTR("Serial RX error"));
 			meterState.setLastError(METER_ERROR_RX);
 		}
 		if(hwSerial->hasOverrun()) {
+			debugE_P(PSTR("Serial buffer overflow"));
 			meterState.setLastError(METER_ERROR_BUFFER);
-			if(rxBufferSize < MAX_RX_BUFFER_SIZE) {
-				/*
-				rxBufferSize += 64;
+			rxBufferErrors++;
+			if(rxBufferErrors > 3 && rxBufferSize < MAX_RX_BUFFER_SIZE) {
+				rxBufferSize += 128;
 				debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
 				config.setMeterChanged();
-				*/
+				rxBufferErrors = 0;
 			}
 		}
 		#endif
 	} else if(swSerial != NULL) {
 		if(swSerial->overflow()) {
+			debugE_P(PSTR("Serial buffer overflow"));
 			meterState.setLastError(METER_ERROR_BUFFER);
-			/*
-			rxBufferSize += 64;
-			debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
-			config.setMeterChanged();
-			*/
+			rxBufferErrors++;
+			if(rxBufferErrors > 3 && rxBufferSize < MAX_RX_BUFFER_SIZE) {
+				rxBufferSize += 128;
+				debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
+				config.setMeterChanged();
+				rxBufferErrors = 0;
+			}
 		}
 	}
 
@@ -516,9 +525,11 @@ void loop() {
 						debugI_P(PSTR("GW:  %s"), WiFi.gatewayIP().toString().c_str());
 						debugI_P(PSTR("DNS: %s"), WiFi.dnsIP().toString().c_str());
 					}
+					mdnsEnabled = false;
 					if(strlen(wifi.hostname) > 0 && wifi.mdns) {
 						debugD_P(PSTR("mDNS is enabled, using host: %s"), wifi.hostname);
 						if(MDNS.begin(wifi.hostname)) {
+							mdnsEnabled = true;
 							MDNS.addService(F("http"), F("tcp"), 80);
 						} else {
 							debugE_P(PSTR("Failed to set up mDNS!"));
@@ -548,7 +559,14 @@ void loop() {
 				config.ackNtpChange();
 			}
 			#if defined ESP8266
-			MDNS.update();
+			if(mdnsEnabled) {
+				start = millis();
+				MDNS.update();
+				end = millis();
+				if(end - start > 1000) {
+					debugW_P(PSTR("Used %dms to update mDNS"), millis()-start);
+				}
+			}
 			#endif
 
 			if (mqttEnabled || config.isMqttChanged()) {
@@ -575,6 +593,11 @@ void loop() {
 						end = millis();
 						if(end - start > 1000) {
 							debugW_P(PSTR("Used %dms to publish prices to MQTT"), millis()-start);
+						}
+					} else {
+						end = millis();
+						if(end - start > 1000) {
+							debugW_P(PSTR("Used %dms to handle price API"), millis()-start);
 						}
 					}
 				}
@@ -648,7 +671,7 @@ void loop() {
 		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
 			end = millis();
 			if(end - start > 1000) {
-				debugW_P(PSTR("Used %dms to read HAN port"), millis()-start);
+				debugW_P(PSTR("Used %dms to read HAN port (true)"), millis()-start);
 			}
 			if(now - lastTemperatureRead > 15000) {
 				start = millis();
@@ -674,6 +697,11 @@ void loop() {
 				if(end - start > 1000) {
 					debugW_P(PSTR("Used %dms to send system update to MQTT"), millis()-start);
 				}
+			}
+		} else {
+			end = millis();
+			if(end - start > 1000) {
+				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
 			}
 		}
 	} catch(const std::exception& e) {
@@ -704,7 +732,8 @@ void loop() {
 		meterState.setLastError(METER_ERROR_AUTODETECT);
 	}
 
-	delay(1); // Needed for auto modem sleep
+	delay(10); // Needed for auto modem sleep
+	start = millis();
 	#if defined(ESP32)
 		esp_task_wdt_reset();
 	#elif defined(ESP8266)
@@ -713,6 +742,10 @@ void loop() {
 	yield();
 
 	end = millis();
+	if(end-start > 1000) {
+		debugW_P(PSTR("Used %dms to feed WDT"), end-start);
+	}
+
 	if(end-now > 2000) {
 		debugW_P(PSTR("loop() used %dms"), end-now);
 	}
@@ -726,14 +759,14 @@ void rxerr(int err) {
 			debugE_P(PSTR("Serial break error"));
 			break;
 		case 2:
-			debugE_P(PSTR("Serial buffer full"));
-			/*
-			if(rxBufferSize < MAX_RX_BUFFER_SIZE) {
-				rxBufferSize += 64;
+			debugE_P(PSTR("Serial buffer overflow"));
+			rxBufferErrors++;
+			if(rxBufferErrors > 3 && rxBufferSize < MAX_RX_BUFFER_SIZE) {
+				rxBufferSize += 128;
 				debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
 				config.setMeterChanged();
+				rxBufferErrors = 0;
 			}
-			*/
 			break;
 		case 3:
 			debugE_P(PSTR("Serial FIFO overflow"));
@@ -886,6 +919,8 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 		pinMode(gpioConfig.hanPin, INPUT);
 	}
 
+	hanSerial->setTimeout(250);
+
 	// Empty buffer before starting
 	while (hanSerial->available() > 0) {
 		hanSerial->read();
@@ -988,7 +1023,10 @@ void swapWifiMode() {
 int len = 0;
 bool serialInit = false;
 bool readHanPort() {
-	if(!hanSerial->available()) return false;
+	unsigned long start, end;
+	if(!hanSerial->available()) {
+		return false;
+	}
 
 	// Before reading, empty serial buffer to increase chance of getting first byte of a data transfer
 	if(!serialInit) {
@@ -1001,6 +1039,7 @@ bool readHanPort() {
 	strcpy_P((char*) ctx.system_title, PSTR(""));
 	int pos = DATA_PARSE_INCOMPLETE;
 	// For each byte received, check if we have a complete frame we can handle
+	start = millis();
 	while(hanSerial->available() && pos == DATA_PARSE_INCOMPLETE) {
 		// If buffer was overflowed, reset
 		if(len >= BUF_SIZE_HAN) {
@@ -1024,14 +1063,23 @@ bool readHanPort() {
 				return false;
 			}
 		}
+		yield();
 	}
+	end = millis();
+	if(end-start > 1000) {
+		debugW_P(PSTR("Used %dms to unwrap HAN data"), end-start);
+	}
+
 	if(pos == DATA_PARSE_INCOMPLETE) {
 		return false;
 	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
+		debugW_P(PSTR("Unknown data received"));
 		meterState.setLastError(pos);
-		debugV_P(PSTR("Unknown data payload:"));
 		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
-		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint(hanBuffer, 0, len);
+		if(Debug.isActive(RemoteDebug::VERBOSE)) {
+			debugV_P(PSTR("  payload:"));
+			debugPrint(hanBuffer, 0, len);
+		}
 		len = 0;
 		return false;
 	}
@@ -1097,9 +1145,17 @@ bool readHanPort() {
 	len = 0;
 
 	if(data.getListType() > 0) {
+		if(rxBufferErrors > 0) rxBufferErrors--;
 		if(!hw.ledBlink(LED_GREEN, 1))
 			hw.ledBlink(LED_INTERNAL, 1);
+
 		if(mqttEnabled && mqttHandler != NULL && mqtt != NULL) {
+			#if defined(ESP32)
+				esp_task_wdt_reset();
+			#elif defined(ESP8266)
+				ESP.wdtFeed();
+			#endif
+			yield();
 			if(mqttHandler->publish(&data, &meterState, &ea, eapi)) {
 				mqtt->loop();
 				delay(10);
@@ -1119,9 +1175,6 @@ bool readHanPort() {
 				timeval tv { now, 0};
 				settimeofday(&tv, nullptr);
 			}
-		}
-		if(meterState.getListType() < 3 && now > BUILD_EPOCH) {
-			// TODO: Load an estimated value from dayplot
 		}
 
 		meterState.apply(data);

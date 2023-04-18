@@ -38,6 +38,7 @@
     },
     "security": %d,
     "boot_reason": %d,
+    "ex_cause": %d,
     "upgrade": {
         "x": %d,
         "e": %d,

@@ -168,7 +168,6 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
                 data->lastRead
             );
             data->changed = false;
-            delay(1);
         }
 	}
 	char* pos = json+strlen(json);

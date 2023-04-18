@@ -438,8 +438,6 @@ bool EnergyAccounting::load() {
         if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("(EnergyAccounting) File not found\n"));
     }
 
-    LittleFS.end();
-
     return ret;
 }
 
@@ -459,8 +457,6 @@ bool EnergyAccounting::save() {
         }
         file.close();
     }
-
-    LittleFS.end();
     return true;
 }
 

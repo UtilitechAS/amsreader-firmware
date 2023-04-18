@@ -145,7 +145,6 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
             );
             data->changed = false;
             publishTemperatureSensor(i+1, id);
-            delay(1);
         }
 	}
 	char* pos = buf+strlen(buf);
@@ -339,6 +338,8 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
     #elif defined(ESP8266)
     ESP.wdtFeed();
     #endif
+
+    yield();
 }
 
 void HomeAssistantMqttHandler::publishList1Sensors() {

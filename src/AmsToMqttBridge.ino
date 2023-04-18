@@ -221,7 +221,7 @@ void setup() {
 	}
 
 	Debug.setSerialEnabled(true);
-	delay(1);
+	yield();
 
 	float vcc = hw.getVcc();
 
@@ -254,11 +254,17 @@ void setup() {
 	debugD_P(PSTR("ESP8266 LittleFS"));
 	hasFs = LittleFS.begin();
 #endif
-	delay(1);
+	yield();
 
 	if(hasFs) {
 		#if defined(ESP8266)
 			LittleFS.gc();
+			if(!LittleFS.check()) {
+				debugW_P(PSTR("LittleFS filesystem error"));
+				if(!LittleFS.format()) {
+					debugE_P(PSTR("Unable to format broken filesystem"));
+				}
+			}
 		#endif
 		bool flashed = false;
 		if(LittleFS.exists(FILE_FIRMWARE)) {
@@ -310,11 +316,11 @@ void setup() {
 			configFileParse();
 			flashed = true;
 		}
-		LittleFS.end();
 		if(flashed) {
+			LittleFS.end();
 			if(Debug.isActive(RemoteDebug::INFO)) {
 				debugI_P(PSTR("Firmware update complete, restarting"));
-				Serial.flush();
+				Debug.flush();
 			}
 			delay(250);
 			ESP.restart();
@@ -322,7 +328,7 @@ void setup() {
 		}
 	}
 	LittleFS.end();
-	delay(1);
+	yield();
 
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
@@ -386,8 +392,13 @@ uint8_t parities[] = { 11, 3, 3, 3 };
 bool inverts[] = { false, false, false, true };
 
 void loop() {
-	Debug.handle();
 	unsigned long now = millis();
+	unsigned long start = now;
+	Debug.handle();
+	unsigned long end = millis();
+	if(end - start > 1000) {
+		debugW_P(PSTR("Used %dms to handle debug"), millis()-start);
+	}
 	if(gpioConfig.apPin != 0xFF) {
 		if (digitalRead(gpioConfig.apPin) == LOW) {
 			if (buttonActive == false) {
@@ -424,18 +435,22 @@ void loop() {
 		if(hwSerial->hasOverrun()) {
 			meterState.setLastError(METER_ERROR_BUFFER);
 			if(rxBufferSize < MAX_RX_BUFFER_SIZE) {
+				/*
 				rxBufferSize += 64;
 				debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
 				config.setMeterChanged();
+				*/
 			}
 		}
 		#endif
 	} else if(swSerial != NULL) {
 		if(swSerial->overflow()) {
 			meterState.setLastError(METER_ERROR_BUFFER);
+			/*
 			rxBufferSize += 64;
 			debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
 			config.setMeterChanged();
+			*/
 		}
 	}
 
@@ -548,8 +563,19 @@ void loop() {
 
 			try {
 				if(eapi != NULL && ntpEnabled) {
+					start = millis();
 					if(eapi->loop() && mqtt != NULL && mqttHandler != NULL && mqtt->connected()) {
+						end = millis();
+						if(end - start > 1000) {
+							debugW_P(PSTR("Used %dms to update prices"), millis()-start);
+						}
+
+						start = millis();
 						mqttHandler->publishPrices(eapi);
+						end = millis();
+						if(end - start > 1000) {
+							debugW_P(PSTR("Used %dms to publish prices to MQTT"), millis()-start);
+						}
 					}
 				}
 				
@@ -574,11 +600,21 @@ void loop() {
 			} catch(const std::exception& e) {
 				debugE_P(PSTR("Exception in ENTSO-E loop (%s)"), e.what());
 			}
+			start = millis();
 			ws.loop();
+			end = millis();
+			if(end - start > 1000) {
+				debugW_P(PSTR("Used %dms to handle web"), millis()-start);
+			}
 		}
 		if(mqtt != NULL) {
+			start = millis();
 			mqtt->loop();
 			delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
+			end = millis();
+			if(end - start > 1000) {
+				debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
+			}
 		}
 	} else {
 		if(dnsServer != NULL) {
@@ -608,23 +644,36 @@ void loop() {
 		config.ackEnergyAccountingChange();
 	}
 	try {
+		start = millis();
 		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
+			end = millis();
+			if(end - start > 1000) {
+				debugW_P(PSTR("Used %dms to read HAN port"), millis()-start);
+			}
 			if(now - lastTemperatureRead > 15000) {
-				unsigned long start = millis();
+				start = millis();
 				if(hw.updateTemperatures()) {
 					lastTemperatureRead = now;
 
 					if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
 						mqttHandler->publishTemperatures(&config, &hw);
 					}
-					debugD_P(PSTR("Used %ld ms to update temperature"), millis()-start);
+				}
+				end = millis();
+				if(end - start > 1000) {
+					debugW_P(PSTR("Used %dms to update temperature"), millis()-start);
 				}
 			}
 			if(now - lastSysupdate > 60000) {
+				start = millis();
 				if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
 					mqttHandler->publishSystem(&hw, eapi, &ea);
 				}
 				lastSysupdate = now;
+				end = millis();
+				if(end - start > 1000) {
+					debugW_P(PSTR("Used %dms to send system update to MQTT"), millis()-start);
+				}
 			}
 		}
 	} catch(const std::exception& e) {
@@ -661,6 +710,12 @@ void loop() {
 	#elif defined(ESP8266)
 		ESP.wdtFeed();
 	#endif
+	yield();
+
+	end = millis();
+	if(end-now > 2000) {
+		debugW_P(PSTR("loop() used %dms"), end-now);
+	}
 }
 
 #if defined(ESP32)
@@ -672,11 +727,13 @@ void rxerr(int err) {
 			break;
 		case 2:
 			debugE_P(PSTR("Serial buffer full"));
+			/*
 			if(rxBufferSize < MAX_RX_BUFFER_SIZE) {
 				rxBufferSize += 64;
 				debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
 				config.setMeterChanged();
 			}
+			*/
 			break;
 		case 3:
 			debugE_P(PSTR("Serial FIFO overflow"));
@@ -695,7 +752,7 @@ void rxerr(int err) {
 void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert) {
 	uint8_t pin = gpioConfig.hanPin;
 
-	if(Debug.isActive(RemoteDebug::INFO)) Debug.printf(PSTR("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n")), pin, baud, parityOrdinal;
+	if(Debug.isActive(RemoteDebug::INFO)) Debug.printf_P(PSTR("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n"), pin, baud, parityOrdinal);
 
 	if(baud == 0) {
 		baud = bauds[meterAutoIndex];
@@ -989,6 +1046,7 @@ bool readHanPort() {
 		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 			mqtt->publish(topic.c_str(), toHex(hanBuffer+pos, len));
 			mqtt->loop();
+			delay(10);
 		}
 		while(hanSerial->available()) hanSerial->read(); // Make sure it is all empty, in case we overflowed buffer above
 		len = 0;
@@ -1008,6 +1066,7 @@ bool readHanPort() {
 		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 			mqtt->publish(topic.c_str(), toHex((byte*) payload, ctx.length));
 			mqtt->loop();
+			delay(10);
 		}
 
 		debugV_P(PSTR("Using application data:"));
@@ -1088,9 +1147,13 @@ bool readHanPort() {
 		if(ea.update(&data)) {
 			debugI_P(PSTR("Saving energy accounting"));
 			ea.save();
+			saveData = true; // Trigger LittleFS.end
+		}
+		if(saveData) {
+			LittleFS.end();
 		}
 	}
-	delay(1);
+	yield();
 	return true;
 }
 
@@ -1174,6 +1237,7 @@ void WiFi_connect() {
 			if(mqtt != NULL) {
 				mqtt->disconnect();
 				mqtt->loop();
+				delay(10);
 				yield();
 				delete mqtt;
 				mqtt = NULL;
@@ -1337,6 +1401,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), toHex(buf, curLen));
 						mqtt->loop();
+						delay(10);
 					}
 					break;
 				case DATA_TAG_MBUS:
@@ -1345,6 +1410,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), toHex(buf, curLen));
 						mqtt->loop();
+						delay(10);
 					}
 					break;
 				case DATA_TAG_GBT:
@@ -1364,6 +1430,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 					if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {
 						mqtt->publish(topic.c_str(), (char*) buf);
 						mqtt->loop();
+						delay(10);
 					}
 					break;
 			}
@@ -2002,7 +2069,20 @@ void configFileParse() {
 
 	debugD_P(PSTR("Deleting config file"));
 	file.close();
-	LittleFS.remove(FILE_CFG);
+	if(!LittleFS.remove(FILE_CFG)) {
+		debugW_P(PSTR("Unable to remove config file, formatting filesystem"));
+		if(!sDs) {
+			ds.load();
+			sDs = true;
+		}
+		if(!sEa) {
+			ea.load();
+			sEa = true;
+		}
+		if(!LittleFS.format()) {
+			debugE_P(PSTR("Unable to format broken filesystem"));
+		}
+	}
 
 	debugI_P(PSTR("Saving configuration now..."));
 	Serial.flush();
@@ -2020,4 +2100,5 @@ void configFileParse() {
 	if(sDs) ds.save();
 	if(sEa) ea.save();
 	config.save();
+	LittleFS.end();
 }

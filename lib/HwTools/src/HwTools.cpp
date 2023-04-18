@@ -318,7 +318,7 @@ bool HwTools::updateTemperatures() {
                     }
                     tempSensors[sensorCount++] = data;
                 }
-                delay(10);
+                yield();
             }
         } else {
             if(sensorCount > 0) {

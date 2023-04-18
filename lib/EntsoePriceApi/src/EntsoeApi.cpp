@@ -210,7 +210,7 @@ bool EntsoeApi::loop() {
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     #if defined(ESP32)
         if(http.begin(url)) {
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Connection established"));
+            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Connection established\n"));
 
             #if defined(ESP32)
                 esp_task_wdt_reset();
@@ -227,7 +227,7 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
             #endif
 
             if(status == HTTP_CODE_OK) {
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Receiving data"));
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Receiving data\n"));
                 http.writeToStream(doc);
                 http.end();
                 lastError = 0;
@@ -357,13 +357,13 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
             #endif
 
             if(status == HTTP_CODE_OK) {
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Receiving data"));
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Receiving data\n"));
                 data = http.getString();
                 http.end();
                 
                 uint8_t* content = (uint8_t*) (data.c_str());
                 if(debugger->isActive(RemoteDebug::DEBUG)) {
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received content for prices:"));
+                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received content for prices:\n"));
                     debugPrint(content, 0, data.length());
                 }
 
@@ -372,7 +372,7 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
                 GCMParser gcm(key, auth);
                 int8_t gcmRet = gcm.parse(content, ctx);
                 if(debugger->isActive(RemoteDebug::DEBUG)) {
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Decrypted content for prices:"));
+                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Decrypted content for prices:\n"));
                     debugPrint(content, 0, data.length());
                 }
                 if(gcmRet > 0) {

@@ -109,7 +109,7 @@
             {/if}
         </div>
         <div class="my-2">
-            Reason: {getResetReason(sysinfo)} ({sysinfo.boot_reason})
+            Reason: {getResetReason(sysinfo)} ({sysinfo.boot_reason}/{sysinfo.ex_cause})
         </div>
         {/if}
         <div class="my-2">

@@ -315,8 +315,10 @@ void AmsWebServer::sysinfoJson() {
 		webConfig.security,
 		#if defined(ESP32)
 		rtc_get_reset_reason(0),
+		0,
 		#else
 		ESP.getResetInfoPtr()->reason,
+		ESP.getResetInfoPtr()->exccause,
 		#endif
 		upinfo.exitCode,
 		upinfo.errorCode,
@@ -333,14 +335,15 @@ void AmsWebServer::sysinfoJson() {
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
-	server.handleClient();
-	delay(250);
-
 	if(performRestart || rebootForUpgrade) {
+		server.handleClient();
+		delay(250);
+
 		if(ds != NULL) {
 			ds->save();
 		}
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+		debugger->flush();
 		delay(1000);
 		ESP.restart();
 		performRestart = false;
@@ -723,7 +726,7 @@ void AmsWebServer::temperatureJson() {
 			conf == NULL || conf->common ? 1 : 0,
 			data->lastRead
 		);
-		delay(10);
+		yield();
 	}
 	char* pos = buf+strlen(buf);
 	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("]}"));
@@ -964,7 +967,7 @@ void AmsWebServer::configurationJson() {
 }
 
 void AmsWebServer::handleSave() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Handling save method from http"));
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Handling save method from http\n"));
 	if(!checkSecurity(1))
 		return;
 
@@ -1176,7 +1179,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("m")) && server.arg(F("m")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received meter config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received meter config\n"));
 		config->getMeterConfig(*meterConfig);
 		meterConfig->baud = server.arg(F("mb")).toInt();
 		meterConfig->parity = server.arg(F("mp")).toInt();
@@ -1215,7 +1218,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("w")) && server.arg(F("w")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received WiFi config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received WiFi config\n"));
 		WiFiConfig wifi;
 		config->getWiFiConfig(wifi);
 		strcpy(wifi.ssid, server.arg(F("ws")).c_str());
@@ -1257,7 +1260,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("q")) && server.arg(F("q")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received MQTT config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received MQTT config\n"));
 		MqttConfig mqtt;
 		config->getMqttConfig(mqtt);
 		if(server.hasArg(F("qh")) && !server.arg(F("qh")).isEmpty()) {
@@ -1288,7 +1291,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("o")) && server.arg(F("o")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Domoticz config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Domoticz config\n"));
 		DomoticzConfig domo {
 			static_cast<uint16_t>(server.arg(F("oe")).toInt()),
 			static_cast<uint16_t>(server.arg(F("ou1")).toInt()),
@@ -1300,7 +1303,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("h")) && server.arg(F("h")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Home-Assistant config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Home-Assistant config\n"));
 		HomeAssistantConfig haconf;
 		config->getHomeAssistantConfig(haconf);
 		strcpy(haconf.discoveryPrefix, server.arg(F("ht")).c_str());
@@ -1310,7 +1313,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("g")) && server.arg(F("g")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received web config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received web config\n"));
 		webConfig.security = server.arg(F("gs")).toInt();
 		if(webConfig.security > 0) {
 			strcpy(webConfig.username, server.arg(F("gu")).c_str());
@@ -1340,7 +1343,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("i")) && server.arg(F("i")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received GPIO config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received GPIO config\n"));
 		gpioConfig->hanPin = server.hasArg(F("ihp")) && !server.arg(F("ihp")).isEmpty() ? server.arg(F("ihp")).toInt() : 3;
 		gpioConfig->hanPinPullup = server.hasArg(F("ihu")) && server.arg(F("ihu")) == F("true");
 		gpioConfig->ledPin = server.hasArg(F("ilp")) && !server.arg(F("ilp")).isEmpty() ? server.arg(F("ilp")).toInt() : 0xFF;
@@ -1359,7 +1362,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("iv")) && server.arg(F("iv")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Vcc config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Vcc config\n"));
 		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toFloat() * 100 : 0;
 		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toFloat() * 1000 : 1000;
 		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? server.arg(F("ivb")).toFloat() * 10 : 0;
@@ -1367,7 +1370,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("d")) && server.arg(F("d")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Debug config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Debug config\n"));
 		DebugConfig debug;
 		config->getDebugConfig(debug);
 		bool active = debug.serial || debug.telnet;
@@ -1414,7 +1417,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("p")) && server.arg(F("p")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received price API config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received price API config\n"));
 
 		priceRegion = server.arg(F("pr"));
 
@@ -1429,7 +1432,7 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("t")) && server.arg(F("t")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received energy accounting config"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received energy accounting config\n"));
 		EnergyAccountingConfig eac;
 		eac.thresholds[0] = server.arg(F("t0")).toInt();
 		eac.thresholds[1] = server.arg(F("t1")).toInt();
@@ -1444,10 +1447,10 @@ void AmsWebServer::handleSave() {
 		config->setEnergyAccountingConfig(eac);
 	}
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Saving configuration now..."));
+	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Saving configuration now...\n"));
 
 	if (config->save()) {
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully saved."));
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully saved.\n"));
 		if(config->isWifiChanged() || performRestart) {
 			performRestart = true;
 		} else {
@@ -1465,14 +1468,15 @@ void AmsWebServer::handleSave() {
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
-	server.handleClient();
-	delay(250);
-
 	if(performRestart || rebootForUpgrade) {
+		server.handleClient();
+		delay(250);
+
 		if(ds != NULL) {
 			ds->save();
 		}
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+		debugger->flush();
 		delay(1000);
 		ESP.restart();
 		performRestart = false;
@@ -1490,7 +1494,8 @@ void AmsWebServer::reboot() {
 	server.handleClient();
 	delay(250);
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
+	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+	debugger->flush();
 	delay(1000);
 	ESP.restart();
 	performRestart = false;
@@ -1578,7 +1583,7 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 }
 
 void AmsWebServer::firmwareHtml() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /firmware.html over http..."));
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /firmware.html over http...\n"));
 
 	if(!checkSecurity(1))
 		return;
@@ -1592,7 +1597,7 @@ void AmsWebServer::firmwareHtml() {
 }
 
 void AmsWebServer::firmwarePost() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Handling firmware post..."));
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Handling firmware post...\n"));
 	if(!checkSecurity(1))
 		return;
 	
@@ -1602,7 +1607,7 @@ void AmsWebServer::firmwarePost() {
 		if(server.hasArg(F("url"))) {
 			String url = server.arg(F("url"));
 			if(!url.isEmpty() && (url.startsWith(F("http://")) || url.startsWith(F("https://")))) {
-				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Custom firmware URL was provided"));
+				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Custom firmware URL was provided\n"));
 
 				upgradeFromUrl(url, "");
 				server.send(200, MIME_PLAIN, "OK");
@@ -1687,7 +1692,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 				LittleFS.remove(path);
 				LittleFS.end();
 
-				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("An Error has occurred while writing file"));
+				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("An Error has occurred while writing file\n"));
 				snprintf_P(buf, BufferSize, RESPONSE_JSON,
 					"false",
 					"File size does not match",
@@ -1704,7 +1709,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
         if(file) {
 			file.flush();
             file.close();
-//			LittleFS.end();
+			LittleFS.end();
         } else {
 			debugger->printf_P(PSTR("File was not valid in the end... Write error: %d, \n"), file.getWriteError());
 			snprintf_P(buf, BufferSize, RESPONSE_JSON,
@@ -1728,13 +1733,13 @@ void AmsWebServer::factoryResetPost() {
 	if(!checkSecurity(1))
 		return;
 
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Performing factory reset"));
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Performing factory reset\n"));
 
 	bool success = false;
 	if(server.hasArg(F("perform")) && server.arg(F("perform")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Formatting LittleFS"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Formatting LittleFS\n"));
 		LittleFS.format();
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Clearing configuration"));
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Clearing configuration\n"));
 		config->clear();
 
 		success = true;
@@ -1751,7 +1756,8 @@ void AmsWebServer::factoryResetPost() {
 	server.handleClient();
 	delay(250);
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting"));
+	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+	debugger->flush();
 	delay(1000);
 	ESP.restart();
 }

@@ -403,29 +403,8 @@ void loop() {
 	if(end - start > 1000) {
 		debugW_P(PSTR("Used %dms to handle debug"), millis()-start);
 	}
-	if(gpioConfig.apPin != 0xFF) {
-		if (digitalRead(gpioConfig.apPin) == LOW) {
-			if (buttonActive == false) {
-				buttonActive = true;
-				buttonTimer = now;
-			}
 
-			if ((now - buttonTimer > longPressTime) && (longPressActive == false)) {
-				longPressActive = true;
-				swapWifiMode();
-			}
-		} else {
-			if (buttonActive == true) {
-				if (longPressActive == true) {
-					longPressActive = false;
-				} else {
-					// Single press action
-					debugD_P(PSTR("Button was clicked, no action configured"));
-				}
-				buttonActive = false;
-			}
-		}
-	}
+	handleButton(now);
 
 	if(now > 10000 && now - lastErrorBlink > 3000) {
 		errorBlink();
@@ -438,28 +417,12 @@ void loop() {
 			meterState.setLastError(METER_ERROR_RX);
 		}
 		if(hwSerial->hasOverrun()) {
-			debugE_P(PSTR("Serial buffer overflow"));
-			meterState.setLastError(METER_ERROR_BUFFER);
-			rxBufferErrors++;
-			if(rxBufferErrors > 3 && rxBufferSize < MAX_RX_BUFFER_SIZE) {
-				rxBufferSize += 128;
-				debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
-				config.setMeterChanged();
-				rxBufferErrors = 0;
-			}
+			rxerr(2);
 		}
 		#endif
 	} else if(swSerial != NULL) {
 		if(swSerial->overflow()) {
-			debugE_P(PSTR("Serial buffer overflow"));
-			meterState.setLastError(METER_ERROR_BUFFER);
-			rxBufferErrors++;
-			if(rxBufferErrors > 3 && rxBufferSize < MAX_RX_BUFFER_SIZE) {
-				rxBufferSize += 128;
-				debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
-				config.setMeterChanged();
-				rxBufferErrors = 0;
-			}
+			rxerr(2);
 		}
 	}
 
@@ -472,91 +435,10 @@ void loop() {
 		} else {
 			wifiReconnectCount = 0;
 			if(!wifiConnected) {
-				wifiConnected = true;
-
-				WiFiConfig wifi;
-				if(config.getWiFiConfig(wifi)) {
-					#if defined(ESP32)
-						if(wifi.power >= 195)
-							WiFi.setTxPower(WIFI_POWER_19_5dBm);
-						else if(wifi.power >= 190)
-							WiFi.setTxPower(WIFI_POWER_19dBm);
-						else if(wifi.power >= 185)
-							WiFi.setTxPower(WIFI_POWER_18_5dBm);
-						else if(wifi.power >= 170)
-							WiFi.setTxPower(WIFI_POWER_17dBm);
-						else if(wifi.power >= 150)
-							WiFi.setTxPower(WIFI_POWER_15dBm);
-						else if(wifi.power >= 130)
-							WiFi.setTxPower(WIFI_POWER_13dBm);
-						else if(wifi.power >= 110)
-							WiFi.setTxPower(WIFI_POWER_11dBm);
-						else if(wifi.power >= 85)
-							WiFi.setTxPower(WIFI_POWER_8_5dBm);
-						else if(wifi.power >= 70)
-							WiFi.setTxPower(WIFI_POWER_7dBm);
-						else if(wifi.power >= 50)
-							WiFi.setTxPower(WIFI_POWER_5dBm);
-						else if(wifi.power >= 20)
-							WiFi.setTxPower(WIFI_POWER_2dBm);
-						else
-							WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
-					#elif defined(ESP8266)
-						WiFi.setOutputPower(wifi.power / 10.0);
-					#endif
-					
-
-					WebConfig web;
-					if(config.getWebConfig(web) && web.security > 0) {
-						Debug.setPassword(web.password);
-					}
-					DebugConfig debug;
-					if(config.getDebugConfig(debug)) {
-						Debug.begin(wifi.hostname, debug.serial || debug.telnet ? (uint8_t) debug.level : RemoteDebug::WARNING); // I don't know why, but ESP8266 stops working after a while if ERROR level is set
-						if(!debug.telnet) {
-							Debug.stop();
-						}
-					} else {
-						Debug.stop();
-					}
-					if(Debug.isActive(RemoteDebug::INFO)) {
-						debugI_P(PSTR("Successfully connected to WiFi!"));
-						debugI_P(PSTR("IP:  %s"), WiFi.localIP().toString().c_str());
-						debugI_P(PSTR("GW:  %s"), WiFi.gatewayIP().toString().c_str());
-						debugI_P(PSTR("DNS: %s"), WiFi.dnsIP().toString().c_str());
-					}
-					mdnsEnabled = false;
-					if(strlen(wifi.hostname) > 0 && wifi.mdns) {
-						debugD_P(PSTR("mDNS is enabled, using host: %s"), wifi.hostname);
-						if(MDNS.begin(wifi.hostname)) {
-							mdnsEnabled = true;
-							MDNS.addService(F("http"), F("tcp"), 80);
-						} else {
-							debugE_P(PSTR("Failed to set up mDNS!"));
-						}
-					}
-				}
-
-				MqttConfig mqttConfig;
-				if(config.getMqttConfig(mqttConfig)) {
-					mqttEnabled = strlen(mqttConfig.host) > 0;
-					ws.setMqttEnabled(mqttEnabled);
-				}
+				WiFi_post_connect();
 			}
 			if(config.isNtpChanged()) {
-				NtpConfig ntp;
-				if(config.getNtpConfig(ntp)) {
-					tz = resolveTimezone(ntp.timezone);
-					configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : (char*) F("pool.ntp.org") : (char*) F("")); // Add NTP server by default if none is configured
-					sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
-					ntpEnabled = ntp.enable;
-
-					ws.setTimezone(tz);
-					ds.setTimezone(tz);
-					ea.setTimezone(tz);
-				}
-
-				config.ackNtpChange();
+				handleNtpChange();
 			}
 			#if defined ESP8266
 			if(mdnsEnabled) {
@@ -580,46 +462,7 @@ void loop() {
 			}
 
 			try {
-				if(eapi != NULL && ntpEnabled) {
-					start = millis();
-					if(eapi->loop() && mqtt != NULL && mqttHandler != NULL && mqtt->connected()) {
-						end = millis();
-						if(end - start > 1000) {
-							debugW_P(PSTR("Used %dms to update prices"), millis()-start);
-						}
-
-						start = millis();
-						mqttHandler->publishPrices(eapi);
-						end = millis();
-						if(end - start > 1000) {
-							debugW_P(PSTR("Used %dms to publish prices to MQTT"), millis()-start);
-						}
-					} else {
-						end = millis();
-						if(end - start > 1000) {
-							debugW_P(PSTR("Used %dms to handle price API"), millis()-start);
-						}
-					}
-				}
-				
-				if(config.isEntsoeChanged()) {
-					EntsoeConfig entsoe;
-					if(config.getEntsoeConfig(entsoe) && entsoe.enabled && strlen(entsoe.area) > 0) {
-						if(eapi == NULL) {
-							eapi = new EntsoeApi(&Debug);
-							ea.setEapi(eapi);
-							ws.setEntsoeApi(eapi);
-						}
-						eapi->setup(entsoe);
-					} else if(eapi != NULL) {
-						delete eapi;
-						eapi = NULL;
-						ws.setEntsoeApi(NULL);
-					}
-					ws.setPriceSettings(entsoe.area, entsoe.currency);
-					config.ackEntsoeChange();
-					ea.setFixedPrice(entsoe.fixedPrice / 1000.0);
-				}
+				handlePriceApi(now);
 			} catch(const std::exception& e) {
 				debugE_P(PSTR("Exception in ENTSO-E loop (%s)"), e.what());
 			}
@@ -656,15 +499,14 @@ void loop() {
 		config.getMeterConfig(meterConfig);
 		setupHanPort(gpioConfig, meterConfig.baud, meterConfig.parity, meterConfig.invert);
 		config.ackMeterChanged();
-		delete gcmParser;
-		gcmParser = NULL;
+		if(gcmParser != NULL) {
+			delete gcmParser;
+			gcmParser = NULL;
+		}
 	}
 
 	if(config.isEnergyAccountingChanged()) {
-		EnergyAccountingConfig *eac = ea.getConfig();
-		config.getEnergyAccountingConfig(*eac);
-		ea.setup(&ds, eac);
-		config.ackEnergyAccountingChange();
+		handleEnergyAccountingChanged();
 	}
 	try {
 		start = millis();
@@ -673,31 +515,8 @@ void loop() {
 			if(end - start > 1000) {
 				debugW_P(PSTR("Used %dms to read HAN port (true)"), millis()-start);
 			}
-			if(now - lastTemperatureRead > 15000) {
-				start = millis();
-				if(hw.updateTemperatures()) {
-					lastTemperatureRead = now;
-
-					if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-						mqttHandler->publishTemperatures(&config, &hw);
-					}
-				}
-				end = millis();
-				if(end - start > 1000) {
-					debugW_P(PSTR("Used %dms to update temperature"), millis()-start);
-				}
-			}
-			if(now - lastSysupdate > 60000) {
-				start = millis();
-				if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
-					mqttHandler->publishSystem(&hw, eapi, &ea);
-				}
-				lastSysupdate = now;
-				end = millis();
-				if(end - start > 1000) {
-					debugW_P(PSTR("Used %dms to send system update to MQTT"), millis()-start);
-				}
-			}
+			handleTemperature(now);
+			handleSystem(now);
 		} else {
 			end = millis();
 			if(end - start > 1000) {
@@ -709,24 +528,7 @@ void loop() {
 		meterState.setLastError(METER_ERROR_EXCEPTION);
 	}
 	try {
-		if(meterState.getListType() == 0) {
-			if(now - meterAutodetectLastChange > 20000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
-				meterAutodetect = true;
-				meterAutoIndex++; // Default is to try the first one in setup()
-				debugI_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
-				if(meterAutoIndex >= 4) meterAutoIndex = 0;
-				setupHanPort(gpioConfig, bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex]);
-				meterAutodetectLastChange = now;
-			}
-		} else if(meterAutodetect) {
-			debugI_P(PSTR("Meter serial autodetected, saving: %d, %d, %s"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
-			meterAutodetect = false;
-			meterConfig.baud = bauds[meterAutoIndex];
-			meterConfig.parity = parities[meterAutoIndex];
-			meterConfig.invert = inverts[meterAutoIndex];
-			config.setMeterConfig(meterConfig);
-			setupHanPort(gpioConfig, meterConfig.baud, meterConfig.parity, meterConfig.invert);
-		}
+		handleAutodetect(now);
 	} catch(const std::exception& e) {
 		debugE_P(PSTR("Exception in meter autodetect (%s)"), e.what());
 		meterState.setLastError(METER_ERROR_AUTODETECT);
@@ -751,7 +553,153 @@ void loop() {
 	}
 }
 
-#if defined(ESP32)
+void handleEnergyAccountingChanged() {
+	EnergyAccountingConfig *eac = ea.getConfig();
+	config.getEnergyAccountingConfig(*eac);
+	ea.setup(&ds, eac);
+	config.ackEnergyAccountingChange();
+}
+
+void handleNtpChange() {
+	NtpConfig ntp;
+	if(config.getNtpConfig(ntp)) {
+		tz = resolveTimezone(ntp.timezone);
+		configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : (char*) F("pool.ntp.org") : (char*) F("")); // Add NTP server by default if none is configured
+		sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
+		ntpEnabled = ntp.enable;
+
+		ws.setTimezone(tz);
+		ds.setTimezone(tz);
+		ea.setTimezone(tz);
+	}
+
+	config.ackNtpChange();
+}
+
+void handleSystem(unsigned long now) {
+	unsigned long start, end;
+	if(now - lastSysupdate > 60000) {
+		start = millis();
+		if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
+			mqttHandler->publishSystem(&hw, eapi, &ea);
+		}
+		lastSysupdate = now;
+		end = millis();
+		if(end - start > 1000) {
+			debugW_P(PSTR("Used %dms to send system update to MQTT"), millis()-start);
+		}
+	}
+}
+
+void handleTemperature(unsigned long now) {
+	unsigned long start, end;
+	if(now - lastTemperatureRead > 15000) {
+		start = millis();
+		if(hw.updateTemperatures()) {
+			lastTemperatureRead = now;
+
+			if(mqtt != NULL && mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED && mqtt->connected() && !topic.isEmpty()) {
+				mqttHandler->publishTemperatures(&config, &hw);
+			}
+		}
+		end = millis();
+		if(end - start > 1000) {
+			debugW_P(PSTR("Used %dms to update temperature"), millis()-start);
+		}
+	}
+}
+
+void handlePriceApi(unsigned long now) {
+	unsigned long start, end;
+	if(eapi != NULL && ntpEnabled) {
+		start = millis();
+		if(eapi->loop() && mqtt != NULL && mqttHandler != NULL && mqtt->connected()) {
+			end = millis();
+			if(end - start > 1000) {
+				debugW_P(PSTR("Used %dms to update prices"), millis()-start);
+			}
+
+			start = millis();
+			mqttHandler->publishPrices(eapi);
+			end = millis();
+			if(end - start > 1000) {
+				debugW_P(PSTR("Used %dms to publish prices to MQTT"), millis()-start);
+			}
+		} else {
+			end = millis();
+			if(end - start > 1000) {
+				debugW_P(PSTR("Used %dms to handle price API"), millis()-start);
+			}
+		}
+	}
+	
+	if(config.isEntsoeChanged()) {
+		EntsoeConfig entsoe;
+		if(config.getEntsoeConfig(entsoe) && entsoe.enabled && strlen(entsoe.area) > 0) {
+			if(eapi == NULL) {
+				eapi = new EntsoeApi(&Debug);
+				ea.setEapi(eapi);
+				ws.setEntsoeApi(eapi);
+			}
+			eapi->setup(entsoe);
+		} else if(eapi != NULL) {
+			delete eapi;
+			eapi = NULL;
+			ws.setEntsoeApi(NULL);
+		}
+		ws.setPriceSettings(entsoe.area, entsoe.currency);
+		config.ackEntsoeChange();
+		ea.setFixedPrice(entsoe.fixedPrice / 1000.0);
+	}
+}
+
+void handleAutodetect(unsigned long now) {
+	if(meterState.getListType() == 0) {
+		if(now - meterAutodetectLastChange > 20000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
+			meterAutodetect = true;
+			meterAutoIndex++; // Default is to try the first one in setup()
+			debugI_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
+			if(meterAutoIndex >= 4) meterAutoIndex = 0;
+			setupHanPort(gpioConfig, bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex]);
+			meterAutodetectLastChange = now;
+		}
+	} else if(meterAutodetect) {
+		debugI_P(PSTR("Meter serial autodetected, saving: %d, %d, %s"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
+		meterAutodetect = false;
+		meterConfig.baud = bauds[meterAutoIndex];
+		meterConfig.parity = parities[meterAutoIndex];
+		meterConfig.invert = inverts[meterAutoIndex];
+		config.setMeterConfig(meterConfig);
+		setupHanPort(gpioConfig, meterConfig.baud, meterConfig.parity, meterConfig.invert);
+	}
+}
+
+void handleButton(unsigned long now) {
+	if(gpioConfig.apPin != 0xFF) {
+		if (digitalRead(gpioConfig.apPin) == LOW) {
+			if (buttonActive == false) {
+				buttonActive = true;
+				buttonTimer = now;
+			}
+
+			if ((now - buttonTimer > longPressTime) && (longPressActive == false)) {
+				longPressActive = true;
+				swapWifiMode();
+			}
+		} else {
+			if (buttonActive == true) {
+				if (longPressActive == true) {
+					longPressActive = false;
+				} else {
+					// Single press action
+					debugD_P(PSTR("Button was clicked, no action configured"));
+				}
+				buttonActive = false;
+			}
+		}
+	}
+}
+
 void rxerr(int err) {
 	if(err == 0) return;
 	switch(err) {
@@ -780,7 +728,6 @@ void rxerr(int err) {
 	}
 	meterState.setLastError(90+err);
 }
-#endif
 
 void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert) {
 	uint8_t pin = gpioConfig.hanPin;
@@ -1107,7 +1054,7 @@ bool readHanPort() {
 	}
 	meterState.setLastError(DATA_PARSE_OK);
 
-	AmsData data;
+	AmsData* data = NULL;
 	char* payload = ((char *) (hanBuffer)) + pos;
 	if(ctx.type == DATA_TAG_DLMS) {
 		// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
@@ -1123,7 +1070,7 @@ bool readHanPort() {
 		// Rudimentary detector for L&G proprietary format, this is terrible code... Fix later
 		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
 			debugV_P(PSTR("LNG"));
-			data = LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+			data = new LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
 		} else if(payload[0] == CosemTypeStructure && 
 			payload[2] == CosemTypeLongUnsigned && 
 			payload[5] == CosemTypeLongUnsigned && 
@@ -1133,81 +1080,88 @@ bool readHanPort() {
 			payload[17] == CosemTypeLongUnsigned
 		) {
 			debugV_P(PSTR("LNG2"));
-			data = LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+			data = new LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
 		} else {
 			debugV_P(PSTR("DLMS"));
 			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
-			data = IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx);
+			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx);
 		}
 	} else if(ctx.type == DATA_TAG_DSMR) {
-		data = IEC6205621(payload);
+		data = new IEC6205621(payload);
 	}
 	len = 0;
 
-	if(data.getListType() > 0) {
-		if(rxBufferErrors > 0) rxBufferErrors--;
-		if(!hw.ledBlink(LED_GREEN, 1))
-			hw.ledBlink(LED_INTERNAL, 1);
-
-		if(mqttEnabled && mqttHandler != NULL && mqtt != NULL) {
-			#if defined(ESP32)
-				esp_task_wdt_reset();
-			#elif defined(ESP8266)
-				ESP.wdtFeed();
-			#endif
-			yield();
-			if(mqttHandler->publish(&data, &meterState, &ea, eapi)) {
-				mqtt->loop();
-				delay(10);
-			}
+	if(data != NULL) {
+		if(data->getListType() > 0) {
+			handleDataSuccess(data);
 		}
-
-		time_t now = time(nullptr);
-		if(now < BUILD_EPOCH && data.getListType() >= 3) {
-			if(data.getMeterTimestamp() > BUILD_EPOCH) {
-				debugI_P(PSTR("Using timestamp from meter"));
-				now = data.getMeterTimestamp();
-			} else if(data.getPackageTimestamp() > BUILD_EPOCH) {
-				debugI_P(PSTR("Using timestamp from meter (DLMS)"));
-				now = data.getPackageTimestamp();
-			}
-			if(now > BUILD_EPOCH) {
-				timeval tv { now, 0};
-				settimeofday(&tv, nullptr);
-			}
-		}
-
-		meterState.apply(data);
-
-		bool saveData = false;
-		if(!ds.isHappy() && now > BUILD_EPOCH) {
-			debugD_P(PSTR("Its time to update data storage"));
-			tmElements_t tm;
-			breakTime(now, tm);
-			if(tm.Minute == 0) {
-				debugV_P(PSTR(" using actual data"));
-				saveData = ds.update(&data);
-			} else if(meterState.getListType() >= 3) {
-				debugV_P(PSTR(" using estimated data"));
-				saveData = ds.update(&meterState);
-			}
-			if(saveData) {
-				debugI_P(PSTR("Saving data"));
-				ds.save();
-			}
-		}
-
-		if(ea.update(&data)) {
-			debugI_P(PSTR("Saving energy accounting"));
-			ea.save();
-			saveData = true; // Trigger LittleFS.end
-		}
-		if(saveData) {
-			LittleFS.end();
-		}
+		delete data;
 	}
 	yield();
 	return true;
+}
+
+void handleDataSuccess(AmsData* data) {
+	if(rxBufferErrors > 0) rxBufferErrors--;
+	if(!hw.ledBlink(LED_GREEN, 1))
+		hw.ledBlink(LED_INTERNAL, 1);
+
+	if(mqttEnabled && mqttHandler != NULL && mqtt != NULL) {
+		#if defined(ESP32)
+			esp_task_wdt_reset();
+		#elif defined(ESP8266)
+			ESP.wdtFeed();
+		#endif
+		yield();
+		if(mqttHandler->publish(data, &meterState, &ea, eapi)) {
+			mqtt->loop();
+			delay(10);
+		}
+	}
+
+	time_t now = time(nullptr);
+	if(now < BUILD_EPOCH && data->getListType() >= 3) {
+		if(data->getMeterTimestamp() > BUILD_EPOCH) {
+			debugI_P(PSTR("Using timestamp from meter"));
+			now = data->getMeterTimestamp();
+		} else if(data->getPackageTimestamp() > BUILD_EPOCH) {
+			debugI_P(PSTR("Using timestamp from meter (DLMS)"));
+			now = data->getPackageTimestamp();
+		}
+		if(now > BUILD_EPOCH) {
+			timeval tv { now, 0};
+			settimeofday(&tv, nullptr);
+		}
+	}
+
+	meterState.apply(*data);
+
+	bool saveData = false;
+	if(!ds.isHappy() && now > BUILD_EPOCH) {
+		debugD_P(PSTR("Its time to update data storage"));
+		tmElements_t tm;
+		breakTime(now, tm);
+		if(tm.Minute == 0) {
+			debugV_P(PSTR(" using actual data"));
+			saveData = ds.update(data);
+		} else if(meterState.getListType() >= 3) {
+			debugV_P(PSTR(" using estimated data"));
+			saveData = ds.update(&meterState);
+		}
+		if(saveData) {
+			debugI_P(PSTR("Saving data"));
+			ds.save();
+		}
+	}
+
+	if(ea.update(data)) {
+		debugI_P(PSTR("Saving energy accounting"));
+		ea.save();
+		saveData = true; // Trigger LittleFS.end
+	}
+	if(saveData) {
+		LittleFS.end();
+	}
 }
 
 void printHanReadError(int pos) {
@@ -1385,6 +1339,79 @@ void WiFi_connect() {
 			if (Debug.isActive(RemoteDebug::ERROR)) debugI_P(PSTR("Unable to start WiFi"));
 		}
   	}
+}
+
+void WiFi_post_connect() {
+	wifiConnected = true;
+
+	WiFiConfig wifi;
+	if(config.getWiFiConfig(wifi)) {
+		#if defined(ESP32)
+			if(wifi.power >= 195)
+				WiFi.setTxPower(WIFI_POWER_19_5dBm);
+			else if(wifi.power >= 190)
+				WiFi.setTxPower(WIFI_POWER_19dBm);
+			else if(wifi.power >= 185)
+				WiFi.setTxPower(WIFI_POWER_18_5dBm);
+			else if(wifi.power >= 170)
+				WiFi.setTxPower(WIFI_POWER_17dBm);
+			else if(wifi.power >= 150)
+				WiFi.setTxPower(WIFI_POWER_15dBm);
+			else if(wifi.power >= 130)
+				WiFi.setTxPower(WIFI_POWER_13dBm);
+			else if(wifi.power >= 110)
+				WiFi.setTxPower(WIFI_POWER_11dBm);
+			else if(wifi.power >= 85)
+				WiFi.setTxPower(WIFI_POWER_8_5dBm);
+			else if(wifi.power >= 70)
+				WiFi.setTxPower(WIFI_POWER_7dBm);
+			else if(wifi.power >= 50)
+				WiFi.setTxPower(WIFI_POWER_5dBm);
+			else if(wifi.power >= 20)
+				WiFi.setTxPower(WIFI_POWER_2dBm);
+			else
+				WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
+		#elif defined(ESP8266)
+			WiFi.setOutputPower(wifi.power / 10.0);
+		#endif
+		
+
+		WebConfig web;
+		if(config.getWebConfig(web) && web.security > 0) {
+			Debug.setPassword(web.password);
+		}
+		DebugConfig debug;
+		if(config.getDebugConfig(debug)) {
+			Debug.begin(wifi.hostname, debug.serial || debug.telnet ? (uint8_t) debug.level : RemoteDebug::WARNING); // I don't know why, but ESP8266 stops working after a while if ERROR level is set
+			if(!debug.telnet) {
+				Debug.stop();
+			}
+		} else {
+			Debug.stop();
+		}
+		if(Debug.isActive(RemoteDebug::INFO)) {
+			debugI_P(PSTR("Successfully connected to WiFi!"));
+			debugI_P(PSTR("IP:  %s"), WiFi.localIP().toString().c_str());
+			debugI_P(PSTR("GW:  %s"), WiFi.gatewayIP().toString().c_str());
+			debugI_P(PSTR("DNS: %s"), WiFi.dnsIP().toString().c_str());
+		}
+		mdnsEnabled = false;
+		if(strlen(wifi.hostname) > 0 && wifi.mdns) {
+			debugD_P(PSTR("mDNS is enabled, using host: %s"), wifi.hostname);
+			if(MDNS.begin(wifi.hostname)) {
+				mdnsEnabled = true;
+				MDNS.addService(F("http"), F("tcp"), 80);
+			} else {
+				debugE_P(PSTR("Failed to set up mDNS!"));
+			}
+		}
+	}
+
+	MqttConfig mqttConfig;
+	if(config.getMqttConfig(mqttConfig)) {
+		mqttEnabled = strlen(mqttConfig.host) > 0;
+		ws.setMqttEnabled(mqttEnabled);
+	}
 }
 
 void mqttMessageReceived(String &topic, String &payload) {

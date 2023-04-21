@@ -51,7 +51,7 @@
                     s.upgrading = true;
                     return s;
                 });
-                upgrade(nextVersion);
+                upgrade(nextVersion.tag_name);
             }
         }
     }

@@ -52,7 +52,9 @@
         <g class="axis x-axis">
             {#each config.x.ticks as point, i}
                 <g class="tick" transform="translate({xScale(i)},{heightAvailable})">
+                    {#if barWidth > 20 || i%2 == 0}
                     <text x="{barWidth/2}" y="-4">{point.label}</text>
+                    {/if}
                 </g>
             {/each}
         </g>

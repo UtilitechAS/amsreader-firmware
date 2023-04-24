@@ -341,9 +341,6 @@ void setup() {
 		NtpConfig ntp;
 		if(config.getNtpConfig(ntp)) {
 			tz = resolveTimezone(ntp.timezone);
-			configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : (char*) F("pool.ntp.org") : (char*) F("")); // Add NTP server by default if none is configured
-			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
-			ntpEnabled = ntp.enable;
 			ws.setTimezone(tz);
 			ds.setTimezone(tz);
 			ea.setTimezone(tz);
@@ -560,12 +557,21 @@ void handleEnergyAccountingChanged() {
 	config.ackEnergyAccountingChange();
 }
 
+char ntpServerName[64] = "";
+
 void handleNtpChange() {
 	NtpConfig ntp;
 	if(config.getNtpConfig(ntp)) {
 		tz = resolveTimezone(ntp.timezone);
-		configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntp.enable ? strlen(ntp.server) > 0 ? ntp.server : (char*) F("pool.ntp.org") : (char*) F("")); // Add NTP server by default if none is configured
-		sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
+		if(ntp.enable && strlen(ntp.server) > 0) {
+			strcpy(ntpServerName, ntp.server);
+		} else if(ntp.enable) {
+			strcpy(ntpServerName, "pool.ntp.org");
+		} else {
+			memset(ntpServerName, 0, 64);
+		}
+		configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntpServerName, "", "");
+		sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0); // Not implemented on ESP32?
 		ntpEnabled = ntp.enable;
 
 		ws.setTimezone(tz);
@@ -704,8 +710,8 @@ void rxerr(int err) {
 	if(err == 0) return;
 	switch(err) {
 		case 1:
-			debugE_P(PSTR("Serial break error"));
-			break;
+			debugD_P(PSTR("Serial break"));
+			return;
 		case 2:
 			debugE_P(PSTR("Serial buffer overflow"));
 			rxBufferErrors++;
@@ -720,10 +726,10 @@ void rxerr(int err) {
 			debugE_P(PSTR("Serial FIFO overflow"));
 			break;
 		case 4:
-			debugE_P(PSTR("Serial frame error"));
+			debugW_P(PSTR("Serial frame error"));
 			break;
 		case 5:
-			debugE_P(PSTR("Serial parity error"));
+			debugW_P(PSTR("Serial parity error"));
 			break;
 	}
 	meterState.setLastError(90+err);

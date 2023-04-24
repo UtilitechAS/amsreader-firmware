@@ -168,8 +168,12 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             }
         }
 
-        if(meterType == AmsTypeKamstrup || meterType == AmsTypeAidon) {
-            this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
+        if(this->packageTimestamp > 0) {
+            if(meterType == AmsTypeAidon) {
+                this->packageTimestamp = tz.toUTC(this->packageTimestamp);
+            } else if(meterType == AmsTypeKamstrup) {
+                this->packageTimestamp = this->packageTimestamp - 3600;
+            }
         }
 
         uint8_t str_len = 0;
@@ -271,9 +275,9 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
             time_t ts = decodeCosemDateTime(amst->dt);
             if(meterType == AmsTypeAidon) {
-                meterTimestamp = ts - 3600;
-            } else if(meterType == AmsTypeKamstrup) {
                 meterTimestamp = tz.toUTC(ts);
+            } else if(meterType == AmsTypeKamstrup) {
+                meterTimestamp = ts - 3600;
             } else {
                 meterTimestamp = ts;
             }

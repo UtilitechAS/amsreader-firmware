@@ -164,7 +164,7 @@
             <div class="my-2 flex">
                 Latest version: 
                 <a href={nextVersion.html_url} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{nextVersion.tag_name}</a>
-                {#if (sysinfo.security == 0 || data.a) && sysinfo.fwconsent === 1 && nextVersion && nextVersion.tag_name}
+                {#if (sysinfo.security == 0 || data.a) && sysinfo.fwconsent === 1 && nextVersion && nextVersion.tag_name != sysinfo.version}
                 <div class="flex-none ml-2 text-green-500" title="Install this version">
                     <button on:click={askUpgrade}><DownloadIcon/></button>
                 </div>

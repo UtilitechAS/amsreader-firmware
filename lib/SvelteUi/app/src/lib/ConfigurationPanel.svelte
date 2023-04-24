@@ -12,6 +12,22 @@
     
 
     export let sysinfo = {}
+    
+    let selected = '';
+    if(localStorage.theme === 'dark') {
+        selected = "Enable"
+    } else {
+        selected = "Disable"
+    }
+	let options = [
+		'Enable',
+		'Disable',
+        'Auto'
+	]
+
+	$: {
+        setDarkMode(selected)
+	}
 
     let uiElements = [{
         name: 'Import gauge',
@@ -178,6 +194,25 @@
     $: {
         gpioMax = sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39;
     }
+
+    function setDarkMode(value) {
+        if(value === "Enable") {
+            document.documentElement.classList.add('dark')
+            localStorage.theme = "dark"
+        } if (value === "Disable") {
+            document.documentElement.classList.remove('dark')
+            localStorage.removeItem("theme")
+        } else {
+            if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark')
+                localStorage.theme = "dark"
+            } else {
+                document.documentElement.classList.remove('dark')
+                localStorage.removeItem("theme")
+            }
+        }
+    }
+
 </script>
 
 <form on:submit|preventDefault={handleSubmit} autocomplete="off">
@@ -598,6 +633,12 @@
                         </select>
                     </div>
                 {/each}
+                <div class="w-1/2">
+                    Darkmode<br/>
+                    <select name="darkMode" bind:value={selected} class="in-s">
+                        {#each options as value}<option {value}>{value}</option>{/each}
+                    </select>
+                </div>
             </div>
         </div>
         {#if sysinfo.board > 20 || sysinfo.chip == 'esp8266'}

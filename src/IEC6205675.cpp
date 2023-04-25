@@ -376,19 +376,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                         break;
                 }
             }
-        } else if(meterType == AmsTypeKaifa) {
-            if(l1current != 0)
-                l1current /= 1000;
-            if(l2current != 0)
-                l2current /= 1000;
-            if(l3current != 0)
-                l3current /= 1000;
-            if(l1voltage != 0)
-                l1voltage /= 10;
-            if(l2voltage != 0)
-                l2voltage /= 10;
-            if(l3voltage != 0)
-                l3voltage /= 10;
         }
 
         lastUpdateMillis = millis();

@@ -96,7 +96,7 @@ RemoteDebug Debug;
 
 EntsoeApi* eapi = NULL;
 
-Timezone* tz;
+Timezone* tz = NULL;
 
 AmsWebServer ws(commonBuffer, &Debug, &hw);
 
@@ -1093,7 +1093,7 @@ bool readHanPort() {
 			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx);
 		}
 	} else if(ctx.type == DATA_TAG_DSMR) {
-		data = new IEC6205621(payload);
+		data = new IEC6205621(payload, tz);
 	}
 	len = 0;
 

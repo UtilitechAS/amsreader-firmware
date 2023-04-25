@@ -3,10 +3,11 @@
 
 #include "Arduino.h"
 #include "AmsData.h"
+#include "Timezone.h"
 
 class IEC6205621 : public AmsData {
 public:
-    IEC6205621(const char* payload);
+    IEC6205621(const char* payload, Timezone* tz);
 
 private:
     String extract(String payload, String obis);

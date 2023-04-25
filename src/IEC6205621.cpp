@@ -1,6 +1,6 @@
 #include "IEC6205621.h"
 
-IEC6205621::IEC6205621(const char* p) {
+IEC6205621::IEC6205621(const char* p, Timezone* tz) {
 	if(strlen(p) < 16)
 		return;
 
@@ -58,7 +58,8 @@ IEC6205621::IEC6205621(const char* p) {
 		tm.Hour = timestamp.substring(6,8).toInt();
 		tm.Minute = timestamp.substring(8,10).toInt();
 		tm.Second = timestamp.substring(10,12).toInt();
-		meterTimestamp = makeTime(tm); // TODO: Adjust for time zone
+		meterTimestamp = makeTime(tm);
+		if(tz != NULL) meterTimestamp = tz->toUTC(meterTimestamp);
 	}
 
 	activeImportPower = (uint16_t) (extractDouble(payload, F("1.7.0")));

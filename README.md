@@ -5,9 +5,8 @@ Coming soon: Update to new base amsreader-firmware Rev 2.2.15 (dated 25th April 
 
 Changes are:
 1) Translations to German language
-2) Plots are now interactive and show the individual values when clicking on the bar of the plot.
+2) Exported energy is shown in green color on 24 hour and month plot.
 3) Added a 60 Minute plot (120 point resolution, 1 pt each 30 sec)
-4) Export shows in green and positive. Import in purple and negative.
 
 ## Original README.md from amsreader-firmware:
 

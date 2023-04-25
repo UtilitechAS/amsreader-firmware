@@ -1,4 +1,4 @@
-# AMS MQTT Bridge
+# AMS2MQTTBridge-ge
 This is a fork from amsreader-firmware (old name: AmsToMqttBridge) Rev 2.1.10 which can found here: https://github.com/UtilitechAS/amsreader-firmware .
 
 Changes are:

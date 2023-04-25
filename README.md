@@ -1,12 +1,13 @@
 # AMS MQTT Bridge
-Still very similar to original AMS2MQTT Bridge.
+This is a fork from amsreader-firmware (old name: AmsToMqttBridge) Rev 2.1.10 which can found here: https://github.com/UtilitechAS/amsreader-firmware .
+
 Changes are:
 1) Translations to German language
 2) Plots are now interactive and show the individual values when clicking on the bar of the plot.
 3) Added a 60 Minute plot (120 point resolution, 1 pt each 30 sec)
 4) Export shows in green and positive. Import in purple and negative.
 
-## Original README.md :
+## Original README.md from amsreader-firmware:
 
 This code is designed to decode data from electric smart meters installed in many countries in Europe these days. The data is presented in a graphical web interface and can also send the data to a MQTT broker which makes it suitable for home automation project. Originally it was only designed to work with Norwegian meters, but has since been adapter to read any IEC-62056-7-5 or IEC-62056-21 compliant meters.
 

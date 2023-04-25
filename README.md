@@ -1,6 +1,8 @@
 # AMS2MQTTBridge-ge
 This is a fork from amsreader-firmware (old name: AmsToMqttBridge) Rev 2.1.10 which can found here: https://github.com/UtilitechAS/amsreader-firmware .
 
+Coming soon: Update to new base amsreader-firmware Rev 2.2.15 (dated 25th April 2023)
+
 Changes are:
 1) Translations to German language
 2) Plots are now interactive and show the individual values when clicking on the bar of the plot.

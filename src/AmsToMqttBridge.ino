@@ -36,8 +36,7 @@ ADC_MODE(ADC_VCC);
 #include <driver/uart.h>
 #endif
 
-#include "version.h"
-
+#include "FirmwareVersion.h"
 #include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
 #include "AmsDataStorage.h"
@@ -309,7 +308,7 @@ void setup() {
 					}
 					flashed = Update.end(true);
 				}
-				config.setUpgradeInformation(flashed ? 2 : 0, 0xFF, VERSION, "");
+				config.setUpgradeInformation(flashed ? 2 : 0, 0xFF, FirmwareVersion::VersionString, "");
 				firmwareFile.close();
 			} else {
 				debugW_P(PSTR("AP button pressed, skipping firmware update and deleting firmware file."));
@@ -1126,15 +1125,15 @@ void handleDataSuccess(AmsData* data) {
 	}
 
 	time_t now = time(nullptr);
-	if(now < BUILD_EPOCH && data->getListType() >= 3) {
-		if(data->getMeterTimestamp() > BUILD_EPOCH) {
+	if(now < FirmwareVersion::BuildEpoch && data->getListType() >= 3) {
+		if(data->getMeterTimestamp() > FirmwareVersion::BuildEpoch) {
 			debugI_P(PSTR("Using timestamp from meter"));
 			now = data->getMeterTimestamp();
-		} else if(data->getPackageTimestamp() > BUILD_EPOCH) {
+		} else if(data->getPackageTimestamp() > FirmwareVersion::BuildEpoch) {
 			debugI_P(PSTR("Using timestamp from meter (DLMS)"));
 			now = data->getPackageTimestamp();
 		}
-		if(now > BUILD_EPOCH) {
+		if(now > FirmwareVersion::BuildEpoch) {
 			timeval tv { now, 0};
 			settimeofday(&tv, nullptr);
 		}
@@ -1143,7 +1142,7 @@ void handleDataSuccess(AmsData* data) {
 	meterState.apply(*data);
 
 	bool saveData = false;
-	if(!ds.isHappy() && now > BUILD_EPOCH) {
+	if(!ds.isHappy() && now > FirmwareVersion::BuildEpoch) {
 		debugD_P(PSTR("Its time to update data storage"));
 		tmElements_t tm;
 		breakTime(now, tm);
@@ -1619,7 +1618,7 @@ void MQTT_connect() {
 
 	time_t epoch = time(nullptr);
 	if(mqttConfig.ssl) {
-		if(epoch < BUILD_EPOCH) {
+		if(epoch < FirmwareVersion::BuildEpoch) {
 			debugI_P(PSTR("NTP not ready for MQTT SSL"));
 			return;
 		}

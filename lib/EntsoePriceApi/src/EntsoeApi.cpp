@@ -3,7 +3,7 @@
 #include "Uptime.h"
 #include "TimeLib.h"
 #include "DnbCurrParser.h"
-#include "version.h"
+#include "FirmwareVersion.h"
 
 #include "GcmParser.h"
 
@@ -37,7 +37,7 @@ void EntsoeApi::setup(EntsoeConfig& config) {
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
     http.setReuse(false);
     http.setTimeout(60000);
-    http.setUserAgent("ams2mqtt/" + String(VERSION));
+    http.setUserAgent("ams2mqtt/" + String(FirmwareVersion::VersionString));
     http.useHTTP10(true);
 
     #if defined(AMS2MQTT_PRICE_KEY)
@@ -135,7 +135,7 @@ bool EntsoeApi::loop() {
     if(now < 10000) return false; // Grace period
 
     time_t t = time(nullptr);
-    if(t < BUILD_EPOCH) return false;
+    if(t < FirmwareVersion::BuildEpoch) return false;
 
     #ifndef AMS2MQTT_PRICE_KEY
     if(strlen(getToken()) == 0) {

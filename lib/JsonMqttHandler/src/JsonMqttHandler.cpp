@@ -1,5 +1,5 @@
 #include "JsonMqttHandler.h"
-#include "version.h"
+#include "FirmwareVersion.h"
 #include "hexutils.h"
 #include "Uptime.h"
 #include "json/json1_json.h"
@@ -341,7 +341,7 @@ bool JsonMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounti
         hw->getVcc(),
         hw->getWifiRssi(),
         hw->getTemperature(),
-        VERSION
+        FirmwareVersion::VersionString
     );
     bool ret = mqtt->publish(topic, json);
     loop();

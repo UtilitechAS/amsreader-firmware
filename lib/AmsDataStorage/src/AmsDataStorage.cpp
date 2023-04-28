@@ -2,7 +2,7 @@
 #include <lwip/apps/sntp.h>
 #include "LittleFS.h"
 #include "AmsStorage.h"
-#include "version.h"
+#include "FirmwareVersion.h"
 
 AmsDataStorage::AmsDataStorage(RemoteDebug* debugger) {
     day.version = 5;
@@ -28,20 +28,20 @@ bool AmsDataStorage::update(AmsData* data) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Timezone is missing\n"));
         return false;
     }
-    if(now < BUILD_EPOCH) {
-        if(data->getMeterTimestamp() > BUILD_EPOCH) {
+    if(now < FirmwareVersion::BuildEpoch) {
+        if(data->getMeterTimestamp() > FirmwareVersion::BuildEpoch) {
             now = data->getMeterTimestamp();
             if(debugger->isActive(RemoteDebug::DEBUG)) {
                 debugger->printf_P(PSTR("(AmsDataStorage) Using meter timestamp, which is: %lu\n"), (int32_t) now);
             }
-        } else if(data->getPackageTimestamp() > BUILD_EPOCH) {
+        } else if(data->getPackageTimestamp() > FirmwareVersion::BuildEpoch) {
             now = data->getPackageTimestamp();
             if(debugger->isActive(RemoteDebug::DEBUG)) {
                 debugger->printf_P(PSTR("(AmsDataStorage) Using package timestamp, which is: %lu\n"), (int32_t) now);
             }
         }
     }
-    if(now < BUILD_EPOCH) {
+    if(now < FirmwareVersion::BuildEpoch) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) {
             debugger->printf_P(PSTR("(AmsDataStorage) Invalid time: %lu\n"), (int32_t) now);
         }
@@ -551,7 +551,7 @@ bool AmsDataStorage::isHappy() {
 
 bool AmsDataStorage::isDayHappy() {
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return false;
+    if(now < FirmwareVersion::BuildEpoch) return false;
     tmElements_t tm, last;
 
     if(now < day.lastMeterReadTime) {
@@ -579,7 +579,7 @@ bool AmsDataStorage::isMonthHappy() {
     }
 
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return false;
+    if(now < FirmwareVersion::BuildEpoch) return false;
     tmElements_t tm, last;
     
     if(now < month.lastMeterReadTime) {

@@ -1,7 +1,7 @@
 #include "HomeAssistantMqttHandler.h"
 #include "hexutils.h"
 #include "Uptime.h"
-#include "version.h"
+#include "FirmwareVersion.h"
 #include "json/ha1_json.h"
 #include "json/ha2_json.h"
 #include "json/ha3_json.h"
@@ -329,7 +329,7 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
         hw->getVcc(),
         hw->getWifiRssi(),
         hw->getTemperature(),
-        VERSION
+        FirmwareVersion::VersionString
     );
     bool ret = mqtt->publish(topic + "/state", json);
     loop();
@@ -353,7 +353,7 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
         deviceUid.c_str(),
         deviceName.c_str(),
         deviceModel.c_str(),
-        VERSION,
+        FirmwareVersion::VersionString,
         manufacturer.c_str(),
         deviceUrl.c_str(),
         strlen_P(sensor.devcl) > 0 ? ",\"dev_cla\":\"" : "",

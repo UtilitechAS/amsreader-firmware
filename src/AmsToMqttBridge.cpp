@@ -23,6 +23,8 @@
  * to Norwegian meters, but may also support data from electricity providers in other countries. 
  */
 
+#include <Arduino.h>
+
 #if defined(ESP8266)
 ADC_MODE(ADC_VCC);
 #endif
@@ -131,6 +133,29 @@ GCMParser *gcmParser = NULL;
 LLCParser *llcParser = NULL;
 DLMSParser *dlmsParser = NULL;
 DSMRParser *dsmrParser = NULL;
+
+
+void configFileParse();
+void swapWifiMode();
+void WiFi_connect();
+void WiFi_post_connect();
+void MQTT_connect();
+void handleNtpChange();
+void handleDataSuccess(AmsData* data);
+void handleTemperature(unsigned long now);
+void handleSystem(unsigned long now);
+void handleAutodetect(unsigned long now);
+void handleButton(unsigned long now);
+void handlePriceApi(unsigned long now);
+void handleEnergyAccountingChanged();
+bool readHanPort();
+void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert);
+void rxerr(int err);
+int16_t unwrapData(uint8_t *buf, DataParserContext &context);
+void errorBlink();
+void printHanReadError(int pos);
+void debugPrint(byte *buffer, int start, int length);
+
 
 void setup() {
 	Serial.begin(115200);

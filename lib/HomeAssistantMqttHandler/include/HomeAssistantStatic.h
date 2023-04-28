@@ -3,7 +3,7 @@
 
 #include "Arduino.h"
 
-typedef struct HomeAssistantSensor {
+struct HomeAssistantSensor {
     const char* name;
     const char* topic;
     const char* path;

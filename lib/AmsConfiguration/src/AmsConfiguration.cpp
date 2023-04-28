@@ -580,6 +580,7 @@ void AmsConfiguration::clearEntsoe(EntsoeConfig& config) {
 	strcpy(config.currency, "");
 	config.multiplier = 1000;
 	config.enabled = false;
+	config.fixedPrice = 0;
 }
 
 bool AmsConfiguration::isEntsoeChanged() {

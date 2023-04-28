@@ -2019,6 +2019,7 @@ void AmsWebServer::configFileDownload() {
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeArea %s\n"), entsoe.area));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeCurrency %s\n"), entsoe.currency));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeMultiplier %.3f\n"), entsoe.multiplier / 1000.0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeFixedPrice %.3f\n"), entsoe.fixedPrice / 1000.0));
 	}
 
 	if(includeThresholds) {

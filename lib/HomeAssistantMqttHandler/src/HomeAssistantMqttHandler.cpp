@@ -350,15 +350,18 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
         deviceUid.c_str(), uid.c_str(),
         sensor.uom,
         sensor.path,
-        sensor.devcl,
         deviceUid.c_str(),
         deviceName.c_str(),
         deviceModel.c_str(),
         VERSION,
         manufacturer.c_str(),
         deviceUrl.c_str(),
-        strlen_P(sensor.stacl) > 0 ? ", \"stat_cla\" :" : "",
-        strlen_P(sensor.stacl) > 0 ? (char *) FPSTR(sensor.stacl) : ""
+        strlen_P(sensor.devcl) > 0 ? ",\"dev_cla\":\"" : "",
+        strlen_P(sensor.devcl) > 0 ? (char *) FPSTR(sensor.devcl) : "",
+        strlen_P(sensor.devcl) > 0 ? "\"" : "",
+        strlen_P(sensor.stacl) > 0 ? ",\"stat_cla\":\"" : "",
+        strlen_P(sensor.stacl) > 0 ? (char *) FPSTR(sensor.stacl) : "",
+        strlen_P(sensor.stacl) > 0 ? "\"" : ""
     );
     mqtt->publish(discoveryTopic + deviceUid + "_" + uid.c_str() + "/config", json, true, 0);
     loop();

@@ -1967,6 +1967,9 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("entsoeMultiplier "), 17) == 0) {
 			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
 			entsoe.multiplier = String(buf+17).toFloat() * 1000;
+		} else if(strncmp_P(buf, PSTR("entsoeFixedPrice "), 17) == 0) {
+			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
+			entsoe.fixedPrice = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("thresholds "), 11) == 0) {
 			if(!lEac) { config.getEnergyAccountingConfig(eac); lEac = true; };
 			int i = 0;

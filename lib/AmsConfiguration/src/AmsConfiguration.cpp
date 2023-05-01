@@ -56,7 +56,7 @@ bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 		wifiChanged |= strcmp(config.hostname, existing.hostname) != 0;
 		wifiChanged |= config.power != existing.power;
 		wifiChanged |= config.sleep != existing.sleep;
-		wifiChanged |= config.mode != existing.mode;
+		wifiChanged |= config.use11b != existing.use11b;
 		wifiChanged |= config.autoreboot != existing.autoreboot;
 	} else {
 		wifiChanged = true;
@@ -94,6 +94,7 @@ void AmsConfiguration::clearWifi(WiFiConfig& config) {
 	strcpy(config.hostname, (String("ams-") + String(chipId, HEX)).c_str());
 	config.mdns = true;
 	config.sleep = 0xFF;
+	config.use11b = 1;
 }
 
 void AmsConfiguration::clearWifiIp(WiFiConfig& config) {
@@ -1002,7 +1003,7 @@ bool AmsConfiguration::relocateConfig96() {
 
 	WiFiConfig wifi;
 	EEPROM.get(CONFIG_WIFI_START, wifi);
-	wifi.mode = 1; // WIFI_STA
+	wifi.use11b = 1;
 	wifi.autoreboot = true;
 	EEPROM.put(CONFIG_WIFI_START, wifi);
 

@@ -22,7 +22,7 @@
                     label: name.slice(-4)
                 });
                 points.push({
-                    label: val.toFixed(1), 
+                    label: val.toFixed(1),
                     value: val, 
                     color: '#7c3aed' 
                 });

@@ -61,6 +61,7 @@
 
         <g class='bars'>
             {#each config.points as point, i}
+                <g>
                 {#if point.value !== undefined}
                     <rect
                         x="{xScale(i) + 2}"
@@ -79,9 +80,15 @@
                             text-anchor="{barWidth < 25 ? 'left' : 'middle'}"
                             fill="{yScale(point.value) > yScale(0)-labelOffset ? point.color : 'white'}"
                             transform="rotate({barWidth < 25 ? 90 : 0}, {xScale(i) + (barWidth/2)}, {yScale(point.value) > yScale(0)-labelOffset ? yScale(point.value) - labelOffset : yScale(point.value)+9})"
+                            
                         >{point.label}</text>
+                        {#if point.title}
+                        <title>{point.title}</title>
+                        {/if}
                     {/if}
                 {/if}
+                </g>
+                <g>
                 {#if point.value2 > 0.0001}
                     <rect
                         x="{xScale(i) + 2}"
@@ -100,8 +107,12 @@
                             fill="{yScale(-point.value2) < yScale(0)+12 ? point.color : 'white'}"
                             transform="rotate({barWidth < 25 ? 90 : 0}, {xScale(i) + (barWidth/2)}, {yScale(point.value2 - config.y.min) > yScale(0)-12 ? yScale(point.value2 - config.y.min) - 12 : yScale(point.value2 - config.y.min)+9})"
                         >{point.label2}</text>
+                        {#if point.title2}
+                        <title>{point.title2}</title>
+                        {/if}
                     {/if}
                 {/if}
+                </g>
             {/each}
         </g>
     </svg>

@@ -27,9 +27,11 @@
                 label: zeropad(i)
             });
             points.push({
-                label: imp.toFixed(0), 
+                label: imp.toFixed(imp < 10 ? 1 : 0), 
+                title: imp.toFixed(2) + ' kWh',
                 value: imp, 
-                label2: exp.toFixed(0), 
+                label2: exp.toFixed(exp < 10 ? 1 : 0), 
+                title2: exp.toFixed(2) + ' kWh',
                 value2: exp,
                 color: '#7c3aed' 
             });
@@ -46,9 +48,11 @@
                 label: zeropad(i)
             });
             points.push({
-                label: imp.toFixed(0), 
+                label: imp.toFixed(imp < 10 ? 1 : 0), 
+                title: imp.toFixed(2) + ' kWh', 
                 value: imp, 
-                label2: exp.toFixed(0), 
+                label2: exp.toFixed(exp < 10 ? 1 : 0), 
+                title2: exp.toFixed(2) + ' kWh', 
                 value2: exp,
                 color: '#7c3aed' 
             });

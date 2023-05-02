@@ -26,8 +26,10 @@
             });
             points.push({
                 label: imp.toFixed(1), 
+                title: imp.toFixed(2) + ' kWh',
                 value: imp*10, 
                 label2: exp.toFixed(1), 
+                title2: exp.toFixed(2) + ' kWh',
                 value2: exp*10,
                 color: '#7c3aed' 
             });
@@ -46,8 +48,10 @@
             });
             points.push({
                 label: imp.toFixed(1), 
+                title: imp.toFixed(2) + ' kWh',
                 value: imp*10, 
                 label2: exp.toFixed(1), 
+                title2: exp.toFixed(2) + ' kWh',
                 value2: exp*10,
                 color: '#7c3aed' 
             });

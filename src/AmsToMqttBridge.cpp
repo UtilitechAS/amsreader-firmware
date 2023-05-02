@@ -147,6 +147,7 @@ void handleSystem(unsigned long now);
 void handleAutodetect(unsigned long now);
 void handleButton(unsigned long now);
 void handlePriceApi(unsigned long now);
+void handleClear(unsigned long now);
 void handleEnergyAccountingChanged();
 bool readHanPort();
 void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert);
@@ -407,6 +408,7 @@ bool wifiConnected = false;
 unsigned long lastTemperatureRead = 0;
 unsigned long lastSysupdate = 0;
 unsigned long lastErrorBlink = 0; 
+unsigned long lastDataStoreUpdate = 0;
 int lastError = 0;
 
 bool meterAutodetect = false;
@@ -544,15 +546,8 @@ void loop() {
 				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
 			}
 		}
-		if(now > meterState.getLastUpdateMillis() && now - meterState.getLastUpdateMillis() > 3600000 && !ds.isHappy()) {
-			time_t epoch = time(nullptr);
-			tmElements_t tm;
-			breakTime(epoch, tm);
-			if(tm.Minute == 0) {
-				AmsData nullData;
-				debugI_P(PSTR("Clearing data that have not been updated"));
-				ds.update(&nullData);
-			}
+		if(now > lastDataStoreUpdate && now - lastDataStoreUpdate > 3600000 && !ds.isHappy()) {
+			handleClear(now);
 		}
 	} catch(const std::exception& e) {
 		debugE_P(PSTR("Exception in readHanPort (%s)"), e.what());
@@ -581,6 +576,17 @@ void loop() {
 
 	if(end-now > 2000) {
 		debugW_P(PSTR("loop() used %dms"), end-now);
+	}
+}
+
+void handleClear(unsigned long now) {
+	tmElements_t tm;
+	breakTime(time(nullptr), tm);
+	if(tm.Minute == 0) {
+		AmsData nullData;
+		debugI_P(PSTR("Clearing data that have not been updated"));
+		ds.update(&nullData);
+		lastDataStoreUpdate = now;
 	}
 }
 
@@ -1191,6 +1197,7 @@ void handleDataSuccess(AmsData* data) {
 		if(saveData) {
 			debugI_P(PSTR("Saving data"));
 			ds.save();
+			lastDataStoreUpdate = millis();
 		}
 	}
 

@@ -81,7 +81,7 @@ public:
     EnergyAccountingData getData();
     void setData(EnergyAccountingData&);
 
-    void setFixedPrice(float price);
+    void setFixedPrice(float price, String currency);
     float getPriceForHour(uint8_t h);
 
 private:
@@ -97,6 +97,7 @@ private:
     float produce = 0, incomeHour = 0, incomeDay = 0;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0 };
     float fixedPrice = 0;
+    String currency = "";
 
     void calcDayCost();
     bool updateMax(uint16_t val, uint8_t day);

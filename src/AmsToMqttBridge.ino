@@ -186,7 +186,7 @@ void setup() {
 		ws.setEntsoeApi(eapi);
 	}
 	ws.setPriceSettings(entsoe.area, entsoe.currency);
-	ea.setFixedPrice(entsoe.fixedPrice / 1000.0);
+	ea.setFixedPrice(entsoe.fixedPrice / 1000.0, entsoe.currency);
 	bool shared = false;
 	config.getMeterConfig(meterConfig);
 	Serial.flush();
@@ -655,7 +655,7 @@ void handlePriceApi(unsigned long now) {
 		}
 		ws.setPriceSettings(entsoe.area, entsoe.currency);
 		config.ackEntsoeChange();
-		ea.setFixedPrice(entsoe.fixedPrice / 1000.0);
+		ea.setFixedPrice(entsoe.fixedPrice / 1000.0, entsoe.currency);
 	}
 }
 

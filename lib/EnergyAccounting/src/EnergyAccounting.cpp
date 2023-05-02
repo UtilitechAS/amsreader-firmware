@@ -132,7 +132,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         use += kwhi;
         if(price != ENTSOE_NO_VALUE) {
             float cost = price * kwhi;
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), cost / 100.0, eapi->getCurrency());
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), cost / 100.0, currency.c_str());
             costHour += cost;
             costDay += cost;
         }
@@ -142,7 +142,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         produce += kwhe;
         if(price != ENTSOE_NO_VALUE) {
             float income = price * kwhe;
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), income / 100.0, eapi->getCurrency());
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), income / 100.0, currency.c_str());
             incomeHour += income;
             incomeDay += income;
         }
@@ -499,8 +499,9 @@ bool EnergyAccounting::updateMax(uint16_t val, uint8_t day) {
     return false;
 }
 
-void EnergyAccounting::setFixedPrice(float price) {
+void EnergyAccounting::setFixedPrice(float price, String currency) {
     this->fixedPrice = price;
+    this->currency = currency;
 }
 
 float EnergyAccounting::getPriceForHour(uint8_t h) {

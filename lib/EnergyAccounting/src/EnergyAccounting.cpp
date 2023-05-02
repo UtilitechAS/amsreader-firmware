@@ -1,7 +1,7 @@
 #include "EnergyAccounting.h"
 #include "LittleFS.h"
 #include "AmsStorage.h"
-#include "version.h"
+#include "FirmwareVersion.h"
 
 EnergyAccounting::EnergyAccounting(RemoteDebug* debugger) {
     data.version = 1;
@@ -33,7 +33,7 @@ bool EnergyAccounting::isInitialized() {
 bool EnergyAccounting::update(AmsData* amsData) {
     if(config == NULL) return false;
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return false;
+    if(now < FirmwareVersion::BuildEpoch) return false;
     if(tz == NULL) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Timezone is missing\n"));
         return false;
@@ -188,7 +188,7 @@ float EnergyAccounting::getUseThisHour() {
 float EnergyAccounting::getUseToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return 0.0;
+    if(now < FirmwareVersion::BuildEpoch) return 0.0;
     if(tz == NULL) return 0.0;
     tmElements_t utc, local;
     breakTime(tz->toLocal(now), local);
@@ -201,7 +201,7 @@ float EnergyAccounting::getUseToday() {
 
 float EnergyAccounting::getUseThisMonth() {
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return 0.0;
+    if(now < FirmwareVersion::BuildEpoch) return 0.0;
     float ret = 0;
     for(uint8_t i = 0; i < currentDay; i++) {
         ret += ds->getDayImport(i) / 1000.0;
@@ -216,7 +216,7 @@ float EnergyAccounting::getProducedThisHour() {
 float EnergyAccounting::getProducedToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return 0.0;
+    if(now < FirmwareVersion::BuildEpoch) return 0.0;
     tmElements_t utc, local;
     breakTime(tz->toLocal(now), local);
     for(uint8_t i = 0; i < currentHour; i++) {
@@ -228,7 +228,7 @@ float EnergyAccounting::getProducedToday() {
 
 float EnergyAccounting::getProducedThisMonth() {
     time_t now = time(nullptr);
-    if(now < BUILD_EPOCH) return 0.0;
+    if(now < FirmwareVersion::BuildEpoch) return 0.0;
     float ret = 0;
     for(uint8_t i = 0; i < currentDay; i++) {
         ret += ds->getDayExport(i) / 1000.0;

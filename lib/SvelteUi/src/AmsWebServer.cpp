@@ -1,5 +1,6 @@
 #include "AmsWebServer.h"
 #include "AmsWebHeaders.h"
+#include "FirmwareVersion.h"
 #include "base64.h"
 #include "hexutils.h"
 
@@ -30,8 +31,6 @@
 #include "html/conf_ha_json.h"
 #include "html/conf_ui_json.h"
 #include "html/firmware_html.h"
-
-#include "version.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
@@ -64,9 +63,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	this->ea = ea;
 
 	server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	snprintf_P(buf, 32, PSTR("/index-%s.js"), VERSION);
+	snprintf_P(buf, 32, PSTR("/index-%s.js"), FirmwareVersion::VersionString);
 	server.on(buf, HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
-	snprintf_P(buf, 32, PSTR("/index-%s.css"), VERSION);
+	snprintf_P(buf, 32, PSTR("/index-%s.css"), FirmwareVersion::VersionString);
 	server.on(buf, HTTP_GET, std::bind(&AmsWebServer::indexCss, this));
 
 	server.on(F("/configuration"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
@@ -263,7 +262,7 @@ void AmsWebServer::sysinfoJson() {
 		meterId.replace(F("\\"), F("\\\\"));
 
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
-		VERSION,
+		FirmwareVersion::VersionString,
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
 		"esp32s2",
 		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
@@ -824,7 +823,7 @@ void AmsWebServer::configurationJson() {
 
 	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
 	server.send_P(200, MIME_JSON, PSTR("{\"version\":\""));
-	server.sendContent_P(VERSION);
+	server.sendContent_P(FirmwareVersion::VersionString);
 	server.sendContent_P(PSTR("\","));
 	snprintf_P(buf, BufferSize, CONF_GENERAL_JSON,
 		ntpConfig.timezone,
@@ -1536,7 +1535,7 @@ void AmsWebServer::upgrade() {
 }
 
 void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
-	config->setUpgradeInformation(0xFF, 0xFF, VERSION, nextVersion.c_str());
+	config->setUpgradeInformation(0xFF, 0xFF, FirmwareVersion::VersionString, nextVersion.c_str());
 
 	WiFiClient client;
 	#if defined(ESP8266)
@@ -1555,10 +1554,10 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 
 	#if defined(ESP8266)
 		ESP8266HTTPUpdate httpUpdate = ESP8266HTTPUpdate(60000);
-		String currentVersion = VERSION;
+		String currentVersion = FirmwareVersion::VersionString;
 	#elif defined(ESP32)
 		HTTPUpdate httpUpdate = HTTPUpdate(60000);
-		String currentVersion = String(VERSION) + "-" + chipType;
+		String currentVersion = String(FirmwareVersion::VersionString) + "-" + chipType;
 	#endif
 
 	httpUpdate.rebootOnUpdate(false);
@@ -1566,7 +1565,7 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 	HTTPUpdateResult ret = httpUpdate.update(client, url, currentVersion);
 	int lastError = httpUpdate.getLastError();
 
-	config->setUpgradeInformation(ret, ret == HTTP_UPDATE_OK ? 0 : lastError, VERSION, nextVersion.c_str());
+	config->setUpgradeInformation(ret, ret == HTTP_UPDATE_OK ? 0 : lastError, FirmwareVersion::VersionString, nextVersion.c_str());
 	switch(ret) {
 		case HTTP_UPDATE_FAILED:
 			debugger->printf_P(PSTR("Update failed\n"));
@@ -1604,7 +1603,7 @@ void AmsWebServer::firmwarePost() {
 	if(rebootForUpgrade) {
 		server.send(200);
 	} else {
-		config->setUpgradeInformation(0xFF, 0xFF, VERSION, "");
+		config->setUpgradeInformation(0xFF, 0xFF, FirmwareVersion::VersionString, "");
 		if(server.hasArg(F("url"))) {
 			String url = server.arg(F("url"));
 			if(!url.isEmpty() && (url.startsWith(F("http://")) || url.startsWith(F("https://")))) {
@@ -1891,7 +1890,7 @@ void AmsWebServer::configFileDownload() {
 	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
 
 	server.send_P(200, MIME_PLAIN, PSTR("amsconfig\n"));
-	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("version %s\n"), VERSION));
+	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("version %s\n"), FirmwareVersion::VersionString));
 	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("boardType %d\n"), sys.boardType));
 	
 	if(includeWifi) {

@@ -589,7 +589,7 @@ bool AmsDataStorage::isMonthHappy() {
 
     breakTime(tz->toLocal(now), tm);
     breakTime(tz->toLocal(month.lastMeterReadTime), last);
-    if(tm.Day > last.Day) {
+    if(tm.Day != last.Day) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Month data day of last timestamp %d > %d\n"), tm.Day, last.Day);
         return false;
     }

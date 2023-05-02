@@ -544,12 +544,13 @@ void loop() {
 				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
 			}
 		}
-		if(now - meterState.getLastUpdateMillis() > 3600000 && !ds.isHappy()) {
+		if(now > meterState.getLastUpdateMillis() && now - meterState.getLastUpdateMillis() > 3600000 && !ds.isHappy()) {
+			time_t epoch = time(nullptr);
 			tmElements_t tm;
-			breakTime(now, tm);
+			breakTime(epoch, tm);
 			if(tm.Minute == 0) {
 				AmsData nullData;
-				debugV_P(PSTR("Clearing data that have not been updated"));
+				debugI_P(PSTR("Clearing data that have not been updated"));
 				ds.update(&nullData);
 			}
 		}

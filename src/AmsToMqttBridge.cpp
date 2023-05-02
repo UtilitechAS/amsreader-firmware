@@ -544,6 +544,15 @@ void loop() {
 				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
 			}
 		}
+		if(now - meterState.getLastUpdateMillis() > 3600000 && !ds.isHappy()) {
+			tmElements_t tm;
+			breakTime(now, tm);
+			if(tm.Minute == 0) {
+				AmsData nullData;
+				debugV_P(PSTR("Clearing data that have not been updated"));
+				ds.update(&nullData);
+			}
+		}
 	} catch(const std::exception& e) {
 		debugE_P(PSTR("Exception in readHanPort (%s)"), e.what());
 		meterState.setLastError(METER_ERROR_EXCEPTION);
@@ -1167,14 +1176,14 @@ void handleDataSuccess(AmsData* data) {
 	meterState.apply(*data);
 
 	bool saveData = false;
-	if(!ds.isHappy() && now > FirmwareVersion::BuildEpoch) {
+	if(!ds.isDayHappy() && now > FirmwareVersion::BuildEpoch) {
 		debugD_P(PSTR("Its time to update data storage"));
 		tmElements_t tm;
 		breakTime(now, tm);
 		if(tm.Minute == 0) {
 			debugV_P(PSTR(" using actual data"));
 			saveData = ds.update(data);
-		} else if(meterState.getListType() >= 3) {
+		} else if(tm.Minute == 1 && meterState.getListType() >= 3) {
 			debugV_P(PSTR(" using estimated data"));
 			saveData = ds.update(&meterState);
 		}

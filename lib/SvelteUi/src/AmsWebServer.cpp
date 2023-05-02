@@ -769,7 +769,6 @@ void AmsWebServer::indexJs() {
 		return;
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
-	server.setContentLength(INDEX_JS_LEN);
 	server.send_P(200, MIME_JS, INDEX_JS);
 }
 

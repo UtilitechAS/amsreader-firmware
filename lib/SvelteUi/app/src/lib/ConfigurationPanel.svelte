@@ -353,19 +353,19 @@
             <div class="flex my-1">
                 <div class="w-1/4">
                     Watt<br/>
-                    <input name="mmw" bind:value={configuration.m.m.w} type="number" min="0.00" max="655.35" step="0.01" class="in-f tr w-full"/>
+                    <input name="mmw" bind:value={configuration.m.m.w} type="number" min="0.00" max="1000" step="0.001" class="in-f tr w-full"/>
                 </div>
                 <div class="w-1/4">
                     Volt<br/>
-                    <input name="mmv" bind:value={configuration.m.m.v} type="number" min="0.00" max="655.35" step="0.01" class="in-m tr w-full"/>
+                    <input name="mmv" bind:value={configuration.m.m.v} type="number" min="0.00" max="1000" step="0.001" class="in-m tr w-full"/>
                 </div>
                 <div class="w-1/4">
                     Amp<br/>
-                    <input name="mma" bind:value={configuration.m.m.a} type="number" min="0.00" max="655.35" step="0.01" class="in-m tr w-full"/>
+                    <input name="mma" bind:value={configuration.m.m.a} type="number" min="0.00" max="1000" step="0.001" class="in-m tr w-full"/>
                 </div>
                 <div class="w-1/4">
                     kWh<br/>
-                    <input name="mmc" bind:value={configuration.m.m.c} type="number" min="0.00" max="655.35" step="0.01" class="in-l tr w-full"/>
+                    <input name="mmc" bind:value={configuration.m.m.c} type="number" min="0.00" max="1000" step="0.001" class="in-l tr w-full"/>
                 </div>
             </div>
             {/if}

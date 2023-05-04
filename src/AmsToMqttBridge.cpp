@@ -545,7 +545,7 @@ void loop() {
 				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
 			}
 		}
-		if(!ds.isHappy() && now - meterState.getLastUpdateMillis() > 1800000) {
+		if(millis() - meterState.getLastUpdateMillis() > 1800000 && !ds.isHappy()) {
 			handleClear(now);
 		}
 	} catch(const std::exception& e) {

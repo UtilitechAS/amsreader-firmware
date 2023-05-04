@@ -1182,11 +1182,11 @@ void handleDataSuccess(AmsData* data) {
 	meterState.apply(*data);
 
 	bool saveData = false;
-	if(!ds.isDayHappy() && now > FirmwareVersion::BuildEpoch) {
+	if(!ds.isHappy() && now > FirmwareVersion::BuildEpoch) { // Must use "isHappy()" in case day state gets reset and lastTimestamp is "now"
 		debugD_P(PSTR("Its time to update data storage"));
 		tmElements_t tm;
 		breakTime(now, tm);
-		if(tm.Minute == 0) {
+		if(tm.Minute == 0 && data->getListType() >= 3) {
 			debugV_P(PSTR(" using actual data"));
 			saveData = ds.update(data);
 		} else if(tm.Minute == 1 && meterState.getListType() >= 3) {

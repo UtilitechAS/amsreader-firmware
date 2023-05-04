@@ -72,7 +72,7 @@
     {/if}
     {#if uiVisibility(sysinfo.ui.c, data.ea)}
         <div class="cnt">
-            <AccountingData data={data.ea} currency={data.pc} hasExport={data.om > 0 || data.e > 0}/>
+            <AccountingData sysinfo={sysinfo} data={data.ea} currency={data.pc} hasExport={data.om > 0 || data.e > 0}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.t, data.pr && (data.pr.startsWith("10YNO") || data.pr == '10Y1001A1001A48H'))}

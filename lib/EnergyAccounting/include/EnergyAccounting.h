@@ -14,6 +14,21 @@ struct EnergyAccountingPeak {
 struct EnergyAccountingData {
     uint8_t version;
     uint8_t month;
+    uint32_t costYesterday;
+    uint32_t costThisMonth;
+    uint32_t costLastMonth;
+    uint32_t incomeYesterday;
+    uint32_t incomeThisMonth;
+    uint32_t incomeLastMonth;
+    uint32_t lastMonthImport;
+    uint32_t lastMonthExport;
+    uint8_t lastMonthAccuracy;
+    EnergyAccountingPeak peaks[5];
+};
+
+struct EnergyAccountingData5 {
+    uint8_t version;
+    uint8_t month;
     uint16_t costYesterday;
     uint16_t costThisMonth;
     uint16_t costLastMonth;
@@ -32,7 +47,7 @@ struct EnergyAccountingData4 {
     EnergyAccountingPeak peaks[5];
 };
 
-struct EnergyAccountingData1 {
+struct EnergyAccountingData2 {
     uint8_t version;
     uint8_t month;
     uint16_t maxHour;
@@ -57,22 +72,24 @@ public:
     float getUseThisHour();
     float getUseToday();
     float getUseThisMonth();
+    float getUseLastMonth();
 
     float getProducedThisHour();
     float getProducedToday();
     float getProducedThisMonth();
+    float getProducedLastMonth();
 
     float getCostThisHour();
     float getCostToday();
     float getCostYesterday();
     float getCostThisMonth();
-    uint16_t getCostLastMonth();
+    float getCostLastMonth();
 
     float getIncomeThisHour();
     float getIncomeToday();
     float getIncomeYesterday();
     float getIncomeThisMonth();
-    uint16_t getIncomeLastMonth();
+    float getIncomeLastMonth();
 
     float getMonthMax();
     uint8_t getCurrentThreshold();
@@ -95,7 +112,7 @@ private:
     uint8_t currentHour = 0, currentDay = 0, currentThresholdIdx = 0;
     float use = 0, costHour = 0, costDay = 0;
     float produce = 0, incomeHour = 0, incomeDay = 0;
-    EnergyAccountingData data = { 0, 0, 0, 0, 0, 0 };
+    EnergyAccountingData data = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     float fixedPrice = 0;
     String currency = "";
 

@@ -65,7 +65,6 @@ bool AmsDataStorage::update(AmsData* data) {
         day.activeImport = importCounter;
         day.activeExport = exportCounter;
         day.lastMeterReadTime = now;
-        return true;
     } else if(day.activeImport == 0 || now - day.lastMeterReadTime > 86400) {
         day.activeImport = importCounter;
         day.activeExport = exportCounter;

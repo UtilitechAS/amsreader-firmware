@@ -322,7 +322,11 @@ void AmsWebServer::sysinfoJson() {
 		upinfo.exitCode,
 		upinfo.errorCode,
 		upinfo.fromVersion,
-		upinfo.toVersion
+		upinfo.toVersion,
+		ea->getUseLastMonth(),
+		ea->getCostLastMonth(),
+		ea->getProducedLastMonth(),
+		ea->getIncomeLastMonth()
 	);
 
 	stripNonAscii((uint8_t*) buf, size+1);

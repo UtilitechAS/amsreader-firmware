@@ -574,19 +574,20 @@ bool AmsDataStorage::isHappy() {
 bool AmsDataStorage::isDayHappy() {
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return false;
-    tmElements_t tm, last;
 
     if(now < day.lastMeterReadTime) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Day data timestamp %lu < %lu\n"), (int32_t) now, (int32_t) day.lastMeterReadTime);
         return false;
     }
-    breakTime(tz->toLocal(now), tm);
-    breakTime(tz->toLocal(day.lastMeterReadTime), last);
     if(now-day.lastMeterReadTime > 3600) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Day data timestamp age %lu - %lu > 3600\n"), (int32_t) now, (int32_t) day.lastMeterReadTime);
         return false;
     }
-    if(tm.Hour > last.Hour) {
+
+    tmElements_t tm, last;
+    breakTime(tz->toLocal(now), tm);
+    breakTime(tz->toLocal(day.lastMeterReadTime), last);
+    if(tm.Hour != last.Hour) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Day data hour of last timestamp %d > %d\n"), tm.Hour, last.Hour);
         return false;
     }

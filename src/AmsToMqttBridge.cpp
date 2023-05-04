@@ -408,7 +408,6 @@ bool wifiConnected = false;
 unsigned long lastTemperatureRead = 0;
 unsigned long lastSysupdate = 0;
 unsigned long lastErrorBlink = 0; 
-unsigned long lastDataStoreUpdate = 0;
 int lastError = 0;
 
 bool meterAutodetect = false;
@@ -546,7 +545,7 @@ void loop() {
 				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
 			}
 		}
-		if(now > lastDataStoreUpdate && now - lastDataStoreUpdate > 3600000 && !ds.isHappy()) {
+		if(!ds.isHappy() && now - meterState.getLastUpdateMillis() > 1800000) {
 			handleClear(now);
 		}
 	} catch(const std::exception& e) {
@@ -586,7 +585,6 @@ void handleClear(unsigned long now) {
 		AmsData nullData;
 		debugI_P(PSTR("Clearing data that have not been updated"));
 		ds.update(&nullData);
-		lastDataStoreUpdate = now;
 	}
 }
 
@@ -1197,7 +1195,6 @@ void handleDataSuccess(AmsData* data) {
 		if(saveData) {
 			debugI_P(PSTR("Saving data"));
 			ds.save();
-			lastDataStoreUpdate = millis();
 		}
 	}
 

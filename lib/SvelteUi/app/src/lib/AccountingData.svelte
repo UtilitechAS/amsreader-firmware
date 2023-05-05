@@ -31,7 +31,7 @@
                 <div>Month</div>
                 <div class="text-right">{fmtnum(data.m.u)} kWh</div>
                 {#if hasCost}<div class="text-right">{fmtnum(data.m.c)} {currency}</div>{/if}
-                <div>Last month</div>
+                <div>Last mo.</div>
                 <div class="text-right">{fmtnum(sysinfo.last_month.u)} kWh</div>
                 {#if hasCost}<div class="text-right">{fmtnum(sysinfo.last_month.c)} {currency}</div>{/if}
             </div>
@@ -46,7 +46,7 @@
                 <div>Month</div>
                 <div class="text-right">{fmtnum(data.m.p)} kWh</div>
                 {#if hasCost}<div class="text-right">{fmtnum(data.m.i)} {currency}</div>{/if}
-                <div>Last month</div>
+                <div>Last mo.</div>
                 <div class="text-right">{fmtnum(sysinfo.last_month.p)} kWh</div>
                 {#if hasCost}<div class="text-right">{fmtnum(sysinfo.last_month.i)} {currency}</div>{/if}
             </div>

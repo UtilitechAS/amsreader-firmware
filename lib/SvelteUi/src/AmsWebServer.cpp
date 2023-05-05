@@ -2190,15 +2190,15 @@ void AmsWebServer::configFileDownload() {
 		EnergyAccountingConfig eac;
 		config->getEnergyAccountingConfig(eac);
 		EnergyAccountingData ead = ea->getData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("energyaccounting %d %d %.2f %d %d %.2f %d %d %d %.2f %d %.2f %d %.2f %d %.2f %d %.2f"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("energyaccounting %d %d %.2f %d %d %.2f %d %d %d %.2f %d %.2f %d %.2f %d %.2f %d %.2f %.2f %.2f"), 
 			ead.version,
 			ead.month,
-			ead.costYesterday / 10.0,
-			ead.costThisMonth,
-			ead.costLastMonth,
-			ead.incomeYesterday / 10.0,
-			ead.incomeThisMonth,
-			ead.incomeLastMonth,
+			ea->getCostYesterday(),
+			ea->getCostThisMonth(),
+			ea->getCostLastMonth(),
+			ea->getIncomeYesterday(),
+			ea->getIncomeThisMonth(),
+			ea->getIncomeLastMonth(),
 			ead.peaks[0].day,
 			ead.peaks[0].value / 100.0,
 			ead.peaks[1].day,
@@ -2208,7 +2208,9 @@ void AmsWebServer::configFileDownload() {
 			ead.peaks[3].day,
 			ead.peaks[3].value / 100.0,
 			ead.peaks[4].day,
-			ead.peaks[4].value / 100.0
+			ead.peaks[4].value / 100.0,
+			ea->getUseLastMonth(),
+			ea->getProducedLastMonth()
 		));
 		server.sendContent_P(PSTR("\n"));
 	}

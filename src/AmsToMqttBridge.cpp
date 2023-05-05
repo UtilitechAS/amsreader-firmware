@@ -2104,6 +2104,7 @@ void configFileParse() {
 			EnergyAccountingData ead = { 0, 0, 
                 0, 0, 0, // Cost
                 0, 0, 0, // Income
+                0, 0, 0, // Last month import, export and accuracy
                 0, 0, // Peak 1
                 0, 0, // Peak 2
                 0, 0, // Peak 3
@@ -2111,6 +2112,7 @@ void configFileParse() {
                 0, 0 // Peak 5
             };
 			uint8_t peak = 0;
+			uint64_t totalImport = 0, totalExport = 0;
 			char * pch = strtok (buf+17," ");
 			while (pch != NULL) {
 				if(ead.version < 5) {
@@ -2170,7 +2172,7 @@ void configFileParse() {
 					} else if(i == 7) {
 						float val = String(pch).toFloat();
 						ead.incomeLastMonth = val;
-					} else if(i >= 8 && i < 20) {
+					} else if(i >= 8 && i < 18) {
 						uint8_t hour = i-8;		
 						{			
 							long val = String(pch).toInt();
@@ -2183,12 +2185,28 @@ void configFileParse() {
 							ead.peaks[peak].value = val * 100;
 						}
 						peak++;
+					} else if(i == 18) {
+						float val = String(pch).toFloat();
+						totalImport = val * 1000;
+					} else if(i == 19) {
+						float val = String(pch).toFloat();
+						totalExport = val * 1000;
 					}
 				}
 				pch = strtok (NULL, " ");
 				i++;
 			}
-			ead.version = 5;
+            uint8_t accuracy = 0;
+            uint64_t importUpdate = totalImport, exportUpdate = totalExport;
+			while(importUpdate > UINT32_MAX || exportUpdate > UINT32_MAX) {
+                accuracy++;
+                importUpdate = totalImport / pow(10, accuracy);
+                exportUpdate = totalExport / pow(10, accuracy);
+            }
+            ead.lastMonthImport = importUpdate;
+            ead.lastMonthExport = exportUpdate;
+
+			ead.version = 6;
 			ea.setData(ead);
 			sEa = true;
 		}

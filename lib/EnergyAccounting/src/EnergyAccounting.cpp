@@ -125,13 +125,15 @@ bool EnergyAccounting::update(AmsData* amsData) {
                 totalImport += ds->getDayImport(i);
                 totalExport += ds->getDayExport(i);
             }
-            uint8_t accuracy;
+            uint8_t accuracy = 0;
             uint64_t importUpdate = totalImport, exportUpdate = totalExport;
-            while(totalImport > UINT32_MAX || totalExport > UINT32_MAX) {
+            while(importUpdate > UINT32_MAX || exportUpdate > UINT32_MAX) {
                 accuracy++;
                 importUpdate = totalImport / pow(10, accuracy);
                 exportUpdate = totalExport / pow(10, accuracy);
             }
+            data.lastMonthImport = importUpdate;
+            data.lastMonthExport = exportUpdate;
             data.lastMonthAccuracy = accuracy;
 
             data.month = local.Month;

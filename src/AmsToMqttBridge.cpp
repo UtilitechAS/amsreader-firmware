@@ -2129,13 +2129,13 @@ void configFileParse() {
 						}
 					} else if(i == 3) {
 						float val = String(pch).toFloat();
-						ead.costYesterday = val * 10;
+						ead.costYesterday = val * 100;
 					} else if(i == 4) {
 						float val = String(pch).toFloat();
-						ead.costThisMonth = val;
+						ead.costThisMonth = val * 100;
 					} else if(i == 5) {
 						float val = String(pch).toFloat();
-						ead.costLastMonth = val;
+						ead.costLastMonth = val * 100;
 					} else if(i >= 6 && i < 18) {
 						uint8_t hour = i-6;					
 						{			
@@ -2156,22 +2156,22 @@ void configFileParse() {
 						ead.month = val;
 					} else if(i == 2) {
 						float val = String(pch).toFloat();
-						ead.costYesterday = val * 10;
+						ead.costYesterday = val * 100;
 					} else if(i == 3) {
 						float val = String(pch).toFloat();
-						ead.costThisMonth = val;
+						ead.costThisMonth = val * 100;
 					} else if(i == 4) {
 						float val = String(pch).toFloat();
-						ead.costLastMonth = val;
+						ead.costLastMonth = val * 100;
 					} else if(i == 5) {
 						float val = String(pch).toFloat();
-						ead.incomeYesterday= val * 10;
+						ead.incomeYesterday= val * 100;
 					} else if(i == 6) {
 						float val = String(pch).toFloat();
-						ead.incomeThisMonth = val;
+						ead.incomeThisMonth = val * 100;
 					} else if(i == 7) {
 						float val = String(pch).toFloat();
-						ead.incomeLastMonth = val;
+						ead.incomeLastMonth = val * 100;
 					} else if(i >= 8 && i < 18) {
 						uint8_t hour = i-8;		
 						{			

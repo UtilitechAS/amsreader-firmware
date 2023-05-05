@@ -272,14 +272,14 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t 
             ESP.wdtFeed();
         #endif
 
-        snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1"), from);
+        snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), from);
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EntsoeApi) Retrieving %s to NOK conversion\n"), from);
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  url: %s\n"), buf);
         if(retrieve(buf, &p)) {
             if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  got exchange rate %.4f\n"), p.getValue());
             currencyMultiplier = p.getValue();
             if(strncmp(to, "NOK", 3) != 0) {
-                snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/M.%s.NOK.SP?lastNObservations=1"), to);
+                snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), to);
                 if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EntsoeApi) Retrieving %s to NOK conversion\n"), to);
                 if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  url: %s\n"), buf);
                 if(retrieve(buf, &p)) {

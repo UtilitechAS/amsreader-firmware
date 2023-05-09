@@ -1,12 +1,12 @@
 # AMS2MQTTBridge-ge
-This is a fork from amsreader-firmware (old name: AmsToMqttBridge) Rev 2.1.10 which can found here: https://github.com/UtilitechAS/amsreader-firmware .
+This is a fork from amsreader-firmware (old name: AmsToMqttBridge) amsreader-firmware based on Rev 2.2.17 (dated 5th Mai 2023)
 
-Coming soon: Update to new base amsreader-firmware Rev 2.2.15 (dated 25th April 2023)
-
-Changes are:
-1) Translations to German language
-2) Exported energy is shown in green color on 24 hour and month plot.
-3) Added a 60 Minute plot (120 point resolution, 1 pt each 30 sec)
+Now features:
+1) All functions from amsreader-firmware Rev 2.2.17
+2) Added a 60 Minute plot (180 point resolution, 1 pt each 20 sec)
+3) Exported energy is shown in green color on hour, day and month plot.
+4) Automatic Wifi swapping if configured WLAN does not connect. See below for more info.
+5)
 
 ## Original README.md from amsreader-firmware:
 

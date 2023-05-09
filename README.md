@@ -11,7 +11,7 @@ Now features:
 
 ## Wifi function (STA mode or AP mode):
 The option on configuration page in section Wifi called:  "Start a Wifi AP on home Wifi connection problem" will enable this:
-If the configured Wifi (should be your home Wifi) can not be reached within app. 2 minutes software will swap to Wifi AP mode and will present a AP named "Stromzaehler-abcd" with **password: nesmep_esp32#V20** so one can acess the web pages on its default IP: 192.168.4.1
+If the configured Wifi (should be your home Wifi) can not be reached within app. 2 minutes software will swap to Wifi AP mode and will present a AP named "Stromzaehler-abcd" with **password: amsreader_config** so one can acess the web pages on its default IP: 192.168.4.1
 
 Software will try to re-connect to the configured Wifi if no client is connected to this AP for 90 seconds. So if one is connected to AP Wifi the device will stay in AP mode. Please mind that most devices will do a automatic reconnect to the AP Wifi if the Wifi connection "Stromzaehler-abcd" was once used. This could prevent the ESP32 from automatically reconnecting to defined STA Wifi.
 

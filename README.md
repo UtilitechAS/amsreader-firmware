@@ -6,7 +6,8 @@ Now features:
 2) Added a 60 Minute plot (180 point resolution, 1 pt each 20 sec)
 3) Exported energy is shown in green color on hour, day and month plot.
 4) Automatic Wifi swapping if configured WLAN does not connect. See below for more info.
-5)
+5) Disabled automatic FW update info (soon...)
+6) Translation to German language (soon...)
 
 
 ## Wifi function (STA mode or AP mode):

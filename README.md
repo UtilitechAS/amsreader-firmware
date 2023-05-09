@@ -12,11 +12,11 @@ Now features:
 
 ## Wifi function (STA mode or AP mode):
 The option on configuration page in section Wifi called:  "Start a Wifi AP on home Wifi connection problem" will enable this:
-If the configured Wifi (should be your home Wifi) can not be reached within app. 2 minutes software will swap to Wifi AP mode and will present a AP named "Stromzaehler-abcd" with **password: amsreader_config** so one can acess the web pages on its default IP: 192.168.4.1
+If the configured Wifi (should be your home Wifi) can not be reached within app. 2 minutes software will swap to Wifi AP mode and will present a AP named "amsreader-abcd" with **password: amsreader_config** so one can acess the web pages on its default IP: 192.168.4.1
 
-Software will try to re-connect to the configured Wifi if no client is connected to this AP for 90 seconds. So if one is connected to AP Wifi the device will stay in AP mode. Please mind that most devices will do a automatic reconnect to the AP Wifi if the Wifi connection "Stromzaehler-abcd" was once used. This could prevent the ESP32 from automatically reconnecting to defined STA Wifi.
+Software will try to re-connect to the configured Wifi if no client is connected to this AP for 90 seconds. So if one is connected to AP Wifi the device will stay in AP mode. Please mind that most devices will do a automatic reconnect to the AP Wifi if the Wifi connection "amsreader-abcd" was once used. This could prevent the ESP32 from automatically reconnecting to defined STA Wifi.
 
-"AP" button still is an option to swap between configured WLAN and an Wifi Access point called "Stromzaehler-abcd". The AP button must be pressed longer than 5 seconds to swap Wifi mode.
+"AP" button still is an option to swap between configured WLAN and an Wifi Access point called "amsreader-abcd". The AP button must be pressed longer than 5 seconds to swap Wifi mode.
 
 
 ## Original README.md from amsreader-firmware:

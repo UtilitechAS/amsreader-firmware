@@ -8,6 +8,16 @@ Now features:
 4) Automatic Wifi swapping if configured WLAN does not connect. See below for more info.
 5)
 
+
+## Wifi function (STA mode or AP mode):
+The option on configuration page in section Wifi called:  "Start a Wifi AP on home Wifi connection problem" will enable this:
+If the configured Wifi (should be your home Wifi) can not be reached within app. 2 minutes software will swap to Wifi AP mode and will present a AP named "Stromzaehler-abcd" with **password: nesmep_esp32#V20** so one can acess the web pages on its default IP: 192.168.4.1
+
+Software will try to re-connect to the configured Wifi if no client is connected to this AP for 90 seconds. So if one is connected to AP Wifi the device will stay in AP mode. Please mind that most devices will do a automatic reconnect to the AP Wifi if the Wifi connection "Stromzaehler-abcd" was once used. This could prevent the ESP32 from automatically reconnecting to defined STA Wifi.
+
+"AP" button still is an option to swap between configured WLAN and an Wifi Access point called "Stromzaehler-abcd". The AP button must be pressed longer than 5 seconds to swap Wifi mode.
+
+
 ## Original README.md from amsreader-firmware:
 
 This code is designed to decode data from electric smart meters installed in many countries in Europe these days. The data is presented in a graphical web interface and can also send the data to a MQTT broker which makes it suitable for home automation project. Originally it was only designed to work with Norwegian meters, but has since been adapter to read any IEC-62056-7-5 or IEC-62056-21 compliant meters.

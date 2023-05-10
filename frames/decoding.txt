@@ -1,0 +1,32 @@
+T  = Tag
+FF = Frame format (4 bit type, 1 bit segmentation, 11 bit frame length)
+DA = Destination Address (1-4 bytes, LSB=1 terminates)
+SA = Source address (1-4 bytes, LSB=1 terminates)
+C  = Control (1 byte)
+HC = HCS (2 bytes)
+
+LD = LLC Destination
+LS = LLC Remote
+LQ = LLC Quality
+
+AT = Tag (0x0F = unencrypted, 0xDB = encrypted) Not really documented that well...
+AI = Invoke ID and priority (4 bytes)
+AD = Date and time
+AS = System title
+CT = Cipher frame tag ? Undocumented
+CL = Lenght of Cipher frame. Length of payload will be this number - 5 (control and counter in start) - 12 (GCM tag appended after payload)
+CC = Security control
+CO = Invocation counter
+
+Security control bits
+01234567
+00110000 (0x30)
+0 = read acces
+1 = write access
+2 = Authenticated req
+3 = Encrypted req
+4 = Digitally signed req
+5 = Authenticated res
+6 = Encrypted res
+7 = Digitally signed res
+

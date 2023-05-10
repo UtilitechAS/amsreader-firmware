@@ -1,0 +1,79 @@
+7E // Flag
+A08B
+CEFF03
+13
+EEE1
+E6E700 
+E0 // GBT (Green book 9.4.6.13)
+40 // Block control 0100 0000, last block=no, streaming=yes, remainig=window
+0001 // Block sequence
+0000 // Block sequence ack
+77 // How many bytes in this block
+
+0F 00000DB7 // APDU tag, Invoke ID and priority 
+
+0C07E604020607220FFF800000 // Date and time
+0205 // Structure with 5 items
+0105 // Array with 5 items
+020412002809060008190900FF0F02120000 // Structure with 4 items, uint16, OBIS, int8, uint16 (0-8:25.9.0;2)
+020412002809060008190900FF0F01120000 // Structure with 4 items, uint16, OBIS, int8, uint16 (0-8:25.9.0;1)
+020412000109060000600101FF0F02120000 // Structure with 4 items, uint16, OBIS, int8, uint16 (96.1.1 - Meter model)
+020412000309060100010700FF0F02120000 // Structure with 4 items, uint16, OBIS, int8, uint16 (1.7.0 Active import)
+020412000309060100020700FF0F02120000 // Structure with 4 items, uint16, OBIS, int8, uint16 (2.7.0 Active export)
+09060008190900  // OBIS 0-8:25.9.0 Object list push settings consumer information 1
+ABA6
+7E
+
+
+
+7E
+A024
+CEFF03
+13
+D661
+E0 // GBT
+C0 // Block control 0100 0000, last block=yes, streaming=yes, remainig=window
+0002 // Block sequence
+0000 // Block sequence ack
+13 // How many bytes in this block
+
+FF // Last byte of OBIS in previous block
+0906363031313039 // Device ID
+0600000028 // Accumulated import
+0600000000 // Accumulated export
+8BA4
+7E
+
+
+
+
+7E A1 23 CE FF 03 13 21 55 E6 E7 00 
+
+0F 00 00 08 E2 
+0C 07 E5 07 13 01 0C 1A 0A FF 80 00 00 
+
+02 0B // 11
+  01 0B // 11
+    02 04 12 00 28 09 06 00 08 19 09 00 FF 0F 02 12 00 00 
+    02 04 12 00 28 09 06 00 08 19 09 00 FF 0F 01 12 00 00 
+    02 04 12 00 01 09 06 00 00 60 01 00 FF 0F 02 12 00 00 
+    02 04 12 00 03 09 06 01 00 01 07 00 FF 0F 02 12 00 00 
+    02 04 12 00 03 09 06 01 00 02 07 00 FF 0F 02 12 00 00 
+    02 04 12 00 03 09 06 01 01 01 08 00 FF 0F 02 12 00 00 
+    02 04 12 00 03 09 06 01 01 02 08 00 FF 0F 02 12 00 00
+    02 04 12 00 03 09 06 01 01 05 08 00 FF 0F 02 12 00 00 
+    02 04 12 00 03 09 06 01 01 06 08 00 FF 0F 02 12 00 00 
+    02 04 12 00 03 09 06 01 01 07 08 00 FF 0F 02 12 00 00 
+    02 04 12 00 03 09 06 01 01 08 08 00 FF 0F 02 12 00 00 
+  09 06 00 08 19 09 00 FF
+  09 08 34 33 30 39 34 33 35 31 
+  06 00 00 00 0B 
+  06 00 00 00 00 
+  06 00 00 00 10 
+  06 00 00 00 04 
+  06 00 00 00 00 
+  06 00 00 00 08 
+  06 00 00 00 00 
+  06 00 00 00 01 
+7C 8B
+7E

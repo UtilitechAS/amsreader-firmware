@@ -1,0 +1,51 @@
+# After decode:
+7E 
+A1 E9 // Frame type and size
+41 03 13 C6 37 E6 E7 00 
+DB // Encrypted
+08 4B 41 4D 45 01 AC 4D 6E // System title
+82 // Prefix for 2-byte length
+01 D0 // Length 464
+30 // Security tag 0011 0000, 0=Compression off, 0=Unicast, 1=Encryption, 1=Authentication, 0000= Security Suite ID
+00 00 A3 2F // Frame counter
+
+// Decrypted frame below
+0F 00 00 00 00 
+0C 07 E4 05 0C 02 0A 19 00 FF 80 00 80 // Package timestamp
+
+02 41
+0A 0E 4B 61 6D 73 74 72 75 70 5F 56 30 30 30 31 - List ID
+09 06 01 01 01 08 00 FF   06 00 11 94 CA - Active+ Energy
+09 06 01 01 02 08 00 FF   06 00 00 00 00 - Active- Energy
+09 06 01 01 03 08 00 FF   06 00 00 12 7E - Reactive+ Energy
+09 06 01 01 04 08 00 FF   06 00 09 55 0E - Reactive- Energy
+09 06 01 01 00 00 01 FF   06 01 44 AD E1 - Electricity ID?
+09 06 01 01 01 07 00 FF   06 00 00 05 CC - Active+ Instantaneous value
+09 06 01 01 02 07 00 FF   06 00 00 00 00 - Active- Instantaneous value
+09 06 01 01 03 07 00 FF   06 00 00 00 00 - Reactive+ Instantaneous value
+09 06 01 01 04 07 00 FF   06 00 00 00 17 - Reactive- Instantaneous value
+09 06 00 01 01 00 00 FF   09 0C 07 E4 05 0C 02 0A 19 00 FF 80 00 80 - Current date/time
+09 06 01 01 20 07 00 FF   12 00 E5 - L1 Voltage Instantaneous value
+09 06 01 01 34 07 00 FF   12 00 E5 - L2 Voltage Instantaneous value
+09 06 01 01 48 07 00 FF   12 00 E3 - L3 Voltage Instantaneous value
+09 06 01 01 1F 07 00 FF   06 00 00 00 4B - L1 Current Instantaneous value
+09 06 01 01 33 07 00 FF   06 00 00 00 AA - L2 Current Instantaneous value
+09 06 01 01 47 07 00 FF   06 00 00 01 E4 - L3 Current Instantaneous value
+09 06 01 01 15 07 00 FF   06 00 00 00 71 - L1 Active+ Instantaneous value
+09 06 01 01 29 07 00 FF   06 00 00 01 54 - L2 Active+ Instantaneous value
+09 06 01 01 3D 07 00 FF   06 00 00 04 07 - L3 Active+ Instantaneous value
+09 06 01 01 21 07 00 FF   12 00 4D - L1 (cos.phi) (PF) Instantaneous value
+09 06 01 01 35 07 00 FF   12 00 5F - L2 (cos.phi) (PF) Instantaneous value
+09 06 01 01 49 07 00 FF   12 00 62 - L3 (cos.phi) (PF) Instantaneous value
+09 06 01 01 0D 07 00 FF   12 00 63 - Avegage (cos.phi) (PF) Inst. value
+09 06 01 01 16 07 00 FF   06 00 00 00 00 - L1 Active- Instantaneous value
+09 06 01 01 2A 07 00 FF   06 00 00 00 00 - L2 Active- Instantaneous value
+09 06 01 01 3E 07 00 FF   06 00 00 00 00 - L3 Active- Instantaneous value
+09 06 01 01 16 08 00 FF   06 00 00 00 00 - L1 Active- Energy
+09 06 01 01 2A 08 00 FF   06 00 00 00 00 - L2 Active- Energy
+09 06 01 01 3E 08 00 FF   06 00 00 00 00 - L3 Active- Energy
+09 06 01 01 15 08 00 FF   06 00 0A 8F 97 - L1 Active+ Energy
+09 06 01 01 29 08 00 FF   06 00 04 C1 53 - L2 Active+ Energy
+09 06 01 01 3D 08 00 FF   06 00 02 43 E0 - L3 Active+ Energy
+
+5B C3 CD 5E 79 18 18 DA 9F 97 85 FF 5A 84 7E 

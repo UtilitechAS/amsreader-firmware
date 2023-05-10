@@ -1,0 +1,45 @@
+// HDLC header
+68 
+01 01 // Format (0x00) and total length (257)
+
+68 // Start
+53 // Control field
+FF // Address (Broadcast address)
+
+// LLC 
+00 // Control information field
+01 // Source SAP
+67 // Destination SAP
+
+DB // Encrypted
+08 53 41 47 59 05 E6 D9 FD // System title
+81 // Prefix for 1-byte length
+F8 // Length (248), starting from 0xDB and including end byte
+20 // Security tag 0010 0000, 0=Compression off, 0=Unicast, 1=Encryption, 0=No auth, 0000= Security Suite ID
+00 72 00 76 // Frame counter
+
+
+68 01 01 68 
+53 FF 10 01 67 
+DB 
+08 53 41 47 59 05 E6 D9 FD 
+81 F8 
+20 
+00 01 A0 E0 
+0F 80 3E 37 71 
+0C 07 E5 0C 1B 01 0E 00 2D 00 FF C4 02 // Frame timestamp
+02 23 // 35 items
+09 0C 07 E5 0C 1B 01 0E 00 2D 00 FF C4 02 // Meter timestamp
+09 06 01 00 01 08 00 FF 06 00 43 3D 0A 02 02 0F 00 16 1E 
+09 06 01 00 02 08 00 FF 06 00 00 01 03 02 02 0F 00 16 1E 
+09 06 01 00 01 07 00 FF 06 00 00 01 FE 02 02 0F 00 16 1B 
+09 06 01 00 02 07 00 FF 06 00 00 00 00 02 02 0F 00 16 1B 
+09 06 01 00 20 07 00 FF 12 09 34 02 02 0F FF 16 23 
+09 06 01 00 34 07 00 FF 12 09 34 02 02 0F FF 16 23 
+09 06 01 00 48 07 00 FF 12 09 2D 02 02 0F FF 16 23 
+09 06 01 00 1F 07 00 FF 12 00 63 02 02 0F FE 16 21 
+09 06 01 00 33 07 00 FF 12 00 3F 02 02 0F FE 16 21 
+09 06 01 00 47 07 00 FF 12 00 54 02 02 0F FE 16 21 
+09 06 01 00 0D 07 00 FF 10 03 CF 02 02 0F FD 16 FF // Power factor
+09 0C 31 37 38 32 31 30 30 31 35 31 36 35 // Meter ID
+01 67

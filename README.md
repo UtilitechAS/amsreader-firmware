@@ -1,4 +1,4 @@
-# AMS2MQTTBridge-ge
+# AMS2MQTTBridge-EHo
 This is a fork from amsreader-firmware (old name: AmsToMqttBridge) amsreader-firmware based on Rev 2.2.17 (dated 5th Mai 2023)
 
 Now features:
@@ -7,7 +7,7 @@ Now features:
 3) Exported energy is shown in green color on hour, day and month plot.
 4) Automatic Wifi swapping if configured WLAN does not connect. See below for more info.
 5) Disabled automatic FW update info (soon...)
-6) Translation to German language (soon...)
+6) Translation to German language are now in branch "german"
 
 
 ## Wifi function (STA mode or AP mode):

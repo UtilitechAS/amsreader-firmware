@@ -1,0 +1,19 @@
+// HTTPS required for this to work
+// Remember: <link rel="manifest" href="manifest.json" />
+{
+    "short_name": "amsreader",
+    "name": "AMS reader",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ],
+    "start_url": "/",
+    "background_color": "#f3f4f6",
+    "display": "standalone",
+    "scope": "/",
+    "theme_color": "#7c3aed"
+}

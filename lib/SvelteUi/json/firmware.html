@@ -1,0 +1,29 @@
+<html>
+    <body>
+        <fieldset>
+            <legend>Firmware install</legend>
+            <form action="/firmware" enctype="multipart/form-data" method="post" autocomplete="off">
+                File: <input name="file" type="file" accept=".bin">
+                <button type="submit">Upload</button>
+            </form>
+            or<br/><br/>
+            <form action="/firmware" method="post" autocomplete="off">
+                URL: <input name="url" type="text"/>
+                <button type="submit">Install</button>
+            </form>
+        </fieldset>
+        <fieldset>
+            <legend>Configuration upload</legend>
+            <form action="/configfile" enctype="multipart/form-data" method="post">
+                File: <input name="file" type="file" accept=".cfg">
+                <button type="submit">Upload</button>
+            </form>
+        </fieldset>
+        <fieldset>
+            <legend>Factory reset</legend>
+            <form action="/reset" method="post">
+                <button type="submit" name="perform" value="true">Perform factory reset</button>
+            </form>
+        </fieldset>
+    </body>
+</html>

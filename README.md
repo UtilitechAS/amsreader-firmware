@@ -1,5 +1,6 @@
 # AMS2MQTTBridge-EHo
 This is a fork from amsreader-firmware (old name: AmsToMqttBridge) amsreader-firmware based on Rev 2.2.17 (dated 5th Mai 2023)
+I did delete the releases 2.0 because they where too big for OTA (over the air) update.
 
 Now features:
 1) All functions from amsreader-firmware Rev 2.2.17

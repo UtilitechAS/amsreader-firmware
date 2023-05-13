@@ -1,2 +1,0 @@
-static const char HA3_JSON[] PROGMEM = R"=="==({"lv":"%s","id":"%s","type":"%s","P":%d,"Q":%d,"PO":%d,"QO":%d,"I1":%.2f,"I2":%.2f,"I3":%.2f,"U1":%.2f,"U2":%.2f,"U3":%.2f})=="==";
-const int HA3_JSON_LEN PROGMEM = 123;

@@ -1,7 +1,7 @@
 # AMS2MQTTBridge-EHo
 This is a fork from amsreader-firmware (old name: AmsToMqttBridge) amsreader-firmware based on Rev 2.2.17 (dated 5th Mai 2023)
 
-I did delete the releases 2.0 because they where too big for OTA (over the air) update.
+Because of memory limitations for ESP8266 which made OTA firmware update impossible I had to delete the automatic firmware detection/download/consent. So this firmware can only be updated via status web page (Upload Firmware) or by using direct serial connection to ESP device.
 
 Now features:
 1) All functions from amsreader-firmware Rev 2.2.17
@@ -9,7 +9,8 @@ Now features:
 3) Exported energy is shown in green color on hour, day and month plot.
 4) Automatic Wifi swapping if configured WLAN does not connect. See below for more info.
 5) Disabled automatic FW update info (soon...)
-6) Translation to German language are now in branch "german"
+6) Some minor color changes on dashboard gauges
+7) Translation to German language are now in branch "german"
 
 
 ## Wifi function (STA mode or AP mode):

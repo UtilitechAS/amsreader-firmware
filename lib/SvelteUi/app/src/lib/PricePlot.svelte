@@ -25,9 +25,9 @@
                 label: zeropad(cur.getHours())
             });
             points.push({
-                label: val > 0 ? val.toFixed(d) : '', 
-                title: val > 0 ? val.toFixed(2) + ' ' + json.currency : '',
-                value: val > 0 ? Math.abs(val*100) : 0, 
+                label: val >= 0 ? val.toFixed(d) : '', 
+                title: val >= 0 ? val.toFixed(2) + ' ' + json.currency : '',
+                value: val >= 0 ? Math.abs(val*100) : 0, 
                 label2: val < 0 ? val.toFixed(d) : '', 
                 title2: val < 0 ? val.toFixed(2) + ' ' + json.currency : '',
                 value2: val < 0 ? Math.abs(val*100) : 0, 
@@ -44,8 +44,8 @@
                 label: zeropad(cur.getHours())
             });
             points.push({
-                label: val > 0 ? val.toFixed(d) : '', 
-                value: val > 0 ? Math.abs(val*100) : 0, 
+                label: val >= 0 ? val.toFixed(d) : '', 
+                value: val >= 0 ? Math.abs(val*100) : 0, 
                 label2: val < 0 ? val.toFixed(d) : '', 
                 value2: val < 0 ? Math.abs(val*100) : 0, 
                 color: '#7c3aed' 
@@ -55,8 +55,8 @@
             addHours(cur, 1);
         };
 
-        max = Math.ceil(max);
-        min = Math.floor(min);
+        max = max == 0 ? 0 :Math.ceil(Math.max(max, min * -1));
+        min = min == 0 ? 0 : Math.floor(Math.min(min, max * -1));
 
         if(min < 0) {
             let yTickDistDown = min/4;

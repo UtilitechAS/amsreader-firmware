@@ -45,7 +45,8 @@
         }
 
         config = {
-            title: "Temperature sensors (°C)",
+//          title: "Temperature sensors (°C)",      EHorvat translated to german in next line
+            title: "Temperatur sensoren (°C)", 
             height: 226,
             width: 1520,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },

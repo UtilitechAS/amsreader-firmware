@@ -9,21 +9,23 @@
         minutes = Math.floor(epoch/60);
     }
 </script>
+<!-- EHorvat translated to german- ... Up/sLauft days/Tage day/Tag hours/Stunden hour/Stunde minutes/Minuten minute/Minute seconds/Sekunden-->
 {#if epoch}
-    Up
+    sLauft
     {#if days > 1}
-        {days} days
+        {days} Tage
     {:else if days > 0}
-        {days} day
+        {days} Tag
     {:else if hours > 1}
-        {hours} hours
+        {hours} Stunden
     {:else if hours > 0}
-        {hours} hour
+        {hours} Stunde
     {:else if minutes > 1}
-        {minutes} minutes
+        {minutes} Minuten
     {:else if minutes > 0}
-        {minutes} minute
+        {minutes} Minute
     {:else}
-        {epoch} seconds
+        {epoch} Sekunden
     {/if}
 {/if}
+

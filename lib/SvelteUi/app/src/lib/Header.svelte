@@ -46,7 +46,7 @@
     <div class="flex flex-wrap space-x-4 text-sm text-gray-300">
       <div class="flex text-lg text-gray-100 p-2">        <!--  EHorvat disabled next line .. show fixed Version
         <Link to="/">AMS reader <span>{sysinfo.version}</span></Link>  -->
-        <Link to="/">AMS reader EHo 2.2.17</Link>
+        <Link to="/">AMS reader EHo 2.2.17-ge</Link>
       </div>
       <div class="flex-none my-auto p-2 flex space-x-4">
         <div class="flex-none my-auto"><Uptime epoch={data.u}/></div>

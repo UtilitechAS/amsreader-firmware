@@ -41,8 +41,8 @@
     {#if uiVisibility(sysinfo.ui.i, data.i)}
         <div class="cnt">
             <div class="grid grid-cols-2">
-                <div class="col-span-2"> 
-                    <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label="Import" sub={data.p} subunit={data.pc} colorFn={ampcol}/>
+                <div class="col-span-2"><!-- EHorvat translated to german: Import to Bezug -->
+                    <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label="Bezug" sub={data.p} subunit={data.pc} colorFn={ampcol}/>
                 </div>
                 <div>{data.mt ? metertype(data.mt) : '-'}</div>
                 <div class="text-right">{data.ic ? data.ic.toFixed(1) : '-'} kWh</div>

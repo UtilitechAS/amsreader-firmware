@@ -79,7 +79,8 @@
         }
 
         config = {
-            title: "Future energy price (" + json.currency + ")",
+//            title: "Future energy price (" + json.currency + ")",      EHorvat translated to german in next line
+            title: "Preisvorhersage (" + json.currency + ")", 
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
             y: {
                 min: min,

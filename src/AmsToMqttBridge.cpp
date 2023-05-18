@@ -585,15 +585,17 @@ void loop() {
 		debugW_P(PSTR("loop() used %dms"), end-now);
 	}
 //EHorvat new hour plot new start
-	if(now > 3000 && now - Last_5second_millis > 5000) {
+	if(now > 3000 && now - Last_5second_millis > 5000) { 
 		Last_5second_millis = now;
 		summ_60minplot = summ_60minplot + (meterState.getActiveImportPower() - meterState.getActiveExportPower());
 		index_60minplot++;
 	}
-	if(now > 3000 && now - Last_hourplot_avg > 20000) {    
+	if(now > 3000 && now - Last_hourplot_avg > 20000) {
 		Last_hourplot_avg = now;
 	    if (index_60minplot > 0) {
             hour_plot_avg = summ_60minplot / index_60minplot;
+//			hour_plot_avg = hour_plot_avg -3000;  //EHorvat for testing only
+//			if (hour_plot_avg > 0) (hour_plot_avg = -2230);//EHorvat for testing only
 			ds.updateHour(hour_plot_avg);
 		    index_60minplot = 0;
 			summ_60minplot = 0;

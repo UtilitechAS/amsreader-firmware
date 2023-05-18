@@ -92,7 +92,7 @@
                             {#if barWidth < 16 && point.value > 0.0001}
                                 {#if i%3 == 0}
                                     <text 
-                                        y="{yScale(config.y.max)-8}" 
+                                        y="{yScale(config.y.max)+6}" 
                                         x="{xScale(i)+(barWidth/2)-4}" 
                                         text-anchor="middle"
                                         fill="black"

@@ -55,12 +55,13 @@
             addHours(cur, 1);
         };
 
-        max = max == 0 ? 0 :Math.ceil(Math.max(max, min * -1));
-        min = min == 0 ? 0 : Math.floor(Math.min(min, max * -1));
+        let range = Math.max(max, Math.abs(min));
 
         if(min < 0) {
-            let yTickDistDown = min/4;
-            for(i = 1; i < 5; i++) {
+            min = Math.min((range/4)*-1, min);
+            let yTicksNum = Math.ceil((Math.abs(min)/range) * 4);
+            let yTickDistDown = min/yTicksNum;
+            for(i = 1; i < yTicksNum+1; i++) {
                 let val = (yTickDistDown*i);
                 yTicks.push({
                     value: val,
@@ -69,8 +70,10 @@
             }
         }
 
-        let yTickDistUp = max/4;
-        for(i = 0; i < 5; i++) {
+        max = Math.max((range/4), max);
+        let xTicksNum = Math.ceil((max/range) * 4);
+        let yTickDistUp = max/xTicksNum;
+        for(i = 0; i < xTicksNum+1; i++) {
             let val = (yTickDistUp*i);
             yTicks.push({
                 value: val,

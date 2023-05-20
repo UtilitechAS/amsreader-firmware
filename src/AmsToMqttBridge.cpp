@@ -634,7 +634,7 @@ void handleNtpChange() {
 	config.ackNtpChange();
 }
 
-bool dnsWorks = true;
+uint8_t dnsState = 0;
 void handleSystem(unsigned long now) {
 	unsigned long start, end;
 	if(now - lastSysupdate > 60000) {
@@ -649,14 +649,20 @@ void handleSystem(unsigned long now) {
 		}
 
 		#if defined(ESP32)
-		if(dnsWorks) {
+		if(dnsState != 2) {
 			IPAddress res;
 			int ret = WiFi.hostByName("hub.amsleser.no", res);
 			if(ret == 0) {
-				dns_setserver(0, &dns0);
-				debugI_P(PSTR("Had to reset DNS server"));
+				if(dnsState == 0) {
+					dnsState = 2;
+				} else {
+					dns_setserver(0, &dns0);
+					debugI_P(PSTR("Had to reset DNS server"));
+				}
 			} else if(ret == 1) {
-				dnsWorks = true;
+				if(dnsState == 0) {
+					dnsState = 1;
+				}
 			}
 		}
 		#endif

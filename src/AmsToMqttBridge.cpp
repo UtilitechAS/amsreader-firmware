@@ -31,6 +31,7 @@ ADC_MODE(ADC_VCC);
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
+#include <lwip/dns.h>
 #endif
 #define WDT_TIMEOUT 60
 
@@ -156,6 +157,19 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context);
 void errorBlink();
 void printHanReadError(int pos);
 void debugPrint(byte *buffer, int start, int length);
+
+
+#if defined(ESP32)
+ip_addr_t dns0;
+void WiFiEvent(WiFiEvent_t event) {
+	switch(event) {
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+			const ip_addr_t* dns = dns_getserver(0);
+			memcpy(&dns0, dns, sizeof(dns0));
+			break;
+	}
+}
+#endif
 
 
 void setup() {
@@ -620,6 +634,7 @@ void handleNtpChange() {
 	config.ackNtpChange();
 }
 
+bool dnsWorks = true;
 void handleSystem(unsigned long now) {
 	unsigned long start, end;
 	if(now - lastSysupdate > 60000) {
@@ -632,6 +647,19 @@ void handleSystem(unsigned long now) {
 		if(end - start > 1000) {
 			debugW_P(PSTR("Used %dms to send system update to MQTT"), millis()-start);
 		}
+
+		#if defined(ESP32)
+		if(dnsWorks) {
+			IPAddress res;
+			int ret = WiFi.hostByName("hub.amsleser.no", res);
+			if(ret == 0) {
+				dns_setserver(0, &dns0);
+				debugI_P(PSTR("Had to reset DNS server"));
+			} else if(ret == 1) {
+				dnsWorks = true;
+			}
+		}
+		#endif
 	}
 }
 
@@ -1328,6 +1356,7 @@ void WiFi_connect() {
 			if(strlen(wifi.hostname) > 0) {
 				WiFi.setHostname(wifi.hostname);
 			}	
+			WiFi.onEvent(WiFiEvent);
 		#endif
 		WiFi.mode(WIFI_STA);
 

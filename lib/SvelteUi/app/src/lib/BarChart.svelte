@@ -8,12 +8,14 @@
     let yScale;
     let heightAvailable;
     let labelOffset;
+    let labelOffset2;
 
     $: {
         heightAvailable = height-(config.title ? 20 : 0);
 	    let innerWidth = width - (config.padding.left + config.padding.right);
 	    barWidth = innerWidth / config.points.length;
         labelOffset = barWidth < 25 ? 28 : 17;
+        labelOffset2 = barWidth < 25 ? 10 : 100;
 
         let yPerUnit = (heightAvailable-config.padding.top-config.padding.bottom)/(config.y.max-config.y.min);
 
@@ -104,13 +106,14 @@
                             />
                             {#if barWidth > 15}
                                 <text 
-                                    y="{yScale(-point.value2) < yScale(0)+12 ? yScale(-point.value2) + 12 : yScale(-point.value2)-10}" 
+                                    y="{yScale(-point.value2) < yScale(0) + labelOffset2 ? yScale(0) - labelOffset+2 : yScale(-point.value2)-labelOffset}" 
                                     x="{xScale(i) + barWidth/2}" 
                                     width="{barWidth - 4}"
                                     dominant-baseline="middle"
-                                    text-anchor="{barWidth < 25 ? 'left' : 'middle'}"
-                                    fill="{yScale(-point.value2) < yScale(0)+12 ? point.color : 'white'}"
-                                    transform="rotate({barWidth < 25 ? 90 : 0}, {xScale(i) + (barWidth/2)}, {yScale(point.value2 - config.y.min) > yScale(0)-12 ? yScale(point.value2 - config.y.min) - 12 : yScale(point.value2 - config.y.min)+9})"
+                                    text-anchor="{'middle'}"
+                                    fill="{yScale(-point.value2) < yScale(0) + labelOffset2 ? point.color : 'white'}"
+                                    transform="rotate({barWidth < 25 ? 90 : 0}, {xScale(i) + (barWidth/2)}, {yScale(-point.value2) < yScale(0) + labelOffset2 ? yScale(0) - labelOffset+2 : yScale(-point.value2)-labelOffset})"
+                                    
                                 >{point.label2}</text>
                                 {#if point.title2}
                                 <title>{point.title2}</title>

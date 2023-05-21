@@ -261,6 +261,8 @@ void AmsWebServer::sysinfoJson() {
 	if(!meterId.isEmpty())
 		meterId.replace(F("\\"), F("\\\\"));
 
+	time_t now = time(nullptr);
+
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		FirmwareVersion::VersionString,
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -326,7 +328,8 @@ void AmsWebServer::sysinfoJson() {
 		ea->getUseLastMonth(),
 		ea->getCostLastMonth(),
 		ea->getProducedLastMonth(),
-		ea->getIncomeLastMonth()
+		ea->getIncomeLastMonth(),
+		(tz->toLocal(now)-now)/3600
 	);
 
 	stripNonAscii((uint8_t*) buf, size+1);

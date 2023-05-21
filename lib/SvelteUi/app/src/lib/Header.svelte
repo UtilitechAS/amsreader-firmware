@@ -73,7 +73,7 @@
             <a class="float-right" href='https://github.com/UtilitechAS/amsreader-firmware' target='_blank' rel="noreferrer" aria-label="GitHub"><img class="gh-logo" src={GitHubLogo} alt="GitHub repo"/></a>
           </div>
           <div class="flex-none my-auto px-2">
-            <Clock timestamp={ data.c ? new Date(data.c * 1000) : new Date(0) } fullTimeColor="text-red-500" />
+            <Clock timestamp={ data.c ? new Date(data.c * 1000) : new Date(0) } offset={sysinfo.clock_offset} fullTimeColor="text-red-500" />
           </div>
           {#if sysinfo.vndcfg && sysinfo.usrcfg}
           <div class="flex-none px-1 mt-1" title="Configuration">

@@ -3,6 +3,7 @@
     import BarChart from './BarChart.svelte';
 
     export let json;
+    export let sysinfo;
 
     let config = {};
     let max = 0;
@@ -18,11 +19,12 @@
         let xTicks = [];
         let points = [];
         let cur = new Date();
+        addHours(cur, sysinfo.clock_offset);
         for(i = hour; i<24; i++) {
             val = json[zeropad(h++)];
             if(val == null) break;
             xTicks.push({
-                label: zeropad(cur.getHours())
+                label: zeropad(cur.getUTCHours())
             });
             points.push({
                 label: val >= 0 ? val.toFixed(d) : '', 
@@ -41,7 +43,7 @@
             val = json[zeropad(h++)];
             if(val == null) break;
             xTicks.push({
-                label: zeropad(cur.getHours())
+                label: zeropad(cur.getUTCHours())
             });
             points.push({
                 label: val >= 0 ? val.toFixed(d) : '', 

@@ -1,8 +1,9 @@
 <script>
-    import { zeropad } from './Helpers.js';
+    import { zeropad, addHours } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
     export let json;
+    export let sysinfo;
 
     let config = {};
     let max = 0;
@@ -15,6 +16,8 @@
         let points = [];
         let cur = new Date();
         let lm = new Date();
+        addHours(cur, sysinfo.clock_offset);
+        addHours(lm, sysinfo.clock_offset);
         lm.setDate(0);
 
         for(i = cur.getDate(); i<=lm.getDate(); i++) {

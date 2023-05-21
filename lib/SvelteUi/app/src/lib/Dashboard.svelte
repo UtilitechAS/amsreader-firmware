@@ -82,17 +82,17 @@
     {/if}
     {#if uiVisibility(sysinfo.ui.p, data.pe && !Number.isNaN(data.p))}
         <div class="cnt gwf">
-            <PricePlot json={prices}/>
+            <PricePlot json={prices} sysinfo={sysinfo}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.d, dayPlot)}
         <div class="cnt gwf">
-            <DayPlot json={dayPlot} />
+            <DayPlot json={dayPlot} sysinfo={sysinfo}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.m, monthPlot)}
         <div class="cnt gwf">
-            <MonthPlot json={monthPlot} />
+            <MonthPlot json={monthPlot} sysinfo={sysinfo}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.s, data.t && data.t != -127 && temperatures.c > 1)}

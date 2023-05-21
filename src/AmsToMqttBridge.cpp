@@ -160,12 +160,23 @@ void debugPrint(byte *buffer, int start, int length);
 
 
 #if defined(ESP32)
+uint8_t dnsState = 0;
 ip_addr_t dns0;
 void WiFiEvent(WiFiEvent_t event) {
 	switch(event) {
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP:
 			const ip_addr_t* dns = dns_getserver(0);
 			memcpy(&dns0, dns, sizeof(dns0));
+
+			IPAddress res;
+			int ret = WiFi.hostByName("hub.amsleser.no", res);
+			if(ret == 0) {
+				dnsState = 2;
+				debugI_P(PSTR("No DNS, probably a closed network"));
+			} else {
+				debugI_P(PSTR("DNS is present and working, monitoring"));
+				dnsState = 1;
+			}
 			break;
 	}
 }
@@ -634,7 +645,6 @@ void handleNtpChange() {
 	config.ackNtpChange();
 }
 
-uint8_t dnsState = 0;
 void handleSystem(unsigned long now) {
 	unsigned long start, end;
 	if(now - lastSysupdate > 60000) {
@@ -649,20 +659,11 @@ void handleSystem(unsigned long now) {
 		}
 
 		#if defined(ESP32)
-		if(dnsState != 2) {
-			IPAddress res;
-			int ret = WiFi.hostByName("hub.amsleser.no", res);
-			if(ret == 0) {
-				if(dnsState == 0) {
-					dnsState = 2;
-				} else {
+		if(dnsState == 1) {
+			const ip_addr_t* dns = dns_getserver(0);
+			if(memcmp(&dns0, dns, sizeof(dns0)) != 0) {
 					dns_setserver(0, &dns0);
 					debugI_P(PSTR("Had to reset DNS server"));
-				}
-			} else if(ret == 1) {
-				if(dnsState == 0) {
-					dnsState = 1;
-				}
 			}
 		}
 		#endif

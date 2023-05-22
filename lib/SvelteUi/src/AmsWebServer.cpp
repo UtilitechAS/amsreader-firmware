@@ -329,7 +329,7 @@ void AmsWebServer::sysinfoJson() {
 		ea->getCostLastMonth(),
 		ea->getProducedLastMonth(),
 		ea->getIncomeLastMonth(),
-		(tz->toLocal(now)-now)/3600
+		tz == NULL ? 0 : (tz->toLocal(now)-now)/3600
 	);
 
 	stripNonAscii((uint8_t*) buf, size+1);

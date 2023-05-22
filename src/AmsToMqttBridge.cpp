@@ -414,6 +414,7 @@ void setup() {
 	ea.load();
 	ea.setEapi(eapi);
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
+	handleNtpChange();
 
 	#if defined(ESP32)
 		esp_task_wdt_init(WDT_TIMEOUT, true);

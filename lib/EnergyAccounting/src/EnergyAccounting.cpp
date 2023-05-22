@@ -179,6 +179,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
 void EnergyAccounting::calcDayCost() {
     time_t now = time(nullptr);
     tmElements_t local, utc;
+    if(tz == NULL) return;
     breakTime(tz->toLocal(now), local);
 
     if(getPriceForHour(0) != ENTSOE_NO_VALUE) {
@@ -205,10 +206,10 @@ float EnergyAccounting::getUseThisHour() {
 }
 
 float EnergyAccounting::getUseToday() {
+    if(tz == NULL) return 0.0;
     float ret = 0.0;
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
-    if(tz == NULL) return 0.0;
     tmElements_t utc, local;
     breakTime(tz->toLocal(now), local);
     for(uint8_t i = 0; i < currentHour; i++) {
@@ -237,6 +238,7 @@ float EnergyAccounting::getProducedThisHour() {
 }
 
 float EnergyAccounting::getProducedToday() {
+    if(tz == NULL) return 0.0;
     float ret = 0.0;
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return 0.0;

@@ -387,15 +387,7 @@ void setup() {
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
 		WiFi_connect();
-		
-		NtpConfig ntp;
-		if(config.getNtpConfig(ntp)) {
-			tz = resolveTimezone(ntp.timezone);
-			ws.setTimezone(tz);
-			ds.setTimezone(tz);
-			ea.setTimezone(tz);
-		}
-
+		handleNtpChange();
 		ds.load();
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
@@ -414,7 +406,6 @@ void setup() {
 	ea.load();
 	ea.setEapi(eapi);
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
-	handleNtpChange();
 
 	#if defined(ESP32)
 		esp_task_wdt_init(WDT_TIMEOUT, true);

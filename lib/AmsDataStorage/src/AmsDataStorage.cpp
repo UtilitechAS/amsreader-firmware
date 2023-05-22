@@ -577,6 +577,11 @@ bool AmsDataStorage::isHappy() {
 }
 
 bool AmsDataStorage::isDayHappy() {
+    if(tz == NULL) {
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(AmsDataStorage) Timezone is missing\n"));
+        return false;
+    }
+
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return false;
 

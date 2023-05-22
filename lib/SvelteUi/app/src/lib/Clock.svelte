@@ -6,10 +6,10 @@
     export let offset;
 
     let showFull;
-    let adjusteTimestamp;
     $:{
         showFull = Math.abs(new Date().getTime()-timestamp.getTime()) < 300000;
-        addHours(timestamp, offset);
+        if(!isNaN(offset))
+            addHours(timestamp, offset);
     }
 </script>
 

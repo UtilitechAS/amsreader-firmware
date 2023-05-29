@@ -61,6 +61,8 @@ ADC_MODE(ADC_VCC);
 #include "RawMqttHandler.h"
 #include "DomoticzMqttHandler.h"
 #include "HomeAssistantMqttHandler.h"
+#include "ModbusIP_ESP8266.h"
+#include "EM24.h"
 
 #include "Uptime.h"
 
@@ -101,11 +103,13 @@ EntsoeApi* eapi = NULL;
 Timezone* tz = NULL;
 
 AmsWebServer ws(commonBuffer, &Debug, &hw);
+ModbusIP mb;
 
 MQTTClient *mqtt = NULL;
 WiFiClient *mqttClient = NULL;
 WiFiClientSecure *mqttSecureClient = NULL;
 AmsMqttHandler* mqttHandler = NULL;
+EM24* em24 = NULL;
 
 Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;
@@ -284,15 +288,15 @@ void setup() {
 	}
 
 	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
-	if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
-		if (vcc < vccBootLimit) {
-			if(Debug.isActive(RemoteDebug::INFO)) {
-				Debug.printf_P(PSTR("(setup) Voltage is too low (%.2f < %.2f), sleeping\n"), vcc, vccBootLimit);
-				Serial.flush();
-			}
-			ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
-		}  
-	}
+	//if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
+	//	if (vcc < vccBootLimit) {
+	//		if(Debug.isActive(RemoteDebug::INFO)) {
+	//			Debug.printf_P(PSTR("(setup) Voltage is too low (%.2f < %.2f), sleeping\n"), vcc, vccBootLimit);
+	//			Serial.flush();
+	//		}
+	//		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
+	//	}  
+	//}
 
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
@@ -406,6 +410,11 @@ void setup() {
 	ea.load();
 	ea.setEapi(eapi);
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
+
+	mb.server();
+	em24 = new EM24(&Debug, &mb);
+	em24->setup(&mb);
+  	//mb.addHreg(100, 0xABCD);
 
 	#if defined(ESP32)
 		esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -575,6 +584,8 @@ void loop() {
 		debugE_P(PSTR("Exception in meter autodetect (%s)"), e.what());
 		meterState.setLastError(METER_ERROR_AUTODETECT);
 	}
+
+	mb.task();
 
 	delay(10); // Needed for auto modem sleep
 	start = millis();

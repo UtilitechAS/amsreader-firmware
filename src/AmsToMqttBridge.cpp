@@ -414,7 +414,7 @@ void setup() {
 	mb.server();
 	em24 = new EM24(&Debug, &mb);
 	em24->setup(&mb);
-  	//mb.addHreg(100, 0xABCD);
+  	
 
 	#if defined(ESP32)
 		esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -583,7 +583,7 @@ void loop() {
 	} catch(const std::exception& e) {
 		debugE_P(PSTR("Exception in meter autodetect (%s)"), e.what());
 		meterState.setLastError(METER_ERROR_AUTODETECT);
-	}
+	}	
 
 	mb.task();
 
@@ -1245,6 +1245,7 @@ void handleDataSuccess(AmsData* data) {
 	if(saveData) {
 		LittleFS.end();
 	}
+	em24->update(data);
 }
 
 void printHanReadError(int pos) {

@@ -44,6 +44,7 @@ public:
 private:
     RemoteDebug* debugger;
     ModbusIP* mb;
+    void Set32bitReg(uint16_t reg, int32 value);
 
 };
 

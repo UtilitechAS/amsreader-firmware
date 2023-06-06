@@ -37,14 +37,14 @@ void EM24::setup(ModbusIP* mb){
         mb->addHreg(SwitchPos, 3);
         mb->addHreg(PhaseSequence, 0);
 
-        Set32bitReg(AcPower, (int32)30000);
-        Set32bitReg(EnergyForward, (int32)50000);
-        Set32bitReg(EnergyReverse, (int32)-10000);
+        //Set32bitReg(AcPower, (int32)30000);
+        //Set32bitReg(EnergyForward, (int32)50000);
+        //Set32bitReg(EnergyReverse, (int32)-10000);
 
-         Set32bitReg(L1P, (int32)10000);         
-         Set32bitReg(L3P, (int32)10000);
+         //Set32bitReg(L1P, (int32)10000);         
+         //Set32bitReg(L3P, (int32)10000);
 
-         Set32bitReg(L2I, (int32)10000);
+         //Set32bitReg(L2I, (int32)10000);
 
 
 }
@@ -58,11 +58,30 @@ void EM24::Set32bitReg(uint16_t reg, int32 value)
 
 void EM24::update(AmsData* data) 
 {
-    
-
-
     debugger->printf_P(PSTR("LISTTYPE %i\r\n"), data->getListType());
-    mb->Hreg(EnergyForward, data->getActiveImportCounter()/1000);
-    mb->Hreg(EnergyReverse, data->getActiveExportCounter()/1000);
+    if(data->getListType() >= 3)
+    {
+        int32 energyForward = (int32)(data->getActiveImportCounter()*10);
+        Set32bitReg(EnergyForward, energyForward);
+        Set32bitReg(EnergyReverse, (int32)(data->getActiveExportCounter()*10));
+        Set32bitReg(L1EnergyForward, energyForward/3);
+        Set32bitReg(L2EnergyForward, energyForward/3);
+        Set32bitReg(L3EnergyForward, energyForward/3);
+    }
+    else
+    {    
+        int32 ActivePower =  (int32)(data->getActiveImportPower() - data->getActiveExportPower())*10;        
+        Set32bitReg(AcPower, ActivePower);
+        Set32bitReg(L1P, ActivePower/3);
+        Set32bitReg(L2P, ActivePower/3);
+        Set32bitReg(L3P, ActivePower/3);
+        Set32bitReg(L1U, data->getL1Voltage()*10);
+        Set32bitReg(L2U, data->getL2Voltage()*10);
+        Set32bitReg(L3U, data->getL3Voltage()*10);
+        Set32bitReg(L1I, data->getL1Current()*1000);
+        Set32bitReg(L2I, data->getL2Current()*1000);
+        Set32bitReg(L3I, data->getL3Current()*1000);
+
+    }
     
 }

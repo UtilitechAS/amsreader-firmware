@@ -89,7 +89,7 @@
         }
 
         config = {
-            title: "Energy use last month (kWh)",
+            title: "Energy use last " + lm.getDate() + " days (kWh)",
             height: 226,
             width: 1520,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },

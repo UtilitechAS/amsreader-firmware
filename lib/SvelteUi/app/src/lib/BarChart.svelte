@@ -14,7 +14,7 @@
         heightAvailable = height-(config.title ? 20 : 0);
 	    let innerWidth = width - (config.padding.left + config.padding.right);
 	    barWidth = innerWidth / config.points.length;
-        labelOffset = barWidth < vertSwitch ? 30 : 10;
+        labelOffset = barWidth < vertSwitch ? 30 : 15;
 
         let yPerUnit = (heightAvailable-config.padding.top-config.padding.bottom)/(config.y.max-config.y.min);
 

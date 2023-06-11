@@ -14,12 +14,12 @@ struct EnergyAccountingPeak {
 struct EnergyAccountingData {
     uint8_t version;
     uint8_t month;
-    uint32_t costYesterday;
-    uint32_t costThisMonth;
-    uint32_t costLastMonth;
-    uint32_t incomeYesterday;
-    uint32_t incomeThisMonth;
-    uint32_t incomeLastMonth;
+    int32_t costYesterday;
+    int32_t costThisMonth;
+    int32_t costLastMonth;
+    int32_t incomeYesterday;
+    int32_t incomeThisMonth;
+    int32_t incomeLastMonth;
     uint32_t lastMonthImport;
     uint32_t lastMonthExport;
     uint8_t lastMonthAccuracy;

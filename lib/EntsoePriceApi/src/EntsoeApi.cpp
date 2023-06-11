@@ -236,9 +236,9 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
             } else {
                 lastError = status;
                 if(status == 429) {
-                    nextFetchDelayMinutes = 60;
+                    nextFetchDelayMinutes = 15;
                 } else if(status == 404) {
-                    nextFetchDelayMinutes = 180;
+                    nextFetchDelayMinutes = 60;
                 } else {
                     nextFetchDelayMinutes = 30;
                 }

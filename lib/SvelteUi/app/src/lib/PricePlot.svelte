@@ -10,14 +10,14 @@
     let min = 0;
 
     $: {
+        let currency = json.currency;
         let hour = new Date().getUTCHours();
         let i = 0;
         let val = 0;
         let h = 0;
-        let d = json["20"] == null ? 2 : 1;
         let yTicks = [];
         let xTicks = [];
-        let points = [];
+        let values = [];
         let cur = new Date();
         addHours(cur, sysinfo.clock_offset);
         for(i = hour; i<24; i++) {
@@ -26,15 +26,7 @@
             xTicks.push({
                 label: zeropad(cur.getUTCHours())
             });
-            points.push({
-                label: val >= 0 ? val.toFixed(d) : '', 
-                title: val >= 0 ? val.toFixed(2) + ' ' + json.currency : '',
-                value: val >= 0 ? Math.abs(val*100) : 0, 
-                label2: val < 0 ? val.toFixed(d) : '', 
-                title2: val < 0 ? val.toFixed(2) + ' ' + json.currency : '',
-                value2: val < 0 ? Math.abs(val*100) : 0, 
-                color: '#7c3aed' 
-            });
+            values.push(val*100);
             min = Math.min(min, val*100);
             max = Math.max(max, val*100);
             addHours(cur, 1);
@@ -45,20 +37,47 @@
             xTicks.push({
                 label: zeropad(cur.getUTCHours())
             });
-            points.push({
-                label: val >= 0 ? val.toFixed(d) : '', 
-                title: val >= 0 ? val.toFixed(2) + ' ' + json.currency : '',
-                value: val >= 0 ? Math.abs(val*100) : 0, 
-                label2: val < 0 ? val.toFixed(d) : '', 
-                title2: val < 0 ? val.toFixed(2) + ' ' + json.currency : '',
-                value2: val < 0 ? Math.abs(val*100) : 0, 
-                color: '#7c3aed' 
-            });
+            values.push(val*100);
             min = Math.min(min, val*100);
             max = Math.max(max, val*100);
             addHours(cur, 1);
         };
 
+        if(min > -100 && max < 100) {
+            switch(currency) {
+                case 'NOK':
+                case 'SEK':
+                case 'DKK':
+                    currency = 'øre';
+                    break;
+                case 'EUR':
+                    currency = 'cent';
+                    break;
+                default:
+                    currency = currency+'/100';
+            }
+            min *= 100;
+            max *= 100;
+            for(i = 0; i < values.length; i++) {
+                values[i] *= 100;
+            }
+        }
+
+        let points = [];
+        for(i = 0; i < values.length; i++) {
+            val = values[i];
+            let disp = val * 0.01;
+            let d = Math.abs(val) < 1000 ? 2 : 0;
+            points.push({
+                label: disp >= 0 ? disp.toFixed(d) : '',
+                title: disp >= 0 ? disp.toFixed(2) + ' ' + currency : '',
+                value: val >= 0 ? Math.abs(val) : 0,
+                label2: disp < 0 ? disp.toFixed(d) : '',
+                title2: disp < 0 ? disp.toFixed(2) + ' ' + currency : '',
+                value2: val < 0 ? Math.abs(val) : 0,
+                color: '#7c3aed'
+            });
+        }
         let range = Math.max(max, Math.abs(min));
 
         if(min < 0) {
@@ -86,7 +105,7 @@
         }
 
         config = {
-            title: "Future energy price (" + json.currency + ")",
+            title: "Future energy price (" + currency + ")",
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
             y: {
                 min: min,

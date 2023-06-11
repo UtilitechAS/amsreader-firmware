@@ -8,14 +8,13 @@
     let yScale;
     let heightAvailable;
     let labelOffset;
-    let labelOffset2;
+    let vertSwitch = 30;
 
     $: {
         heightAvailable = height-(config.title ? 20 : 0);
 	    let innerWidth = width - (config.padding.left + config.padding.right);
 	    barWidth = innerWidth / config.points.length;
-        labelOffset = barWidth < 25 ? 28 : 17;
-        labelOffset2 = barWidth < 25 ? 10 : 100;
+        labelOffset = barWidth < vertSwitch ? 30 : 10;
 
         let yPerUnit = (heightAvailable-config.padding.top-config.padding.bottom)/(config.y.max-config.y.min);
 
@@ -80,13 +79,11 @@
 
                             {#if barWidth > 15}
                                 <text 
-                                    y="{yScale(point.value) > yScale(0)-labelOffset ? yScale(point.value) - labelOffset : yScale(point.value)+10}" 
-                                    x="{xScale(i) + barWidth/2}" 
                                     width="{barWidth - 4}"
                                     dominant-baseline="middle"
-                                    text-anchor="{barWidth < 25 ? 'left' : 'middle'}"
+                                    text-anchor="{barWidth < vertSwitch ? 'left' : 'middle'}"
                                     fill="{yScale(point.value) > yScale(0)-labelOffset ? point.color : 'white'}"
-                                    transform="rotate({barWidth < 25 ? 90 : 0}, {xScale(i) + (barWidth/2)}, {yScale(point.value) > yScale(0)-labelOffset ? yScale(point.value) - labelOffset : yScale(point.value)+9})"
+                                    transform="translate({xScale(i) + barWidth/2} {yScale(point.value) > yScale(0) - labelOffset ? yScale(point.value) - labelOffset : yScale(point.value) + 10}) rotate({barWidth < vertSwitch ? 90 : 0})"
                                     
                                 >{point.label}</text>
                                 {#if point.title}
@@ -106,14 +103,11 @@
                             />
                             {#if barWidth > 15}
                                 <text 
-                                    y="{yScale(-point.value2) < yScale(0) + labelOffset2 ? yScale(0) - labelOffset+2 : yScale(-point.value2)-labelOffset}" 
-                                    x="{xScale(i) + barWidth/2}" 
                                     width="{barWidth - 4}"
                                     dominant-baseline="middle"
                                     text-anchor="{'middle'}"
-                                    fill="{yScale(-point.value2) < yScale(0) + labelOffset2 ? point.color : 'white'}"
-                                    transform="rotate({barWidth < 25 ? 90 : 0}, {xScale(i) + (barWidth/2)}, {yScale(-point.value2) < yScale(0) + labelOffset2 ? yScale(0) - labelOffset+2 : yScale(-point.value2)-labelOffset})"
-                                    
+                                    fill="{yScale(-point.value2) < yScale(0) + 15 ? point.color : 'white'}"
+                                    transform="translate({xScale(i) + (barWidth/2)} {yScale(-point.value2) < yScale(0) + 15 ? yScale(-point.value2) + 15 : yScale(-point.value2) - 14}) rotate({barWidth < vertSwitch ? 90 : 0})"
                                 >{point.label2}</text>
                                 {#if point.title2}
                                 <title>{point.title2}</title>

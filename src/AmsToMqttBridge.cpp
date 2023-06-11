@@ -162,9 +162,9 @@ void debugPrint(byte *buffer, int start, int length);
 #if defined(ESP32)
 uint8_t dnsState = 0;
 ip_addr_t dns0;
-void WiFiEvent(WiFiEvent_t event) {
+void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 	switch(event) {
-		case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
 			const ip_addr_t* dns = dns_getserver(0);
 			memcpy(&dns0, dns, sizeof(dns0));
 
@@ -176,6 +176,23 @@ void WiFiEvent(WiFiEvent_t event) {
 			} else {
 				debugI_P(PSTR("DNS is present and working, monitoring"));
 				dnsState = 1;
+			}
+			break;
+		}
+		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
+			wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
+			debugI_P(PSTR("WiFi disconnected, reason %s"), WiFi.disconnectReasonName(reason));
+			switch(reason) {
+				case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT:
+				case WIFI_REASON_AUTH_FAIL:
+					swapWifiMode();
+					break;
+				case WIFI_REASON_NO_AP_FOUND:
+					SystemConfig sys;
+					if(!config.getSystemConfig(sys) || sys.dataCollectionConsent == 0) {
+						swapWifiMode();
+					}
+					break;
 			}
 			break;
 	}

@@ -47,8 +47,10 @@
             });
             points.push({
                 label: val >= 0 ? val.toFixed(d) : '', 
+                title: val >= 0 ? val.toFixed(2) + ' ' + json.currency : '',
                 value: val >= 0 ? Math.abs(val*100) : 0, 
                 label2: val < 0 ? val.toFixed(d) : '', 
+                title2: val < 0 ? val.toFixed(2) + ' ' + json.currency : '',
                 value2: val < 0 ? Math.abs(val*100) : 0, 
                 color: '#7c3aed' 
             });

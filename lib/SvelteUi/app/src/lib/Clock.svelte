@@ -9,12 +9,12 @@
     $:{
         showFull = Math.abs(new Date().getTime()-timestamp.getTime()) < 300000;
         if(!isNaN(offset))
-            addHours(timestamp, offset);
+            addHours(timestamp, offset - (timestamp.getHours() - timestamp.getUTCHours()));
     }
 </script>
 
 {#if showFull }
-{`${zeropad(timestamp.getDate())}. ${monthnames[timestamp.getMonth()]} ${zeropad(timestamp.getUTCHours())}:${zeropad(timestamp.getMinutes())}`}
+{`${zeropad(timestamp.getDate())}. ${monthnames[timestamp.getMonth()]} ${zeropad(timestamp.getHours())}:${zeropad(timestamp.getMinutes())}`}
 {:else}
-<span class="{fullTimeColor}">{`${zeropad(timestamp.getDate())}.${zeropad(timestamp.getMonth()+1)}.${timestamp.getFullYear()} ${zeropad(timestamp.getUTCHours())}:${zeropad(timestamp.getMinutes())}`}</span>
+<span class="{fullTimeColor}">{`${zeropad(timestamp.getDate())}.${zeropad(timestamp.getMonth()+1)}.${timestamp.getFullYear()} ${zeropad(timestamp.getHours())}:${zeropad(timestamp.getMinutes())}`}</span>
 {/if}

@@ -9,7 +9,7 @@
     $:{
         showFull = Math.abs(new Date().getTime()-timestamp.getTime()) < 300000;
         if(!isNaN(offset))
-            addHours(timestamp, offset - (timestamp.getHours() - timestamp.getUTCHours()));
+            addHours(timestamp, offset - ((timestamp.getHours() - timestamp.getUTCHours())%24));
     }
 </script>
 

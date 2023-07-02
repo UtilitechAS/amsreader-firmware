@@ -17,7 +17,7 @@
         min = max = 0;
         let cur = addHours(new Date(), -24);
         let currentHour = new Date().getUTCHours();
-        addHours(cur, sysinfo.clock_offset);
+        addHours(cur, sysinfo.clock_offset - ((cur.getHours() - cur.getUTCHours())%24));
         for(i = currentHour; i<24; i++) {
             let imp = json["i"+zeropad(i)];
             let exp = json["e"+zeropad(i)];
@@ -25,7 +25,7 @@
             if(exp === undefined) exp = 0;
 
             xTicks.push({
-                label: zeropad(cur.getUTCHours())
+                label: zeropad(cur.getHours())
             });
             points.push({
                 label: imp.toFixed(1), 
@@ -47,7 +47,7 @@
             if(exp === undefined) exp = 0;
 
             xTicks.push({
-                label: zeropad(cur.getUTCHours())
+                label: zeropad(cur.getHours())
             });
             points.push({
                 label: imp.toFixed(1), 

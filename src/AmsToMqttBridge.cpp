@@ -685,6 +685,7 @@ void handleSystem(unsigned long now) {
 	if(!maxDetectPayloadDetectDone && now > 3600000) {
 		if(maxDetectedPayloadSize * 1.5 > meterConfig.bufferSize * 64) {
 			meterConfig.bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.5) / 64));
+			debugI_P(PSTR("Increasing RX buffer to %d bytes"), meterConfig.bufferSize * 64);
 			config.setMeterConfig(meterConfig);
 		}
 		maxDetectPayloadDetectDone = true;

@@ -307,11 +307,7 @@
                         <option value={10}>7E1</option>
                         <option value={11}>8E1</option>
                     </select>
-                    <select name="ms" bind:value={configuration.m.s} class="in-l tr w-1/2">
-                        {#each [64,256,512,1024,1536,2048,3072,4096] as b}
-                        <option value={b}>{b}</option>
-                        {/each}
-                    </select>
+                    <input name="ms" type="number" bind:value={configuration.m.s} min={64} max={4096} step={64} class="in-l tr w-1/2">
                 </div>
             </div>
             <div class="my-1">

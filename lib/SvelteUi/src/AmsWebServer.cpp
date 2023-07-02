@@ -1193,6 +1193,7 @@ void AmsWebServer::handleSave() {
 		meterConfig->distributionSystem = server.arg(F("md")).toInt();
 		meterConfig->mainFuse = server.arg(F("mf")).toInt();
 		meterConfig->productionCapacity = server.arg(F("mr")).toInt();
+		meterConfig->bufferSize = min((double) 64, ceil((server.arg(F("ms")).toInt()) / 64));
 		maxPwr = 0;
 
 		if(server.hasArg(F("me")) && server.arg(F("me")) == F("true")) {

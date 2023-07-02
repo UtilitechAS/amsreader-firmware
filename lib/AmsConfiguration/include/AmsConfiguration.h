@@ -84,7 +84,8 @@ struct MeterConfig {
 	uint32_t accumulatedMultiplier;
 	uint8_t source;
 	uint8_t parser;
-}; // 61
+	uint8_t bufferSize;
+}; // 62
 
 struct MeterConfig100 {
 	uint32_t baud;

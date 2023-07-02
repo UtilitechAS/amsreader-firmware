@@ -213,6 +213,7 @@ bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_METER_START, config);
 		EEPROM.end();
+		if(config.bufferSize < 1 || config.bufferSize > 64) config.bufferSize = 4;
 		return true;
 	} else {
 		clearMeter(config);
@@ -231,6 +232,7 @@ bool AmsConfiguration::setMeterConfig(MeterConfig& config) {
 		meterChanged |= config.productionCapacity != existing.productionCapacity;
 		meterChanged |= strcmp((char*) config.encryptionKey, (char*) existing.encryptionKey);
 		meterChanged |= strcmp((char*) config.authenticationKey, (char*) existing.authenticationKey);
+		meterChanged |= config.bufferSize != existing.bufferSize;
 	} else {
 		meterChanged = true;
 	}
@@ -256,6 +258,7 @@ void AmsConfiguration::clearMeter(MeterConfig& config) {
 	config.accumulatedMultiplier = 0;
 	config.source = 1; // Serial
 	config.parser = 0; // Auto
+	config.bufferSize = 1; // 64 bytes
 }
 
 bool AmsConfiguration::isMeterChanged() {

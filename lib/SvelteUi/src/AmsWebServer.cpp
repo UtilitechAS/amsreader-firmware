@@ -843,6 +843,7 @@ void AmsWebServer::configurationJson() {
 		meterConfig->baud,
 		meterConfig->parity,
 		meterConfig->invert ? "true" : "false",
+		meterConfig->bufferSize * 64,
 		meterConfig->distributionSystem,
 		meterConfig->mainFuse,
 		meterConfig->productionCapacity,

@@ -110,7 +110,6 @@ AmsMqttHandler* mqttHandler = NULL;
 Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;
 HardwareSerial *hwSerial = NULL;
-size_t rxBufferSize = 128;
 uint8_t rxBufferErrors = 0;
 
 GpioConfig gpioConfig;
@@ -134,6 +133,10 @@ GCMParser *gcmParser = NULL;
 LLCParser *llcParser = NULL;
 DLMSParser *dlmsParser = NULL;
 DSMRParser *dsmrParser = NULL;
+
+bool maxDetectPayloadDetectDone = false;
+uint8_t maxDetectedPayloadSize = 64;
+
 
 
 void configFileParse();
@@ -677,6 +680,15 @@ void handleSystem(unsigned long now) {
 		}
 		#endif
 	}
+
+	// After one hour, adjust buffer size to match the largest payload
+	if(!maxDetectPayloadDetectDone && now > 3600000) {
+		if(maxDetectedPayloadSize * 1.5 > meterConfig.bufferSize * 64) {
+			meterConfig.bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.5) / 64));
+			config.setMeterConfig(meterConfig);
+		}
+		maxDetectPayloadDetectDone = true;
+	}
 }
 
 void handleTemperature(unsigned long now) {
@@ -791,16 +803,13 @@ void handleButton(unsigned long now) {
 void rxerr(int err) {
 	if(err == 0) return;
 	switch(err) {
-		case 1:
-			debugD_P(PSTR("Serial break"));
-			return;
 		case 2:
 			debugE_P(PSTR("Serial buffer overflow"));
 			rxBufferErrors++;
-			if(rxBufferErrors > 3 && rxBufferSize < MAX_RX_BUFFER_SIZE) {
-				rxBufferSize += 128;
-				debugI_P(PSTR("Increasing RX buffer to %d bytes"), rxBufferSize);
-				config.setMeterChanged();
+			if(rxBufferErrors > 3 && meterConfig.bufferSize < 64) {
+				meterConfig.bufferSize += 2;
+				debugI_P(PSTR("Increasing RX buffer to %d bytes"), meterConfig.bufferSize * 64);
+				config.setMeterConfig(meterConfig);
 				rxBufferErrors = 0;
 			}
 			break;
@@ -861,6 +870,8 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 		return;
 	}
 
+	if(meterConfig.bufferSize < 1) meterConfig.bufferSize = 1;
+
 	if(hwSerial != NULL) {
 		debugD_P(PSTR("Hardware serial"));
 		Serial.flush();
@@ -883,9 +894,9 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 				serialConfig = SERIAL_8E1;
 				break;
 		}
-		if(rxBufferSize < 256) rxBufferSize = 256; // 64 is default for software serial, 256 for hardware
+		if(meterConfig.bufferSize < 4) meterConfig.bufferSize = 4; // 64 bytes (1) is default for software serial, 256 bytes (4) for hardware
 
-		hwSerial->setRxBufferSize(rxBufferSize);
+		hwSerial->setRxBufferSize(64 * meterConfig.bufferSize);
 		#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
 			uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
@@ -940,7 +951,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 				break;
 		}
 
-		swSerial->begin(baud, serialConfig, pin, -1, invert, rxBufferSize);
+		swSerial->begin(baud, serialConfig, pin, -1, invert, meterConfig.bufferSize * 64);
 		hanSerial = swSerial;
 
 		Serial.end();
@@ -1145,6 +1156,7 @@ bool readHanPort() {
 
 	AmsData* data = NULL;
 	char* payload = ((char *) (hanBuffer)) + pos;
+	if(maxDetectedPayloadSize < pos) maxDetectedPayloadSize = pos;
 	if(ctx.type == DATA_TAG_DLMS) {
 		// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
 		if(mqttEnabled && mqtt != NULL && mqttHandler == NULL) {

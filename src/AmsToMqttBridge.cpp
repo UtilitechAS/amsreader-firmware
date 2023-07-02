@@ -188,8 +188,6 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			switch(reason) {
 				case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT:
 				case WIFI_REASON_AUTH_FAIL:
-					swapWifiMode();
-					break;
 				case WIFI_REASON_NO_AP_FOUND:
 					SystemConfig sys;
 					if(!config.getSystemConfig(sys) || sys.dataCollectionConsent == 0) {

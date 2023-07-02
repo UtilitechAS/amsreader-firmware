@@ -311,9 +311,6 @@
                 </div>
             </div>
             <div class="my-1">
-                Buffer size<br/>
-            </div>
-            <div class="my-1">
                 Voltage<br/>
                 <select name="md" bind:value={configuration.m.d} class="in-s">
                     <option value={2}>400V (TN)</option>

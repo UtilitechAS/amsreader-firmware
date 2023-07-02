@@ -6,14 +6,15 @@
     export let sysinfo;
 
     let config = {};
-    let max = 0;
-    let min = 0;
+    let max;
+    let min;
 
     $: {
         let i = 0;
         let yTicks = [];
         let xTicks = [];
         let points = [];
+        min = max = 0;
         let cur = addHours(new Date(), -24);
         let currentHour = new Date().getUTCHours();
         addHours(cur, sysinfo.clock_offset);

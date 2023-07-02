@@ -6,8 +6,8 @@
     export let sysinfo;
 
     let config = {};
-    let max = 0;
-    let min = 0;
+    let max;
+    let min;
 
     $: {
         let currency = json.currency;
@@ -18,6 +18,7 @@
         let yTicks = [];
         let xTicks = [];
         let values = [];
+        min = max = 0;
         let cur = new Date();
         addHours(cur, sysinfo.clock_offset);
         for(i = hour; i<24; i++) {

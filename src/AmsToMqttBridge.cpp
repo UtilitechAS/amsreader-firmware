@@ -186,7 +186,6 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
 			debugI_P(PSTR("WiFi disconnected, reason %s"), WiFi.disconnectReasonName(reason));
 			switch(reason) {
-				case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT:
 				case WIFI_REASON_AUTH_FAIL:
 				case WIFI_REASON_NO_AP_FOUND:
 					SystemConfig sys;

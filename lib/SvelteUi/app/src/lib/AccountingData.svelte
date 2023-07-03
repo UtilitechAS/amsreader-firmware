@@ -9,7 +9,7 @@
     let hasCost = false;
     let cols = 3
     $: {
-        hasCost = data && data.h && (data.h.c > 0.01 || data.d.c > 0.01 || data.m.c > 0.01 || data.h.i > 0.01 || data.d.i > 0.01 || data.m.i > 0.01);
+        hasCost = data && data.h && (Math.abs(data.h.c) > 0.01 || Math.abs(data.d.c) > 0.01 || Math.abs(data.m.c) > 0.01 || Math.abs(data.h.i) > 0.01 || Math.abs(data.d.i) > 0.01 || Math.abs(data.m.i) > 0.01);
         cols = hasCost ? 3 : 2;
     }
 </script>

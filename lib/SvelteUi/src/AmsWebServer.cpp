@@ -765,8 +765,8 @@ void AmsWebServer::indexCss() {
 		return;
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
-	server.setContentLength(INDEX_CSS_LEN);
-	server.send_P(200, MIME_CSS, INDEX_CSS);
+	server.sendHeader(HEADER_CONTENT_ENCODING, CONTENT_ENCODING_GZIP);
+	server.send_P(200, MIME_CSS, INDEX_CSS, INDEX_CSS_LEN);
 }
 
 void AmsWebServer::indexJs() {
@@ -776,7 +776,8 @@ void AmsWebServer::indexJs() {
 		return;
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
-	server.send_P(200, MIME_JS, INDEX_JS);
+	server.sendHeader(HEADER_CONTENT_ENCODING, CONTENT_ENCODING_GZIP);
+	server.send_P(200, MIME_JS, INDEX_JS, INDEX_JS_LEN);
 }
 
 void AmsWebServer::configurationJson() {

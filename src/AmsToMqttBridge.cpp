@@ -288,15 +288,15 @@ void setup() {
 	}
 
 	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
-	//if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
-	//	if (vcc < vccBootLimit) {
-	//		if(Debug.isActive(RemoteDebug::INFO)) {
-	//			Debug.printf_P(PSTR("(setup) Voltage is too low (%.2f < %.2f), sleeping\n"), vcc, vccBootLimit);
-	//			Serial.flush();
-	//		}
-	//		ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
-	//	}  
-	//}
+	if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
+		if (vcc < vccBootLimit) {
+			if(Debug.isActive(RemoteDebug::INFO)) {
+				Debug.printf_P(PSTR("(setup) Voltage is too low (%.2f < %.2f), sleeping\n"), vcc, vccBootLimit);
+				Serial.flush();
+			}
+			ESP.deepSleep(10000);    //Deep sleep to allow output cap to charge up
+		}  
+	}
 
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);

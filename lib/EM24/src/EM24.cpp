@@ -66,9 +66,9 @@ void EM24::update(AmsData* data)
         Set32bitReg(EnergyReverse, (int32)(data->getActiveExportCounter()*10));
         Set32bitReg(L1EnergyForward, energyForward/3);
         Set32bitReg(L2EnergyForward, energyForward/3);
-        Set32bitReg(L3EnergyForward, energyForward/3);
+        Set32bitReg(L3EnergyForward, energyForward/3);        
     }
-    else
+    if(data->getListType() <= 3)
     {    
         int32 ActivePower =  (int32)(data->getActiveImportPower() - data->getActiveExportPower())*10;        
         Set32bitReg(AcPower, ActivePower);
@@ -81,7 +81,21 @@ void EM24::update(AmsData* data)
         Set32bitReg(L1I, data->getL1Current()*1000);
         Set32bitReg(L2I, data->getL2Current()*1000);
         Set32bitReg(L3I, data->getL3Current()*1000);
-
     }
+    else if(data->getListType() == 4) 
+    {
+        int32 ActivePower =  (int32)(data->getActiveImportPower() - data->getActiveExportPower())*10;        
+        Set32bitReg(AcPower, ActivePower);
+        Set32bitReg(L1P, (((int32)data->getL1ActiveImportPower())-((int32)data->getL1ActiveExportPower()))*10);
+        Set32bitReg(L2P, (((int32)data->getL2ActiveImportPower())-((int32)data->getL2ActiveExportPower()))*10);
+        Set32bitReg(L3P, (((int32)data->getL3ActiveImportPower())-((int32)data->getL3ActiveExportPower()))*10);
+        Set32bitReg(L1U, data->getL1Voltage()*10);
+        Set32bitReg(L2U, data->getL2Voltage()*10);
+        Set32bitReg(L3U, data->getL3Voltage()*10);
+        Set32bitReg(L1I, data->getL1Current()*1000);
+        Set32bitReg(L2I, data->getL2Current()*1000);
+        Set32bitReg(L3I, data->getL3Current()*1000);
+    }
+
     
 }

@@ -896,7 +896,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 
 		hwSerial->setRxBufferSize(64 * meterConfig.bufferSize);
 		#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
-			hwSerial->begin(baud, serialConfig, -1, -1, invert);
+			hwSerial->begin(baud, serialConfig, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, invert);
 			uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 		#elif defined(ESP32)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
@@ -911,6 +911,23 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 			} else if(pin == 113) {
 				debugI_P(PSTR("Switching UART0 to pin 15 & 13"));
 				Serial.pins(15,13);
+			}
+		#endif
+
+ 		// Prevent pullup on TX pin if not uart0
+		#if defined(CONFIG_IDF_TARGET_ESP32S2)
+			pinMode(17, INPUT);
+		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+			pinMode(7, INPUT);
+		#elif defined(ESP32)
+			if(pin == 9) {
+				pinMode(10, INPUT);
+			} else if(pin == 16) {
+				pinMode(17, INPUT);
+			}
+		#elif defined(ESP8266)
+			if(pin == 113) {
+				pinMode(15, INPUT);
 			}
 		#endif
 

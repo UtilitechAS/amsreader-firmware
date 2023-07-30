@@ -301,9 +301,9 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t 
 }
 
 PricesContainer* EntsoeApi::fetchPrices(time_t t) {
-    tmElements_t tm;
-    breakTime(t, tm);
     if(strlen(getToken()) > 0) {
+        tmElements_t tm;
+        breakTime(t, tm);
         time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // UTC midnight
         time_t e2 = e1 + SECS_PER_DAY;
         tmElements_t d1, d2;
@@ -333,6 +333,9 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
             return NULL;
         }
     } else if(hub) {
+        tmElements_t tm;
+        breakTime(tz->toLocal(t), tm);
+
         String data;
         snprintf_P(buf, BufferSize, PSTR("http://hub.amsleser.no/hub/price/%s/%d/%d/%d?currency=%s"),
             config->area,

@@ -128,6 +128,74 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 }
 
                 lastUpdateMillis = millis();
+            } else if(listId.startsWith("ISK")) { // Iskra special case
+                this->listId = listId;
+                meterType = AmsTypeIskra;
+
+                int idx = 0;
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data->base.length == 0x12) {
+                    listType = 2;
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    memcpy(str, data->oct.data, data->oct.length);
+                    str[data->oct.length] = 0x00;
+                    meterId = String(str);
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeImportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeExportPower = ntohl(data->dlu.data);
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveImportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveExportPower = ntohl(data->dlu.data);
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1voltage = ntohs(data->lu.data) / 10.0;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l2voltage = ntohs(data->lu.data) / 10.0;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l3voltage = ntohs(data->lu.data) / 10.0;
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1current = ntohs(data->lu.data) / 100.0;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l2current = ntohs(data->lu.data) / 100.0;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l3current = ntohs(data->lu.data) / 100.0;
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1activeImportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l2activeImportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l3activeImportPower = ntohl(data->dlu.data);
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1activeExportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l2activeExportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l3activeExportPower = ntohl(data->dlu.data);
+                } else if(data->base.length == 0x0C) {
+                    listType = 3;
+                    idx += 3;
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+                    idx += 2;
+                    
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+                    idx += 2;
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
+                }
             }
         } else if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {
             this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;

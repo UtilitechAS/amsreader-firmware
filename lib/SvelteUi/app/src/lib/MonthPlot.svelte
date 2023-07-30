@@ -17,8 +17,8 @@
         min = max = 0;
         let cur = new Date();
         let lm = new Date();
-        addHours(cur, sysinfo.clock_offset - ((cur.getHours() - cur.getUTCHours())%24));
-        addHours(lm, sysinfo.clock_offset - ((lm.getHours() - lm.getUTCHours())%24));
+        addHours(cur, sysinfo.clock_offset - ((24 + cur.getHours() - cur.getUTCHours())%24));
+        addHours(lm, sysinfo.clock_offset - ((24 + lm.getHours() - lm.getUTCHours())%24));
         lm.setDate(0);
 
         for(i = cur.getDate(); i<=lm.getDate(); i++) {

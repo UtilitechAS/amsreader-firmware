@@ -137,6 +137,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 if(data->base.length == 0x12) {
                     listType = 2;
 
+                    idx++;
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     memcpy(str, data->oct.data, data->oct.length);
                     str[data->oct.length] = 0x00;
@@ -179,6 +180,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     l2activeExportPower = ntohl(data->dlu.data);
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l3activeExportPower = ntohl(data->dlu.data);
+                    
+                    lastUpdateMillis = millis();
                 } else if(data->base.length == 0x0C) {
                     listType = 3;
                     idx += 3;
@@ -195,6 +198,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                    lastUpdateMillis = millis();
                 }
             }
         } else if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {

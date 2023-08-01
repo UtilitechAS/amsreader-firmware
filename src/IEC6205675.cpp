@@ -184,7 +184,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     lastUpdateMillis = millis();
                 } else if(data->base.length == 0x0C) {
                     listType = 3;
-                    idx += 3;
+                    idx += 4;
 
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeImportCounter = ntohl(data->dlu.data) / 1000.0;

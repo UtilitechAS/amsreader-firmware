@@ -303,12 +303,12 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t 
 PricesContainer* EntsoeApi::fetchPrices(time_t t) {
     if(strlen(getToken()) > 0) {
         tmElements_t tm;
-        breakTime(t, tm);
-        time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // UTC midnight
+        breakTime(tz->toLocal(t), tm);
+        time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // Local midnight
         time_t e2 = e1 + SECS_PER_DAY;
         tmElements_t d1, d2;
-        breakTime(tz->toUTC(e1), d1); // To get day and hour for CET/CEST at UTC midnight
-        breakTime(tz->toUTC(e2), d2);
+        breakTime(e1, d1);
+        breakTime(e2, d2);
 
         snprintf_P(buf, BufferSize, PSTR("https://web-api.tp.entsoe.eu/api?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s"), 
         getToken(), 

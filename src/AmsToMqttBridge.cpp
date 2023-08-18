@@ -821,7 +821,8 @@ void rxerr(int err) {
 			debugW_P(PSTR("Serial parity error"));
 			break;
 	}
-	meterState.setLastError(90+err);
+	// Do not include serial break
+	if(err > 1) meterState.setLastError(90+err);
 }
 
 void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert) {

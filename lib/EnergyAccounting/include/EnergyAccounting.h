@@ -103,7 +103,8 @@ public:
 
 private:
     RemoteDebug* debugger = NULL;
-    unsigned long lastUpdateMillis = 0;
+    unsigned long lastImportUpdateMillis = 0;
+    unsigned long lastExportUpdateMillis = 0;
     bool init = false, initPrice = false;
     AmsDataStorage *ds = NULL;
     EntsoeApi *eapi = NULL;

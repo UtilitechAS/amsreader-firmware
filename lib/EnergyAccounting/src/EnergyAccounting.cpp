@@ -142,29 +142,36 @@ bool EnergyAccounting::update(AmsData* amsData) {
         }
     }
 
-    unsigned long ms = this->lastUpdateMillis > amsData->getLastUpdateMillis() ? 0 : amsData->getLastUpdateMillis() - this->lastUpdateMillis;
-    float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
-    float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
-    lastUpdateMillis = amsData->getLastUpdateMillis();
-    if(kwhi > 0) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh import\n"), kwhi);
-        use += kwhi;
-        if(price != ENTSOE_NO_VALUE) {
-            float cost = price * kwhi;
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), cost / 100.0, currency.c_str());
-            costHour += cost;
-            costDay += cost;
+    if(this->lastImportUpdateMillis < amsData->getLastUpdateMillis()) {
+        unsigned long ms = amsData->getLastUpdateMillis() - this->lastImportUpdateMillis;
+        float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
+        if(kwhi > 0) {
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh import\n"), kwhi);
+            use += kwhi;
+            if(price != ENTSOE_NO_VALUE) {
+                float cost = price * kwhi;
+                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), cost / 100.0, currency.c_str());
+                costHour += cost;
+                costDay += cost;
+            }
         }
+        lastImportUpdateMillis = amsData->getLastUpdateMillis();
     }
-    if(kwhe > 0) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh export\n"), kwhe);
-        produce += kwhe;
-        if(price != ENTSOE_NO_VALUE) {
-            float income = price * kwhe;
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), income / 100.0, currency.c_str());
-            incomeHour += income;
-            incomeDay += income;
+
+    if(amsData->getListType() > 1 && this->lastExportUpdateMillis < amsData->getLastUpdateMillis()) {
+        unsigned long ms = amsData->getLastUpdateMillis() - this->lastExportUpdateMillis;
+        float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
+        if(kwhe > 0) {
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh export\n"), kwhe);
+            produce += kwhe;
+            if(price != ENTSOE_NO_VALUE) {
+                float income = price * kwhe;
+                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), income / 100.0, currency.c_str());
+                incomeHour += income;
+                incomeDay += income;
+            }
         }
+        lastExportUpdateMillis = amsData->getLastUpdateMillis();
     }
 
     if(config != NULL) {

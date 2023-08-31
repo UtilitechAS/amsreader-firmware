@@ -82,7 +82,7 @@ void AmsData::apply(AmsData& other) {
         this->activeExportPower = other.getActiveExportPower();
 }
 
-unsigned long AmsData::getLastUpdateMillis() {
+uint64_t AmsData::getLastUpdateMillis() {
     return this->lastUpdateMillis;
 }
 

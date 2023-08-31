@@ -2,6 +2,7 @@
 #include "lwip/def.h"
 #include "Timezone.h"
 #include "ntohll.h"
+#include "Uptime.h"
 
 IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx) {
     float val;
@@ -127,7 +128,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
                 }
 
-                lastUpdateMillis = millis();
+                lastUpdateMillis = millis64();
             } else if(listId.startsWith("ISK")) { // Iskra special case
                 this->listId = listId;
                 meterType = AmsTypeIskra;
@@ -181,7 +182,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l3activeExportPower = ntohl(data->dlu.data);
                     
-                    lastUpdateMillis = millis();
+                    lastUpdateMillis = millis64();
                 } else if(data->base.length == 0x0C) {
                     listType = 3;
                     idx += 4;
@@ -199,7 +200,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
 
-                    lastUpdateMillis = millis();
+                    lastUpdateMillis = millis64();
                 }
             }
         } else if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {
@@ -207,7 +208,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             listType = 1;
             meterType = AmsTypeKaifa;
             activeImportPower = ntohl(data->dlu.data);
-            lastUpdateMillis = millis();
+            lastUpdateMillis = millis64();
         }
         // Kaifa end
     } else {
@@ -451,7 +452,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             }
         }
 
-        lastUpdateMillis = millis();
+        lastUpdateMillis = millis64();
     }
 
     if(meterConfig->wattageMultiplier > 0) {

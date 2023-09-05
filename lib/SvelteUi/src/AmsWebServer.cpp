@@ -1005,6 +1005,13 @@ void AmsWebServer::handleSave() {
 					gpioConfig->ledPin = 15;
 					gpioConfig->ledInverted = false;
 					gpioConfig->apPin = 0;
+					gpioConfig->hanPin = hanPin > 0 ? hanPin : 18;
+					if(gpioConfig->hanPin != 18) {
+						gpioConfig->vccPin = 18;
+						gpioConfig->vccResistorGnd = 45;
+						gpioConfig->vccResistorVcc = 10;
+					}
+					break;
 				case 50: // Generic ESP32-S2
 					gpioConfig->hanPin = hanPin > 0 ? hanPin : 18;
 					break;

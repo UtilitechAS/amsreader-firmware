@@ -524,7 +524,7 @@ void HomeAssistantMqttHandler::publishPriceSensors(EntsoeApi* eapi) {
             path,
             uom.c_str(),
             PriceSensor.devcl,
-            PriceSensor.stacl
+            i == 0 ? "total" : PriceSensor.stacl
         };
         publishSensor(sensor);
         prInit[i] = true;

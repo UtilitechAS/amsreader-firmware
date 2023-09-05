@@ -547,7 +547,7 @@ uint8_t AmsDataStorage::getDayAccuracy() {
 
 void AmsDataStorage::setDayAccuracy(uint8_t accuracy) {
     if(day.accuracy != accuracy) {
-        uint16_t multiplier = pow(10, day.accuracy)/pow(10, accuracy);
+        double multiplier = pow(10, day.accuracy)/pow(10, accuracy);
         for(uint8_t i = 0; i < 24; i++) {
             day.hImport[i] = day.hImport[i] * multiplier;
             day.hExport[i] = day.hExport[i] * multiplier;
@@ -562,7 +562,7 @@ uint8_t AmsDataStorage::getMonthAccuracy() {
 
 void AmsDataStorage::setMonthAccuracy(uint8_t accuracy) {
     if(month.accuracy != accuracy) {
-        uint16_t multiplier = pow(10, month.accuracy)/pow(10, accuracy);
+        double multiplier = pow(10, month.accuracy)/pow(10, accuracy);
         for(uint8_t i = 0; i < 31; i++) {
             month.dImport[i] = month.dImport[i] * multiplier;
             month.dExport[i] = month.dExport[i] * multiplier;

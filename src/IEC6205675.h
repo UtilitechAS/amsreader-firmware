@@ -15,7 +15,7 @@ struct AmsOctetTimestamp {
 
 class IEC6205675 : public AmsData {
 public:
-    IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx);
+    IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state);
 
 private:
     CosemData* getCosemDataAt(uint8_t index, const char* ptr);

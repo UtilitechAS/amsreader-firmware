@@ -1187,7 +1187,12 @@ bool readHanPort() {
 		// Rudimentary detector for L&G proprietary format, this is terrible code... Fix later
 		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
 			debugV_P(PSTR("LNG"));
-			data = new LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+			LNG lngData = LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+			if(lngData.getListType() >= 3) {
+				data = new AmsData();
+				data->apply(meterState);
+				data->apply(lngData);
+			}
 		} else if(payload[0] == CosemTypeStructure && 
 			payload[2] == CosemTypeLongUnsigned && 
 			payload[5] == CosemTypeLongUnsigned && 
@@ -1197,11 +1202,16 @@ bool readHanPort() {
 			payload[17] == CosemTypeLongUnsigned
 		) {
 			debugV_P(PSTR("LNG2"));
-			data = new LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+			LNG2 lngData = LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+			if(lngData.getListType() >= 3) {
+				data = new AmsData();
+				data->apply(meterState);
+				data->apply(lngData);
+			}
 		} else {
 			debugV_P(PSTR("DLMS"));
 			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
-			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx);
+			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx, meterState);
 		}
 	} else if(ctx.type == DATA_TAG_DSMR) {
 		data = new IEC6205621(payload, tz);

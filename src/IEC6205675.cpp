@@ -4,7 +4,7 @@
 #include "ntohll.h"
 #include "Uptime.h"
 
-IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx) {
+IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state) {
     float val;
     char str[64];
 
@@ -184,6 +184,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     
                     lastUpdateMillis = millis64();
                 } else if(data->base.length == 0x0C) {
+                    apply(state);
+                    
                     listType = 3;
                     idx += 4;
 

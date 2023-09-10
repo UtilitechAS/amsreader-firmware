@@ -143,6 +143,7 @@ void configFileParse();
 void swapWifiMode();
 void WiFi_connect();
 void WiFi_post_connect();
+void WiFi_disconnect(unsigned long timeout);
 void MQTT_connect();
 void handleNtpChange();
 void handleDataSuccess(AmsData* data);
@@ -191,8 +192,12 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 					SystemConfig sys;
 					if(!config.getSystemConfig(sys) || sys.dataCollectionConsent == 0) {
 						swapWifiMode();
+					} else {
+						WiFi_disconnect(WIFI_CONNECTION_TIMEOUT);
 					}
 					break;
+				default:
+					WiFi_disconnect(WIFI_CONNECTION_TIMEOUT);
 			}
 			break;
 	}
@@ -280,7 +285,11 @@ void setup() {
 				break;
 		}
 		#if defined(ESP32)
-			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
+			#if ARDUINO_USB_CDC_ON_BOOT
+				Serial0.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
+			#else
+				Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
+			#endif
 		#else
 			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, SERIAL_FULL, 1, meterConfig.invert);
 		#endif
@@ -848,7 +857,11 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 	}
 
 	if(pin == 3 || pin == 113) {
-		hwSerial = &Serial;
+		#if ARDUINO_USB_CDC_ON_BOOT
+			hwSerial = &Serial0;
+		#else
+			hwSerial = &Serial;
+		#endif
 	}
 
 	#if defined(ESP32)
@@ -1348,6 +1361,41 @@ void debugPrint(byte *buffer, int start, int length) {
 
 unsigned long wifiTimeout = WIFI_CONNECTION_TIMEOUT;
 unsigned long lastWifiRetry = -WIFI_CONNECTION_TIMEOUT;
+
+void WiFi_disconnect(unsigned long timeout) {
+	if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Not connected to WiFi, closing resources"));
+	if(mqtt != NULL) {
+		mqtt->disconnect();
+		mqtt->loop();
+		delay(10);
+		yield();
+		delete mqtt;
+		mqtt = NULL;
+		ws.setMqtt(NULL);
+	}
+
+	if(mqttClient != NULL) {
+		mqttClient->stop();
+		delete mqttClient;
+		mqttClient = NULL;
+		if(mqttSecureClient != NULL) {
+			mqttSecureClient = NULL;
+		}
+	}
+
+	#if defined(ESP8266)
+		WiFiClient::stopAll();
+	#endif
+
+	MDNS.end();
+	WiFi.disconnect(true);
+	WiFi.softAPdisconnect(true);
+	WiFi.enableAP(false);
+	WiFi.mode(WIFI_OFF);
+	yield();
+	wifiTimeout = timeout;
+}
+
 void WiFi_connect() {
 	if(millis() - lastWifiRetry < wifiTimeout) {
 		delay(50);
@@ -1364,42 +1412,14 @@ void WiFi_connect() {
 
 		if(WiFi.getMode() != WIFI_OFF) {
 			if(wifiReconnectCount > 3 && wifi.autoreboot) {
+				if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Unable to connect to WiFi, rebooting because auto reboot is enabled"));
 				ESP.restart();
 				return;
 			}
-			if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Not connected to WiFi, closing resources"));
-			if(mqtt != NULL) {
-				mqtt->disconnect();
-				mqtt->loop();
-				delay(10);
-				yield();
-				delete mqtt;
-				mqtt = NULL;
-				ws.setMqtt(NULL);
-			}
-
-			if(mqttClient != NULL) {
-				mqttClient->stop();
-				delete mqttClient;
-				mqttClient = NULL;
-				if(mqttSecureClient != NULL) {
-					mqttSecureClient = NULL;
-				}
-			}
-
-			#if defined(ESP8266)
-				WiFiClient::stopAll();
-			#endif
-
-			MDNS.end();
-			WiFi.disconnect(true);
-			WiFi.softAPdisconnect(true);
-			WiFi.enableAP(false);
-			WiFi.mode(WIFI_OFF);
-			yield();
-			wifiTimeout = 5000;
+			WiFi_disconnect(5000);
 			return;
 		}
+
 		wifiTimeout = WIFI_CONNECTION_TIMEOUT;
 
 		if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Connecting to WiFi network: %s"), wifi.ssid);

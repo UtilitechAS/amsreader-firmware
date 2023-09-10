@@ -2,6 +2,7 @@
     "version": "%s",
     "chip": "%s",
     "chipId": "%s",
+    "cpu": %d,
     "mac": "%s",
     "apmac": "%s",
     "board": %d,

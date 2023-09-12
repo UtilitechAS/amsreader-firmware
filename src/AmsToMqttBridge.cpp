@@ -112,6 +112,7 @@ SoftwareSerial *swSerial = NULL;
 HardwareSerial *hwSerial = NULL;
 uint8_t rxBufferErrors = 0;
 
+SystemConfig sysConfig;
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
 bool mqttEnabled = false;
@@ -122,7 +123,12 @@ bool ntpEnabled = false;
 bool mdnsEnabled = false;
 
 AmsDataStorage ds(&Debug);
-EnergyAccounting ea(&Debug);
+#if defined(ESP32)
+RTC_NOINIT_ATTR EnergyAccountingRealtimeData rtd;
+#else
+EnergyAccountingRealtimeData rtd;
+#endif
+EnergyAccounting ea(&Debug, &rtd);
 
 uint8_t wifiReconnectCount = 0;
 
@@ -189,8 +195,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			switch(reason) {
 				case WIFI_REASON_AUTH_FAIL:
 				case WIFI_REASON_NO_AP_FOUND:
-					SystemConfig sys;
-					if(!config.getSystemConfig(sys) || sys.dataCollectionConsent == 0) {
+					if(sysConfig.dataCollectionConsent == 0) {
 						swapWifiMode();
 					} else {
 						WiFi_disconnect(WIFI_CONNECTION_TIMEOUT);
@@ -212,6 +217,12 @@ void setup() {
 
 	if(!config.getGpioConfig(gpioConfig)) {
 		config.clearGpio(gpioConfig);
+	}
+	if(!config.getSystemConfig(sysConfig)) {
+		sysConfig.boardType = 0;
+		sysConfig.vendorConfigured = false;
+		sysConfig.userConfigured = false;
+		sysConfig.dataCollectionConsent = false;
 	}
 
 	delay(1);
@@ -639,6 +650,7 @@ void handleEnergyAccountingChanged() {
 }
 
 char ntpServerName[64] = "";
+float maxVcc = 2.9;
 
 void handleNtpChange() {
 	NtpConfig ntp;
@@ -695,6 +707,22 @@ void handleSystem(unsigned long now) {
 			config.setMeterConfig(meterConfig);
 		}
 		maxDetectPayloadDetectDone = true;
+	}
+
+	if(sysConfig.boardType == 7 && maxVcc > 2.8) { // Pow-U
+		float vcc = hw.getVcc();
+		if(vcc > 3.4 || vcc < 2.8) {
+			maxVcc = 0;
+		} else if(vcc > maxVcc) {
+			debugD_P(PSTR("Setting new max Vcc to %.2f"), vcc);
+			maxVcc = vcc;
+		} else {
+			float diff = maxVcc-vcc;
+			if(diff > 0.3) {
+				debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for %d seconds to preserve power"), vcc, (uint8_t) (WIFI_CONNECTION_TIMEOUT/1000));
+				WiFi_disconnect(WIFI_CONNECTION_TIMEOUT);
+			}
+		}
 	}
 }
 
@@ -848,9 +876,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 		parityOrdinal = 3; // 8N1
 	}
 
-	SystemConfig sys;
-	config.getSystemConfig(sys);
-	switch(sys.boardType) {
+	switch(sysConfig.boardType) {
 		case 8: // HAN mosquito: has inverting level shifter
 			invert = !invert;
 			break;
@@ -1752,10 +1778,8 @@ void MQTT_connect() {
 			break;
 		case 4:
 			HomeAssistantConfig haconf;
-			SystemConfig sys;
 			config.getHomeAssistantConfig(haconf);
-			config.getSystemConfig(sys);
-			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.clientId, mqttConfig.publishTopic, sys.boardType, haconf, &hw);
+			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.clientId, mqttConfig.publishTopic, sysConfig.boardType, haconf, &hw);
 			break;
 	}
 

@@ -56,10 +56,25 @@ struct EnergyAccountingData2 {
     uint16_t costLastMonth;
 };
 
+struct EnergyAccountingRealtimeData {
+    uint8_t magic;
+    uint8_t currentHour;
+    uint8_t currentDay;
+    uint8_t currentThresholdIdx;
+    float use;
+    float costHour;
+    float costDay;
+    float produce;
+    float incomeHour;
+    float incomeDay;
+    unsigned long lastImportUpdateMillis;
+    unsigned long lastExportUpdateMillis;
+};
+
 
 class EnergyAccounting {
 public:
-    EnergyAccounting(RemoteDebug*);
+    EnergyAccounting(RemoteDebug*, EnergyAccountingRealtimeData*);
     void setup(AmsDataStorage *ds, EnergyAccountingConfig *config);
     void setEapi(EntsoeApi *eapi);
     void setTimezone(Timezone*);
@@ -103,17 +118,13 @@ public:
 
 private:
     RemoteDebug* debugger = NULL;
-    unsigned long lastImportUpdateMillis = 0;
-    unsigned long lastExportUpdateMillis = 0;
     bool init = false, initPrice = false;
     AmsDataStorage *ds = NULL;
     EntsoeApi *eapi = NULL;
     EnergyAccountingConfig *config = NULL;
     Timezone *tz = NULL;
-    uint8_t currentHour = 0, currentDay = 0, currentThresholdIdx = 0;
-    float use = 0, costHour = 0, costDay = 0;
-    float produce = 0, incomeHour = 0, incomeDay = 0;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    EnergyAccountingRealtimeData* realtimeData = NULL;
     float fixedPrice = 0;
     String currency = "";
 

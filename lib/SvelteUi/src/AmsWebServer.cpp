@@ -191,14 +191,14 @@ void AmsWebServer::notFound() {
 void AmsWebServer::githubSvg() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /github.svg over http...\n"));
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
 	server.send_P(200, "image/svg+xml", GITHUB_SVG);
 }
 
 void AmsWebServer::faviconSvg() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /favicon.ico over http...\n"));
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
 	server.send_P(200, "image/svg+xml", FAVICON_SVG);
 }
 
@@ -768,7 +768,7 @@ void AmsWebServer::indexCss() {
 	if(!checkSecurity(2))
 		return;
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1YR);
 	server.sendHeader(HEADER_CONTENT_ENCODING, CONTENT_ENCODING_GZIP);
 	server.send_P(200, MIME_CSS, INDEX_CSS, INDEX_CSS_LEN);
 }
@@ -779,7 +779,7 @@ void AmsWebServer::indexJs() {
 	if(!checkSecurity(2))
 		return;
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1YR);
 	server.sendHeader(HEADER_CONTENT_ENCODING, CONTENT_ENCODING_GZIP);
 	server.send_P(200, MIME_JS, INDEX_JS, INDEX_JS_LEN);
 }

@@ -124,7 +124,7 @@ bool mdnsEnabled = false;
 
 AmsDataStorage ds(&Debug);
 #if defined(ESP32)
-RTC_NOINIT_ATTR EnergyAccountingRealtimeData rtd;
+__NOINIT_ATTR EnergyAccountingRealtimeData rtd;
 #else
 EnergyAccountingRealtimeData rtd;
 #endif

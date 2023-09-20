@@ -542,11 +542,11 @@ bool EnergyAccounting::updateMax(uint16_t val, uint8_t day) {
             return false;
         }
     }
-    uint16_t test = 0;
+    uint16_t test = val;
     uint8_t idx = 255;
     for(uint8_t i = 0; i < 5; i++) {
         if(val > data.peaks[i].value) {
-            if(test < data.peaks[i].value) {
+            if(test > data.peaks[i].value) {
                 test = data.peaks[i].value;
                 idx = i;
             }

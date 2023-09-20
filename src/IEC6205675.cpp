@@ -614,37 +614,37 @@ float IEC6205675::getNumber(CosemData* item) {
         switch(item->base.type) {
             case CosemTypeLongSigned: {
                 int16_t i16 = ntohs(item->ls.data);
-                ret = i16;
+                ret = (i16 * 1.0);
                 pos += 3;
                 break;
             }
             case CosemTypeLongUnsigned: {
                 uint16_t u16 = ntohs(item->lu.data);
-                ret = u16;
+                ret = (u16 * 1.0);
                 pos += 3;
                 break;
             }
             case CosemTypeDLongSigned: {
                 int32_t i32 = ntohl(item->dlu.data);
-                ret = i32;
+                ret = (i32 * 1.0);
                 pos += 5;
                 break;
             }
             case CosemTypeDLongUnsigned: {
                 uint32_t u32 = ntohl(item->dlu.data);
-                ret = u32;
+                ret = (u32 * 1.0);
                 pos += 5;
                 break;
             }
             case CosemTypeLong64Signed: {
                 int64_t i64 = ntohll(item->l64s.data);
-                ret = i64;
+                ret = (i64 * 1.0);
                 pos += 9;
                 break;
             }
             case CosemTypeLong64Unsigned: {
                 uint64_t u64 = ntohll(item->l64u.data);
-                ret = u64;
+                ret = (u64 * 1.0);
                 pos += 9;
                 break;
             }

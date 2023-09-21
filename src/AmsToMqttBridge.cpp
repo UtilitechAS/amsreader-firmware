@@ -160,6 +160,7 @@ void handleButton(unsigned long now);
 void handlePriceApi(unsigned long now);
 void handleClear(unsigned long now);
 void handleEnergyAccountingChanged();
+bool handleVoltageCheck();
 bool readHanPort();
 void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert);
 void rxerr(int err);
@@ -191,18 +192,21 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 		}
 		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
 			wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
-			debugI_P(PSTR("WiFi disconnected, reason %s"), WiFi.disconnectReasonName(reason));
+			const char* descr = WiFi.disconnectReasonName(reason);
+			debugI_P(PSTR("WiFi disconnected, reason %s"), descr);
 			switch(reason) {
 				case WIFI_REASON_AUTH_FAIL:
 				case WIFI_REASON_NO_AP_FOUND:
 					if(sysConfig.dataCollectionConsent == 0) {
 						swapWifiMode();
-					} else {
-						WiFi_disconnect(WIFI_CONNECTION_TIMEOUT);
+					} else if(strlen(descr) > 0) {
+						WiFi_disconnect(5000);
 					}
 					break;
 				default:
-					WiFi_disconnect(WIFI_CONNECTION_TIMEOUT);
+					if(strlen(descr) > 0) {
+						WiFi_disconnect(5000);
+					}
 			}
 			break;
 	}
@@ -462,6 +466,7 @@ bool wifiConnected = false;
 unsigned long lastTemperatureRead = 0;
 unsigned long lastSysupdate = 0;
 unsigned long lastErrorBlink = 0; 
+unsigned long lastVoltageCheck = 0;
 int lastError = 0;
 
 bool meterAutodetect = false;
@@ -557,6 +562,11 @@ void loop() {
 			if(end - start > 1000) {
 				debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
 			}
+		}
+
+		if(now - lastVoltageCheck > 1000) {
+			handleVoltageCheck();
+			lastVoltageCheck = now;
 		}
 	} else {
 		if(dnsServer != NULL) {
@@ -708,22 +718,6 @@ void handleSystem(unsigned long now) {
 		}
 		maxDetectPayloadDetectDone = true;
 	}
-
-	if(sysConfig.boardType == 7 && maxVcc > 2.8) { // Pow-U
-		float vcc = hw.getVcc();
-		if(vcc > 3.4 || vcc < 2.8) {
-			maxVcc = 0;
-		} else if(vcc > maxVcc) {
-			debugD_P(PSTR("Setting new max Vcc to %.2f"), vcc);
-			maxVcc = vcc;
-		} else {
-			float diff = maxVcc-vcc;
-			if(diff > 0.3) {
-				debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for %d seconds to preserve power"), vcc, (uint8_t) (WIFI_CONNECTION_TIMEOUT/1000));
-				WiFi_disconnect(WIFI_CONNECTION_TIMEOUT);
-			}
-		}
-	}
 }
 
 void handleTemperature(unsigned long now) {
@@ -833,6 +827,26 @@ void handleButton(unsigned long now) {
 			}
 		}
 	}
+}
+
+bool handleVoltageCheck() {
+	if(sysConfig.boardType == 7 && maxVcc > 2.8) { // Pow-U
+		float vcc = hw.getVcc();
+		if(vcc > 3.4 || vcc < 2.8) {
+			maxVcc = 0;
+		} else if(vcc > maxVcc) {
+			debugD_P(PSTR("Setting new max Vcc to %.2f"), vcc);
+			maxVcc = vcc;
+		} else if(WiFi.getMode() != WIFI_OFF) {
+			float diff = maxVcc-vcc;
+			if(diff > 0.3) {
+				debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for 5 seconds to preserve power"), vcc);
+				WiFi_disconnect(5000);
+				return false;
+			}
+		}
+	}
+	return true;
 }
 
 void rxerr(int err) {
@@ -1428,6 +1442,11 @@ void WiFi_connect() {
 		return;
 	}
 	lastWifiRetry = millis();
+
+	if(!handleVoltageCheck()) {
+		debugW_P(PSTR("Voltage is not high enough to reconnect"));
+		return;
+	}
 
 	if (WiFi.status() != WL_CONNECTED) {
 		WiFiConfig wifi;

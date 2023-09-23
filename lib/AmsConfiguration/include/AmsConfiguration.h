@@ -47,7 +47,7 @@ struct WiFiConfig {
 	bool mdns;
 	uint8_t power;
 	uint8_t sleep;
-	uint8_t mode;
+	uint8_t use11b;
 	bool autoreboot;
 }; // 213
 

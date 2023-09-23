@@ -30,6 +30,7 @@ ADC_MODE(ADC_VCC);
 #endif
 
 #if defined(ESP32)
+#include <esp_wifi.h>
 #include <esp_task_wdt.h>
 #include <lwip/dns.h>
 #endif
@@ -131,6 +132,7 @@ EnergyAccountingRealtimeData rtd;
 EnergyAccounting ea(&Debug, &rtd);
 
 uint8_t wifiReconnectCount = 0;
+bool wifiDisable11b = false;
 
 HDLCParser *hdlcParser = NULL;
 MBUSParser *mbusParser = NULL;
@@ -175,6 +177,14 @@ uint8_t dnsState = 0;
 ip_addr_t dns0;
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 	switch(event) {
+		#if defined(ESP32)
+		case ARDUINO_EVENT_WIFI_READY:
+			if (wifiDisable11b) {
+				esp_wifi_config_11b_rate(WIFI_IF_AP, true);
+				esp_wifi_config_11b_rate(WIFI_IF_STA, true);
+			}
+			break;
+		#endif
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
 			const ip_addr_t* dns = dns_getserver(0);
 			memcpy(&dns0, dns, sizeof(dns0));
@@ -338,6 +348,12 @@ void setup() {
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
+
+	WiFiConfig wifiConf;
+	if(config.getWiFiConfig(wifiConf)) {
+		wifiDisable11b = !wifiConf.use11b;
+	}
+	WiFi.onEvent(WiFiEvent);
 
 	bool hasFs = false;
 #if defined(ESP32)
@@ -1474,8 +1490,7 @@ void WiFi_connect() {
 		#if defined(ESP32)
 			if(strlen(wifi.hostname) > 0) {
 				WiFi.setHostname(wifi.hostname);
-			}	
-			WiFi.onEvent(WiFiEvent);
+			}
 		#endif
 		WiFi.mode(WIFI_STA);
 
@@ -1990,6 +2005,9 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("hostname "), 9) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			strcpy(wifi.hostname, buf+9);
+		} else if(strncmp_P(buf, PSTR("use11b "), 7) == 0) {
+			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
+			wifi.use11b = String(buf+7).toInt() == 1;
 		} else if(strncmp_P(buf, PSTR("mdns "), 5) == 0) {
 			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
 			wifi.mdns = String(buf+5).toInt() == 1;;

@@ -60,7 +60,7 @@
             e: { e: false, k: '', a: '' },
             m: { e: false, w: false, v: false, a: false, c: false }
         },
-        w: { s: '', p: '', w: 0.0, z: 255, a: true },
+        w: { s: '', p: '', w: 0.0, z: 255, a: true, b: true },
         n: {
             m: '', i: '', s: '', g: '', d1: '', d2: '', d: false, n1: '', n2: '', h: false
         },
@@ -403,6 +403,9 @@
             </div>
             <div class="my-3">
                 <label><input type="checkbox" name="wa" value="true" bind:checked={configuration.w.a} class="rounded mb-1"/> Auto reboot on connection problem</label>
+            </div>
+            <div class="my-3">
+                <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> Allow 802.11b legacy rates</label>
             </div>
         </div>
         <div class="cnt">

@@ -177,14 +177,12 @@ uint8_t dnsState = 0;
 ip_addr_t dns0;
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 	switch(event) {
-		#if defined(ESP32)
 		case ARDUINO_EVENT_WIFI_READY:
 			if (wifiDisable11b) {
 				esp_wifi_config_11b_rate(WIFI_IF_AP, true);
 				esp_wifi_config_11b_rate(WIFI_IF_STA, true);
 			}
 			break;
-		#endif
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
 			const ip_addr_t* dns = dns_getserver(0);
 			memcpy(&dns0, dns, sizeof(dns0));

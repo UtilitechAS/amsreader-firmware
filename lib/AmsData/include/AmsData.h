@@ -22,7 +22,7 @@ public:
 
     void apply(AmsData& other);
 
-    unsigned long getLastUpdateMillis();
+    uint64_t getLastUpdateMillis();
 
     time_t getPackageTimestamp();
 
@@ -73,8 +73,8 @@ public:
     void setLastError(int8_t);
 
 protected:
-    unsigned long lastUpdateMillis = 0;
-    unsigned long lastList2 = 0;
+    uint64_t lastUpdateMillis = 0;
+    uint64_t lastList2 = 0;
     uint8_t listType = 0, meterType = AmsTypeUnknown;
     time_t packageTimestamp = 0;
     String listId = "", meterId = "", meterModel = "";

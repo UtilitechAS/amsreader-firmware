@@ -444,7 +444,7 @@ void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, Ents
         char name[strlen(RealtimePeakSensor.name)];
         snprintf(name, strlen(RealtimePeakSensor.name), RealtimePeakSensor.name, i+1);
         char path[strlen(RealtimePeakSensor.path)];
-        snprintf(path, strlen(RealtimePeakSensor.path), RealtimePeakSensor.path, i+1);
+        snprintf(path, strlen(RealtimePeakSensor.path), RealtimePeakSensor.path, i);
         HomeAssistantSensor sensor = {
             name,
             RealtimePeakSensor.topic,
@@ -524,7 +524,7 @@ void HomeAssistantMqttHandler::publishPriceSensors(EntsoeApi* eapi) {
             path,
             uom.c_str(),
             PriceSensor.devcl,
-            PriceSensor.stacl
+            i == 0 ? "total" : PriceSensor.stacl
         };
         publishSensor(sensor);
         prInit[i] = true;

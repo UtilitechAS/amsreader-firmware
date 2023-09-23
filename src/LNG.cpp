@@ -1,6 +1,7 @@
 #include "LNG.h"
 #include "lwip/def.h"
 #include "ntohll.h"
+#include "Uptime.h"
 
 LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
     LngHeader* h = (LngHeader*) payload;
@@ -117,7 +118,7 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                 data += 3;
             }
 
-            lastUpdateMillis = millis();
+            lastUpdateMillis = millis64();
         }
     }
 }

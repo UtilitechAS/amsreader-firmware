@@ -113,6 +113,7 @@ SoftwareSerial *swSerial = NULL;
 HardwareSerial *hwSerial = NULL;
 uint8_t rxBufferErrors = 0;
 
+SystemConfig sysConfig;
 GpioConfig gpioConfig;
 MeterConfig meterConfig;
 bool mqttEnabled = false;
@@ -123,7 +124,12 @@ bool ntpEnabled = false;
 bool mdnsEnabled = false;
 
 AmsDataStorage ds(&Debug);
-EnergyAccounting ea(&Debug);
+#if defined(ESP32)
+__NOINIT_ATTR EnergyAccountingRealtimeData rtd;
+#else
+EnergyAccountingRealtimeData rtd;
+#endif
+EnergyAccounting ea(&Debug, &rtd);
 
 uint8_t wifiReconnectCount = 0;
 bool wifiDisable11b = false;
@@ -145,6 +151,7 @@ void configFileParse();
 void swapWifiMode();
 void WiFi_connect();
 void WiFi_post_connect();
+void WiFi_disconnect(unsigned long timeout);
 void MQTT_connect();
 void handleNtpChange();
 void handleDataSuccess(AmsData* data);
@@ -155,6 +162,7 @@ void handleButton(unsigned long now);
 void handlePriceApi(unsigned long now);
 void handleClear(unsigned long now);
 void handleEnergyAccountingChanged();
+bool handleVoltageCheck();
 bool readHanPort();
 void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert);
 void rxerr(int err);
@@ -194,15 +202,21 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 		}
 		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
 			wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
-			debugI_P(PSTR("WiFi disconnected, reason %s"), WiFi.disconnectReasonName(reason));
+			const char* descr = WiFi.disconnectReasonName(reason);
+			debugI_P(PSTR("WiFi disconnected, reason %s"), descr);
 			switch(reason) {
 				case WIFI_REASON_AUTH_FAIL:
 				case WIFI_REASON_NO_AP_FOUND:
-					SystemConfig sys;
-					if(!config.getSystemConfig(sys) || sys.dataCollectionConsent == 0) {
+					if(sysConfig.dataCollectionConsent == 0) {
 						swapWifiMode();
+					} else if(strlen(descr) > 0) {
+						WiFi_disconnect(5000);
 					}
 					break;
+				default:
+					if(strlen(descr) > 0) {
+						WiFi_disconnect(5000);
+					}
 			}
 			break;
 	}
@@ -217,6 +231,12 @@ void setup() {
 
 	if(!config.getGpioConfig(gpioConfig)) {
 		config.clearGpio(gpioConfig);
+	}
+	if(!config.getSystemConfig(sysConfig)) {
+		sysConfig.boardType = 0;
+		sysConfig.vendorConfigured = false;
+		sysConfig.userConfigured = false;
+		sysConfig.dataCollectionConsent = false;
 	}
 
 	delay(1);
@@ -290,7 +310,11 @@ void setup() {
 				break;
 		}
 		#if defined(ESP32)
-			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
+			#if ARDUINO_USB_CDC_ON_BOOT
+				Serial0.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
+			#else
+				Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, -1, -1, meterConfig.invert);
+			#endif
 		#else
 			Serial.begin(meterConfig.baud == 0 ? 2400 : meterConfig.baud, serialConfig, SERIAL_FULL, 1, meterConfig.invert);
 		#endif
@@ -458,6 +482,7 @@ bool wifiConnected = false;
 unsigned long lastTemperatureRead = 0;
 unsigned long lastSysupdate = 0;
 unsigned long lastErrorBlink = 0; 
+unsigned long lastVoltageCheck = 0;
 int lastError = 0;
 
 bool meterAutodetect = false;
@@ -554,6 +579,11 @@ void loop() {
 				debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
 			}
 		}
+
+		if(now - lastVoltageCheck > 1000) {
+			handleVoltageCheck();
+			lastVoltageCheck = now;
+		}
 	} else {
 		if(dnsServer != NULL) {
 			dnsServer->processNextRequest();
@@ -646,6 +676,7 @@ void handleEnergyAccountingChanged() {
 }
 
 char ntpServerName[64] = "";
+float maxVcc = 2.9;
 
 void handleNtpChange() {
 	NtpConfig ntp;
@@ -814,6 +845,26 @@ void handleButton(unsigned long now) {
 	}
 }
 
+bool handleVoltageCheck() {
+	if(sysConfig.boardType == 7 && maxVcc > 2.8) { // Pow-U
+		float vcc = hw.getVcc();
+		if(vcc > 3.4 || vcc < 2.8) {
+			maxVcc = 0;
+		} else if(vcc > maxVcc) {
+			debugD_P(PSTR("Setting new max Vcc to %.2f"), vcc);
+			maxVcc = vcc;
+		} else if(WiFi.getMode() != WIFI_OFF) {
+			float diff = maxVcc-vcc;
+			if(diff > 0.3) {
+				debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for 5 seconds to preserve power"), vcc);
+				WiFi_disconnect(5000);
+				return false;
+			}
+		}
+	}
+	return true;
+}
+
 void rxerr(int err) {
 	if(err == 0) return;
 	switch(err) {
@@ -837,7 +888,8 @@ void rxerr(int err) {
 			debugW_P(PSTR("Serial parity error"));
 			break;
 	}
-	meterState.setLastError(90+err);
+	// Do not include serial break
+	if(err > 1) meterState.setLastError(90+err);
 }
 
 void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert) {
@@ -854,16 +906,18 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 		parityOrdinal = 3; // 8N1
 	}
 
-	SystemConfig sys;
-	config.getSystemConfig(sys);
-	switch(sys.boardType) {
+	switch(sysConfig.boardType) {
 		case 8: // HAN mosquito: has inverting level shifter
 			invert = !invert;
 			break;
 	}
 
 	if(pin == 3 || pin == 113) {
-		hwSerial = &Serial;
+		#if ARDUINO_USB_CDC_ON_BOOT
+			hwSerial = &Serial0;
+		#else
+			hwSerial = &Serial;
+		#endif
 	}
 
 	#if defined(ESP32)
@@ -912,7 +966,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 
 		hwSerial->setRxBufferSize(64 * meterConfig.bufferSize);
 		#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
-			hwSerial->begin(baud, serialConfig, -1, -1, invert);
+			hwSerial->begin(baud, serialConfig, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, invert);
 			uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
 		#elif defined(ESP32)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
@@ -927,6 +981,23 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 			} else if(pin == 113) {
 				debugI_P(PSTR("Switching UART0 to pin 15 & 13"));
 				Serial.pins(15,13);
+			}
+		#endif
+
+ 		// Prevent pullup on TX pin if not uart0
+		#if defined(CONFIG_IDF_TARGET_ESP32S2)
+			pinMode(17, INPUT);
+		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+			pinMode(7, INPUT);
+		#elif defined(ESP32)
+			if(pin == 9) {
+				pinMode(10, INPUT);
+			} else if(pin == 16) {
+				pinMode(17, INPUT);
+			}
+		#elif defined(ESP8266)
+			if(pin == 113) {
+				pinMode(15, INPUT);
 			}
 		#endif
 
@@ -1185,7 +1256,12 @@ bool readHanPort() {
 		// Rudimentary detector for L&G proprietary format, this is terrible code... Fix later
 		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
 			debugV_P(PSTR("LNG"));
-			data = new LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+			LNG lngData = LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+			if(lngData.getListType() >= 3) {
+				data = new AmsData();
+				data->apply(meterState);
+				data->apply(lngData);
+			}
 		} else if(payload[0] == CosemTypeStructure && 
 			payload[2] == CosemTypeLongUnsigned && 
 			payload[5] == CosemTypeLongUnsigned && 
@@ -1195,11 +1271,16 @@ bool readHanPort() {
 			payload[17] == CosemTypeLongUnsigned
 		) {
 			debugV_P(PSTR("LNG2"));
-			data = new LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+			LNG2 lngData = LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
+			if(lngData.getListType() >= 3) {
+				data = new AmsData();
+				data->apply(meterState);
+				data->apply(lngData);
+			}
 		} else {
 			debugV_P(PSTR("DLMS"));
 			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
-			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx);
+			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx, meterState);
 		}
 	} else if(ctx.type == DATA_TAG_DSMR) {
 		data = new IEC6205621(payload, tz);
@@ -1336,12 +1417,52 @@ void debugPrint(byte *buffer, int start, int length) {
 
 unsigned long wifiTimeout = WIFI_CONNECTION_TIMEOUT;
 unsigned long lastWifiRetry = -WIFI_CONNECTION_TIMEOUT;
+
+void WiFi_disconnect(unsigned long timeout) {
+	if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Not connected to WiFi, closing resources"));
+	if(mqtt != NULL) {
+		mqtt->disconnect();
+		mqtt->loop();
+		delay(10);
+		yield();
+		delete mqtt;
+		mqtt = NULL;
+		ws.setMqtt(NULL);
+	}
+
+	if(mqttClient != NULL) {
+		mqttClient->stop();
+		delete mqttClient;
+		mqttClient = NULL;
+		if(mqttSecureClient != NULL) {
+			mqttSecureClient = NULL;
+		}
+	}
+
+	#if defined(ESP8266)
+		WiFiClient::stopAll();
+	#endif
+
+	MDNS.end();
+	WiFi.disconnect(true);
+	WiFi.softAPdisconnect(true);
+	WiFi.enableAP(false);
+	WiFi.mode(WIFI_OFF);
+	yield();
+	wifiTimeout = timeout;
+}
+
 void WiFi_connect() {
 	if(millis() - lastWifiRetry < wifiTimeout) {
 		delay(50);
 		return;
 	}
 	lastWifiRetry = millis();
+
+	if(!handleVoltageCheck()) {
+		debugW_P(PSTR("Voltage is not high enough to reconnect"));
+		return;
+	}
 
 	if (WiFi.status() != WL_CONNECTED) {
 		WiFiConfig wifi;
@@ -1352,42 +1473,14 @@ void WiFi_connect() {
 
 		if(WiFi.getMode() != WIFI_OFF) {
 			if(wifiReconnectCount > 3 && wifi.autoreboot) {
+				if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Unable to connect to WiFi, rebooting because auto reboot is enabled"));
 				ESP.restart();
 				return;
 			}
-			if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Not connected to WiFi, closing resources"));
-			if(mqtt != NULL) {
-				mqtt->disconnect();
-				mqtt->loop();
-				delay(10);
-				yield();
-				delete mqtt;
-				mqtt = NULL;
-				ws.setMqtt(NULL);
-			}
-
-			if(mqttClient != NULL) {
-				mqttClient->stop();
-				delete mqttClient;
-				mqttClient = NULL;
-				if(mqttSecureClient != NULL) {
-					mqttSecureClient = NULL;
-				}
-			}
-
-			#if defined(ESP8266)
-				WiFiClient::stopAll();
-			#endif
-
-			MDNS.end();
-			WiFi.disconnect(true);
-			WiFi.softAPdisconnect(true);
-			WiFi.enableAP(false);
-			WiFi.mode(WIFI_OFF);
-			yield();
-			wifiTimeout = 5000;
+			WiFi_disconnect(5000);
 			return;
 		}
+
 		wifiTimeout = WIFI_CONNECTION_TIMEOUT;
 
 		if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Connecting to WiFi network: %s"), wifi.ssid);
@@ -1719,10 +1812,8 @@ void MQTT_connect() {
 			break;
 		case 4:
 			HomeAssistantConfig haconf;
-			SystemConfig sys;
 			config.getHomeAssistantConfig(haconf);
-			config.getSystemConfig(sys);
-			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.clientId, mqttConfig.publishTopic, sys.boardType, haconf, &hw);
+			mqttHandler = new HomeAssistantMqttHandler(mqtt, (char*) commonBuffer, mqttConfig.clientId, mqttConfig.publishTopic, sysConfig.boardType, haconf, &hw);
 			break;
 	}
 

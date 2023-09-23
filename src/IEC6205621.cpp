@@ -1,4 +1,5 @@
 #include "IEC6205621.h"
+#include "Uptime.h"
 
 IEC6205621::IEC6205621(const char* p, Timezone* tz) {
 	if(strlen(p) < 16)
@@ -6,7 +7,7 @@ IEC6205621::IEC6205621(const char* p, Timezone* tz) {
 
 	String payload(p+1);
 
-	lastUpdateMillis = millis();
+	lastUpdateMillis = millis64();
 	listId = payload.substring(payload.startsWith("/") ? 1 : 0, payload.indexOf("\n"));
 
 	if(listId.startsWith(F("ADN"))) {

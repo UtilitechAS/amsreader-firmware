@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import subprocess
+import gzip
 
 try:
     from css_html_js_minify import html_minify, js_minify, css_minify
@@ -65,16 +66,24 @@ for webroot in ["lib/SvelteUi/app/dist", "lib/SvelteUi/json"]:
                 content = js_minify(content)
         except:
             print("WARN: Unable to minify")
-
+        
+        content_bytes = content.encode("utf-8")
+        if filename in ["index.js", "index.css"]:
+            content_bytes = gzip.compress(content_bytes, compresslevel=9)
+            content_len = len(content_bytes)
+        else:
+            content_len = len(content_bytes)
+            content_bytes += b"\0"
+        
         with open(dstfile, "w") as dst:
             dst.write("static const char ")
             dst.write(varname)
-            dst.write("[] PROGMEM = R\"==\"==(")
-            dst.write(content)
-            dst.write(")==\"==\";\n")
+            dst.write("[] PROGMEM = {")
+            dst.write(", ".join([str(c) for c in content_bytes]))
+            dst.write("};\n")
             dst.write("const int ");
             dst.write(varname)
             dst.write("_LEN PROGMEM = ");
-            dst.write(str(len(content)))
+            dst.write(str(content_len))
             dst.write(";");
             

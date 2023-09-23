@@ -35,6 +35,7 @@
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #include <esp_wifi.h>
+#include <esp_clk.h>
 #endif
 
 
@@ -190,14 +191,14 @@ void AmsWebServer::notFound() {
 void AmsWebServer::githubSvg() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /github.svg over http...\n"));
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
 	server.send_P(200, "image/svg+xml", GITHUB_SVG);
 }
 
 void AmsWebServer::faviconSvg() {
 	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /favicon.ico over http...\n"));
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1HR);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
 	server.send_P(200, "image/svg+xml", FAVICON_SVG);
 }
 
@@ -239,9 +240,11 @@ void AmsWebServer::sysinfoJson() {
 	#if defined(ESP8266)
     wifi_get_macaddr(STATION_IF, mac);
     wifi_get_macaddr(SOFTAP_IF, apmac);
+	uint32_t cpu_freq = 80;
 	#elif defined(ESP32)
     esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_STA, mac);
     esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_AP, apmac);
+	uint32_t cpu_freq = esp_clk_cpu_freq();
 	#endif
 
     sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
@@ -277,6 +280,7 @@ void AmsWebServer::sysinfoJson() {
 		"esp8266",
 		#endif
 		chipIdStr.c_str(),
+		cpu_freq / 1000000,
 		macStr,
 		apMacStr,
 		sys.boardType,
@@ -764,9 +768,9 @@ void AmsWebServer::indexCss() {
 	if(!checkSecurity(2))
 		return;
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
-	server.setContentLength(INDEX_CSS_LEN);
-	server.send_P(200, MIME_CSS, INDEX_CSS);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1YR);
+	server.sendHeader(HEADER_CONTENT_ENCODING, CONTENT_ENCODING_GZIP);
+	server.send_P(200, MIME_CSS, INDEX_CSS, INDEX_CSS_LEN);
 }
 
 void AmsWebServer::indexJs() {
@@ -775,8 +779,9 @@ void AmsWebServer::indexJs() {
 	if(!checkSecurity(2))
 		return;
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
-	server.send_P(200, MIME_JS, INDEX_JS);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1YR);
+	server.sendHeader(HEADER_CONTENT_ENCODING, CONTENT_ENCODING_GZIP);
+	server.send_P(200, MIME_JS, INDEX_JS, INDEX_JS_LEN);
 }
 
 void AmsWebServer::configurationJson() {
@@ -1005,6 +1010,13 @@ void AmsWebServer::handleSave() {
 					gpioConfig->ledPin = 15;
 					gpioConfig->ledInverted = false;
 					gpioConfig->apPin = 0;
+					gpioConfig->hanPin = hanPin > 0 ? hanPin : 18;
+					if(gpioConfig->hanPin != 18) {
+						gpioConfig->vccPin = 18;
+						gpioConfig->vccResistorGnd = 45;
+						gpioConfig->vccResistorVcc = 10;
+					}
+					break;
 				case 50: // Generic ESP32-S2
 					gpioConfig->hanPin = hanPin > 0 ? hanPin : 18;
 					break;

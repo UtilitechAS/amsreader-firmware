@@ -267,7 +267,7 @@ bool RawMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccountin
 		return false;
 
 	mqtt->publish(topic + "/id", WiFi.macAddress(), true, 0);
-	mqtt->publish(topic + "/uptime", String((unsigned long) millis64()/1000));
+	mqtt->publish(topic + "/uptime", String((uint32_t) (millis64()/1000)));
 	float vcc = hw->getVcc();
 	if(vcc > 0) {
 		mqtt->publish(topic + "/vcc", String(vcc, 2));

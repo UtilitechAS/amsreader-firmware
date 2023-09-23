@@ -1,4 +1,5 @@
 #include "LNG2.h"
+#include "Uptime.h"
 
 LNG2::LNG2(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
     CosemBasic* h = (CosemBasic*) payload;
@@ -26,7 +27,7 @@ LNG2::LNG2(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, 
             this->meterId = String(str);
         }
         listType = 3;
-        lastUpdateMillis = millis();
+        lastUpdateMillis = millis64();
     }
 }
 

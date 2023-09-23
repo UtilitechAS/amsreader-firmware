@@ -88,7 +88,7 @@
     <div class="cnt">
         <strong class="text-sm">Device information</strong>
         <div class="my-2">
-            Chip: {sysinfo.chip}
+            Chip: {sysinfo.chip} ({sysinfo.cpu}MHz)
         </div>
         <div class="my-2">
             Device: <Link to="/vendor">{boardtype(sysinfo.chip, sysinfo.board)}</Link>

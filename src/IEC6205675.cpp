@@ -2,8 +2,9 @@
 #include "lwip/def.h"
 #include "Timezone.h"
 #include "ntohll.h"
+#include "Uptime.h"
 
-IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx) {
+IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state) {
     float val;
     char str[64];
 
@@ -127,14 +128,89 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
                 }
 
-                lastUpdateMillis = millis();
+                lastUpdateMillis = millis64();
+            } else if(listId.startsWith("ISK")) { // Iskra special case
+                this->listId = listId;
+                meterType = AmsTypeIskra;
+
+                int idx = 0;
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data->base.length == 0x12) {
+                    listType = 2;
+
+                    idx++;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    memcpy(str, data->oct.data, data->oct.length);
+                    str[data->oct.length] = 0x00;
+                    meterId = String(str);
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeImportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeExportPower = ntohl(data->dlu.data);
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveImportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveExportPower = ntohl(data->dlu.data);
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1voltage = ntohs(data->lu.data) / 10.0;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l2voltage = ntohs(data->lu.data) / 10.0;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l3voltage = ntohs(data->lu.data) / 10.0;
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1current = ntohs(data->lu.data) / 100.0;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l2current = ntohs(data->lu.data) / 100.0;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l3current = ntohs(data->lu.data) / 100.0;
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1activeImportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l2activeImportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l3activeImportPower = ntohl(data->dlu.data);
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1activeExportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l2activeExportPower = ntohl(data->dlu.data);
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l3activeExportPower = ntohl(data->dlu.data);
+                    
+                    lastUpdateMillis = millis64();
+                } else if(data->base.length == 0x0C) {
+                    apply(state);
+                    
+                    listType = 3;
+                    idx += 4;
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+                    idx += 2;
+                    
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+                    idx += 2;
+
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                    lastUpdateMillis = millis64();
+                }
             }
         } else if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {
             this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
             listType = 1;
             meterType = AmsTypeKaifa;
             activeImportPower = ntohl(data->dlu.data);
-            lastUpdateMillis = millis();
+            lastUpdateMillis = millis64();
         }
         // Kaifa end
     } else {
@@ -378,7 +454,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             }
         }
 
-        lastUpdateMillis = millis();
+        lastUpdateMillis = millis64();
     }
 
     if(meterConfig->wattageMultiplier > 0) {
@@ -538,37 +614,37 @@ float IEC6205675::getNumber(CosemData* item) {
         switch(item->base.type) {
             case CosemTypeLongSigned: {
                 int16_t i16 = ntohs(item->ls.data);
-                ret = i16;
+                ret = (i16 * 1.0);
                 pos += 3;
                 break;
             }
             case CosemTypeLongUnsigned: {
                 uint16_t u16 = ntohs(item->lu.data);
-                ret = u16;
+                ret = (u16 * 1.0);
                 pos += 3;
                 break;
             }
             case CosemTypeDLongSigned: {
                 int32_t i32 = ntohl(item->dlu.data);
-                ret = i32;
+                ret = (i32 * 1.0);
                 pos += 5;
                 break;
             }
             case CosemTypeDLongUnsigned: {
                 uint32_t u32 = ntohl(item->dlu.data);
-                ret = u32;
+                ret = (u32 * 1.0);
                 pos += 5;
                 break;
             }
             case CosemTypeLong64Signed: {
                 int64_t i64 = ntohll(item->l64s.data);
-                ret = i64;
+                ret = (i64 * 1.0);
                 pos += 9;
                 break;
             }
             case CosemTypeLong64Unsigned: {
                 uint64_t u64 = ntohll(item->l64u.data);
-                ret = u64;
+                ret = (u64 * 1.0);
                 pos += 9;
                 break;
             }

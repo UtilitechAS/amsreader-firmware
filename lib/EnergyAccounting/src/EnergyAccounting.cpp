@@ -3,15 +3,29 @@
 #include "AmsStorage.h"
 #include "FirmwareVersion.h"
 
-EnergyAccounting::EnergyAccounting(RemoteDebug* debugger) {
+EnergyAccounting::EnergyAccounting(RemoteDebug* debugger, EnergyAccountingRealtimeData* rtd) {
     data.version = 1;
     this->debugger = debugger;
+    if(rtd->magic != 0x6A) {
+        rtd->magic = 0x6A;
+        rtd->currentHour = 0;
+        rtd->currentDay = 0;
+        rtd->currentThresholdIdx = 0;
+        rtd->use = 0;
+        rtd->costHour = 0;
+        rtd->costDay = 0;
+        rtd->produce = 0;
+        rtd->incomeHour = 0;
+        rtd->incomeDay = 0;
+        rtd->lastImportUpdateMillis = 0;
+        rtd->lastExportUpdateMillis = 0;
+    }
+    this->realtimeData = rtd;
 }
 
 void EnergyAccounting::setup(AmsDataStorage *ds, EnergyAccountingConfig *config) {
     this->ds = ds;
     this->config = config;
-    this->currentThresholdIdx = 0;
 }
 
 void EnergyAccounting::setEapi(EntsoeApi *eapi) {
@@ -44,8 +58,8 @@ bool EnergyAccounting::update(AmsData* amsData) {
     breakTime(tz->toLocal(now), local);
 
     if(!init) {
-        currentHour = local.Hour;
-        currentDay = local.Day;
+        this->realtimeData->currentHour = local.Hour;
+        this->realtimeData->currentDay = local.Day;
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EnergyAccounting) Initializing data at %lu\n"), (int32_t) now);
         if(!load()) {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EnergyAccounting) Unable to load existing data\n"));
@@ -75,7 +89,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         calcDayCost();
     }
 
-    if(local.Hour != currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
+    if(local.Hour != this->realtimeData->currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EnergyAccounting) New local hour %d\n"), local.Hour);
 
         tmElements_t oneHrAgo, oneHrAgoLocal;
@@ -85,28 +99,28 @@ bool EnergyAccounting::update(AmsData* amsData) {
         breakTime(tz->toLocal(now-3600), oneHrAgoLocal);
         ret |= updateMax(val, oneHrAgoLocal.Day);
 
-        currentHour = local.Hour; // Need to be defined here so that day cost is correctly calculated
+        this->realtimeData->currentHour = local.Hour; // Need to be defined here so that day cost is correctly calculated
         if(local.Hour > 0) {
             calcDayCost();
         }
 
-        use = 0;
-        produce = 0;
-        costHour = 0;
-        incomeHour = 0;
+        this->realtimeData->use = 0;
+        this->realtimeData->produce = 0;
+        this->realtimeData->costHour = 0;
+        this->realtimeData->incomeHour = 0;
 
-        uint8_t prevDay = currentDay;
-        if(local.Day != currentDay) {
+        uint8_t prevDay = this->realtimeData->currentDay;
+        if(local.Day != this->realtimeData->currentDay) {
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EnergyAccounting) New day %d\n"), local.Day);
-            data.costYesterday = costDay * 100;
-            data.costThisMonth += costDay * 100;
-            costDay = 0;
+            data.costYesterday = this->realtimeData->costDay * 100;
+            data.costThisMonth += this->realtimeData->costDay * 100;
+            this->realtimeData->costDay = 0;
 
-            data.incomeYesterday = incomeDay * 100;
-            data.incomeThisMonth += incomeDay * 100;
-            incomeDay = 0;
+            data.incomeYesterday = this->realtimeData->incomeDay * 100;
+            data.incomeThisMonth += this->realtimeData->incomeDay * 100;
+            this->realtimeData->incomeDay = 0;
 
-            currentDay = local.Day;
+            this->realtimeData->currentDay = local.Day;
             ret = true;
         }
 
@@ -137,40 +151,47 @@ bool EnergyAccounting::update(AmsData* amsData) {
             data.lastMonthAccuracy = accuracy;
 
             data.month = local.Month;
-            currentThresholdIdx = 0;
+            this->realtimeData->currentThresholdIdx = 0;
             ret = true;
         }
     }
 
-    unsigned long ms = this->lastUpdateMillis > amsData->getLastUpdateMillis() ? 0 : amsData->getLastUpdateMillis() - this->lastUpdateMillis;
-    float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
-    float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
-    lastUpdateMillis = amsData->getLastUpdateMillis();
-    if(kwhi > 0) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh import\n"), kwhi);
-        use += kwhi;
-        if(price != ENTSOE_NO_VALUE) {
-            float cost = price * kwhi;
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), cost / 100.0, currency.c_str());
-            costHour += cost;
-            costDay += cost;
+    if(this->realtimeData->lastImportUpdateMillis < amsData->getLastUpdateMillis()) {
+        unsigned long ms = amsData->getLastUpdateMillis() - this->realtimeData->lastImportUpdateMillis;
+        float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
+        if(kwhi > 0) {
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh import\n"), kwhi);
+            this->realtimeData->use += kwhi;
+            if(price != ENTSOE_NO_VALUE) {
+                float cost = price * kwhi;
+                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), cost / 100.0, currency.c_str());
+                this->realtimeData->costHour += cost;
+                this->realtimeData->costDay += cost;
+            }
         }
+        this->realtimeData->lastImportUpdateMillis = amsData->getLastUpdateMillis();
     }
-    if(kwhe > 0) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh export\n"), kwhe);
-        produce += kwhe;
-        if(price != ENTSOE_NO_VALUE) {
-            float income = price * kwhe;
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), income / 100.0, currency.c_str());
-            incomeHour += income;
-            incomeDay += income;
+
+    if(amsData->getListType() > 1 && this->realtimeData->lastExportUpdateMillis < amsData->getLastUpdateMillis()) {
+        unsigned long ms = amsData->getLastUpdateMillis() - this->realtimeData->lastExportUpdateMillis;
+        float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
+        if(kwhe > 0) {
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh export\n"), kwhe);
+            this->realtimeData->produce += kwhe;
+            if(price != ENTSOE_NO_VALUE) {
+                float income = price * kwhe;
+                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), income / 100.0, currency.c_str());
+                this->realtimeData->incomeHour += income;
+                this->realtimeData->incomeDay += income;
+            }
         }
+        this->realtimeData-> lastExportUpdateMillis = amsData->getLastUpdateMillis();
     }
 
     if(config != NULL) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  calculating threshold, currently at %d\n"), currentThresholdIdx);
-        while(getMonthMax() > config->thresholds[currentThresholdIdx] && currentThresholdIdx < 10) currentThresholdIdx++;
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  new threshold %d\n"), currentThresholdIdx);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  calculating threshold, currently at %d\n"), this->realtimeData->currentThresholdIdx);
+        while(getMonthMax() > config->thresholds[this->realtimeData->currentThresholdIdx] && this->realtimeData->currentThresholdIdx < 10) this->realtimeData->currentThresholdIdx++;
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  new threshold %d\n"), this->realtimeData->currentThresholdIdx);
     }
 
     return ret;
@@ -184,25 +205,25 @@ void EnergyAccounting::calcDayCost() {
 
     if(getPriceForHour(0) != ENTSOE_NO_VALUE) {
         if(initPrice) {
-            costDay = 0;
-            incomeDay = 0;
+            this->realtimeData->costDay = 0;
+            this->realtimeData->incomeDay = 0;
         }
-        for(uint8_t i = 0; i < currentHour; i++) {
+        for(uint8_t i = 0; i < this->realtimeData->currentHour; i++) {
             float price = getPriceForHour(i - local.Hour);
             if(price == ENTSOE_NO_VALUE) break;
             breakTime(now - ((local.Hour - i) * 3600), utc);
             int16_t wh = ds->getHourImport(utc.Hour);
-            costDay += price * (wh / 1000.0);
+            this->realtimeData->costDay += price * (wh / 1000.0);
 
             wh = ds->getHourExport(utc.Hour);
-            incomeDay += price * (wh / 1000.0);
+            this->realtimeData->incomeDay += price * (wh / 1000.0);
         }
         initPrice = true;
     }
 }
 
 float EnergyAccounting::getUseThisHour() {
-    return use;
+    return this->realtimeData->use;
 }
 
 float EnergyAccounting::getUseToday() {
@@ -212,7 +233,7 @@ float EnergyAccounting::getUseToday() {
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
     tmElements_t utc, local;
     breakTime(tz->toLocal(now), local);
-    for(uint8_t i = 0; i < currentHour; i++) {
+    for(uint8_t i = 0; i < this->realtimeData->currentHour; i++) {
         breakTime(now - ((local.Hour - i) * 3600), utc);
         ret += ds->getHourImport(utc.Hour) / 1000.0;
     }
@@ -223,7 +244,7 @@ float EnergyAccounting::getUseThisMonth() {
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
     float ret = 0;
-    for(uint8_t i = 1; i < currentDay; i++) {
+    for(uint8_t i = 1; i < this->realtimeData->currentDay; i++) {
         ret += ds->getDayImport(i) / 1000.0;
     }
     return ret + getUseToday();
@@ -234,7 +255,7 @@ float EnergyAccounting::getUseLastMonth() {
 }
 
 float EnergyAccounting::getProducedThisHour() {
-    return produce;
+    return this->realtimeData->produce;
 }
 
 float EnergyAccounting::getProducedToday() {
@@ -244,7 +265,7 @@ float EnergyAccounting::getProducedToday() {
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
     tmElements_t utc, local;
     breakTime(tz->toLocal(now), local);
-    for(uint8_t i = 0; i < currentHour; i++) {
+    for(uint8_t i = 0; i < this->realtimeData->currentHour; i++) {
         breakTime(now - ((local.Hour - i) * 3600), utc);
         ret += ds->getHourExport(utc.Hour) / 1000.0;
     }
@@ -255,7 +276,7 @@ float EnergyAccounting::getProducedThisMonth() {
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
     float ret = 0;
-    for(uint8_t i = 1; i < currentDay; i++) {
+    for(uint8_t i = 1; i < this->realtimeData->currentDay; i++) {
         ret += ds->getDayExport(i) / 1000.0;
     }
     return ret + getProducedToday();
@@ -266,11 +287,11 @@ float EnergyAccounting::getProducedLastMonth() {
 }
 
 float EnergyAccounting::getCostThisHour() {
-    return costHour;
+    return this->realtimeData->costHour;
 }
 
 float EnergyAccounting::getCostToday() {
-    return costDay;
+    return this->realtimeData->costDay;
 }
 
 float EnergyAccounting::getCostYesterday() {
@@ -286,11 +307,11 @@ float EnergyAccounting::getCostLastMonth() {
 }
 
 float EnergyAccounting::getIncomeThisHour() {
-    return incomeHour;
+    return this->realtimeData->incomeHour;
 }
 
 float EnergyAccounting::getIncomeToday() {
-    return incomeDay;
+    return this->realtimeData->incomeDay;
 }
 
 float EnergyAccounting::getIncomeYesterday() {
@@ -308,7 +329,7 @@ float EnergyAccounting::getIncomeLastMonth() {
 uint8_t EnergyAccounting::getCurrentThreshold() {
     if(config == NULL)
         return 0;
-    return config->thresholds[currentThresholdIdx];
+    return config->thresholds[this->realtimeData->currentThresholdIdx];
 }
 
 float EnergyAccounting::getMonthMax() {
@@ -521,11 +542,11 @@ bool EnergyAccounting::updateMax(uint16_t val, uint8_t day) {
             return false;
         }
     }
-    uint16_t test = 0;
+    uint16_t test = val;
     uint8_t idx = 255;
     for(uint8_t i = 0; i < 5; i++) {
         if(val > data.peaks[i].value) {
-            if(test < data.peaks[i].value) {
+            if(test > data.peaks[i].value) {
                 test = data.peaks[i].value;
                 idx = i;
             }

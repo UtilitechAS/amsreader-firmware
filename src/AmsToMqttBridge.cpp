@@ -215,7 +215,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 					break;
 				default:
 					if(strlen(descr) > 0) {
-						WiFi_disconnect(5000);
+						WiFi_disconnect(2000);
 					}
 			}
 			break;
@@ -353,10 +353,10 @@ void setup() {
 	if(config.getWiFiConfig(wifiConf)) {
 		wifiDisable11b = !wifiConf.use11b;
 	}
-	WiFi.onEvent(WiFiEvent);
 
 	bool hasFs = false;
 #if defined(ESP32)
+	WiFi.onEvent(WiFiEvent);
 	debugD_P(PSTR("ESP32 LittleFS"));
 	hasFs = LittleFS.begin(true);
 	debugD_P(PSTR(" size: %d"), LittleFS.totalBytes());
@@ -580,7 +580,7 @@ void loop() {
 			}
 		}
 
-		if(now - lastVoltageCheck > 1000) {
+		if(now - lastVoltageCheck > 500) {
 			handleVoltageCheck();
 			lastVoltageCheck = now;
 		}
@@ -857,7 +857,7 @@ bool handleVoltageCheck() {
 			float diff = maxVcc-vcc;
 			if(diff > 0.3) {
 				debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for 5 seconds to preserve power"), vcc);
-				WiFi_disconnect(5000);
+				WiFi_disconnect(2000);
 				return false;
 			}
 		}

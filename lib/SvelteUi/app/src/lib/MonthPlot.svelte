@@ -1,5 +1,5 @@
 <script>
-    import { zeropad, addHours } from './Helpers.js';
+    import { zeropad, addHours, exportcol } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
     export let json;
@@ -37,7 +37,8 @@
                 label2: exp.toFixed(exp < 10 ? 1 : 0), 
                 title2: exp.toFixed(2) + ' kWh',
                 value2: exp,
-                color: '#7c3aed' 
+                color: '#7c3aed',
+                color2: '#37829E' 
             });
             min = Math.max(min, exp);
             max = Math.max(max, imp);
@@ -58,7 +59,8 @@
                 label2: exp.toFixed(exp < 10 ? 1 : 0), 
                 title2: exp.toFixed(2) + ' kWh', 
                 value2: exp,
-                color: '#7c3aed' 
+                color: '#7c3aed',
+                color2: '#37829E' 
             });
             min = Math.max(min, exp);
             max = Math.max(max, imp);

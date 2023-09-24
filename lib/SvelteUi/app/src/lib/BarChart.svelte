@@ -99,14 +99,14 @@
                                 y="{yScale(0)}"
                                 width="{barWidth - 4}"
                                 height="{yScale(config.y.min) - yScale(config.y.min + point.value2)}"
-                                fill="{point.color}"
+                                fill="{point.color2 ? point.color2 : point.color}"
                             />
                             {#if barWidth > 15}
                                 <text 
                                     width="{barWidth - 4}"
                                     dominant-baseline="middle"
                                     text-anchor="{'middle'}"
-                                    fill="{yScale(-point.value2) < yScale(0) + 15 ? point.color : 'white'}"
+                                    fill="{yScale(-point.value2) < yScale(0) + 15 ? point.color2 ? point.color2 : point.color : 'white'}"
                                     transform="translate({xScale(i) + (barWidth/2)} {yScale(-point.value2) < yScale(0) + 15 ? yScale(-point.value2) + 15 : yScale(-point.value2) - 14}) rotate({barWidth < vertSwitch ? 90 : 0})"
                                 >{point.label2}</text>
                                 {#if point.title2}

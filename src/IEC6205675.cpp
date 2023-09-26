@@ -488,7 +488,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
     if(meterConfig->distributionSystem == 1) {
         if(threePhase) {
             if(l2current == 0.0 && l1current > 0.0 && l3current > 0.0) {
-                l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                int32_t absPower = ((int32_t) activeImportPower) - ((int32_t) activeExportPower);
+                l2current = ((absPower * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
                 if(activeExportPower == 0.0) {
                     l2current = max((float) 0.0, l2current);
                 }

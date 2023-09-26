@@ -1553,6 +1553,32 @@ void WiFi_post_connect() {
 	WiFiConfig wifi;
 	if(config.getWiFiConfig(wifi)) {
 		#if defined(ESP32)
+			if(sysConfig.dataCollectionConsent == 0 && wifi.use11b) {
+				// If first boot and phyMode is better than 11b, disable 11b for BUS powered devices
+				switch(sysConfig.boardType) {
+					case 2: // spenceme
+					case 3: // Pow-K UART0
+					case 4: // Pow-U UART0
+					case 5: // Pow-K+
+					case 6: // Pow-P1
+					case 7: // Pow-U+
+					case 8: // dbeinder: HAN mosquito
+						wifi_phy_mode_t phyMode;
+						if(esp_wifi_sta_get_negotiated_phymode(&phyMode) == ESP_OK) {
+							if(phyMode > WIFI_PHY_MODE_11B) {
+								debugI_P(PSTR("WiFi supports better rates than 802.11b, disabling"))
+								wifi.use11b = false;
+								config.setWiFiConfig(wifi);
+								config.ackWifiChange();
+								// Reconnect to enforce new setting
+								WiFi_disconnect(0);
+								return;
+							}
+						}
+						break;
+				}
+			}
+
 			if(wifi.power >= 195)
 				WiFi.setTxPower(WIFI_POWER_19_5dBm);
 			else if(wifi.power >= 190)

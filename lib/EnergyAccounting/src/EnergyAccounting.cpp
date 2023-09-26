@@ -58,6 +58,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     breakTime(tz->toLocal(now), local);
 
     if(!init) {
+        this->realtimeData->lastImportUpdateMillis = 0;
         this->realtimeData->currentHour = local.Hour;
         this->realtimeData->currentDay = local.Day;
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EnergyAccounting) Initializing data at %lu\n"), (int32_t) now);
@@ -185,7 +186,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
                 this->realtimeData->incomeDay += income;
             }
         }
-        this->realtimeData-> lastExportUpdateMillis = amsData->getLastUpdateMillis();
+        this->realtimeData->lastExportUpdateMillis = amsData->getLastUpdateMillis();
     }
 
     if(config != NULL) {

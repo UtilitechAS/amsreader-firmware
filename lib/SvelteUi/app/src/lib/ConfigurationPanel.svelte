@@ -404,9 +404,11 @@
             <div class="my-3">
                 <label><input type="checkbox" name="wa" value="true" bind:checked={configuration.w.a} class="rounded mb-1"/> Auto reboot on connection problem</label>
             </div>
+            {#if sysinfo.chip != 'esp8266'}
             <div class="my-3">
                 <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> Allow 802.11b legacy rates</label>
             </div>
+            {/if}
         </div>
         <div class="cnt">
             <strong class="text-sm">Network</strong>

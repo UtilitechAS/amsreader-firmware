@@ -1569,9 +1569,6 @@ void WiFi_post_connect() {
 								debugI_P(PSTR("WiFi supports better rates than 802.11b, disabling"))
 								wifi.use11b = false;
 								config.setWiFiConfig(wifi);
-								config.ackWifiChange();
-								// Reconnect to enforce new setting
-								WiFi_disconnect(0);
 								return;
 							}
 						}

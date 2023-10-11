@@ -1863,7 +1863,12 @@ void MQTT_connect() {
 						BearSSL::X509List *serverTrustedCA = new BearSSL::X509List(file);
 						mqttSecureClient->setTrustAnchors(serverTrustedCA);
 					#elif defined(ESP32)
-						mqttSecureClient->loadCACert(file, file.size());
+						if(mqttSecureClient->loadCACert(file, file.size())) {
+							debugI_P(PSTR("CA accepted"));
+						} else {
+							debugW_P(PSTR("CA was rejected, disabling certificate validation"));
+							mqttSecureClient->setInsecure();
+						}
 					#endif
 					file.close();
 
@@ -1892,9 +1897,12 @@ void MQTT_connect() {
 							mqttSecureClient->loadPrivateKey(file, file.size());
 							file.close();
 						#endif
-						mqttClient = mqttSecureClient;
 					}
+				} else {
+					debugI_P(PSTR("No CA, disabling certificate validation"));
+					mqttSecureClient->setInsecure();
 				}
+				mqttClient = mqttSecureClient;
 
 				LittleFS.end();
 				debugD_P(PSTR("MQTT SSL setup complete (%dkb free heap)"), ESP.getFreeHeap());
@@ -1903,6 +1911,7 @@ void MQTT_connect() {
 	}
 	
 	if(mqttClient == NULL) {
+		debugI_P(PSTR("No SSL, using client without SSL support"));
 		mqttClient = new WiFiClient();
 	}
 

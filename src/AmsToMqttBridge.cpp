@@ -1866,8 +1866,10 @@ void MQTT_connect() {
 						if(mqttSecureClient->loadCACert(file, file.size())) {
 							debugI_P(PSTR("CA accepted"));
 						} else {
-							debugW_P(PSTR("CA was rejected, disabling certificate validation"));
-							mqttSecureClient->setInsecure();
+							debugW_P(PSTR("CA was rejected"));
+							delete mqttSecureClient;
+							mqttSecureClient = NULL;
+							return;
 						}
 					#endif
 					file.close();

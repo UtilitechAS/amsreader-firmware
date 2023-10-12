@@ -104,9 +104,13 @@ private:
 	void isAliveCheck();
 
 	void mqttCaUpload();
+	void mqttCaDelete();
 	void mqttCertUpload();
+	void mqttCertDelete();
 	void mqttKeyUpload();
+	void mqttKeyDelete();
 	HTTPUpload& uploadFile(const char* path);
+	void deleteFile(const char* path);
 
 	void configFileDownload();
 	void configFileUpload();

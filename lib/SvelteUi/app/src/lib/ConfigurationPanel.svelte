@@ -9,6 +9,7 @@
     import CountrySelectOptions from './CountrySelectOptions.svelte';
     import { Link, navigate } from 'svelte-navigator';
     import SubnetOptions from './SubnetOptions.svelte';
+    import TrashIcon from './TrashIcon.svelte';
     
 
     export let sysinfo = {}
@@ -164,6 +165,45 @@
         });
         reboot();
       }
+    }
+
+    async function askDeleteCa() {
+        if(confirm('Are you sure you want to delete CA?')) {
+            const response = await fetch('/mqtt-ca', {
+                method: 'POST'
+            });
+            let res = (await response.text())
+            configurationStore.update(c => {
+                c.q.s.c = false;
+                return c;
+            });
+        }
+    }
+
+    async function askDeleteCert() {
+        if(confirm('Are you sure you want to delete cert?')) {
+            const response = await fetch('/mqtt-cert', {
+                method: 'POST'
+            });
+            let res = (await response.text())
+            configurationStore.update(c => {
+                c.q.s.r = false;
+                return c;
+            });
+        }
+    }
+
+    async function askDeleteKey() {
+        if(confirm('Are you sure you want to delete key?')) {
+            const response = await fetch('/mqtt-key', {
+                method: 'POST'
+            });
+            let res = (await response.text())
+            configurationStore.update(c => {
+                c.q.s.k = false;
+                return c;
+            });
+        }
     }
 
     const updateMqttPort = function() {
@@ -466,32 +506,33 @@
                 </div>
             </div>
             {#if configuration.q.s.e}
-            <div class="my-1">
-                <div>
-                    <Link to="/mqtt-ca">
-                        {#if configuration.q.s.c}
-                        <Badge color="green" text="CA OK" title="Click here to replace CA"/>
-                        {:else}
-                        <Badge color="blue" text="Upload CA" title="Click here to upload CA"/>
-                        {/if}
-                    </Link>
+            <div class="my-1 flex">
+                <span class="flex pr-2">
+                    {#if configuration.q.s.c}
+                    <span class="rounded-l-md bg-green-500 text-green-100 text-xs font-semibold px-2.5 py-1"><Link to="/mqtt-ca">CA OK</Link></span>
+                    <span class="rounded-r-md bg-red-500 text-red-100 text-xs px-2.5 py-1"  on:click={askDeleteCa} on:keypress={askDeleteCa}><TrashIcon/></span>
+                    {:else}
+                    <Link to="/mqtt-ca"><Badge color="blue" text="Upload CA" title="Click here to upload CA"/></Link>
+                    {/if}
+                </span>
 
-                    <Link to="/mqtt-cert">
-                        {#if configuration.q.s.r}
-                        <Badge color="green" text="Cert OK" title="Click here to replace certificate"/>
-                        {:else}
-                        <Badge color="blue" text="Upload cert" title="Click here to upload certificate"/>
-                        {/if}
-                    </Link>
+                <span class="flex pr-2">
+                    {#if configuration.q.s.r}
+                    <span class="rounded-l-md bg-green-500 text-green-100 text-xs font-semibold px-2.5 py-1"><Link to="/mqtt-cert">Cert OK</Link></span>
+                    <span class="rounded-r-md bg-red-500 text-red-100 text-xs px-2.5 py-1" on:click={askDeleteCert} on:keypress={askDeleteCert}><TrashIcon/></span>
+                    {:else}
+                    <Link to="/mqtt-cert"><Badge color="blue" text="Upload cert" title="Click here to upload certificate"/></Link>
+                    {/if}
+                </span>
 
-                    <Link to="/mqtt-key">
-                        {#if configuration.q.s.k}
-                        <Badge color="green" text="Key OK" title="Click here to replace key"/>
-                        {:else}
-                        <Badge color="blue" text="Upload key" title="Click here to upload key"/>
-                        {/if}
-                    </Link>
-                </div>
+                <span class="flex pr-2">
+                    {#if configuration.q.s.k}
+                    <span class="rounded-l-md bg-green-500 text-green-100 text-xs font-semibold px-2.5 py-1"><Link to="/mqtt-key">Key OK</Link></span>
+                    <span class="rounded-r-md bg-red-500 text-red-100 text-xs px-2.5 py-1" on:click={askDeleteKey} on:keypress={askDeleteKey}><TrashIcon/></span>
+                    {:else}
+                    <Link to="/mqtt-key"><Badge color="blue" text="Upload key" title="Click here to upload key"/></Link>
+                    {/if}
+                </span>
             </div>
             {/if}
             <div class="my-1">

@@ -100,9 +100,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 
 	server.on(F("/robots.txt"), HTTP_GET, std::bind(&AmsWebServer::robotstxt, this));
 
-	server.on(F("/mqtt-ca"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::mqttCaUpload, this));
-	server.on(F("/mqtt-cert"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::mqttCertUpload, this));
-	server.on(F("/mqtt-key"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
+	server.on(F("/mqtt-ca"), HTTP_POST, std::bind(&AmsWebServer::mqttCaDelete, this), std::bind(&AmsWebServer::mqttCaUpload, this));
+	server.on(F("/mqtt-cert"), HTTP_POST, std::bind(&AmsWebServer::mqttCertDelete, this), std::bind(&AmsWebServer::mqttCertUpload, this));
+	server.on(F("/mqtt-key"), HTTP_POST, std::bind(&AmsWebServer::mqttKeyDelete, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
 
 	server.on(F("/configfile"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::configFileUpload, this));
 	server.on(F("/configfile.cfg"), HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
@@ -1807,6 +1807,23 @@ void AmsWebServer::mqttCaUpload() {
 	}
 }
 
+void AmsWebServer::mqttCaDelete() {
+	if(!checkSecurity(1))
+		return;
+
+	if(!uploading) { // Not an upload
+		deleteFile(FILE_MQTT_CA);
+		server.send(200);
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
+			config->setMqttChanged();
+		}
+	} else {
+		uploading = false;
+		server.send(200);
+	}
+}
+
 void AmsWebServer::mqttCertUpload() {
 	if(!checkSecurity(1))
 		return;
@@ -1823,6 +1840,23 @@ void AmsWebServer::mqttCertUpload() {
 	}
 }
 
+void AmsWebServer::mqttCertDelete() {
+	if(!checkSecurity(1))
+		return;
+
+	if(!uploading) { // Not an upload
+		deleteFile(FILE_MQTT_CERT);
+		server.send(200);
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
+			config->setMqttChanged();
+		}
+	} else {
+		uploading = false;
+		server.send(200);
+	}
+}
+
 void AmsWebServer::mqttKeyUpload() {
 	if(!checkSecurity(1))
 		return;
@@ -1836,6 +1870,30 @@ void AmsWebServer::mqttKeyUpload() {
 		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
 			config->setMqttChanged();
 		}
+	}
+}
+
+void AmsWebServer::mqttKeyDelete() {
+	if(!checkSecurity(1))
+		return;
+
+	if(!uploading) { // Not an upload
+		deleteFile(FILE_MQTT_KEY);
+		server.send(200);
+		MqttConfig mqttConfig;
+		if(config->getMqttConfig(mqttConfig) && mqttConfig.ssl) {
+			config->setMqttChanged();
+		}
+	} else {
+		uploading = false;
+		server.send(200);
+	}
+}
+
+void AmsWebServer::deleteFile(const char* path) {
+	if(LittleFS.begin()) {
+		LittleFS.remove(path);
+		LittleFS.end();
 	}
 }
 

@@ -16,7 +16,7 @@
 #endif
 
 bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
-	if(topic.isEmpty() || !mqtt->connected())
+	if(topic.isEmpty() || !mqtt.connected())
 		return false;
 
     if(data->getListType() >= 3) { // publish energy counts
@@ -45,7 +45,7 @@ bool HomeAssistantMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea)
     snprintf_P(json, BufferSize, HA1_JSON,
         data->getActiveImportPower()
     );
-    return mqtt->publish(topic + "/power", json);
+    return mqtt.publish(topic + "/power", json);
 }
 
 bool HomeAssistantMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
@@ -66,7 +66,7 @@ bool HomeAssistantMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea)
         data->getL2Voltage(),
         data->getL3Voltage()
     );
-    return mqtt->publish(topic + "/power", json);
+    return mqtt.publish(topic + "/power", json);
 }
 
 bool HomeAssistantMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
@@ -79,7 +79,7 @@ bool HomeAssistantMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea)
         data->getReactiveExportCounter(),
         data->getMeterTimestamp()
     );
-    return mqtt->publish(topic + "/energy", json);
+    return mqtt.publish(topic + "/energy", json);
 }
 
 bool HomeAssistantMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
@@ -110,7 +110,7 @@ bool HomeAssistantMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea)
         data->getPowerFactor() == 0 ? 1 : data->getL2PowerFactor(),
         data->getPowerFactor() == 0 ? 1 : data->getL3PowerFactor()
     );
-    return mqtt->publish(topic + "/power", json);
+    return mqtt.publish(topic + "/power", json);
 }
 
 String HomeAssistantMqttHandler::getMeterModel(AmsData* data) {
@@ -146,7 +146,7 @@ bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* 
         ea->getProducedThisMonth(),
         ea->getIncomeThisMonth()
     );
-    return mqtt->publish(topic + "/realtime", json);
+    return mqtt.publish(topic + "/realtime", json);
 }
 
 
@@ -174,13 +174,13 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 	}
 	char* pos = buf+strlen(buf);
 	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("}}"));
-    bool ret = mqtt->publish(topic + "/temperatures", buf);
+    bool ret = mqtt.publish(topic + "/temperatures", buf);
     loop();
     return ret;
 }
 
 bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
-	if(topic.isEmpty() || !mqtt->connected())
+	if(topic.isEmpty() || !mqtt.connected())
 		return false;
 	if(eapi->getValueForHour(0) == ENTSOE_NO_VALUE)
 		return false;
@@ -310,13 +310,13 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         ts3hr,
         ts6hr
     );
-    bool ret = mqtt->publish(topic + "/prices", json, true, 0);
+    bool ret = mqtt.publish(topic + "/prices", json, true, 0);
     loop();
     return ret;
 }
 
 bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
-	if(topic.isEmpty() || !mqtt->connected())
+	if(topic.isEmpty() || !mqtt.connected())
 		return false;
 
     publishSystemSensors();
@@ -324,14 +324,14 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, Energ
 
     snprintf_P(json, BufferSize, JSONSYS_JSON,
         WiFi.macAddress().c_str(),
-        clientId.c_str(),
+        mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
         hw->getVcc(),
         hw->getWifiRssi(),
         hw->getTemperature(),
         FirmwareVersion::VersionString
     );
-    bool ret = mqtt->publish(topic + "/state", json);
+    bool ret = mqtt.publish(topic + "/state", json);
     loop();
     return ret;
 }
@@ -345,7 +345,7 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
     snprintf_P(json, BufferSize, HADISCOVER_JSON,
         sensorNamePrefix.c_str(),
         sensor.name,
-        topic.c_str(), sensor.topic,
+        mqttConfig.publishTopic, sensor.topic,
         deviceUid.c_str(), uid.c_str(),
         deviceUid.c_str(), uid.c_str(),
         sensor.uom,
@@ -363,7 +363,7 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
         strlen_P(sensor.stacl) > 0 ? (char *) FPSTR(sensor.stacl) : "",
         strlen_P(sensor.stacl) > 0 ? "\"" : ""
     );
-    mqtt->publish(discoveryTopic + deviceUid + "_" + uid.c_str() + "/config", json, true, 0);
+    mqtt.publish(discoveryTopic + deviceUid + "_" + uid.c_str() + "/config", json, true, 0);
     loop();
 }
 
@@ -540,14 +540,10 @@ void HomeAssistantMqttHandler::publishSystemSensors() {
     sInit = true;
 }
 
-bool HomeAssistantMqttHandler::loop() {
-    bool ret = mqtt->loop();
-    delay(10);
-    yield();
-	#if defined(ESP32)
-		esp_task_wdt_reset();
-	#elif defined(ESP8266)
-		ESP.wdtFeed();
-	#endif
-    return ret;
+uint8_t HomeAssistantMqttHandler::getFormat() {
+    return 4;
+}
+
+bool HomeAssistantMqttHandler::publishRaw(String data) {
+    return false;
 }

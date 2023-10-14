@@ -6,13 +6,16 @@
 
 class DomoticzMqttHandler : public AmsMqttHandler {
 public:
-    DomoticzMqttHandler(MQTTClient* mqtt, char* buf, DomoticzConfig config) : AmsMqttHandler(mqtt, buf) {
+    DomoticzMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, DomoticzConfig config) : AmsMqttHandler(mqttConfig, debugger, buf) {
         this->config = config;
     };
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
+    bool publishRaw(String data);
+
+    uint8_t getFormat();
 
 private:
     DomoticzConfig config;

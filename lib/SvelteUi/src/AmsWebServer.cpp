@@ -35,7 +35,7 @@
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #include <esp_wifi.h>
-#include <esp_clk.h>
+#include <esp32/clk.h>
 #endif
 
 
@@ -124,17 +124,15 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	mqttEnabled = strlen(mqttConfig.host) > 0;
 }
 
-
-void AmsWebServer::setMqtt(MQTTClient* mqtt) {
-	this->mqtt = mqtt;
-}
-
 void AmsWebServer::setTimezone(Timezone* tz) {
 	this->tz = tz;
 }
 
 void AmsWebServer::setMqttEnabled(bool enabled) {
 	mqttEnabled = enabled;
+}
+void AmsWebServer::setMqttHandler(AmsMqttHandler* mqttHandler) {
+	this->mqttHandler = mqttHandler;
 }
 
 void AmsWebServer::setEntsoeApi(EntsoeApi* eapi) {
@@ -418,9 +416,9 @@ void AmsWebServer::dataJson() {
 	uint8_t mqttStatus;
 	if(!mqttEnabled) {
 		mqttStatus = 0;
-	} else if(mqtt != NULL && mqtt->connected()) {
+	} else if(mqttHandler != NULL && mqttHandler->connected()) {
 		mqttStatus = 1;
-	} else if(mqtt != NULL && mqtt->lastError() == 0) {
+	} else if(mqttHandler != NULL && mqttHandler->lastError() == 0) {
 		mqttStatus = 2;
 	} else {
 		mqttStatus = 3;
@@ -467,7 +465,7 @@ void AmsWebServer::dataJson() {
 		hanStatus,
 		wifiStatus,
 		mqttStatus,
-		mqtt == NULL ? 0 : (int) mqtt->lastError(),
+		mqttHandler == NULL ? 0 : (int) mqttHandler->lastError(),
 		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
 		meterState->getMeterType(),
 		meterConfig->distributionSystem,

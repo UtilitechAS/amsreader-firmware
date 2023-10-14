@@ -7,11 +7,11 @@
 
 class HomeAssistantMqttHandler : public AmsMqttHandler {
 public:
-    HomeAssistantMqttHandler(MQTTClient* mqtt, char* buf, const char* clientId, const char* topic, uint8_t boardType, HomeAssistantConfig config, HwTools* hw) : AmsMqttHandler(mqtt, buf) {
-        this->clientId = clientId;
-        this->topic = String(topic);
+    HomeAssistantMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
         this->hw = hw;
         l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = false;
+
+        topic = String(mqttConfig.publishTopic);
 
         if(strlen(config.discoveryNameTag) > 0) {
             snprintf_P(buf, 128, PSTR("AMS reader (%s)"), config.discoveryNameTag);
@@ -56,11 +56,13 @@ public:
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
+    bool publishRaw(String data);
 
-protected:
-    bool loop();
+    uint8_t getFormat();
 
 private:
+    String topic;
+
     String deviceName;
     String deviceModel;
     String deviceUid;
@@ -74,8 +76,6 @@ private:
     bool tInit[32] = {false};
     bool prInit[38] = {false};
 
-    String clientId;
-    String topic;
     HwTools* hw;
 
     bool publishList1(AmsData* data, EnergyAccounting* ea);

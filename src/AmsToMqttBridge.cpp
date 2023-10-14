@@ -577,11 +577,12 @@ void loop() {
 				debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
 			}
 		}
-
+		/*
 		if(now - lastVoltageCheck > 500) {
 			handleVoltageCheck();
 			lastVoltageCheck = now;
 		}
+		*/
 	} else {
 		if(dnsServer != NULL) {
 			dnsServer->processNextRequest();
@@ -852,8 +853,8 @@ bool handleVoltageCheck() {
 			debugD_P(PSTR("Setting new max Vcc to %.2f"), vcc);
 			maxVcc = vcc;
 		} else if(WiFi.getMode() != WIFI_OFF) {
-			float diff = maxVcc-vcc;
-			if(diff > 0.3) {
+			float diff = min(maxVcc, (float) 3.3)-vcc;
+			if(diff > 0.4) {
 				debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for 5 seconds to preserve power"), vcc);
 				WiFi_disconnect(2000);
 				return false;
@@ -1457,10 +1458,12 @@ void WiFi_connect() {
 	}
 	lastWifiRetry = millis();
 
+	/*
 	if(!handleVoltageCheck()) {
 		debugW_P(PSTR("Voltage is not high enough to reconnect"));
 		return;
 	}
+	*/
 
 	if (WiFi.status() != WL_CONNECTED) {
 		WiFiConfig wifi;

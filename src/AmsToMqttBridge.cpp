@@ -1513,16 +1513,14 @@ void WiFi_connect() {
 			if(!WiFi.config(ip, gw, sn, dns1, dns2)) {
 				debugE_P(PSTR("Static IP configuration is invalid, not using"));
 			}
-		} else {
-			#if defined(ESP32)
-			// This trick does not work anymore...
-			// WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // Workaround to make DHCP hostname work for ESP32. See: https://github.com/espressif/arduino-esp32/issues/2537
-			#endif
 		}
 		#if defined(ESP8266)
 			if(strlen(wifi.hostname) > 0) {
 				WiFi.hostname(wifi.hostname);
-			}	
+			}
+			if(!wifi.use11b) {
+				WiFi.setPhyMode(WIFI_PHY_MODE_11G);
+			}
 		#endif
 		#if defined(ESP32)
 			WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);

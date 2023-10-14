@@ -240,11 +240,11 @@ void AmsWebServer::sysinfoJson() {
 	#if defined(ESP8266)
     wifi_get_macaddr(STATION_IF, mac);
     wifi_get_macaddr(SOFTAP_IF, apmac);
-	uint32_t cpu_freq = 80;
+	uint8_t cpu_freq = system_get_cpu_freq();
 	#elif defined(ESP32)
     esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_STA, mac);
     esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_AP, apmac);
-	uint32_t cpu_freq = esp_clk_cpu_freq();
+	uint32_t cpu_freq = esp_clk_cpu_freq() / 1000000;
 	#endif
 
     sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
@@ -280,7 +280,7 @@ void AmsWebServer::sysinfoJson() {
 		"esp8266",
 		#endif
 		chipIdStr.c_str(),
-		cpu_freq / 1000000,
+		cpu_freq,
 		macStr,
 		apMacStr,
 		sys.boardType,

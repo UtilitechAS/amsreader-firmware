@@ -1200,6 +1200,7 @@ void AmsConfiguration::print(Print* debugger)
 		}
 		debugger->printf_P(PSTR("Hostname:             '%s'\r\n"), wifi.hostname);
 		debugger->printf_P(PSTR("mDNS:                 '%s'\r\n"), wifi.mdns ? "Yes" : "No");
+		debugger->printf_P(PSTR("802.11b:              '%s'\r\n"), wifi.use11b ? "Yes" : "No");
 		debugger->println(F(""));
 		delay(10);
 		debugger->flush();

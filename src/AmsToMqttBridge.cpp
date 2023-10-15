@@ -1518,8 +1518,12 @@ void WiFi_connect() {
 			if(strlen(wifi.hostname) > 0) {
 				WiFi.hostname(wifi.hostname);
 			}
+			//wifi_set_phy_mode(PHY_MODE_11N);
 			if(!wifi.use11b) {
-				WiFi.setPhyMode(WIFI_PHY_MODE_11G);
+				wifi_set_user_sup_rate(RATE_11G6M, RATE_11G54M);
+				wifi_set_user_rate_limit(RC_LIMIT_11G, 0x00, RATE_11G_G54M, RATE_11G_G6M);
+				wifi_set_user_rate_limit(RC_LIMIT_11N, 0x00, RATE_11N_MCS7S, RATE_11N_MCS0);
+				wifi_set_user_limit_rate_mask(LIMIT_RATE_MASK_ALL);
 			}
 		#endif
 		#if defined(ESP32)

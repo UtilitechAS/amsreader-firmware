@@ -1450,7 +1450,7 @@ void AmsWebServer::handleSave() {
 		strcpy(entsoe.area, priceRegion.c_str());
 		strcpy(entsoe.currency, server.arg(F("pc")).c_str());
 		entsoe.multiplier = server.arg(F("pm")).toFloat() * 1000;
-		entsoe.fixedPrice = server.arg(F("pf")).toFloat() * 1000;
+		entsoe.fixedPrice = server.hasArg(F("pf")) ? server.arg(F("pf")).toFloat() * 1000 : 0;
 		config->setEntsoeConfig(entsoe);
 	}
 

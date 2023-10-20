@@ -104,7 +104,29 @@ Timezone* tz = NULL;
 
 AmsWebServer ws(commonBuffer, &Debug, &hw);
 
+bool mqttEnabled = false;
 AmsMqttHandler* mqttHandler = NULL;
+
+JsonMqttHandler* energySpeedometer = NULL;
+MqttConfig energySpeedometerConfig = {
+	"mqtt.sandtime.energy",
+	8883,
+	"",
+	"amsleser",
+	"",
+	#if defined(ENERGY_SPEEDOMETER_USER)
+	ENERGY_SPEEDOMETER_USER,
+	#else
+	"",
+	#endif
+	#if defined(ENERGY_SPEEDOMETER_PASS)
+	ENERGY_SPEEDOMETER_PASS,
+	#else
+	"",
+	#endif
+	0,
+	true
+};
 
 Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;
@@ -542,7 +564,7 @@ void loop() {
 			}
 			#endif
 
-			if (mqttHandler != NULL || config.isMqttChanged()) {
+			if (mqttEnabled || config.isMqttChanged()) {
 				if(mqttHandler == NULL || !mqttHandler->connected() || config.isMqttChanged()) {
 					MQTT_connect();
 					config.ackMqttChange();
@@ -550,6 +572,33 @@ void loop() {
 			} else if(mqttHandler != NULL) {
 				mqttHandler->disconnect();
 			}
+
+			#if defined(ENERGY_SPEEDOMETER_PASS)
+			if(sysConfig.energyspeedometer) {
+				if(!meterState.getMeterId().isEmpty()) {
+					if(energySpeedometer == NULL) {
+						uint16_t chipId;
+						#if defined(ESP32)
+							chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
+						#else
+							chipId = ESP.getChipId();
+						#endif
+						strcpy(energySpeedometerConfig.clientId, (String("ams") + String(chipId, HEX)).c_str());
+						energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw);
+						energySpeedometer->setCaVerification(false);
+					}
+					if(!energySpeedometer->connected()) {
+						lwmqtt_err_t err = energySpeedometer->lastError();
+						if(err > 0)
+							debugE_P(PSTR("Energyspeedometer connector reporting error (%d)"), err);
+						energySpeedometer->connect();
+						energySpeedometer->publishSystem(&hw, eapi, &ea);
+					}
+					energySpeedometer->loop();
+					delay(10);
+				}
+			}
+			#endif
 
 			try {
 				handlePriceApi(now);
@@ -699,8 +748,15 @@ void handleSystem(unsigned long now) {
 	unsigned long start, end;
 	if(now - lastSysupdate > 60000) {
 		start = millis();
-		if(mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED) {
-			mqttHandler->publishSystem(&hw, eapi, &ea);
+		if(WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED) {
+			if(mqttHandler != NULL) {
+				mqttHandler->publishSystem(&hw, eapi, &ea);
+			}
+			#if defined(ENERGY_SPEEDOMETER_PASS)
+			if(energySpeedometer != NULL) {
+				energySpeedometer->publishSystem(&hw, eapi, &ea);
+			}
+			#endif
 		}
 		lastSysupdate = now;
 		end = millis();
@@ -1303,6 +1359,11 @@ void handleDataSuccess(AmsData* data) {
 			delay(10);
 		}
 	}
+	#if defined(ENERGY_SPEEDOMETER_PASS)
+	if(energySpeedometer != NULL && energySpeedometer->publish(&meterState, &meterState, &ea, eapi)) {
+		delay(10);
+	}
+	#endif
 
 	time_t now = time(nullptr);
 	if(now < FirmwareVersion::BuildEpoch && data->getListType() >= 3) {
@@ -1618,7 +1679,8 @@ void WiFi_post_connect() {
 
 	MqttConfig mqttConfig;
 	if(config.getMqttConfig(mqttConfig)) {
-		ws.setMqttEnabled(strlen(mqttConfig.host) > 0);
+		mqttEnabled = strlen(mqttConfig.host) > 0;
+		ws.setMqttEnabled(mqttEnabled);
 	}
 }
 
@@ -1746,9 +1808,10 @@ void MQTT_connect() {
 	if(!config.getMqttConfig(mqttConfig) || strlen(mqttConfig.host) == 0) {
 		if(Debug.isActive(RemoteDebug::WARNING)) debugW_P(PSTR("No MQTT config"));
 		ws.setMqttEnabled(false);
+		mqttEnabled = false;
 		return;
 	}
-
+	mqttEnabled = true;
 	ws.setMqttEnabled(true);
 
 	if(mqttHandler != NULL && mqttHandler->getFormat() != mqttConfig.payloadFormat) {

@@ -13,6 +13,7 @@ bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 		config.vendorConfigured = false;
 		config.userConfigured = false;
 		config.dataCollectionConsent = 0;
+		config.energyspeedometer = false;
 		strcpy(config.country, "");
 		return false;
 	}
@@ -85,7 +86,7 @@ void AmsConfiguration::clearWifi(WiFiConfig& config) {
 
 	uint16_t chipId;
 	#if defined(ESP32)
-		chipId = ESP.getEfuseMac();
+		chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
 		config.power = 195;
 	#else
 		chipId = ESP.getChipId();

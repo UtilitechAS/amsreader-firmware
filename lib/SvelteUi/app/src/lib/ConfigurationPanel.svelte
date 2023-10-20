@@ -10,6 +10,7 @@
     import { Link, navigate } from 'svelte-navigator';
     import SubnetOptions from './SubnetOptions.svelte';
     import TrashIcon from './TrashIcon.svelte';
+    import QrCode from 'svelte-qrcode';
     
 
     export let sysinfo = {}
@@ -98,6 +99,9 @@
         },
         h: {
             t: '', h: '', n: ''
+        },
+        c: {
+            es: null
         }
     };
     configurationStore.subscribe(update => {
@@ -604,6 +608,24 @@
             <div class="my-1">
                 Name tag<br/>
                 <input name="hn" bind:value={configuration.h.n} type="text" class="in-s"/>
+            </div>
+        </div>
+        {/if}
+        {#if configuration.c.es != null}
+        <div class="cnt">
+            <input type="hidden" name="c" value="true"/>
+            <strong class="text-sm">Cloud connections</strong>
+            <div class="my-1">
+                <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> Energy Speedometer</label>
+                {#if configuration.c.es}
+                <div class="pl-5">MAC: {sysinfo.mac}</div>
+                <div class="pl-5">Meter ID: {sysinfo.meter.id ? sysinfo.meter.id : "missing, required"}</div>
+                {#if sysinfo.mac && sysinfo.meter.id}
+                <div class="pl-2">
+                    <QrCode value={sysinfo.mac + "-" + sysinfo.meter.id}/>
+                </div>
+                {/if}
+                {/if}
             </div>
         </div>
         {/if}

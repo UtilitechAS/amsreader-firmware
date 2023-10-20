@@ -33,7 +33,8 @@ struct SystemConfig {
 	bool userConfigured;
 	uint8_t dataCollectionConsent; // 0 = unknown, 1 = accepted, 2 = declined
 	char country[3];
-}; // 7
+	bool energyspeedometer;
+}; // 8
 
 struct WiFiConfig {
 	char ssid[32];

@@ -22,6 +22,8 @@ public:
         mqtt.dropOverflow(true);
     };
 
+    void setCaVerification(bool);
+
     bool connect();
     void disconnect();
     lwmqtt_err_t lastError();
@@ -47,6 +49,8 @@ protected:
     RemoteDebug* debugger;
     MqttConfig mqttConfig;
     MQTTClient mqtt = MQTTClient(128);
+    unsigned long lastMqttRetry = -10000;
+    bool caVerification = true;
     WiFiClient *mqttClient = NULL;
     WiFiClientSecure *mqttSecureClient = NULL;
     char* json;

@@ -10,11 +10,18 @@
 #include "json/jsonprices_json.h"
 
 bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
-	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
+    if(strlen(mqttConfig.publishTopic) == 0) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Unable to publish data, no publish topic\n"));
+        return false;
+    }
+	if(!mqtt.connected()) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Unable to publish data, not connected\n"));
 		return false;
+    }
 
     bool ret = false;
 
+    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Publishing list ID %d!\n"), data->getListType());
     if(data->getListType() == 1) {
         ret = publishList1(data, ea);
     } else if(data->getListType() == 2) {

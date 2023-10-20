@@ -30,6 +30,7 @@
 #include "html/conf_domoticz_json.h"
 #include "html/conf_ha_json.h"
 #include "html/conf_ui_json.h"
+#include "html/conf_cloud_json.h"
 #include "html/firmware_html.h"
 
 #if defined(ESP32)
@@ -788,6 +789,8 @@ void AmsWebServer::configurationJson() {
 	if(!checkSecurity(1))
 		return;
 
+	SystemConfig sysConfig;
+	config->getSystemConfig(sysConfig);
 	NtpConfig ntpConfig;
 	config->getNtpConfig(ntpConfig);
 	WiFiConfig wifiConfig;
@@ -971,6 +974,14 @@ void AmsWebServer::configurationJson() {
 		haconf.discoveryPrefix,
 		haconf.discoveryHostname,
 		haconf.discoveryNameTag
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
+		#if defined(ENERGY_SPEEDOMETER_PASS)
+		sysConfig.energyspeedometer ? "true" : "false"
+		#else
+		"null"
+		#endif
 	);
 	server.sendContent(buf);
 	server.sendContent_P(PSTR("}"));
@@ -1466,6 +1477,14 @@ void AmsWebServer::handleSave() {
 		eac.thresholds[8] = server.arg(F("t8")).toInt();
 		eac.hours = server.arg(F("th")).toInt();
 		config->setEnergyAccountingConfig(eac);
+	}
+
+	if(server.hasArg(F("c")) && server.arg(F("c")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received cloud config\n"));
+		SystemConfig sys;
+		config->getSystemConfig(sys);
+		sys.energyspeedometer = server.hasArg(F("ces")) && server.arg(F("ces")) == F("true");
+		config->setSystemConfig(sys);
 	}
 
 	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Saving configuration now...\n"));

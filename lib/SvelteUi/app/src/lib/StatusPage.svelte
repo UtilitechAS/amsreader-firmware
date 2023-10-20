@@ -126,10 +126,10 @@
             Manufacturer: {metertype(sysinfo.meter.mfg)}
         </div>
         <div class="my-2">
-            Model: {sysinfo.meter.model}
+            Model: {sysinfo.meter.model ? sysinfo.meter.model : "unknown"}
         </div>
         <div class="my-2">
-            ID: {sysinfo.meter.id}
+            ID: {sysinfo.meter.id ? sysinfo.meter.id : "unknown"}
         </div>
     </div>
     {/if}

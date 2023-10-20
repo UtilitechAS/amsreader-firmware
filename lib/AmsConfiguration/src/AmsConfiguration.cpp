@@ -13,19 +13,36 @@ bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 		config.vendorConfigured = false;
 		config.userConfigured = false;
 		config.dataCollectionConsent = 0;
-		config.energyspeedometer = false;
+		config.energyspeedometer = 0;
 		strcpy(config.country, "");
 		return false;
 	}
 }
 
 bool AmsConfiguration::setSystemConfig(SystemConfig& config) {
+	SystemConfig existing;
+	if(getSystemConfig(existing)) {
+		sysChanged |= config.boardType != existing.boardType;
+		sysChanged |= config.vendorConfigured != existing.vendorConfigured;
+		sysChanged |= config.userConfigured != existing.userConfigured;
+		sysChanged |= config.dataCollectionConsent != existing.dataCollectionConsent;
+		sysChanged |= strcmp(config.country, existing.country) != 0;
+		sysChanged |= config.energyspeedometer != existing.energyspeedometer;
+	}
 	EEPROM.begin(EEPROM_SIZE);
 	stripNonAscii((uint8_t*) config.country, 2);
 	EEPROM.put(CONFIG_SYSTEM_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;
+}
+
+bool AmsConfiguration::isSystemConfigChanged() {
+	return sysChanged;
+}
+
+void AmsConfiguration::ackSystemConfigChanged() {
+	sysChanged = false;
 }
 
 bool AmsConfiguration::getWiFiConfig(WiFiConfig& config) {
@@ -739,6 +756,7 @@ void AmsConfiguration::clear() {
 	EEPROM.get(CONFIG_SYSTEM_START, sys);
 	sys.userConfigured = false;
 	sys.dataCollectionConsent = 0;
+	sys.energyspeedometer = 0;
 	strcpy(sys.country, "");
 	EEPROM.put(CONFIG_SYSTEM_START, sys);
 

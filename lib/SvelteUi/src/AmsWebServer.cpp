@@ -978,7 +978,7 @@ void AmsWebServer::configurationJson() {
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
 		#if defined(ENERGY_SPEEDOMETER_PASS)
-		sysConfig.energyspeedometer ? "true" : "false"
+		sysConfig.energyspeedometer == 7 ? "true" : "false"
 		#else
 		"null"
 		#endif
@@ -1483,7 +1483,7 @@ void AmsWebServer::handleSave() {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received cloud config\n"));
 		SystemConfig sys;
 		config->getSystemConfig(sys);
-		sys.energyspeedometer = server.hasArg(F("ces")) && server.arg(F("ces")) == F("true");
+		sys.energyspeedometer = server.hasArg(F("ces")) && server.arg(F("ces")) == F("true") ? 7 : 0;
 		config->setSystemConfig(sys);
 	}
 

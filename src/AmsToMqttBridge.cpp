@@ -574,7 +574,7 @@ void loop() {
 			}
 
 			#if defined(ENERGY_SPEEDOMETER_PASS)
-			if(sysConfig.energyspeedometer) {
+			if(sysConfig.energyspeedometer == 7) {
 				if(!meterState.getMeterId().isEmpty()) {
 					if(energySpeedometer == NULL) {
 						uint16_t chipId;
@@ -596,6 +596,14 @@ void loop() {
 					}
 					energySpeedometer->loop();
 					delay(10);
+				}
+			} else if(energySpeedometer != NULL) {
+				if(energySpeedometer->connected()) {
+					energySpeedometer->disconnect();
+					energySpeedometer->loop();
+				} else {
+					delete energySpeedometer;
+					energySpeedometer = NULL;
 				}
 			}
 			#endif
@@ -745,6 +753,11 @@ void handleNtpChange() {
 }
 
 void handleSystem(unsigned long now) {
+	if(config.isSystemConfigChanged()) {
+		config.getSystemConfig(sysConfig);
+		config.ackSystemConfigChanged();
+	}
+
 	unsigned long start, end;
 	if(now - lastSysupdate > 60000) {
 		start = millis();

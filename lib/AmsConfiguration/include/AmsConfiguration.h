@@ -33,7 +33,7 @@ struct SystemConfig {
 	bool userConfigured;
 	uint8_t dataCollectionConsent; // 0 = unknown, 1 = accepted, 2 = declined
 	char country[3];
-	bool energyspeedometer;
+	uint8_t energyspeedometer;
 }; // 8
 
 struct WiFiConfig {
@@ -232,6 +232,8 @@ public:
 
 	bool getSystemConfig(SystemConfig&);
 	bool setSystemConfig(SystemConfig&);
+	bool isSystemConfigChanged();
+	void ackSystemConfigChanged();
 
 	bool getWiFiConfig(WiFiConfig&);
 	bool setWiFiConfig(WiFiConfig&);
@@ -319,7 +321,7 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool wifiChanged, mqttChanged, meterChanged = true, ntpChanged = true, entsoeChanged = false, energyAccountingChanged = true;
+	bool sysChanged = false, wifiChanged = false, mqttChanged = false, meterChanged = true, ntpChanged = true, entsoeChanged = false, energyAccountingChanged = true;
 
 	uint8_t tempSensorCount = 0;
 	TempSensorConfig** tempSensors = NULL;

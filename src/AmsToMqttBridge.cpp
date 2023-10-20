@@ -572,11 +572,12 @@ void loop() {
 				debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
 			}
 		}
-
+		/*
 		if(now - lastVoltageCheck > 500) {
 			handleVoltageCheck();
 			lastVoltageCheck = now;
 		}
+		*/
 	} else {
 		if(dnsServer != NULL) {
 			dnsServer->processNextRequest();
@@ -847,8 +848,8 @@ bool handleVoltageCheck() {
 			debugD_P(PSTR("Setting new max Vcc to %.2f"), vcc);
 			maxVcc = vcc;
 		} else if(WiFi.getMode() != WIFI_OFF) {
-			float diff = maxVcc-vcc;
-			if(diff > 0.3) {
+			float diff = min(maxVcc, (float) 3.3)-vcc;
+			if(diff > 0.4) {
 				debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for 5 seconds to preserve power"), vcc);
 				WiFi_disconnect(2000);
 				return false;
@@ -1432,10 +1433,12 @@ void WiFi_connect() {
 	}
 	lastWifiRetry = millis();
 
+	/*
 	if(!handleVoltageCheck()) {
 		debugW_P(PSTR("Voltage is not high enough to reconnect"));
 		return;
 	}
+	*/
 
 	if (WiFi.status() != WL_CONNECTED) {
 		WiFiConfig wifi;
@@ -1485,16 +1488,18 @@ void WiFi_connect() {
 			if(!WiFi.config(ip, gw, sn, dns1, dns2)) {
 				debugE_P(PSTR("Static IP configuration is invalid, not using"));
 			}
-		} else {
-			#if defined(ESP32)
-			// This trick does not work anymore...
-			// WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE); // Workaround to make DHCP hostname work for ESP32. See: https://github.com/espressif/arduino-esp32/issues/2537
-			#endif
 		}
 		#if defined(ESP8266)
 			if(strlen(wifi.hostname) > 0) {
 				WiFi.hostname(wifi.hostname);
-			}	
+			}
+			//wifi_set_phy_mode(PHY_MODE_11N);
+			if(!wifi.use11b) {
+				wifi_set_user_sup_rate(RATE_11G6M, RATE_11G54M);
+				wifi_set_user_rate_limit(RC_LIMIT_11G, 0x00, RATE_11G_G54M, RATE_11G_G6M);
+				wifi_set_user_rate_limit(RC_LIMIT_11N, 0x00, RATE_11N_MCS7S, RATE_11N_MCS0);
+				wifi_set_user_limit_rate_mask(LIMIT_RATE_MASK_ALL);
+			}
 		#endif
 		#if defined(ESP32)
 			WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);

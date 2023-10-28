@@ -622,7 +622,7 @@
                 <div class="pl-5">Meter ID: {sysinfo.meter.id ? sysinfo.meter.id : "missing, required"}</div>
                 {#if sysinfo.mac && sysinfo.meter.id}
                 <div class="pl-2">
-                    <QrCode value={sysinfo.mac + "-" + sysinfo.meter.id}/>
+                    <QrCode value='{'{'}"mac":"{sysinfo.mac}","meter":"{sysinfo.meter.id}"{'}'}'/>
                 </div>
                 {/if}
                 {/if}

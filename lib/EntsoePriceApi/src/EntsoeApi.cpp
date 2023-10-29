@@ -89,7 +89,7 @@ float EntsoeApi::getValueForHour(time_t ts, int8_t hour) {
         breakTime(tz->toLocal(ts), tm);
         hoursToday++;
     }
-    if(pos >= 48)
+    if(pos > 49)
         return ENTSOE_NO_VALUE;
 
     float value = ENTSOE_NO_VALUE;

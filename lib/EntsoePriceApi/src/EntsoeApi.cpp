@@ -286,16 +286,18 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t 
                     if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  got exchange rate %.4f\n"), p.getValue());
                     currencyMultiplier /= p.getValue();
                 } else {
+                    currencyMultiplier = 0;
                     return 0;
                 }
             }
         } else {
+            currencyMultiplier = 0;
             return 0;
         }
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi) Resulting currency multiplier: %.4f\n"), currencyMultiplier);
         tmElements_t tm;
         breakTime(t, tm);
-        lastCurrencyFetch = now + (SECS_PER_DAY * 1000) - (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000);
+        lastCurrencyFetch = now + (SECS_PER_DAY * 1000) - (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000) + 3600000;
     }
     return currencyMultiplier;
 }

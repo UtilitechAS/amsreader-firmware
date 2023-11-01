@@ -1809,7 +1809,7 @@ void MQTT_connect() {
 		}
 		yield();
 	} else {
-		mqtt = new MQTTClient(128);
+		mqtt = new MQTTClient(256);
 		mqtt->dropOverflow(true);
 		ws.setMqtt(mqtt);
 	}

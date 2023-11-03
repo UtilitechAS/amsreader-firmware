@@ -1,7 +1,7 @@
 {
-    "tPI" : %.2f,
-    "tPO" : %.2f,
-    "tQI" : %.2f,
-    "tQO" : %.2f,
+    "tPI" : %.3f,
+    "tPO" : %.3f,
+    "tQI" : %.3f,
+    "tQO" : %.3f,
     "rtc" : %lu
 }

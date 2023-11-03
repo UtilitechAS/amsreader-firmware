@@ -48,7 +48,7 @@ public:
 protected:
     RemoteDebug* debugger;
     MqttConfig mqttConfig;
-    MQTTClient mqtt = MQTTClient(128);
+    MQTTClient mqtt = MQTTClient(256);
     unsigned long lastMqttRetry = -10000;
     bool caVerification = true;
     WiFiClient *mqttClient = NULL;

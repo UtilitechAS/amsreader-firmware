@@ -20,12 +20,12 @@
         let values = [];
         min = max = 0;
         let cur = new Date();
-        addHours(cur, sysinfo.clock_offset);
+        addHours(cur, sysinfo.clock_offset - ((24 + cur.getHours() - cur.getUTCHours())%24));
         for(i = hour; i<24; i++) {
             val = json[zeropad(h++)];
             if(val == null) break;
             xTicks.push({
-                label: zeropad(cur.getUTCHours())
+                label: zeropad(cur.getHours())
             });
             values.push(val*100);
             min = Math.min(min, val*100);
@@ -36,7 +36,7 @@
             val = json[zeropad(h++)];
             if(val == null) break;
             xTicks.push({
-                label: zeropad(cur.getUTCHours())
+                label: zeropad(cur.getHours())
             });
             values.push(val*100);
             min = Math.min(min, val*100);

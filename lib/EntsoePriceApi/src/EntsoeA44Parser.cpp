@@ -108,8 +108,11 @@ size_t EntsoeA44Parser::write(uint8_t byte) {
 }
 
 void EntsoeA44Parser::get(PricesContainer* container) {
+    memset(container, 0, sizeof(*container));
+
     strcpy(container->currency, currency);
     strcpy(container->measurementUnit, measurementUnit);
+    strcpy(container->source, "EOE");
 
     for(uint8_t i = 0; i < 25; i++) {
         container->points[i] = points[i] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[i] * 10000;

@@ -26,6 +26,7 @@ public:
     char* getToken();
     char* getCurrency();
     char* getArea();
+    char* getSource();
     float getValueForHour(int8_t);
     float getValueForHour(time_t, int8_t);
 
@@ -34,7 +35,7 @@ public:
 private:
     RemoteDebug* debugger;
     EntsoeConfig* config = NULL;
-    HTTPClient http;
+    HTTPClient* http = NULL;
 
     uint8_t currentDay = 0, currentHour = 0;
     uint8_t tomorrowFetchMinute = 15; // How many minutes over 13:00 should it fetch prices

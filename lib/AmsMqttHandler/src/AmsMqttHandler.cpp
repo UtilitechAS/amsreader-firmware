@@ -26,8 +26,8 @@ bool AmsMqttHandler::connect() {
 			mqttSecureClient = new WiFiClientSecure();
 			#if defined(ESP8266)
 				mqttSecureClient->setBufferSizes(512, 512);
-				debugD_P(PSTR("ESP8266 firmware does not have enough memory...\n"));
-				return;
+				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("ESP8266 firmware does not have enough memory...\n"));
+				return false;
 			#endif
 		
 			if(caVerification && LittleFS.begin()) {
@@ -63,7 +63,7 @@ bool AmsMqttHandler::connect() {
 							BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
 							file.close();
 
-							debugD_P(PSTR("Setting client certificates (%dkb free heap)"), ESP.getFreeHeap());
+							if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Setting client certificates (%dkb free heap)"), ESP.getFreeHeap());
 							mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
 						#elif defined(ESP32)
 							if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT certificate file (%dkb free heap)\n"), ESP.getFreeHeap());
@@ -104,7 +104,7 @@ bool AmsMqttHandler::connect() {
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
 			time_t epoch = time(nullptr);
-			debugD_P(PSTR("Setting NTP time %lu for secure MQTT connection\n"), epoch);
+			if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Setting NTP time %lu for secure MQTT connection\n"), epoch);
 			mqttSecureClient->setX509Time(epoch);
 		}
 	#endif
@@ -119,8 +119,8 @@ bool AmsMqttHandler::connect() {
 			debugger->printf_P(PSTR("Failed to connect to MQTT: %d\n"), mqtt.lastError());
 			#if defined(ESP8266)
 				if(mqttSecureClient) {
-					mqttSecureClient->getLastSSLError((char*) commonBuffer, BUF_SIZE_COMMON);
-					Debug.println((char*) commonBuffer);
+					mqttSecureClient->getLastSSLError((char*) json, BufferSize);
+					debugger->println((char*) json);
 				}
 			#endif
 		}

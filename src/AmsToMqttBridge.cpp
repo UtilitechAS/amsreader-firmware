@@ -727,9 +727,19 @@ void handleSystem(unsigned long now) {
 	// After one hour, adjust buffer size to match the largest payload
 	if(!maxDetectPayloadDetectDone && now > 3600000) {
 		if(maxDetectedPayloadSize * 1.5 > meterConfig.bufferSize * 64) {
-			meterConfig.bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.5) / 64));
-			debugI_P(PSTR("Increasing RX buffer to %d bytes"), meterConfig.bufferSize * 64);
-			config.setMeterConfig(meterConfig);
+			int bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.5) / 64));
+			#if defined(ESP8266)
+				if(gpioConfig.hanPin != 3 && gpioConfig.hanPin != 113) {
+					bufferSize = min(bufferSize, 2);
+				} else {
+					bufferSize = min(bufferSize, 8);
+				}
+			#endif
+			if(bufferSize != meterConfig.bufferSize) {
+				debugI_P(PSTR("Increasing RX buffer to %d bytes"), bufferSize * 64);
+				meterConfig.bufferSize = bufferSize;
+				config.setMeterConfig(meterConfig);
+			}
 		}
 		maxDetectPayloadDetectDone = true;
 	}
@@ -1035,6 +1045,9 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 				break;
 		}
 
+		#if defined(ESP8266)
+		if(meterConfig.bufferSize > 2) meterConfig.bufferSize = 2;
+		#endif
 		swSerial->begin(baud, serialConfig, pin, -1, invert, meterConfig.bufferSize * 64);
 		hanSerial = swSerial;
 

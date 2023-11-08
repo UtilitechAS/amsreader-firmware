@@ -34,11 +34,14 @@ void EntsoeApi::setup(EntsoeConfig& config) {
     if(tomorrow != NULL) delete tomorrow;
     today = tomorrow = NULL;
 
-    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-    http.setReuse(false);
-    http.setTimeout(60000);
-    http.setUserAgent("ams2mqtt/" + String(FirmwareVersion::VersionString));
-    http.useHTTP10(true);
+    if(http != NULL) {
+        delete http;
+    }
+    http = new HTTPClient();
+    http->setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    http->setReuse(false);
+    http->setTimeout(60000);
+    http->setUserAgent("ams2mqtt/" + String(FirmwareVersion::VersionString));
 
     #if defined(AMS2MQTT_PRICE_KEY)
         key = new uint8_t[16] AMS2MQTT_PRICE_KEY;
@@ -65,6 +68,21 @@ char* EntsoeApi::getCurrency() {
 
 char* EntsoeApi::getArea() {
     return this->config->area;
+}
+
+char* EntsoeApi::getSource() {
+    if(this->today != NULL && this->tomorrow != NULL) {
+        if(strcmp(this->today->source, this->tomorrow->source) == 0) {
+            return this->today->source;
+        } else {
+            return "MIX";
+        }
+    } else if(today != NULL) {
+        return this->today->source;
+    } else if(tomorrow != NULL) {
+        return this->tomorrow->source;
+    }
+    return "";
 }
 
 float EntsoeApi::getValueForHour(int8_t hour) {
@@ -209,7 +227,7 @@ bool EntsoeApi::loop() {
 
 bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     #if defined(ESP32)
-        if(http.begin(url)) {
+        if(http->begin(url)) {
             if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Connection established\n"));
 
             #if defined(ESP32)
@@ -218,7 +236,7 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
                 ESP.wdtFeed();
             #endif
 
-            int status = http.GET();
+            int status = http->GET();
 
             #if defined(ESP32)
                 esp_task_wdt_reset();
@@ -228,8 +246,8 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
 
             if(status == HTTP_CODE_OK) {
                 if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Receiving data\n"));
-                http.writeToStream(doc);
-                http.end();
+                http->writeToStream(doc);
+                http->end();
                 lastError = 0;
                 nextFetchDelayMinutes = 1;
                 return true;
@@ -238,15 +256,15 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
                 if(status == 429) {
                     nextFetchDelayMinutes = 15;
                 } else if(status == 404) {
-                    nextFetchDelayMinutes = 60;
+                    nextFetchDelayMinutes = 10;
                 } else {
-                    nextFetchDelayMinutes = 30;
+                    nextFetchDelayMinutes = 2;
                 }
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(EntsoeApi) Communication error, returned status: %d\n"), status);
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(http.errorToString(status).c_str());
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http.getString().c_str());
+                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(http->errorToString(status).c_str());
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http->getString().c_str());
 
-                http.end();
+                http->end();
                 return false;
             }
         } else {
@@ -349,11 +367,11 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
         #if defined(ESP8266)
         WiFiClient client;
         client.setTimeout(5000);
-        if(http.begin(client, buf)) {
+        if(http->begin(client, buf)) {
         #elif defined(ESP32)
-        if(http.begin(buf)) {
+        if(http->begin(buf)) {
         #endif
-            int status = http.GET();
+            int status = http->GET();
 
             #if defined(ESP32)
                 esp_task_wdt_reset();
@@ -363,8 +381,8 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
 
             if(status == HTTP_CODE_OK) {
                 if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Receiving data\n"));
-                data = http.getString();
-                http.end();
+                data = http->getString();
+                http->end();
                 
                 uint8_t* content = (uint8_t*) (data.c_str());
                 if(debugger->isActive(RemoteDebug::DEBUG)) {
@@ -403,15 +421,18 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
                 if(status == 429) {
                     nextFetchDelayMinutes = 60;
                 } else if(status == 404) {
-                    nextFetchDelayMinutes = 180;
+                    nextFetchDelayMinutes = 15;
                 } else {
-                    nextFetchDelayMinutes = 30;
+                    nextFetchDelayMinutes = 5;
                 }
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(EntsoeApi) Communication error, returned status: %d\n"), status);
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(http.errorToString(status).c_str());
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http.getString().c_str());
+                if(debugger->isActive(RemoteDebug::ERROR)) {
+                    debugger->printf(http->errorToString(status).c_str());
+                    debugger->println();
+                }
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http->getString().c_str());
 
-                http.end();
+                http->end();
             }
         }
     }

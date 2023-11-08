@@ -667,6 +667,7 @@ void AmsWebServer::energyPriceJson() {
 
 	snprintf_P(buf, BufferSize, ENERGYPRICE_JSON, 
 		eapi == NULL ? "" : eapi->getCurrency(),
+		eapi == NULL ? "" : eapi->getSource(),
 		prices[0] == ENTSOE_NO_VALUE ? "null" : String(prices[0], 4).c_str(),
 		prices[1] == ENTSOE_NO_VALUE ? "null" : String(prices[1], 4).c_str(),
 		prices[2] == ENTSOE_NO_VALUE ? "null" : String(prices[2], 4).c_str(),

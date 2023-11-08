@@ -1268,6 +1268,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf_P(PSTR("Baud:                 %i\r\n"), meter.baud);
 		debugger->printf_P(PSTR("Parity:               %i\r\n"), meter.parity);
 		debugger->printf_P(PSTR("Invert serial:        %s\r\n"), meter.invert ? "Yes" : "No");
+		debugger->printf_P(PSTR("Buffer size:          %i\r\n"), meter.bufferSize * 64);
 		debugger->printf_P(PSTR("Distribution system:  %i\r\n"), meter.distributionSystem);
 		debugger->printf_P(PSTR("Main fuse:            %i\r\n"), meter.mainFuse);
 		debugger->printf_P(PSTR("Production Capacity:  %i\r\n"), meter.productionCapacity);

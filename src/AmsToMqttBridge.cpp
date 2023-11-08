@@ -107,6 +107,7 @@ AmsWebServer ws(commonBuffer, &Debug, &hw);
 bool mqttEnabled = false;
 AmsMqttHandler* mqttHandler = NULL;
 
+#if defined(ESP32)
 JsonMqttHandler* energySpeedometer = NULL;
 MqttConfig energySpeedometerConfig = {
 	"mqtt.sandtime.energy",
@@ -127,6 +128,7 @@ MqttConfig energySpeedometerConfig = {
 	0,
 	true
 };
+#endif
 
 Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;

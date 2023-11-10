@@ -62,6 +62,8 @@ ADC_MODE(ADC_VCC);
 #include "RawMqttHandler.h"
 #include "DomoticzMqttHandler.h"
 #include "HomeAssistantMqttHandler.h"
+#include "ModbusIP_ESP8266.h"
+#include "EM24.h"
 
 #include "Uptime.h"
 
@@ -102,11 +104,13 @@ EntsoeApi* eapi = NULL;
 Timezone* tz = NULL;
 
 AmsWebServer ws(commonBuffer, &Debug, &hw);
+ModbusIP mb;
 
 MQTTClient *mqtt = NULL;
 WiFiClient *mqttClient = NULL;
 WiFiClientSecure *mqttSecureClient = NULL;
 AmsMqttHandler* mqttHandler = NULL;
+EM24* em24 = NULL;
 
 Stream *hanSerial;
 SoftwareSerial *swSerial = NULL;
@@ -339,7 +343,7 @@ void setup() {
 				Debug.printf_P(PSTR("(setup) Voltage is too low (%.2f < %.2f), sleeping\n"), vcc, vccBootLimit);
 				Serial.flush();
 			}
-			ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
+			ESP.deepSleep(10000);    //Deep sleep to allow output cap to charge up
 		}  
 	}
 
@@ -461,6 +465,11 @@ void setup() {
 	ea.load();
 	ea.setEapi(eapi);
 	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
+
+	mb.server();
+	em24 = new EM24(&Debug, &mb);
+	em24->setup(&mb);
+  	
 
 	#if defined(ESP32)
 		esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -636,7 +645,9 @@ void loop() {
 	} catch(const std::exception& e) {
 		debugE_P(PSTR("Exception in meter autodetect (%s)"), e.what());
 		meterState.setLastError(METER_ERROR_AUTODETECT);
-	}
+	}	
+
+	mb.task();
 
 	delay(10); // Needed for auto modem sleep
 	start = millis();
@@ -1370,6 +1381,7 @@ void handleDataSuccess(AmsData* data) {
 	if(saveData) {
 		LittleFS.end();
 	}
+	em24->update(data);
 }
 
 void printHanReadError(int pos) {

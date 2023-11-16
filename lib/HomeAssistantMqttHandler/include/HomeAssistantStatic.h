@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _HOMEASSISTANTSTATIC_H
 #define _HOMEASSISTANTSTATIC_H
 

@@ -5,23 +5,25 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "local": "vite --config vite.config.local.js",
     "build": "vite build",
     "preview": "vite preview"
   },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^1.0.1",
-    "@tailwindcss/forms": "^0.5.2",
-    "autoprefixer": "^10.4.7",
-    "http-proxy-middleware": "^2.0.1",
+    "@sveltejs/vite-plugin-svelte": "^2.1.0",
+    "@tailwindcss/forms": "^0.5.3",
+    "autoprefixer": "^10.4.14",
+    "http-proxy-middleware": "^2.0.6",
     "postcss": "^8.4.31",
     "postcss-load-config": "^4.0.1",
-    "svelte": "^3.49.0",
+    "svelte": "^3.58.0",
     "svelte-navigator": "^3.2.2",
-    "svelte-preprocess": "^4.10.7",
-    "tailwindcss": "^3.1.5",
-    "vite": "^3.2.7"
+    "svelte-preprocess": "^5.0.3",
+    "svelte-qrcode": "^1.0.0",
+    "tailwindcss": "^3.3.1",
+    "vite": "^4.3.1"
   },
   "dependencies": {
-    "cssnano": "^5.1.14"
+    "cssnano": "^5.1.15"
   }
 }

@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _PRICESCONTAINER_H
 #define _PRICESCONTAINER_H
 struct PricesContainer {

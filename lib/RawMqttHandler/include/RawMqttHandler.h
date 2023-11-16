@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _RAWMQTTHANDLER_H
 #define _RAWMQTTHANDLER_H
 
@@ -5,21 +11,21 @@
 
 class RawMqttHandler : public AmsMqttHandler {
 public:
-    RawMqttHandler(MQTTClient* mqtt, char* buf, const char* topic, bool full) : AmsMqttHandler(mqtt, buf) {
-        this->topic = String(topic);
-        this->full = full;
+    RawMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf) : AmsMqttHandler(mqttConfig, debugger, buf) {
+        full = mqttConfig.payloadFormat == 2;
+        topic = String(mqttConfig.publishTopic);
     };
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
+    bool publishRaw(String data);
 
-protected:
-    bool loop();
+    uint8_t getFormat();
 
 private:
-    String topic;
     bool full;
+    String topic;
 
     bool publishList1(AmsData* data, AmsData* meterState);
     bool publishList2(AmsData* data, AmsData* meterState);

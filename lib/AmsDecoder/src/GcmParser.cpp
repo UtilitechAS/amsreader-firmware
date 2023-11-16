@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "GcmParser.h"
 #include "lwip/def.h"
 #if defined(ESP8266)

@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _AMSDATASTORAGE_H
 #define _AMSDATASTORAGE_H
 #include "Arduino.h"

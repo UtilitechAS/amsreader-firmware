@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "LNG.h"
 #include "lwip/def.h"
 #include "ntohll.h"

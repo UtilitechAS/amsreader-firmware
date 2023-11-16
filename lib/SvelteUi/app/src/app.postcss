@@ -8,7 +8,7 @@
 }
 
 .cnt {
-  @apply bg-white m-2 p-2 rounded shadow-lg;
+  @apply m-2 p-2 rounded dark:bg-gray-800 bg-white dark:text-white shadow-lg dark:shadow-xl dark:shadow-gray-900 dark:drop-shadow-md;
   min-height: 268px;
 }
 
@@ -17,27 +17,28 @@
 }
 
 .in-pre {
-  @apply flex items-center bg-gray-100 rounded-l-md border border-r-0 border-gray-300 px-3 whitespace-nowrap text-sm
+  @apply flex items-center bg-gray-100 dark:bg-gray-600 rounded-l-md border border-r-0 dark:border-gray-800 border-gray-300 px-3 whitespace-nowrap text-sm
 }
 
 .in-post {
-  @apply flex items-center bg-gray-100 rounded-r-md border border-l-0 border-gray-300 px-3 whitespace-nowrap text-sm
+  @apply flex items-center bg-gray-100 dark:bg-gray-600 rounded-r-md border border-l-0 dark:border-gray-800 border-gray-300 px-3 whitespace-nowrap text-sm
 }
 
 .in-txt {
-  @apply h-10 shadow-sm border-gray-300 disabled:bg-gray-200
+  @apply h-10 shadow-sm border-gray-300 dark:border-gray-800 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-white
+  disabled:cursor-not-allowed dark:text-white dark:bg-gray-700 dark:shadow-lg dark:border dark:focus:ring-4 dark:drop-shadow-lg
 }
 .in-f {
-  @apply in-txt rounded-l-md
+  @apply in-txt rounded-l-md dark:placeholder:text-gray-400 dark:default:text-white disabled:text-white default:text-white
 }
 .in-m {
   @apply in-txt border-l-0
 }
 .in-l {
-  @apply in-txt border-l-0 rounded-r-md
+  @apply in-txt border-l-0 rounded-r-md dark:placeholder-white
 }
 .in-s {
-  @apply in-txt rounded-md w-full
+  @apply in-txt rounded-md w-full dark:text-white placeholder:text-gray-400
 }
 .tr {
   @apply text-right
@@ -82,6 +83,7 @@
 .pl-unt {
     font-size: 1.0rem;
     color: grey;
+    @apply dark:text-gray-200
 }
 .pl-sub {
     padding-top: 10px;
@@ -90,6 +92,7 @@
 .pl-snt {
     font-size: 0.7rem;
     color: grey;
+    @apply dark:text-gray-200
 }
 .pl-lab {
     font-size: 1.0rem;
@@ -110,6 +113,7 @@ svg {
   font-family: Helvetica, Arial;
   font-size: 0.85em;
   font-weight: 200;
+  @apply dark:fill-white text-white
 }
 
 .tick line {
@@ -120,6 +124,7 @@ svg {
 .tick text {
   fill: #999;
   text-anchor: start;
+  @apply dark:fill-white
 }
 
 .tick.tick-0 line {

@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 <script>
   import { Router, Route, navigate } from "svelte-navigator";
   import { getSysinfo, sysinfoStore, dataStore } from './lib/DataStores.js';
@@ -20,6 +26,22 @@
       navigate("/setup");
     } else if(sysinfo.fwconsent === 0) {
       navigate("/consent");
+    }
+
+    if(sysinfo.ui.k === 1) {
+        console.log("dark");
+        document.documentElement.classList.add('dark')
+    } else if (sysinfo.ui.k === 0) {
+        console.log("light");
+        document.documentElement.classList.remove('dark')
+    } else {
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            console.log("dark auto");
+            document.documentElement.classList.add('dark')
+        } else {
+            console.log("light auto");
+            document.documentElement.classList.remove('dark')
+        }
     }
   });
   getSysinfo();

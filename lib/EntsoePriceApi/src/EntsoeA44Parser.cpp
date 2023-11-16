@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "EntsoeA44Parser.h"
 #include "HardwareSerial.h"
 

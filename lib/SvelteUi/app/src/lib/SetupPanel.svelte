@@ -6,6 +6,7 @@
     export let sysinfo = {}
 
     let staticIp = false;
+    let connectionMode = 1;
     let loadingOrSaving = false;
 
     let tries = 0; 
@@ -87,13 +88,25 @@
             <input type="hidden" name="s" value="true"/>
             <strong class="text-sm">Setup</strong>
             <div class="my-3">
-                SSID<br/>
-                <input name="ss" type="text" class="in-s" required/>
+                Connection<br/>
+                <select name="sc" class="in-s" bind:value={connectionMode}>
+                    <option value={1}>Connect to WiFi</option>
+                    <option value={2}>Standalone access point</option>
+                    {#if sysinfo.if && sysinfo.if.eth}
+                    <option value={3}>Ethernet</option>
+                    {/if}
+                </select>
             </div>
-            <div class="my-3">
-                PSK<br/>
-                <input name="sp" type="password" class="in-s" autocomplete="off"/>
-            </div>
+            {#if connectionMode == 1 || connectionMode == 2}
+                <div class="my-3">
+                    SSID<br/>
+                    <input name="ss" type="text" class="in-s" required={connectionMode == 1 || connectionMode == 2}/>
+                </div>
+                <div class="my-3">
+                    PSK<br/>
+                    <input name="sp" type="password" class="in-s" autocomplete="off" required={connectionMode == 2}/>
+                </div>
+            {/if}
             <div>
                 Hostname
                 <input name="sh" bind:value={sysinfo.hostname} type="text" class="in-s" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader" autocomplete="off"/>

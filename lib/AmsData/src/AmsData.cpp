@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "AmsData.h"
 
 AmsData::AmsData() {}
@@ -80,6 +86,91 @@ void AmsData::apply(AmsData& other) {
         this->activeImportPower = other.getActiveImportPower();
     if(other.getListType() == 2 || (other.getActiveImportPower() > 0 || other.getActiveExportPower() > 0))
         this->activeExportPower = other.getActiveExportPower();
+}
+
+void AmsData::apply(OBIS_code_t obis, double value) {
+    switch(obis.gr) {
+        case 1:
+            switch(obis.sensor) {
+                case 7:
+                    switch(obis.tariff) {
+                        case 0:
+                            activeImportPower = value; 
+                            listType = max(listType, (uint8_t) 1);
+                            break;
+                    }
+                    break;
+                case 8:
+                    switch(obis.tariff) {
+                        case 0:
+                            activeImportCounter = value; 
+                            listType = max(listType, (uint8_t) 3);
+                            break;
+                    }
+                    break;
+            }
+            break;
+        case 2:
+            switch(obis.sensor) {
+                case 7:
+                    switch(obis.tariff) {
+                        case 0:
+                            activeExportPower = value; 
+                            listType = max(listType, (uint8_t) 2);
+                            break;
+                    }
+                    break;
+                case 8:
+                    switch(obis.tariff) {
+                        case 0:
+                            activeExportCounter = value; 
+                            listType = max(listType, (uint8_t) 3);
+                            break;
+                    }
+                    break;
+            }
+            break;
+        case 3:
+            switch(obis.sensor) {
+                case 7:
+                    switch(obis.tariff) {
+                        case 0:
+                            reactiveImportPower = value; 
+                            listType = max(listType, (uint8_t) 2);
+                            break;
+                    }
+                    break;
+                case 8:
+                    switch(obis.tariff) {
+                        case 0:
+                            reactiveImportCounter = value; 
+                            listType = max(listType, (uint8_t) 3);
+                            break;
+                    }
+                    break;
+            }
+            break;
+        case 4:
+            switch(obis.sensor) {
+                case 7:
+                    switch(obis.tariff) {
+                        case 0:
+                            reactiveExportPower = value; 
+                            listType = max(listType, (uint8_t) 2);
+                            break;
+                    }
+                    break;
+                case 8:
+                    switch(obis.tariff) {
+                        case 0:
+                            reactiveExportCounter = value; 
+                            listType = max(listType, (uint8_t) 3);
+                            break;
+                    }
+                    break;
+            }
+            break;
+    }
 }
 
 uint64_t AmsData::getLastUpdateMillis() {
@@ -216,6 +307,10 @@ bool AmsData::isThreePhase() {
 
 bool AmsData::isTwoPhase() {
     return this->twoPhase;
+}
+
+bool AmsData::isCounterEstimated() {
+    return this->counterEstimated;
 }
 
 int8_t AmsData::getLastError() {

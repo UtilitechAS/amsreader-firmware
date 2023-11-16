@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _ENTSOEAPI_H
 #define _ENTSOEAPI_H
 

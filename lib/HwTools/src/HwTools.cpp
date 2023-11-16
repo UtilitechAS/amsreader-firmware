@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "HwTools.h"
 
 void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
@@ -91,6 +97,22 @@ void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
         ledOff(LED_BLUE);
     } else {
         config->ledPinBlue = 0xFF;
+    }
+    if(config->ledDisablePin > 0 && config->ledDisablePin < 40) {
+        pinMode(config->ledDisablePin, OUTPUT_OPEN_DRAIN);
+        switch(config->ledBehaviour) {
+            case LED_BEHAVIOUR_ERROR_ONLY:
+            case LED_BEHAVIOUR_OFF:
+                digitalWrite(config->ledDisablePin, LOW);
+                break;
+            case LED_BEHAVIOUR_BOOT:
+                if(bootSuccessful) {
+                    digitalWrite(config->ledDisablePin, LOW);
+                }
+                break;
+            default:
+                digitalWrite(config->ledDisablePin, HIGH);
+        }
     }
 }
 
@@ -358,8 +380,7 @@ float HwTools::getTemperature() {
     }
     for(int x = 0; x < sensorCount; x++) {
         TempSensorData data = *tempSensors[x];
-        TempSensorConfig* conf = amsConf->getTempSensorConfig(data.address);
-        if((conf == NULL || conf->common) && data.lastValidRead > -85) {
+        if(data.lastValidRead > -85) {
             ret += data.lastValidRead;
             c++;
         }
@@ -380,7 +401,19 @@ int HwTools::getWifiRssi() {
     return isnan(rssi) ? -100.0 : rssi;
 }
 
+void HwTools::setBootSuccessful() {
+    if(bootSuccessful) return;
+    bootSuccessful = true;
+    if(config->ledBehaviour != LED_BEHAVIOUR_DEFAULT) {
+        digitalWrite(config->ledDisablePin, LOW);
+    }
+}
+
 bool HwTools::ledOn(uint8_t color) {
+    if(config->ledBehaviour == LED_BEHAVIOUR_OFF) return false;
+    if(config->ledBehaviour == LED_BEHAVIOUR_ERROR_ONLY && color != LED_RED) return false;
+    if(config->ledBehaviour == LED_BEHAVIOUR_BOOT && color != LED_RED && bootSuccessful) return false;
+
     if(color == LED_INTERNAL) {
         return writeLedPin(color, config->ledInverted ? LOW : HIGH);
     } else {

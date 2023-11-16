@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "EntsoeApi.h"
 #include <EEPROM.h>
 #include "Uptime.h"

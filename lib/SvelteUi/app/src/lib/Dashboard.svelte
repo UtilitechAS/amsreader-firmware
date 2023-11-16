@@ -11,6 +11,7 @@
     import MonthPlot from './MonthPlot.svelte';
     import TemperaturePlot from './TemperaturePlot.svelte';
     import TariffPeakChart from './TariffPeakChart.svelte';
+    import RealtimePlot from './RealtimePlot.svelte';
 
     export let data = {}
     export let sysinfo = {}
@@ -78,6 +79,11 @@
     {#if uiVisibility(sysinfo.ui.t, data.pr && (data.pr.startsWith("10YNO") || data.pr == '10Y1001A1001A48H'))}
         <div class="cnt h-64">
             <TariffPeakChart />
+        </div>
+    {/if}
+    {#if uiVisibility(sysinfo.ui.l)}
+        <div class="cnt gwf">
+            <RealtimePlot/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.p, data.pe && !Number.isNaN(data.p))}

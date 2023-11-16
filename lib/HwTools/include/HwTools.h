@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _HWTOOLS_H
 #define _HWTOOLS_H
 
@@ -48,6 +54,7 @@ public:
     bool ledOn(uint8_t color);
     bool ledOff(uint8_t color);
     bool ledBlink(uint8_t color, uint8_t blink);
+    void setBootSuccessful();
 
     HwTools() {};
 private:
@@ -63,6 +70,8 @@ private:
     DallasTemperature *sensorApi = NULL;
     uint8_t sensorCount = 0;
     TempSensorData** tempSensors = NULL;
+
+    bool bootSuccessful = false;
 
     bool writeLedPin(uint8_t color, uint8_t state);
     bool isSensorAddressEqual(uint8_t a[8], uint8_t b[8]);

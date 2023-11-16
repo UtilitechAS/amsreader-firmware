@@ -10,6 +10,7 @@
     import { Link, navigate } from 'svelte-navigator';
     import SubnetOptions from './SubnetOptions.svelte';
     import TrashIcon from './TrashIcon.svelte';
+    import QrCode from 'svelte-qrcode';
     
 
     export let sysinfo = {}
@@ -36,6 +37,9 @@
         name: 'Peaks',
         key: 't'
     },{
+        name: 'Realtime plot',
+        key: 'l'
+    },{
         name: 'Price',
         key: 'p'
     },{
@@ -47,6 +51,9 @@
     },{
         name: 'Temperature plot',
         key: 's'
+    },{
+        name: 'Dark mode',
+        key: 'k'
     }];
 
     let loading = true;
@@ -93,11 +100,15 @@
             a: null,
             l: { p: null, i: false },
             r: { r: null, g: null, b: null, i: false },
+            d: { d: null, b: 0 },
             t: { d: null, a: null },
             v: { p: null, d: { v: null, g: null }, o: null, m: null, b: null }
         },
         h: {
             t: '', h: '', n: ''
+        },
+        c: {
+            e: false, i: null, s: null, es: null
         }
     };
     configurationStore.subscribe(update => {
@@ -329,6 +340,14 @@
             <strong class="text-sm">Meter</strong>
             <a href="{wiki('Meter-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="m" value="true"/>
+            <input type="hidden" name="mo" value="1"/>
+            <div class="my-1">
+                Communication<br/>
+                <select name="ma" bind:value={configuration.m.a} class="in-s">
+                    <option value={0}>Passive (Push)</option>
+                    <option value={9}>Kamstrup (Pull)</option>
+                </select>
+            </div>
             <div class="my-1">
                 <span class="float-right">Buffer size</span>
                 <span>Serial conf.</span>
@@ -412,41 +431,50 @@
             {/if}
         </div>
         <div class="cnt">
-            <strong class="text-sm">WiFi</strong>
+            <strong class="text-sm">Connection</strong>
             <a href="{wiki('WiFi-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="w" value="true"/>
             <div class="my-1">
-                SSID<br/>
-                <input name="ws" bind:value={configuration.w.s} type="text" class="in-s"/>
+                Connection<br/>
+                <select name="nc" class="in-s" bind:value={configuration.n.c}>
+                    <option value={1}>WiFi</option>
+                    <option value={2}>Access point</option>
+                    {#if sysinfo.if && sysinfo.if.eth}
+                    <option value={3}>Ethernet</option>
+                    {/if}
+                </select>
             </div>
-            <div class="my-1">
-                Password<br/>
-                <input name="wp" bind:value={configuration.w.p} type="password" class="in-s"/>
-            </div>
-            <div class="my-1 flex">
-                <div class="w-1/2">
-                    Power saving<br/>
-                    <select name="wz" bind:value={configuration.w.z} class="in-s">
-                        <option value={255}>Default</option>
-                        <option value={0}>Off</option>
-                        <option value={1}>Minimum</option>
-                        <option value={2}>Maximum</option>
-                    </select>
+            {#if configuration.n.c == 1 || configuration.n.c == 2}
+                <div class="my-1">
+                    SSID<br/>
+                    <input name="ws" bind:value={configuration.w.s} type="text" class="in-s"/>
                 </div>
-                <div class="ml-2 w-1/2">
-                    Power<br/>
-                    <div class="flex">
-                        <input name="ww" bind:value={configuration.w.w} type="number" min="0" max="20.5" step="0.5" class="in-f tr w-full"/>
-                        <span class="in-post">dBm</span>
+                <div class="my-1">
+                    Password<br/>
+                    <input name="wp" bind:value={configuration.w.p} type="password" class="in-s"/>
+                </div>
+                <div class="my-1 flex">
+                    <div class="w-1/2">
+                        Power saving<br/>
+                        <select name="wz" bind:value={configuration.w.z} class="in-s">
+                            <option value={255}>Default</option>
+                            <option value={0}>Off</option>
+                            <option value={1}>Minimum</option>
+                            <option value={2}>Maximum</option>
+                        </select>
+                    </div>
+                    <div class="ml-2 w-1/2">
+                        Power<br/>
+                        <div class="flex">
+                            <input name="ww" bind:value={configuration.w.w} type="number" min="0" max="20.5" step="0.5" class="in-f tr w-full"/>
+                            <span class="in-post">dBm</span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="my-3">
-                <label><input type="checkbox" name="wa" value="true" bind:checked={configuration.w.a} class="rounded mb-1"/> Auto reboot on connection problem</label>
-            </div>
-            <div class="my-3">
-                <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> Allow 802.11b legacy rates</label>
-            </div>
+                <div class="my-3">
+                    <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> Allow 802.11b legacy rates</label>
+                </div>
+            {/if}
         </div>
         <div class="cnt">
             <strong class="text-sm">Network</strong>
@@ -607,6 +635,36 @@
             </div>
         </div>
         {/if}
+        {#if configuration.c.es != null}
+        <div class="cnt">
+            <strong class="text-sm">Cloud connections</strong>
+            <a href="{wiki('Cloud')}" target="_blank" class="float-right"><HelpIcon/></a>
+            <input type="hidden" name="c" value="true"/>
+            <div class="my-1">
+                <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> Enable cloud upload</label>
+            </div>
+            <div class="my-1">
+                Client ID<br/>
+                <input name="ci" bind:value={configuration.c.i} type="text" class="in-s" pattern={configuration.c.e ? '[A-Z0-9]{16}' : '.*'} required={configuration.c.e}/>
+            </div>
+            <div class="my-1">
+                Client secret<br/>
+                <input name="cs" bind:value={configuration.c.s} type="text" class="in-s" pattern={configuration.c.e && configuration.c.s != '***' ? '[A-Z0-9]{16}' : '.*'}/>
+            </div>
+            <div class="my-1">
+                <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> Energy Speedometer</label>
+                {#if configuration.c.es}
+                <div class="pl-5">MAC: {sysinfo.mac}</div>
+                <div class="pl-5">Meter ID: {sysinfo.meter.id ? sysinfo.meter.id : "missing, required"}</div>
+                {#if sysinfo.mac && sysinfo.meter.id}
+                <div class="pl-2">
+                    <QrCode value='{'{'}"mac":"{sysinfo.mac}","meter":"{sysinfo.meter.id}"{'}'}'/>
+                </div>
+                {/if}
+                {/if}
+            </div>
+        </div>
+        {/if}
         {#if configuration.p.r.startsWith("10YNO") || configuration.p.r == '10Y1001A1001A48H'}
         <div class="cnt">
             <strong class="text-sm">Tariff thresholds</strong>
@@ -637,15 +695,15 @@
                     <div class="w-1/2">
                         {el.name}<br/>
                         <select name="u{el.key}" bind:value={configuration.u[el.key]} class="in-s">
-                            <option value={0}>Hide</option>
-                            <option value={1}>Show</option>
-                            <option value={2}>Dynamic</option>
+                            <option value={0}>Disable</option>
+                            <option value={1}>Enable</option>
+                            <option value={2}>Auto</option>
                         </select>
                     </div>
                 {/each}
             </div>
         </div>
-        {#if sysinfo.board > 20 || sysinfo.chip == 'esp8266'}
+        {#if sysinfo.board > 20 || sysinfo.chip == 'esp8266' || configuration.i.d.d > 0}
         <div class="cnt">
             <strong class="text-sm">Hardware</strong>
             <a href="{wiki('GPIO-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
@@ -653,20 +711,34 @@
             <input type="hidden" name="i" value="true"/>
             <div class="flex flex-wrap">
                 <div class="w-1/3">
-                    HAN<label class="ml-2"><input name="ihu" value="true" bind:checked={configuration.i.h.u} type="checkbox" class="rounded mb-1"/> pullup</label><br/>
+                    HAN RX<br/>
                     <select name="ihp" bind:value={configuration.i.h.p} class="in-f w-full">
                         <UartSelectOptions chip={sysinfo.chip}/>
                     </select>
                 </div>
                 <div class="w-1/3">
-                    AP button<br/>
-                    <input name="ia" bind:value={configuration.i.a} type="number" min="0" max={gpioMax} class="in-m tr w-full"/>
+                    HAN TX<br/>
+                    <select name="iht" bind:value={configuration.i.h.t} class="in-l w-full">
+                        <UartSelectOptions chip={sysinfo.chip}/>
+                    </select>
                 </div>
                 <div class="w-1/3">
-                    LED<label class="ml-4"><input name="ili" value="true" bind:checked={configuration.i.l.i} type="checkbox" class="rounded mb-1"/> inv</label><br/>
+                    <label class="ml-2"><input name="ihu" value="true" bind:checked={configuration.i.h.u} type="checkbox" class="rounded mb-1"/> pullup</label>
+                </div>
+            </div>
+            <div class="flex flex-wrap">
+                <div class="w-1/3">
+                    AP button<br/>
+                    <input name="ia" bind:value={configuration.i.a} type="number" min="0" max={gpioMax} class="in-f tr w-full"/>
+                </div>
+                <div class="w-1/3">
+                    LED<br/>
                     <div class="flex">
                         <input name="ilp" bind:value={configuration.i.l.p} type="number" min="0" max={gpioMax} class="in-l tr w-full"/>
                     </div>
+                </div>
+                <div class="w-1/3">
+                    <label class="ml-4"><input name="ili" value="true" bind:checked={configuration.i.l.i} type="checkbox" class="rounded mb-1"/> inverted</label>
                 </div>
                 <div class="w-full">
                     RGB<label class="ml-4"><input name="iri" value="true" bind:checked={configuration.i.r.i} type="checkbox" class="rounded mb-1"/> inverted</label><br/>
@@ -674,6 +746,12 @@
                         <input name="irr" bind:value={configuration.i.r.r} type="number" min="0" max={gpioMax} class="in-f tr w-1/3"/>
                         <input name="irg" bind:value={configuration.i.r.g} type="number" min="0" max={gpioMax} class="in-m tr w-1/3"/>
                         <input name="irb" bind:value={configuration.i.r.b} type="number" min="0" max={gpioMax} class="in-l tr w-1/3"/>
+                    </div>
+                </div>
+                <div class="w-full">
+                    <div class="my-1 pr-1 w-1/3">
+                        LED dis. GPIO
+                        <input name="idd" bind:value={configuration.i.d.d} type="number" min="0" max={gpioMax} class="in-s tr"/>
                     </div>
                 </div>
                 <div class="my-1 w-1/3">
@@ -700,6 +778,15 @@
                 </div>
                 {/if}
             </div> 
+            {/if}
+            {#if configuration.i.d.d > 0}
+            <div class="my-1 w-full">
+                LED behaviour
+                <select name="idb" bind:value={configuration.i.d.b} class="in-s">
+                    <option value={0}>Enabled</option>
+                    <option value={1}>Disabled</option>
+                </select>
+            </div>
             {/if}
             {#if sysinfo.chip == 'esp8266'}
             <input type="hidden" name="iv" value="true"/>

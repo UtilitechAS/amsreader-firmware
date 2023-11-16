@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _ENERGYACCOUNTING_H
 #define _ENERGYACCOUNTING_H
 

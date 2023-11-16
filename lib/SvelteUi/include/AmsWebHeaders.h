@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 static const char HEADER_CACHE_CONTROL[] PROGMEM = "Cache-Control";
 static const char HEADER_CONTENT_ENCODING[] PROGMEM = "Content-Encoding";
 static const char HEADER_PRAGMA[] PROGMEM = "Pragma";

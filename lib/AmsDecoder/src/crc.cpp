@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "crc.h"
 
 uint16_t crc16_x25(const uint8_t* p, int len)

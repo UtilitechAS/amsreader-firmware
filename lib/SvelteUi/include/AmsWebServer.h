@@ -1,8 +1,14 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _AMSWEBSERVER_h
 #define _AMSWEBSERVER_h
 
 #include "Arduino.h"
-#include <MQTT.h>
+#include "AmsMqttHandler.h"
 #include "AmsConfiguration.h"
 #include "HwTools.h"
 #include "AmsData.h"
@@ -12,6 +18,7 @@
 #include "Uptime.h"
 #include "RemoteDebug.h"
 #include "EntsoeApi.h"
+#include "RealtimePlot.h"
 
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>
@@ -32,29 +39,34 @@
 class AmsWebServer {
 public:
 	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw);
-    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*);
+    void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*);
     void loop();
 	void setMqtt(MQTTClient* mqtt);
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
 	void setEntsoeApi(EntsoeApi* eapi);
 	void setPriceSettings(String region, String currency);
+	void setMeterConfig(uint8_t distributionSystem, uint16_t mainFuse, uint16_t productionCapacity);
+	void setMqttHandler(AmsMqttHandler* mqttHandler);
 
 private:
 	RemoteDebug* debugger;
 	bool mqttEnabled = false;
 	int maxPwr = 0;
+	uint8_t distributionSystem = 0;
+	uint16_t mainFuse = 0, productionCapacity = 0;
+
 	HwTools* hw;
 	Timezone* tz;
 	EntsoeApi* eapi = NULL;
 	AmsConfiguration* config;
 	GpioConfig* gpioConfig;
-	MeterConfig* meterConfig;
 	WebConfig webConfig;
 	AmsData* meterState;
 	AmsDataStorage* ds;
     EnergyAccounting* ea = NULL;
-	MQTTClient* mqtt = NULL;
+	RealtimePlot* rtp = NULL;
+	AmsMqttHandler* mqttHandler = NULL;
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
@@ -92,6 +104,7 @@ private:
 	void energyPriceJson();
 	void temperatureJson();
 	void tariffJson();
+	void realtimeJson();
 
 	void configurationJson();
 	void handleSave();

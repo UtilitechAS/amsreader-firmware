@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "AmsWebServer.h"
 #include "AmsWebHeaders.h"
 #include "FirmwareVersion.h"
@@ -30,12 +36,13 @@
 #include "html/conf_domoticz_json.h"
 #include "html/conf_ha_json.h"
 #include "html/conf_ui_json.h"
+#include "html/conf_cloud_json.h"
 #include "html/firmware_html.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #include <esp_wifi.h>
-#include <esp_clk.h>
+#include <esp32/clk.h>
 #endif
 
 
@@ -55,13 +62,13 @@ AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw) {
 	this->buf = (char*) buf;
 }
 
-void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea) {
+void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea, RealtimePlot* rtp) {
     this->config = config;
 	this->gpioConfig = gpioConfig;
-	this->meterConfig = meterConfig;
 	this->meterState = meterState;
 	this->ds = ds;
 	this->ea = ea;
+	this->rtp = rtp;
 
 	server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	snprintf_P(buf, 32, PSTR("/index-%s.js"), FirmwareVersion::VersionString);
@@ -87,6 +94,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/energyprice.json"), HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
 	server.on(F("/temperature.json"), HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
 	server.on(F("/tariff.json"), HTTP_GET, std::bind(&AmsWebServer::tariffJson, this));
+	server.on(F("/realtime.json"), HTTP_GET, std::bind(&AmsWebServer::realtimeJson, this));
 
 	server.on(F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 	server.on(F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
@@ -124,11 +132,6 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	mqttEnabled = strlen(mqttConfig.host) > 0;
 }
 
-
-void AmsWebServer::setMqtt(MQTTClient* mqtt) {
-	this->mqtt = mqtt;
-}
-
 void AmsWebServer::setTimezone(Timezone* tz) {
 	this->tz = tz;
 }
@@ -136,28 +139,38 @@ void AmsWebServer::setTimezone(Timezone* tz) {
 void AmsWebServer::setMqttEnabled(bool enabled) {
 	mqttEnabled = enabled;
 }
+void AmsWebServer::setMqttHandler(AmsMqttHandler* mqttHandler) {
+	this->mqttHandler = mqttHandler;
+}
 
 void AmsWebServer::setEntsoeApi(EntsoeApi* eapi) {
 	this->eapi = eapi;
 }
 
+void AmsWebServer::setMeterConfig(uint8_t distributionSystem, uint16_t mainFuse, uint16_t productionCapacity) {
+	maxPwr = 0;
+	this->distributionSystem = distributionSystem;
+	this->mainFuse = mainFuse;
+	this->productionCapacity = productionCapacity;
+}
+
 void AmsWebServer::loop() {
 	server.handleClient();
 
-	if(maxPwr == 0 && meterState->getListType() > 1 && meterConfig->mainFuse > 0 && meterConfig->distributionSystem > 0) {
-		int voltage = meterConfig->distributionSystem == 2 ? 400 : 230;
+	if(maxPwr == 0 && meterState->getListType() > 1 && mainFuse > 0 && distributionSystem > 0) {
+		int voltage = distributionSystem == 2 ? 400 : 230;
 		if(meterState->isThreePhase()) {
-			maxPwr = meterConfig->mainFuse * sqrt(3) * voltage;
+			maxPwr = mainFuse * sqrt(3) * voltage;
 		} else if(meterState->isTwoPhase()) {
-			maxPwr = meterConfig->mainFuse * voltage;
+			maxPwr = mainFuse * voltage;
 		} else {
-			maxPwr = meterConfig->mainFuse * 230;
+			maxPwr = mainFuse * 230;
 		}
 	}
 }
 
 bool AmsWebServer::checkSecurity(byte level, bool send401) {
-	bool access = WiFi.getMode() == WIFI_AP || webConfig.security < level;
+	bool access = WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA || webConfig.security < level;
 	if(!access && webConfig.security >= level && server.hasHeader(F("Authorization"))) {
 		String expectedAuth = String(webConfig.username) + ":" + String(webConfig.password);
 
@@ -218,9 +231,9 @@ void AmsWebServer::sysinfoJson() {
 
 	String hostname;
 	if(sys.userConfigured) {
-		WiFiConfig wifiConfig;
-		config->getWiFiConfig(wifiConfig);
-		hostname = String(wifiConfig.hostname);
+		NetworkConfig networkConfig;
+		config->getNetworkConfig(networkConfig);
+		hostname = String(networkConfig.hostname);
 	} else {
 		hostname = "ams-"+chipIdStr;
 	}
@@ -303,6 +316,7 @@ void AmsWebServer::sysinfoJson() {
 		dns1 != INADDR_NONE ? dns1.toString().c_str() : "",
 		dns2 != INADDR_NONE ? dns2.toString().c_str() : "",
 		#endif
+		sys.boardType > 240 && sys.boardType < 250 ? "true" : "false",
 		meterState->getMeterType(),
 		meterModel.c_str(),
 		meterId.c_str(),
@@ -317,6 +331,8 @@ void AmsWebServer::sysinfoJson() {
 		ui.showDayPlot,
 		ui.showMonthPlot,
 		ui.showTemperaturePlot,
+		ui.showRealtimePlot,
+		ui.darkMode,
 		webConfig.security,
 		#if defined(ESP32)
 		rtc_get_reset_reason(0),
@@ -396,7 +412,7 @@ void AmsWebServer::dataJson() {
 	uint8_t hanStatus;
 	if(meterState->getLastError() != 0) {
 		hanStatus = 3;
-	} else if((meterConfig->baud == 0 || meterState->getLastUpdateMillis() == 0) && millis < 30000) {
+	} else if(meterState->getLastUpdateMillis() == 0 && millis < 30000) {
 		hanStatus = 0;
 	} else if(millis - meterState->getLastUpdateMillis() < 15000) {
 		hanStatus = 1;
@@ -418,9 +434,9 @@ void AmsWebServer::dataJson() {
 	uint8_t mqttStatus;
 	if(!mqttEnabled) {
 		mqttStatus = 0;
-	} else if(mqtt != NULL && mqtt->connected()) {
+	} else if(mqttHandler != NULL && mqttHandler->connected()) {
 		mqttStatus = 1;
-	} else if(mqtt != NULL && mqtt->lastError() == 0) {
+	} else if(mqttHandler != NULL && mqttHandler->lastError() == 0) {
 		mqttStatus = 2;
 	} else {
 		mqttStatus = 3;
@@ -438,8 +454,8 @@ void AmsWebServer::dataJson() {
 
 	snprintf_P(buf, BufferSize, DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
-		meterConfig->productionCapacity,
-		meterConfig->mainFuse == 0 ? 40 : meterConfig->mainFuse,
+		productionCapacity,
+		mainFuse == 0 ? 40 : mainFuse,
 		meterState->getActiveImportPower(),
 		meterState->getActiveExportPower(),
 		meterState->getReactiveImportPower(),
@@ -467,10 +483,10 @@ void AmsWebServer::dataJson() {
 		hanStatus,
 		wifiStatus,
 		mqttStatus,
-		mqtt == NULL ? 0 : (int) mqtt->lastError(),
+		mqttHandler == NULL ? 0 : (int) mqttHandler->lastError(),
 		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
 		meterState->getMeterType(),
-		meterConfig->distributionSystem,
+		distributionSystem,
 		ea->getMonthMax(),
 		peaks.c_str(),
 		ea->getCurrentThreshold(),
@@ -728,13 +744,12 @@ void AmsWebServer::temperatureJson() {
 		TempSensorData* data = hw->getTempSensorData(i);
 		if(data == NULL) continue;
 
-		TempSensorConfig* conf = config->getTempSensorConfig(data->address);
 		char* pos = buf+strlen(buf);
 		snprintf_P(pos, 72, TEMPSENSOR_JSON, 
 			i,
 			toHex(data->address, 8).c_str(),
-			conf == NULL ? "" : String(conf->name).substring(0,16).c_str(),
-			conf == NULL || conf->common ? 1 : 0,
+			"",
+			1,
 			data->lastRead
 		);
 		yield();
@@ -791,14 +806,19 @@ void AmsWebServer::configurationJson() {
 	if(!checkSecurity(1))
 		return;
 
+	MeterConfig meterConfig;
+	config->getMeterConfig(meterConfig);
+
+	SystemConfig sysConfig;
+	config->getSystemConfig(sysConfig);
 	NtpConfig ntpConfig;
 	config->getNtpConfig(ntpConfig);
-	WiFiConfig wifiConfig;
-	config->getWiFiConfig(wifiConfig);
+	NetworkConfig networkConfig;
+	config->getNetworkConfig(networkConfig);
 
 	bool encen = false;
 	for(uint8_t i = 0; i < 16; i++) {
-		if(meterConfig->encryptionKey[i] > 0) {
+		if(meterConfig.encryptionKey[i] > 0) {
 			encen = true;
 		}
 	}
@@ -817,6 +837,8 @@ void AmsWebServer::configurationJson() {
 	config->getUiConfig(ui);
 	HomeAssistantConfig haconf;
 	config->getHomeAssistantConfig(haconf);
+	CloudConfig cloud;
+	config->getCloudConfig(cloud);
 
 	bool qsc = false;
 	bool qsr = false;
@@ -839,28 +861,30 @@ void AmsWebServer::configurationJson() {
 	server.sendContent_P(PSTR("\","));
 	snprintf_P(buf, BufferSize, CONF_GENERAL_JSON,
 		ntpConfig.timezone,
-		wifiConfig.hostname,
+		networkConfig.hostname,
 		webConfig.security,
 		webConfig.username,
 		strlen(webConfig.password) > 0 ? "***" : ""
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_METER_JSON,
-		meterConfig->baud,
-		meterConfig->parity,
-		meterConfig->invert ? "true" : "false",
-		meterConfig->bufferSize * 64,
-		meterConfig->distributionSystem,
-		meterConfig->mainFuse,
-		meterConfig->productionCapacity,
+		meterConfig.source,
+		meterConfig.parser,
+		meterConfig.baud,
+		meterConfig.parity,
+		meterConfig.invert ? "true" : "false",
+		meterConfig.bufferSize * 64,
+		meterConfig.distributionSystem,
+		meterConfig.mainFuse,
+		meterConfig.productionCapacity,
 		encen ? "true" : "false",
-		toHex(meterConfig->encryptionKey, 16).c_str(),
-		toHex(meterConfig->authenticationKey, 16).c_str(),
-		meterConfig->wattageMultiplier > 1 || meterConfig->voltageMultiplier > 1 || meterConfig->amperageMultiplier > 1 || meterConfig->accumulatedMultiplier > 1 ? "true" : "false",
-		meterConfig->wattageMultiplier / 1000.0,
-		meterConfig->voltageMultiplier / 1000.0,
-		meterConfig->amperageMultiplier / 1000.0,
-		meterConfig->accumulatedMultiplier / 1000.0
+		toHex(meterConfig.encryptionKey, 16).c_str(),
+		toHex(meterConfig.authenticationKey, 16).c_str(),
+		meterConfig.wattageMultiplier > 1 || meterConfig.voltageMultiplier > 1 || meterConfig.amperageMultiplier > 1 || meterConfig.accumulatedMultiplier > 1 ? "true" : "false",
+		meterConfig.wattageMultiplier / 1000.0,
+		meterConfig.voltageMultiplier / 1000.0,
+		meterConfig.amperageMultiplier / 1000.0,
+		meterConfig.accumulatedMultiplier / 1000.0
 	);
 	server.sendContent(buf);
 
@@ -879,22 +903,22 @@ void AmsWebServer::configurationJson() {
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_WIFI_JSON,
-		wifiConfig.ssid,
-		strlen(wifiConfig.psk) > 0 ? "***" : "",
-		wifiConfig.power / 10.0,
-		wifiConfig.sleep,
-		wifiConfig.autoreboot ? "true" : "false",
-		wifiConfig.use11b ? "true" : "false"
+		networkConfig.ssid,
+		strlen(networkConfig.psk) > 0 ? "***" : "",
+		networkConfig.power / 10.0,
+		networkConfig.sleep,
+		networkConfig.use11b ? "true" : "false"
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_NET_JSON,
-		strlen(wifiConfig.ip) > 0 ? "static" : "dhcp",
-		wifiConfig.ip,
-		wifiConfig.subnet,
-		wifiConfig.gateway,
-		wifiConfig.dns1,
-		wifiConfig.dns2,
-		wifiConfig.mdns ? "true" : "false",
+		networkConfig.mode,
+		strlen(networkConfig.ip) > 0 ? "static" : "dhcp",
+		networkConfig.ip,
+		networkConfig.subnet,
+		networkConfig.gateway,
+		networkConfig.dns1,
+		networkConfig.dns2,
+		networkConfig.mdns ? "true" : "false",
 		ntpConfig.server,
 		ntpConfig.dhcp ? "true" : "false"
 	);
@@ -929,8 +953,9 @@ void AmsWebServer::configurationJson() {
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_GPIO_JSON,
-		gpioConfig->hanPin == 0xff ? "null" : String(gpioConfig->hanPin, 10).c_str(),
-		gpioConfig->hanPinPullup ? "true" : "false",
+		meterConfig.rxPin == 0xff ? "null" : String(meterConfig.rxPin, 10).c_str(),
+		meterConfig.rxPinPullup ? "true" : "false",
+		meterConfig.txPin == 0xff ? "null" : String(meterConfig.txPin, 10).c_str(),
 		gpioConfig->apPin == 0xff ? "null" : String(gpioConfig->apPin, 10).c_str(),
 		gpioConfig->ledPin == 0xff ? "null" : String(gpioConfig->ledPin, 10).c_str(),
 		gpioConfig->ledInverted ? "true" : "false",
@@ -938,6 +963,8 @@ void AmsWebServer::configurationJson() {
 		gpioConfig->ledPinGreen == 0xff ? "null" : String(gpioConfig->ledPinGreen, 10).c_str(),
 		gpioConfig->ledPinBlue == 0xff ? "null" : String(gpioConfig->ledPinBlue, 10).c_str(),
 		gpioConfig->ledRgbInverted ? "true" : "false",
+		gpioConfig->ledDisablePin == 0xff ? "null" : String(gpioConfig->ledDisablePin, 10).c_str(),
+		gpioConfig->ledBehaviour,
 		gpioConfig->tempSensorPin == 0xff ? "null" : String(gpioConfig->tempSensorPin, 10).c_str(),
 		gpioConfig->tempAnalogSensorPin == 0xff ? "null" : String(gpioConfig->tempAnalogSensorPin, 10).c_str(),
 		gpioConfig->vccPin == 0xff ? "null" : String(gpioConfig->vccPin, 10).c_str(),
@@ -959,7 +986,9 @@ void AmsWebServer::configurationJson() {
 		ui.showPricePlot,
 		ui.showDayPlot,
 		ui.showMonthPlot,
-		ui.showTemperaturePlot
+		ui.showTemperaturePlot,
+		ui.showRealtimePlot,
+		ui.darkMode
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_DOMOTICZ_JSON,
@@ -974,6 +1003,17 @@ void AmsWebServer::configurationJson() {
 		haconf.discoveryPrefix,
 		haconf.discoveryHostname,
 		haconf.discoveryNameTag
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
+		cloud.enabled ? "true" : "false",
+		cloud.clientId,
+		strlen(cloud.clientSecret) > 0 ? "***" : "",
+		#if defined(ENERGY_SPEEDOMETER_PASS)
+		sysConfig.energyspeedometer == 7 ? "true" : "false"
+		#else
+		"null"
+		#endif
 	);
 	server.sendContent(buf);
 	server.sendContent_P(PSTR("}"));
@@ -992,13 +1032,16 @@ void AmsWebServer::handleSave() {
 			config->clear();
 		}
 
+		MeterConfig meterConfig;
+		config->getMeterConfig(meterConfig);
+
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
 			switch(boardType) {
 				case 5: // Pow-K+
 				case 7: // Pow-U+
 				case 6: // Pow-P1
 					config->clearGpio(*gpioConfig);
-					gpioConfig->hanPin = 16;
+					meterConfig.rxPin = 16;
 					gpioConfig->apPin = 0;
 					gpioConfig->ledPinRed = 13;
 					gpioConfig->ledPinGreen = 14;
@@ -1006,20 +1049,21 @@ void AmsWebServer::handleSave() {
 					gpioConfig->vccPin = 10;
 					gpioConfig->vccResistorGnd = 22;
 					gpioConfig->vccResistorVcc = 33;
+					gpioConfig->ledDisablePin = 6;
 					break;
 				case 51: // Wemos S2 mini
 					gpioConfig->ledPin = 15;
 					gpioConfig->ledInverted = false;
 					gpioConfig->apPin = 0;
-					gpioConfig->hanPin = hanPin > 0 ? hanPin : 18;
-					if(gpioConfig->hanPin != 18) {
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 18;
+					if(meterConfig.rxPin != 18) {
 						gpioConfig->vccPin = 18;
 						gpioConfig->vccResistorGnd = 45;
 						gpioConfig->vccResistorVcc = 10;
 					}
 					break;
 				case 50: // Generic ESP32-S2
-					gpioConfig->hanPin = hanPin > 0 ? hanPin : 18;
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 18;
 					break;
 				default:
 					success = false;
@@ -1027,8 +1071,8 @@ void AmsWebServer::handleSave() {
 		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
 			switch(boardType) {
 				case 8: // dbeinder: HAN mosquito
-					gpioConfig->hanPin = 7;
-					gpioConfig->hanPinPullup = false;
+					meterConfig.rxPin = 7;
+					meterConfig.rxPinPullup = false;
 					gpioConfig->apPin = 9;
 					gpioConfig->ledRgbInverted = true;
 					gpioConfig->ledPinRed = 5;
@@ -1038,15 +1082,27 @@ void AmsWebServer::handleSave() {
 				case 71: // ESP32-C3-DevKitM-1
 					gpioConfig->apPin = 9;
 				case 70: // Generic ESP32-C3
-					gpioConfig->hanPin = hanPin > 0 ? hanPin : 7;
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 7;
 					break;
 				default:
 					success = false;
 			}
 		#elif defined(ESP32)
 			switch(boardType) {
+				case 241: // LilyGO T-ETH-POE
+					gpioConfig->apPin = 0;
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 39;
+					gpioConfig->ledPin = 2;
+					gpioConfig->ledInverted = true;
+					break;
+				case 242: // M5 PoESP32
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 16;
+					break;
+				case 243: // WT32-ETH01
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 39;
+					break;
 				case 201: // D32
-					gpioConfig->hanPin = hanPin > 0 ? hanPin : 16;
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 16;
 					gpioConfig->apPin = 4;
 					gpioConfig->ledPin = 5;
 					gpioConfig->ledInverted = true;
@@ -1054,7 +1110,7 @@ void AmsWebServer::handleSave() {
 				case 202: // Feather
 				case 203: // DevKitC
 				case 200: // ESP32
-					gpioConfig->hanPin = hanPin > 0 ? hanPin : 16;
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 16;
 					gpioConfig->ledPin = 2;
 					gpioConfig->ledInverted = false;
 					break;
@@ -1066,7 +1122,7 @@ void AmsWebServer::handleSave() {
 				case 2: // spenceme
 					config->clearGpio(*gpioConfig);
 					gpioConfig->vccBootLimit = 32;
-					gpioConfig->hanPin = 3;
+					meterConfig.rxPin = 3;
 					gpioConfig->apPin = 0;
 					gpioConfig->ledPin = 2;
 					gpioConfig->ledInverted = true;
@@ -1074,7 +1130,7 @@ void AmsWebServer::handleSave() {
 					break;
 				case 0: // roarfred
 					config->clearGpio(*gpioConfig);
-					gpioConfig->hanPin = 3;
+					meterConfig.rxPin = 3;
 					gpioConfig->apPin = 0;
 					gpioConfig->ledPin = 2;
 					gpioConfig->ledInverted = true;
@@ -1084,7 +1140,7 @@ void AmsWebServer::handleSave() {
 				case 3: // Pow-K UART0
 				case 4: // Pow-U UART0
 					config->clearGpio(*gpioConfig);
-					gpioConfig->hanPin = 3;
+					meterConfig.rxPin = 3;
 					gpioConfig->apPin = 0;
 					gpioConfig->ledPin = 2;
 					gpioConfig->ledInverted = true;
@@ -1095,7 +1151,7 @@ void AmsWebServer::handleSave() {
 				case 5: // Pow-K GPIO12
 				case 7: // Pow-U GPIO12
 					config->clearGpio(*gpioConfig);
-					gpioConfig->hanPin = 12;
+					meterConfig.rxPin = 12;
 					gpioConfig->apPin = 0;
 					gpioConfig->ledPin = 2;
 					gpioConfig->ledInverted = true;
@@ -1104,14 +1160,14 @@ void AmsWebServer::handleSave() {
 					gpioConfig->ledRgbInverted = true;
 					break;
 				case 101: // D1
-					gpioConfig->hanPin = hanPin > 0 ? hanPin : 5;
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 5;
 					gpioConfig->apPin = 4;
 					gpioConfig->ledPin = 2;
 					gpioConfig->ledInverted = true;
 					gpioConfig->vccMultiplier = 1100;
 					break;
 				case 100: // ESP8266
-					gpioConfig->hanPin = hanPin > 0 ? hanPin : 3;
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 3;
 					gpioConfig->ledPin = 2;
 					gpioConfig->ledInverted = true;
 					break;
@@ -1130,69 +1186,72 @@ void AmsWebServer::handleSave() {
 		}
 	}
 
-	if(server.hasArg(F("s")) && server.arg(F("s")) == F("true") && server.hasArg(F("ss")) && !server.arg(F("ss")).isEmpty()) {
+	if(server.hasArg(F("s")) && server.arg(F("s")) == F("true")) {
 		SystemConfig sys;
 		config->getSystemConfig(sys);
+		MeterConfig meterConfig;
+		config->getMeterConfig(meterConfig);
 
 		config->clear();
 
-		WiFiConfig wifi;
-		config->clearWifi(wifi);
+		NetworkConfig network;
+		config->clearNetworkConfig(network);
 
-		strcpy(wifi.ssid, server.arg(F("ss")).c_str());
+		strcpy(network.ssid, server.arg(F("ss")).c_str());
 
 		String psk = server.arg(F("sp"));
 		if(!psk.equals("***")) {
-			strcpy(wifi.psk, psk.c_str());
+			strcpy(network.psk, psk.c_str());
 		}
+		network.mode = server.arg(F("sc")).toInt();
+		if(network.mode > 3 || network.mode == 0) network.mode = 1; // WiFi Client
 
-		if(server.hasArg(F("sm")) && server.arg(F("sm")) == "static") {
-			strcpy(wifi.ip, server.arg(F("si")).c_str());
-			strcpy(wifi.gateway, server.arg(F("sg")).c_str());
-			strcpy(wifi.subnet, server.arg(F("su")).c_str());
-			strcpy(wifi.dns1, server.arg(F("sd")).c_str());
-		}
+		if(network.mode == 3 || strlen(network.ssid) > 0) {
+			if(server.hasArg(F("sm")) && server.arg(F("sm")) == "static") {
+				strcpy(network.ip, server.arg(F("si")).c_str());
+				strcpy(network.gateway, server.arg(F("sg")).c_str());
+				strcpy(network.subnet, server.arg(F("su")).c_str());
+				strcpy(network.dns1, server.arg(F("sd")).c_str());
+			}
 
-		if(server.hasArg(F("sh")) && !server.arg(F("sh")).isEmpty()) {
-			strcpy(wifi.hostname, server.arg(F("sh")).c_str());
-			wifi.mdns = true;
-		} else {
-			wifi.mdns = false;
-		}
-		
-		switch(sys.boardType) {
-			case 6: // Pow-P1
-				meterConfig->baud = 115200;
-				meterConfig->parity = 3; // 8N1
-				break;
-			case 3: // Pow-K UART0
-			case 5: // Pow-K+
-				meterConfig->baud = 2400;
-				meterConfig->parity = 3; // 8N1
-			case 2: // spenceme
-			case 50: // Generic ESP32-S2
-			case 51: // Wemos S2 mini
-			case 70: // Generic ESP32-C3
-			case 71: // ESP32-C3-DevKitM-1
-				wifi.sleep = 1; // Modem sleep
-				break;
-			case 4: // Pow-U UART0
-			case 7: // Pow-U+
-				wifi.sleep = 2; // Light sleep
-				break;
-			case 8: // dbeinder: HAN mosquito
-				wifi.sleep = 1; // Modem sleep
-				wifi.use11b = 0;
-				break;
-		}
-		config->setWiFiConfig(wifi);
-		config->setMeterConfig(*meterConfig);
-		
-		sys.userConfigured = success;
-		sys.dataCollectionConsent = 0;
-		config->setSystemConfig(sys);
+			if(server.hasArg(F("sh")) && !server.arg(F("sh")).isEmpty()) {
+				strcpy(network.hostname, server.arg(F("sh")).c_str());
+				network.mdns = true;
+			} else {
+				network.mdns = false;
+			}
+			
+			switch(sys.boardType) {
+				case 6: // Pow-P1
+					meterConfig.baud = 115200;
+					meterConfig.parity = 3; // 8N1
+					break;
+				case 3: // Pow-K UART0
+				case 5: // Pow-K+
+					meterConfig.baud = 2400;
+					meterConfig.parity = 3; // 8N1
+				case 2: // spenceme
+				case 8: // dbeinder: HAN mosquito
+				case 50: // Generic ESP32-S2
+				case 51: // Wemos S2 mini
+				case 70: // Generic ESP32-C3
+				case 71: // ESP32-C3-DevKitM-1
+					network.sleep = 1; // Modem sleep
+					break;
+				case 4: // Pow-U UART0
+				case 7: // Pow-U+
+					network.sleep = 2; // Light sleep
+					break;
+			}
+			config->setNetworkConfig(network);
+			config->setMeterConfig(meterConfig);
+			
+			sys.userConfigured = success;
+			sys.dataCollectionConsent = 0;
+			config->setSystemConfig(sys);
 
-		performRestart = true;
+			performRestart = true;
+		}
 	} else if(server.hasArg(F("sf")) && !server.arg(F("sf")).isEmpty()) {
 		SystemConfig sys;
 		config->getSystemConfig(sys);
@@ -1202,76 +1261,80 @@ void AmsWebServer::handleSave() {
 
 	if(server.hasArg(F("m")) && server.arg(F("m")) == F("true")) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received meter config\n"));
-		config->getMeterConfig(*meterConfig);
-		meterConfig->baud = server.arg(F("mb")).toInt();
-		meterConfig->parity = server.arg(F("mp")).toInt();
-		meterConfig->invert = server.hasArg(F("mi")) && server.arg(F("mi")) == F("true");
-		meterConfig->distributionSystem = server.arg(F("md")).toInt();
-		meterConfig->mainFuse = server.arg(F("mf")).toInt();
-		meterConfig->productionCapacity = server.arg(F("mr")).toInt();
-		meterConfig->bufferSize = min((double) 64, ceil((server.arg(F("ms")).toInt()) / 64));
+		MeterConfig meterConfig;
+		config->getMeterConfig(meterConfig);
+		meterConfig.source = server.arg(F("mo")).toInt();
+		meterConfig.parser = server.arg(F("ma")).toInt();
+		meterConfig.baud = server.arg(F("mb")).toInt();
+		meterConfig.parity = server.arg(F("mp")).toInt();
+		meterConfig.invert = server.hasArg(F("mi")) && server.arg(F("mi")) == F("true");
+		meterConfig.distributionSystem = server.arg(F("md")).toInt();
+		meterConfig.mainFuse = server.arg(F("mf")).toInt();
+		meterConfig.productionCapacity = server.arg(F("mr")).toInt();
+		meterConfig.bufferSize = min((double) 64, ceil((server.arg(F("ms")).toInt()) / 64));
 		maxPwr = 0;
 
 		if(server.hasArg(F("me")) && server.arg(F("me")) == F("true")) {
 			String encryptionKeyHex = server.arg(F("mek"));
 			if(!encryptionKeyHex.isEmpty()) {
 				encryptionKeyHex.replace(F("0x"), F(""));
-				fromHex(meterConfig->encryptionKey, encryptionKeyHex, 16);
+				fromHex(meterConfig.encryptionKey, encryptionKeyHex, 16);
 			} else {
-				memset(meterConfig->encryptionKey, 0, 16);
+				memset(meterConfig.encryptionKey, 0, 16);
 			}
 
 			String authenticationKeyHex = server.arg(F("mea"));
 			if(!authenticationKeyHex.isEmpty()) {
 				authenticationKeyHex.replace(F("0x"), F(""));
-				fromHex(meterConfig->authenticationKey, authenticationKeyHex, 16);
+				fromHex(meterConfig.authenticationKey, authenticationKeyHex, 16);
 			} else {
-				memset(meterConfig->authenticationKey, 0, 16);
+				memset(meterConfig.authenticationKey, 0, 16);
 			}
 		} else {
-			memset(meterConfig->encryptionKey, 0, 16);
-			memset(meterConfig->authenticationKey, 0, 16);
+			memset(meterConfig.encryptionKey, 0, 16);
+			memset(meterConfig.authenticationKey, 0, 16);
 		}
 
-		meterConfig->wattageMultiplier = server.arg(F("mmw")).toFloat() * 1000;
-		meterConfig->voltageMultiplier = server.arg(F("mmv")).toFloat() * 1000;
-		meterConfig->amperageMultiplier = server.arg(F("mma")).toFloat() * 1000;
-		meterConfig->accumulatedMultiplier = server.arg(F("mmc")).toFloat() * 1000;
-		config->setMeterConfig(*meterConfig);
+		meterConfig.wattageMultiplier = server.arg(F("mmw")).toFloat() * 1000;
+		meterConfig.voltageMultiplier = server.arg(F("mmv")).toFloat() * 1000;
+		meterConfig.amperageMultiplier = server.arg(F("mma")).toFloat() * 1000;
+		meterConfig.accumulatedMultiplier = server.arg(F("mmc")).toFloat() * 1000;
+		config->setMeterConfig(meterConfig);
 	}
 
 	if(server.hasArg(F("w")) && server.arg(F("w")) == F("true")) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received WiFi config\n"));
-		WiFiConfig wifi;
-		config->getWiFiConfig(wifi);
-		strcpy(wifi.ssid, server.arg(F("ws")).c_str());
+		NetworkConfig network;
+		config->getNetworkConfig(network);
+		strcpy(network.ssid, server.arg(F("ws")).c_str());
 		String psk = server.arg(F("wp"));
 		if(!psk.equals("***")) {
-			strcpy(wifi.psk, psk.c_str());
+			strcpy(network.psk, psk.c_str());
 		}
-		wifi.power = server.arg(F("ww")).toFloat() * 10;
-		wifi.sleep = server.arg(F("wz")).toInt();
-		wifi.autoreboot = server.hasArg(F("wa")) && server.arg(F("wa")) == F("true");
-		wifi.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
-		config->setWiFiConfig(wifi);
+		network.power = server.arg(F("ww")).toFloat() * 10;
+		network.sleep = server.arg(F("wz")).toInt();
+		network.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
+		network.mode = server.arg(F("nc")).toInt();
+		if(network.mode > 3) network.mode = 1; // WiFi Client
+		config->setNetworkConfig(network);
 
 		if(server.hasArg(F("nm"))) {
 			if(server.arg(F("nm")) == "static") {
-				strcpy(wifi.ip, server.arg(F("ni")).c_str());
-				strcpy(wifi.gateway, server.arg(F("ng")).c_str());
-				strcpy(wifi.subnet, server.arg(F("ns")).c_str());
-				strcpy(wifi.dns1, server.arg(F("nd1")).c_str());
-				strcpy(wifi.dns2, server.arg(F("nd2")).c_str());
+				strcpy(network.ip, server.arg(F("ni")).c_str());
+				strcpy(network.gateway, server.arg(F("ng")).c_str());
+				strcpy(network.subnet, server.arg(F("ns")).c_str());
+				strcpy(network.dns1, server.arg(F("nd1")).c_str());
+				strcpy(network.dns2, server.arg(F("nd2")).c_str());
 			} else if(server.arg(F("nm")) == "dhcp") {
-				strcpy(wifi.ip, "");
-				strcpy(wifi.gateway, "");
-				strcpy(wifi.subnet, "");
-				strcpy(wifi.dns1, "");
-				strcpy(wifi.dns2, "");
+				strcpy(network.ip, "");
+				strcpy(network.gateway, "");
+				strcpy(network.subnet, "");
+				strcpy(network.dns1, "");
+				strcpy(network.dns2, "");
 			}
 		}
-		wifi.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == F("true");
-		config->setWiFiConfig(wifi);
+		network.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == F("true");
+		config->setNetworkConfig(network);
 	}
 
 	if(server.hasArg(F("ntp")) && server.arg(F("ntp")) == F("true")) {
@@ -1353,12 +1416,12 @@ void AmsWebServer::handleSave() {
 		}
 		config->setWebConfig(webConfig);
 
-		WiFiConfig wifi;
-		config->getWiFiConfig(wifi);
+		NetworkConfig network;
+		config->getNetworkConfig(network);
 		if(server.hasArg(F("gh")) && !server.arg(F("gh")).isEmpty()) {
-			strcpy(wifi.hostname, server.arg(F("gh")).c_str());
+			strcpy(network.hostname, server.arg(F("gh")).c_str());
 		}
-		config->setWiFiConfig(wifi);
+		config->setNetworkConfig(network);
 
 		NtpConfig ntp;
 		config->getNtpConfig(ntp);
@@ -1368,8 +1431,13 @@ void AmsWebServer::handleSave() {
 
 	if(server.hasArg(F("i")) && server.arg(F("i")) == F("true")) {
 		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received GPIO config\n"));
-		gpioConfig->hanPin = server.hasArg(F("ihp")) && !server.arg(F("ihp")).isEmpty() ? server.arg(F("ihp")).toInt() : 3;
-		gpioConfig->hanPinPullup = server.hasArg(F("ihu")) && server.arg(F("ihu")) == F("true");
+		MeterConfig meterConfig;
+		config->getMeterConfig(meterConfig);
+		meterConfig.rxPin = server.hasArg(F("ihp")) && !server.arg(F("ihp")).isEmpty() ? server.arg(F("ihp")).toInt() : 3;
+		meterConfig.rxPinPullup = server.hasArg(F("ihu")) && server.arg(F("ihu")) == F("true");
+		meterConfig.txPin = server.hasArg(F("iht")) && !server.arg(F("iht")).isEmpty() ? server.arg(F("iht")).toInt() : 1;
+		config->setMeterConfig(meterConfig);
+
 		gpioConfig->ledPin = server.hasArg(F("ilp")) && !server.arg(F("ilp")).isEmpty() ? server.arg(F("ilp")).toInt() : 0xFF;
 		gpioConfig->ledInverted = server.hasArg(F("ili")) && server.arg(F("ili")) == F("true");
 		gpioConfig->ledPinRed = server.hasArg(F("irr")) && !server.arg(F("irr")).isEmpty() ? server.arg(F("irr")).toInt() : 0xFF;
@@ -1382,6 +1450,12 @@ void AmsWebServer::handleSave() {
 		gpioConfig->vccPin = server.hasArg(F("ivp")) && !server.arg(F("ivp")).isEmpty() ? server.arg(F("ivp")).toInt() : 0xFF;
 		gpioConfig->vccResistorGnd = server.hasArg(F("ivdg")) && !server.arg(F("ivdg")).isEmpty() ? server.arg(F("ivdg")).toInt() : 0;
 		gpioConfig->vccResistorVcc = server.hasArg(F("ivdv")) && !server.arg(F("ivdv")).isEmpty() ? server.arg(F("ivdv")).toInt() : 0;
+		gpioConfig->ledDisablePin =  server.hasArg(F("idd")) && !server.arg(F("idd")).isEmpty() ? server.arg(F("idd")).toInt() : 0;
+		config->setGpioConfig(*gpioConfig);
+	}
+
+	if(server.hasArg(F("idb"))) {
+		gpioConfig->ledBehaviour =  server.hasArg(F("idb")) && !server.arg(F("idb")).isEmpty() ? server.arg(F("idb")).toInt() : 0;
 		config->setGpioConfig(*gpioConfig);
 	}
 
@@ -1410,9 +1484,9 @@ void AmsWebServer::handleSave() {
 				debugger->setPassword(F(""));
 			}
 			debugger->setSerialEnabled(debug.serial);
-			WiFiConfig wifi;
-			if(config->getWiFiConfig(wifi) && strlen(wifi.hostname) > 0) {
-				debugger->begin(wifi.hostname, (uint8_t) debug.level);
+			NetworkConfig network;
+			if(config->getNetworkConfig(network) && strlen(network.hostname) > 0) {
+				debugger->begin(network.hostname, (uint8_t) debug.level);
 				if(!debug.telnet) {
 					debugger->stop();
 				}
@@ -1437,6 +1511,8 @@ void AmsWebServer::handleSave() {
 		ui.showDayPlot = server.arg(F("ud")).toInt();
 		ui.showMonthPlot = server.arg(F("um")).toInt();
 		ui.showTemperaturePlot = server.arg(F("us")).toInt();
+		ui.showRealtimePlot = server.arg(F("ul")).toInt();
+		ui.darkMode = server.arg(F("uk")).toInt();
 		config->setUiConfig(ui);
 	}
 
@@ -1471,11 +1547,38 @@ void AmsWebServer::handleSave() {
 		config->setEnergyAccountingConfig(eac);
 	}
 
+	if(server.hasArg(F("c")) && server.arg(F("c")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received cloud config\n"));
+		SystemConfig sys;
+		config->getSystemConfig(sys);
+		sys.energyspeedometer = server.hasArg(F("ces")) && server.arg(F("ces")) == F("true") ? 7 : 0;
+		config->setSystemConfig(sys);
+
+		CloudConfig cloud;
+		config->getCloudConfig(cloud);
+		cloud.enabled = server.hasArg(F("ce")) && server.arg(F("ce")) == F("true");
+		if(cloud.enabled) {
+			String host = server.arg("ch");
+			if(!host.isEmpty()) {
+				strcpy(cloud.hostname, host.c_str());
+			}
+			String clientId = server.arg(F("ci")).c_str();
+			if(!clientId.isEmpty()) {
+				strcpy(cloud.clientId, clientId.c_str());
+			}
+			String secret = server.arg(F("cs"));
+			if(!secret.isEmpty() && !secret.equals("***")) {
+				strcpy(cloud.clientSecret, secret.c_str());
+			}
+		}
+		config->setCloudConfig(cloud);
+	}
+
 	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Saving configuration now...\n"));
 
 	if (config->save()) {
 		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully saved.\n"));
-		if(config->isWifiChanged() || performRestart) {
+		if(config->isNetworkConfigChanged() || performRestart) {
 			performRestart = true;
 		} else {
 			hw->setup(gpioConfig, config);
@@ -1702,14 +1805,8 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 			}
 	    } 
     } else if(upload.status == UPLOAD_FILE_WRITE) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) {
-			debugger->printf_P(PSTR("handleFileUpload Writing: %u\n"), upload.currentSize);
-		}
         if(file) {
             size_t written = file.write(upload.buf, upload.currentSize);
-			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf_P(PSTR("handleFileUpload Written: %u\n"), written);
-			}
 			delay(1);
 			if(written != upload.currentSize) {
 				file.flush();
@@ -1942,6 +2039,30 @@ void AmsWebServer::tariffJson() {
 	server.send(200, MIME_JSON, buf);
 }
 
+void AmsWebServer::realtimeJson() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /realtime.json over http...\n"));
+	if(rtp == NULL) {
+		server.send_P(500, MIME_PLAIN, PSTR("500: Not available"));
+		return;
+	}
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+	snprintf_P(buf, BufferSize, PSTR("{\"size\":\"%d\",\"data\":["), rtp->getSize());
+	server.send(200, MIME_JSON, buf);
+	bool first = true;
+	for(uint16_t i = 0; i < rtp->getSize(); i++) {
+		snprintf_P(buf, BufferSize, PSTR("%s%d"), first ? "" : ",", rtp->getValue(i));
+		server.sendContent(buf);
+		first = false;
+	}
+	snprintf_P(buf, BufferSize, PSTR("]}"));
+	server.sendContent(buf);
+}
+
 void AmsWebServer::setPriceSettings(String region, String currency) {
 	this->priceRegion = region;
 	this->priceCurrency = currency;
@@ -1977,20 +2098,21 @@ void AmsWebServer::configFileDownload() {
 	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("boardType %d\n"), sys.boardType));
 	
 	if(includeWifi) {
-		WiFiConfig wifi;
-		config->getWiFiConfig(wifi);
-		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("hostname %s\n"), wifi.hostname));
-		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ssid %s\n"), wifi.ssid));
-		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("psk %s\n"), wifi.psk));
-		if(strlen(wifi.ip) > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ip %s\n"), wifi.ip));
-			if(strlen(wifi.gateway) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gateway %s\n"), wifi.gateway));
-			if(strlen(wifi.subnet) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("subnet %s\n"), wifi.subnet));
-			if(strlen(wifi.dns1) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dns1 %s\n"), wifi.dns1));
-			if(strlen(wifi.dns2) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dns2 %s\n"), wifi.dns2));
+		NetworkConfig network;
+		config->getNetworkConfig(network);
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("netmode %d\n"), network.mode));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("hostname %s\n"), network.hostname));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ssid %s\n"), network.ssid));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("psk %s\n"), network.psk));
+		if(strlen(network.ip) > 0) {
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ip %s\n"), network.ip));
+			if(strlen(network.gateway) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gateway %s\n"), network.gateway));
+			if(strlen(network.subnet) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("subnet %s\n"), network.subnet));
+			if(strlen(network.dns1) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dns1 %s\n"), network.dns1));
+			if(strlen(network.dns2) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dns2 %s\n"), network.dns2));
 		}
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mdns %d\n"), wifi.mdns ? 1 : 0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("use11b %d\n"), wifi.use11b ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mdns %d\n"), network.mdns ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("use11b %d\n"), network.use11b ? 1 : 0));
 	}
 	
 	if(includeMqtt) {
@@ -2065,10 +2187,12 @@ void AmsWebServer::configFileDownload() {
 	}
 
 	if(includeGpio) {
+		MeterConfig meter;
+		config->getMeterConfig(meter);
 		GpioConfig gpio;
 		config->getGpioConfig(gpio);
-		if(gpio.hanPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioHanPin %d\n"), gpio.hanPin));
-		if(gpio.hanPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioHanPinPullup %d\n"), gpio.hanPinPullup ? 1 : 0));
+		if(meter.rxPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioHanPin %d\n"), meter.rxPin));
+		if(meter.rxPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioHanPinPullup %d\n"), meter.rxPinPullup ? 1 : 0));
 		if(gpio.apPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioApPin %d\n"), gpio.apPin));
 		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPin %d\n"), gpio.ledPin));
 		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedInverted %d\n"), gpio.ledInverted ? 1 : 0));

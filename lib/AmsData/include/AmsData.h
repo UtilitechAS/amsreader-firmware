@@ -1,8 +1,15 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _AMSDATA_H
 #define _AMSDATA_H
 
 #include "Arduino.h"
 #include <Timezone.h>
+#include "OBIScodes.h"
 
 enum AmsType {
     AmsTypeAutodetect = 0x00,
@@ -21,6 +28,7 @@ public:
     AmsData();
 
     void apply(AmsData& other);
+    void apply(const OBIS_code_t obis, double value);
 
     uint64_t getLastUpdateMillis();
 
@@ -68,6 +76,7 @@ public:
 
     bool isThreePhase();
     bool isTwoPhase();
+    bool isCounterEstimated();
 
     int8_t getLastError();
     void setLastError(int8_t);

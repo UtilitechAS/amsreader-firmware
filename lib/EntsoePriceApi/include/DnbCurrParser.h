@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _DNBCURRPARSER_H
 #define _DNBCURRPARSER_H
 

@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "HdlcParser.h"
 #include "lwip/def.h"
 #include "crc.h"
@@ -49,7 +55,10 @@ int8_t HDLCParser::parse(uint8_t *d, DataParserContext &ctx) {
         ptr += 3;
 
         // Exclude all of header and 3 byte footer
-        ctx.length -= ptr-d+3;
+        ctx.length -= ptr-d;
+        if(ctx.length > 1) {
+            ctx.length -= 3;
+        }
         return ptr-d;
     }
     return DATA_PARSE_UNKNOWN_DATA;

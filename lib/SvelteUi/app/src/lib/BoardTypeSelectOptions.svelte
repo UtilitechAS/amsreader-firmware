@@ -27,6 +27,9 @@
         <option value={201}>{boardtype(chip, 201)}</option>
         <option value={202}>{boardtype(chip, 202)}</option>
         <option value={203}>{boardtype(chip, 203)}</option>
+        <option value={241}>{boardtype(chip, 241)}</option>
+        <option value={242}>{boardtype(chip, 242)}</option>
+        <option value={243}>{boardtype(chip, 243)}</option>
         <option value={200}>{boardtype(chip, 200)}</option>
     </optgroup>
 {/if}

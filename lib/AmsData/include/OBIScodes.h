@@ -37,6 +37,8 @@ struct OBIS_t {
 
 const OBIS_code_t OBIS_NULL PROGMEM =                  {   0,   0,   0 };
 
+const OBIS_code_t OBIS_FIRMWARE_VERSION PROGMEM =      {   0,   2,   0 };
+
 const OBIS_code_t OBIS_VERSION PROGMEM =               {   0,   2, 129 };
 const OBIS_code_t OBIS_METER_MODEL PROGMEM =           {  96,   1,   1 };
 const OBIS_code_t OBIS_METER_MODEL_2 PROGMEM =         {  96,   1,   7 };

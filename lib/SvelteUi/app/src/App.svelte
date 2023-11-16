@@ -1,9 +1,3 @@
-/**
- * @copyright Utilitech AS 2023
- * License: Fair Source
- * 
- */
-
 <script>
   import { Router, Route, navigate } from "svelte-navigator";
   import { getSysinfo, sysinfoStore, dataStore } from './lib/DataStores.js';

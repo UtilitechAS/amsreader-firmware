@@ -59,10 +59,10 @@ private:
     uint8_t state = STATE_DISCONNECTED;
     uint64_t lastLoop = 0;
     uint64_t lastMessageTime = 0;
-    String passkey = "12345";
-    uint8_t clientSap = 0x25;
-    uint8_t serverSap = 0x21;
-    uint8_t obisPosition = 2;
+    String passkey = "";
+    uint8_t clientSap = 0x21;
+    uint8_t serverSap = 0x03;
+    uint8_t obisPosition = 0;
     OBIS_code_t currentObis = OBIS_NULL;
 
     void setupHanPort(uint32_t baud, uint8_t parityOrdinal, bool invert);

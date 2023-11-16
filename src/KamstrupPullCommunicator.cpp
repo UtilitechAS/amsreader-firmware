@@ -263,7 +263,9 @@ AmsData* KamstrupPullCommunicator::getData(AmsData& meterState) {
     }
 
 	if(hanBuffer[11] == DATA_TAG_RES) {
-		if(obisPosition == 1) { // Meter model string
+		if(obisPosition == 1) { // Version string
+			debugger->printf_P(PSTR("RECEIVED Firmware version\n"));
+		} else if(obisPosition == 1) { // Meter model string
 			debugger->printf_P(PSTR("RECEIVED Meter model\n"));
 		} else { // All other uint32
 			uint32_t value = ntohl(*((uint32_t*) (hanBuffer + 16)));
@@ -603,13 +605,14 @@ bool KamstrupPullCommunicator::requestData() {
 
 	OBIS_t obis = {1,1,OBIS_NULL,OBIS_RANGE_NA};
 	switch(obisPosition) {
-		case 1: obis.code = OBIS_METER_MODEL; break;
-		case 2: obis.code = OBIS_METER_ID; break;
+		case 1: obis.code = OBIS_FIRMWARE_VERSION; break;
+		case 2: obis.code = OBIS_METER_MODEL; break;
+		case 3: obis.code = OBIS_METER_ID; break;
 
-		case 3: obis.code = OBIS_ACTIVE_IMPORT; break;
-		case 4: obis.code = OBIS_REACTIVE_IMPORT; break;
-		case 5: obis.code = OBIS_ACTIVE_EXPORT; break;
-		case 6: obis.code = OBIS_REACTIVE_EXPORT; break;
+		case 4: obis.code = OBIS_ACTIVE_IMPORT; break;
+		case 5: obis.code = OBIS_REACTIVE_IMPORT; break;
+		case 6: obis.code = OBIS_ACTIVE_EXPORT; break;
+		case 7: obis.code = OBIS_REACTIVE_EXPORT; break;
 		default:
 		obisPosition = 0; return false;
 	}

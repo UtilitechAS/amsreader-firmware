@@ -16,7 +16,7 @@ public:
 
 private:
     uint8_t scale = 0;
-    float value = 1.0;
+    float value = 0;
 
     char buf[128];
     uint8_t pos = 0;

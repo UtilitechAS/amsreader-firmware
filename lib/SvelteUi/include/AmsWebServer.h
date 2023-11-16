@@ -2,7 +2,7 @@
 #define _AMSWEBSERVER_h
 
 #include "Arduino.h"
-#include <MQTT.h>
+#include "AmsMqttHandler.h"
 #include "AmsConfiguration.h"
 #include "HwTools.h"
 #include "AmsData.h"
@@ -39,6 +39,7 @@ public:
 	void setMqttEnabled(bool);
 	void setEntsoeApi(EntsoeApi* eapi);
 	void setPriceSettings(String region, String currency);
+	void setMqttHandler(AmsMqttHandler* mqttHandler);
 
 private:
 	RemoteDebug* debugger;
@@ -54,7 +55,7 @@ private:
 	AmsData* meterState;
 	AmsDataStorage* ds;
     EnergyAccounting* ea = NULL;
-	MQTTClient* mqtt = NULL;
+	AmsMqttHandler* mqttHandler = NULL;
 	bool uploading = false;
 	File file;
 	bool performRestart = false;

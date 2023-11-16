@@ -30,12 +30,13 @@
 #include "html/conf_domoticz_json.h"
 #include "html/conf_ha_json.h"
 #include "html/conf_ui_json.h"
+#include "html/conf_cloud_json.h"
 #include "html/firmware_html.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #include <esp_wifi.h>
-#include <esp_clk.h>
+#include <esp32/clk.h>
 #endif
 
 
@@ -124,17 +125,15 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	mqttEnabled = strlen(mqttConfig.host) > 0;
 }
 
-
-void AmsWebServer::setMqtt(MQTTClient* mqtt) {
-	this->mqtt = mqtt;
-}
-
 void AmsWebServer::setTimezone(Timezone* tz) {
 	this->tz = tz;
 }
 
 void AmsWebServer::setMqttEnabled(bool enabled) {
 	mqttEnabled = enabled;
+}
+void AmsWebServer::setMqttHandler(AmsMqttHandler* mqttHandler) {
+	this->mqttHandler = mqttHandler;
 }
 
 void AmsWebServer::setEntsoeApi(EntsoeApi* eapi) {
@@ -418,9 +417,9 @@ void AmsWebServer::dataJson() {
 	uint8_t mqttStatus;
 	if(!mqttEnabled) {
 		mqttStatus = 0;
-	} else if(mqtt != NULL && mqtt->connected()) {
+	} else if(mqttHandler != NULL && mqttHandler->connected()) {
 		mqttStatus = 1;
-	} else if(mqtt != NULL && mqtt->lastError() == 0) {
+	} else if(mqttHandler != NULL && mqttHandler->lastError() == 0) {
 		mqttStatus = 2;
 	} else {
 		mqttStatus = 3;
@@ -467,7 +466,7 @@ void AmsWebServer::dataJson() {
 		hanStatus,
 		wifiStatus,
 		mqttStatus,
-		mqtt == NULL ? 0 : (int) mqtt->lastError(),
+		mqttHandler == NULL ? 0 : (int) mqttHandler->lastError(),
 		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
 		meterState->getMeterType(),
 		meterConfig->distributionSystem,
@@ -791,6 +790,8 @@ void AmsWebServer::configurationJson() {
 	if(!checkSecurity(1))
 		return;
 
+	SystemConfig sysConfig;
+	config->getSystemConfig(sysConfig);
 	NtpConfig ntpConfig;
 	config->getNtpConfig(ntpConfig);
 	WiFiConfig wifiConfig;
@@ -974,6 +975,14 @@ void AmsWebServer::configurationJson() {
 		haconf.discoveryPrefix,
 		haconf.discoveryHostname,
 		haconf.discoveryNameTag
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
+		#if defined(ENERGY_SPEEDOMETER_PASS)
+		sysConfig.energyspeedometer == 7 ? "true" : "false"
+		#else
+		"null"
+		#endif
 	);
 	server.sendContent(buf);
 	server.sendContent_P(PSTR("}"));
@@ -1469,6 +1478,14 @@ void AmsWebServer::handleSave() {
 		eac.thresholds[8] = server.arg(F("t8")).toInt();
 		eac.hours = server.arg(F("th")).toInt();
 		config->setEnergyAccountingConfig(eac);
+	}
+
+	if(server.hasArg(F("c")) && server.arg(F("c")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received cloud config\n"));
+		SystemConfig sys;
+		config->getSystemConfig(sys);
+		sys.energyspeedometer = server.hasArg(F("ces")) && server.arg(F("ces")) == F("true") ? 7 : 0;
+		config->setSystemConfig(sys);
 	}
 
 	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Saving configuration now...\n"));

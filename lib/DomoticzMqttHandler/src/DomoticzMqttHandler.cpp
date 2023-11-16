@@ -14,7 +14,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
                 config.elidx,
                 val
             );
-            ret = mqtt->publish(F("domoticz/in"), json);
+            ret = mqtt.publish(F("domoticz/in"), json);
         }
     }
 
@@ -28,7 +28,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
             config.vl1idx,
             val
         );
-        ret |= mqtt->publish(F("domoticz/in"), json);
+        ret |= mqtt.publish(F("domoticz/in"), json);
     }
 
     if (config.vl2idx > 0){				
@@ -38,7 +38,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
             config.vl2idx,
             val
         );
-        ret |= mqtt->publish(F("domoticz/in"), json);
+        ret |= mqtt.publish(F("domoticz/in"), json);
     }
 
     if (config.vl3idx > 0){				
@@ -48,7 +48,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
             config.vl3idx,
             val
         );
-        ret |= mqtt->publish(F("domoticz/in"), json);
+        ret |= mqtt.publish(F("domoticz/in"), json);
     }
 
     if (config.cl1idx > 0){				
@@ -58,7 +58,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
             config.cl1idx,
             val
         );
-        ret |= mqtt->publish(F("domoticz/in"), json);
+        ret |= mqtt.publish(F("domoticz/in"), json);
     }			
     return ret;
 }
@@ -72,5 +72,13 @@ bool DomoticzMqttHandler::publishPrices(EntsoeApi* eapi) {
 }
 
 bool DomoticzMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
+    return false;
+}
+
+uint8_t DomoticzMqttHandler::getFormat() {
+    return 3;
+}
+
+bool DomoticzMqttHandler::publishRaw(String data) {
     return false;
 }

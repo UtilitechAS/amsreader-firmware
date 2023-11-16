@@ -10,11 +10,18 @@
 #include "json/jsonprices_json.h"
 
 bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
-	if(topic.isEmpty() || !mqtt->connected())
+    if(strlen(mqttConfig.publishTopic) == 0) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Unable to publish data, no publish topic\n"));
+        return false;
+    }
+	if(!mqtt.connected()) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Unable to publish data, not connected\n"));
 		return false;
+    }
 
     bool ret = false;
 
+    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Publishing list ID %d!\n"), data->getListType());
     if(data->getListType() == 1) {
         ret = publishList1(data, ea);
     } else if(data->getListType() == 2) {
@@ -31,7 +38,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
 bool JsonMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
     snprintf_P(json, BufferSize, JSON1_JSON,
         WiFi.macAddress().c_str(),
-        clientId.c_str(),
+        mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
         data->getPackageTimestamp(),
         hw->getVcc(),
@@ -45,13 +52,13 @@ bool JsonMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
         ea->getProducedThisHour(),
         ea->getProducedToday()
     );
-    return mqtt->publish(topic, json);
+    return mqtt.publish(mqttConfig.publishTopic, json);
 }
 
 bool JsonMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
     snprintf_P(json, BufferSize, JSON2_JSON,
         WiFi.macAddress().c_str(),
-        clientId.c_str(),
+        mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
         data->getPackageTimestamp(),
         hw->getVcc(),
@@ -77,13 +84,13 @@ bool JsonMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
         ea->getProducedThisHour(),
         ea->getProducedToday()
     );
-    return mqtt->publish(topic, json);
+    return mqtt.publish(mqttConfig.publishTopic, json);
 }
 
 bool JsonMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
     snprintf_P(json, BufferSize, JSON3_JSON,
         WiFi.macAddress().c_str(),
-        clientId.c_str(),
+        mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
         data->getPackageTimestamp(),
         hw->getVcc(),
@@ -114,13 +121,13 @@ bool JsonMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
         ea->getProducedThisHour(),
         ea->getProducedToday()
     );
-    return mqtt->publish(topic, json);
+    return mqtt.publish(mqttConfig.publishTopic, json);
 }
 
 bool JsonMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
     snprintf_P(json, BufferSize, JSON4_JSON,
         WiFi.macAddress().c_str(),
-        clientId.c_str(),
+        mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
         data->getPackageTimestamp(),
         hw->getVcc(),
@@ -161,7 +168,7 @@ bool JsonMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
         ea->getProducedThisHour(),
         ea->getProducedToday()
     );
-    return mqtt->publish(topic, json);
+    return mqtt.publish(mqttConfig.publishTopic, json);
 }
 
 String JsonMqttHandler::getMeterModel(AmsData* data) {
@@ -191,13 +198,13 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
 	}
 	char* pos = json+strlen(json);
 	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("}}"));
-    bool ret = mqtt->publish(topic, json);
+    bool ret = mqtt.publish(mqttConfig.publishTopic, json);
     loop();
     return ret;
 }
 
 bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
-	if(topic.isEmpty() || !mqtt->connected())
+	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
 		return false;
 	if(eapi->getValueForHour(0) == ENTSOE_NO_VALUE)
 		return false;
@@ -325,37 +332,33 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
         ts3hr,
         ts6hr
     );
-    bool ret = mqtt->publish(topic, json);
+    bool ret = mqtt.publish(mqttConfig.publishTopic, json);
     loop();
     return ret;
 }
 
 bool JsonMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
-	if(topic.isEmpty() || !mqtt->connected())
+	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
 		return false;
 
     snprintf_P(json, BufferSize, JSONSYS_JSON,
         WiFi.macAddress().c_str(),
-        clientId.c_str(),
+        mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
         hw->getVcc(),
         hw->getWifiRssi(),
         hw->getTemperature(),
         FirmwareVersion::VersionString
     );
-    bool ret = mqtt->publish(topic, json);
+    bool ret = mqtt.publish(mqttConfig.publishTopic, json);
     loop();
     return ret;
 }
 
-bool JsonMqttHandler::loop() {
-    bool ret = mqtt->loop();
-    delay(10);
-    yield();
-	#if defined(ESP32)
-		esp_task_wdt_reset();
-	#elif defined(ESP8266)
-		ESP.wdtFeed();
-	#endif
-    return ret;
+uint8_t JsonMqttHandler::getFormat() {
+    return 0;
+}
+
+bool JsonMqttHandler::publishRaw(String data) {
+    return false;
 }

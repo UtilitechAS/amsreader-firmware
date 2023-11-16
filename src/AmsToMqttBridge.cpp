@@ -114,8 +114,6 @@ AmsWebServer ws(commonBuffer, &Debug, &hw);
 bool mqttEnabled = false;
 AmsMqttHandler* mqttHandler = NULL;
 
-SystemConfig sysConfig;
-GpioConfig gpioConfig;
 #if defined(ESP32)
 JsonMqttHandler* energySpeedometer = NULL;
 MqttConfig energySpeedometerConfig = {
@@ -139,6 +137,14 @@ MqttConfig energySpeedometerConfig = {
 };
 #endif
 
+Stream *hanSerial;
+SoftwareSerial *swSerial = NULL;
+HardwareSerial *hwSerial = NULL;
+uint8_t rxBufferErrors = 0;
+
+SystemConfig sysConfig;
+GpioConfig gpioConfig;
+
 MeterConfig meterConfig;
 AmsData meterState;
 bool ntpEnabled = false;
@@ -159,7 +165,6 @@ RealtimePlot rtp;
 MeterCommunicator* mc = NULL;
 PassiveMeterCommunicator* passiveMc = NULL;
 KamstrupPullCommunicator* kamstrupMc = NULL;
-HardwareSerial* hwSerial = NULL;
 
 bool networkConnected = false;
 bool setupMode = false;

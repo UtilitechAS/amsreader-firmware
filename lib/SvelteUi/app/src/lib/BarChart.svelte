@@ -38,7 +38,7 @@
         {#if config.title}
         <strong class="text-sm">{config.title}</strong>
         {/if}
-        <svg height="{heightAvailable}">
+        <svg height="100%">
             <!-- y axis -->
             <g class="axis y-axis">
                 {#each config.y.ticks as tick}

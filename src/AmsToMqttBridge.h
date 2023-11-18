@@ -27,11 +27,13 @@
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
+#include <ESP8266SSDP.h>
 #elif defined(ESP32)
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <ESPmDNS.h>
-#include "Update.h"
+#include <Update.h>
+#include <ESP32SSDP.h>
 #endif
 
 #include "LittleFS.h"

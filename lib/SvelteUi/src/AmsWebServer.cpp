@@ -421,7 +421,7 @@ void AmsWebServer::dataJson() {
 		mqttStatus = 0;
 	} else if(mqttHandler != NULL && mqttHandler->connected()) {
 		mqttStatus = 1;
-	} else if(mqttHandler != NULL && mqttHandler->lastError() == 0) {
+	} else if(mqttHandler == NULL || mqttHandler->lastError() == 0) {
 		mqttStatus = 2;
 	} else {
 		mqttStatus = 3;

@@ -115,6 +115,8 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, Meter
 	server.on(F("/library/test/success.html"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Apple connectivity check: http://www.apple.com/library/test/success.html
 	*/
 
+	server.on("/ssdp/schema.xml", HTTP_GET, std::bind(&AmsWebServer::ssdpSchema, this));
+
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
 	server.begin(); // Web server start
@@ -2329,4 +2331,8 @@ void AmsWebServer::configFileUpload() {
 void AmsWebServer::redirectToMain() {
 	server.sendHeader(HEADER_LOCATION,F("/"));
 	server.send(302);
+}
+
+void AmsWebServer::ssdpSchema() {
+	SSDP.schema(server.client());
 }

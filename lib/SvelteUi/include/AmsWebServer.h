@@ -18,11 +18,13 @@
 	#include <ESP8266WebServer.h>
 	#include <ESP8266HTTPClient.h>
 	#include <ESP8266httpUpdate.h>
+	#include <ESP8266SSDP.h>
 #elif defined(ESP32) // ARDUINO_ARCH_ESP32
 	#include <WiFi.h>
 	#include <WebServer.h>
 	#include <HTTPClient.h>
 	#include <HTTPUpdate.h>
+	#include <ESP32SSDP.h>
 #else
 	#warning "Unsupported board type"
 #endif
@@ -120,6 +122,7 @@ private:
 	void notFound();
 	void redirectToMain();
 	void robotstxt();
+	void ssdpSchema();
 };
 
 #endif

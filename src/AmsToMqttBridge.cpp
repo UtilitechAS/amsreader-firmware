@@ -1696,6 +1696,35 @@ void WiFi_post_connect() {
 		mqttEnabled = strlen(mqttConfig.host) > 0;
 		ws.setMqttEnabled(mqttEnabled);
 	}
+
+	sprintf_P((char*) commonBuffer, PSTR("AMS reader %s"), wifi.hostname);
+
+	SSDP.setSchemaURL("ssdp/schema.xml");
+	SSDP.setHTTPPort(80);
+	SSDP.setName((char*) commonBuffer);
+	//SSDP.setSerialNumber("0");
+	SSDP.setURL("/");
+	SSDP.setModelName("AMS reader");
+	//SSDP.setModelNumber("929000226503");
+	SSDP.setModelURL("https://amsleser.no");
+	SSDP.setManufacturer("Utilitech AS");
+	SSDP.setManufacturerURL("http://amsleser.no");
+	SSDP.setDeviceType("rootdevice");
+	sprintf_P((char*) commonBuffer, PSTR("amsreader/%s"), FirmwareVersion::VersionString);
+	#if defined(ESP32)
+	SSDP.setModelDescription("Device to read data from electric smart meters");
+	SSDP.setServerName((char*) commonBuffer);
+	//SSDP.setUUID("");
+	SSDP.setIcons(  "<icon>"
+					"<mimetype>image/svg+xml</mimetype>"
+					"<height>48</height>"
+					"<width>48</width>"
+					"<depth>24</depth>"
+					"<url>favicon.svg</url>"
+					"</icon>");
+	#endif
+	SSDP.setInterval(300);
+	SSDP.begin();
 }
 
 int16_t unwrapData(uint8_t *buf, DataParserContext &context) {

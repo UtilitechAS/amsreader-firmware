@@ -285,7 +285,7 @@
                 <div>
                     Currency<br/>
                     <select name="pc" bind:value={configuration.p.c} class="in-l">
-                        {#each ["NOK","SEK","DKK","EUR"] as c}
+                        {#each ["NOK","SEK","DKK","EUR","CHF"] as c}
                         <option value={c}>{c}</option>
                         {/each}
                     </select>

@@ -290,6 +290,7 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t 
             ESP.wdtFeed();
         #endif
 
+        float currencyMultiplier = 0;
         snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), from);
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EntsoeApi) Retrieving %s to NOK conversion\n"), from);
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  url: %s\n"), buf);
@@ -309,20 +310,19 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t 
                     }
                 } else {
                     currencyMultiplier = 0;
-                    return 0;
                 }
             }
-        } else {
-            currencyMultiplier = 0;
-            return 0;
         }
         if(currencyMultiplier != 0) {
             if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi) Resulting currency multiplier: %.4f\n"), currencyMultiplier);
             tmElements_t tm;
             breakTime(t, tm);
-            lastCurrencyFetch = now + (SECS_PER_DAY * 1000) - (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000) + 3600000;
+            lastCurrencyFetch = now + (SECS_PER_DAY * 1000) - (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000) + (3600000 * 6);
+            this->currencyMultiplier = currencyMultiplier;
         } else {
             if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("(EntsoeApi) Multiplier ended in success, but without value\n"));
+            lastCurrencyFetch = now + (SECS_PER_HOUR * 1000);
+            if(this->currencyMultiplier == 1) return 0;
         }
     }
     return currencyMultiplier;

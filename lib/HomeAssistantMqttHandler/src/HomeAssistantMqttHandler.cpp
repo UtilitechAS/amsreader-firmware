@@ -21,7 +21,7 @@
 #include <esp_task_wdt.h>
 #endif
 
-bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
+bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
 
@@ -40,7 +40,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
     loop();
 
     if(ea->isInitialized()) {
-        publishRealtime(data, ea, eapi);
+        publishRealtime(data, ea, ps);
         loop();
     }
     return true;
@@ -125,9 +125,9 @@ String HomeAssistantMqttHandler::getMeterModel(AmsData* data) {
     return meterModel;
 }
 
-bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* ea, EntsoeApi* eapi) {
-    publishRealtimeSensors(ea, eapi);
-    if(ea->getProducedThisHour() > 0.0 || ea->getProducedToday() > 0.0 || ea->getProducedThisMonth() > 0.0) publishRealtimeExportSensors(ea, eapi);
+bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* ea, PriceService* ps) {
+    publishRealtimeSensors(ea, ps);
+    if(ea->getProducedThisHour() > 0.0 || ea->getProducedToday() > 0.0 || ea->getProducedThisMonth() > 0.0) publishRealtimeExportSensors(ea, ps);
     String peaks = "";
     uint8_t peakCount = ea->getConfig()->hours;
     if(peakCount > 5) peakCount = 5;
@@ -185,13 +185,13 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
     return ret;
 }
 
-bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
+bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
-	if(eapi->getValueForHour(0) == ENTSOE_NO_VALUE)
+	if(ps->getValueForHour(0) == PRICE_NO_VALUE)
 		return false;
 
-    publishPriceSensors(eapi);
+    publishPriceSensors(ps);
 
 	time_t now = time(nullptr);
 
@@ -199,12 +199,12 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[38];
-    for(int i = 0;i < 38; i++) values[i] = ENTSOE_NO_VALUE;
+    for(int i = 0;i < 38; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 38; i++) {
-		float val = eapi->getValueForHour(now, i);
+		float val = ps->getValueForHour(now, i);
 		values[i] = val;
 
-		if(val == ENTSOE_NO_VALUE) break;
+		if(val == PRICE_NO_VALUE) break;
 		
 		if(val < min) min = val;
 		if(val > max) max = val;
@@ -219,7 +219,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 			float val1 = values[i++];
 			float val2 = values[i++];
 			float val3 = val;
-			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE) continue;
+			if(val1 == PRICE_NO_VALUE || val2 == PRICE_NO_VALUE || val3 == PRICE_NO_VALUE) continue;
 			float val3hr = val1+val2+val3;
 			if(min3hrIdx == -1 || min3hr > val3hr) {
 				min3hr = val3hr;
@@ -235,7 +235,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 			float val4 = values[i++];
 			float val5 = values[i++];
 			float val6 = val;
-			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE || val4 == ENTSOE_NO_VALUE || val5 == ENTSOE_NO_VALUE || val6 == ENTSOE_NO_VALUE) continue;
+			if(val1 == PRICE_NO_VALUE || val2 == PRICE_NO_VALUE || val3 == PRICE_NO_VALUE || val4 == PRICE_NO_VALUE || val5 == PRICE_NO_VALUE || val6 == PRICE_NO_VALUE) continue;
 			float val6hr = val1+val2+val3+val4+val5+val6;
 			if(min6hrIdx == -1 || min6hr > val6hr) {
 				min6hr = val6hr;
@@ -321,7 +321,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
     return ret;
 }
 
-bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
+bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
 
@@ -434,13 +434,13 @@ void HomeAssistantMqttHandler::publishList4ExportSensors() {
     l4eInit = true;
 }
 
-void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, EntsoeApi* eapi) {
+void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, PriceService* ps) {
     if(rtInit) return;
     for(uint8_t i = 0; i < RealtimeSensorCount; i++) {
         HomeAssistantSensor sensor = RealtimeSensors[i];
         if(strncmp_P(sensor.devcl, PSTR("monetary"), 8) == 0) {
-            if(eapi == NULL) continue;
-            sensor.uom = eapi->getCurrency();
+            if(ps == NULL) continue;
+            sensor.uom = ps->getCurrency();
         }
         publishSensor(sensor);
     }
@@ -464,13 +464,13 @@ void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, Ents
     rtInit = true;
 }
 
-void HomeAssistantMqttHandler::publishRealtimeExportSensors(EnergyAccounting* ea, EntsoeApi* eapi) {
+void HomeAssistantMqttHandler::publishRealtimeExportSensors(EnergyAccounting* ea, PriceService* ps) {
     if(rteInit) return;
     for(uint8_t i = 0; i < RealtimeExportSensorCount; i++) {
         HomeAssistantSensor sensor = RealtimeExportSensors[i];
         if(strncmp_P(sensor.devcl, PSTR("monetary"), 8) == 0) {
-            if(eapi == NULL) continue;
-            sensor.uom = eapi->getCurrency();
+            if(ps == NULL) continue;
+            sensor.uom = ps->getCurrency();
         }
         publishSensor(sensor);
     }
@@ -501,9 +501,9 @@ void HomeAssistantMqttHandler::publishTemperatureSensor(uint8_t index, String id
     tInit[index] = true;
 }
 
-void HomeAssistantMqttHandler::publishPriceSensors(EntsoeApi* eapi) {
-    if(eapi == NULL) return;
-    String uom = String(eapi->getCurrency()) + "/kWh";
+void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
+    if(ps == NULL) return;
+    String uom = String(ps->getCurrency()) + "/kWh";
 
     if(!pInit) {
         for(uint8_t i = 0; i < PriceSensorCount; i++) {
@@ -517,8 +517,8 @@ void HomeAssistantMqttHandler::publishPriceSensors(EntsoeApi* eapi) {
     }
     for(uint8_t i = 0; i < 38; i++) {
         if(prInit[i]) continue;
-        float val = eapi->getValueForHour(i);
-        if(val == ENTSOE_NO_VALUE) continue;
+        float val = ps->getValueForHour(i);
+        if(val == PRICE_NO_VALUE) continue;
         
         char name[strlen(PriceSensor.name)+2];
         snprintf(name, strlen(PriceSensor.name)+2, PriceSensor.name, i, i == 1 ? "hour" : "hours");

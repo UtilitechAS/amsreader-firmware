@@ -6,6 +6,9 @@
 
 #ifndef _PRICESCONTAINER_H
 #define _PRICESCONTAINER_H
+
+#define PRICE_NO_VALUE -127
+
 struct PricesContainer {
     char currency[4];
     char measurementUnit[4];

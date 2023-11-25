@@ -14,10 +14,10 @@ public:
     JsonMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
         this->hw = hw;
     };
-    bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);
+    bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
-    bool publishPrices(EntsoeApi*);
-    bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
+    bool publishPrices(PriceService*);
+    bool publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea);
     bool publishRaw(String data);
 
     uint8_t getFormat();

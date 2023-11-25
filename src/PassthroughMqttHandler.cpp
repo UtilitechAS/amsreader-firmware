@@ -7,7 +7,7 @@
 #include "PassthroughMqttHandler.h"
 #include "hexutils.h"
 
-bool PassthroughMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
+bool PassthroughMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     return false;
 }
 
@@ -15,11 +15,11 @@ bool PassthroughMqttHandler::publishTemperatures(AmsConfiguration*, HwTools*) {
     return false;
 }
 
-bool PassthroughMqttHandler::publishPrices(EntsoeApi*) {
+bool PassthroughMqttHandler::publishPrices(PriceService*) {
     return false;
 }
 
-bool PassthroughMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
+bool PassthroughMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea) {
     return false;
 }
 

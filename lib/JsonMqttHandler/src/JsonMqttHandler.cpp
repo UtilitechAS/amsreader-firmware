@@ -15,7 +15,7 @@
 #include "json/jsonsys_json.h"
 #include "json/jsonprices_json.h"
 
-bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
+bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     if(strlen(mqttConfig.publishTopic) == 0) {
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Unable to publish data, no publish topic\n"));
         return false;
@@ -209,10 +209,10 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
     return ret;
 }
 
-bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
+bool JsonMqttHandler::publishPrices(PriceService* ps) {
 	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
 		return false;
-	if(eapi->getValueForHour(0) == ENTSOE_NO_VALUE)
+	if(ps->getValueForHour(0) == PRICE_NO_VALUE)
 		return false;
 
 	time_t now = time(nullptr);
@@ -221,12 +221,12 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[38];
-    for(int i = 0;i < 38; i++) values[i] = ENTSOE_NO_VALUE;
+    for(int i = 0;i < 38; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 38; i++) {
-		float val = eapi->getValueForHour(now, i);
+		float val = ps->getValueForHour(now, i);
 		values[i] = val;
 
-		if(val == ENTSOE_NO_VALUE) break;
+		if(val == PRICE_NO_VALUE) break;
 		
 		if(val < min) min = val;
 		if(val > max) max = val;
@@ -241,7 +241,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 			float val1 = values[i++];
 			float val2 = values[i++];
 			float val3 = val;
-			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE) continue;
+			if(val1 == PRICE_NO_VALUE || val2 == PRICE_NO_VALUE || val3 == PRICE_NO_VALUE) continue;
 			float val3hr = val1+val2+val3;
 			if(min3hrIdx == -1 || min3hr > val3hr) {
 				min3hr = val3hr;
@@ -257,7 +257,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
 			float val4 = values[i++];
 			float val5 = values[i++];
 			float val6 = val;
-			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE || val4 == ENTSOE_NO_VALUE || val5 == ENTSOE_NO_VALUE || val6 == ENTSOE_NO_VALUE) continue;
+			if(val1 == PRICE_NO_VALUE || val2 == PRICE_NO_VALUE || val3 == PRICE_NO_VALUE || val4 == PRICE_NO_VALUE || val5 == PRICE_NO_VALUE || val6 == PRICE_NO_VALUE) continue;
 			float val6hr = val1+val2+val3+val4+val5+val6;
 			if(min6hrIdx == -1 || min6hr > val6hr) {
 				min6hr = val6hr;
@@ -343,7 +343,7 @@ bool JsonMqttHandler::publishPrices(EntsoeApi* eapi) {
     return ret;
 }
 
-bool JsonMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
+bool JsonMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea) {
 	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
 		return false;
 

@@ -34,8 +34,8 @@ void EnergyAccounting::setup(AmsDataStorage *ds, EnergyAccountingConfig *config)
     this->config = config;
 }
 
-void EnergyAccounting::setEapi(EntsoeApi *eapi) {
-    this->eapi = eapi;
+void EnergyAccounting::setPriceService(PriceService *ps) {
+    this->ps = ps;
 }
 
 EnergyAccountingConfig* EnergyAccounting::getConfig() {
@@ -92,7 +92,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     }
 
     float price = getPriceForHour(0);
-    if(!initPrice && price != ENTSOE_NO_VALUE) {
+    if(!initPrice && price != PRICE_NO_VALUE) {
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EnergyAccounting) Initializing prices at %lu\n"), (int32_t) now);
         calcDayCost();
     }
@@ -170,7 +170,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         if(kwhi > 0) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh import\n"), kwhi);
             this->realtimeData->use += kwhi;
-            if(price != ENTSOE_NO_VALUE) {
+            if(price != PRICE_NO_VALUE) {
                 float cost = price * kwhi;
                 if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), cost / 100.0, currency.c_str());
                 this->realtimeData->costHour += cost;
@@ -186,7 +186,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         if(kwhe > 0) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh export\n"), kwhe);
             this->realtimeData->produce += kwhe;
-            if(price != ENTSOE_NO_VALUE) {
+            if(price != PRICE_NO_VALUE) {
                 float income = price * kwhe;
                 if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), income / 100.0, currency.c_str());
                 this->realtimeData->incomeHour += income;
@@ -211,14 +211,14 @@ void EnergyAccounting::calcDayCost() {
     if(tz == NULL) return;
     breakTime(tz->toLocal(now), local);
 
-    if(getPriceForHour(0) != ENTSOE_NO_VALUE) {
+    if(getPriceForHour(0) != PRICE_NO_VALUE) {
         if(initPrice) {
             this->realtimeData->costDay = 0;
             this->realtimeData->incomeDay = 0;
         }
         for(uint8_t i = 0; i < this->realtimeData->currentHour; i++) {
             float price = getPriceForHour(i - local.Hour);
-            if(price == ENTSOE_NO_VALUE) break;
+            if(price == PRICE_NO_VALUE) break;
             breakTime(now - ((local.Hour - i) * 3600), utc);
             int16_t wh = ds->getHourImport(utc.Hour);
             this->realtimeData->costDay += price * (wh / 1000.0);
@@ -576,6 +576,6 @@ void EnergyAccounting::setFixedPrice(float price, String currency) {
 
 float EnergyAccounting::getPriceForHour(uint8_t h) {
     if(fixedPrice > 0.0) return fixedPrice;
-    if(eapi == NULL) return ENTSOE_NO_VALUE;
-    return eapi->getValueForHour(h);
+    if(ps == NULL) return PRICE_NO_VALUE;
+    return ps->getValueForHour(h);
 }

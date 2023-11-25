@@ -15,10 +15,10 @@ public:
         full = mqttConfig.payloadFormat == 2;
         topic = String(mqttConfig.publishTopic);
     };
-    bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);
+    bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
-    bool publishPrices(EntsoeApi*);
-    bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
+    bool publishPrices(PriceService*);
+    bool publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea);
     bool publishRaw(String data);
 
     uint8_t getFormat();

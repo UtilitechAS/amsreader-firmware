@@ -13,7 +13,7 @@
 #include "AmsConfiguration.h"
 #include "EnergyAccounting.h"
 #include "HwTools.h"
-#include "EntsoeApi.h"
+#include "PriceService.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
@@ -38,10 +38,10 @@ public:
 
     virtual uint8_t getFormat() { return 0; };
 
-    virtual bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) { return false; };
+    virtual bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) { return false; };
     virtual bool publishTemperatures(AmsConfiguration*, HwTools*) { return false; };
-    virtual bool publishPrices(EntsoeApi* eapi) { return false; };
-    virtual bool publishSystem(HwTools*, EntsoeApi*, EnergyAccounting*) { return false; };
+    virtual bool publishPrices(PriceService* ps) { return false; };
+    virtual bool publishSystem(HwTools*, PriceService*, EnergyAccounting*) { return false; };
     virtual bool publishRaw(String data) { return false; };
 
     virtual ~AmsMqttHandler() {

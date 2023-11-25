@@ -20,7 +20,7 @@
 #define CONFIG_NETWORK_START 40
 #define CONFIG_METER_START 296
 #define CONFIG_GPIO_START 368
-#define CONFIG_ENTSOE_START 400
+#define CONFIG_PRICE_START 400
 #define CONFIG_ENERGYACCOUNTING_START 464
 #define CONFIG_WEB_START 488
 #define CONFIG_DEBUG_START 624
@@ -184,8 +184,8 @@ struct NtpConfig {
 	char timezone[32];
 }; // 98
 
-struct EntsoeConfig {
-	char token[37];
+struct PriceServiceConfig {
+	char entsoeToken[37];
 	char area[17];
 	char currency[4];
 	uint32_t multiplier;
@@ -304,11 +304,11 @@ public:
 	bool isNtpChanged();
 	void ackNtpChange();
 
-	bool getEntsoeConfig(EntsoeConfig&);
-	bool setEntsoeConfig(EntsoeConfig&);
-	void clearEntsoe(EntsoeConfig&);
-	bool isEntsoeChanged();
-	void ackEntsoeChange();
+	bool getPriceServiceConfig(PriceServiceConfig&);
+	bool setPriceServiceConfig(PriceServiceConfig&);
+	void clearPriceServiceConfig(PriceServiceConfig&);
+	bool isPriceServiceChanged();
+	void ackPriceServiceChange();
 
 	bool getEnergyAccountingConfig(EnergyAccountingConfig&);
 	bool setEnergyAccountingConfig(EnergyAccountingConfig&);
@@ -337,7 +337,7 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool sysChanged = false, networkChanged, mqttChanged, meterChanged = true, ntpChanged = true, entsoeChanged = false, energyAccountingChanged = true, cloudChanged = true;
+	bool sysChanged = false, networkChanged, mqttChanged, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true;
 
 	bool relocateConfig101(); // 2.2.0 through 2.2.8
 	bool relocateConfig102(); // 2.2.9 through 2.2.11

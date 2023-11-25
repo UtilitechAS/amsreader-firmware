@@ -8,7 +8,7 @@
 #include "HardwareSerial.h"
 
 EntsoeA44Parser::EntsoeA44Parser() {
-    for(int i = 0; i < 25; i++) points[i] = ENTSOE_NO_VALUE;
+    for(int i = 0; i < 25; i++) points[i] = PRICE_NO_VALUE;
 }
 
 EntsoeA44Parser::~EntsoeA44Parser() {
@@ -24,7 +24,7 @@ char* EntsoeA44Parser::getMeasurementUnit() {
 }
 
 float EntsoeA44Parser::getPoint(uint8_t position) {
-    if(position >= 25) return ENTSOE_NO_VALUE;
+    if(position >= 25) return PRICE_NO_VALUE;
     return points[position];
 }
 
@@ -121,6 +121,6 @@ void EntsoeA44Parser::get(PricesContainer* container) {
     strcpy(container->source, "EOE");
 
     for(uint8_t i = 0; i < 25; i++) {
-        container->points[i] = points[i] == ENTSOE_NO_VALUE ? ENTSOE_NO_VALUE : points[i] * 10000;
+        container->points[i] = points[i] == PRICE_NO_VALUE ? PRICE_NO_VALUE : points[i] * 10000;
     }
 }

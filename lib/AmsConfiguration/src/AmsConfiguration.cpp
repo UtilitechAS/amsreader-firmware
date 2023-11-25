@@ -570,47 +570,47 @@ void AmsConfiguration::clearNtp(NtpConfig& config) {
 	strcpy(config.timezone, "Europe/Oslo");
 }
 
-bool AmsConfiguration::getEntsoeConfig(EntsoeConfig& config) {
+bool AmsConfiguration::getPriceServiceConfig(PriceServiceConfig& config) {
 	if(hasConfig()) {
 		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_ENTSOE_START, config);
+		EEPROM.get(CONFIG_PRICE_START, config);
 		EEPROM.end();
-		if(strlen(config.token) != 0 && strlen(config.token) != 36) {
-			clearEntsoe(config);
+		if(strlen(config.entsoeToken) != 0 && strlen(config.entsoeToken) != 36) {
+			clearPriceServiceConfig(config);
 		}
 		return true;
 	} else {
-		clearEntsoe(config);
+		clearPriceServiceConfig(config);
 		return false;
 	}
 }
 
-bool AmsConfiguration::setEntsoeConfig(EntsoeConfig& config) {
-	EntsoeConfig existing;
-	if(getEntsoeConfig(existing)) {
-		entsoeChanged |= strcmp(config.token, existing.token) != 0;
-		entsoeChanged |= strcmp(config.area, existing.area) != 0;
-		entsoeChanged |= strcmp(config.currency, existing.currency) != 0;
-		entsoeChanged |= config.multiplier != existing.multiplier;
-		entsoeChanged |= config.enabled != existing.enabled;
-		entsoeChanged |= config.fixedPrice != existing.fixedPrice;
+bool AmsConfiguration::setPriceServiceConfig(PriceServiceConfig& config) {
+	PriceServiceConfig existing;
+	if(getPriceServiceConfig(existing)) {
+		priceChanged |= strcmp(config.entsoeToken, existing.entsoeToken) != 0;
+		priceChanged |= strcmp(config.area, existing.area) != 0;
+		priceChanged |= strcmp(config.currency, existing.currency) != 0;
+		priceChanged |= config.multiplier != existing.multiplier;
+		priceChanged |= config.enabled != existing.enabled;
+		priceChanged |= config.fixedPrice != existing.fixedPrice;
 	} else {
-		entsoeChanged = true;
+		priceChanged = true;
 	}
 
-	stripNonAscii((uint8_t*) config.token, 37);
+	stripNonAscii((uint8_t*) config.entsoeToken, 37);
 	stripNonAscii((uint8_t*) config.area, 17);
 	stripNonAscii((uint8_t*) config.currency, 4);
 
 	EEPROM.begin(EEPROM_SIZE);
-	EEPROM.put(CONFIG_ENTSOE_START, config);
+	EEPROM.put(CONFIG_PRICE_START, config);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;
 }
 
-void AmsConfiguration::clearEntsoe(EntsoeConfig& config) {
-	strcpy(config.token, "");
+void AmsConfiguration::clearPriceServiceConfig(PriceServiceConfig& config) {
+	strcpy(config.entsoeToken, "");
 	strcpy(config.area, "");
 	strcpy(config.currency, "");
 	config.multiplier = 1000;
@@ -618,12 +618,12 @@ void AmsConfiguration::clearEntsoe(EntsoeConfig& config) {
 	config.fixedPrice = 0;
 }
 
-bool AmsConfiguration::isEntsoeChanged() {
-	return entsoeChanged;
+bool AmsConfiguration::isPriceServiceChanged() {
+	return priceChanged;
 }
 
-void AmsConfiguration::ackEntsoeChange() {
-	entsoeChanged = false;
+void AmsConfiguration::ackPriceServiceChange() {
+	priceChanged = false;
 }
 
 
@@ -856,9 +856,9 @@ void AmsConfiguration::clear() {
 	clearNtp(ntp);
 	EEPROM.put(CONFIG_NTP_START, ntp);
 
-	EntsoeConfig entsoe;
-	clearEntsoe(entsoe);
-	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
+	PriceServiceConfig price;
+	clearPriceServiceConfig(price);
+	EEPROM.put(CONFIG_PRICE_START, price);
 
 	EnergyAccountingConfig eac;
 	clearEnergyAccountingConfig(eac);
@@ -968,7 +968,7 @@ bool AmsConfiguration::relocateConfig102() {
 	clearHomeAssistantConfig(haconf);
 	EEPROM.put(CONFIG_HA_START_103, haconf);
 
-	EntsoeConfig entsoe;
+	PriceServiceConfig entsoe;
 	EEPROM.get(CONFIG_ENTSOE_START_103, entsoe);
 	entsoe.fixedPrice = 0;
 	EEPROM.put(CONFIG_ENTSOE_START_103, entsoe);
@@ -986,7 +986,7 @@ bool AmsConfiguration::relocateConfig103() {
 	UpgradeInformation upinfo;
 	UiConfig ui;
 	GpioConfig103 gpio103;
-	EntsoeConfig entsoe;
+	PriceServiceConfig price;
 	NetworkConfig wifi;
 	EnergyAccountingConfig eac;
 	WebConfig web;
@@ -1000,7 +1000,7 @@ bool AmsConfiguration::relocateConfig103() {
 	EEPROM.get(CONFIG_UPGRADE_INFO_START_103, upinfo);
 	EEPROM.get(CONFIG_UI_START_103, ui);
 	EEPROM.get(CONFIG_GPIO_START_103, gpio103);
-	EEPROM.get(CONFIG_ENTSOE_START_103, entsoe);
+	EEPROM.get(CONFIG_ENTSOE_START_103, price);
 	EEPROM.get(CONFIG_WIFI_START_103, wifi);
 	EEPROM.get(CONFIG_ENERGYACCOUNTING_START_103, eac);
 	EEPROM.get(CONFIG_WEB_START_103, web);
@@ -1039,7 +1039,7 @@ bool AmsConfiguration::relocateConfig103() {
 	EEPROM.put(CONFIG_NETWORK_START, wifi);
 	EEPROM.put(CONFIG_METER_START, meter);
 	EEPROM.put(CONFIG_GPIO_START, gpio);
-	EEPROM.put(CONFIG_ENTSOE_START, entsoe);
+	EEPROM.put(CONFIG_PRICE_START, price);
 	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, eac);
 	EEPROM.put(CONFIG_WEB_START, web);
 	EEPROM.put(CONFIG_DEBUG_START, debug);
@@ -1232,14 +1232,14 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->flush();
 	}
 
-	EntsoeConfig entsoe;
-	if(getEntsoeConfig(entsoe)) {
-		if(strlen(entsoe.area) > 0) {
-			debugger->println(F("--ENTSO-E configuration--"));
-			debugger->printf_P(PSTR("Area:                 %s\r\n"), entsoe.area);
-			debugger->printf_P(PSTR("Currency:             %s\r\n"), entsoe.currency);
-			debugger->printf_P(PSTR("Multiplier:           %f\r\n"), entsoe.multiplier / 1000.0);
-			debugger->printf_P(PSTR("Token:                %s\r\n"), entsoe.token);
+	PriceServiceConfig price;
+	if(getPriceServiceConfig(price)) {
+		if(strlen(price.area) > 0) {
+			debugger->println(F("--Price configuration--"));
+			debugger->printf_P(PSTR("Area:                 %s\r\n"), price.area);
+			debugger->printf_P(PSTR("Currency:             %s\r\n"), price.currency);
+			debugger->printf_P(PSTR("Multiplier:           %f\r\n"), price.multiplier / 1000.0);
+			debugger->printf_P(PSTR("ENTSO-E Token:        %s\r\n"), price.entsoeToken);
 		}
 		debugger->println(F(""));
 		delay(10);

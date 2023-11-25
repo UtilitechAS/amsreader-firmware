@@ -62,7 +62,7 @@ ADC_MODE(ADC_VCC);
 #include "WiFiClientConnectionHandler.h"
 #include "WiFiAccessPointConnectionHandler.h"
 #include "EthernetConnectionHandler.h"
-#include "EntsoeApi.h"
+#include "PriceService.h"
 #include "RealtimePlot.h"
 #include "AmsWebServer.h"
 #include "AmsConfiguration.h"
@@ -104,7 +104,7 @@ AmsConfiguration config;
 
 RemoteDebug Debug;
 
-EntsoeApi* eapi = NULL;
+PriceService* ps = NULL;
 
 Timezone* tz = NULL;
 
@@ -179,7 +179,7 @@ void handleDataSuccess(AmsData* data);
 void handleTemperature(unsigned long now);
 void handleSystem(unsigned long now);
 void handleButton(unsigned long now);
-void handlePriceApi(unsigned long now);
+void handlePriceService(unsigned long now);
 void handleClear(unsigned long now);
 void handleEnergyAccountingChanged();
 bool handleVoltageCheck();
@@ -294,14 +294,14 @@ void setup() {
 	hw.ledBlink(LED_GREEN, 1);
 	hw.ledBlink(LED_BLUE, 1);
 
-	EntsoeConfig entsoe;
-	if(config.getEntsoeConfig(entsoe) && entsoe.enabled && strlen(entsoe.area) > 0) {
-		eapi = new EntsoeApi(&Debug);
-		eapi->setup(entsoe);
-		ws.setEntsoeApi(eapi);
+	PriceServiceConfig price;
+	if(config.getPriceServiceConfig(price) && price.enabled && strlen(price.area) > 0) {
+		ps = new PriceService(&Debug);
+		ps->setup(price);
+		ws.setPriceService(ps);
 	}
-	ws.setPriceSettings(entsoe.area, entsoe.currency);
-	ea.setFixedPrice(entsoe.fixedPrice / 1000.0, entsoe.currency);
+	ws.setPriceSettings(price.area, price.currency);
+	ea.setFixedPrice(price.fixedPrice / 1000.0, price.currency);
 	bool shared = false;
 	Serial.flush();
 	Serial.end();
@@ -478,7 +478,7 @@ void setup() {
 	}
 	ea.setup(&ds, eac);
 	ea.load();
-	ea.setEapi(eapi);
+	ea.setPriceService(ps);
 	ws.setup(&config, &gpioConfig, &meterState, &ds, &ea, &rtp);
 
 	#if defined(ESP32)
@@ -573,7 +573,7 @@ void loop() {
 						if(err > 0)
 							debugE_P(PSTR("Energyspeedometer connector reporting error (%d)"), err);
 						energySpeedometer->connect();
-						energySpeedometer->publishSystem(&hw, eapi, &ea);
+						energySpeedometer->publishSystem(&hw, ps, &ea);
 					}
 					energySpeedometer->loop();
 					delay(10);
@@ -590,9 +590,9 @@ void loop() {
 			#endif
 
 			try {
-				handlePriceApi(now);
+				handlePriceService(now);
 			} catch(const std::exception& e) {
-				debugE_P(PSTR("Exception in ENTSO-E loop (%s)"), e.what());
+				debugE_P(PSTR("Exception in PriceService loop (%s)"), e.what());
 			}
 			start = millis();
 			ws.loop();
@@ -809,11 +809,11 @@ void handleSystem(unsigned long now) {
 		start = millis();
 		if(WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED) {
 			if(mqttHandler != NULL) {
-				mqttHandler->publishSystem(&hw, eapi, &ea);
+				mqttHandler->publishSystem(&hw, ps, &ea);
 			}
 			#if defined(ENERGY_SPEEDOMETER_PASS)
 			if(energySpeedometer != NULL) {
-				energySpeedometer->publishSystem(&hw, eapi, &ea);
+				energySpeedometer->publishSystem(&hw, ps, &ea);
 			}
 			#endif
 		}
@@ -875,18 +875,18 @@ void handleTemperature(unsigned long now) {
 	}
 }
 
-void handlePriceApi(unsigned long now) {
+void handlePriceService(unsigned long now) {
 	unsigned long start, end;
-	if(eapi != NULL && ntpEnabled) {
+	if(ps != NULL && ntpEnabled) {
 		start = millis();
-		if(eapi->loop() && mqttHandler != NULL) {
+		if(ps->loop() && mqttHandler != NULL) {
 			end = millis();
 			if(end - start > 1000) {
 				debugW_P(PSTR("Used %dms to update prices"), millis()-start);
 			}
 
 			start = millis();
-			mqttHandler->publishPrices(eapi);
+			mqttHandler->publishPrices(ps);
 			end = millis();
 			if(end - start > 1000) {
 				debugW_P(PSTR("Used %dms to publish prices to MQTT"), millis()-start);
@@ -899,23 +899,23 @@ void handlePriceApi(unsigned long now) {
 		}
 	}
 	
-	if(config.isEntsoeChanged()) {
-		EntsoeConfig entsoe;
-		if(config.getEntsoeConfig(entsoe) && entsoe.enabled && strlen(entsoe.area) > 0) {
-			if(eapi == NULL) {
-				eapi = new EntsoeApi(&Debug);
-				ea.setEapi(eapi);
-				ws.setEntsoeApi(eapi);
+	if(config.isPriceServiceChanged()) {
+		PriceServiceConfig price;
+		if(config.getPriceServiceConfig(price) && price.enabled && strlen(price.area) > 0) {
+			if(ps == NULL) {
+				ps = new PriceService(&Debug);
+				ea.setPriceService(ps);
+				ws.setPriceService(ps);
 			}
-			eapi->setup(entsoe);
-		} else if(eapi != NULL) {
-			delete eapi;
-			eapi = NULL;
-			ws.setEntsoeApi(NULL);
+			ps->setup(price);
+		} else if(ps != NULL) {
+			delete ps;
+			ps = NULL;
+			ws.setPriceService(NULL);
 		}
-		ws.setPriceSettings(entsoe.area, entsoe.currency);
-		config.ackEntsoeChange();
-		ea.setFixedPrice(entsoe.fixedPrice / 1000.0, entsoe.currency);
+		ws.setPriceSettings(price.area, price.currency);
+		config.ackPriceServiceChange();
+		ea.setFixedPrice(price.fixedPrice / 1000.0, price.currency);
 	}
 }
 
@@ -1111,12 +1111,12 @@ void handleDataSuccess(AmsData* data) {
 			ESP.wdtFeed();
 		#endif
 		yield();
-		if(mqttHandler->publish(data, &meterState, &ea, eapi)) {
+		if(mqttHandler->publish(data, &meterState, &ea, ps)) {
 			delay(10);
 		}
 	}
 	#if defined(ENERGY_SPEEDOMETER_PASS)
-	if(energySpeedometer != NULL && energySpeedometer->publish(&meterState, &meterState, &ea, eapi)) {
+	if(energySpeedometer != NULL && energySpeedometer->publish(&meterState, &meterState, &ea, ps)) {
 		delay(10);
 	}
 	#endif
@@ -1261,7 +1261,7 @@ void MQTT_connect() {
 
 	if(mqttHandler != NULL) {
 		mqttHandler->connect();
-		mqttHandler->publishSystem(&hw, eapi, &ea);
+		mqttHandler->publishSystem(&hw, ps, &ea);
 	}
 }
 
@@ -1284,7 +1284,7 @@ void configFileParse() {
 	bool lDomo = false;
 	bool lHa = false;
 	bool lNtp = false;
-	bool lEntsoe = false;
+	bool lPrice = false;
 	bool lEac = false;
 	bool sEa = false;
 	bool sDs = false;
@@ -1300,7 +1300,7 @@ void configFileParse() {
 	DomoticzConfig domo;
 	HomeAssistantConfig haconf;
 	NtpConfig ntp;
-	EntsoeConfig entsoe;
+	PriceServiceConfig price;
 	EnergyAccountingConfig eac;
 
 	size_t size;
@@ -1499,20 +1499,35 @@ void configFileParse() {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			strcpy(ntp.timezone, buf+12);
 		} else if(strncmp_P(buf, PSTR("entsoeToken "), 12) == 0) {
-			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			strcpy(entsoe.token, buf+12);
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.entsoeToken, buf+12);
 		} else if(strncmp_P(buf, PSTR("entsoeArea "), 11) == 0) {
-			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			strcpy(entsoe.area, buf+11);
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.area, buf+11);
 		} else if(strncmp_P(buf, PSTR("entsoeCurrency "), 15) == 0) {
-			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			strcpy(entsoe.currency, buf+15);
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.currency, buf+15);
 		} else if(strncmp_P(buf, PSTR("entsoeMultiplier "), 17) == 0) {
-			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			entsoe.multiplier = String(buf+17).toFloat() * 1000;
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			price.multiplier = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("entsoeFixedPrice "), 17) == 0) {
-			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			entsoe.fixedPrice = String(buf+17).toFloat() * 1000;
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			price.fixedPrice = String(buf+17).toFloat() * 1000;
+		} else if(strncmp_P(buf, PSTR("priceEntsoeToken "), 17) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.entsoeToken, buf+12);
+		} else if(strncmp_P(buf, PSTR("priceArea "), 10) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.area, buf+11);
+		} else if(strncmp_P(buf, PSTR("priceCurrency "), 14) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.currency, buf+15);
+		} else if(strncmp_P(buf, PSTR("priceMultiplier "), 16) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			price.multiplier = String(buf+17).toFloat() * 1000;
+		} else if(strncmp_P(buf, PSTR("priceFixedPrice "), 16) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			price.fixedPrice = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("thresholds "), 11) == 0) {
 			if(!lEac) { config.getEnergyAccountingConfig(eac); lEac = true; };
 			int i = 0;
@@ -1745,7 +1760,7 @@ void configFileParse() {
 	if(lDomo) config.setDomoticzConfig(domo);
 	if(lHa) config.setHomeAssistantConfig(haconf);
 	if(lNtp) config.setNtpConfig(ntp);
-	if(lEntsoe) config.setEntsoeConfig(entsoe);
+	if(lPrice) config.setPriceServiceConfig(price);
 	if(lEac) config.setEnergyAccountingConfig(eac);
 	if(sDs) ds.save();
 	if(sEa) ea.save();

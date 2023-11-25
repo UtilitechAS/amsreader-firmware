@@ -10,7 +10,7 @@
 #include "Arduino.h"
 #include "AmsData.h"
 #include "AmsDataStorage.h"
-#include "EntsoeApi.h"
+#include "PriceService.h"
 
 struct EnergyAccountingPeak {
     uint8_t day;
@@ -82,7 +82,7 @@ class EnergyAccounting {
 public:
     EnergyAccounting(RemoteDebug*, EnergyAccountingRealtimeData*);
     void setup(AmsDataStorage *ds, EnergyAccountingConfig *config);
-    void setEapi(EntsoeApi *eapi);
+    void setPriceService(PriceService *ps);
     void setTimezone(Timezone*);
     EnergyAccountingConfig* getConfig();
     bool update(AmsData* amsData);
@@ -126,7 +126,7 @@ private:
     RemoteDebug* debugger = NULL;
     bool init = false, initPrice = false;
     AmsDataStorage *ds = NULL;
-    EntsoeApi *eapi = NULL;
+    PriceService *ps = NULL;
     EnergyAccountingConfig *config = NULL;
     Timezone *tz = NULL;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };

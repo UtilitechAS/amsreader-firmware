@@ -17,7 +17,7 @@
 #include "EnergyAccounting.h"
 #include "Uptime.h"
 #include "RemoteDebug.h"
-#include "EntsoeApi.h"
+#include "PriceService.h"
 #include "RealtimePlot.h"
 
 #if defined(ESP8266)
@@ -44,7 +44,7 @@ public:
 	void setMqtt(MQTTClient* mqtt);
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
-	void setEntsoeApi(EntsoeApi* eapi);
+	void setPriceService(PriceService* ps);
 	void setPriceSettings(String region, String currency);
 	void setMeterConfig(uint8_t distributionSystem, uint16_t mainFuse, uint16_t productionCapacity);
 	void setMqttHandler(AmsMqttHandler* mqttHandler);
@@ -58,7 +58,7 @@ private:
 
 	HwTools* hw;
 	Timezone* tz;
-	EntsoeApi* eapi = NULL;
+	PriceService* ps = NULL;
 	AmsConfiguration* config;
 	GpioConfig* gpioConfig;
 	WebConfig webConfig;

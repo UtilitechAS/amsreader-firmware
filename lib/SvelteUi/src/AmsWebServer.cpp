@@ -143,8 +143,8 @@ void AmsWebServer::setMqttHandler(AmsMqttHandler* mqttHandler) {
 	this->mqttHandler = mqttHandler;
 }
 
-void AmsWebServer::setEntsoeApi(EntsoeApi* eapi) {
-	this->eapi = eapi;
+void AmsWebServer::setPriceService(PriceService* ps) {
+	this->ps = ps;
 }
 
 void AmsWebServer::setMeterConfig(uint8_t distributionSystem, uint16_t mainFuse, uint16_t productionCapacity) {
@@ -484,7 +484,7 @@ void AmsWebServer::dataJson() {
 		wifiStatus,
 		mqttStatus,
 		mqttHandler == NULL ? 0 : (int) mqttHandler->lastError(),
-		price == ENTSOE_NO_VALUE ? "null" : String(price, 2).c_str(),
+		price == PRICE_NO_VALUE ? "null" : String(price, 2).c_str(),
 		meterState->getMeterType(),
 		distributionSystem,
 		ea->getMonthMax(),
@@ -502,11 +502,11 @@ void AmsWebServer::dataJson() {
 		ea->getCostThisMonth(),
 		ea->getProducedThisMonth(),
 		ea->getIncomeThisMonth(),
-		eapi == NULL ? "false" : "true",
+		ps == NULL ? "false" : "true",
 		priceRegion.c_str(),
 		priceCurrency.c_str(),
 		meterState->getLastError(),
-		eapi == NULL ? 0 : eapi->getLastError(),
+		ps == NULL ? 0 : ps->getLastError(),
 		(uint32_t) now,
 		checkSecurity(1, false) ? "true" : "false"
 	);
@@ -679,48 +679,48 @@ void AmsWebServer::energyPriceJson() {
 
 	float prices[36];
 	for(int i = 0; i < 36; i++) {
-		prices[i] = eapi == NULL ? ENTSOE_NO_VALUE : eapi->getValueForHour(i);
+		prices[i] = ps == NULL ? PRICE_NO_VALUE : ps->getValueForHour(i);
 	}
 
 	snprintf_P(buf, BufferSize, ENERGYPRICE_JSON, 
-		eapi == NULL ? "" : eapi->getCurrency(),
-		eapi == NULL ? "" : eapi->getSource(),
-		prices[0] == ENTSOE_NO_VALUE ? "null" : String(prices[0], 4).c_str(),
-		prices[1] == ENTSOE_NO_VALUE ? "null" : String(prices[1], 4).c_str(),
-		prices[2] == ENTSOE_NO_VALUE ? "null" : String(prices[2], 4).c_str(),
-		prices[3] == ENTSOE_NO_VALUE ? "null" : String(prices[3], 4).c_str(),
-		prices[4] == ENTSOE_NO_VALUE ? "null" : String(prices[4], 4).c_str(),
-		prices[5] == ENTSOE_NO_VALUE ? "null" : String(prices[5], 4).c_str(),
-		prices[6] == ENTSOE_NO_VALUE ? "null" : String(prices[6], 4).c_str(),
-		prices[7] == ENTSOE_NO_VALUE ? "null" : String(prices[7], 4).c_str(),
-		prices[8] == ENTSOE_NO_VALUE ? "null" : String(prices[8], 4).c_str(),
-		prices[9] == ENTSOE_NO_VALUE ? "null" : String(prices[9], 4).c_str(),
-		prices[10] == ENTSOE_NO_VALUE ? "null" : String(prices[10], 4).c_str(),
-		prices[11] == ENTSOE_NO_VALUE ? "null" : String(prices[11], 4).c_str(),
-		prices[12] == ENTSOE_NO_VALUE ? "null" : String(prices[12], 4).c_str(),
-		prices[13] == ENTSOE_NO_VALUE ? "null" : String(prices[13], 4).c_str(),
-		prices[14] == ENTSOE_NO_VALUE ? "null" : String(prices[14], 4).c_str(),
-		prices[15] == ENTSOE_NO_VALUE ? "null" : String(prices[15], 4).c_str(),
-		prices[16] == ENTSOE_NO_VALUE ? "null" : String(prices[16], 4).c_str(),
-		prices[17] == ENTSOE_NO_VALUE ? "null" : String(prices[17], 4).c_str(),
-		prices[18] == ENTSOE_NO_VALUE ? "null" : String(prices[18], 4).c_str(),
-		prices[19] == ENTSOE_NO_VALUE ? "null" : String(prices[19], 4).c_str(),
-		prices[20] == ENTSOE_NO_VALUE ? "null" : String(prices[20], 4).c_str(),
-		prices[21] == ENTSOE_NO_VALUE ? "null" : String(prices[21], 4).c_str(),
-		prices[22] == ENTSOE_NO_VALUE ? "null" : String(prices[22], 4).c_str(),
-		prices[23] == ENTSOE_NO_VALUE ? "null" : String(prices[23], 4).c_str(),
-		prices[24] == ENTSOE_NO_VALUE ? "null" : String(prices[24], 4).c_str(),
-		prices[25] == ENTSOE_NO_VALUE ? "null" : String(prices[25], 4).c_str(),
-		prices[26] == ENTSOE_NO_VALUE ? "null" : String(prices[26], 4).c_str(),
-		prices[27] == ENTSOE_NO_VALUE ? "null" : String(prices[27], 4).c_str(),
-		prices[28] == ENTSOE_NO_VALUE ? "null" : String(prices[28], 4).c_str(),
-		prices[29] == ENTSOE_NO_VALUE ? "null" : String(prices[29], 4).c_str(),
-		prices[30] == ENTSOE_NO_VALUE ? "null" : String(prices[30], 4).c_str(),
-		prices[31] == ENTSOE_NO_VALUE ? "null" : String(prices[31], 4).c_str(),
-		prices[32] == ENTSOE_NO_VALUE ? "null" : String(prices[32], 4).c_str(),
-		prices[33] == ENTSOE_NO_VALUE ? "null" : String(prices[33], 4).c_str(),
-		prices[34] == ENTSOE_NO_VALUE ? "null" : String(prices[34], 4).c_str(),
-		prices[35] == ENTSOE_NO_VALUE ? "null" : String(prices[35], 4).c_str()
+		ps == NULL ? "" : ps->getCurrency(),
+		ps == NULL ? "" : ps->getSource(),
+		prices[0] == PRICE_NO_VALUE ? "null" : String(prices[0], 4).c_str(),
+		prices[1] == PRICE_NO_VALUE ? "null" : String(prices[1], 4).c_str(),
+		prices[2] == PRICE_NO_VALUE ? "null" : String(prices[2], 4).c_str(),
+		prices[3] == PRICE_NO_VALUE ? "null" : String(prices[3], 4).c_str(),
+		prices[4] == PRICE_NO_VALUE ? "null" : String(prices[4], 4).c_str(),
+		prices[5] == PRICE_NO_VALUE ? "null" : String(prices[5], 4).c_str(),
+		prices[6] == PRICE_NO_VALUE ? "null" : String(prices[6], 4).c_str(),
+		prices[7] == PRICE_NO_VALUE ? "null" : String(prices[7], 4).c_str(),
+		prices[8] == PRICE_NO_VALUE ? "null" : String(prices[8], 4).c_str(),
+		prices[9] == PRICE_NO_VALUE ? "null" : String(prices[9], 4).c_str(),
+		prices[10] == PRICE_NO_VALUE ? "null" : String(prices[10], 4).c_str(),
+		prices[11] == PRICE_NO_VALUE ? "null" : String(prices[11], 4).c_str(),
+		prices[12] == PRICE_NO_VALUE ? "null" : String(prices[12], 4).c_str(),
+		prices[13] == PRICE_NO_VALUE ? "null" : String(prices[13], 4).c_str(),
+		prices[14] == PRICE_NO_VALUE ? "null" : String(prices[14], 4).c_str(),
+		prices[15] == PRICE_NO_VALUE ? "null" : String(prices[15], 4).c_str(),
+		prices[16] == PRICE_NO_VALUE ? "null" : String(prices[16], 4).c_str(),
+		prices[17] == PRICE_NO_VALUE ? "null" : String(prices[17], 4).c_str(),
+		prices[18] == PRICE_NO_VALUE ? "null" : String(prices[18], 4).c_str(),
+		prices[19] == PRICE_NO_VALUE ? "null" : String(prices[19], 4).c_str(),
+		prices[20] == PRICE_NO_VALUE ? "null" : String(prices[20], 4).c_str(),
+		prices[21] == PRICE_NO_VALUE ? "null" : String(prices[21], 4).c_str(),
+		prices[22] == PRICE_NO_VALUE ? "null" : String(prices[22], 4).c_str(),
+		prices[23] == PRICE_NO_VALUE ? "null" : String(prices[23], 4).c_str(),
+		prices[24] == PRICE_NO_VALUE ? "null" : String(prices[24], 4).c_str(),
+		prices[25] == PRICE_NO_VALUE ? "null" : String(prices[25], 4).c_str(),
+		prices[26] == PRICE_NO_VALUE ? "null" : String(prices[26], 4).c_str(),
+		prices[27] == PRICE_NO_VALUE ? "null" : String(prices[27], 4).c_str(),
+		prices[28] == PRICE_NO_VALUE ? "null" : String(prices[28], 4).c_str(),
+		prices[29] == PRICE_NO_VALUE ? "null" : String(prices[29], 4).c_str(),
+		prices[30] == PRICE_NO_VALUE ? "null" : String(prices[30], 4).c_str(),
+		prices[31] == PRICE_NO_VALUE ? "null" : String(prices[31], 4).c_str(),
+		prices[32] == PRICE_NO_VALUE ? "null" : String(prices[32], 4).c_str(),
+		prices[33] == PRICE_NO_VALUE ? "null" : String(prices[33], 4).c_str(),
+		prices[34] == PRICE_NO_VALUE ? "null" : String(prices[34], 4).c_str(),
+		prices[35] == PRICE_NO_VALUE ? "null" : String(prices[35], 4).c_str()
 	);
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -827,8 +827,8 @@ void AmsWebServer::configurationJson() {
 	MqttConfig mqttConfig;
 	config->getMqttConfig(mqttConfig);
 
-	EntsoeConfig entsoe;
-	config->getEntsoeConfig(entsoe);
+	PriceServiceConfig price;
+	config->getPriceServiceConfig(price);
 	DebugConfig debugConfig;
 	config->getDebugConfig(debugConfig);
 	DomoticzConfig domo;
@@ -938,12 +938,12 @@ void AmsWebServer::configurationJson() {
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_PRICE_JSON,
-		entsoe.enabled ? "true" : "false",
-		entsoe.token,
-		entsoe.area,
-		entsoe.currency,
-		entsoe.multiplier / 1000.0,
-		entsoe.fixedPrice == 0 ? "null" : String(entsoe.fixedPrice / 1000.0, 10).c_str()
+		price.enabled ? "true" : "false",
+		price.entsoeToken,
+		price.area,
+		price.currency,
+		price.multiplier / 1000.0,
+		price.fixedPrice == 0 ? "null" : String(price.fixedPrice / 1000.0, 10).c_str()
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_DEBUG_JSON,
@@ -1521,14 +1521,14 @@ void AmsWebServer::handleSave() {
 
 		priceRegion = server.arg(F("pr"));
 
-		EntsoeConfig entsoe;
-		entsoe.enabled = server.hasArg(F("pe")) && server.arg(F("pe")) == F("true");
-		strcpy(entsoe.token, server.arg(F("pt")).c_str());
-		strcpy(entsoe.area, priceRegion.c_str());
-		strcpy(entsoe.currency, server.arg(F("pc")).c_str());
-		entsoe.multiplier = server.arg(F("pm")).toFloat() * 1000;
-		entsoe.fixedPrice = server.hasArg(F("pf")) ? server.arg(F("pf")).toFloat() * 1000 : 0;
-		config->setEntsoeConfig(entsoe);
+		PriceServiceConfig price;
+		price.enabled = server.hasArg(F("pe")) && server.arg(F("pe")) == F("true");
+		strcpy(price.entsoeToken, server.arg(F("pt")).c_str());
+		strcpy(price.area, priceRegion.c_str());
+		strcpy(price.currency, server.arg(F("pc")).c_str());
+		price.multiplier = server.arg(F("pm")).toFloat() * 1000;
+		price.fixedPrice = server.hasArg(F("pf")) ? server.arg(F("pf")).toFloat() * 1000 : 0;
+		config->setPriceServiceConfig(price);
 	}
 
 	if(server.hasArg(F("t")) && server.arg(F("t")) == F("true")) {
@@ -2081,7 +2081,7 @@ void AmsWebServer::configFileDownload() {
 	bool includeMeter = server.hasArg(F("it")) && server.arg(F("it")) == F("true");
 	bool includeGpio = server.hasArg(F("ig")) && server.arg(F("ig")) == F("true");
 	bool includeNtp = server.hasArg(F("in")) && server.arg(F("in")) == F("true");
-	bool includeEntsoe = server.hasArg(F("is")) && server.arg(F("is")) == F("true");
+	bool includePrice = server.hasArg(F("is")) && server.arg(F("is")) == F("true");
 	bool includeThresholds = server.hasArg(F("ih")) && server.arg(F("ih")) == F("true");
 	
 	SystemConfig sys;
@@ -2219,14 +2219,14 @@ void AmsWebServer::configFileDownload() {
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpServer %s\n"), ntp.server));
 	}
 
-	if(includeEntsoe) {
-		EntsoeConfig entsoe;
-		config->getEntsoeConfig(entsoe);
-		if(strlen(entsoe.token) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeToken %s\n"), entsoe.token));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeArea %s\n"), entsoe.area));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeCurrency %s\n"), entsoe.currency));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeMultiplier %.3f\n"), entsoe.multiplier / 1000.0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("entsoeFixedPrice %.3f\n"), entsoe.fixedPrice / 1000.0));
+	if(includePrice) {
+		PriceServiceConfig price;
+		config->getPriceServiceConfig(price);
+		if(strlen(price.entsoeToken) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEntsoeToken %s\n"), price.entsoeToken));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceArea %s\n"), price.area));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceCurrency %s\n"), price.currency));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceMultiplier %.3f\n"), price.multiplier / 1000.0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceFixedPrice %.3f\n"), price.fixedPrice / 1000.0));
 	}
 
 	if(includeThresholds) {

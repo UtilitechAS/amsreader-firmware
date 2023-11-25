@@ -4,7 +4,7 @@
  * 
  */
 
-#include "EntsoeApi.h"
+#include "PriceService.h"
 #include <EEPROM.h>
 #include "Uptime.h"
 #include "TimeLib.h"
@@ -17,7 +17,7 @@
 #include <esp_task_wdt.h>
 #endif
 
-EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
+PriceService::PriceService(RemoteDebug* Debug) {
     this->buf = (char*) malloc(BufferSize);
 
     debugger = Debug;
@@ -30,9 +30,9 @@ EntsoeApi::EntsoeApi(RemoteDebug* Debug) {
     tomorrowFetchMinute = 15 + random(45); // Random between 13:15 and 14:00
 }
 
-void EntsoeApi::setup(EntsoeConfig& config) {
+void PriceService::setup(PriceServiceConfig& config) {
     if(this->config == NULL) {
-        this->config = new EntsoeConfig();
+        this->config = new PriceServiceConfig();
     }
     memcpy(this->config, &config, sizeof(config));
     lastTodayFetch = lastTomorrowFetch = lastCurrencyFetch = 0;
@@ -64,19 +64,19 @@ void EntsoeApi::setup(EntsoeConfig& config) {
 
 }
 
-char* EntsoeApi::getToken() {
-    return this->config->token;
+char* PriceService::getToken() {
+    return this->config->entsoeToken;
 }
 
-char* EntsoeApi::getCurrency() {
+char* PriceService::getCurrency() {
     return this->config->currency;
 }
 
-char* EntsoeApi::getArea() {
+char* PriceService::getArea() {
     return this->config->area;
 }
 
-char* EntsoeApi::getSource() {
+char* PriceService::getSource() {
     if(this->today != NULL && this->tomorrow != NULL) {
         if(strcmp(this->today->source, this->tomorrow->source) == 0) {
             return this->today->source;
@@ -91,12 +91,12 @@ char* EntsoeApi::getSource() {
     return "";
 }
 
-float EntsoeApi::getValueForHour(int8_t hour) {
+float PriceService::getValueForHour(int8_t hour) {
     time_t cur = time(nullptr);
     return getValueForHour(cur, hour);
 }
 
-float EntsoeApi::getValueForHour(time_t ts, int8_t hour) {
+float PriceService::getValueForHour(time_t ts, int8_t hour) {
     tmElements_t tm;
     int8_t pos = hour;
 
@@ -114,47 +114,47 @@ float EntsoeApi::getValueForHour(time_t ts, int8_t hour) {
         hoursToday++;
     }
     if(pos > 49)
-        return ENTSOE_NO_VALUE;
+        return PRICE_NO_VALUE;
 
-    float value = ENTSOE_NO_VALUE;
+    float value = PRICE_NO_VALUE;
     float multiplier = config->multiplier / 1000.0;
     if(pos >= hoursToday) {
         if(tomorrow == NULL)
-            return ENTSOE_NO_VALUE;
-        if(tomorrow->points[pos-hoursToday] == ENTSOE_NO_VALUE)
-            return ENTSOE_NO_VALUE;
+            return PRICE_NO_VALUE;
+        if(tomorrow->points[pos-hoursToday] == PRICE_NO_VALUE)
+            return PRICE_NO_VALUE;
         value = tomorrow->points[pos-hoursToday] / 10000.0;
         if(strcmp(tomorrow->measurementUnit, "KWH") == 0) {
             // Multiplier is 1
         } else if(strcmp(tomorrow->measurementUnit, "MWH") == 0) {
             multiplier *= 0.001;
         } else {
-            return ENTSOE_NO_VALUE;
+            return PRICE_NO_VALUE;
         }
         float mult = getCurrencyMultiplier(tomorrow->currency, config->currency, time(nullptr));
-        if(mult == 0) return ENTSOE_NO_VALUE;
+        if(mult == 0) return PRICE_NO_VALUE;
         multiplier *= mult;
     } else if(pos >= 0) {
         if(today == NULL)
-            return ENTSOE_NO_VALUE;
-        if(today->points[pos] == ENTSOE_NO_VALUE)
-            return ENTSOE_NO_VALUE;
+            return PRICE_NO_VALUE;
+        if(today->points[pos] == PRICE_NO_VALUE)
+            return PRICE_NO_VALUE;
         value = today->points[pos] / 10000.0;
         if(strcmp(today->measurementUnit, "KWH") == 0) {
             // Multiplier is 1
         } else if(strcmp(today->measurementUnit, "MWH") == 0) {
             multiplier *= 0.001;
         } else {
-            return ENTSOE_NO_VALUE;
+            return PRICE_NO_VALUE;
         }
         float mult = getCurrencyMultiplier(today->currency, config->currency, time(nullptr));
-        if(mult == 0) return ENTSOE_NO_VALUE;
+        if(mult == 0) return PRICE_NO_VALUE;
         multiplier *= mult;
     }
     return value * multiplier;
 }
 
-bool EntsoeApi::loop() {
+bool PriceService::loop() {
     uint64_t now = millis64();
     if(now < 10000) return false; // Grace period
 
@@ -182,7 +182,7 @@ bool EntsoeApi::loop() {
     }
     
     if(currentDay != tm.Day) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EntsoeApi) Rotating price objects at %lu\n"), t);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Rotating price objects at %lu\n"), t);
         if(today != NULL) delete today;
         if(tomorrow != NULL) {
             today = tomorrow;
@@ -231,7 +231,7 @@ bool EntsoeApi::loop() {
     return false;
 }
 
-bool EntsoeApi::retrieve(const char* url, Stream* doc) {
+bool PriceService::retrieve(const char* url, Stream* doc) {
     #if defined(ESP32)
         if(http->begin(url)) {
             if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Connection established\n"));
@@ -266,7 +266,7 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
                 } else {
                     nextFetchDelayMinutes = 2;
                 }
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(EntsoeApi) Communication error, returned status: %d\n"), status);
+                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Communication error, returned status: %d\n"), status);
                 if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(http->errorToString(status).c_str());
                 if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http->getString().c_str());
 
@@ -280,7 +280,7 @@ bool EntsoeApi::retrieve(const char* url, Stream* doc) {
     return false;
 }
 
-float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t t) {
+float PriceService::getCurrencyMultiplier(const char* from, const char* to, time_t t) {
     if(strcmp(from, to) == 0)
         return 1.00;
 
@@ -297,17 +297,17 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t 
         #endif
 
         snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), from);
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EntsoeApi) Retrieving %s to NOK conversion\n"), from);
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  url: %s\n"), buf);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Retrieving %s to NOK conversion\n"), from);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
         if(retrieve(buf, &p)) {
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  got exchange rate %.4f\n"), p.getValue());
+            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  got exchange rate %.4f\n"), p.getValue());
             currencyMultiplier = p.getValue();
             if(strncmp(to, "NOK", 3) != 0) {
                 snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), to);
-                if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EntsoeApi) Retrieving %s to NOK conversion\n"), to);
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  url: %s\n"), buf);
+                if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Retrieving %s to NOK conversion\n"), to);
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
                 if(retrieve(buf, &p)) {
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  got exchange rate %.4f\n"), p.getValue());
+                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  got exchange rate %.4f\n"), p.getValue());
                     currencyMultiplier /= p.getValue();
                 } else {
                     currencyMultiplier = 0;
@@ -318,7 +318,7 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t 
             currencyMultiplier = 0;
             return 0;
         }
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi) Resulting currency multiplier: %.4f\n"), currencyMultiplier);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService) Resulting currency multiplier: %.4f\n"), currencyMultiplier);
         tmElements_t tm;
         breakTime(t, tm);
         lastCurrencyFetch = now + (SECS_PER_DAY * 1000) - (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000) + 3600000;
@@ -326,7 +326,7 @@ float EntsoeApi::getCurrencyMultiplier(const char* from, const char* to, time_t 
     return currencyMultiplier;
 }
 
-PricesContainer* EntsoeApi::fetchPrices(time_t t) {
+PricesContainer* PriceService::fetchPrices(time_t t) {
     if(strlen(getToken()) > 0) {
         tmElements_t tm;
         breakTime(tz->toLocal(t), tm);
@@ -348,10 +348,10 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
             ESP.wdtFeed();
         #endif
 
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EntsoeApi) Fetching prices for %d.%d.%d\n"), tm.Day, tm.Month, tm.Year+1970);
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi)  url: %s\n"), buf);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Fetching prices for %d.%d.%d\n"), tm.Day, tm.Month, tm.Year+1970);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
         EntsoeA44Parser a44;
-        if(retrieve(buf, &a44) && a44.getPoint(0) != ENTSOE_NO_VALUE) {
+        if(retrieve(buf, &a44) && a44.getPoint(0) != PRICE_NO_VALUE) {
             PricesContainer* ret = new PricesContainer();
             a44.get(ret);
             return ret;
@@ -405,10 +405,10 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
                     debugPrint(content, 0, data.length());
                 }
                 if(gcmRet > 0) {
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EntsoeApi) Price data starting at: %d\n"), gcmRet);
+                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService) Price data starting at: %d\n"), gcmRet);
                     PricesContainer* ret = new PricesContainer();
                     for(uint8_t i = 0; i < 25; i++) {
-                        ret->points[i] = ENTSOE_NO_VALUE;
+                        ret->points[i] = PRICE_NO_VALUE;
                     }
                     memcpy(ret, content+gcmRet, sizeof(*ret));
                     for(uint8_t i = 0; i < 25; i++) {
@@ -420,7 +420,7 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
                 } else {
                     lastError = gcmRet;
                     nextFetchDelayMinutes = 60;
-                    if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(EntsoeApi) Error code while decrypting prices: %d\n"), gcmRet);
+                    if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Error code while decrypting prices: %d\n"), gcmRet);
                 }
             } else {
                 lastError = status;
@@ -431,7 +431,7 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
                 } else {
                     nextFetchDelayMinutes = 5;
                 }
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(EntsoeApi) Communication error, returned status: %d\n"), status);
+                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Communication error, returned status: %d\n"), status);
                 if(debugger->isActive(RemoteDebug::ERROR)) {
                     debugger->printf(http->errorToString(status).c_str());
                     debugger->println();
@@ -445,7 +445,7 @@ PricesContainer* EntsoeApi::fetchPrices(time_t t) {
     return NULL;
 }
 
-void EntsoeApi::debugPrint(byte *buffer, int start, int length) {
+void PriceService::debugPrint(byte *buffer, int start, int length) {
 	for (int i = start; i < start + length; i++) {
 		if (buffer[i] < 0x10)
 			debugger->print(F("0"));
@@ -461,6 +461,6 @@ void EntsoeApi::debugPrint(byte *buffer, int start, int length) {
 	debugger->println(F(""));
 }
 
-int16_t EntsoeApi::getLastError() {
+int16_t PriceService::getLastError() {
     return lastError;
 }

@@ -4,8 +4,8 @@
  * 
  */
 
-#ifndef _ENTSOEAPI_H
-#define _ENTSOEAPI_H
+#ifndef _PRICESERVICE_H
+#define _PRICESERVICE_H
 
 #include "TimeLib.h"
 #include "Timezone.h"
@@ -23,10 +23,10 @@
 
 #define SSL_BUF_SIZE 512
 
-class EntsoeApi {
+class PriceService {
 public:
-    EntsoeApi(RemoteDebug*);
-    void setup(EntsoeConfig&);
+    PriceService(RemoteDebug*);
+    void setup(PriceServiceConfig&);
     bool loop();
 
     char* getToken();
@@ -40,7 +40,7 @@ public:
 
 private:
     RemoteDebug* debugger;
-    EntsoeConfig* config = NULL;
+    PriceServiceConfig* config = NULL;
     HTTPClient* http = NULL;
 
     uint8_t currentDay = 0, currentHour = 0;

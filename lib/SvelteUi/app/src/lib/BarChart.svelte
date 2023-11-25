@@ -36,9 +36,9 @@
 <div class="chart" bind:clientWidth={width} bind:clientHeight={height}>
     {#if config.x.ticks && config.points && heightAvailable}
         {#if config.title}
-        <strong class="text-sm">{config.title}</strong>
+            <strong class="text-sm">{config.title}</strong>
         {/if}
-        <svg height="100%">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {heightAvailable}">
             <!-- y axis -->
             <g class="axis y-axis">
                 {#each config.y.ticks as tick}

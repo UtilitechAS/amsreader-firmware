@@ -49,7 +49,7 @@ struct WiFiConfig {
 	uint8_t power;
 	uint8_t sleep;
 	uint8_t use11b;
-	bool autoreboot;
+	bool unused;
 }; // 213
 
 struct MqttConfig {

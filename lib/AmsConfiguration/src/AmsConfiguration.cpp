@@ -75,7 +75,6 @@ bool AmsConfiguration::setWiFiConfig(WiFiConfig& config) {
 		wifiChanged |= config.power != existing.power;
 		wifiChanged |= config.sleep != existing.sleep;
 		wifiChanged |= config.use11b != existing.use11b;
-		wifiChanged |= config.autoreboot != existing.autoreboot;
 	} else {
 		wifiChanged = true;
 	}
@@ -1023,7 +1022,7 @@ bool AmsConfiguration::relocateConfig96() {
 	WiFiConfig wifi;
 	EEPROM.get(CONFIG_WIFI_START, wifi);
 	wifi.use11b = 1;
-	wifi.autoreboot = true;
+	wifi.unused = true;
 	EEPROM.put(CONFIG_WIFI_START, wifi);
 
 	NtpConfig ntp;

@@ -886,7 +886,7 @@ void AmsWebServer::configurationJson() {
 		strlen(wifiConfig.psk) > 0 ? "***" : "",
 		wifiConfig.power / 10.0,
 		wifiConfig.sleep,
-		wifiConfig.autoreboot ? "true" : "false",
+		"false",
 		wifiConfig.use11b ? "true" : "false"
 	);
 	server.sendContent(buf);
@@ -1262,7 +1262,6 @@ void AmsWebServer::handleSave() {
 		}
 		wifi.power = server.arg(F("ww")).toFloat() * 10;
 		wifi.sleep = server.arg(F("wz")).toInt();
-		wifi.autoreboot = server.hasArg(F("wa")) && server.arg(F("wa")) == F("true");
 		wifi.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
 		config->setWiFiConfig(wifi);
 

@@ -151,7 +151,6 @@ EnergyAccountingRealtimeData rtd;
 #endif
 EnergyAccounting ea(&Debug, &rtd);
 
-uint8_t wifiReconnectCount = 0;
 bool wifiDisable11b = false;
 
 HDLCParser *hdlcParser = NULL;
@@ -548,7 +547,6 @@ void loop() {
 			Debug.stop();
 			WiFi_connect();
 		} else {
-			wifiReconnectCount = 0;
 			if(!wifiConnected) {
 				WiFi_post_connect();
 			}
@@ -1537,11 +1535,6 @@ void WiFi_connect() {
 		}
 
 		if(WiFi.getMode() != WIFI_OFF) {
-			if(wifiReconnectCount > 3 && wifi.autoreboot) {
-				if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Unable to connect to WiFi, rebooting because auto reboot is enabled"));
-				ESP.restart();
-				return;
-			}
 			WiFi_disconnect(5000);
 			return;
 		}
@@ -1549,8 +1542,6 @@ void WiFi_connect() {
 		wifiTimeout = WIFI_CONNECTION_TIMEOUT;
 
 		if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Connecting to WiFi network: %s"), wifi.ssid);
-
-		wifiReconnectCount++;
 
 		#if defined(ESP32)
 			if(strlen(wifi.hostname) > 0) {

@@ -629,7 +629,7 @@
             </div>
         </div>
         {/if}
-        {#if configuration.p.r.startsWith("10YNO") || configuration.p.r == '10Y1001A1001A48H'}
+        {#if configuration.p.r.startsWith("10YNO") || configuration.p.r.startsWith('10Y1001A1001A4')}
         <div class="cnt">
             <strong class="text-sm">Tariff thresholds</strong>
             <a href="{wiki('Threshold-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>

@@ -14,11 +14,13 @@
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
+#include <ESP8266SSDP.h>
 ADC_MODE(ADC_VCC);
 #elif defined(ESP32)
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <ESPmDNS.h>
+#include <ESP32SSDP.h>
 #include "Update.h"
 #include <esp_task_wdt.h>
 #include <lwip/dns.h>
@@ -1207,6 +1209,35 @@ void postConnect() {
 		mqttEnabled = strlen(mqttConfig.host) > 0;
 		ws.setMqttEnabled(mqttEnabled);
 	}
+
+	sprintf_P((char*) commonBuffer, PSTR("AMS reader %s"), network.hostname);
+
+	SSDP.setSchemaURL("ssdp/schema.xml");
+	SSDP.setHTTPPort(80);
+	SSDP.setName((char*) commonBuffer);
+	//SSDP.setSerialNumber("0");
+	SSDP.setURL("/");
+	SSDP.setModelName("AMS reader");
+	//SSDP.setModelNumber("929000226503");
+	SSDP.setModelURL("https://amsleser.no");
+	SSDP.setManufacturer("Utilitech AS");
+	SSDP.setManufacturerURL("http://amsleser.no");
+	SSDP.setDeviceType("rootdevice");
+	sprintf_P((char*) commonBuffer, PSTR("amsreader/%s"), FirmwareVersion::VersionString);
+	#if defined(ESP32)
+	SSDP.setModelDescription("Device to read data from electric smart meters");
+	SSDP.setServerName((char*) commonBuffer);
+	//SSDP.setUUID("");
+	SSDP.setIcons(  "<icon>"
+					"<mimetype>image/svg+xml</mimetype>"
+					"<height>48</height>"
+					"<width>48</width>"
+					"<depth>24</depth>"
+					"<url>favicon.svg</url>"
+					"</icon>");
+	#endif
+	SSDP.setInterval(300);
+	SSDP.begin();
 }
 
 

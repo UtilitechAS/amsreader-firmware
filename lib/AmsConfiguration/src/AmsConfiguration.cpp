@@ -81,7 +81,6 @@ bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 		networkChanged |= config.power != existing.power;
 		networkChanged |= config.sleep != existing.sleep;
 		networkChanged |= config.use11b != existing.use11b;
-		networkChanged |= config.autoreboot != existing.autoreboot;
 		networkChanged |= config.mode != existing.mode;
 	} else {
 		networkChanged = true;

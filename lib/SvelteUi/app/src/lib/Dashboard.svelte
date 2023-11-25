@@ -76,7 +76,7 @@
             <AccountingData sysinfo={sysinfo} data={data.ea} currency={data.pc} hasExport={data.om > 0 || data.e > 0}/>
         </div>
     {/if}
-    {#if uiVisibility(sysinfo.ui.t, data.pr && (data.pr.startsWith("10YNO") || data.pr == '10Y1001A1001A48H'))}
+    {#if uiVisibility(sysinfo.ui.t, data.pr && (data.pr.startsWith("10YNO") || data.pr.startsWith('10Y1001A1001A4')))}
         <div class="cnt h-64">
             <TariffPeakChart />
         </div>

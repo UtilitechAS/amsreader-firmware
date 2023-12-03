@@ -34,6 +34,7 @@
             points.push(point(u3));
         }
         config = {
+            title: 'Voltage',
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
             y: {
                 min: 200,

@@ -37,6 +37,7 @@
             points.push(point(i3));
         }
         config = {
+            title: 'Amperage',
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
             y: {
                 min: 0,

@@ -102,7 +102,12 @@ EntsoeApi* eapi = NULL;
 
 Timezone* tz = NULL;
 
-AmsWebServer ws(commonBuffer, &Debug, &hw);
+#if defined(ESP32)
+__NOINIT_ATTR ResetDataContainer rdc;
+#else
+ResetDataContainer rdc;
+#endif
+AmsWebServer ws(commonBuffer, &Debug, &hw, &rdc);
 
 bool mqttEnabled = false;
 AmsMqttHandler* mqttHandler = NULL;

@@ -50,10 +50,19 @@
 #include "esp32s3/rom/rtc.h"
 #endif
 
-AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw) {
+AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc) {
 	this->debugger = Debug;
 	this->hw = hw;
 	this->buf = (char*) buf;
+	this->rdc = rdc;
+	if(rdc->magic != 0x4a) {
+		rdc->last_cause = 0;
+		rdc->cause = 0;
+		rdc->magic = 0x4a;
+	} else {
+		rdc->last_cause = rdc->cause;
+		rdc->cause = 0;
+	}
 }
 
 void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, MeterConfig* meterConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea) {
@@ -321,7 +330,7 @@ void AmsWebServer::sysinfoJson() {
 		webConfig.security,
 		#if defined(ESP32)
 		rtc_get_reset_reason(0),
-		0,
+		rdc->last_cause,
 		#else
 		ESP.getResetInfoPtr()->reason,
 		ESP.getResetInfoPtr()->exccause,
@@ -356,6 +365,7 @@ void AmsWebServer::sysinfoJson() {
 		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
 		debugger->flush();
 		delay(1000);
+		rdc->cause = 1;
 		ESP.restart();
 		performRestart = false;
 	}
@@ -1520,8 +1530,9 @@ void AmsWebServer::handleSave() {
 		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
 		debugger->flush();
 		delay(1000);
-		ESP.restart();
+		rdc->cause = 2;
 		performRestart = false;
+		ESP.restart();
 	}
 }
 
@@ -1538,9 +1549,11 @@ void AmsWebServer::reboot() {
 
 	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
 	debugger->flush();
-	delay(1000);
-	ESP.restart();
+	delay(1000);	rdc->cause = 3;
+
+	rdc->cause = 3;
 	performRestart = false;
+	ESP.restart();
 }
 
 void AmsWebServer::upgrade() {
@@ -1619,6 +1632,7 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 		case HTTP_UPDATE_OK:
 			debugger->printf_P(PSTR("Update OK\n"));
 			debugger->flush();
+			rdc->cause = 4;
 			ESP.restart();
 			break;
 	}
@@ -1802,6 +1816,7 @@ void AmsWebServer::factoryResetPost() {
 	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
 	debugger->flush();
 	delay(1000);
+	rdc->cause = 5;
 	ESP.restart();
 }
 

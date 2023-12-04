@@ -1,5 +1,5 @@
 <script>
-    import { metertype, boardtype, isBusPowered, getResetReason } from './Helpers.js';
+    import { metertype, boardtype, isBusPowered, getResetReason, httpError } from './Helpers.js';
     import { getSysinfo, gitHubReleaseStore, sysinfoStore } from './DataStores.js';
     import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
     import DownloadIcon from './DownloadIcon.svelte';
@@ -157,7 +157,7 @@
         </div>
         {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version}
         <div class="my-2">
-            <div class="bd-yellow">Previous upgrade attempt ({sysinfo.upgrade.t}) does not match current version ({sysinfo.version}) [{sysinfo.upgrade.x}/{sysinfo.upgrade.e}]</div>
+            <div class="bd-yellow">Previous upgrade attempt from {sysinfo.upgrade.f} to {sysinfo.upgrade.t} failed. {httpError(sysinfo.upgrade.e)}</div>
         </div>
         {/if}
         {#if nextVersion}

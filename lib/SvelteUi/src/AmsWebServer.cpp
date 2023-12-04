@@ -1002,7 +1002,7 @@ void AmsWebServer::configurationJson() {
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
-		#if defined(ENERGY_SPEEDOMETER_PASS)
+		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 		sysConfig.energyspeedometer == 7 ? "true" : "false"
 		#else
 		"null"

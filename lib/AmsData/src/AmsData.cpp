@@ -67,6 +67,7 @@ void AmsData::apply(AmsData& other) {
             this->reactiveExportPower = other.getReactiveExportPower();
             this->l1current = other.getL1Current();
             this->l2current = other.getL2Current();
+            this->l2currentEstimated = other.isL2currentEstimated();
             this->l3current = other.getL3Current();
             this->l1voltage = other.getL1Voltage();
             this->l2voltage = other.getL2Voltage();
@@ -216,6 +217,10 @@ bool AmsData::isThreePhase() {
 
 bool AmsData::isTwoPhase() {
     return this->twoPhase;
+}
+
+bool AmsData::isL2currentEstimated() {
+    return this->l2currentEstimated;
 }
 
 int8_t AmsData::getLastError() {

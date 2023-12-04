@@ -7,17 +7,18 @@
     export let u3;
     export let i1;
     export let i2;
+    export let i2e;
     export let i3;
     export let max;
 
     let config = {};
 
-    function point(v) {
+    function point(v,e) {
         return {
             label: fmtnum(v) + 'A',
-            title: v.toFixed(1) + ' A',
+            title: (e ? 'Estimated ' : '') + v.toFixed(1) + ' A',
             value: isNaN(v) ? 0 : v, 
-            color: ampcol(v ? (v)/(max)*100 : 0) 
+            color: ampcol(v ? (v)/(max)*100 : 0, e) 
         };
     };
 
@@ -30,7 +31,7 @@
         }
         if(u2 > 0) {
             xTicks.push({ label: 'L2' });
-            points.push(point(i2));
+            points.push(point(i2, i2e));
         }
         if(u3 > 0) {
             xTicks.push({ label: 'L3' });

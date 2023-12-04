@@ -802,6 +802,17 @@ void AmsWebServer::configurationJson() {
 
 	if(!checkSecurity(1))
 		return;
+	
+	bool multEnable = false;
+	if(meterConfig->wattageMultiplier != 1.0 && meterConfig->wattageMultiplier != 0.0)
+		multEnable = true;
+	if(meterConfig->voltageMultiplier != 1.0 && meterConfig->voltageMultiplier != 0.0)
+		multEnable = true;
+	if(meterConfig->amperageMultiplier != 1.0 && meterConfig->amperageMultiplier != 0.0)
+		multEnable = true;
+	if(meterConfig->accumulatedMultiplier != 1.0 && meterConfig->accumulatedMultiplier != 0.0)
+		multEnable = true;
+		
 
 	SystemConfig sysConfig;
 	config->getSystemConfig(sysConfig);
@@ -870,11 +881,11 @@ void AmsWebServer::configurationJson() {
 		encen ? "true" : "false",
 		toHex(meterConfig->encryptionKey, 16).c_str(),
 		toHex(meterConfig->authenticationKey, 16).c_str(),
-		meterConfig->wattageMultiplier > 1 || meterConfig->voltageMultiplier > 1 || meterConfig->amperageMultiplier > 1 || meterConfig->accumulatedMultiplier > 1 ? "true" : "false",
-		meterConfig->wattageMultiplier / 1000.0,
-		meterConfig->voltageMultiplier / 1000.0,
-		meterConfig->amperageMultiplier / 1000.0,
-		meterConfig->accumulatedMultiplier / 1000.0
+		multEnable ? "true" : "false",
+		meterConfig->wattageMultiplier == 0.0 ? 1.0 : meterConfig->wattageMultiplier / 1000.0,
+		meterConfig->voltageMultiplier == 0.0 ? 1.0 : meterConfig->voltageMultiplier / 1000.0,
+		meterConfig->amperageMultiplier == 0.0 ? 1.0 : meterConfig->amperageMultiplier / 1000.0,
+		meterConfig->accumulatedMultiplier == 0.0 ? 1.0 : meterConfig->accumulatedMultiplier / 1000.0
 	);
 	server.sendContent(buf);
 

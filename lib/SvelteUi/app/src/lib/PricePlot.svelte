@@ -1,5 +1,5 @@
 <script>
-    import { zeropad, addHours, getPriceSourceName } from './Helpers.js';
+    import { zeropad, addHours, getPriceSourceName, getPriceSourceUrl } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
     export let json;
@@ -127,5 +127,5 @@
 
 </script>
 
-<a href="https://transparency.entsoe.eu/" target="_blank" class="text-xs float-right z-40">Provided by: {getPriceSourceName(json.source)}</a>
+<a href="{getPriceSourceUrl(json.source)}" target="_blank" class="text-xs float-right z-40">Provided by: {getPriceSourceName(json.source)}</a>
 <BarChart config={config} />

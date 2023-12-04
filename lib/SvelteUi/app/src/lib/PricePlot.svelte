@@ -47,12 +47,17 @@
         if(min > -100 && max < 100) {
             switch(currency) {
                 case 'NOK':
-                case 'SEK':
                 case 'DKK':
                     currency = 'øre';
                     break;
+                case 'SEK':
+                    currency = 'öre';
+                    break;
                 case 'EUR':
                     currency = 'cent';
+                    break;
+                case 'CHF':
+                    currency = 'rp.';
                     break;
                 default:
                     currency = currency+'/100';

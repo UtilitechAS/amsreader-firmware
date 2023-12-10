@@ -107,7 +107,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 if(listType >= 2 && memcmp(meterModel.c_str(), "MA304T3", 7) == 0) {
                     l2voltage = sqrt(pow(l1voltage - l3voltage * cos(60 * (PI/180)), 2) + pow(l3voltage * sin(60 * (PI/180)),2));
                     if(l2voltage > 0) {
-                        l2current = (((activeImportPower - activeExportPower) * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                        l2current = ((activeImportPower - activeExportPower) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                        l2currentEstimated = true;
                     }
                 }
 
@@ -494,11 +495,11 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
     if(meterConfig->distributionSystem == 1) {
         if(threePhase) {
             if(l2current == 0.0 && l1current > 0.0 && l3current > 0.0) {
-                int32_t absPower = ((int32_t) activeImportPower) - ((int32_t) activeExportPower);
-                l2current = ((absPower * sqrt(3)) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
+                l2current = ((activeImportPower - activeExportPower) - (l1voltage * l1current) - (l3voltage * l3current)) / l2voltage;
                 if(activeExportPower == 0.0) {
                     l2current = max((float) 0.0, l2current);
                 }
+                l2currentEstimated = true;
             }
         } else if(twoPhase && l1current > 0.0 && l2current > 0.0 && l3current > 0.0) {
             l2voltage = sqrt(pow(l1voltage - l3voltage * cos(60.0 * (PI/180.0)), 2) + pow(l3voltage * sin(60.0 * (PI/180.0)),2));

@@ -323,7 +323,7 @@ float PriceService::getCurrencyMultiplier(const char* from, const char* to, time
             if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService) Resulting currency multiplier: %.4f\n"), currencyMultiplier);
             tmElements_t tm;
             breakTime(t, tm);
-            lastCurrencyFetch = now + (SECS_PER_DAY * 1000) - (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000) + (3600000 * 6);
+            lastCurrencyFetch = now + (SECS_PER_DAY * 1000) - (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000) + (3600000 * 6) + (tomorrowFetchMinute * 60);
             this->currencyMultiplier = currencyMultiplier;
         } else {
             if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("(PriceService) Multiplier ended in success, but without value\n"));

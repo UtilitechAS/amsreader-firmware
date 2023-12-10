@@ -38,9 +38,15 @@
 
 #include "LittleFS.h"
 
+struct ResetDataContainer {
+	uint8_t cause;
+	uint8_t last_cause;
+	uint8_t magic;
+};
+
 class AmsWebServer {
 public:
-	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw);
+	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc);
     void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*);
     void loop();
 	void setMqtt(MQTTClient* mqtt);
@@ -53,6 +59,7 @@ public:
 
 private:
 	RemoteDebug* debugger;
+	ResetDataContainer* rdc;
 	bool mqttEnabled = false;
 	int maxPwr = 0;
 	uint8_t distributionSystem = 0;

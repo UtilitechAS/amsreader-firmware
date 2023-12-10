@@ -9,9 +9,10 @@
     let heightAvailable;
     let labelOffset;
     let vertSwitch = 30;
+    let titleHeight = 0;
 
     $: {
-        heightAvailable = height-(config.title ? 20 : 0);
+        heightAvailable = height-titleHeight;
 	    let innerWidth = width - (config.padding.left + config.padding.right);
 	    barWidth = innerWidth / config.points.length;
         labelOffset = barWidth < vertSwitch ? 30 : 15;
@@ -36,7 +37,7 @@
 <div class="chart" bind:clientWidth={width} bind:clientHeight={height}>
     {#if config.x.ticks && config.points && heightAvailable}
         {#if config.title}
-            <strong class="text-sm">{config.title}</strong>
+            <div class="text-sm font-bold" bind:clientHeight={titleHeight}>{config.title}</div>
         {/if}
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {heightAvailable}">
             <!-- y axis -->

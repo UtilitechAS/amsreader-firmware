@@ -111,12 +111,18 @@ PriceService* ps = NULL;
 Timezone* tz = NULL;
 
 ConnectionHandler* ch = NULL;
-AmsWebServer ws(commonBuffer, &Debug, &hw);
+
+#if defined(ESP32)
+__NOINIT_ATTR ResetDataContainer rdc;
+#else
+ResetDataContainer rdc;
+#endif
+AmsWebServer ws(commonBuffer, &Debug, &hw, &rdc);
 
 bool mqttEnabled = false;
 AmsMqttHandler* mqttHandler = NULL;
 
-#if defined(ESP32)
+#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 JsonMqttHandler* energySpeedometer = NULL;
 MqttConfig energySpeedometerConfig = {
 	"mqtt.sandtime.energy",
@@ -556,7 +562,7 @@ void loop() {
 				mqttHandler->disconnect();
 			}
 
-			#if defined(ENERGY_SPEEDOMETER_PASS)
+			#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 			if(sysConfig.energyspeedometer == 7) {
 				if(!meterState.getMeterId().isEmpty()) {
 					if(energySpeedometer == NULL) {
@@ -813,7 +819,7 @@ void handleSystem(unsigned long now) {
 			if(mqttHandler != NULL) {
 				mqttHandler->publishSystem(&hw, ps, &ea);
 			}
-			#if defined(ENERGY_SPEEDOMETER_PASS)
+			#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 			if(energySpeedometer != NULL) {
 				energySpeedometer->publishSystem(&hw, ps, &ea);
 			}
@@ -1117,7 +1123,7 @@ void handleDataSuccess(AmsData* data) {
 			delay(10);
 		}
 	}
-	#if defined(ENERGY_SPEEDOMETER_PASS)
+	#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 	if(energySpeedometer != NULL && energySpeedometer->publish(&meterState, &meterState, &ea, ps)) {
 		delay(10);
 	}

@@ -77,6 +77,7 @@ public:
     bool isThreePhase();
     bool isTwoPhase();
     bool isCounterEstimated();
+    bool isL2currentEstimated();
 
     int8_t getLastError();
     void setLastError(int8_t);
@@ -94,7 +95,7 @@ protected:
     float l1activeExportPower = 0, l2activeExportPower = 0, l3activeExportPower = 0;
     float powerFactor = 0, l1PowerFactor = 0, l2PowerFactor = 0, l3PowerFactor = 0;
     double activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
-    bool threePhase = false, twoPhase = false, counterEstimated = false;
+    bool threePhase = false, twoPhase = false, counterEstimated = false, l2currentEstimated = false;
 
     int8_t lastError = 0x00;
     uint8_t lastErrorCount = 0;

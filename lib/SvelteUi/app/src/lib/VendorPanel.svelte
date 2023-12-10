@@ -5,7 +5,7 @@
     import Mask from './Mask.svelte'
     import { navigate } from 'svelte-navigator';
 
-    export let sysinfo = {}
+    export let sysinfo = {};
 
     let loadingOrSaving = false;
     async function handleSubmit(e) {
@@ -27,6 +27,8 @@
         sysinfoStore.update(s => {
             s.vndcfg = res.success;
             s.booting = res.reboot;
+            s.if.eth = s.boardType > 240 && s.boardType < 250;
+
             return s;
         });
         navigate(sysinfo.usrcfg ? "/" : "/setup");

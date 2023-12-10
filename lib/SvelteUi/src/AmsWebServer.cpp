@@ -1229,6 +1229,7 @@ void AmsWebServer::handleSave() {
 		#endif
 		if(success) {
 			config->setGpioConfig(*gpioConfig);
+			config->setMeterConfig(meterConfig);
 
 			SystemConfig sys;
 			config->getSystemConfig(sys);

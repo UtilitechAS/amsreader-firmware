@@ -57,6 +57,9 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
             ethPowerPin = 16;
             ethMdc = 23;
             ethMdio = 18;
+        } else if(sys.boardType == 244) {
+			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("LilyGO T-ETH-Lite\n"));
+            return false; // TODO
         } else {
 			if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Board type %d incompatible with ETH\n"), sys.boardType);
             return false;
@@ -146,17 +149,33 @@ void EthernetConnectionHandler::getCurrentConfig(NetworkConfig& networkConfig) {
 }
 
 IPAddress EthernetConnectionHandler::getIP() {
+    #if defined(ESP32)
 	return ETH.localIP();
+    #else
+    return NULL;
+    #endif
 }
 
 IPAddress EthernetConnectionHandler::getSubnetMask() {
+    #if defined(ESP32)
 	return ETH.subnetMask();
+    #else
+    return NULL;
+    #endif
 }
 
 IPAddress EthernetConnectionHandler::getGateway() {
+    #if defined(ESP32)
 	return ETH.gatewayIP();
+    #else
+    return NULL;
+    #endif
 }
 
 IPAddress EthernetConnectionHandler::getDns(uint8_t idx) {
+    #if defined(ESP32)
 	return ETH.dnsIP(idx);
+    #else
+    return NULL;
+    #endif
 }

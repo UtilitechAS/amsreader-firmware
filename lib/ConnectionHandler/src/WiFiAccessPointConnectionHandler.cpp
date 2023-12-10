@@ -76,7 +76,11 @@ IPAddress WiFiAccessPointConnectionHandler::getIP() {
 }
 
 IPAddress WiFiAccessPointConnectionHandler::getSubnetMask() {
+    #if defined(ESP32)
 	return WiFi.softAPSubnetMask();
+    #else
+    return IPAddress(255,255,255,0);
+    #endif
 }
 
 IPAddress WiFiAccessPointConnectionHandler::getGateway() {

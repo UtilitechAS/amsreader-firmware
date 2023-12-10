@@ -253,11 +253,19 @@ void AmsWebServer::sysinfoJson() {
 		hostname = "ams-"+chipIdStr;
 	}
 
-	IPAddress localIp = ch->getIP();
-	IPAddress subnet = ch->getSubnetMask();
-	IPAddress gateway = ch->getGateway();
-	IPAddress dns1 = ch->getDns(0);
-	IPAddress dns2 = ch->getDns(1);
+	IPAddress localIp;
+	IPAddress subnet;
+	IPAddress gateway;
+	IPAddress dns1;
+	IPAddress dns2;
+
+	if(ch != NULL) {
+		localIp = ch->getIP();
+		subnet = ch->getSubnetMask();
+		gateway = ch->getGateway();
+		dns1 = ch->getDns(0);
+		dns2 = ch->getDns(1);
+	}
 
     char macStr[18] = { 0 };
     char apMacStr[18] = { 0 };
@@ -298,6 +306,8 @@ void AmsWebServer::sysinfoJson() {
 		FirmwareVersion::VersionString,
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
 		"esp32s2",
+		#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+		"esp32s3",
 		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
 		"esp32c3",
 		#elif defined(CONFIG_FREERTOS_UNICORE)
@@ -1115,6 +1125,14 @@ void AmsWebServer::handleSave() {
 				default:
 					success = false;
 			}
+		#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+			switch(boardType) {
+				case 80: // Generic ESP32-S3
+					meterConfig.rxPin = hanPin > 0 ? hanPin : 18;
+					break;
+				default:
+					success = false;
+			}
 		#elif defined(ESP32)
 			switch(boardType) {
 				case 241: // LilyGO T-ETH-POE
@@ -1264,6 +1282,7 @@ void AmsWebServer::handleSave() {
 				case 51: // Wemos S2 mini
 				case 70: // Generic ESP32-C3
 				case 71: // ESP32-C3-DevKitM-1
+				case 80: // Generic ESP32-S3
 					network.sleep = 1; // Modem sleep
 					break;
 				case 4: // Pow-U UART0
@@ -1701,6 +1720,8 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 		String chipType = F("esp8266");
 	#elif defined(CONFIG_IDF_TARGET_ESP32S2)
 		String chipType = F("esp32s2");
+	#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+		String chipType = F("esp32s3");
 	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
 		String chipType = F("esp32c3");
 	#elif defined(ESP32)

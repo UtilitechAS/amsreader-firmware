@@ -6,6 +6,7 @@
         switch (chip) {
             case 'esp8266': gpioMax = 16; break;
             case 'esp32s2': gpioMax = 44; break;
+            case 'esp32s3': gpioMax = 46; break;
             case 'esp32c3': gpioMax = 19; break;
         }
     }
@@ -23,14 +24,14 @@
 <option value={9}>UART1</option>
 <option value={16}>UART2</option>
 {/if}
-{#if chip == 'esp32s2'}
+{#if chip == 'esp32s2' || chip == 'esp32s3' }
 <option value={18}>UART1</option>
 {/if}
 
 {#each {length: gpioMax+1} as _, i}
     {#if i > 3
         && !(chip == 'esp32' && (i == 9 || i == 16))
-        && !(chip == 'esp32s2' && i == 18)
+        && !((chip == 'esp32s2' || chip == 'esp32s3') && i == 18)
         && !(chip == 'esp8266' && (i == 3 || i == 113))
     }
         <option value={i}>GPIO{i}</option>

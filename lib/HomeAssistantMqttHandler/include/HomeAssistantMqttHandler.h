@@ -151,6 +151,8 @@ private:
                 return F("ESP32-C3");
             case 71:
                 return F("ESP32-C3-DevKitM-1");
+            case 80:
+                return F("ESP32-S3");
         }
         #if defined(ESP8266)
             return F("ESP8266");

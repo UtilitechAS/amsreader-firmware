@@ -19,6 +19,7 @@
 #include "RemoteDebug.h"
 #include "PriceService.h"
 #include "RealtimePlot.h"
+#include "ConnectionHandler.h"
 
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>
@@ -56,6 +57,7 @@ public:
 	void setPriceSettings(String region, String currency);
 	void setMeterConfig(uint8_t distributionSystem, uint16_t mainFuse, uint16_t productionCapacity);
 	void setMqttHandler(AmsMqttHandler* mqttHandler);
+	void setConnectionHandler(ConnectionHandler* ch);
 
 private:
 	RemoteDebug* debugger;
@@ -76,6 +78,7 @@ private:
     EnergyAccounting* ea = NULL;
 	RealtimePlot* rtp = NULL;
 	AmsMqttHandler* mqttHandler = NULL;
+	ConnectionHandler* ch = NULL;
 	bool uploading = false;
 	File file;
 	bool performRestart = false;

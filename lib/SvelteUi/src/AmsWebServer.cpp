@@ -154,6 +154,10 @@ void AmsWebServer::setMqttHandler(AmsMqttHandler* mqttHandler) {
 	this->mqttHandler = mqttHandler;
 }
 
+void AmsWebServer::setConnectionHandler(ConnectionHandler* ch) {
+	this->ch = ch;
+}
+
 void AmsWebServer::setPriceService(PriceService* ps) {
 	this->ps = ps;
 }
@@ -249,11 +253,11 @@ void AmsWebServer::sysinfoJson() {
 		hostname = "ams-"+chipIdStr;
 	}
 
-	IPAddress localIp = WiFi.localIP();
-	IPAddress subnet = WiFi.subnetMask();
-	IPAddress gateway = WiFi.gatewayIP();
-	IPAddress dns1 = WiFi.dnsIP(0);
-	IPAddress dns2 = WiFi.dnsIP(1);
+	IPAddress localIp = ch->getIP();
+	IPAddress subnet = ch->getSubnetMask();
+	IPAddress gateway = ch->getGateway();
+	IPAddress dns1 = ch->getDns(0);
+	IPAddress dns2 = ch->getDns(1);
 
     char macStr[18] = { 0 };
     char apMacStr[18] = { 0 };

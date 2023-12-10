@@ -27,8 +27,6 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
         eth_phy_type_t ethType = ETH_PHY_LAN8720;
         eth_clock_mode_t ethClkMode = ETH_CLOCK_GPIO0_IN;
         uint8_t ethAddr = 0;
-        int8_t ethPowerPin = -1;
-        uint8_t ethEnablePin = 0;
         uint8_t ethMdc = 0;
         uint8_t ethMdio = 0;
 
@@ -71,33 +69,33 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
 
         if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Connecting to Ethernet\n"));
 
-		#if defined(ESP32)
-			if(strlen(config.hostname) > 0) {
-				ETH.setHostname(config.hostname);
-			}
-		#endif
+        if(ETH.begin(ethAddr, ethPowerPin, ethMdc, ethMdio, ethType, ethClkMode)) {
+            #if defined(ESP32)
+                if(strlen(config.hostname) > 0) {
+                    ETH.setHostname(config.hostname);
+                }
+            #endif
 
-        if(strlen(config.ip) > 0) {
-			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
-			ip.fromString(config.ip);
-			gw.fromString(config.gateway);
-			sn.fromString(config.subnet);
-			if(strlen(config.dns1) > 0) {
-				dns1.fromString(config.dns1);
-			} else if(strlen(config.gateway) > 0) {
-				dns1.fromString(config.gateway); // If no DNS, set gateway by default
-			}
-			if(strlen(config.dns2) > 0) {
-				dns2.fromString(config.dns2);
-			} else if(dns1.toString().isEmpty()) {
-				dns2.fromString(F("208.67.220.220")); // Add OpenDNS as second by default if nothing is configured
-			}
-			if(!ETH.config(ip, gw, sn, dns1, dns2)) {
-				debugger->printf_P(PSTR("Static IP configuration is invalid, not using\n"));
-			}
-		}
-
-        if (!ETH.begin(ethAddr, ethPowerPin, ethMdc, ethMdio, ethType, ethClkMode)) {
+            if(strlen(config.ip) > 0) {
+                IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
+                ip.fromString(config.ip);
+                gw.fromString(config.gateway);
+                sn.fromString(config.subnet);
+                if(strlen(config.dns1) > 0) {
+                    dns1.fromString(config.dns1);
+                } else if(strlen(config.gateway) > 0) {
+                    dns1.fromString(config.gateway); // If no DNS, set gateway by default
+                }
+                if(strlen(config.dns2) > 0) {
+                    dns2.fromString(config.dns2);
+                } else if(dns1.toString().isEmpty()) {
+                    dns2.fromString(F("208.67.220.220")); // Add OpenDNS as second by default if nothing is configured
+                }
+                if(!ETH.config(ip, gw, sn, dns1, dns2)) {
+                    debugger->printf_P(PSTR("Static IP configuration is invalid, not using\n"));
+                }
+            }
+        } else {
 			if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Unable to start Ethernet\n"));
         }
     }
@@ -106,7 +104,7 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
 }
 
 void EthernetConnectionHandler::disconnect(unsigned long reconnectDelay) {
-    // TODO
+	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Disconnecting!\n"));
 }
 
 bool EthernetConnectionHandler::isConnected() {
@@ -145,4 +143,20 @@ bool EthernetConnectionHandler::isConfigChanged() {
 
 void EthernetConnectionHandler::getCurrentConfig(NetworkConfig& networkConfig) {
 	networkConfig = this->config;
+}
+
+IPAddress EthernetConnectionHandler::getIP() {
+	return ETH.localIP();
+}
+
+IPAddress EthernetConnectionHandler::getSubnetMask() {
+	return ETH.subnetMask();
+}
+
+IPAddress EthernetConnectionHandler::getGateway() {
+	return ETH.gatewayIP();
+}
+
+IPAddress EthernetConnectionHandler::getDns(uint8_t idx) {
+	return ETH.dnsIP(idx);
 }

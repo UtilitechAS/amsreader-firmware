@@ -70,3 +70,19 @@ bool WiFiAccessPointConnectionHandler::isConfigChanged() {
 void WiFiAccessPointConnectionHandler::getCurrentConfig(NetworkConfig& networkConfig) {
 	networkConfig = this->config;
 }
+
+IPAddress WiFiAccessPointConnectionHandler::getIP() {
+	return WiFi.softAPIP();
+}
+
+IPAddress WiFiAccessPointConnectionHandler::getSubnetMask() {
+	return WiFi.softAPSubnetMask();
+}
+
+IPAddress WiFiAccessPointConnectionHandler::getGateway() {
+	return WiFi.softAPIP();
+}
+
+IPAddress WiFiAccessPointConnectionHandler::getDns(uint8_t idx) {
+	return WiFi.softAPIP();
+}

@@ -4,25 +4,28 @@
  * 
  */
 
-#ifndef _WIFICLIENTCONNECTIONHANDLER_H
-#define _WIFICLIENTCONNECTIONHANDLER_H
+#ifndef _ETHERNETCONNECTIONHANDLER_H
+#define _ETHERNETCONNECTIONHANDLER_H
 
 #include "ConnectionHandler.h"
 #include <Arduino.h>
 #include "RemoteDebug.h"
 
 #define CONNECTION_TIMEOUT 30000
-#define RECONNECT_TIMEOUT 5000
 
-class WiFiClientConnectionHandler : public ConnectionHandler {
+class EthernetConnectionHandler : public ConnectionHandler {
 public:
-    WiFiClientConnectionHandler(RemoteDebug* debugger);
+    EthernetConnectionHandler(RemoteDebug* debugger);
 
     bool connect(NetworkConfig config, SystemConfig sys);
     void disconnect(unsigned long reconnectDelay);
     bool isConnected();
     bool isConfigChanged();
     void getCurrentConfig(NetworkConfig& networkConfig);
+    IPAddress getIP();
+    IPAddress getSubnetMask();
+    IPAddress getGateway();
+    IPAddress getDns(uint8_t idx);
 
     #if defined(ESP32)
     void eventHandler(WiFiEvent_t event, WiFiEventInfo_t info);
@@ -31,12 +34,15 @@ public:
 private:
     RemoteDebug* debugger;
     NetworkConfig config;
-    bool busPowered = false;
-    bool firstConnect = true;
-    bool configChanged = false;
 
+    bool connected = false;
+    bool configChanged = false;
     unsigned long timeout = CONNECTION_TIMEOUT;
     unsigned long lastRetry = 0;
+
+    int8_t ethPowerPin = -1;
+    uint8_t ethEnablePin = 0;
+
 };
 
 #endif

@@ -222,3 +222,19 @@ bool WiFiClientConnectionHandler::isConfigChanged() {
 void WiFiClientConnectionHandler::getCurrentConfig(NetworkConfig& networkConfig) {
 	networkConfig = this->config;
 }
+
+IPAddress WiFiClientConnectionHandler::getIP() {
+	return WiFi.localIP();
+}
+
+IPAddress WiFiClientConnectionHandler::getSubnetMask() {
+	return WiFi.subnetMask();
+}
+
+IPAddress WiFiClientConnectionHandler::getGateway() {
+	return WiFi.gatewayIP();
+}
+
+IPAddress WiFiClientConnectionHandler::getDns(uint8_t idx) {
+	return WiFi.dnsIP(idx);
+}

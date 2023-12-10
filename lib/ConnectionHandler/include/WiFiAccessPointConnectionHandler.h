@@ -4,24 +4,27 @@
  * 
  */
 
-#ifndef _ETHERNETCONNECTIONHANDLER_H
-#define _ETHERNETCONNECTIONHANDLER_H
+#ifndef _WIFIACCESSPOINTCONNECTIONHANDLER_H
+#define _WIFIACCESSPOINTCONNECTIONHANDLER_H
 
 #include "ConnectionHandler.h"
 #include <Arduino.h>
 #include "RemoteDebug.h"
+#include <DNSServer.h>
 
-#define CONNECTION_TIMEOUT 30000
-
-class EthernetConnectionHandler : public ConnectionHandler {
+class WiFiAccessPointConnectionHandler : public ConnectionHandler {
 public:
-    EthernetConnectionHandler(RemoteDebug* debugger);
+    WiFiAccessPointConnectionHandler(RemoteDebug* debugger);
 
     bool connect(NetworkConfig config, SystemConfig sys);
     void disconnect(unsigned long reconnectDelay);
     bool isConnected();
     bool isConfigChanged();
     void getCurrentConfig(NetworkConfig& networkConfig);
+    IPAddress getIP();
+    IPAddress getSubnetMask();
+    IPAddress getGateway();
+    IPAddress getDns(uint8_t idx);
 
     #if defined(ESP32)
     void eventHandler(WiFiEvent_t event, WiFiEventInfo_t info);
@@ -31,10 +34,10 @@ private:
     RemoteDebug* debugger;
     NetworkConfig config;
 
+    DNSServer dnsServer;
+
     bool connected = false;
     bool configChanged = false;
-    unsigned long timeout = CONNECTION_TIMEOUT;
-    unsigned long lastRetry = 0;
 };
 
 #endif

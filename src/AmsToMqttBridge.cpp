@@ -1019,6 +1019,7 @@ void connectToNetwork() {
 				toggleSetupMode();
 		}
 		ch->connect(network, sysConfig);
+		ws.setConnectionHandler(ch);
 	} else {
 		setupMode = false;
 		toggleSetupMode();

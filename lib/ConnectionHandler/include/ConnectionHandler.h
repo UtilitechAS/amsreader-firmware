@@ -26,6 +26,10 @@ public:
     virtual bool isConnected();
     virtual bool isConfigChanged();
     virtual void getCurrentConfig(NetworkConfig& networkConfig);
+    virtual IPAddress getIP();
+    virtual IPAddress getSubnetMask();
+    virtual IPAddress getGateway();
+    virtual IPAddress getDns(uint8_t idx);
     #if defined(ESP32)
     virtual void eventHandler(WiFiEvent_t event, WiFiEventInfo_t info);
     #endif

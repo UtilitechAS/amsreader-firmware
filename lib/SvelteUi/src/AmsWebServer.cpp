@@ -259,7 +259,13 @@ void AmsWebServer::sysinfoJson() {
 	IPAddress dns1;
 	IPAddress dns2;
 
-	if(ch != NULL) {
+	if(ch == NULL) {
+		localIp = WiFi.softAPIP();
+		subnet = IPAddress(255,255,255,0);
+		gateway = WiFi.subnetMask();
+		dns1 = WiFi.dnsIP(0);
+		dns2 = WiFi.dnsIP(1);
+	} else {
 		localIp = ch->getIP();
 		subnet = ch->getSubnetMask();
 		gateway = ch->getGateway();

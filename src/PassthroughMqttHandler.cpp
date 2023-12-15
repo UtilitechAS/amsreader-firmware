@@ -26,3 +26,6 @@ bool PassthroughMqttHandler::publishRaw(String data) {
 uint8_t PassthroughMqttHandler::getFormat() {
     return 255;
 }
+
+void PassthroughMqttHandler::onMessage(String &topic, String &payload) {
+}

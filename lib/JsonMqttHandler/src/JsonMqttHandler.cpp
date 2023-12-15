@@ -362,3 +362,6 @@ uint8_t JsonMqttHandler::getFormat() {
 bool JsonMqttHandler::publishRaw(String data) {
     return false;
 }
+
+void JsonMqttHandler::onMessage(String &topic, String &payload) {
+}

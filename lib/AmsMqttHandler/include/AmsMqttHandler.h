@@ -37,6 +37,7 @@ public:
     virtual bool publishPrices(EntsoeApi* eapi) { return false; };
     virtual bool publishSystem(HwTools*, EntsoeApi*, EnergyAccounting*) { return false; };
     virtual bool publishRaw(String data) { return false; };
+    virtual void onMessage(String &topic, String &payload) {};
 
     virtual ~AmsMqttHandler() {
         if(mqttClient != NULL) {

@@ -15,6 +15,8 @@ public:
     bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
     bool publishRaw(String data);
 
+    void onMessage(String &topic, String &payload);
+
     uint8_t getFormat();
 
 private:

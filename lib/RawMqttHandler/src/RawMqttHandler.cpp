@@ -287,3 +287,6 @@ uint8_t RawMqttHandler::getFormat() {
 bool RawMqttHandler::publishRaw(String data) {
     return false;
 }
+
+void RawMqttHandler::onMessage(String &topic, String &payload) {
+}

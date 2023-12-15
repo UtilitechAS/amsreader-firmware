@@ -119,7 +119,14 @@ bool AmsMqttHandler::connect() {
 	// Connect to a unsecure or secure MQTT server
 	if ((strlen(mqttConfig.username) == 0 && mqtt.connect(mqttConfig.clientId)) ||
 		(strlen(mqttConfig.username) > 0 && mqtt.connect(mqttConfig.clientId, mqttConfig.username, mqttConfig.password))) {
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully connected to MQTT!\n"));
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully connected to MQTT\n"));
+		mqtt.onMessage(std::bind(&AmsMqttHandler::onMessage, this, std::placeholders::_1, std::placeholders::_2));
+		if(strlen(mqttConfig.subscribeTopic) > 0) {
+			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("  Subscribing to [%s]\n"), mqttConfig.subscribeTopic);
+			if(!mqtt.subscribe(mqttConfig.subscribeTopic)) {
+				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("  Unable to subscribe to to [%s]\n"), mqttConfig.subscribeTopic);
+			}
+		}
         return true;
 	} else {
 		if (debugger->isActive(RemoteDebug::ERROR)) {

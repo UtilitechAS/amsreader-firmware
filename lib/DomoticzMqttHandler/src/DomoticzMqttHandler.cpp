@@ -82,3 +82,6 @@ uint8_t DomoticzMqttHandler::getFormat() {
 bool DomoticzMqttHandler::publishRaw(String data) {
     return false;
 }
+
+void DomoticzMqttHandler::onMessage(String &topic, String &payload) {
+}

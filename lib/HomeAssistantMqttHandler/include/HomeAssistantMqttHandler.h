@@ -9,6 +9,7 @@ class HomeAssistantMqttHandler : public AmsMqttHandler {
 public:
     HomeAssistantMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
         this->hw = hw;
+
         l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = false;
 
         topic = String(mqttConfig.publishTopic);
@@ -46,17 +47,25 @@ public:
         }
 
         if(strlen(config.discoveryPrefix) > 0) {
+            snprintf_P(json, 128, PSTR("%s/status"), config.discoveryPrefix);
+            statusTopic = String(buf);
+
             snprintf_P(buf, 128, PSTR("%s/sensor/"), config.discoveryPrefix);
             discoveryTopic = String(buf);
         } else {
+            statusTopic = F("homeassistant/status");
             discoveryTopic = F("homeassistant/sensor/");
         }
+        strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
     };
+
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(EntsoeApi*);
     bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
     bool publishRaw(String data);
+
+    void onMessage(String &topic, String &payload);
 
     uint8_t getFormat();
 
@@ -69,6 +78,7 @@ private:
     String manufacturer;
     String deviceUrl;
 
+    String statusTopic;
     String discoveryTopic;
     String sensorNamePrefix;
 

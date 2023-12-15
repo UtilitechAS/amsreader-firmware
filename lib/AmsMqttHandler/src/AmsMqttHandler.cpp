@@ -55,35 +55,38 @@ bool AmsMqttHandler::connect() {
 					mqttSecureClient->setInsecure();
 				}
 
-				if(LittleFS.exists(FILE_MQTT_CERT)) {
-					#if defined(ESP8266)
+				#if defined(ESP8266)
+					if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
 						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT certificate file (%dkb free heap)\n"), ESP.getFreeHeap());
 						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
 						BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
 						file.close();
-						mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
-					#elif defined(ESP32)
-						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT certificate file (%dkb free heap)\n"), ESP.getFreeHeap());
-						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
-						mqttSecureClient->loadCertificate(file, file.size());
-						file.close();
-					#endif
-				}
-				
-				if(LittleFS.exists(FILE_MQTT_KEY)) {
-					#if defined(ESP8266)
+
 						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT key file (%dkb free heap)\n"), ESP.getFreeHeap());
 						file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
 						BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
 						file.close();
+
+						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Loading cert and key (%dkb free heap)\n"), ESP.getFreeHeap());
 						mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
-					#elif defined(ESP32)
+					}
+				#endif
+
+				#if defined(ESP32)
+					if(LittleFS.exists(FILE_MQTT_CERT)) {
+						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT certificate file (%dkb free heap)\n"), ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
+						mqttSecureClient->loadCertificate(file, file.size());
+						file.close();
+					}
+				
+					if(LittleFS.exists(FILE_MQTT_KEY)) {
 						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT key file (%dkb free heap)\n"), ESP.getFreeHeap());
 						file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
 						mqttSecureClient->loadPrivateKey(file, file.size());
 						file.close();
-					#endif
-				}
+					}
+				#endif
 
 				LittleFS.end();
 			} else {

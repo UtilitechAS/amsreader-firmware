@@ -557,6 +557,8 @@ void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
         if(payload.equals("online")) {
  			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Received online status from HA, resetting sensor status\n"));
             l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = false;
+            for(uint8_t i = 0; i < 32; i++) tInit[i] = false;
+            for(uint8_t i = 0; i < 38; i++) prInit[i] = false;
         }
     }
 }

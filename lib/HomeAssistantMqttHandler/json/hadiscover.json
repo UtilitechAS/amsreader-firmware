@@ -5,6 +5,7 @@
     "obj_id" : "%s_%s",
     "unit_of_meas" : "%s",
     "val_tpl" : "{{ value_json.%s | is_defined }}",
+    "expire_after" : %d,
     "dev" : {
       "ids" : [ "%s" ],
       "name" : "%s",

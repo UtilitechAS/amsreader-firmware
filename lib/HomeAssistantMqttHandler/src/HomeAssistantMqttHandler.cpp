@@ -350,6 +350,7 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
         deviceUid.c_str(), uid.c_str(),
         sensor.uom,
         sensor.path,
+        sensor.ttl,
         deviceUid.c_str(),
         deviceName.c_str(),
         deviceModel.c_str(),
@@ -449,6 +450,7 @@ void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, Ents
             name,
             RealtimePeakSensor.topic,
             path,
+            RealtimePeakSensor.ttl,
             RealtimePeakSensor.uom,
             RealtimePeakSensor.devcl,
             RealtimePeakSensor.stacl
@@ -487,6 +489,7 @@ void HomeAssistantMqttHandler::publishTemperatureSensor(uint8_t index, String id
         name,
         index == 0 ? SystemSensors[0].topic : TemperatureSensor.topic,
         path,
+        TemperatureSensor.ttl,
         TemperatureSensor.uom,
         TemperatureSensor.devcl,
         TemperatureSensor.stacl
@@ -522,6 +525,7 @@ void HomeAssistantMqttHandler::publishPriceSensors(EntsoeApi* eapi) {
             i == 0 ? "Price current hour" : name,
             PriceSensor.topic,
             path,
+            PriceSensor.ttl,
             uom.c_str(),
             PriceSensor.devcl,
             i == 0 ? "total" : PriceSensor.stacl

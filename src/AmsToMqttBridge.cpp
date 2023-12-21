@@ -1887,6 +1887,9 @@ void MQTT_connect() {
 	if(mqttHandler != NULL) {
 		mqttHandler->connect();
 		mqttHandler->publishSystem(&hw, eapi, &ea);
+		if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
+			mqttHandler->publishPrices(eapi);
+		}
 	}
 }
 

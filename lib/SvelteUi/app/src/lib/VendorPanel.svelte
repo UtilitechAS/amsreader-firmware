@@ -33,9 +33,12 @@
 	}
 
     let cc = false;
-    $: {
+    sysinfoStore.subscribe(update => {
+      sysinfo = update;
+      if(update.fwconsent === 1) {
         cc = !sysinfo.usrcfg;
-    }
+      }
+    });
 </script>
 
 <div class="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2">

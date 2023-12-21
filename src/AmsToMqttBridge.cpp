@@ -63,7 +63,6 @@ ADC_MODE(ADC_VCC);
 
 
 #define BUF_SIZE_COMMON (2048)
-#define BUF_SIZE_HAN (1280)
 
 #include "IEC6205621.h"
 #include "IEC6205675.h"
@@ -74,7 +73,8 @@ ADC_MODE(ADC_VCC);
 #include "Timezones.h"
 
 uint8_t commonBuffer[BUF_SIZE_COMMON];
-uint8_t hanBuffer[BUF_SIZE_HAN];
+uint8_t* hanBuffer;
+uint16_t hanBufferSize;
 
 HwTools hw;
 
@@ -1111,6 +1111,12 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 		hwSerial = NULL;
 	}
 
+	if(hanBuffer != NULL) {
+		free(hanBuffer);
+	}
+	hanBufferSize = 64 * meterConfig.bufferSize * 2;
+	hanBuffer = (uint8_t*) malloc(hanBufferSize);
+
 	// The library automatically sets the pullup in Serial.begin()
 	if(!gpioConfig.hanPinPullup) {
 		debugI_P(PSTR("HAN pin pullup disabled"));
@@ -1229,7 +1235,7 @@ bool readHanPort() {
 
 	// Before reading, empty serial buffer to increase chance of getting first byte of a data transfer
 	if(!serialInit) {
-		hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
+		hanSerial->readBytes(hanBuffer, hanBufferSize);
 		serialInit = true;
 		return false;
 	}
@@ -1241,8 +1247,8 @@ bool readHanPort() {
 	start = millis();
 	while(hanSerial->available() && pos == DATA_PARSE_INCOMPLETE) {
 		// If buffer was overflowed, reset
-		if(len >= BUF_SIZE_HAN) {
-			hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
+		if(len >= hanBufferSize) {
+			hanSerial->readBytes(hanBuffer, hanBufferSize);
 			len = 0;
 			debugI_P(PSTR("Buffer overflow, resetting"));
 			return false;
@@ -1274,7 +1280,7 @@ bool readHanPort() {
 	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
 		debugW_P(PSTR("Unknown data received"));
 		meterState.setLastError(pos);
-		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
+		len = len + hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
 		if(Debug.isActive(RemoteDebug::VERBOSE)) {
 			debugV_P(PSTR("  payload:"));
 			debugPrint(hanBuffer, 0, len);
@@ -1289,7 +1295,7 @@ bool readHanPort() {
 	} else if(pos < 0) {
 		meterState.setLastError(pos);
 		printHanReadError(pos);
-		len += hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
+		len += hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
 		if(mqttHandler != NULL) {
 			mqttHandler->publishRaw(toHex(hanBuffer+pos, len));
 		}
@@ -1299,7 +1305,7 @@ bool readHanPort() {
 	}
 
 	// Data is valid, clear the rest of the buffer to avoid tainted parsing
-	for(int i = pos+ctx.length; i<BUF_SIZE_HAN; i++) {
+	for(int i = pos+ctx.length; i<hanBufferSize; i++) {
 		hanBuffer[i] = 0x00;
 	}
 	meterState.setLastError(DATA_PARSE_OK);
@@ -1437,7 +1443,7 @@ void printHanReadError(int pos) {
 				debugW_P(PSTR("Header checksum error"));
 				break;
 			case DATA_PARSE_FOOTER_CHECKSUM_ERROR:
-				debugW_P(PSTR("Frame checksum error"));
+				debugW_P(PSTR("Frame checksum error (%04x)"), dsmrParser == NULL ? 0x0000 : dsmrParser->getCrcCalc());
 				break;
 			case DATA_PARSE_INCOMPLETE:
 				debugW_P(PSTR("Received frame is incomplete"));
@@ -1726,7 +1732,7 @@ void WiFi_post_connect() {
 int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 	int16_t ret = 0;
 	bool doRet = false;
-	uint16_t end = BUF_SIZE_HAN;
+	uint16_t end = hanBufferSize;
 	uint8_t tag = (*buf);
 	uint8_t lastTag = DATA_TAG_NONE;
 	while(tag != DATA_TAG_NONE) {

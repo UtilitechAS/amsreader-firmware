@@ -1346,7 +1346,7 @@ bool readHanPort() {
 			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx, meterState);
 		}
 	} else if(ctx.type == DATA_TAG_DSMR) {
-		data = new IEC6205621(payload, tz);
+		data = new IEC6205621(payload, tz, &meterConfig);
 	}
 	len = 0;
 

@@ -23,6 +23,7 @@ public:
     };
 
     void setCaVerification(bool);
+    void setConfig(MqttConfig& mqttConfig);
 
     bool connect();
     void disconnect();

@@ -557,8 +557,15 @@ void loop() {
 
 			if (mqttEnabled || config.isMqttChanged()) {
 				if(mqttHandler == NULL || !mqttHandler->connected() || config.isMqttChanged()) {
+					if(mqttHandler != NULL && config.isMqttChanged()) {
+						MqttConfig mqttConfig;
+						if(config.getMqttConfig(mqttConfig)) {
+							mqttHandler->disconnect();
+							mqttHandler->setConfig(mqttConfig);
+							config.ackMqttChange();
+						}
+					}
 					MQTT_connect();
-					config.ackMqttChange();
 				}
 			} else if(mqttHandler != NULL) {
 				mqttHandler->disconnect();
@@ -1859,9 +1866,14 @@ void MQTT_connect() {
 	mqttEnabled = true;
 	ws.setMqttEnabled(true);
 
-	if(mqttHandler != NULL && mqttHandler->getFormat() != mqttConfig.payloadFormat) {
-		delete mqttHandler;
-		mqttHandler = NULL;
+	if(mqttHandler != NULL) {
+		mqttHandler->disconnect();
+		if(mqttHandler->getFormat() != mqttConfig.payloadFormat) {
+			delete mqttHandler;
+			mqttHandler = NULL;
+		} else if(config.isMqttChanged()) {
+			mqttHandler->setConfig(mqttConfig);
+		}
 	}
 
 	if(mqttHandler == NULL) {

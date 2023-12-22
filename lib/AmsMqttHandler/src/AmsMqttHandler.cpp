@@ -7,6 +7,10 @@ void AmsMqttHandler::setCaVerification(bool caVerification) {
 	this->caVerification = caVerification;
 }
 
+void AmsMqttHandler::setConfig(MqttConfig& mqttConfig) {
+	this->mqttConfig = mqttConfig;
+}
+
 bool AmsMqttHandler::connect() {
 	if(millis() - lastMqttRetry < 10000) {
 		yield();
@@ -93,10 +97,19 @@ bool AmsMqttHandler::connect() {
 				if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("CA verification disabled\n"));
 				mqttSecureClient->setInsecure();
 			}
+			if(mqttClient != NULL) {
+				mqttClient->stop();
+				delete mqttClient;
+			}
 			mqttClient = mqttSecureClient;
 
 			if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("MQTT SSL setup complete (%dkb free heap)\n"), ESP.getFreeHeap());
 		}
+	} else if(mqttSecureClient != NULL) {
+		mqttSecureClient->stop();
+		delete mqttSecureClient;
+		mqttSecureClient = NULL;
+		mqttClient = NULL;
 	}
 	
 	if(mqttClient == NULL) {

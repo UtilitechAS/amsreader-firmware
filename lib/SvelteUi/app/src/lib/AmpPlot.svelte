@@ -33,10 +33,10 @@
             if(i2e) {
                 xTicks.push({ label: 'L2' });
                 points.push({
-                    label: 'N/A',
-                    labelAngle: 90,
-                    title: 'The value is not reported by your meter',
-                    value: 0, 
+                    label: 'Not available',
+                    labelAngle: -90,
+                    title: 'L2 current is not reported by your meter',
+                    value: 0,
                     color: '#7c3aedcc' 
                 });
             } else {

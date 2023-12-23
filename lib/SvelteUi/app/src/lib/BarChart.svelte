@@ -82,9 +82,9 @@
                                 <text 
                                     width="{barWidth - 4}"
                                     dominant-baseline="middle"
-                                    text-anchor="{barWidth < vertSwitch ? 'left' : 'middle'}"
+                                    text-anchor="{barWidth < vertSwitch || point.labelAngle ? 'left' : 'middle'}"
                                     fill="{yScale(point.value) > yScale(0)-labelOffset ? point.color : 'white'}"
-                                    transform="translate({xScale(i) + barWidth/2} {yScale(point.value) > yScale(0) - labelOffset ? yScale(point.value) - labelOffset : yScale(point.value) + 10}) rotate({barWidth < vertSwitch ? 90 : 0})"
+                                    transform="translate({xScale(i) + barWidth/2} {yScale(point.value) > yScale(0) - labelOffset ? yScale(point.value) - labelOffset : yScale(point.value) + 10}) rotate({point.labelAngle ? point.labelAngle : barWidth < vertSwitch ? 90 : 0})"
                                     
                                 >{point.label}</text>
                                 {#if point.title}

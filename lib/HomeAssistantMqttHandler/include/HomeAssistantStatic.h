@@ -7,7 +7,7 @@ struct HomeAssistantSensor {
     const char* name;
     const char* topic;
     const char* path;
-    const uint16_t ttl;
+    uint16_t ttl;
     const char* uom;
     const char* devcl;
     const char* stacl;

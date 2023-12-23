@@ -788,8 +788,8 @@ void handleSystem(unsigned long now) {
 
 	// After one hour, adjust buffer size to match the largest payload
 	if(!maxDetectPayloadDetectDone && now > 3600000) {
-		if(maxDetectedPayloadSize * 1.5 > meterConfig.bufferSize * 64) {
-			int bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.5) / 64));
+		if(maxDetectedPayloadSize * 1.25 > meterConfig.bufferSize * 64) {
+			int bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.25) / 64));
 			#if defined(ESP8266)
 				if(gpioConfig.hanPin != 3 && gpioConfig.hanPin != 113) {
 					bufferSize = min(bufferSize, 2);
@@ -1010,6 +1010,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 	}
 
 	if(meterConfig.bufferSize < 1) meterConfig.bufferSize = 1;
+	if(meterConfig.bufferSize > 64) meterConfig.bufferSize = 64;
 
 	if(hwSerial != NULL) {
 		debugD_P(PSTR("Hardware serial"));
@@ -1035,6 +1036,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 		}
 		if(meterConfig.bufferSize < 4) meterConfig.bufferSize = 4; // 64 bytes (1) is default for software serial, 256 bytes (4) for hardware
 
+		debugD_P(PSTR("Using serial buffer size %d"), 64 * meterConfig.bufferSize);
 		hwSerial->setRxBufferSize(64 * meterConfig.bufferSize);
 		#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
 			hwSerial->begin(baud, serialConfig, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, invert);
@@ -1107,10 +1109,12 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 				break;
 		}
 
+		uint8_t bufferSize = meterConfig.bufferSize;
 		#if defined(ESP8266)
-		if(meterConfig.bufferSize > 2) meterConfig.bufferSize = 2;
+		if(bufferSize > 2) bufferSize = 2;
 		#endif
-		swSerial->begin(baud, serialConfig, pin, -1, invert, meterConfig.bufferSize * 64);
+		debugD_P(PSTR("Using serial buffer size %d"), 64 * bufferSize);
+		swSerial->begin(baud, serialConfig, pin, -1, invert, bufferSize * 64);
 		hanSerial = swSerial;
 
 		Serial.end();
@@ -1121,7 +1125,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 	if(hanBuffer != NULL) {
 		free(hanBuffer);
 	}
-	hanBufferSize = 64 * meterConfig.bufferSize * 2;
+	hanBufferSize = max(64 * meterConfig.bufferSize * 2, 1280);
 	hanBuffer = (uint8_t*) malloc(hanBufferSize);
 
 	// The library automatically sets the pullup in Serial.begin()
@@ -1258,6 +1262,10 @@ bool readHanPort() {
 			hanSerial->readBytes(hanBuffer, hanBufferSize);
 			len = 0;
 			debugI_P(PSTR("Buffer overflow, resetting"));
+			#if defined(ESP32)
+			meterConfig.bufferSize += 4;
+			config.setMeterConfig(meterConfig);
+			#endif
 			return false;
 		}
 		hanBuffer[len++] = hanSerial->read();
@@ -1848,7 +1856,7 @@ int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
 	return DATA_PARSE_UNKNOWN_DATA;
 }
 
-unsigned long lastMqttRetry = -10000;
+unsigned long lastMqttRetry = -20000;
 void MQTT_connect() {
 	if(millis() - lastMqttRetry < (config.isMqttChanged() ? 5000 : 30000)) {
 		yield();

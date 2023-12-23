@@ -240,6 +240,9 @@ bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
 }
 
 bool AmsConfiguration::setMeterConfig(MeterConfig& config) {
+	if(config.bufferSize < 1) config.bufferSize = 1;
+	if(config.bufferSize > 64) config.bufferSize = 64;
+
 	MeterConfig existing;
 	if(getMeterConfig(existing)) {
 		meterChanged |= config.baud != existing.baud;

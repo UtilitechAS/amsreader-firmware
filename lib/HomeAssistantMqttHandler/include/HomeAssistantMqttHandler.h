@@ -56,7 +56,7 @@ public:
             statusTopic = F("homeassistant/status");
             discoveryTopic = F("homeassistant/sensor/");
         }
-        strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
+//        strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
     };
 
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);
@@ -94,7 +94,7 @@ private:
     bool publishList4(AmsData* data, EnergyAccounting* ea);
     String getMeterModel(AmsData* data);
     bool publishRealtime(AmsData* data, EnergyAccounting* ea, EntsoeApi* eapi);
-    void publishSensor(const HomeAssistantSensor& sensor);
+    void publishSensor(const HomeAssistantSensor sensor);
     void publishList1Sensors();
     void publishList1ExportSensors();
     void publishList2Sensors();

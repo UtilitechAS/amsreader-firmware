@@ -62,7 +62,7 @@
     {/if}
     {#if uiVisibility(sysinfo.ui.a, data.i1 > 0.01 || data.i2 > 0.01 || data.i3 > 0.01)}
         <div class="cnt">
-            <AmpPlot u1={data.u1} u2={data.u2} u3={data.u3} i1={data.i1} i2={data.i2} i2e="true" i3={data.i3} max={data.mf ? data.mf : 32}/>
+            <AmpPlot u1={data.u1} u2={data.u2} u3={data.u3} i1={data.i1} i2={data.i2} i2e={data.i2e} i3={data.i3} max={data.mf ? data.mf : 32}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.r, data.ri > 0 || data.re > 0 || data.ric > 0 || data.rec > 0)}

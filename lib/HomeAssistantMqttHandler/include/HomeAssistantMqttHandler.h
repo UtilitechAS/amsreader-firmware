@@ -56,7 +56,7 @@ public:
             statusTopic = F("homeassistant/status");
             discoveryTopic = F("homeassistant/sensor/");
         }
-//        strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
+        strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
     };
 
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);

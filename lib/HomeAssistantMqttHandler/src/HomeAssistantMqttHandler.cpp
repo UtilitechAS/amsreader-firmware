@@ -319,7 +319,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
-    
+
     publishSystemSensors();
     if(hw->getTemperature() > -50) publishTemperatureSensor(0, "");
 

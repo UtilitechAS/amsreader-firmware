@@ -4,8 +4,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  flash-firmware:
-    runs-on: [self-hosted,esp8266]
+  configure:
+    runs-on: esp8266
     steps:
     - uses: actions/checkout@v4
     - name: Inject secrets into ini file
@@ -38,6 +38,10 @@ jobs:
         lib_deps = ESP8266WiFi, ESP8266mDNS, ESP8266WebServer, ESP8266HTTPClient, ESP8266httpUpdate, ESP8266SSDP, \${common.lib_deps}
         lib_ignore = \${common.lib_ignore}
         extra_scripts = \${common.extra_scripts}" > platformio-user.ini
+  build-frontend:
+    runs-on: esp8266
+    needs: configure
+    steps:
     - name: Build with node
       run: |
         cd lib/SvelteUi/app
@@ -46,7 +50,10 @@ jobs:
         cd -
       env:
         CI: true
+  upload:
+    runs-on: esp8266
+    needs: build-frontend
     - name: PlatformIO lib install
       run: pio lib install
     - name: PlatformIO run
-      run: pio run
+      run: pio run -t upload --upload-port /dev/ttyUSB0

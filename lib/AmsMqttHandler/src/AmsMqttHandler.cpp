@@ -118,8 +118,8 @@ bool AmsMqttHandler::connect() {
 		actualClient = mqttClient;
 	}
 
+	mqttConfigChanged = false;
     if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Connecting to MQTT %s:%d\n"), mqttConfig.host, mqttConfig.port);
-	
 	mqtt.begin(mqttConfig.host, mqttConfig.port, *actualClient);
 
 	#if defined(ESP8266)

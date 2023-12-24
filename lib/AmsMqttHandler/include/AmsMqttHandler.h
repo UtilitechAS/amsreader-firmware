@@ -17,6 +17,7 @@ class AmsMqttHandler {
 public:
     AmsMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf) {
         this->mqttConfig = mqttConfig;
+    	this->mqttConfigChanged = true;
         this->debugger = debugger;
         this->json = buf;
         mqtt.dropOverflow(true);

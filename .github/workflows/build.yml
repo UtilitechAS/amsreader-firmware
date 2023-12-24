@@ -60,6 +60,6 @@ jobs:
       env:
         CI: true
     - name: PlatformIO lib install
-      run: pio lib install
+      run: pio pkg install
     - name: PlatformIO run
       run: pio run

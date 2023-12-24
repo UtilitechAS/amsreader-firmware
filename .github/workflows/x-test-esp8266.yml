@@ -1,44 +1,19 @@
-name: Build
+name: Test ESP8266
 
-on: 
-  push:
-    paths: 
-      - src/**
-      - lib/**
-      - scripts/**
-      - web/**
-      - platformio.ini
-      - .github/workflows/**
-    branches:
-      - '*'
-    tags:
-      - '*'
-      - '!v*.*.*'
+on:
+  workflow_dispatch:
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
+  flash-firmware:
+    runs-on: self-hosted
     steps:
-    - name: Check out code from repo
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v4
     - name: Inject secrets into ini file
       run: |
         sed -i 's/NO_AMS2MQTT_PRICE_KEY/AMS2MQTT_PRICE_KEY="${{secrets.AMS2MQTT_PRICE_KEY}}"/g' platformio.ini
         sed -i 's/NO_AMS2MQTT_PRICE_AUTHENTICATION/AMS2MQTT_PRICE_AUTHENTICATION="${{secrets.AMS2MQTT_PRICE_AUTHENTICATION}}"/g' platformio.ini
         sed -i 's/NO_ENERGY_SPEEDOMETER_USER/ENERGY_SPEEDOMETER_USER=\\"${{secrets.ENERGY_SPEEDOMETER_USER}}\\"/g' platformio.ini
         sed -i 's/NO_ENERGY_SPEEDOMETER_PASS/ENERGY_SPEEDOMETER_PASS=\\"${{secrets.ENERGY_SPEEDOMETER_PASS}}\\"/g' platformio.ini
-    - name: Cache Python dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('platformio.ini') }}
-    - name: Cache PlatformIO dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.pio/libdeps
-        key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
     - name: Set up Python 3.9
       uses: actions/setup-python@v5
       with:
@@ -51,6 +26,22 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '16.x'
+    - name: Configure PlatformIO environment
+      run: |
+        echo "[platformio]
+default_envs = dev8266
+
+[env:dev8266]
+platform = espressif8266@4.2.0
+framework = arduino
+board = esp12e
+board_build.ldscript = eagle.flash.4m2m.ld
+build_flags = ${common.build_flags}
+lib_ldf_mode = off
+lib_compat_mode = off
+lib_deps = ESP8266WiFi, ESP8266mDNS, ESP8266WebServer, ESP8266HTTPClient, ESP8266httpUpdate, ESP8266SSDP, ${common.lib_deps}
+lib_ignore = ${common.lib_ignore}
+extra_scripts = ${common.extra_scripts}" > platformio-user.ini
     - name: Build with node
       run: |
         cd lib/SvelteUi/app

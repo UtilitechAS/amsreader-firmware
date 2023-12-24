@@ -53,8 +53,6 @@ bool AmsMqttHandler::connect() {
 							if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("CA accepted\n"));
 						} else {
 							if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("CA was rejected\n"));
-							delete mqttSecureClient;
-							mqttSecureClient = NULL;
 							return false;
 						}
 					#endif
@@ -101,10 +99,6 @@ bool AmsMqttHandler::connect() {
 			} else {
 				if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("CA verification disabled\n"));
 				mqttSecureClient->setInsecure();
-			}
-			if(mqttClient != NULL) {
-				mqttClient->stop();
-				delete mqttClient;
 			}
 		}
 		actualClient = mqttSecureClient;

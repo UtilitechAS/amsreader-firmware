@@ -50,6 +50,7 @@ public:
 protected:
     RemoteDebug* debugger;
     MqttConfig mqttConfig;
+    bool mqttConfigChanged = true;
     MQTTClient mqtt = MQTTClient(256);
     unsigned long lastMqttRetry = -10000;
     bool caVerification = true;

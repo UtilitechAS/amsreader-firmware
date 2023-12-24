@@ -9,6 +9,7 @@ void AmsMqttHandler::setCaVerification(bool caVerification) {
 
 void AmsMqttHandler::setConfig(MqttConfig& mqttConfig) {
 	this->mqttConfig = mqttConfig;
+	this->mqttConfigChanged = true;
 }
 
 bool AmsMqttHandler::connect() {
@@ -19,6 +20,8 @@ bool AmsMqttHandler::connect() {
 	lastMqttRetry = millis();
 
 	time_t epoch = time(nullptr);
+	
+	WiFiClient *actualClient = NULL;
 
 	if(mqttConfig.ssl) {
 		if(epoch < FirmwareVersion::BuildEpoch) {
@@ -33,7 +36,9 @@ bool AmsMqttHandler::connect() {
 				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("ESP8266 firmware does not have enough memory...\n"));
 				return false;
 			#endif
-		
+		}
+
+		if(mqttConfigChanged) {
 			if(caVerification && LittleFS.begin()) {
 				File file;
 
@@ -101,25 +106,21 @@ bool AmsMqttHandler::connect() {
 				mqttClient->stop();
 				delete mqttClient;
 			}
-			mqttClient = mqttSecureClient;
-
-			if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("MQTT SSL setup complete (%dkb free heap)\n"), ESP.getFreeHeap());
 		}
-	} else if(mqttSecureClient != NULL) {
-		mqttSecureClient->stop();
-		delete mqttSecureClient;
-		mqttSecureClient = NULL;
-		mqttClient = NULL;
-	}
-	
-	if(mqttClient == NULL) {
+		actualClient = mqttSecureClient;
+
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("MQTT SSL setup complete (%dkb free heap)\n"), ESP.getFreeHeap());
+	} else {
 		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("No SSL, using client without SSL support\n"));
-		mqttClient = new WiFiClient();
+		if(mqttClient == NULL) {
+			mqttClient = new WiFiClient();
+		}
+		actualClient = mqttClient;
 	}
 
     if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Connecting to MQTT %s:%d\n"), mqttConfig.host, mqttConfig.port);
 	
-	mqtt.begin(mqttConfig.host, mqttConfig.port, *mqttClient);
+	mqtt.begin(mqttConfig.host, mqttConfig.port, *actualClient);
 
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
@@ -160,15 +161,6 @@ void AmsMqttHandler::disconnect() {
     mqtt.loop();
     delay(10);
     yield();
-
-	if(mqttClient != NULL) {
-		mqttClient->stop();
-		delete mqttClient;
-		mqttClient = NULL;
-		if(mqttSecureClient != NULL) {
-			mqttSecureClient = NULL;
-		}
-	}
 }
 
 lwmqtt_err_t AmsMqttHandler::lastError() {

@@ -23,24 +23,24 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
     if(time(nullptr) < FirmwareVersion::BuildEpoch)
         return false;
 
-//    if(data->getListType() >= 3) { // publish energy counts
-//        publishList3(data, ea);
-//        loop();
-//    }
+    if(data->getListType() >= 3) { // publish energy counts
+        publishList3(data, ea);
+        loop();
+    }
 
-//    if(data->getListType() == 1) { // publish power counts
-//        publishList1(data, ea);
-//    } else if(data->getListType() <= 3) { // publish power counts and volts/amps
-//        publishList2(data, ea);
-//    } else if(data->getListType() == 4) { // publish power counts and volts/amps/phase power and PF
-//        publishList4(data, ea);
-//    }
+    if(data->getListType() == 1) { // publish power counts
+        publishList1(data, ea);
+    } else if(data->getListType() <= 3) { // publish power counts and volts/amps
+        publishList2(data, ea);
+    } else if(data->getListType() == 4) { // publish power counts and volts/amps/phase power and PF
+        publishList4(data, ea);
+    }
     loop();
 
-//    if(ea->isInitialized()) {
-//        publishRealtime(data, ea, eapi);
-//        loop();
-//    }
+    if(ea->isInitialized()) {
+        publishRealtime(data, ea, eapi);
+        loop();
+    }
     return true;
 }
 

@@ -52,10 +52,12 @@ jobs:
       env:
         CI: true
     - name: PlatformIO lib install
-      run: pio pkg install
+      run: pio pkg update
     - name: PlatformIO run
       run: pio run -t upload --upload-port /dev/ttyUSB0
     - name: Wait for device to come online
-      run: waitforhost 10.42.0.67 80
+      run: waitforhost 10.42.0.11 80
     - name: Confirm version
-      run: curl -s http://10.42.0.67/sysinfo.json|jq -r .version | grep "${{ steps.vars.outputs.sha_short }}" || exit 1
+      run: curl -s http://10.42.0.11/sysinfo.json|jq -r .version | grep "${{ steps.vars.outputs.sha_short }}" || exit 1
+    - name: Running amsreader-test
+      run: amsreader-test 10.42.0.11

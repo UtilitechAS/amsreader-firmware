@@ -5,7 +5,7 @@ on:
 
 jobs:
   flash-firmware:
-    runs-on: self-hosted
+    runs-on: [self-hosted,esp8266]
     steps:
     - uses: actions/checkout@v4
     - name: Inject secrets into ini file
@@ -29,19 +29,19 @@ jobs:
     - name: Configure PlatformIO environment
       run: |
         echo "[platformio]
-default_envs = dev8266
+        default_envs = dev8266
 
-[env:dev8266]
-platform = espressif8266@4.2.0
-framework = arduino
-board = esp12e
-board_build.ldscript = eagle.flash.4m2m.ld
-build_flags = ${common.build_flags}
-lib_ldf_mode = off
-lib_compat_mode = off
-lib_deps = ESP8266WiFi, ESP8266mDNS, ESP8266WebServer, ESP8266HTTPClient, ESP8266httpUpdate, ESP8266SSDP, ${common.lib_deps}
-lib_ignore = ${common.lib_ignore}
-extra_scripts = ${common.extra_scripts}" > platformio-user.ini
+        [env:dev8266]
+        platform = espressif8266@4.2.0
+        framework = arduino
+        board = esp12e
+        board_build.ldscript = eagle.flash.4m2m.ld
+        build_flags = ${common.build_flags}
+        lib_ldf_mode = off
+        lib_compat_mode = off
+        lib_deps = ESP8266WiFi, ESP8266mDNS, ESP8266WebServer, ESP8266HTTPClient, ESP8266httpUpdate, ESP8266SSDP, ${common.lib_deps}
+        lib_ignore = ${common.lib_ignore}
+        extra_scripts = ${common.extra_scripts}" > platformio-user.ini
     - name: Build with node
       run: |
         cd lib/SvelteUi/app

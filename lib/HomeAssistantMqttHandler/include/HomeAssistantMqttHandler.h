@@ -98,13 +98,8 @@ private:
     bool publishList3(AmsData* data, EnergyAccounting* ea);
     bool publishList4(AmsData* data, EnergyAccounting* ea);
     String getMeterModel(AmsData* data);
-<<<<<<< HEAD
     bool publishRealtime(AmsData* data, EnergyAccounting* ea, PriceService* ps);
-    void publishSensor(const HomeAssistantSensor& sensor);
-=======
-    bool publishRealtime(AmsData* data, EnergyAccounting* ea, EntsoeApi* eapi);
     void publishSensor(const HomeAssistantSensor sensor);
->>>>>>> main
     void publishList1Sensors();
     void publishList1ExportSensors();
     void publishList2Sensors();

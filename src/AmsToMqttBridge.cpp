@@ -1311,8 +1311,8 @@ void MQTT_connect() {
 	if(mqttHandler != NULL) {
 		mqttHandler->connect();
 		mqttHandler->publishSystem(&hw, ps, &ea);
-		if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
-			mqttHandler->publishPrices(eapi);
+		if(ps != NULL && ps->getValueForHour(0) != PRICE_NO_VALUE) {
+			mqttHandler->publishPrices(ps);
 		}
 	}
 }

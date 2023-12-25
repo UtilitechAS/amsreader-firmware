@@ -41,7 +41,7 @@
     });
 </script>
 
-<nav class="bg-violet-600 p-1 rounded-md mx-2">
+<nav class="hdr">
       <div class="flex flex-wrap space-x-4 text-sm text-gray-300">
         <div class="flex text-lg text-gray-100 p-2">
           <Link to="/">AMS reader <span>{sysinfo.version}</span></Link>

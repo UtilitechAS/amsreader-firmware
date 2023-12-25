@@ -116,7 +116,7 @@
             <Link to="/consent">
                 <span class="btn-pri-sm">Update consents</span>
             </Link>
-            <button on:click={askReboot} class="text-xs py-1 px-2 rounded bg-yellow-500 text-white mr-3 float-right">Reboot</button>
+            <button on:click={askReboot} class="btn-yellow-sm float-right">Reboot</button>
         </div>
      </div>
     {#if sysinfo.meter}

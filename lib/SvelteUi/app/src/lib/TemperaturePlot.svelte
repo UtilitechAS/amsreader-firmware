@@ -3,6 +3,8 @@
 
     export let json;
 
+    let dark = document.documentElement.classList.contains('dark');
+
     let config = {};
     let max = 0;
     let min = 0;
@@ -24,7 +26,7 @@
                 points.push({
                     label: val.toFixed(1),
                     value: val, 
-                    color: '#7c3aed' 
+                    color: dark ? '#5c2da5' : '#7c3aed'
                 });
                 min = Math.min(min, val);
                 max = Math.max(max, val);

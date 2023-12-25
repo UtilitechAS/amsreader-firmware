@@ -18,7 +18,7 @@
             label: fmtnum(v) + 'A',
             title: v.toFixed(1) + ' A',
             value: isNaN(v) ? 0 : v, 
-            color: ampcol(v ? (v)/(max)*100 : 0) 
+            color: ampcol(v ? (v)/(max)*100 : 0, document.documentElement.classList.contains('dark')) 
         };
     };
 

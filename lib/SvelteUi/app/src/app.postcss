@@ -2,13 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
+.hdr {
+  @apply bg-violet-600 p-1 rounded-md mx-2 dark:bg-violet-900
+}
+
 .gh-logo {
   width: 2rem;
   height: 2rem;
 }
 
 .cnt {
-  @apply m-2 p-2 rounded dark:bg-gray-800 bg-white dark:text-white shadow-lg dark:shadow-xl dark:shadow-gray-900 dark:drop-shadow-md;
+  @apply m-2 p-2 rounded dark:bg-gray-800 bg-white dark:text-white shadow-lg dark:shadow-gray-900 dark:drop-shadow-md;
   min-height: 268px;
 }
 
@@ -45,33 +49,42 @@
 }
 
 .bd-green {
-  @apply my-auto bg-green-500 text-green-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+  @apply my-auto dark:bg-green-600 bg-green-500 text-green-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
 }
 .bd-yellow {
-  @apply my-auto bg-yellow-500 text-yellow-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+  @apply my-auto dark:bg-yellow-600 bg-yellow-500 text-yellow-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
 }
 .bd-red {
-  @apply my-auto bg-red-500 text-red-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+  @apply my-auto dark:bg-red-600 bg-red-500 text-red-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
 }
 .bd-blue {
-  @apply my-auto bg-blue-500 text-blue-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+  @apply my-auto dark:bg-blue-600 bg-blue-500 text-blue-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
 }
 .bd-gray {
-  @apply my-auto bg-gray-500 text-gray-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+  @apply my-auto dark:bg-gray-600 bg-gray-500 text-gray-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
 }
 
 .bd-on {
-  @apply my-auto bg-green-500 text-green-100 text-xs font-semibold mr-1 px-1 py-0.5 rounded
+  @apply my-auto dark:bg-green-600 bg-green-500 text-green-100 text-xs font-semibold mr-1 px-1 py-0.5 rounded
 }
 .bd-off {
-  @apply my-auto bg-gray-500 text-gray-100 text-xs font-semibold mr-1 px-1 py-0.5 rounded
+  @apply my-auto dark:bg-gray-600 bg-gray-500 text-gray-100 text-xs font-semibold mr-1 px-1 py-0.5 rounded
 }
 
 .btn-pri {
-  @apply py-2 px-4 rounded bg-blue-500 text-white mr-3
+  @apply py-2 px-4 rounded dark:bg-blue-600 bg-blue-500 text-white mr-3
+}
+.btn-red {
+  @apply py-2 px-4 rounded dark:bg-red-600 bg-red-500 text-white ml-2
+}
+.btn-yellow {
+  @apply py-2 px-4 rounded dark:bg-yellow-600 bg-yellow-500 text-white ml-2
 }
 .btn-pri-sm {
-  @apply text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3
+  @apply text-xs py-1 px-2 rounded dark:bg-blue-600 bg-blue-500 text-white mr-3
+}
+.btn-yellow-sm {
+  @apply text-xs py-1 px-2 rounded dark:bg-yellow-600 bg-yellow-500 text-white mr-3
 }
 
 .pl-root {

@@ -14,7 +14,7 @@
             label: fmtnum(v) + 'V', 
             title: v.toFixed(1) + ' V',
             value: isNaN(v) ? 0 : v, 
-            color: voltcol(v ? v : 0) 
+            color: voltcol(v ? v : 0, document.documentElement.classList.contains('dark')) 
         };
     };
 

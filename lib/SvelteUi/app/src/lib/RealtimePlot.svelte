@@ -1,6 +1,8 @@
 <script>
     import { dataStore, realtimeStore } from './DataStores.js';
 
+    let dark = document.documentElement.classList.contains('dark');
+
     let realtime;
     realtimeStore.subscribe(update => {
         realtime = update;
@@ -136,8 +138,8 @@
             <!-- Line -->
             <polyline
             opacity="0.9"
-                fill="#7c3aed"
-                stroke="#7c3aed"
+                fill={dark ? '#5c2da5' : '#7c3aed'}
+                stroke={dark ? '#5c2da5' : '#7c3aed'}
                 stroke-width="1"
                 points={points}/>
         </svg>

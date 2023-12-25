@@ -9,6 +9,8 @@
     let max;
     let min;
 
+    let dark = document.documentElement.classList.contains('dark');
+
     $: {
         let i = 0;
         let yTicks = [];
@@ -37,7 +39,7 @@
                 label2: exp.toFixed(exp < 10 ? 1 : 0), 
                 title2: exp.toFixed(2) + ' kWh',
                 value2: exp,
-                color: '#7c3aed',
+                color: dark ? '#5c2da5' : '#7c3aed',
                 color2: '#37829E' 
             });
             min = Math.max(min, exp);
@@ -59,7 +61,7 @@
                 label2: exp.toFixed(exp < 10 ? 1 : 0), 
                 title2: exp.toFixed(2) + ' kWh', 
                 value2: exp,
-                color: '#7c3aed',
+                color: dark ? '#5c2da5' : '#7c3aed',
                 color2: '#37829E' 
             });
             min = Math.max(min, exp);

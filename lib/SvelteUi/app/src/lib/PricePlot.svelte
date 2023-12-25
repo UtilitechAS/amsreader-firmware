@@ -9,6 +9,8 @@
     let max;
     let min;
 
+    let dark = document.documentElement.classList.contains('dark');
+
     $: {
         let currency = json.currency;
         let hour = new Date().getUTCHours();
@@ -81,7 +83,7 @@
                 label2: disp < 0 ? disp.toFixed(d) : '',
                 title2: disp < 0 ? disp.toFixed(2) + ' ' + currency : '',
                 value2: val < 0 ? Math.abs(val) : 0,
-                color: '#7c3aed'
+                color: dark ? '#5c2da5' : '#7c3aed'
             });
         }
         let range = Math.max(max, Math.abs(min));

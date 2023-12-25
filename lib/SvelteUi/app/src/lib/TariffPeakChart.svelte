@@ -3,6 +3,8 @@
     import BarChart from './BarChart.svelte';
     import { tariffStore, getTariff } from './DataStores';
 
+    let dark = document.documentElement.classList.contains('dark');
+
     let config = {};
     let max = 0;
     let min = 0;
@@ -30,7 +32,7 @@
                 points.push({
                     label: peak.v.toFixed(2), 
                     value: peak.v, 
-                    color: '#7c3aed' 
+                    color: dark ? '#5c2da5' : '#7c3aed'
                 });
                 xTicks.push({
                     label: peak.d > 0 ? zeropad(peak.d) + "." + monthnames[new Date().getMonth()] : "-"

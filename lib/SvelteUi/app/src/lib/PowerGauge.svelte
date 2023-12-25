@@ -16,7 +16,7 @@
 </script>
 
 <div class="pl-root">
-    <PowerGaugeSvg pct={pct} color={colorFn(pct)}/>
+    <PowerGaugeSvg pct={pct} color={colorFn(pct, document.documentElement.classList.contains('dark'))}/>
     <span class="pl-ov">
         <span class="pl-lab">{label}</span>
         <br/>

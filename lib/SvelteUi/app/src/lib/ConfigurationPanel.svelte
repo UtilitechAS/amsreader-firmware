@@ -825,12 +825,12 @@
             {/if}
         </div>
     </div>
-    <div class="grid grid-cols-3">
+    <div class="grid grid-cols-3 mt-3">
         <div>
-            <button type="button" on:click={factoryReset} class="py-2 px-4 rounded bg-red-500 text-white ml-2">Factory reset</button>
+            <button type="button" on:click={factoryReset} class="btn-red">Factory reset</button>
         </div>
         <div class="text-center">
-            <button type="button" on:click={askReboot} class="py-2 px-4 rounded bg-yellow-500 text-white">Reboot</button>
+            <button type="button" on:click={askReboot} class="btn-yellow">Reboot</button>
         </div>
         <div class="text-right">
             <button type="submit" class="btn-pri">Save</button>

@@ -190,7 +190,7 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
-	if(ps->getValueForHour(0) == PRICE_NO_VALUE)
+	if(ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) == PRICE_NO_VALUE)
 		return false;
 
     publishPriceSensors(ps);
@@ -203,7 +203,7 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 	float values[38];
     for(int i = 0;i < 38; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 38; i++) {
-		float val = ps->getValueForHour(now, i);
+		float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, now, i);
 		values[i] = val;
 
 		if(val == PRICE_NO_VALUE) break;
@@ -521,7 +521,7 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
     }
     for(uint8_t i = 0; i < 38; i++) {
         if(prInit[i]) continue;
-        float val = ps->getValueForHour(i);
+        float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, i);
         if(val == PRICE_NO_VALUE) continue;
         
         char name[strlen(PriceSensor.name)+2];

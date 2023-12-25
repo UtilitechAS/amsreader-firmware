@@ -11,7 +11,6 @@
     import SubnetOptions from './SubnetOptions.svelte';
     import TrashIcon from './TrashIcon.svelte';
     import QrCode from 'svelte-qrcode';
-    
 
     export let sysinfo = {}
 
@@ -300,16 +299,7 @@
             </div>
         </div>
             <div class="my-1">
-                <div class="flex">
-                    <div class="w-1/2">
-                        Fixed price<br/>
-                        <input name="pf" bind:value={configuration.p.f} type="number" min="0.001" max="65" step="0.001" class="in-f tr w-full"/>
-                    </div>
-                    <div class="w-1/2">
-                        Multiplier<br/>
-                        <input name="pm" bind:value={configuration.p.m} type="number" min="0.001" max="1000" step="0.001" class="in-l tr w-full"/>
-                    </div>
-                </div>
+                <Link to="/priceconfig" class="text-blue-600 hover:text-blue-800">Configure price</Link>
             </div>
             <div class="my-1">
                 <label><input type="checkbox" name="pe" value="true" bind:checked={configuration.p.e} class="rounded mb-1"/> Enable price fetch from remote server</label>

@@ -10,6 +10,7 @@
   import Mask from './lib/Mask.svelte';
   import FileUploadComponent from "./lib/FileUploadComponent.svelte";
   import ConsentComponent from "./lib/ConsentComponent.svelte";
+    import PriceConfig from "./lib/PriceConfig.svelte";
   
   let sysinfo = {};
   sysinfoStore.subscribe(update => {
@@ -53,6 +54,9 @@
     </Route>
     <Route path="/configuration">
       <ConfigurationPanel sysinfo={sysinfo}/>
+    </Route>
+    <Route path="/priceconfig">
+      <PriceConfig/>
     </Route>
     <Route path="/status">
       <StatusPage sysinfo={sysinfo} data={data}/>

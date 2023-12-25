@@ -91,7 +91,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         init = true;
     }
 
-    float price = getPriceForHour(0);
+    float price = getPriceForHour(PRICE_DIRECTION_IMPORT, 0);
     if(!initPrice && price != PRICE_NO_VALUE) {
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EnergyAccounting) Initializing prices at %lu\n"), (int32_t) now);
         calcDayCost();
@@ -211,20 +211,25 @@ void EnergyAccounting::calcDayCost() {
     if(tz == NULL) return;
     breakTime(tz->toLocal(now), local);
 
-    if(getPriceForHour(0) != PRICE_NO_VALUE) {
+    if(getPriceForHour(PRICE_DIRECTION_IMPORT, 0) != PRICE_NO_VALUE) {
         if(initPrice) {
             this->realtimeData->costDay = 0;
             this->realtimeData->incomeDay = 0;
         }
         for(uint8_t i = 0; i < this->realtimeData->currentHour; i++) {
-            float price = getPriceForHour(i - local.Hour);
-            if(price == PRICE_NO_VALUE) break;
             breakTime(now - ((local.Hour - i) * 3600), utc);
-            int16_t wh = ds->getHourImport(utc.Hour);
-            this->realtimeData->costDay += price * (wh / 1000.0);
 
-            wh = ds->getHourExport(utc.Hour);
-            this->realtimeData->incomeDay += price * (wh / 1000.0);
+            float priceIn = getPriceForHour(PRICE_DIRECTION_IMPORT, i - local.Hour);
+            if(priceIn != PRICE_NO_VALUE) {
+                int16_t wh = ds->getHourImport(utc.Hour);
+                this->realtimeData->costDay += priceIn * (wh / 1000.0);
+            }
+
+            float priceOut = getPriceForHour(PRICE_DIRECTION_EXPORT, i - local.Hour);
+            if(priceOut != PRICE_NO_VALUE) {
+                int16_t wh = ds->getHourExport(utc.Hour);
+                this->realtimeData->incomeDay += priceOut * (wh / 1000.0);
+            }
         }
         initPrice = true;
     }
@@ -569,13 +574,11 @@ bool EnergyAccounting::updateMax(uint16_t val, uint8_t day) {
     return false;
 }
 
-void EnergyAccounting::setFixedPrice(float price, String currency) {
-    this->fixedPrice = price;
+void EnergyAccounting::setCurrency(String currency) {
     this->currency = currency;
 }
 
-float EnergyAccounting::getPriceForHour(uint8_t h) {
-    if(fixedPrice > 0.0) return fixedPrice;
+float EnergyAccounting::getPriceForHour(uint8_t d, uint8_t h) {
     if(ps == NULL) return PRICE_NO_VALUE;
-    return ps->getValueForHour(h);
+    return ps->getValueForHour(d, h);
 }

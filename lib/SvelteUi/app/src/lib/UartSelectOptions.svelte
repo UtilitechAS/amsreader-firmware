@@ -29,7 +29,7 @@
 {/if}
 
 {#each {length: gpioMax+1} as _, i}
-    {#if i > 3
+    {#if i > 1
         && !(chip == 'esp32' && (i == 9 || i == 16))
         && !((chip == 'esp32s2' || chip == 'esp32s3') && i == 18)
         && !(chip == 'esp8266' && (i == 3 || i == 113))

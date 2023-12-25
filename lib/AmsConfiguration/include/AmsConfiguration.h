@@ -188,9 +188,9 @@ struct PriceServiceConfig {
 	char entsoeToken[37];
 	char area[17];
 	char currency[4];
-	uint32_t multiplier;
+	uint32_t unused1;
 	bool enabled;
-	uint16_t fixedPrice;
+	uint16_t unused2;
 }; // 64
 
 struct EnergyAccountingConfig {

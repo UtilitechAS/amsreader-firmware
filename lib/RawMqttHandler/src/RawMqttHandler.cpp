@@ -161,7 +161,7 @@ bool RawMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) 
 bool RawMqttHandler::publishPrices(PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
-	if(ps->getValueForHour(0) == PRICE_NO_VALUE)
+	if(ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) == PRICE_NO_VALUE)
 		return false;
 
 	time_t now = time(nullptr);
@@ -172,7 +172,7 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
 	float values[34];
     for(int i = 0;i < 34; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 34; i++) {
-		float val = ps->getValueForHour(now, i);
+		float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, now, i);
 		values[i] = val;
 
         if(i > 23) continue;

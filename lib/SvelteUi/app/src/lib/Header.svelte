@@ -66,7 +66,7 @@
         <div class="bd-red">{ 'MQTT: ' + mqttError(data.me) }</div>
         {/if}
         {#if data.ee > 0 || data.ee < 0}
-        <div class="bd-red">{ 'Pricps: ' + priceError(data.ee) }</div>
+        <div class="bd-red">{ 'Price service: ' + priceError(data.ee) }</div>
         {/if}
       <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">
           <div class="flex-none">

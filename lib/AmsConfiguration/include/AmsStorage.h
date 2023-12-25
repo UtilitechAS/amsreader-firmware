@@ -18,5 +18,6 @@
 #define FILE_ENERGYACCOUNTING "/energyaccounting.bin"
 
 #define FILE_CFG "/configfile.cfg"
+#define FILE_PRICE_CONF "/priceconf.bin"
 
 #endif

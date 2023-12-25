@@ -119,8 +119,8 @@ public:
     EnergyAccountingData getData();
     void setData(EnergyAccountingData&);
 
-    void setFixedPrice(float price, String currency);
-    float getPriceForHour(uint8_t h);
+    void setCurrency(String currency);
+    float getPriceForHour(uint8_t d, uint8_t h);
 
 private:
     RemoteDebug* debugger = NULL;
@@ -131,7 +131,6 @@ private:
     Timezone *tz = NULL;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     EnergyAccountingRealtimeData* realtimeData = NULL;
-    float fixedPrice = 0;
     String currency = "";
 
     void calcDayCost();

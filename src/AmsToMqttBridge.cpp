@@ -308,7 +308,7 @@ void setup() {
 		ws.setPriceService(ps);
 	}
 	ws.setPriceSettings(price.area, price.currency);
-	ea.setFixedPrice(price.fixedPrice / 1000.0, price.currency);
+	ea.setCurrency(price.currency);
 	bool shared = false;
 	Serial.flush();
 	Serial.end();
@@ -929,7 +929,7 @@ void handlePriceService(unsigned long now) {
 		}
 		ws.setPriceSettings(price.area, price.currency);
 		config.ackPriceServiceChange();
-		ea.setFixedPrice(price.fixedPrice / 1000.0, price.currency);
+		ea.setCurrency(price.currency);
 	}
 }
 
@@ -1311,7 +1311,7 @@ void MQTT_connect() {
 	if(mqttHandler != NULL) {
 		mqttHandler->connect();
 		mqttHandler->publishSystem(&hw, ps, &ea);
-		if(ps != NULL && ps->getValueForHour(0) != PRICE_NO_VALUE) {
+		if(ps != NULL && ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) != PRICE_NO_VALUE) {
 			mqttHandler->publishPrices(ps);
 		}
 	}
@@ -1561,10 +1561,10 @@ void configFileParse() {
 			strcpy(price.currency, buf+15);
 		} else if(strncmp_P(buf, PSTR("entsoeMultiplier "), 17) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.multiplier = String(buf+17).toFloat() * 1000;
+			price.unused1 = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("entsoeFixedPrice "), 17) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.fixedPrice = String(buf+17).toFloat() * 1000;
+			price.unused2 = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("priceEntsoeToken "), 17) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			strcpy(price.entsoeToken, buf+12);
@@ -1576,10 +1576,10 @@ void configFileParse() {
 			strcpy(price.currency, buf+15);
 		} else if(strncmp_P(buf, PSTR("priceMultiplier "), 16) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.multiplier = String(buf+17).toFloat() * 1000;
+			price.unused1 = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("priceFixedPrice "), 16) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.fixedPrice = String(buf+17).toFloat() * 1000;
+			price.unused2 = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("thresholds "), 11) == 0) {
 			if(!lEac) { config.getEnergyAccountingConfig(eac); lEac = true; };
 			int i = 0;

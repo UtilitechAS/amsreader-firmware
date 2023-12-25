@@ -593,9 +593,7 @@ bool AmsConfiguration::setPriceServiceConfig(PriceServiceConfig& config) {
 		priceChanged |= strcmp(config.entsoeToken, existing.entsoeToken) != 0;
 		priceChanged |= strcmp(config.area, existing.area) != 0;
 		priceChanged |= strcmp(config.currency, existing.currency) != 0;
-		priceChanged |= config.multiplier != existing.multiplier;
 		priceChanged |= config.enabled != existing.enabled;
-		priceChanged |= config.fixedPrice != existing.fixedPrice;
 	} else {
 		priceChanged = true;
 	}
@@ -615,9 +613,9 @@ void AmsConfiguration::clearPriceServiceConfig(PriceServiceConfig& config) {
 	strcpy(config.entsoeToken, "");
 	strcpy(config.area, "");
 	strcpy(config.currency, "");
-	config.multiplier = 1000;
+	config.unused1 = 1000;
 	config.enabled = false;
-	config.fixedPrice = 0;
+	config.unused2 = 0;
 }
 
 bool AmsConfiguration::isPriceServiceChanged() {
@@ -972,7 +970,7 @@ bool AmsConfiguration::relocateConfig102() {
 
 	PriceServiceConfig entsoe;
 	EEPROM.get(CONFIG_ENTSOE_START_103, entsoe);
-	entsoe.fixedPrice = 0;
+	entsoe.unused2 = 0;
 	EEPROM.put(CONFIG_ENTSOE_START_103, entsoe);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 103);
@@ -1240,7 +1238,6 @@ void AmsConfiguration::print(Print* debugger)
 			debugger->println(F("--Price configuration--"));
 			debugger->printf_P(PSTR("Area:                 %s\r\n"), price.area);
 			debugger->printf_P(PSTR("Currency:             %s\r\n"), price.currency);
-			debugger->printf_P(PSTR("Multiplier:           %f\r\n"), price.multiplier / 1000.0);
 			debugger->printf_P(PSTR("ENTSO-E Token:        %s\r\n"), price.entsoeToken);
 		}
 		debugger->println(F(""));

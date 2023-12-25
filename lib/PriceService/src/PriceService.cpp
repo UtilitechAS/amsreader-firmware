@@ -10,6 +10,8 @@
 #include "TimeLib.h"
 #include "DnbCurrParser.h"
 #include "FirmwareVersion.h"
+#include <LittleFS.h>
+#include "AmsStorage.h"
 
 #include "GcmParser.h"
 
@@ -17,7 +19,7 @@
 #include <esp_task_wdt.h>
 #endif
 
-PriceService::PriceService(RemoteDebug* Debug) {
+PriceService::PriceService(RemoteDebug* Debug) : priceConfig(std::vector<PriceConfig>()) {
     this->buf = (char*) malloc(BufferSize);
 
     debugger = Debug;
@@ -62,6 +64,7 @@ void PriceService::setup(PriceServiceConfig& config) {
         hub = false;
     #endif
 
+    load();
 }
 
 char* PriceService::getToken() {
@@ -91,13 +94,59 @@ char* PriceService::getSource() {
     return "";
 }
 
-float PriceService::getValueForHour(int8_t hour) {
+float PriceService::getValueForHour(uint8_t direction, int8_t hour) {
     time_t cur = time(nullptr);
-    return getValueForHour(cur, hour);
+    return getValueForHour(direction, cur, hour);
 }
 
-float PriceService::getValueForHour(time_t ts, int8_t hour) {
+float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
+    float ret = getEnergyPriceForHour(direction, ts, hour);
+    if(ret == PRICE_NO_VALUE)
+        return ret;
+
     tmElements_t tm;
+    breakTime(tz->toLocal(ts + (hour) * SECS_PER_HOUR), tm);
+    uint8_t day = 0x01 << (tm.Wday - 2);
+    uint32_t hrs = 0x01 << tm.Hour;
+
+    for (uint8_t i = 0; i < priceConfig.size(); i++) {
+        PriceConfig pc = priceConfig.at(i);
+        if(pc.type == PRICE_TYPE_FIXED) continue;
+        if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs) {
+            switch(pc.type) {
+                case PRICE_TYPE_ADD:
+                    ret += pc.value / 10000.0;
+                    break;
+                case PRICE_TYPE_PCT:
+                    ret += ((pc.value / 10000.0) * ret) / 100.0;
+                    break;
+            }
+        }
+    }
+    return ret;
+}
+
+float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t hour) {
+    tmElements_t tm;
+    breakTime(tz->toLocal(ts + (hour) * SECS_PER_HOUR), tm);
+    uint8_t day = 0x01 << (tm.Wday - 2);
+    uint32_t hrs = 0x01 << tm.Hour;
+
+    float value = PRICE_NO_VALUE;
+    for (uint8_t i = 0; i < priceConfig.size(); i++) {
+        PriceConfig pc = priceConfig.at(i);
+        if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs) {
+            if(pc.type == PRICE_TYPE_FIXED) {
+                if(value == PRICE_NO_VALUE) {
+                    value = pc.value / 10000.0;
+                } else {
+                    value += pc.value / 10000.0;
+                }
+            }
+        }
+    }
+    if(value != PRICE_NO_VALUE) return value;
+
     int8_t pos = hour;
 
     breakTime(tz->toLocal(ts), tm);
@@ -116,8 +165,7 @@ float PriceService::getValueForHour(time_t ts, int8_t hour) {
     if(pos > 49)
         return PRICE_NO_VALUE;
 
-    float value = PRICE_NO_VALUE;
-    float multiplier = config->multiplier / 1000.0;
+    float multiplier = 1.0;
     if(pos >= hoursToday) {
         if(tomorrow == NULL)
             return PRICE_NO_VALUE;
@@ -471,4 +519,67 @@ void PriceService::debugPrint(byte *buffer, int start, int length) {
 
 int16_t PriceService::getLastError() {
     return lastError;
+}
+
+std::vector<PriceConfig>& PriceService::getPriceConfig() {
+    return this->priceConfig;
+}
+
+void PriceService::setPriceConfig(uint8_t index, PriceConfig &priceConfig) {
+    if(index < this->priceConfig.capacity())
+        this->priceConfig.resize(index+1);
+    this->priceConfig[index] = priceConfig;
+}
+
+bool PriceService::save() {
+    if(!LittleFS.begin()) {
+        if(debugger->isActive(RemoteDebug::ERROR)) {
+            debugger->printf_P(PSTR("(PriceService) Unable to load LittleFS\n"));
+        }
+        return false;
+    }
+
+    if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Saving price config\n"));
+
+    PriceConfig pc;
+    File file = LittleFS.open(FILE_PRICE_CONF, "w");
+    uint8_t count = priceConfig.size();
+    uint16_t bytes = 1 + (count * sizeof(pc));
+    char buf[bytes];
+    buf[0] = count;
+    for(uint8_t i = 0; i < count; i++) {
+        pc = priceConfig.at(i);
+        memcpy(buf + 1 + (i * sizeof(pc)), &pc, sizeof(pc));
+    }
+    for(unsigned long i = 0; i < bytes; i++) {
+        file.write(buf[i]);
+    }
+    file.close();
+
+    return true;
+}
+
+bool PriceService::load() {
+    if(!LittleFS.begin()) {
+        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Unable to load LittleFS\n"));
+        return false;
+    }
+    if(!LittleFS.exists(FILE_PRICE_CONF)) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService) No price config file\n"));
+        return false;
+    }
+    if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Loading price config\n"));
+
+    this->priceConfig.clear();
+
+    PriceConfig pc;
+    File file = LittleFS.open(FILE_PRICE_CONF, "r");
+    uint8_t count = file.read();
+    for(uint8_t i = 0; i < count; i++) {
+        file.readBytes((char*) &pc, sizeof(pc));
+        this->priceConfig.push_back(pc);
+    }
+    file.close();
+
+    return true;
 }

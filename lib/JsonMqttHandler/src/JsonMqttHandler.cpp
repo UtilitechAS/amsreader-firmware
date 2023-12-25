@@ -212,7 +212,7 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
 bool JsonMqttHandler::publishPrices(PriceService* ps) {
 	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
 		return false;
-	if(ps->getValueForHour(0) == PRICE_NO_VALUE)
+	if(ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) == PRICE_NO_VALUE)
 		return false;
 
 	time_t now = time(nullptr);
@@ -223,7 +223,7 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
 	float values[38];
     for(int i = 0;i < 38; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 38; i++) {
-		float val = ps->getValueForHour(now, i);
+		float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, now, i);
 		values[i] = val;
 
 		if(val == PRICE_NO_VALUE) break;

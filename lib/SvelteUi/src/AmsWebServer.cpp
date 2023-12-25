@@ -30,6 +30,7 @@
 #include "html/conf_net_json.h"
 #include "html/conf_mqtt_json.h"
 #include "html/conf_price_json.h"
+#include "html/conf_price_row_json.h"
 #include "html/conf_thresholds_json.h"
 #include "html/conf_debug_json.h"
 #include "html/conf_gpio_json.h"
@@ -86,6 +87,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(buf, HTTP_GET, std::bind(&AmsWebServer::indexCss, this));
 
 	server.on(F("/configuration"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(F("/priceconfig"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/status"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/consent"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(F("/vendor"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
@@ -104,6 +106,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(F("/temperature.json"), HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
 	server.on(F("/tariff.json"), HTTP_GET, std::bind(&AmsWebServer::tariffJson, this));
 	server.on(F("/realtime.json"), HTTP_GET, std::bind(&AmsWebServer::realtimeJson, this));
+	server.on(F("/priceconfig.json"), HTTP_GET, std::bind(&AmsWebServer::priceConfigJson, this));
 
 	server.on(F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 	server.on(F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
@@ -474,7 +477,7 @@ void AmsWebServer::dataJson() {
 		mqttStatus = 3;
 	}
 
-	float price = ea->getPriceForHour(0);
+	float price = ea->getPriceForHour(PRICE_DIRECTION_IMPORT, 0);
 
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
@@ -712,7 +715,7 @@ void AmsWebServer::energyPriceJson() {
 
 	float prices[36];
 	for(int i = 0; i < 36; i++) {
-		prices[i] = ps == NULL ? PRICE_NO_VALUE : ps->getValueForHour(i);
+		prices[i] = ps == NULL ? PRICE_NO_VALUE : ps->getValueForHour(PRICE_DIRECTION_IMPORT, i);
 	}
 
 	snprintf_P(buf, BufferSize, ENERGYPRICE_JSON, 
@@ -981,13 +984,12 @@ void AmsWebServer::configurationJson() {
 		qsk ? "true" : "false"
 	);
 	server.sendContent(buf);
+
 	snprintf_P(buf, BufferSize, CONF_PRICE_JSON,
 		price.enabled ? "true" : "false",
 		price.entsoeToken,
 		price.area,
-		price.currency,
-		price.multiplier / 1000.0,
-		price.fixedPrice == 0 ? "null" : String(price.fixedPrice / 1000.0, 10).c_str()
+		price.currency
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_DEBUG_JSON,
@@ -1061,6 +1063,57 @@ void AmsWebServer::configurationJson() {
 	);
 	server.sendContent(buf);
 	server.sendContent_P(PSTR("}"));
+}
+
+void AmsWebServer::priceConfigJson() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /priceconfig.json over http...\n"));
+
+	if(!checkSecurity(1))
+		return;
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+	server.send_P(200, MIME_JSON, PSTR("{\"o\":["));
+	if(ps != NULL) {
+		std::vector<PriceConfig> pc = ps->getPriceConfig();
+		if(pc.size() > 0) {
+			for(uint8_t i = 0; i < pc.size(); i++) {
+				PriceConfig& p = pc.at(i);
+
+				String days;
+				for(uint8_t d = 0; d < 7; d++) {
+					if((p.days >> d) & 0x1 == 0x1) {
+						days += String(d, 10) + ",";
+					}
+				}
+				days = days.substring(0, days.length()-1);
+
+				String hours;
+				for(uint8_t h = 0; h < 24; h++) {
+					if((p.hours >> h) & 0x1 == 0x1) {
+						hours += String(h, 10) + ",";
+					}
+				}
+				hours = hours.substring(0, hours.length()-1);
+
+				snprintf_P(buf, BufferSize, CONF_PRICE_ROW_JSON,
+					p.type,
+					p.name,
+					p.direction,
+					days.c_str(),
+					hours.c_str(),
+					p.value / 100.0,
+					i == pc.size()-1 ? "" : ","
+				);
+				server.sendContent(buf);
+			}
+		}
+	}
+	snprintf_P(buf, BufferSize, PSTR("]}"));
+	server.sendContent(buf);
 }
 
 void AmsWebServer::handleSave() {
@@ -1580,8 +1633,6 @@ void AmsWebServer::handleSave() {
 		strcpy(price.entsoeToken, server.arg(F("pt")).c_str());
 		strcpy(price.area, priceRegion.c_str());
 		strcpy(price.currency, server.arg(F("pc")).c_str());
-		price.multiplier = server.arg(F("pm")).toFloat() * 1000;
-		price.fixedPrice = server.hasArg(F("pf")) ? server.arg(F("pf")).toFloat() * 1000 : 0;
 		config->setPriceServiceConfig(price);
 	}
 
@@ -1626,6 +1677,54 @@ void AmsWebServer::handleSave() {
 			}
 		}
 		config->setCloudConfig(cloud);
+	}
+
+	if(server.hasArg(F("r")) && server.arg(F("r")) == F("true")) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received price config\n"));
+		if(ps != NULL) {
+			uint8_t count = server.arg(F("rc")).toInt();
+			for(uint8_t i = 0; i < count; i++) {
+				PriceConfig pc;
+				snprintf_P(buf, BufferSize, PSTR("rt%d"), i);
+				pc.type = server.arg(buf).toInt();
+				snprintf_P(buf, BufferSize, PSTR("rd%d"), i);
+				pc.direction = server.arg(buf).toInt();
+				snprintf_P(buf, BufferSize, PSTR("rv%d"), i);
+				pc.value = server.arg(buf).toFloat() * 100;
+				snprintf_P(buf, BufferSize, PSTR("rn%d"), i);
+				String name = server.arg(buf);
+				strcpy(pc.name, name.c_str());
+
+				int d = 0;
+				pc.days = 0x00;
+				snprintf_P(buf, BufferSize, PSTR("ra%d"), i);
+				String days = server.arg(buf);
+				char * pch = strtok ((char*) days.c_str(),",");
+				while (pch != NULL && d < 7) {
+					int day = String(pch).toInt();
+					pc.days |= (0x1 << day);
+					pch = strtok (NULL, ",");
+					d++;
+				}
+
+				int h = 0;
+				pc.hours = 0x00000000;
+				snprintf_P(buf, BufferSize, PSTR("rh%d"), i);
+				String hours = server.arg(buf);
+				pch = strtok ((char*) hours.c_str(),",");
+				while (pch != NULL && h < 24) {
+					int hour = String(pch).toInt();
+					pc.hours |= (0x1 << (hour));
+					pch = strtok (NULL, ",");
+					h++;
+				}
+
+				ps->setPriceConfig(i, pc);
+			}
+			ps->save();
+		} else {
+			if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Price service missing...\n"));
+		}
 	}
 
 	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Saving configuration now...\n"));
@@ -2286,8 +2385,6 @@ void AmsWebServer::configFileDownload() {
 		if(strlen(price.entsoeToken) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEntsoeToken %s\n"), price.entsoeToken));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceArea %s\n"), price.area));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceCurrency %s\n"), price.currency));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceMultiplier %.3f\n"), price.multiplier / 1000.0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceFixedPrice %.3f\n"), price.fixedPrice / 1000.0));
 	}
 
 	if(includeThresholds) {

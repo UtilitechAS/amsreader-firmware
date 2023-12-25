@@ -117,6 +117,7 @@ private:
 	void temperatureJson();
 	void tariffJson();
 	void realtimeJson();
+	void priceConfigJson();
 
 	void configurationJson();
 	void handleSave();

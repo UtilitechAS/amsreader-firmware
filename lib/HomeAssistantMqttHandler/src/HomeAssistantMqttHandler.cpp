@@ -16,6 +16,7 @@
 #include "json/jsonprices_json.h"
 #include "json/hadiscover_json.h"
 #include "json/realtime_json.h"
+#include "FirmwareVersion.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
@@ -24,6 +25,9 @@
 bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
+
+    if(time(nullptr) < FirmwareVersion::BuildEpoch)
+        return false;
 
     if(data->getListType() >= 3) { // publish energy counts
         publishList3(data, ea);
@@ -48,9 +52,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
 
 bool HomeAssistantMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
     publishList1Sensors();
-    snprintf_P(json, BufferSize, HA1_JSON,
-        data->getActiveImportPower()
-    );
+    snprintf_P(json, BufferSize, HA1_JSON, data->getActiveImportPower());
     return mqtt.publish(topic + "/power", json);
 }
 
@@ -269,47 +271,46 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
         breakTime(ts, tm);
 		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
-
     snprintf_P(json, BufferSize, JSONPRICES_JSON,
         WiFi.macAddress().c_str(),
-        values[0],
-        values[1],
-        values[2],
-        values[3],
-        values[4],
-        values[5],
-        values[6],
-        values[7],
-        values[8],
-        values[9],
-        values[10],
-        values[11],
-        values[12],
-        values[13],
-        values[14],
-        values[15],
-        values[16],
-        values[17],
-        values[18],
-        values[19],
-        values[20],
-        values[21],
-        values[22],
-        values[23],
-        values[24],
-        values[25],
-        values[26],
-        values[27],
-        values[28],
-        values[29],
-        values[30],
-        values[31],
-        values[32],
-        values[33],
-        values[34],
-        values[35],
-        values[36],
-        values[37],
+        values[0] == ENTSOE_NO_VALUE ? "null" : String(values[0], 4).c_str(),
+        values[1] == ENTSOE_NO_VALUE ? "null" : String(values[1], 4).c_str(),
+        values[2] == ENTSOE_NO_VALUE ? "null" : String(values[2], 4).c_str(),
+        values[3] == ENTSOE_NO_VALUE ? "null" : String(values[3], 4).c_str(),
+        values[4] == ENTSOE_NO_VALUE ? "null" : String(values[4], 4).c_str(),
+        values[5] == ENTSOE_NO_VALUE ? "null" : String(values[5], 4).c_str(),
+        values[6] == ENTSOE_NO_VALUE ? "null" : String(values[6], 4).c_str(),
+        values[7] == ENTSOE_NO_VALUE ? "null" : String(values[7], 4).c_str(),
+        values[8] == ENTSOE_NO_VALUE ? "null" : String(values[8], 4).c_str(),
+        values[9] == ENTSOE_NO_VALUE ? "null" : String(values[9], 4).c_str(),
+        values[10] == ENTSOE_NO_VALUE ? "null" : String(values[10], 4).c_str(),
+        values[11] == ENTSOE_NO_VALUE ? "null" : String(values[11], 4).c_str(),
+        values[12] == ENTSOE_NO_VALUE ? "null" : String(values[12], 4).c_str(),
+        values[13] == ENTSOE_NO_VALUE ? "null" : String(values[13], 4).c_str(),
+        values[14] == ENTSOE_NO_VALUE ? "null" : String(values[14], 4).c_str(),
+        values[15] == ENTSOE_NO_VALUE ? "null" : String(values[15], 4).c_str(),
+        values[16] == ENTSOE_NO_VALUE ? "null" : String(values[16], 4).c_str(),
+        values[17] == ENTSOE_NO_VALUE ? "null" : String(values[17], 4).c_str(),
+        values[18] == ENTSOE_NO_VALUE ? "null" : String(values[18], 4).c_str(),
+        values[19] == ENTSOE_NO_VALUE ? "null" : String(values[19], 4).c_str(),
+        values[20] == ENTSOE_NO_VALUE ? "null" : String(values[20], 4).c_str(),
+        values[21] == ENTSOE_NO_VALUE ? "null" : String(values[21], 4).c_str(),
+        values[22] == ENTSOE_NO_VALUE ? "null" : String(values[22], 4).c_str(),
+        values[23] == ENTSOE_NO_VALUE ? "null" : String(values[23], 4).c_str(),
+        values[24] == ENTSOE_NO_VALUE ? "null" : String(values[24], 4).c_str(),
+        values[25] == ENTSOE_NO_VALUE ? "null" : String(values[25], 4).c_str(),
+        values[26] == ENTSOE_NO_VALUE ? "null" : String(values[26], 4).c_str(),
+        values[27] == ENTSOE_NO_VALUE ? "null" : String(values[27], 4).c_str(),
+        values[28] == ENTSOE_NO_VALUE ? "null" : String(values[28], 4).c_str(),
+        values[29] == ENTSOE_NO_VALUE ? "null" : String(values[29], 4).c_str(),
+        values[30] == ENTSOE_NO_VALUE ? "null" : String(values[30], 4).c_str(),
+        values[31] == ENTSOE_NO_VALUE ? "null" : String(values[31], 4).c_str(),
+        values[32] == ENTSOE_NO_VALUE ? "null" : String(values[32], 4).c_str(),
+        values[33] == ENTSOE_NO_VALUE ? "null" : String(values[33], 4).c_str(),
+        values[34] == ENTSOE_NO_VALUE ? "null" : String(values[34], 4).c_str(),
+        values[35] == ENTSOE_NO_VALUE ? "null" : String(values[35], 4).c_str(),
+        values[36] == ENTSOE_NO_VALUE ? "null" : String(values[36], 4).c_str(),
+        values[37] == ENTSOE_NO_VALUE ? "null" : String(values[37], 4).c_str(),
         min == INT16_MAX ? 0.0 : min,
         max == INT16_MIN ? 0.0 : max,
         ts1hr,
@@ -342,7 +343,7 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, Ener
     return ret;
 }
 
-void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) {
+void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor sensor) {
     String uid = String(sensor.path);
     uid.replace(".", "");
     uid.replace("[", "");
@@ -356,6 +357,7 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor& sensor) 
         deviceUid.c_str(), uid.c_str(),
         sensor.uom,
         sensor.path,
+        sensor.ttl,
         deviceUid.c_str(),
         deviceName.c_str(),
         deviceModel.c_str(),
@@ -455,6 +457,7 @@ void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, Pric
             name,
             RealtimePeakSensor.topic,
             path,
+            RealtimePeakSensor.ttl,
             RealtimePeakSensor.uom,
             RealtimePeakSensor.devcl,
             RealtimePeakSensor.stacl
@@ -493,6 +496,7 @@ void HomeAssistantMqttHandler::publishTemperatureSensor(uint8_t index, String id
         name,
         index == 0 ? SystemSensors[0].topic : TemperatureSensor.topic,
         path,
+        TemperatureSensor.ttl,
         TemperatureSensor.uom,
         TemperatureSensor.devcl,
         TemperatureSensor.stacl
@@ -528,6 +532,7 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
             i == 0 ? "Price current hour" : name,
             PriceSensor.topic,
             path,
+            PriceSensor.ttl,
             uom.c_str(),
             PriceSensor.devcl,
             i == 0 ? "total" : PriceSensor.stacl
@@ -552,4 +557,15 @@ uint8_t HomeAssistantMqttHandler::getFormat() {
 
 bool HomeAssistantMqttHandler::publishRaw(String data) {
     return false;
+}
+
+void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
+    if(topic.equals(statusTopic)) {
+        if(payload.equals("online")) {
+ 			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Received online status from HA, resetting sensor status\n"));
+            l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = false;
+            for(uint8_t i = 0; i < 32; i++) tInit[i] = false;
+            for(uint8_t i = 0; i < 38; i++) prInit[i] = false;
+        }
+    }
 }

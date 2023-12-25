@@ -168,8 +168,8 @@ bool PassiveMeterCommunicator::loop() {
 
 	// After one hour, adjust buffer size to match the largest payload
 	if(!maxDetectPayloadDetectDone && now > 3600000) {
-		if(maxDetectedPayloadSize * 1.5 > meterConfig.bufferSize * 64) {
-			int bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.5) / 64));
+		if(maxDetectedPayloadSize * 1.25 > meterConfig.bufferSize * 64) {
+			int bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.25) / 64));
 			#if defined(ESP8266)
 				if(meterConfig.rxPin != 3 && meterConfig.rxPin != 113) {
 					bufferSize = min(bufferSize, 2);
@@ -504,6 +504,7 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 	}
 
 	if(meterConfig.bufferSize < 1) meterConfig.bufferSize = 1;
+	if(meterConfig.bufferSize > 64) meterConfig.bufferSize = 64;
 
 	if(hwSerial != NULL) {
 		if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Hardware serial\n"));
@@ -598,6 +599,11 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 				break;
 		}
 
+		uint8_t bufferSize = meterConfig.bufferSize;
+		#if defined(ESP8266)
+		if(bufferSize > 2) bufferSize = 2;
+		#endif
+		if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Using serial buffer size %d"), 64 * bufferSize);
 		swSerial->begin(baud, serialConfig, pin, -1, invert, meterConfig.bufferSize * 64);
 		hanSerial = swSerial;
 
@@ -605,6 +611,12 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		Serial.begin(115200);
 		hwSerial = NULL;
 	}
+
+	if(hanBuffer != NULL) {
+		free(hanBuffer);
+	}
+	hanBufferSize = max(64 * meterConfig.bufferSize * 2, 512);
+	hanBuffer = (uint8_t*) malloc(hanBufferSize);
 
 	// The library automatically sets the pullup in Serial.begin()
 	if(!meterConfig.rxPinPullup) {

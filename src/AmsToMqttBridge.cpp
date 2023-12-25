@@ -97,7 +97,6 @@ ADC_MODE(ADC_VCC);
 
 uint8_t commonBuffer[BUF_SIZE_COMMON];
 
-
 HwTools hw;
 
 DNSServer* dnsServer = NULL;
@@ -555,8 +554,15 @@ void loop() {
 
 			if (mqttEnabled || config.isMqttChanged()) {
 				if(mqttHandler == NULL || !mqttHandler->connected() || config.isMqttChanged()) {
+					if(mqttHandler != NULL && config.isMqttChanged()) {
+						MqttConfig mqttConfig;
+						if(config.getMqttConfig(mqttConfig)) {
+							mqttHandler->disconnect();
+							mqttHandler->setConfig(mqttConfig);
+							config.ackMqttChange();
+						}
+					}
 					MQTT_connect();
-					config.ackMqttChange();
 				}
 			} else if(mqttHandler != NULL) {
 				mqttHandler->disconnect();
@@ -1248,7 +1254,7 @@ void postConnect() {
 }
 
 
-unsigned long lastMqttRetry = -10000;
+unsigned long lastMqttRetry = -20000;
 void MQTT_connect() {
 	if(millis() - lastMqttRetry < (config.isMqttChanged() ? 5000 : 30000)) {
 		yield();
@@ -1266,9 +1272,14 @@ void MQTT_connect() {
 	mqttEnabled = true;
 	ws.setMqttEnabled(true);
 
-	if(mqttHandler != NULL && mqttHandler->getFormat() != mqttConfig.payloadFormat) {
-		delete mqttHandler;
-		mqttHandler = NULL;
+	if(mqttHandler != NULL) {
+		mqttHandler->disconnect();
+		if(mqttHandler->getFormat() != mqttConfig.payloadFormat) {
+			delete mqttHandler;
+			mqttHandler = NULL;
+		} else if(config.isMqttChanged()) {
+			mqttHandler->setConfig(mqttConfig);
+		}
 	}
 
 	if(mqttHandler == NULL) {
@@ -1300,6 +1311,9 @@ void MQTT_connect() {
 	if(mqttHandler != NULL) {
 		mqttHandler->connect();
 		mqttHandler->publishSystem(&hw, ps, &ea);
+		if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
+			mqttHandler->publishPrices(eapi);
+		}
 	}
 }
 

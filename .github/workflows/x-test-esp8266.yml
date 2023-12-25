@@ -1,0 +1,63 @@
+name: Test ESP8266
+
+on:
+  workflow_dispatch:
+
+jobs:
+  esp8266:
+    runs-on: esp8266
+    steps:
+    - uses: actions/checkout@v4
+    - name: Get commit hash
+      id: vars
+      run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    - name: Check outputs
+      run: echo ${{ steps.vars.outputs.sha_short }}
+    - name: Inject secrets into ini file
+      run: |
+        sed -i 's/NO_AMS2MQTT_PRICE_KEY/AMS2MQTT_PRICE_KEY="${{secrets.AMS2MQTT_PRICE_KEY}}"/g' platformio.ini
+        sed -i 's/NO_AMS2MQTT_PRICE_AUTHENTICATION/AMS2MQTT_PRICE_AUTHENTICATION="${{secrets.AMS2MQTT_PRICE_AUTHENTICATION}}"/g' platformio.ini
+        sed -i 's/NO_ENERGY_SPEEDOMETER_USER/ENERGY_SPEEDOMETER_USER=\\"${{secrets.ENERGY_SPEEDOMETER_USER}}\\"/g' platformio.ini
+        sed -i 's/NO_ENERGY_SPEEDOMETER_PASS/ENERGY_SPEEDOMETER_PASS=\\"${{secrets.ENERGY_SPEEDOMETER_PASS}}\\"/g' platformio.ini
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -U platformio css_html_js_minify
+    - name: Set up node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '16.x'
+    - name: Configure PlatformIO environment
+      run: |
+        echo "[platformio]
+        default_envs = dev8266
+
+        [env:dev8266]
+        platform = espressif8266@4.2.0
+        framework = arduino
+        board = esp12e
+        board_build.ldscript = eagle.flash.4m2m.ld
+        build_flags = \${common.build_flags}
+        lib_ldf_mode = off
+        lib_compat_mode = off
+        lib_deps = ESP8266WiFi, ESP8266mDNS, ESP8266WebServer, ESP8266HTTPClient, ESP8266httpUpdate, ESP8266SSDP, \${common.lib_deps}
+        lib_ignore = \${common.lib_ignore}
+        extra_scripts = \${common.extra_scripts}" > platformio-user.ini
+    - name: Build with node
+      run: |
+        cd lib/SvelteUi/app
+        npm ci
+        npm run build
+        cd -
+      env:
+        CI: true
+    - name: PlatformIO lib install
+      run: pio pkg update
+    - name: PlatformIO run
+      run: pio run -t upload --upload-port /dev/ttyUSB0
+    - name: Wait for device to come online
+      run: waitforhost 10.42.0.11 80
+    - name: Confirm version
+      run: curl -s http://10.42.0.11/sysinfo.json|jq -r .version | grep "${{ steps.vars.outputs.sha_short }}" || exit 1
+    - name: Running amsreader-test
+      run: amsreader-test 10.42.0.11

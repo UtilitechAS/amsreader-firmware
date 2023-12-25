@@ -22,27 +22,25 @@ jobs:
 
     steps:
     - name: Check out code from repo
-      uses: actions/checkout@v1
-
+      uses: actions/checkout@v4
     - name: Inject secrets into ini file
       run: |
         sed -i 's/NO_AMS2MQTT_PRICE_KEY/AMS2MQTT_PRICE_KEY="${{secrets.AMS2MQTT_PRICE_KEY}}"/g' platformio.ini
         sed -i 's/NO_AMS2MQTT_PRICE_AUTHENTICATION/AMS2MQTT_PRICE_AUTHENTICATION="${{secrets.AMS2MQTT_PRICE_AUTHENTICATION}}"/g' platformio.ini
         sed -i 's/NO_ENERGY_SPEEDOMETER_USER/ENERGY_SPEEDOMETER_USER=\\"${{secrets.ENERGY_SPEEDOMETER_USER}}\\"/g' platformio.ini
         sed -i 's/NO_ENERGY_SPEEDOMETER_PASS/ENERGY_SPEEDOMETER_PASS=\\"${{secrets.ENERGY_SPEEDOMETER_PASS}}\\"/g' platformio.ini
-
     - name: Cache Python dependencies
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('platformio.ini') }}
     - name: Cache PlatformIO dependencies
-      uses: actions/cache@v1
+      uses: actions/cache@v3
       with:
         path: ~/.pio/libdeps
         key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
     - name: Set up Python 3.9
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
         python-version: 3.9
     - name: Install dependencies
@@ -50,7 +48,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -U platformio css_html_js_minify
     - name: Set up node
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v4
       with:
         node-version: '16.x'
     - name: Build with node
@@ -62,6 +60,6 @@ jobs:
       env:
         CI: true
     - name: PlatformIO lib install
-      run: pio lib install
+      run: pio pkg install
     - name: PlatformIO run
       run: pio run

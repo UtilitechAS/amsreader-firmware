@@ -13,6 +13,11 @@ void AmsMqttHandler::setCaVerification(bool caVerification) {
 	this->caVerification = caVerification;
 }
 
+void AmsMqttHandler::setConfig(MqttConfig& mqttConfig) {
+	this->mqttConfig = mqttConfig;
+	this->mqttConfigChanged = true;
+}
+
 bool AmsMqttHandler::connect() {
 	if(millis() - lastMqttRetry < 10000) {
 		yield();
@@ -21,6 +26,8 @@ bool AmsMqttHandler::connect() {
 	lastMqttRetry = millis();
 
 	time_t epoch = time(nullptr);
+	
+	WiFiClient *actualClient = NULL;
 
 	if(mqttConfig.ssl) {
 		if(epoch < FirmwareVersion::BuildEpoch) {
@@ -35,7 +42,9 @@ bool AmsMqttHandler::connect() {
 				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("ESP8266 firmware does not have enough memory...\n"));
 				return false;
 			#endif
-		
+		}
+
+		if(mqttConfigChanged) {
 			if(caVerification && LittleFS.begin()) {
 				File file;
 
@@ -50,62 +59,68 @@ bool AmsMqttHandler::connect() {
 							if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("CA accepted\n"));
 						} else {
 							if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("CA was rejected\n"));
-							delete mqttSecureClient;
-							mqttSecureClient = NULL;
 							return false;
 						}
 					#endif
 					file.close();
-
-					if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
-						#if defined(ESP8266)
-							if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT certificate file (%dkb free heap)\n"), ESP.getFreeHeap());
-							file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
-							BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
-							file.close();
-
-							if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT key file (%dkb free heap)\n"), ESP.getFreeHeap());
-							file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
-							BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
-							file.close();
-
-							if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Setting client certificates (%dkb free heap)"), ESP.getFreeHeap());
-							mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
-						#elif defined(ESP32)
-							if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT certificate file (%dkb free heap)\n"), ESP.getFreeHeap());
-							file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
-							mqttSecureClient->loadCertificate(file, file.size());
-							file.close();
-
-							if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT key file (%dkb free heap)\n"), ESP.getFreeHeap());
-							file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
-							mqttSecureClient->loadPrivateKey(file, file.size());
-							file.close();
-						#endif
-					}
 				} else {
 					if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("No CA, disabling validation\n"));
 					mqttSecureClient->setInsecure();
 				}
+
+				#if defined(ESP8266)
+					if(LittleFS.exists(FILE_MQTT_CERT) && LittleFS.exists(FILE_MQTT_KEY)) {
+						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT certificate file (%dkb free heap)\n"), ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
+						BearSSL::X509List *serverCertList = new BearSSL::X509List(file);
+						file.close();
+
+						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT key file (%dkb free heap)\n"), ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
+						BearSSL::PrivateKey *serverPrivKey = new BearSSL::PrivateKey(file);
+						file.close();
+
+						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Loading cert and key (%dkb free heap)\n"), ESP.getFreeHeap());
+						mqttSecureClient->setClientRSACert(serverCertList, serverPrivKey);
+					}
+				#endif
+
+				#if defined(ESP32)
+					if(LittleFS.exists(FILE_MQTT_CERT)) {
+						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT certificate file (%dkb free heap)\n"), ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_CERT, (char*) "r");
+						mqttSecureClient->loadCertificate(file, file.size());
+						file.close();
+					}
+				
+					if(LittleFS.exists(FILE_MQTT_KEY)) {
+						if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Found MQTT key file (%dkb free heap)\n"), ESP.getFreeHeap());
+						file = LittleFS.open(FILE_MQTT_KEY, (char*) "r");
+						mqttSecureClient->loadPrivateKey(file, file.size());
+						file.close();
+					}
+				#endif
+
 				LittleFS.end();
 			} else {
 				if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("CA verification disabled\n"));
 				mqttSecureClient->setInsecure();
 			}
-			mqttClient = mqttSecureClient;
-
-			if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("MQTT SSL setup complete (%dkb free heap)\n"), ESP.getFreeHeap());
 		}
-	}
-	
-	if(mqttClient == NULL) {
+		actualClient = mqttSecureClient;
+
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("MQTT SSL setup complete (%dkb free heap)\n"), ESP.getFreeHeap());
+	} else {
 		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("No SSL, using client without SSL support\n"));
-		mqttClient = new WiFiClient();
+		if(mqttClient == NULL) {
+			mqttClient = new WiFiClient();
+		}
+		actualClient = mqttClient;
 	}
 
+	mqttConfigChanged = false;
     if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Connecting to MQTT %s:%d\n"), mqttConfig.host, mqttConfig.port);
-	
-	mqtt.begin(mqttConfig.host, mqttConfig.port, *mqttClient);
+	mqtt.begin(mqttConfig.host, mqttConfig.port, *actualClient);
 
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
@@ -118,7 +133,14 @@ bool AmsMqttHandler::connect() {
 	// Connect to a unsecure or secure MQTT server
 	if ((strlen(mqttConfig.username) == 0 && mqtt.connect(mqttConfig.clientId)) ||
 		(strlen(mqttConfig.username) > 0 && mqtt.connect(mqttConfig.clientId, mqttConfig.username, mqttConfig.password))) {
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully connected to MQTT!\n"));
+		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully connected to MQTT\n"));
+		mqtt.onMessage(std::bind(&AmsMqttHandler::onMessage, this, std::placeholders::_1, std::placeholders::_2));
+		if(strlen(mqttConfig.subscribeTopic) > 0) {
+			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("  Subscribing to [%s]\n"), mqttConfig.subscribeTopic);
+			if(!mqtt.subscribe(mqttConfig.subscribeTopic)) {
+				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("  Unable to subscribe to to [%s]\n"), mqttConfig.subscribeTopic);
+			}
+		}
         return true;
 	} else {
 		if (debugger->isActive(RemoteDebug::ERROR)) {
@@ -139,15 +161,6 @@ void AmsMqttHandler::disconnect() {
     mqtt.loop();
     delay(10);
     yield();
-
-	if(mqttClient != NULL) {
-		mqttClient->stop();
-		delete mqttClient;
-		mqttClient = NULL;
-		if(mqttSecureClient != NULL) {
-			mqttSecureClient = NULL;
-		}
-	}
 }
 
 lwmqtt_err_t AmsMqttHandler::lastError() {

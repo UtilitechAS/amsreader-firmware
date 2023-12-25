@@ -501,7 +501,7 @@ void AmsWebServer::dataJson() {
 		meterState->getL3Voltage(),
 		meterState->getL1Current(),
 		meterState->getL2Current(),
-		meterState->isL2currentEstimated() ? "true" : "false",
+		meterState->isL2currentMissing() ? "true" : "false",
 		meterState->getL3Current(),
 		meterState->getPowerFactor(),
 		meterState->getL1PowerFactor(),

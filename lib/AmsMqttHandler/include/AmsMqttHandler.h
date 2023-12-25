@@ -23,12 +23,14 @@ class AmsMqttHandler {
 public:
     AmsMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf) {
         this->mqttConfig = mqttConfig;
+    	this->mqttConfigChanged = true;
         this->debugger = debugger;
         this->json = buf;
         mqtt.dropOverflow(true);
     };
 
     void setCaVerification(bool);
+    void setConfig(MqttConfig& mqttConfig);
 
     bool connect();
     void disconnect();
@@ -43,6 +45,7 @@ public:
     virtual bool publishPrices(PriceService* ps) { return false; };
     virtual bool publishSystem(HwTools*, PriceService*, EnergyAccounting*) { return false; };
     virtual bool publishRaw(String data) { return false; };
+    virtual void onMessage(String &topic, String &payload) {};
 
     virtual ~AmsMqttHandler() {
         if(mqttClient != NULL) {
@@ -54,6 +57,7 @@ public:
 protected:
     RemoteDebug* debugger;
     MqttConfig mqttConfig;
+    bool mqttConfigChanged = true;
     MQTTClient mqtt = MQTTClient(256);
     unsigned long lastMqttRetry = -10000;
     bool caVerification = true;

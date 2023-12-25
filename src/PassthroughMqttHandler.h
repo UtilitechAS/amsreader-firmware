@@ -23,6 +23,8 @@ public:
 
 private:
     String topic;
+    void onMessage(String &topic, String &payload);
+
     uint8_t getFormat();
 };
 #endif

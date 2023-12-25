@@ -39,7 +39,8 @@ protected:
 
     PassthroughMqttHandler* pt = NULL;
 
-    uint8_t hanBuffer[BUF_SIZE_HAN];
+    uint8_t *hanBuffer;
+    uint16_t hanBufferSize = 512;
     Stream *hanSerial;
     SoftwareSerial *swSerial = NULL;
     HardwareSerial *hwSerial = NULL;

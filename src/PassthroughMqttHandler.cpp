@@ -40,3 +40,6 @@ bool PassthroughMqttHandler::publishString(char* str) {
 uint8_t PassthroughMqttHandler::getFormat() {
     return 255;
 }
+
+void PassthroughMqttHandler::onMessage(String &topic, String &payload) {
+}

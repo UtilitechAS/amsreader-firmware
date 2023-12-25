@@ -118,7 +118,7 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
                     ret += pc.value / 10000.0;
                     break;
                 case PRICE_TYPE_PCT:
-                    ret += ((pc.value / 10000.0) * ret) / 100.0;
+                    ret += ((pc.value / 100.0) * ret) / 100.0;
                     break;
             }
         }

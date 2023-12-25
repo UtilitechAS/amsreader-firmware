@@ -37,7 +37,7 @@
                 title2: exp.toFixed(2) + ' kWh',
                 value2: exp*10,
                 color: dark ? '#5c2da5' : '#7c3aed',
-                color2: '#37829E' 
+                color2: dark ? '#27728e' : '#37829e',
             });
             min = Math.max(min, exp*10);
             max = Math.max(max, imp*10);
@@ -60,7 +60,7 @@
                 title2: exp.toFixed(2) + ' kWh',
                 value2: exp*10,
                 color: dark ? '#5c2da5' : '#7c3aed',
-                color2: '#37829E' 
+                color2: dark ? '#27728e' : '#37829e',
             });
             min = Math.max(min, exp*10);
             max = Math.max(max, imp*10);

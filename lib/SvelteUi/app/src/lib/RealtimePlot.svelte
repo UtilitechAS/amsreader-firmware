@@ -10,26 +10,23 @@
 
     let blankTimeout;
     let lastUp = 0;
+    let lastValue = 0;
 
-    function setBlank() {
-        realtime.data.unshift(0);
+    function addValue() {
+        if(blankTimeout) clearTimeout(blankTimeout);
+        blankTimeout = setTimeout(addValue, 10000);
+        realtime.data.unshift(lastValue);
         realtime.data = realtime.data.slice(0,realtime.size);
         lastUp += 10;
-        blankTimeout = setTimeout(setBlank, 10000);
     }
 
     dataStore.subscribe(update => {
-        if(lastUp > 0) {
-            if(realtime.data && update.u-lastUp >= 10) {
-                if(blankTimeout) clearTimeout(blankTimeout);
-                realtime.data.unshift(update.i-update.e);
-                realtime.data = realtime.data.slice(0,realtime.size);
-                lastUp += 10;
-                blankTimeout = setTimeout(setBlank, 10000);
-            }
-        } else {
-            lastUp = update.u;
+        if(lastUp == 0) {
+            if(blankTimeout) clearTimeout(blankTimeout);
+            blankTimeout = setTimeout(addValue, 10000);
         }
+        lastValue = update.i-update.e;
+        lastUp = update.u;
     });
 
     let max;
@@ -96,9 +93,7 @@
                     break;
                 }
                 let val = realtime.data[p];
-                if(val != 0) {
-                    points = xScale(i--)+","+yScale(val)+" "+points;
-                }
+                points = xScale(i--)+","+yScale(val)+" "+points;
             }
         }
     }

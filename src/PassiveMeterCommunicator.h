@@ -15,8 +15,6 @@
 #include "Timezone.h"
 #include "PassthroughMqttHandler.h"
 
-#define BUF_SIZE_HAN (1280)
-
 class PassiveMeterCommunicator : public MeterCommunicator  {
 public:
     PassiveMeterCommunicator(RemoteDebug* debugger);
@@ -39,8 +37,8 @@ protected:
 
     PassthroughMqttHandler* pt = NULL;
 
-    uint8_t *hanBuffer;
-    uint16_t hanBufferSize = 512;
+    uint8_t *hanBuffer = NULL;
+    uint16_t hanBufferSize = 0;
     Stream *hanSerial;
     SoftwareSerial *swSerial = NULL;
     HardwareSerial *hwSerial = NULL;

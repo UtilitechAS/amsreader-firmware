@@ -526,16 +526,17 @@ std::vector<PriceConfig>& PriceService::getPriceConfig() {
 }
 
 void PriceService::setPriceConfig(uint8_t index, PriceConfig &priceConfig) {
-    if(index < this->priceConfig.capacity())
+    if(this->priceConfig.capacity() != index+1)
         this->priceConfig.resize(index+1);
-    this->priceConfig[index] = priceConfig;
+    if(this->priceConfig.size() > index)    
+        this->priceConfig[index] = priceConfig;
+    else   
+        this->priceConfig.push_back(priceConfig);
 }
 
 bool PriceService::save() {
     if(!LittleFS.begin()) {
-        if(debugger->isActive(RemoteDebug::ERROR)) {
-            debugger->printf_P(PSTR("(PriceService) Unable to load LittleFS\n"));
-        }
+        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Unable to load LittleFS\n"));
         return false;
     }
 

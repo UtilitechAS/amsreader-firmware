@@ -53,6 +53,8 @@ void PassiveMeterCommunicator::configure(MeterConfig& meterConfig, Timezone* tz)
 }
 
 bool PassiveMeterCommunicator::loop() {
+	if(hanBufferSize == 0) return false;
+
 	unsigned long start, end;
 	if(!hanSerial->available()) {
 		return false;
@@ -60,7 +62,7 @@ bool PassiveMeterCommunicator::loop() {
 
 	// Before reading, empty serial buffer to increase chance of getting first byte of a data transfer
 	if(!serialInit) {
-		hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
+		hanSerial->readBytes(hanBuffer, hanBufferSize);
 		serialInit = true;
 		return false;
 	}
@@ -76,8 +78,8 @@ bool PassiveMeterCommunicator::loop() {
 	start = millis();
 	while(hanSerial->available() && pos == DATA_PARSE_INCOMPLETE) {
 		// If buffer was overflowed, reset
-		if(len >= BUF_SIZE_HAN) {
-			hanSerial->readBytes(hanBuffer, BUF_SIZE_HAN);
+		if(len >= hanBufferSize) {
+			hanSerial->readBytes(hanBuffer, hanBufferSize);
 			len = 0;
 			if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Buffer overflow, resetting\n"));
 			return false;
@@ -124,7 +126,7 @@ bool PassiveMeterCommunicator::loop() {
 	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
 		if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unknown data received\n"));
         lastError = pos;
-		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
+		len = len + hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
 		if(debugger->isActive(RemoteDebug::VERBOSE)) {
 			debugger->printf_P(PSTR("  payload:\n"));
 			debugPrint(hanBuffer, 0, len);
@@ -138,7 +140,7 @@ bool PassiveMeterCommunicator::loop() {
 	} else if(pos < 0) {
         lastError = pos;
 		printHanReadError(pos);
-		len += hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
+		len += hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
         if(pt != NULL) {
             pt->publishBytes(hanBuffer+pos, len);
         }
@@ -150,7 +152,7 @@ bool PassiveMeterCommunicator::loop() {
 	if(ctx.type == 0) {
 		if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Ended up with context type %d, return code %d and length: %lu/%lu\n"), ctx.type, pos, ctx.length, len);
         lastError = pos;
-		len = len + hanSerial->readBytes(hanBuffer+len, BUF_SIZE_HAN-len);
+		len = len + hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
 		if(debugger->isActive(RemoteDebug::VERBOSE)) {
 			debugger->printf_P(PSTR("  payload:\n"));
 			debugPrint(hanBuffer, 0, len);
@@ -160,7 +162,7 @@ bool PassiveMeterCommunicator::loop() {
 	}
 
 	// Data is valid, clear the rest of the buffer to avoid tainted parsing
-	for(int i = pos+ctx.length; i<BUF_SIZE_HAN; i++) {
+	for(int i = pos+ctx.length; i<hanBufferSize; i++) {
 		hanBuffer[i] = 0x00;
 	}
     dataAvailable = true;
@@ -191,7 +193,7 @@ bool PassiveMeterCommunicator::loop() {
 
 AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
     if(!dataAvailable) return NULL;
-	if(ctx.length > BUF_SIZE_HAN) {
+	if(ctx.length > hanBufferSize) {
         debugger->printf_P(PSTR("Invalid context length\n"));
 		dataAvailable = false;
 		return NULL;
@@ -282,7 +284,7 @@ void PassiveMeterCommunicator::getCurrentConfig(MeterConfig& meterConfig) {
 int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &context) {
 	int16_t ret = 0;
 	bool doRet = false;
-	uint16_t end = BUF_SIZE_HAN;
+	uint16_t end = hanBufferSize;
 	uint8_t tag = (*buf);
 	uint8_t lastTag = DATA_TAG_NONE;
 	while(tag != DATA_TAG_NONE) {

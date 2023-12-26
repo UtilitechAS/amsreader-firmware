@@ -57,7 +57,7 @@
     }
 
     async function reboot() {
-      const response = await fetch('/reboot', {
+      const response = await fetch('reboot', {
             method: 'POST'
         });
         let res = (await response.json())

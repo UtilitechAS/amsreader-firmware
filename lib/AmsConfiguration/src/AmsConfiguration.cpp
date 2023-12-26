@@ -217,8 +217,9 @@ bool AmsConfiguration::getWebConfig(WebConfig& config) {
 
 bool AmsConfiguration::setWebConfig(WebConfig& config) {
 
-	stripNonAscii((uint8_t*) config.username, 64);
-	stripNonAscii((uint8_t*) config.password, 64);
+	stripNonAscii((uint8_t*) config.username, 37);
+	stripNonAscii((uint8_t*) config.password, 37);
+	stripNonAscii((uint8_t*) config.context, 37);
 
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_WEB_START, config);
@@ -989,7 +990,7 @@ bool AmsConfiguration::relocateConfig103() {
 	PriceServiceConfig price;
 	NetworkConfig wifi;
 	EnergyAccountingConfig eac;
-	WebConfig web;
+	WebConfig103 web103;
 	DebugConfig debug;
 	DomoticzConfig domo;
 	NtpConfig ntp;
@@ -1003,7 +1004,7 @@ bool AmsConfiguration::relocateConfig103() {
 	EEPROM.get(CONFIG_ENTSOE_START_103, price);
 	EEPROM.get(CONFIG_WIFI_START_103, wifi);
 	EEPROM.get(CONFIG_ENERGYACCOUNTING_START_103, eac);
-	EEPROM.get(CONFIG_WEB_START_103, web);
+	EEPROM.get(CONFIG_WEB_START_103, web103);
 	EEPROM.get(CONFIG_DEBUG_START_103, debug);
 	EEPROM.get(CONFIG_DOMOTICZ_START_103, domo);
 	EEPROM.get(CONFIG_NTP_START_103, ntp);
@@ -1034,6 +1035,11 @@ bool AmsConfiguration::relocateConfig103() {
 		gpio103.ledDisablePin,
 		gpio103.ledBehaviour
 	};
+
+	WebConfig web = {web103.security};
+	strcpy(web.username, web103.username);
+	strcpy(web.password, web103.password);
+	strcpy(web.context, "");
 
 	EEPROM.put(CONFIG_UPGRADE_INFO_START, upinfo);
 	EEPROM.put(CONFIG_NETWORK_START, wifi);

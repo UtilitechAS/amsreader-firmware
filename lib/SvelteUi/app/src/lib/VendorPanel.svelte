@@ -5,6 +5,7 @@
     import Mask from './Mask.svelte'
     import { navigate } from 'svelte-navigator';
 
+    export let basepath = "/";
     export let sysinfo = {};
 
     let loadingOrSaving = false;
@@ -17,7 +18,7 @@
 			data.append(key, value)
 		}
 
-        const response = await fetch('/save', {
+        const response = await fetch('save', {
             method: 'POST',
             body: data
         });
@@ -31,7 +32,7 @@
 
             return s;
         });
-        navigate(sysinfo.usrcfg ? "/" : "/setup");
+        navigate(basepath + (sysinfo.usrcfg ? "/" : "/setup"));
 	}
 
     let cc = false;

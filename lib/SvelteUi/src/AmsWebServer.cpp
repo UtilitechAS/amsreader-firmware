@@ -80,58 +80,77 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	this->ea = ea;
 	this->rtp = rtp;
 
-	server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	snprintf_P(buf, 32, PSTR("/index-%s.js"), FirmwareVersion::VersionString);
+	String context;
+	config->getWebConfig(webConfig);
+	stripNonAscii((uint8_t*) webConfig.context, 32);
+	if(strlen(webConfig.context) > 0) {
+		context = "/" + String(webConfig.context);
+		context.replace(" ", "");
+		if(context.length() == 1) {
+			context = "";
+		} else {
+			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
+		}
+	}
+
+	if(context.isEmpty()) {
+		server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	} else {
+		server.on(F("/"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this));
+		server.on(context, HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+		server.on(context + F("/"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	}
+	snprintf_P(buf, 32, PSTR("%s/index-%s.js"), context.c_str(), FirmwareVersion::VersionString);
 	server.on(buf, HTTP_GET, std::bind(&AmsWebServer::indexJs, this));
-	snprintf_P(buf, 32, PSTR("/index-%s.css"), FirmwareVersion::VersionString);
+	snprintf_P(buf, 32, PSTR("%s/index-%s.css"), context.c_str(), FirmwareVersion::VersionString);
 	server.on(buf, HTTP_GET, std::bind(&AmsWebServer::indexCss, this));
 
-	server.on(F("/configuration"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	server.on(F("/priceconfig"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	server.on(F("/status"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	server.on(F("/consent"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	server.on(F("/vendor"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	server.on(F("/setup"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	server.on(F("/mqtt-ca"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	server.on(F("/mqtt-cert"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
-	server.on(F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/configuration"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/priceconfig"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/status"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/consent"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/vendor"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/setup"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/mqtt-ca"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/mqtt-cert"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	
-	server.on(F("/github.svg"), HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
-	server.on(F("/favicon.svg"), HTTP_GET, std::bind(&AmsWebServer::faviconSvg, this)); 
-	server.on(F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
-	server.on(F("/data.json"), HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
-	server.on(F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
-	server.on(F("/monthplot.json"), HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
-	server.on(F("/energyprice.json"), HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
-	server.on(F("/temperature.json"), HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
-	server.on(F("/tariff.json"), HTTP_GET, std::bind(&AmsWebServer::tariffJson, this));
-	server.on(F("/realtime.json"), HTTP_GET, std::bind(&AmsWebServer::realtimeJson, this));
-	server.on(F("/priceconfig.json"), HTTP_GET, std::bind(&AmsWebServer::priceConfigJson, this));
+	server.on(context + F("/github.svg"), HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
+	server.on(context + F("/favicon.svg"), HTTP_GET, std::bind(&AmsWebServer::faviconSvg, this)); 
+	server.on(context + F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
+	server.on(context + F("/data.json"), HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
+	server.on(context + F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
+	server.on(context + F("/monthplot.json"), HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
+	server.on(context + F("/energyprice.json"), HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
+	server.on(context + F("/temperature.json"), HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
+	server.on(context + F("/tariff.json"), HTTP_GET, std::bind(&AmsWebServer::tariffJson, this));
+	server.on(context + F("/realtime.json"), HTTP_GET, std::bind(&AmsWebServer::realtimeJson, this));
+	server.on(context + F("/priceconfig.json"), HTTP_GET, std::bind(&AmsWebServer::priceConfigJson, this));
 
-	server.on(F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
-	server.on(F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
-	server.on(F("/reboot"), HTTP_POST, std::bind(&AmsWebServer::reboot, this));
-	server.on(F("/upgrade"), HTTP_POST, std::bind(&AmsWebServer::upgrade, this));
-	server.on(F("/firmware"), HTTP_GET, std::bind(&AmsWebServer::firmwareHtml, this));
-	server.on(F("/firmware"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::firmwareUpload, this));
-	server.on(F("/is-alive"), HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
+	server.on(context + F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
+	server.on(context + F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
+	server.on(context + F("/reboot"), HTTP_POST, std::bind(&AmsWebServer::reboot, this));
+	server.on(context + F("/upgrade"), HTTP_POST, std::bind(&AmsWebServer::upgrade, this));
+	server.on(context + F("/firmware"), HTTP_GET, std::bind(&AmsWebServer::firmwareHtml, this));
+	server.on(context + F("/firmware"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::firmwareUpload, this));
+	server.on(context + F("/is-alive"), HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
 
-	server.on(F("/reset"), HTTP_POST, std::bind(&AmsWebServer::factoryResetPost, this));
+	server.on(context + F("/reset"), HTTP_POST, std::bind(&AmsWebServer::factoryResetPost, this));
 
-	server.on(F("/robots.txt"), HTTP_GET, std::bind(&AmsWebServer::robotstxt, this));
+	server.on(context + F("/robots.txt"), HTTP_GET, std::bind(&AmsWebServer::robotstxt, this));
 
-	server.on(F("/mqtt-ca"), HTTP_POST, std::bind(&AmsWebServer::mqttCaDelete, this), std::bind(&AmsWebServer::mqttCaUpload, this));
-	server.on(F("/mqtt-cert"), HTTP_POST, std::bind(&AmsWebServer::mqttCertDelete, this), std::bind(&AmsWebServer::mqttCertUpload, this));
-	server.on(F("/mqtt-key"), HTTP_POST, std::bind(&AmsWebServer::mqttKeyDelete, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
+	server.on(context + F("/mqtt-ca"), HTTP_POST, std::bind(&AmsWebServer::mqttCaDelete, this), std::bind(&AmsWebServer::mqttCaUpload, this));
+	server.on(context + F("/mqtt-cert"), HTTP_POST, std::bind(&AmsWebServer::mqttCertDelete, this), std::bind(&AmsWebServer::mqttCertUpload, this));
+	server.on(context + F("/mqtt-key"), HTTP_POST, std::bind(&AmsWebServer::mqttKeyDelete, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
 
-	server.on(F("/configfile"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::configFileUpload, this));
-	server.on(F("/configfile.cfg"), HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
+	server.on(context + F("/configfile"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::configFileUpload, this));
+	server.on(context + F("/configfile.cfg"), HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
 
 	/* These trigger captive portal. Only problem is that after you have "signed in", the portal is closed and the user has no idea how to reach the device
-	server.on(F("/generate_204"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Android captive portal check: http://connectivitycheck.gstatic.com/generate_204
-	server.on(F("/ncsi.txt"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check: http://www.msftncsi.com/ncsi.txt 
-	server.on(F("/fwlink"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check
-	server.on(F("/library/test/success.html"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Apple connectivity check: http://www.apple.com/library/test/success.html
+	server.on(context + F("/generate_204"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Android captive portal check: http://connectivitycheck.gstatic.com/generate_204
+	server.on(context + F("/ncsi.txt"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check: http://www.msftncsi.com/ncsi.txt 
+	server.on(context + F("/fwlink"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check
+	server.on(context + F("/library/test/success.html"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Apple connectivity check: http://www.apple.com/library/test/success.html
 	*/
 
 	server.on("/ssdp/schema.xml", HTTP_GET, std::bind(&AmsWebServer::ssdpSchema, this));
@@ -140,7 +159,6 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	
 	server.begin(); // Web server start
 
-	config->getWebConfig(webConfig);
 	MqttConfig mqttConfig;
 	config->getMqttConfig(mqttConfig);
 	mqttEnabled = strlen(mqttConfig.host) > 0;
@@ -192,7 +210,7 @@ bool AmsWebServer::checkSecurity(byte level, bool send401) {
 	if(!access && webConfig.security >= level && server.hasHeader(F("Authorization"))) {
 		String expectedAuth = String(webConfig.username) + ":" + String(webConfig.password);
 
-		String providedPwd = server.header(F("Authorization"));
+		String providedPwd = server.header("Authorization");
 		providedPwd.replace(F("Basic "), F(""));
 
 		#if defined(ESP8266)
@@ -202,6 +220,9 @@ bool AmsWebServer::checkSecurity(byte level, bool send401) {
 		#endif
 
 		access = providedPwd.equals(expectedBase64);
+		if(!access) {
+			if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unsuccessful login: '%s'\n"), providedPwd.c_str());
+		}
 	}
 
 	if(!access && send401) {
@@ -213,6 +234,8 @@ bool AmsWebServer::checkSecurity(byte level, bool send401) {
 }
 
 void AmsWebServer::notFound() {
+	if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("URI '%s' was not found\n"), server.uri().c_str());
+
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -368,6 +391,7 @@ void AmsWebServer::sysinfoJson() {
 		ui.showRealtimePlot,
 		ui.darkMode,
 		webConfig.security,
+		webConfig.context,
 		#if defined(ESP32)
 		rtc_get_reset_reason(0),
 		rdc->last_cause,
@@ -810,8 +834,24 @@ void AmsWebServer::indexHtml() {
 
 	if(!checkSecurity(2))
 		return;
-	server.setContentLength(INDEX_HTML_LEN);
-	server.send_P(200, MIME_HTML, INDEX_HTML);
+
+	String context;
+	config->getWebConfig(webConfig);
+	stripNonAscii((uint8_t*) webConfig.context, 32);
+	if(strlen(webConfig.context) > 0) {
+		context = "/" + String(webConfig.context) + "/";
+	}
+
+	if(context.isEmpty()) {
+		server.setContentLength(INDEX_HTML_LEN);
+		server.send_P(200, MIME_HTML, INDEX_HTML);
+	} else {
+		String body = String(INDEX_HTML);
+		body.replace("href=\"/\"", "href=\"" + context + "\"");
+		server.setContentLength(body.length());
+		server.send(200, MIME_HTML, body);
+	}
+
 }
 
 void AmsWebServer::indexCss() {
@@ -911,7 +951,8 @@ void AmsWebServer::configurationJson() {
 		networkConfig.hostname,
 		webConfig.security,
 		webConfig.username,
-		strlen(webConfig.password) > 0 ? "***" : ""
+		strlen(webConfig.password) > 0 ? "***" : "",
+		webConfig.context
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_METER_JSON,
@@ -1521,6 +1562,7 @@ void AmsWebServer::handleSave() {
 			strcpy_P(webConfig.password, PSTR(""));
 			debugger->setPassword(F(""));
 		}
+		strcpy(webConfig.context, server.arg(F("gc")).c_str());
 		config->setWebConfig(webConfig);
 
 		NetworkConfig network;
@@ -2592,7 +2634,14 @@ void AmsWebServer::configFileUpload() {
 }
 
 void AmsWebServer::redirectToMain() {
-	server.sendHeader(HEADER_LOCATION,F("/"));
+	String context;
+	config->getWebConfig(webConfig);
+	stripNonAscii((uint8_t*) webConfig.context, 32);
+	if(strlen(webConfig.context) > 0) {
+		context = String(webConfig.context);
+	}
+
+	server.sendHeader(HEADER_LOCATION, "/" + context);
 	server.send(302);
 }
 

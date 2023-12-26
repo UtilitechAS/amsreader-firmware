@@ -43,6 +43,7 @@
         "k": %d
     },
     "security": %d,
+    "context": "%s",
     "boot_reason": %d,
     "ex_cause": %d,
     "upgrade": {

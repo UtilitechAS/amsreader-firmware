@@ -4,7 +4,8 @@
     import { navigate } from 'svelte-navigator';
     import { wiki } from './Helpers';
 
-    export let sysinfo = {}
+    export let basepath = "/";
+    export let sysinfo = {};
 
     let loadingOrSaving = false;
 
@@ -17,7 +18,7 @@
             data.append(key, value)
         }
 
-        const response = await fetch('/save', {
+        const response = await fetch('save', {
             method: 'POST',
             body: data
         });
@@ -29,7 +30,7 @@
             s.booting = res.reboot;
             return s;
         });
-        navigate("/");
+        navigate(basepath);
     }
 </script>
 

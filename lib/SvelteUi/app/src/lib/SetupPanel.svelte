@@ -58,7 +58,7 @@
 			data.append(key, value)
         }
 
-        const response = await fetch('/save', {
+        const response = await fetch('save', {
             method: 'POST',
             body: data
         });

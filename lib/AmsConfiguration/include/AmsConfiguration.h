@@ -90,6 +90,13 @@ struct MqttConfig {
 
 struct WebConfig {
 	uint8_t security;
+	char username[37];
+	char password[37];
+	char context[37];
+}; // 112
+
+struct WebConfig103 {
+	uint8_t security;
 	char username[64];
 	char password[64];
 }; // 129

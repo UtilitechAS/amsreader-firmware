@@ -3,7 +3,6 @@
     import { sysinfoStore, getGitHubReleases, gitHubReleaseStore } from './DataStores.js';
     import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
     import { boardtype, hanError, mqttError, priceError, isBusPowered, wiki, bcol } from './Helpers.js';
-    import AmsleserSvg from "./../assets/favicon.svg";
     import GitHubLogo from './../assets/github.svg';
     import Uptime from "./Uptime.svelte";
     import Badge from './Badge.svelte';
@@ -13,8 +12,9 @@
     import HelpIcon from "./HelpIcon.svelte";
     import DownloadIcon from "./DownloadIcon.svelte";
 
-    export let data = {}
-    let sysinfo = {}
+    export let basepath = "/";
+    export let data = {};
+    let sysinfo = {};
 
     let nextVersion = {};
  
@@ -70,7 +70,7 @@
         {/if}
       <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">
           <div class="flex-none">
-            <a class="float-right" href='https://github.com/UtilitechAS/amsreader-firmware' target='_blank' rel="noreferrer" aria-label="GitHub"><img class="gh-logo" src={GitHubLogo} alt="GitHub repo"/></a>
+            <a class="float-right" href='https://github.com/UtilitechAS/amsreader-firmware' target='_blank' rel="noreferrer" aria-label="GitHub"><img class="gh-logo" src={basepath + GitHubLogo} alt="GitHub repo"/></a>
           </div>
           <div class="flex-none my-auto px-2">
             <Clock timestamp={ data.c ? new Date(data.c * 1000) : new Date(0) } offset={sysinfo.clock_offset} fullTimeColor="text-red-500" />

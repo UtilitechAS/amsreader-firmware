@@ -12,7 +12,8 @@
     import TrashIcon from './TrashIcon.svelte';
     import QrCode from 'svelte-qrcode';
 
-    export let sysinfo = {}
+    export let basepath = "/";
+    export let sysinfo = {};
 
     let uiElements = [{
         name: 'Import gauge',
@@ -125,7 +126,7 @@
             isFactoryReset = true;
             const data = new URLSearchParams();
             data.append("perform", "true");
-            const response = await fetch('/reset', {
+            const response = await fetch('reset', {
                 method: 'POST',
                 body: data
             });
@@ -144,7 +145,7 @@
 			data.append(key, value)
 		}
 
-        const response = await fetch('/save', {
+        const response = await fetch('save', {
             method: 'POST',
             body: data
         });
@@ -157,11 +158,11 @@
         });
 
         saving = false;
-        navigate("/");
+        navigate(basepath);
 	}
 
     async function reboot() {
-      const response = await fetch('/reboot', {
+      const response = await fetch('reboot', {
             method: 'POST'
         });
         let res = (await response.json())
@@ -179,7 +180,7 @@
 
     async function askDeleteCa() {
         if(confirm('Are you sure you want to delete CA?')) {
-            const response = await fetch('/mqtt-ca', {
+            const response = await fetch('mqtt-ca', {
                 method: 'POST'
             });
             let res = (await response.text())
@@ -192,7 +193,7 @@
 
     async function askDeleteCert() {
         if(confirm('Are you sure you want to delete cert?')) {
-            const response = await fetch('/mqtt-cert', {
+            const response = await fetch('mqtt-cert', {
                 method: 'POST'
             });
             let res = (await response.text())
@@ -205,7 +206,7 @@
 
     async function askDeleteKey() {
         if(confirm('Are you sure you want to delete key?')) {
-            const response = await fetch('/mqtt-key', {
+            const response = await fetch('mqtt-key', {
                 method: 'POST'
             });
             let res = (await response.text())
@@ -318,13 +319,17 @@
             {#if configuration.g.s > 0}
             <div class="my-1">
                 Username<br/>
-                <input name="gu" bind:value={configuration.g.u} type="text" class="in-s"/>
+                <input name="gu" bind:value={configuration.g.u} type="text" class="in-s" maxlength="36"/>
             </div>
             <div class="my-1">
                 Password<br/>
-                <input name="gp" bind:value={configuration.g.p} type="password" class="in-s"/>
+                <input name="gp" bind:value={configuration.g.p} type="password" class="in-s" maxlength="36"/>
             </div>
             {/if}
+            <div class="my-1">
+                Context<br/>
+                <input name="gc" bind:value={configuration.g.c} type="text" pattern="[A-Za-z0-9]+" placeholder="[root]" class="in-s" maxlength="36"/>
+            </div>
         </div>
         <div class="cnt">
             <strong class="text-sm">Meter</strong>

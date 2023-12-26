@@ -6,6 +6,8 @@
     import TrashIcon from './TrashIcon.svelte';
     import {  navigate } from 'svelte-navigator';
 
+    export let basepath = "/";
+
     let days = ['mo','tu','we','th','fr','sa','su'];
 
     let configuration = {};
@@ -35,14 +37,14 @@
             data.append("rv"+i, e.v);
         });
 
-        const response = await fetch('/save', {
+        const response = await fetch('save', {
             method: 'POST',
             body: data
         });
         let res = (await response.json())
 
         saving = false;
-        navigate("/configuration");
+        navigate(basepath + "configuration");
 	}
 
     let toggleDay = function(arr, day) {

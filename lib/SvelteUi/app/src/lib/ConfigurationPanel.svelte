@@ -108,7 +108,7 @@
             t: '', h: '', n: ''
         },
         c: {
-            e: false, i: null, s: null, es: null
+            e: false, i: null, es: null
         }
     };
     configurationStore.subscribe(update => {

@@ -39,6 +39,7 @@
 #include "html/conf_ui_json.h"
 #include "html/conf_cloud_json.h"
 #include "html/firmware_html.h"
+#include <ESPRandom.h>
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
@@ -1094,7 +1095,6 @@ void AmsWebServer::configurationJson() {
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
 		cloud.enabled ? "true" : "false",
-		cloud.clientId,
 		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 		sysConfig.energyspeedometer == 7 ? "true" : "false"
 		#else

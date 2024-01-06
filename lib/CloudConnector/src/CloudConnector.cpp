@@ -46,9 +46,9 @@ bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, HwTools* hw)
     this->hw = hw;
 
 	this->maxPwr = 0;
-	this->distributionSystem = distributionSystem;
-	this->mainFuse = mainFuse;
-	this->productionCapacity = productionCapacity;
+	this->distributionSystem = meter.distributionSystem;
+	this->mainFuse = meter.mainFuse;
+	this->productionCapacity = meter.productionCapacity;
 
     this->initialized = false;
 
@@ -286,7 +286,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             meterManufacturer(data.getMeterType()).c_str(),
             data.getMeterModel().c_str(),
             data.getMeterId().c_str(),
-            distributionSystemStr(distributionSystem),
+            distributionSystemStr(distributionSystem).c_str(),
             mainFuse,
             maxPwr,
             productionCapacity

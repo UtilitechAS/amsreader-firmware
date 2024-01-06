@@ -312,7 +312,6 @@ void setup() {
 	bool shared = false;
 	Serial.flush();
 	Serial.end();
-	MeterConfig meterConfig;
 	config.getMeterConfig(meterConfig);
 	if(meterConfig.rxPin == 3) {
 		shared = true;
@@ -682,7 +681,6 @@ void loop() {
 	}
 
 	if(config.isMeterChanged()) {
-		MeterConfig meterConfig;
 		config.getMeterConfig(meterConfig);
 		if(meterConfig.source = METER_SOURCE_SERIAL) {
 			switch(meterConfig.parser) {
@@ -1099,7 +1097,6 @@ bool readHanPort() {
 		return false;
 	}
 	if(mc->isConfigChanged()) {
-		MeterConfig meterConfig;
 		mc->getCurrentConfig(meterConfig);
 		config.setMeterConfig(meterConfig);
 	}

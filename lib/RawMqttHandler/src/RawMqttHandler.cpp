@@ -112,6 +112,24 @@ bool RawMqttHandler::publishList4(AmsData* data, AmsData* meterState) {
         if(full || meterState->getL3ActiveExportPower() != data->getL3ActiveExportPower()) {
             mqtt.publish(topic + "/meter/export/l3", String(data->getL3ActiveExportPower(), 2));
         }
+        if(full || meterState->getL1ActiveImportCounter() != data->getL1ActiveImportCounter()) {
+            mqtt.publish(topic + "/meter/import/l1/accumulated", String(data->getL1ActiveImportCounter(), 2));
+        }
+        if(full || meterState->getL2ActiveImportCounter() != data->getL2ActiveImportCounter()) {
+            mqtt.publish(topic + "/meter/import/l2/accumulated", String(data->getL2ActiveImportCounter(), 2));
+        }
+        if(full || meterState->getL3ActiveImportCounter() != data->getL3ActiveImportCounter()) {
+            mqtt.publish(topic + "/meter/import/l3/accumulated", String(data->getL3ActiveImportCounter(), 2));
+        }
+        if(full || meterState->getL1ActiveExportCounter() != data->getL1ActiveExportCounter()) {
+            mqtt.publish(topic + "/meter/export/l1/accumulated", String(data->getL1ActiveExportCounter(), 2));
+        }
+        if(full || meterState->getL2ActiveExportCounter() != data->getL2ActiveExportCounter()) {
+            mqtt.publish(topic + "/meter/export/l2/accumulated", String(data->getL2ActiveExportCounter(), 2));
+        }
+        if(full || meterState->getL3ActiveExportCounter() != data->getL3ActiveExportCounter()) {
+            mqtt.publish(topic + "/meter/export/l3/accumulated", String(data->getL3ActiveExportCounter(), 2));
+        }
         if(full || meterState->getPowerFactor() != data->getPowerFactor()) {
             mqtt.publish(topic + "/meter/powerfactor", String(data->getPowerFactor(), 2));
         }

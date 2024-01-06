@@ -413,6 +413,38 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             listType = 4;
             l3activeExportPower = val;
         }
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_L1_COUNT, sizeof(AMS_OBIS_ACTIVE_IMPORT_L1_COUNT), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l1activeImportCounter = val/1000;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_L2_COUNT, sizeof(AMS_OBIS_ACTIVE_IMPORT_L2_COUNT), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l2activeImportCounter = val/1000;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_L3_COUNT, sizeof(AMS_OBIS_ACTIVE_IMPORT_L3_COUNT), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l3activeImportCounter = val/1000;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_L1_COUNT, sizeof(AMS_OBIS_ACTIVE_EXPORT_L1_COUNT), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l1activeExportCounter = val/1000;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_L2_COUNT, sizeof(AMS_OBIS_ACTIVE_EXPORT_L2_COUNT), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l2activeExportCounter = val/1000;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_L2_COUNT, sizeof(AMS_OBIS_ACTIVE_EXPORT_L2_COUNT), ((char *) (d)));
+        if (val != NOVALUE) {
+            listType = 4;
+            l3activeExportCounter = val/1000;
+        }
+
+
 
         if(meterType == AmsTypeKamstrup) {
             if(listType >= 3) {
@@ -420,6 +452,12 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 activeExportCounter *= 10;
                 reactiveImportCounter *= 10;
                 reactiveExportCounter *= 10;
+                l1activeImportCounter *= 10;
+                l2activeImportCounter *= 10;
+                l3activeImportCounter *= 10;
+                l1activeExportCounter *= 10;
+                l2activeExportCounter *= 10;
+                l3activeExportCounter *= 10;
             }
             if(l1current != 0)
                 l1current /= 100;

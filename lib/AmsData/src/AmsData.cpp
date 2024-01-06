@@ -57,6 +57,12 @@ void AmsData::apply(AmsData& other) {
             this->l1activeExportPower = other.getL1ActiveExportPower();
             this->l2activeExportPower = other.getL2ActiveExportPower();
             this->l3activeExportPower = other.getL3ActiveExportPower();
+            this->l1activeImportCounter = other.getL1ActiveImportCounter();
+            this->l2activeImportCounter = other.getL2ActiveImportCounter();
+            this->l3activeImportCounter = other.getL3ActiveImportCounter();
+            this->l1activeExportCounter = other.getL1ActiveExportCounter();
+            this->l2activeExportCounter = other.getL2ActiveExportCounter();
+            this->l3activeExportCounter = other.getL3ActiveExportCounter();
         case 3:
             this->meterTimestamp = other.getMeterTimestamp();
             this->activeImportCounter = other.getActiveImportCounter();
@@ -284,6 +290,30 @@ float AmsData::getL2ActiveExportPower() {
 
 float AmsData::getL3ActiveExportPower() {
     return this->l3activeExportPower;
+}
+
+double AmsData::getL1ActiveImportCounter() {
+    return this->l1activeImportCounter;
+}
+
+double AmsData::getL2ActiveImportCounter() {
+    return this->l2activeImportCounter;
+}
+
+double AmsData::getL3ActiveImportCounter() {
+    return this->l3activeImportCounter;
+}
+
+double AmsData::getL1ActiveExportCounter() {
+    return this->l1activeExportCounter;
+}
+
+double AmsData::getL2ActiveExportCounter() {
+    return this->l2activeExportCounter;
+}
+
+double AmsData::getL3ActiveExportCounter() {
+    return this->l3activeExportCounter;
 }
 
 double AmsData::getActiveImportCounter() {

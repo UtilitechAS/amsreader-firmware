@@ -9,7 +9,9 @@
 #include "crc.h"
 #include "Uptime.h"
 #include "hexutils.h"
+#if defined(ESP32)
 #include <ESPRandom.h>
+#endif
 
 CloudConnector::CloudConnector(RemoteDebug* debugger) {
     this->debugger = debugger;
@@ -36,11 +38,13 @@ CloudConnector::CloudConnector(RemoteDebug* debugger) {
 
 bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, HwTools* hw) {
     bool ret = false;
+    #if defined(ESP32)
     if(!ESPRandom::isValidV4Uuid(config.clientId)) {
         ESPRandom::uuid4(config.clientId);
         ret = true;
     }
     uuid = ESPRandom::uuidToString(config.clientId);
+    #endif
 
     this->config = config;
     this->hw = hw;

@@ -39,7 +39,6 @@
 #include "html/conf_ui_json.h"
 #include "html/conf_cloud_json.h"
 #include "html/firmware_html.h"
-#include <ESPRandom.h>
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>

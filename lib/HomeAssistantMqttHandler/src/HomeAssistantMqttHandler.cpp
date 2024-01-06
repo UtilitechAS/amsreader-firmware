@@ -110,7 +110,13 @@ bool HomeAssistantMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea)
         data->getPowerFactor() == 0 ? 1 : data->getPowerFactor(),
         data->getPowerFactor() == 0 ? 1 : data->getL1PowerFactor(),
         data->getPowerFactor() == 0 ? 1 : data->getL2PowerFactor(),
-        data->getPowerFactor() == 0 ? 1 : data->getL3PowerFactor()
+        data->getPowerFactor() == 0 ? 1 : data->getL3PowerFactor(),
+        data->getL1ActiveImportCounter(),
+        data->getL2ActiveImportCounter(),
+        data->getL3ActiveImportCounter(),
+        data->getL1ActiveExportCounter(),
+        data->getL2ActiveExportCounter(),
+        data->getL3ActiveExportCounter()
     );
     return mqtt.publish(topic + "/power", json);
 }

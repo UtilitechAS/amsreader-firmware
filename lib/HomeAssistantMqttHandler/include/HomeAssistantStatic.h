@@ -48,22 +48,28 @@ const HomeAssistantSensor List3ExportSensors[List3ExportSensorCount] PROGMEM = {
     {"Accumulated active export",  "/energy",  "tPO",               4000, "kWh",  "energy",          "total_increasing"}
 };
 
-const uint8_t List4SensorCount PROGMEM = 7;
+const uint8_t List4SensorCount PROGMEM = 10;
 const HomeAssistantSensor List4Sensors[List4SensorCount] PROGMEM = {
-    {"Power factor",               "/power",   "PF",                  30, "%",    "power_factor",    "measurement"},
-    {"L1 power factor",            "/power",   "PF1",                 30, "%",    "power_factor",    "measurement"},
-    {"L2 power factor",            "/power",   "PF2",                 30, "%",    "power_factor",    "measurement"},
-    {"L3 power factor",            "/power",   "PF3",                 30, "%",    "power_factor",    "measurement"},
-    {"L1 active import",           "/power",   "P1",                  30, "W",    "power",           "measurement"},
-    {"L2 active import",           "/power",   "P2",                  30, "W",    "power",           "measurement"},
-    {"L3 active import",           "/power",   "P3",                  30, "W",    "power",           "measurement"}
+    {"Power factor",                "/power",   "PF",                  30, "%",    "power_factor",    "measurement"},
+    {"L1 power factor",             "/power",   "PF1",                 30, "%",    "power_factor",    "measurement"},
+    {"L2 power factor",             "/power",   "PF2",                 30, "%",    "power_factor",    "measurement"},
+    {"L3 power factor",             "/power",   "PF3",                 30, "%",    "power_factor",    "measurement"},
+    {"L1 active import",            "/power",   "P1",                  30, "W",    "power",           "measurement"},
+    {"L2 active import",            "/power",   "P2",                  30, "W",    "power",           "measurement"},
+    {"L3 active import",            "/power",   "P3",                  30, "W",    "power",           "measurement"},
+    {"L1 accumulated active import","/power",   "tPI1",                30, "kWh",  "energy",          "total_increasing"},
+    {"L2 accumulated active import","/power",   "tPI2",                30, "kWh",  "energy",          "total_increasing"},
+    {"L3 accumulated active import","/power",   "tPI3",                30, "kWh",  "energy",          "total_increasing"}
 };
 
-const uint8_t List4ExportSensorCount PROGMEM = 3;
+const uint8_t List4ExportSensorCount PROGMEM = 6;
 const HomeAssistantSensor List4ExportSensors[List4ExportSensorCount] PROGMEM = {
-    {"L1 active export",           "/power",   "PO1",                 30, "W",    "power",           "measurement"},
-    {"L2 active export",           "/power",   "PO2",                 30, "W",    "power",           "measurement"},
-    {"L3 active export",           "/power",   "PO3",                 30, "W",    "power",           "measurement"}
+    {"L1 active export",            "/power",   "PO1",                 30, "W",    "power",           "measurement"},
+    {"L2 active export",            "/power",   "PO2",                 30, "W",    "power",           "measurement"},
+    {"L3 active export",            "/power",   "PO3",                 30, "W",    "power",           "measurement"},
+    {"L1 accumulated active export","/power",   "tPO1",                30, "kWh",  "energy",          "total_increasing"},
+    {"L2 accumulated active export","/power",   "tPO2",                30, "kWh",  "energy",          "total_increasing"},
+    {"L3 accumulated active export","/power",   "tPO3",                30, "kWh",  "energy",          "total_increasing"}
 };
 
 const uint8_t RealtimeSensorCount PROGMEM = 8;

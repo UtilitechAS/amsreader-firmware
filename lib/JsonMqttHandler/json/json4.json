@@ -34,6 +34,12 @@
         "tPO" : %.3f,
         "tQI" : %.3f,
         "tQO" : %.3f,
+        "tPI1" : %.3f,
+        "tPI2" : %.3f,
+        "tPI3" : %.3f,
+        "tPO1" : %.3f,
+        "tPO2" : %.3f,
+        "tPO3" : %.3f,
         "rtc" : %lu
     },
     "realtime" : {

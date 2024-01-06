@@ -55,6 +55,12 @@ private:
     uint8_t AMS_OBIS_ACTIVE_EXPORT_L1[4]        = { 22, 7, 0, 255 };
     uint8_t AMS_OBIS_ACTIVE_EXPORT_L2[4]        = { 42, 7, 0, 255 };
     uint8_t AMS_OBIS_ACTIVE_EXPORT_L3[4]        = { 62, 7, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_IMPORT_L1_COUNT[4]  = {  21, 8, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_IMPORT_L2_COUNT[4]  = {  41, 8, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_IMPORT_L3_COUNT[4]  = {  61, 8, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_EXPORT_L1_COUNT[4]  = {  22, 8, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_EXPORT_L2_COUNT[4]  = {  42, 8, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_EXPORT_L3_COUNT[4]  = {  62, 8, 0, 255 };
 
 };
 #endif

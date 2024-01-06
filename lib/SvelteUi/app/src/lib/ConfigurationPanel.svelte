@@ -636,15 +636,7 @@
             <a href="{wiki('Cloud')}" target="_blank" class="float-right"><HelpIcon/></a>
             <input type="hidden" name="c" value="true"/>
             <div class="my-1">
-                <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> Enable cloud upload</label>
-            </div>
-            <div class="my-1">
-                Client ID<br/>
-                <input name="ci" bind:value={configuration.c.i} type="text" class="in-s" pattern={configuration.c.e ? '[A-Z0-9]{16}' : '.*'} required={configuration.c.e}/>
-            </div>
-            <div class="my-1">
-                Client secret<br/>
-                <input name="cs" bind:value={configuration.c.s} type="text" class="in-s" pattern={configuration.c.e && configuration.c.s != '***' ? '[A-Z0-9]{16}' : '.*'}/>
+                <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> AMSreader cloud</label>
             </div>
             <div class="my-1">
                 <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> Energy Speedometer</label>

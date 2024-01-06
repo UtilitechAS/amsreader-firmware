@@ -784,15 +784,12 @@ bool AmsConfiguration::setCloudConfig(CloudConfig& config) {
 		cloudChanged |= config.interval!= existing.interval;
 		cloudChanged |= config.port!= existing.port;
 		cloudChanged |= strcmp(config.hostname, existing.hostname) != 0;
-		cloudChanged |= strcmp(config.clientId, existing.clientId) != 0;
-		cloudChanged |= strcmp(config.clientSecret, existing.clientSecret) != 0;
+		cloudChanged |= memcmp(config.clientId, existing.clientId, 16) != 0;
 	} else {
 		cloudChanged = true;
 	}
 
 	stripNonAscii((uint8_t*) config.hostname, 64);
-	stripNonAscii((uint8_t*) config.clientId, 17);
-	stripNonAscii((uint8_t*) config.clientSecret, 17);
 
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_CLOUD_START, config);
@@ -806,8 +803,7 @@ void AmsConfiguration::clearCloudConfig(CloudConfig& config) {
 	strcpy(config.hostname, "cloud.amsleser.no");
 	config.port = 7443;
 	config.interval = 10;
-	strcpy(config.clientId, "");
-	strcpy(config.clientSecret, "");
+	memset(config.clientId, 0, 16);
 }
 
 bool AmsConfiguration::isCloudChanged() {

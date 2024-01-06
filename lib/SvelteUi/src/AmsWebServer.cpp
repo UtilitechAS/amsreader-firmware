@@ -1095,7 +1095,6 @@ void AmsWebServer::configurationJson() {
 	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
 		cloud.enabled ? "true" : "false",
 		cloud.clientId,
-		strlen(cloud.clientSecret) > 0 ? "***" : "",
 		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 		sysConfig.energyspeedometer == 7 ? "true" : "false"
 		#else
@@ -1704,20 +1703,6 @@ void AmsWebServer::handleSave() {
 		CloudConfig cloud;
 		config->getCloudConfig(cloud);
 		cloud.enabled = server.hasArg(F("ce")) && server.arg(F("ce")) == F("true");
-		if(cloud.enabled) {
-			String host = server.arg("ch");
-			if(!host.isEmpty()) {
-				strcpy(cloud.hostname, host.c_str());
-			}
-			String clientId = server.arg(F("ci")).c_str();
-			if(!clientId.isEmpty()) {
-				strcpy(cloud.clientId, clientId.c_str());
-			}
-			String secret = server.arg(F("cs"));
-			if(!secret.isEmpty() && !secret.equals("***")) {
-				strcpy(cloud.clientSecret, secret.c_str());
-			}
-		}
 		config->setCloudConfig(cloud);
 	}
 

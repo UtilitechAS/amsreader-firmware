@@ -21,6 +21,7 @@
 #include "AmsData.h"
 #include "EnergyAccounting.h"
 #include "HwTools.h"
+#include "AmsMqttHandler.h"
 
 #if defined(ESP8266)
 	#include <ESP8266HTTPClient.h>
@@ -37,8 +38,10 @@
 
 static const char CC_JSON_POWER[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu}";
 static const char CC_JSON_POWER_LIST3[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu,\"tP\":%.3f,\"tQ\":%.3f}";
-static const char CC_JSON_PHASE[] PROGMEM = "%s\"%d\":{\"u\":%.2f,\"i\":%.2f}";
-static const char CC_JSON_PHASE_LIST4[] PROGMEM = "%s\"%d\":{\"u\":%.2f,\"i\":%.2f,\"Pim\":%lu,\"Pex\":%lu,\"pf\":%.2f}";
+static const char CC_JSON_PHASE[] PROGMEM = "%s\"%d\":{\"u\":%.2f,\"i\":%s}";
+static const char CC_JSON_PHASE_LIST4[] PROGMEM = "%s\"%d\":{\"u\":%.2f,\"i\":%s,\"Pim\":%lu,\"Pex\":%lu,\"pf\":%.2f}";
+static const char CC_JSON_STATUS[] PROGMEM = ",\"status\":{\"esp\":{\"state\":%d,\"error\":%d},\"han\":{\"state\":%d,\"error\":%d},\"wifi\":{\"state\":%d,\"error\":%d},\"mqtt\":{\"state\":%d,\"error\":%d}}";
+static const char CC_JSON_INIT[] PROGMEM = "{\"id\":\"%s\",\"init\":{\"mac\":\"%s\",\"apmac\":\"%s\",\"version\":\"%s\"},\"meter\":{\"manufacturerId\":%d,\"manufacturer\":\"%s\",\"model\":\"%s\",\"id\":\"%s\",\"system\":\"%s\",\"fuse\":%d,\"import\":%d,\"export\":%d}";
 
 struct CloudData {
     uint8_t type;
@@ -48,19 +51,27 @@ struct CloudData {
 class CloudConnector {
 public:
     CloudConnector(RemoteDebug*);
-    void setup(CloudConfig& config, HwTools* hw);
+    bool setup(CloudConfig& config, MeterConfig& meter, HwTools* hw);
+    void setMqttHandler(AmsMqttHandler* mqttHandler);
     void update(AmsData& data, EnergyAccounting& ea);
     void forceUpdate();
 
 private:
     RemoteDebug* debugger;
     HwTools* hw;
+    AmsMqttHandler* mqttHandler = NULL;
     CloudConfig config;
     HTTPClient http;
     WiFiUDP udp;
+	int maxPwr = 0;
+	uint8_t distributionSystem = 0;
+	uint16_t mainFuse = 0, productionCapacity = 0;
+
+    String uuid;
     bool initialized = false;
     unsigned long lastUpdate = 0;
     char mac[18];
+    char apmac[18];
 
     char clearBuffer[CC_BUF_SIZE];
     unsigned char encryptedBuffer[256];
@@ -80,6 +91,14 @@ private:
             case AmsTypeIskra: return F("Iskra");
             case AmsTypeLandisGyr: return F("Landis+Gyr");
             case AmsTypeSagemcom: return F("Sagemcom");
+        }
+        return F("");
+    }
+
+    String distributionSystemStr(uint8_t ds) {
+        switch(ds) {
+            case 1: return F("IT");
+            case 2: return F("TN");
         }
         return F("");
     }

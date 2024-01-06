@@ -623,23 +623,25 @@ void loop() {
 			if(end - start > 1000) {
 				debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
 			}
-
-			#if defined(ESP32)
-			if(config.isCloudChanged()) {
-				CloudConfig cc;
-				if(config.getCloudConfig(cc) && cc.enabled) {
-					if(cloud == NULL) {
-						cloud = new CloudConnector(&Debug);
-					}
-					cloud->setup(cc, &hw);
-				}
-				config.ackCloudConfig();
-			}
-			if(cloud != NULL) {
-				cloud->update(meterState, ea);
-			}
-			#endif
 		}
+
+		#if defined(ESP32)
+		if(config.isCloudChanged()) {
+			CloudConfig cc;
+			if(config.getCloudConfig(cc) && cc.enabled) {
+				if(cloud == NULL) {
+					cloud = new CloudConnector(&Debug);
+				}
+				if(cloud->setup(cc, meterConfig, &hw)) {
+					config.setCloudConfig(cc);
+				}
+			}
+			config.ackCloudConfig();
+		}
+		if(cloud != NULL) {
+			cloud->update(meterState, ea);
+		}
+		#endif
 		/*
 		if(now - lastVoltageCheck > 500) {
 			handleVoltageCheck();

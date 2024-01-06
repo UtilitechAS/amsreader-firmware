@@ -1145,7 +1145,11 @@ void AmsWebServer::priceConfigJson() {
 					p.direction,
 					days.c_str(),
 					hours.c_str(),
-					p.value / 100.0,
+					p.value / 10000.0,
+					p.start_month,
+					p.start_dayofmonth,
+					p.end_month,
+					p.end_dayofmonth,
 					i == pc.size()-1 ? "" : ","
 				);
 				server.sendContent(buf);
@@ -1717,7 +1721,7 @@ void AmsWebServer::handleSave() {
 				snprintf_P(buf, BufferSize, PSTR("rd%d"), i);
 				pc.direction = server.arg(buf).toInt();
 				snprintf_P(buf, BufferSize, PSTR("rv%d"), i);
-				pc.value = server.arg(buf).toFloat() * 100;
+				pc.value = server.arg(buf).toFloat() * 10000;
 				snprintf_P(buf, BufferSize, PSTR("rn%d"), i);
 				String name = server.arg(buf);
 				strcpy(pc.name, name.c_str());
@@ -1745,6 +1749,18 @@ void AmsWebServer::handleSave() {
 					pch = strtok (NULL, ",");
 					h++;
 				}
+
+				snprintf_P(buf, BufferSize, PSTR("rsm%d"), i);
+				pc.start_month = server.arg(buf).toInt();
+
+				snprintf_P(buf, BufferSize, PSTR("rsd%d"), i);
+				pc.start_dayofmonth = server.arg(buf).toInt();
+
+				snprintf_P(buf, BufferSize, PSTR("rem%d"), i);
+				pc.end_month = server.arg(buf).toInt();
+
+				snprintf_P(buf, BufferSize, PSTR("red%d"), i);
+				pc.end_dayofmonth = server.arg(buf).toInt();
 
 				ps->setPriceConfig(i, pc);
 			}

@@ -47,13 +47,17 @@ struct PriceConfig {
     uint8_t days;
     uint32_t hours;
     uint8_t type;
-    uint16_t value;
+    uint32_t value;
+    uint8_t start_month;
+    uint8_t start_dayofmonth;
+    uint8_t end_month;
+    uint8_t end_dayofmonth;
 };
 
 struct PricePart {
     char name[32];
     char description[32];
-    uint16_t value;
+    uint32_t value;
 };
 
 class PriceService {

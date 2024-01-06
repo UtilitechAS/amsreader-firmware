@@ -1,6 +1,6 @@
 <script>
     import { priceConfigStore, getPriceConfig } from './ConfigurationStore'
-    import { wiki } from './Helpers.js';
+    import { monthnames, wiki, zeropad } from './Helpers.js';
     import Mask from './Mask.svelte'
     import HelpIcon from './HelpIcon.svelte';
     import TrashIcon from './TrashIcon.svelte';
@@ -35,6 +35,11 @@
             data.append("ra"+i, e.a);
             data.append("rh"+i, e.h);
             data.append("rv"+i, e.v);
+
+            data.append("rsm"+i, e.s.m);
+            data.append("rsd"+i, e.s.d);
+            data.append("rem"+i, e.e.m);
+            data.append("red"+i, e.e.d);
         });
 
         const response = await fetch('save', {
@@ -66,7 +71,9 @@
             d: 3,
             a: [0,1,2,3,4,5,6,7],
             h: [0,1,2,3,4,5,6,7,8,9, 10,11,12,13,14,15,16,17,18,19, 20,21,22,23],
-            v: 0.01
+            v: 0.001,
+            s: {m:0,d:0},
+            e: {m:0,d:0}
         });
         configuration.o = arr
     };
@@ -100,7 +107,7 @@
                             <option value={1}>+</option>
                             <option value={2}>%</option>
                         </select>
-                        <input name="rv" type="number" class="in-l tr" style="width: 100px;" min="0.01" max="65.53" step="0.01" bind:value={c.v}/>
+                        <input name="rv" type="number" class="in-l tr" style="width: 100px;" min="0.0001" max="99.9999" step="0.0001" bind:value={c.v}/>
                     </div>
                     <div class="flex flex-wrap mr-3">
                         <span class="mr-2">Days:</span>
@@ -110,19 +117,54 @@
                             {/each}
                         </div>
                     </div>
-                    <div class="flex flex-wrap">
+                    <div class="flex flex-wrap mr-3">
                         <span class="mr-2">Hours:</span>
                         <div>
-                            {#each {length: 12} as _,i}
-                                <span class={c.h.includes(i) ? 'bd-on' : 'bd-off'} on:click={() => c.h = toggleDay(c.h, i)}>{i.toString().padStart(2,'0')}</span>
-                            {/each}
-                        </div>
-                        <div>
-                            {#each {length: 12} as _,i}
-                                <span class={c.h.includes(i+12) ? 'bd-on' : 'bd-off'} on:click={() => c.h = toggleDay(c.h, i+12)}>{(i+12).toString().padStart(2,'0')}</span>
-                            {/each}
+                            <div>
+                                {#each {length: 8} as _,i}
+                                    <span class={c.h.includes(i) ? 'bd-on' : 'bd-off'} on:click={() => c.h = toggleDay(c.h, i)}>{i.toString().padStart(2,'0')}</span>
+                                {/each}
+                            </div>
+                            <div>
+                                {#each {length: 8} as _,i}
+                                    <span class={c.h.includes(i+8) ? 'bd-on' : 'bd-off'} on:click={() => c.h = toggleDay(c.h, i+8)}>{(i+8).toString().padStart(2,'0')}</span>
+                                {/each}
+                            </div>
+                            <div>
+                                {#each {length: 8} as _,i}
+                                    <span class={c.h.includes(i+16) ? 'bd-on' : 'bd-off'} on:click={() => c.h = toggleDay(c.h, i+16)}>{(i+16).toString().padStart(2,'0')}</span>
+                                {/each}
+                            </div>
                         </div>
                     </div>
+                    <div class="flex flex-wrap mr-3">
+                        <select name="rsm" class="in-f" bind:value={c.s.m}>
+                            <option value={0}>-</option>
+                            {#each {length: 31} as _,i}
+                                <option value={i+1}>{i+1}</option>
+                            {/each}
+                        </select>
+                        <select name="rsd" class="in-m" bind:value={c.s.d}>
+                            <option value={0}>-</option>
+                            {#each {length: 12} as _,i}
+                                <option value={i+1}>{monthnames[i]}</option>
+                            {/each}
+                        </select>
+                        <input class="in-m" disabled value="to" style="width: 20px;color:#888;"/>
+                        <select name="rem" class="in-m" bind:value={c.e.m}>
+                            <option value={0}>-</option>
+                            {#each {length: 31} as _,i}
+                                <option value={i+1}>{i+1}</option>
+                            {/each}
+                        </select>
+                        <select name="red" class="in-l" bind:value={c.e.d}>
+                            <option value={0}>-</option>
+                            {#each {length: 12} as _,i}
+                                <option value={i+1}>{monthnames[i]}</option>
+                            {/each}
+                        </select>
+                    </div>
+                    
                     <div class="mt-1.5 ml-3">
                         <span class="text-red-500 text-xs" on:click={() => deleteRow(rn)} on:keypress={() => deleteRow(rn)}><TrashIcon/></span>
                     </div>

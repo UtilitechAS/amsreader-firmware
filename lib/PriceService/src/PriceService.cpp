@@ -12,6 +12,7 @@
 #include "FirmwareVersion.h"
 #include <LittleFS.h>
 #include "AmsStorage.h"
+#include "hexutils.h"
 
 #include "GcmParser.h"
 
@@ -112,13 +113,18 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
         PriceConfig pc = priceConfig.at(i);
         if(pc.type == PRICE_TYPE_FIXED) continue;
-        if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs) {
+        uint8_t start_month = pc.start_month == 0 || pc.start_month > 12 ? 1 : pc.start_month;
+        uint8_t start_dayofmonth = pc.start_dayofmonth == 0 || pc.start_dayofmonth > 31 ? 1 : pc.start_dayofmonth;
+        uint8_t end_month = pc.end_month == 0 || pc.end_month > 12 ? 1 : pc.end_month;
+        uint8_t end_dayofmonth = pc.end_dayofmonth == 0 || pc.end_dayofmonth > 31 ? 1 : pc.end_dayofmonth;
+
+        if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs && tm.Month >= start_month && tm.Day >= start_dayofmonth && tm.Month <= end_month && tm.Day <= end_dayofmonth) {
             switch(pc.type) {
                 case PRICE_TYPE_ADD:
                     ret += pc.value / 10000.0;
                     break;
                 case PRICE_TYPE_PCT:
-                    ret += ((pc.value / 100.0) * ret) / 100.0;
+                    ret += ((pc.value / 10000.0) * ret) / 100.0;
                     break;
             }
         }
@@ -135,13 +141,17 @@ float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t h
     float value = PRICE_NO_VALUE;
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
         PriceConfig pc = priceConfig.at(i);
-        if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs) {
-            if(pc.type == PRICE_TYPE_FIXED) {
-                if(value == PRICE_NO_VALUE) {
-                    value = pc.value / 10000.0;
-                } else {
-                    value += pc.value / 10000.0;
-                }
+        if(pc.type != PRICE_TYPE_FIXED) continue;
+        uint8_t start_month = pc.start_month == 0 || pc.start_month > 12 ? 1 : pc.start_month;
+        uint8_t start_dayofmonth = pc.start_dayofmonth == 0 || pc.start_dayofmonth > 31 ? 1 : pc.start_dayofmonth;
+        uint8_t end_month = pc.end_month == 0 || pc.end_month > 12 ? 1 : pc.end_month;
+        uint8_t end_dayofmonth = pc.end_dayofmonth == 0 || pc.end_dayofmonth > 31 ? 1 : pc.end_dayofmonth;
+
+        if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs && tm.Month >= start_month && tm.Day >= start_dayofmonth && tm.Month <= end_month && tm.Day <= end_dayofmonth) {
+            if(value == PRICE_NO_VALUE) {
+                value = pc.value / 10000.0;
+            } else {
+                value += pc.value / 10000.0;
             }
         }
     }
@@ -526,6 +536,8 @@ std::vector<PriceConfig>& PriceService::getPriceConfig() {
 }
 
 void PriceService::setPriceConfig(uint8_t index, PriceConfig &priceConfig) {
+    stripNonAscii((uint8_t*) priceConfig.name, 32);
+
     if(this->priceConfig.capacity() != index+1)
         this->priceConfig.resize(index+1);
     if(this->priceConfig.size() > index)    

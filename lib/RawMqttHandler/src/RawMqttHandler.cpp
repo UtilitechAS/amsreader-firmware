@@ -95,22 +95,22 @@ bool RawMqttHandler::publishList3(AmsData* data, AmsData* meterState) {
 
 bool RawMqttHandler::publishList4(AmsData* data, AmsData* meterState) {
         if(full || meterState->getL1ActiveImportPower() != data->getL1ActiveImportPower()) {
-            mqtt.publish(topic + "/meter/import/l1", String(data->getL1ActiveImportPower(), 2));
+            mqtt.publish(topic + "/meter/import/l1", String(data->getL1ActiveImportPower()));
         }
         if(full || meterState->getL2ActiveImportPower() != data->getL2ActiveImportPower()) {
-            mqtt.publish(topic + "/meter/import/l2", String(data->getL2ActiveImportPower(), 2));
+            mqtt.publish(topic + "/meter/import/l2", String(data->getL2ActiveImportPower()));
         }
         if(full || meterState->getL3ActiveImportPower() != data->getL3ActiveImportPower()) {
-            mqtt.publish(topic + "/meter/import/l3", String(data->getL3ActiveImportPower(), 2));
+            mqtt.publish(topic + "/meter/import/l3", String(data->getL3ActiveImportPower()));
         }
         if(full || meterState->getL1ActiveExportPower() != data->getL1ActiveExportPower()) {
-            mqtt.publish(topic + "/meter/export/l1", String(data->getL1ActiveExportPower(), 2));
+            mqtt.publish(topic + "/meter/export/l1", String(data->getL1ActiveExportPower()));
         }
         if(full || meterState->getL2ActiveExportPower() != data->getL2ActiveExportPower()) {
-            mqtt.publish(topic + "/meter/export/l2", String(data->getL2ActiveExportPower(), 2));
+            mqtt.publish(topic + "/meter/export/l2", String(data->getL2ActiveExportPower()));
         }
         if(full || meterState->getL3ActiveExportPower() != data->getL3ActiveExportPower()) {
-            mqtt.publish(topic + "/meter/export/l3", String(data->getL3ActiveExportPower(), 2));
+            mqtt.publish(topic + "/meter/export/l3", String(data->getL3ActiveExportPower()));
         }
         if(full || meterState->getL1ActiveImportCounter() != data->getL1ActiveImportCounter()) {
             mqtt.publish(topic + "/meter/import/l1/accumulated", String(data->getL1ActiveImportCounter(), 2));

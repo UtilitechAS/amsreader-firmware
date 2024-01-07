@@ -3,7 +3,6 @@
     import { ampcol, exportcol, metertype, uiVisibility } from './Helpers.js';
     import PowerGauge from './PowerGauge.svelte';
     import VoltPlot from './VoltPlot.svelte';
-    import AmpPlot from './AmpPlot.svelte';
     import ReactiveData from './ReactiveData.svelte';
     import AccountingData from './AccountingData.svelte';
     import PricePlot from './PricePlot.svelte';
@@ -12,6 +11,7 @@
     import TemperaturePlot from './TemperaturePlot.svelte';
     import TariffPeakChart from './TariffPeakChart.svelte';
     import RealtimePlot from './RealtimePlot.svelte';
+    import PerPhasePlot from './PerPhasePlot.svelte';
 
     export let data = {}
     export let sysinfo = {}
@@ -56,15 +56,66 @@
             </div>
         </div>
     {/if}
-    {#if uiVisibility(sysinfo.ui.v, data.u1 > 100 || data.u2 > 100 || data.u3 > 100)}
+    {#if uiVisibility(sysinfo.ui.v, data.l1 && (data.l1.u > 100 || data.l2.u > 100 || data.l3.u > 100))}
         <div class="cnt">
-            <VoltPlot u1={data.u1} u2={data.u2} u3={data.u3} ds={data.ds}/>
+            {#if data.l1}
+            <VoltPlot u1={data.l1.u} u2={data.l2.u} u3={data.l3.u} ds={data.ds}/>
+            {/if}
         </div>
     {/if}
-    {#if uiVisibility(sysinfo.ui.a, data.i1 > 0.01 || data.i2 > 0.01 || data.i3 > 0.01)}
+    {#if uiVisibility(sysinfo.ui.a, data.l1 && (data.l1.i > 0.01 || data.l2.i > 0.01 || data.l3.i > 0.01))}
         <div class="cnt">
-            <AmpPlot u1={data.u1} u2={data.u2} u3={data.u3} i1={data.i1} i2={data.i2} i2e={data.i2e} i3={data.i3} max={data.mf ? data.mf : 32}/>
+            {#if data.l1}
+                <PerPhasePlot title="Amperage" unit="A" importColorFn={ampcol} exportColorFn={exportcol}
+                    maxImport={data.mf}
+                    maxExport={data.om ? data.om / 230 : 0}
+                    l1={data.l1 && data.l1.u > 100} 
+                    l2={data.l2 && data.l2.u > 100} 
+                    l3={data.l3 && data.l3.u > 100}
+                    l2x={data.i2e}
+                    l1i={Math.max(data.l1.i,0)}
+                    l2i={Math.max(data.l2.i,0)}
+                    l3i={Math.max(data.l3.i,0)}
+                    l1e={Math.min(data.l1.i*-1,0)}
+                    l2e={Math.min(data.l2.i*-1,0)}
+                    l3e={Math.min(data.l3.i*-1,0)}
+                />
+            {/if}
         </div>
+    {/if}
+    {#if uiVisibility(sysinfo.ui.h, data.l1 && (data.l1.p > 0.01 || data.l2.p > 0.01 || data.l3.p > 0.01 || data.l1.q > 0.01 || data.l2.q > 0.01 || data.l3.q > 0.01))}
+        <div class="cnt">
+            {#if data.l1}
+                <PerPhasePlot title="Phase power" unit="W" importColorFn={ampcol} exportColorFn={exportcol}
+                    maxImport={(data.mf ? data.mf : 32) * 230}
+                    maxExport={data.om}
+                    l1={data.l1 && data.l1.u > 100} 
+                    l2={data.l2 && data.l2.u > 100} 
+                    l3={data.l3 && data.l3.u > 100}
+                    l1i={data.l1.p}
+                    l1e={data.l1.q}
+                    l2i={data.l2.p}
+                    l2e={data.l2.q}
+                    l3i={data.l3.p}
+                    l3e={data.l3.q}
+                />
+            {/if}
+        </div> 
+    {/if}
+    {#if uiVisibility(sysinfo.ui.f, data.l1 && (data.l1.f > 0.01 || data.l2.f > 0.01 || data.l3.f > 0.01))}
+        <div class="cnt">
+            {#if data.l1}
+                <PerPhasePlot title="Power factor" importColorFn={exportcol} exportColorFn={exportcol}
+                    maxImport={1.0}
+                    l1={data.l1 && data.l1.u > 100} 
+                    l2={data.l2 && data.l2.u > 100} 
+                    l3={data.l3 && data.l3.u > 100}
+                    l1i={data.l1.f}
+                    l2i={data.l2.f}
+                    l3i={data.l3.f}
+                />
+            {/if}
+        </div> 
     {/if}
     {#if uiVisibility(sysinfo.ui.r, data.ri > 0 || data.re > 0 || data.ric > 0 || data.rec > 0)}
         <div class="cnt">

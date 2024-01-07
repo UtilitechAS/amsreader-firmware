@@ -28,6 +28,12 @@
         name: 'Amperage',
         key: 'a'
     },{
+        name: 'Per phase',
+        key: 'h'
+    },{
+        name: 'Power factor',
+        key: 'f'
+    },{
         name: 'Reactive',
         key: 'r'
     },{

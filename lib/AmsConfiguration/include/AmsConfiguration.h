@@ -223,6 +223,8 @@ struct UiConfig {
 	uint8_t showMonthPlot;
 	uint8_t showTemperaturePlot;
 	uint8_t showRealtimePlot;
+	uint8_t showPerPhasePower;
+	uint8_t showPowerFactor;
 	uint8_t darkMode;
 }; // 12
 

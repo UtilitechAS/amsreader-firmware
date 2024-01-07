@@ -268,27 +268,27 @@ float AmsData::getL3PowerFactor() {
     return this->l3PowerFactor;
 }
 
-float AmsData::getL1ActiveImportPower() {
+uint32_t AmsData::getL1ActiveImportPower() {
     return this->l1activeImportPower;
 }
 
-float AmsData::getL2ActiveImportPower() {
+uint32_t AmsData::getL2ActiveImportPower() {
     return this->l2activeImportPower;
 }
 
-float AmsData::getL3ActiveImportPower() {
+uint32_t AmsData::getL3ActiveImportPower() {
     return this->l3activeImportPower;
 }
 
-float AmsData::getL1ActiveExportPower() {
+uint32_t AmsData::getL1ActiveExportPower() {
     return this->l1activeExportPower;
 }
 
-float AmsData::getL2ActiveExportPower() {
+uint32_t AmsData::getL2ActiveExportPower() {
     return this->l2activeExportPower;
 }
 
-float AmsData::getL3ActiveExportPower() {
+uint32_t AmsData::getL3ActiveExportPower() {
     return this->l3activeExportPower;
 }
 

@@ -389,6 +389,8 @@ void AmsWebServer::sysinfoJson() {
 		ui.showMonthPlot,
 		ui.showTemperaturePlot,
 		ui.showRealtimePlot,
+		ui.showPerPhasePower,
+		ui.showPowerFactor,
 		ui.darkMode,
 		webConfig.security,
 		webConfig.context,
@@ -523,17 +525,27 @@ void AmsWebServer::dataJson() {
 		meterState->getActiveExportCounter(),
 		meterState->getReactiveImportCounter(),
 		meterState->getReactiveExportCounter(),
-		meterState->getL1Voltage(),
-		meterState->getL2Voltage(),
-		meterState->getL3Voltage(),
-		meterState->getL1Current(),
-		meterState->getL2Current(),
-		meterState->isL2currentMissing() ? "true" : "false",
-		meterState->getL3Current(),
 		meterState->getPowerFactor(),
+
+		meterState->getL1Voltage(),
+		meterState->getL1Current(),
+		meterState->getL1ActiveImportPower(),
+		meterState->getL1ActiveExportPower(),
 		meterState->getL1PowerFactor(),
+
+		meterState->getL2Voltage(),
+		meterState->getL2Current(),
+		meterState->getL2ActiveImportPower(),
+		meterState->getL2ActiveExportPower(),
 		meterState->getL2PowerFactor(),
+		meterState->isL2currentMissing() ? "true" : "false",
+
+		meterState->getL3Voltage(),
+		meterState->getL3Current(),
+		meterState->getL3ActiveImportPower(),
+		meterState->getL3ActiveExportPower(),
 		meterState->getL3PowerFactor(),
+
 		vcc,
 		rssi,
 		hw->getTemperature(),
@@ -1075,6 +1087,8 @@ void AmsWebServer::configurationJson() {
 		ui.showMonthPlot,
 		ui.showTemperaturePlot,
 		ui.showRealtimePlot,
+		ui.showPerPhasePower,
+		ui.showPowerFactor,
 		ui.darkMode
 	);
 	server.sendContent(buf);
@@ -1663,6 +1677,8 @@ void AmsWebServer::handleSave() {
 		ui.showMonthPlot = server.arg(F("um")).toInt();
 		ui.showTemperaturePlot = server.arg(F("us")).toInt();
 		ui.showRealtimePlot = server.arg(F("ul")).toInt();
+		ui.showPerPhasePower = server.arg(F("uh")).toInt();
+		ui.showPowerFactor = server.arg(F("uf")).toInt();
 		ui.darkMode = server.arg(F("uk")).toInt();
 		config->setUiConfig(ui);
 	}

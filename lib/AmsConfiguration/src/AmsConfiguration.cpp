@@ -210,7 +210,7 @@ bool AmsConfiguration::getWebConfig(WebConfig& config) {
 		EEPROM.end();
 		return true;
 	} else {
-		clearAuth(config);
+		clearWebConfig(config);
 		return false;
 	}
 }
@@ -228,10 +228,11 @@ bool AmsConfiguration::setWebConfig(WebConfig& config) {
 	return ret;
 }
 
-void AmsConfiguration::clearAuth(WebConfig& config) {
+void AmsConfiguration::clearWebConfig(WebConfig& config) {
 	config.security = 0;
 	strcpy(config.username, "");
 	strcpy(config.password, "");
+	strcpy(config.context, "");
 }
 
 bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
@@ -840,7 +841,7 @@ void AmsConfiguration::clear() {
 	EEPROM.put(CONFIG_MQTT_START, mqtt);
 
 	WebConfig web;
-	clearAuth(web);
+	clearWebConfig(web);
 	EEPROM.put(CONFIG_WEB_START, web);
 
 	DomoticzConfig domo;

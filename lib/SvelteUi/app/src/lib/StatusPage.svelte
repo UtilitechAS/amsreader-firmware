@@ -6,6 +6,7 @@
     import { Link } from 'svelte-navigator';
     import Clock from './Clock.svelte';
     import Mask from './Mask.svelte';
+    import { scanForDevice } from './Helpers.js';
   
     export let data;
     export let sysinfo;
@@ -82,6 +83,54 @@
     let configUploading = false;
 
     getSysinfo();
+
+    let newconfig = {
+        hostname: '',
+        ip: ''
+    };
+
+    function uploadConfigFile(e) {
+        configUploading=true;
+        const formData = new FormData();
+        formData.append('file', configFiles[0]);
+
+        const upload = fetch('/configfile', {
+            method: 'POST',
+            body: formData
+        }).then((response) => response.json()).then((res) => {
+            sysinfoStore.update(s => {
+                console.log('updating sysinfo with: ', newconfig);
+                if(newconfig && newconfig.hostname) s.hostname = newconfig.hostname;
+                s.booting = res.reboot;
+                if(newconfig && newconfig.ip) s.net.ip = newconfig.ip;
+                setTimeout(scanForDevice, 5000, sysinfo);
+                return s;
+            });
+        }).catch((error) => {
+            console.error('Error:', error);
+            setTimeout(scanForDevice, 5000, sysinfo);
+        });
+    };
+
+    $: {
+        if(configFiles.length == 1) {
+            let file = configFiles[0];
+            let reader = new FileReader();
+            let parseConfigFile = ( e ) => {
+                let lines = e.target.result.split('\n');
+                for(let i in lines) {
+                    let line = lines[i];
+                    if(line.startsWith('hostname ')) {
+                        newconfig.hostname = line.split(' ')[1];
+                    } else if(line.startsWith('ip ')) {
+                        newconfig.ip = line.split(' ')[1];
+                    }
+                }
+            };
+            reader.onload = parseConfigFile;
+            reader.readAsText(file);
+        }
+    }
 </script>
 
 <div class="grid xl:grid-cols-5 lg:grid-cols-3 md:grid-cols-2">
@@ -209,7 +258,7 @@
             <button type="submit" class="btn-pri-sm float-right">Download</button>
             {/if}
         </form>
-        <form action="/configfile" enctype="multipart/form-data" method="post" on:submit={() => configUploading=true} autocomplete="off">
+        <form on:submit|preventDefault={uploadConfigFile} autocomplete="off">
             <input style="display:none" name="file" type="file" accept=".cfg" bind:this={configFileInput} bind:files={configFiles}>
             {#if configFiles.length == 0}
             <button type="button" on:click={()=>{configFileInput.click();}} class="btn-pri-sm">Select file...</button>

@@ -277,7 +277,7 @@ public:
 
 	bool getWebConfig(WebConfig&);
 	bool setWebConfig(WebConfig&);
-	void clearAuth(WebConfig&);
+	void clearWebConfig(WebConfig&);
 
 	bool getMeterConfig(MeterConfig&);
 	bool setMeterConfig(MeterConfig&);

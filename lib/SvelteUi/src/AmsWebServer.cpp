@@ -143,7 +143,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/mqtt-cert"), HTTP_POST, std::bind(&AmsWebServer::mqttCertDelete, this), std::bind(&AmsWebServer::mqttCertUpload, this));
 	server.on(context + F("/mqtt-key"), HTTP_POST, std::bind(&AmsWebServer::mqttKeyDelete, this), std::bind(&AmsWebServer::mqttKeyUpload, this));
 
-	server.on(context + F("/configfile"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::configFileUpload, this));
+	server.on(context + F("/configfile"), HTTP_POST, std::bind(&AmsWebServer::configFilePost, this), std::bind(&AmsWebServer::configFileUpload, this));
 	server.on(context + F("/configfile.cfg"), HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
 
 	/* These trigger captive portal. Only problem is that after you have "signed in", the portal is closed and the user has no idea how to reach the device
@@ -2637,6 +2637,16 @@ void AmsWebServer::configFileDownload() {
 	}
 }
 
+void AmsWebServer::configFilePost() {
+	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+		"true",
+		"",
+		performRestart ? "true" : "false"
+	);
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
+}
+
 void AmsWebServer::configFileUpload() {
 	if(!checkSecurity(1))
 		return;
@@ -2644,8 +2654,28 @@ void AmsWebServer::configFileUpload() {
 	HTTPUpload& upload = uploadFile(FILE_CFG);
     if(upload.status == UPLOAD_FILE_END) {
 		performRestart = true;
-		server.sendHeader(HEADER_LOCATION,F("/"));
-		server.send(303);
+		snprintf_P(buf, BufferSize, RESPONSE_JSON,
+			"true",
+			"",
+			performRestart ? "true" : "false"
+		);
+		server.setContentLength(strlen(buf));
+		server.send(200, MIME_JSON, buf);
+
+		if(performRestart || rebootForUpgrade) {
+			server.handleClient();
+			delay(250);
+
+			if(ds != NULL) {
+				ds->save();
+			}
+			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+			debugger->flush();
+			delay(1000);
+			rdc->cause = 6;
+			performRestart = false;
+			ESP.restart();
+		}
 	}
 }
 

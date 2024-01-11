@@ -11,6 +11,7 @@
     import SubnetOptions from './SubnetOptions.svelte';
     import TrashIcon from './TrashIcon.svelte';
     import QrCode from 'svelte-qrcode';
+    import { scanForDevice } from './Helpers.js';
 
     export let basepath = "/";
     export let sysinfo = {};
@@ -142,6 +143,13 @@
         }
     }
 
+    function updateSysinfo(url) {
+        sysinfoStore.update(s => {
+            s.trying = url;
+            return s;
+        });
+    }
+
     async function handleSubmit(e) {
         saving = true;
 		const formData = new FormData(e.target);
@@ -156,6 +164,20 @@
             body: data
         });
         let res = (await response.json())
+
+        sysinfoStore.update(s => {
+            s.hostname = formData.get('gh');
+            s.usrcfg = res.success;
+            s.booting = res.reboot;
+            if(formData.get('nm') == 'static') {
+                s.net.ip = formData.get('ni');
+                s.net.mask = formData.get('nu');
+                s.net.gw = formData.get('ng');
+                s.net.dns1 = formData.get('nd');
+            }
+            setTimeout(scanForDevice, 5000, sysinfo, updateSysinfo);
+            return s;
+        });
 
         sysinfoStore.update(s => {
             s.booting = res.reboot;

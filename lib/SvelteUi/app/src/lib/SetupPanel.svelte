@@ -2,6 +2,7 @@
     import { sysinfoStore } from './DataStores.js';
     import Mask from './Mask.svelte'
     import SubnetOptions from './SubnetOptions.svelte';
+    import { scanForDevice } from './Helpers.js';
 
     export let sysinfo = {}
 
@@ -9,45 +10,12 @@
     let connectionMode = 1;
     let loadingOrSaving = false;
 
-    let tries = 0; 
-    function scanForDevice() {
-        var url = "";
-        tries++;
-
-        var retry = function() {
-            setTimeout(scanForDevice, 1000);
-        };
-
-        if(sysinfo.net.ip && tries%3 == 0) {
-            if(!sysinfo.net.ip) {
-                retry();
-                return;
-            };
-            url = "http://" + sysinfo.net.ip;
-        } else if(sysinfo.hostname && tries%3 == 1) {
-            url = "http://" + sysinfo.hostname;
-        } else if(sysinfo.hostname && tries%3 == 2) {
-            url = "http://" + sysinfo.hostname + ".local";
-        } else {
-            url = "";
-        }
-        if(console) console.log("Trying url " + url);
+    function updateSysinfo(url) {
         sysinfoStore.update(s => {
             s.trying = url;
             return s;
         });
-        
-        var xhr = new XMLHttpRequest();
-        xhr.timeout = 5000;
-        xhr.addEventListener('abort', retry);
-        xhr.addEventListener('error', retry);
-        xhr.addEventListener('timeout', retry);
-        xhr.addEventListener('load', function(e) {
-            window.location.href = url ? url : "/";
-        });
-        xhr.open("GET", url + "/is-alive", true);
-        xhr.send();
-    };
+    }
 
     async function handleSubmit(e) {
         loadingOrSaving = true;
@@ -75,7 +43,7 @@
                 s.net.gw = formData.get('sg');
                 s.net.dns1 = formData.get('sd');
             }
-            setTimeout(scanForDevice, 5000);
+            if(res.reboot) setTimeout(scanForDevice, 5000, sysinfo, updateSysinfo);
             return s;
         });
     }

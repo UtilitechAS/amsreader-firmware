@@ -140,6 +140,7 @@ private:
 
 	void configFileDownload();
 	void configFileUpload();
+	void configFilePost();
 	void factoryResetPost();
 
 	void notFound();

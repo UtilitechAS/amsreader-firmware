@@ -368,30 +368,37 @@
                 Communication<br/>
                 <select name="ma" bind:value={configuration.m.a} class="in-s">
                     <option value={0}>Passive (Push)</option>
-                    <option value={9}>Kamstrup (Pull)</option>
+                    <option value={2}>Pulse</option>
                 </select>
             </div>
-            <div class="my-1">
-                <span class="float-right">Buffer size</span>
-                <span>Serial conf.</span>
-                <label class="mt-2 ml-3 whitespace-nowrap"><input name="mi" value="true" bind:checked={configuration.m.i} type="checkbox" class="rounded mb-1"/> inverted</label>
-                <div class="flex w-full">
-                    <select name="mb" bind:value={configuration.m.b} class="in-f tr w-1/2">
-                        <option value={0} disabled={configuration.m.b != 0}>Autodetect</option>
-                        {#each [24,48,96,192,384,576,1152] as b}
-                        <option value={b*100}>{b*100}</option>
-                        {/each}
-                    </select>
-                    <select name="mp" bind:value={configuration.m.p} class="in-m" disabled={configuration.m.b == 0}>
-                        <option value={0} disabled={configuration.m.b != 0}>-</option>
-                        <option value={2}>7N1</option>
-                        <option value={3}>8N1</option>
-                        <option value={10}>7E1</option>
-                        <option value={11}>8E1</option>
-                    </select>
-                    <input name="ms" type="number" bind:value={configuration.m.s} min={64} max={sysinfo.chip == 'esp8266' ? configuration.i.h.p == 3 || configuration.i.h.p == 113 ? 512 : 128 : 4096} step={64} class="in-l tr w-1/2">
+            {#if configuration.m.a === 2}
+                <div class="my-1">
+                    <span>Pulses per kWh</span>
+                    <input name="mb" bind:value={configuration.m.b} class="in-s tr" type="number" min={1} max={3600}/>
                 </div>
-            </div>
+            {:else}
+                <div class="my-1">
+                    <span class="float-right">Buffer size</span>
+                    <span>Serial conf.</span>
+                    <label class="mt-2 ml-3 whitespace-nowrap"><input name="mi" value="true" bind:checked={configuration.m.i} type="checkbox" class="rounded mb-1"/> inverted</label>
+                    <div class="flex w-full">
+                        <select name="mb" bind:value={configuration.m.b} class="in-f tr w-1/2">
+                            <option value={0} disabled={configuration.m.b != 0}>Autodetect</option>
+                            {#each [24,48,96,192,384,576,1152] as b}
+                            <option value={b*100}>{b*100}</option>
+                            {/each}
+                        </select>
+                        <select name="mp" bind:value={configuration.m.p} class="in-m" disabled={configuration.m.b == 0}>
+                            <option value={0} disabled={configuration.m.b != 0}>-</option>
+                            <option value={2}>7N1</option>
+                            <option value={3}>8N1</option>
+                            <option value={10}>7E1</option>
+                            <option value={11}>8E1</option>
+                        </select>
+                        <input name="ms" type="number" bind:value={configuration.m.s} min={64} max={sysinfo.chip == 'esp8266' ? configuration.i.h.p == 3 || configuration.i.h.p == 113 ? 512 : 128 : 4096} step={64} class="in-l tr w-1/2">
+                    </div>
+                </div>
+            {/if}
             <div class="my-1">
                 Voltage<br/>
                 <select name="md" bind:value={configuration.m.d} class="in-s">

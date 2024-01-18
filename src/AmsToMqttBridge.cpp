@@ -30,11 +30,12 @@ ADC_MODE(ADC_VCC);
 #define WDT_TIMEOUT 60
 
 #define METER_SOURCE_NONE 0
-#define METER_SOURCE_SERIAL 1
+#define METER_SOURCE_GPIO 1
 #define METER_SOURCE_MQTT 2
 #define METER_SOURCE_ESPNOW 3
 
 #define METER_PARSER_PASSIVE 0
+#define METER_PARSER_PULSE 2
 #define METER_PARSER_KAMSTRUP 9
 
 #define METER_ERROR_NO_DATA 90
@@ -79,6 +80,7 @@ ADC_MODE(ADC_VCC);
 #include "MeterCommunicator.h"
 #include "PassiveMeterCommunicator.h"
 #include "KamstrupPullCommunicator.h"
+#include "PulseMeterCommunicator.h"
 
 #include "Uptime.h"
 
@@ -172,6 +174,7 @@ RealtimePlot rtp;
 MeterCommunicator* mc = NULL;
 PassiveMeterCommunicator* passiveMc = NULL;
 KamstrupPullCommunicator* kamstrupMc = NULL;
+PulseMeterCommunicator* pulseMc = NULL;
 
 bool networkConnected = false;
 bool setupMode = false;
@@ -192,6 +195,9 @@ void handleEnergyAccountingChanged();
 bool handleVoltageCheck();
 bool readHanPort();
 void errorBlink();
+
+uint8_t pulses = 0;
+void onPulse();
 
 #if defined(ESP32)
 uint8_t dnsState = 0;
@@ -682,9 +688,13 @@ void loop() {
 
 	if(config.isMeterChanged()) {
 		config.getMeterConfig(meterConfig);
-		if(meterConfig.source = METER_SOURCE_SERIAL) {
+		if(meterConfig.source = METER_SOURCE_GPIO) {
 			switch(meterConfig.parser) {
 				case METER_PARSER_PASSIVE:
+					if(pulseMc != NULL) {
+						delete pulseMc;
+						pulseMc = NULL;
+					}
 					if(kamstrupMc != NULL) {
 						delete(kamstrupMc);
 						kamstrupMc = NULL;
@@ -697,6 +707,10 @@ void loop() {
 					mc = passiveMc;
 					break;
 				case METER_PARSER_KAMSTRUP:
+					if(pulseMc != NULL) {
+						delete pulseMc;
+						pulseMc = NULL;
+					}
 					if(passiveMc != NULL) {
 						delete(passiveMc);
 						passiveMc = NULL;
@@ -707,6 +721,23 @@ void loop() {
 					kamstrupMc->configure(meterConfig, tz);
 					hwSerial = kamstrupMc->getHwSerial();
 					mc = kamstrupMc;
+					break;
+				case METER_PARSER_PULSE:
+					if(kamstrupMc != NULL) {
+						delete(kamstrupMc);
+						kamstrupMc = NULL;
+					}
+					if(passiveMc != NULL) {
+						delete(passiveMc);
+						passiveMc = NULL;
+					}
+					if(pulseMc == NULL) {
+						pulseMc = new PulseMeterCommunicator(&Debug);
+					}
+					pulseMc->configure(meterConfig, tz);
+					attachInterrupt(digitalPinToInterrupt(meterConfig.rxPin), onPulse, meterConfig.rxPinPullup ? RISING : FALLING);
+
+					mc = pulseMc;
 					break;
 				default:
 					debugE_P(PSTR("Unknown meter parser selected: %d"), meterConfig.parser);
@@ -1092,6 +1123,10 @@ void toggleSetupMode() {
 
 bool readHanPort() {
 	if(mc == NULL) return false;
+	if(pulseMc != NULL) {
+		pulseMc->onPulse(pulses);
+		pulses = 0;
+	}
 	if(!mc->loop()) {
 		meterState.setLastError(mc->getLastError());
 		return false;
@@ -1817,4 +1852,8 @@ void configFileParse() {
 	if(sEa) ea.save();
 	config.save();
 	LittleFS.end();
+}
+
+void IRAM_ATTR onPulse() {
+	pulses++;
 }

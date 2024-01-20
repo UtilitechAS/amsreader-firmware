@@ -414,7 +414,7 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
             ESP.wdtFeed();
         #endif
 
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Fetching prices for %d.%d.%d\n"), tm.Day, tm.Month, tm.Year+1970);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Fetching prices for %02d.%02d.%04d\n"), tm.Day, tm.Month, tm.Year+1970);
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
         EntsoeA44Parser a44;
         if(retrieve(buf, &a44) && a44.getPoint(0) != PRICE_NO_VALUE) {

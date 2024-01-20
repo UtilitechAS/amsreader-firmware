@@ -1,6 +1,8 @@
 <script>
     import { dataStore, realtimeStore } from './DataStores.js';
 
+    export let title;
+
     let dark = document.documentElement.classList.contains('dark');
 
     let realtime;
@@ -101,7 +103,7 @@
 </script>
 
 <div class="chart" bind:clientWidth={width} bind:clientHeight={height}>
-    <strong class="text-sm">Realtime ({unit})</strong>
+    <strong class="text-sm">{title} ({unit})</strong>
     {#if yTicks}
         <svg viewBox="0 0 {widthAvailable} {heightAvailable}"  height="100%">
 

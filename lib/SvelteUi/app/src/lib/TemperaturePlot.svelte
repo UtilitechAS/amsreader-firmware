@@ -1,6 +1,7 @@
 <script>
     import BarChart from './BarChart.svelte';
 
+    export let title;
     export let json;
 
     let dark = document.documentElement.classList.contains('dark');
@@ -47,7 +48,7 @@
         }
 
         config = {
-            title: "Temperature sensors (°C)",
+            title: title + " (°C)",
             height: 226,
             width: 1520,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },

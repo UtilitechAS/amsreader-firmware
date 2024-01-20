@@ -126,6 +126,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/tariff.json"), HTTP_GET, std::bind(&AmsWebServer::tariffJson, this));
 	server.on(context + F("/realtime.json"), HTTP_GET, std::bind(&AmsWebServer::realtimeJson, this));
 	server.on(context + F("/priceconfig.json"), HTTP_GET, std::bind(&AmsWebServer::priceConfigJson, this));
+	server.on(context + F("/translations.json"), HTTP_GET, std::bind(&AmsWebServer::translationsJson, this));
 
 	server.on(context + F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 	server.on(context + F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
@@ -392,6 +393,7 @@ void AmsWebServer::sysinfoJson() {
 		ui.showPerPhasePower,
 		ui.showPowerFactor,
 		ui.darkMode,
+		ui.language,
 		webConfig.security,
 		webConfig.context,
 		#if defined(ESP32)
@@ -947,7 +949,6 @@ void AmsWebServer::configurationJson() {
 		qsc = LittleFS.exists(FILE_MQTT_CA);
 		qsr = LittleFS.exists(FILE_MQTT_CERT);
 		qsk = LittleFS.exists(FILE_MQTT_KEY);
-		LittleFS.end();
 	}
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -1089,7 +1090,8 @@ void AmsWebServer::configurationJson() {
 		ui.showRealtimePlot,
 		ui.showPerPhasePower,
 		ui.showPowerFactor,
-		ui.darkMode
+		ui.darkMode,
+		ui.language
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_DOMOTICZ_JSON,
@@ -1171,6 +1173,41 @@ void AmsWebServer::priceConfigJson() {
 	}
 	snprintf_P(buf, BufferSize, PSTR("]}"));
 	server.sendContent(buf);
+}
+
+void AmsWebServer::translationsJson() {
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /translations.json over http...\n"));
+
+	if(!LittleFS.begin()) {
+		server.send_P(500, MIME_PLAIN, PSTR("500: Filesystem unavailable"));
+		return;
+	}
+
+	String lang = server.arg("lang");
+	if(lang.isEmpty()) {
+		UiConfig ui;
+		if(config->getUiConfig(ui)) {
+			lang = String(ui.language);
+		}
+	}
+
+	snprintf_P(buf, BufferSize, PSTR("/translations-%s.json"), lang.c_str());
+	if(!LittleFS.exists(buf)) {
+		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Language file %s was not found\n"), buf);
+		notFound();
+		return;
+	}
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
+	File file = LittleFS.open(buf);
+	server.setContentLength(file.size());
+
+	server.send(200, MIME_JSON);
+	while(file.available() > 0) {
+		int len = file.readBytes(buf, BufferSize);
+		server.sendContent(buf, len);
+	}
+	file.close();
 }
 
 void AmsWebServer::handleSave() {
@@ -1680,6 +1717,7 @@ void AmsWebServer::handleSave() {
 		ui.showPerPhasePower = server.arg(F("uh")).toInt();
 		ui.showPowerFactor = server.arg(F("uf")).toInt();
 		ui.darkMode = server.arg(F("uk")).toInt();
+		strcpy(ui.language, server.arg(F("ulang")).c_str());
 		config->setUiConfig(ui);
 	}
 
@@ -1997,7 +2035,7 @@ void AmsWebServer::firmwareUpload() {
 
 HTTPUpload& AmsWebServer::uploadFile(const char* path) {
     HTTPUpload& upload = server.upload();
-    if(upload.status == UPLOAD_FILE_START){
+    if(upload.status == UPLOAD_FILE_START) {
 		if(uploading) {
 			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Upload already in progress\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Upload already in progress!</h1></body></html>"));
@@ -2012,7 +2050,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 			if(LittleFS.exists(path)) {
 				LittleFS.remove(path);
 			}
-		    file = LittleFS.open(path, "w");
+		    file = LittleFS.open(path, FILE_WRITE);
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf_P(PSTR("handleFileUpload Open file and write: %u\n"), upload.currentSize);
 			}
@@ -2029,7 +2067,6 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 				file.flush();
 				file.close();
 				LittleFS.remove(path);
-				LittleFS.end();
 
 				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("An Error has occurred while writing file\n"));
 				snprintf_P(buf, BufferSize, RESPONSE_JSON,
@@ -2048,7 +2085,6 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
         if(file) {
 			file.flush();
             file.close();
-			LittleFS.end();
         } else {
 			debugger->printf_P(PSTR("File was not valid in the end... Write error: %d, \n"), file.getWriteError());
 			snprintf_P(buf, BufferSize, RESPONSE_JSON,
@@ -2209,7 +2245,6 @@ void AmsWebServer::mqttKeyDelete() {
 void AmsWebServer::deleteFile(const char* path) {
 	if(LittleFS.begin()) {
 		LittleFS.remove(path);
-		LittleFS.end();
 	}
 }
 

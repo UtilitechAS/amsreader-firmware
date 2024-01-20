@@ -1,7 +1,15 @@
 <script>
-    import { monthnames, zeropad } from './Helpers.js';
+    import { zeropad } from './Helpers.js';
     import BarChart from './BarChart.svelte';
     import { tariffStore, getTariff } from './DataStores';
+    import { translationsStore } from './TranslationService.js';
+  
+    let translations = {};
+    translationsStore.subscribe(update => {
+      translations = update;
+    });
+
+    export let title;
 
     let dark = document.documentElement.classList.contains('dark');
 
@@ -35,7 +43,7 @@
                     color: dark ? '#5c2da5' : '#7c3aed'
                 });
                 xTicks.push({
-                    label: peak.d > 0 ? zeropad(peak.d) + "." + monthnames[new Date().getMonth()] : "-"
+                    label: peak.d > 0 ? zeropad(peak.d) + "." + translations.months?.[new Date().getMonth()] : "-"
                 })
                 max = Math.max(max, peak.v);
             }
@@ -71,7 +79,7 @@
         max = Math.ceil(max);
 
         config = {
-            title: "Tariff peaks",
+            title: title,
             padding: { top: 20, right: 35, bottom: 20, left: 35 },
             y: {
                 min: min,

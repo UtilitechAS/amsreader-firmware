@@ -29,7 +29,7 @@
 #define CONFIG_DOMOTICZ_START 1536
 #define CONFIG_HA_START 1552
 #define CONFIG_UI_START 1720
-#define CONFIG_CLOUD_START 1736
+#define CONFIG_CLOUD_START 1742
 
 #define CONFIG_METER_START_103 32
 #define CONFIG_UPGRADE_INFO_START_103 216
@@ -57,7 +57,7 @@ struct SystemConfig {
 	uint8_t dataCollectionConsent; // 0 = unknown, 1 = accepted, 2 = declined
 	char country[3];
 	uint8_t energyspeedometer;
-}; // 8
+}; // 9
 
 struct NetworkConfig {
 	char ssid[32];
@@ -226,7 +226,8 @@ struct UiConfig {
 	uint8_t showPerPhasePower;
 	uint8_t showPowerFactor;
 	uint8_t darkMode;
-}; // 12
+	char language[3];
+}; // 15
 
 struct TempSensorConfig {
 	uint8_t address[8];
@@ -247,7 +248,7 @@ struct CloudConfig {
 	char hostname[64];
 	uint16_t port;
 	uint8_t clientId[16];
-};
+}; // 69
 
 class AmsConfiguration {
 public:
@@ -327,6 +328,9 @@ public:
 	bool getUiConfig(UiConfig&);
 	bool setUiConfig(UiConfig&);
 	void clearUiConfig(UiConfig&);
+	void setUiLanguageChanged();
+	bool isUiLanguageChanged();
+	void ackUiLanguageChange();
 
 	bool getUpgradeInformation(UpgradeInformation&);
 	bool setUpgradeInformation(int16_t exitCode, int16_t errorCode, const char* currentVersion, const char* nextVersion);
@@ -345,11 +349,11 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool sysChanged = false, networkChanged, mqttChanged, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true;
+	bool sysChanged = false, networkChanged, mqttChanged, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false;
 
 	bool relocateConfig101(); // 2.2.0 through 2.2.8
 	bool relocateConfig102(); // 2.2.9 through 2.2.11
-	bool relocateConfig103(); // 2.2.12 onward
+	bool relocateConfig103(); // 2.2.12, until, but not including 2.3
 
 	void saveToFs();
 	bool loadFromFs(uint8_t version);

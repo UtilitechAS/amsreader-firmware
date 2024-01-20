@@ -71,9 +71,9 @@ bool AmsDataStorage::update(AmsData* data) {
         day.activeImport = importCounter;
         day.activeExport = exportCounter;
         day.lastMeterReadTime = now;
-    } else if(day.activeImport == 0 || now - day.lastMeterReadTime > 86400) {
+    } else if((importCounter > 0 && day.activeImport == 0) || now - day.lastMeterReadTime > 86400) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) {
-            debugger->printf_P(PSTR("(AmsDataStorage) %lu == 0 || %lu - %lu > 86400"), day.activeImport, now, day.lastMeterReadTime);
+            debugger->printf_P(PSTR("(AmsDataStorage) %lu == 0 || %lu - %lu > 86400\n"), day.activeImport, now, day.lastMeterReadTime);
         }
         day.activeImport = importCounter;
         day.activeExport = exportCounter;
@@ -119,9 +119,9 @@ bool AmsDataStorage::update(AmsData* data) {
         month.activeImport = importCounter;
         month.activeExport = exportCounter;
         month.lastMeterReadTime = now;
-    } else if(month.activeImport == 0 || now - month.lastMeterReadTime > 2682000) {
+    } else if((importCounter > 0 && month.activeImport == 0) || now - month.lastMeterReadTime > 2682000) {
         if(debugger->isActive(RemoteDebug::VERBOSE)) {
-            debugger->printf_P(PSTR("(AmsDataStorage) %lu == 0 || %lu - %lu > 2682000"), month.activeImport, now, month.lastMeterReadTime);
+            debugger->printf_P(PSTR("(AmsDataStorage) %lu == 0 || %lu - %lu > 2682000\n"), month.activeImport, now, month.lastMeterReadTime);
         }
         month.activeImport = importCounter;
         month.activeExport = exportCounter;

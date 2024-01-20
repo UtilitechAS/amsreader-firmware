@@ -65,8 +65,10 @@ void CloudConnector::setMqttHandler(AmsMqttHandler* mqttHandler) {
 
 bool CloudConnector::init() {
     if(config.enabled) {
-        if(config.port == 0) config.port = 7443;
-        if(strlen(config.hostname) == 0) strcpy(config.hostname, "cloud.amsleser.no");
+        //if(config.port == 0) 
+        config.port = 7443;
+        //if(strlen(config.hostname) == 0) 
+        strcpy(config.hostname, "cloud.amsleser.no");
 
         snprintf_P(clearBuffer, CC_BUF_SIZE, PSTR("http://%s/hub/cloud/public.key"), config.hostname);
         if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(CloudConnector) Downloading public key from %s\n", clearBuffer);

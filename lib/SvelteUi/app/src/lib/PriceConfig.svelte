@@ -1,12 +1,18 @@
 <script>
     import { priceConfigStore, getPriceConfig } from './ConfigurationStore'
-    import { monthnames, wiki, zeropad } from './Helpers.js';
+    import { translationsStore } from './TranslationService';
+    import { wiki } from './Helpers.js';
     import Mask from './Mask.svelte'
     import HelpIcon from './HelpIcon.svelte';
     import TrashIcon from './TrashIcon.svelte';
     import {  navigate } from 'svelte-navigator';
 
     export let basepath = "/";
+
+    let translations = {};
+    translationsStore.subscribe(update => {
+      translations = update;
+    });
 
     let days = ['mo','tu','we','th','fr','sa','su'];
 
@@ -85,7 +91,7 @@
     };
 </script>
 <div class="cnt">
-    <strong class="text-sm">Price configuration</strong>
+    <strong class="text-sm">{translations.conf?.price?.title ?? "Price configuration"}</strong>
     <a href="{wiki('Price-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
     <hr class="m-3"/>
     <form on:submit|preventDefault={handleSubmit} autocomplete="off">
@@ -98,19 +104,19 @@
                     </div>
                     <div class="flex mr-3">
                         <select name="rd" class="in-f" bind:value={c.d}>
-                            <option value={1}>Import</option>
-                            <option value={2}>Export</option>
-                            <option value={3}>Both</option>
+                            <option value={1}>{translations.conf?.common?.import ?? "Import"}</option>
+                            <option value={2}>{translations.conf?.common?.export ?? "Export"}</option>
+                            <option value={3}>{translations.conf?.price?.both ?? "Both"}</option>
                         </select>
                         <select name="rt" class="in-m" bind:value={c.t}>
-                            <option value={0}>Fixed</option>
+                            <option value={0}>{translations.conf?.price?.fixed ?? "Fixed"}</option>
                             <option value={1}>+</option>
                             <option value={2}>%</option>
                         </select>
                         <input name="rv" type="number" class="in-l tr" style="width: 100px;" min="0.0001" max="99.9999" step="0.0001" bind:value={c.v}/>
                     </div>
                     <div class="flex flex-wrap mr-3">
-                        <span class="mr-2">Days:</span>
+                        <span class="mr-2">{translations.common?.days ?? "Days"}:</span>
                         <div>
                             {#each {length: 7} as _,i}
                                 <span class={c.a.includes(i) ? 'bd-on' : 'bd-off'} on:click={() => c.a = toggleDay(c.a, i)}>{days[i]}</span>
@@ -118,7 +124,7 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap mr-3">
-                        <span class="mr-2">Hours:</span>
+                        <span class="mr-2">{translations.common?.hours ?? "Hours"}:</span>
                         <div>
                             <div>
                                 {#each {length: 8} as _,i}
@@ -147,7 +153,7 @@
                         <select name="rsd" class="in-m" bind:value={c.s.d}>
                             <option value={0}>-</option>
                             {#each {length: 12} as _,i}
-                                <option value={i+1}>{monthnames[i]}</option>
+                                <option value={i+1}>{translations.months?.[i]}</option>
                             {/each}
                         </select>
                         <input class="in-m" disabled value="to" style="width: 20px;color:#888;"/>
@@ -160,7 +166,7 @@
                         <select name="red" class="in-l" bind:value={c.e.d}>
                             <option value={0}>-</option>
                             {#each {length: 12} as _,i}
-                                <option value={i+1}>{monthnames[i]}</option>
+                                <option value={i+1}>{translations.months?.[i]}</option>
                             {/each}
                         </select>
                     </div>
@@ -174,16 +180,16 @@
         {/if}
         <div class="grid grid-cols-3">
             <div>
-                <button type="button" on:click={addRow} class="btn-pri">Add</button>
+                <button type="button" on:click={addRow} class="btn-pri">{translations.conf?.price?.btn_add ?? "Add"}</button>
             </div>
             <div class="text-center">
             </div>
             <div class="text-right">
-                <button type="submit" class="btn-pri">Save</button>
+                <button type="submit" class="btn-pri">{translations.btn?.save ?? "Save"}</button>
             </div>
         </div>
     </form>
 </div>
 
-<Mask active={loading} message="Loading configuration"/>
-<Mask active={saving} message="Saving configuration"/>
+<Mask active={loading} message={translations.conf?.price?.mask_loading ?? "Loading"}/>
+<Mask active={saving} message={translations.conf?.price?.mask_loading ?? "Saving"}/>

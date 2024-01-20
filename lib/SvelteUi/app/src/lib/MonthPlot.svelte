@@ -2,6 +2,7 @@
     import { zeropad, addHours, exportcol } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
+    export let title;
     export let json;
     export let sysinfo;
 
@@ -96,7 +97,7 @@
         }
 
         config = {
-            title: "Energy use last " + lm.getDate() + " days (kWh)",
+            title: title.replace('{0}', lm.getDate().toFixed(0)) + " (kWh)",
             height: 226,
             width: 1520,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },

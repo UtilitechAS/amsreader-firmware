@@ -703,6 +703,12 @@ bool AmsConfiguration::getUiConfig(UiConfig& config) {
 }
 
 bool AmsConfiguration::setUiConfig(UiConfig& config) {
+	UiConfig existing;
+	if(getUiConfig(existing)) {
+		uiLanguageChanged |= strcmp(config.language, existing.language) != 0;
+	} else {
+		uiLanguageChanged = true;
+	}
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_UI_START, config);
 	bool ret = EEPROM.commit();
@@ -727,6 +733,15 @@ void AmsConfiguration::clearUiConfig(UiConfig& config) {
 	config.showPerPhasePower = 2;
 	config.showPowerFactor = 2;
 	config.darkMode = 2;
+	strcpy(config.language, "");
+}
+
+bool AmsConfiguration::isUiLanguageChanged() {
+	return uiLanguageChanged;
+}
+
+void AmsConfiguration::ackUiLanguageChange() {
+	uiLanguageChanged = false;
 }
 
 bool AmsConfiguration::setUpgradeInformation(int16_t exitCode, int16_t errorCode, const char* currentVersion, const char* nextVersion) {
@@ -815,6 +830,10 @@ bool AmsConfiguration::isCloudChanged() {
 
 void AmsConfiguration::ackCloudConfig() {
 	cloudChanged = false;
+}
+
+void AmsConfiguration::setUiLanguageChanged() {
+	uiLanguageChanged = true;
 }
 
 void AmsConfiguration::clear() {
@@ -1040,6 +1059,8 @@ bool AmsConfiguration::relocateConfig103() {
 	strcpy(web.password, web103.password);
 	strcpy(web.context, "");
 
+	strcpy(ui.language, "en");
+
 	EEPROM.put(CONFIG_UPGRADE_INFO_START, upinfo);
 	EEPROM.put(CONFIG_NETWORK_START, wifi);
 	EEPROM.put(CONFIG_METER_START, meter);
@@ -1248,6 +1269,12 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->println(F(""));
 		delay(10);
 		debugger->flush();
+	}
+
+	UiConfig ui;
+	if(getUiConfig(ui)) {
+		debugger->println(F("--UI configuration--"));
+		debugger->printf_P(PSTR("Language:             %s\r\n"), ui.language);
 	}
 
 	debugger->println(F("-----------------------------------------------"));

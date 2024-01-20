@@ -2,6 +2,7 @@
     import { zeropad, addHours, getPriceSourceName, getPriceSourceUrl } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
+    export let title;
     export let json;
     export let sysinfo;
 
@@ -113,7 +114,7 @@
         }
 
         config = {
-            title: "Future energy price (" + currency + ")",
+            title: title + " (" + currency + ")",
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
             y: {
                 min: min,

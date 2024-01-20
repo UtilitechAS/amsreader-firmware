@@ -1,6 +1,7 @@
 <script>
     import { pricesStore, dayPlotStore, monthPlotStore, temperaturesStore } from './DataStores.js';
     import { ampcol, exportcol, metertype, uiVisibility } from './Helpers.js';
+    import { translationsStore } from './TranslationService.js';
     import PowerGauge from './PowerGauge.svelte';
     import VoltPlot from './VoltPlot.svelte';
     import ReactiveData from './ReactiveData.svelte';
@@ -31,6 +32,11 @@
     temperaturesStore.subscribe(update => {
         temperatures = update;
     });
+
+    let translations = {};
+    translationsStore.subscribe(update => {
+      translations = update;
+    });
 </script>
 
 <div class="grid 2xl:grid-cols-6 xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2">
@@ -38,7 +44,7 @@
         <div class="cnt">
             <div class="grid grid-cols-2">
                 <div class="col-span-2">
-                    <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label="Import" sub={data.p} subunit={data.pc} colorFn={ampcol}/>
+                    <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label={translations.common?.import ?? "Import"} sub={data.p} subunit={data.pc} colorFn={ampcol}/>
                 </div>
                 <div>{data.mt ? metertype(data.mt) : '-'}</div>
                 <div class="text-right">{data.ic ? data.ic.toFixed(1) : '-'} kWh</div>
@@ -49,7 +55,7 @@
         <div class="cnt">
             <div class="grid grid-cols-2">
                 <div class="col-span-2">
-                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om * 1000 : 10000} unit="W" label="Export" colorFn={exportcol}/>
+                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om * 1000 : 10000} unit="W" label={translations.common?.export ?? "Export"} colorFn={exportcol}/>
                 </div>
                 <div></div>
                 <div class="text-right">{data.ec ? data.ec.toFixed(1) : '-'} kWh</div>
@@ -59,14 +65,14 @@
     {#if uiVisibility(sysinfo.ui.v, data.l1 && (data.l1.u > 100 || data.l2.u > 100 || data.l3.u > 100))}
         <div class="cnt">
             {#if data.l1}
-            <VoltPlot u1={data.l1.u} u2={data.l2.u} u3={data.l3.u} ds={data.ds}/>
+            <VoltPlot title={translations.common?.voltage ?? "Voltage"} u1={data.l1.u} u2={data.l2.u} u3={data.l3.u} ds={data.ds}/>
             {/if}
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.a, data.l1 && (data.l1.i > 0.01 || data.l2.i > 0.01 || data.l3.i > 0.01))}
         <div class="cnt">
             {#if data.l1}
-                <PerPhasePlot title="Amperage" unit="A" importColorFn={ampcol} exportColorFn={exportcol}
+                <PerPhasePlot title={translations.common?.amperage ?? "Amperage"} unit="A" importColorFn={ampcol} exportColorFn={exportcol}
                     maxImport={data.mf}
                     maxExport={data.om ? data.om / 230 : 0}
                     l1={data.l1 && data.l1.u > 100} 
@@ -86,7 +92,7 @@
     {#if uiVisibility(sysinfo.ui.h, data.l1 && (data.l1.p > 0.01 || data.l2.p > 0.01 || data.l3.p > 0.01 || data.l1.q > 0.01 || data.l2.q > 0.01 || data.l3.q > 0.01))}
         <div class="cnt">
             {#if data.l1}
-                <PerPhasePlot title="Phase power" unit="W" importColorFn={ampcol} exportColorFn={exportcol}
+                <PerPhasePlot title={translations.dashboard?.phase ?? "Phase power"} unit="W" importColorFn={ampcol} exportColorFn={exportcol}
                     maxImport={(data.mf ? data.mf : 32) * 230}
                     maxExport={data.om}
                     l1={data.l1 && data.l1.u > 100} 
@@ -105,7 +111,7 @@
     {#if uiVisibility(sysinfo.ui.f, data.l1 && (data.l1.f > 0.01 || data.l2.f > 0.01 || data.l3.f > 0.01))}
         <div class="cnt">
             {#if data.l1}
-                <PerPhasePlot title="Power factor" importColorFn={exportcol} exportColorFn={exportcol}
+                <PerPhasePlot title={translations.dashboard?.pf ?? "Power factor"} importColorFn={exportcol} exportColorFn={exportcol}
                     maxImport={1.0}
                     l1={data.l1 && data.l1.u > 100} 
                     l2={data.l2 && data.l2.u > 100} 
@@ -129,32 +135,32 @@
     {/if}
     {#if uiVisibility(sysinfo.ui.t, data.pr && (data.pr.startsWith("10YNO") || data.pr.startsWith('10Y1001A1001A4')))}
         <div class="cnt h-64">
-            <TariffPeakChart />
+            <TariffPeakChart title={translations.dashboard?.tariffpeak ?? "Tariff peaks"}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.l)}
         <div class="cnt gwf">
-            <RealtimePlot/>
+            <RealtimePlot title={translations.dashboard?.realtime ?? "Real time"}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.p, data.pe && !Number.isNaN(data.p))}
         <div class="cnt gwf">
-            <PricePlot json={prices} sysinfo={sysinfo}/>
+            <PricePlot title={translations.dashboard?.price ?? "Future energy price"} json={prices} sysinfo={sysinfo}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.d, dayPlot)}
         <div class="cnt gwf">
-            <DayPlot json={dayPlot} sysinfo={sysinfo}/>
+            <DayPlot title={translations.dashboard?.day ?? "Energy use last 24 hours"} json={dayPlot} sysinfo={sysinfo}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.m, monthPlot)}
         <div class="cnt gwf">
-            <MonthPlot json={monthPlot} sysinfo={sysinfo}/>
+            <MonthPlot title={translations.dashboard?.month ?? "Energy use last {0} days"} json={monthPlot} sysinfo={sysinfo}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.s, data.t && data.t != -127 && temperatures.c > 1)}
         <div class="cnt gwf">
-            <TemperaturePlot json={temperatures} />
+            <TemperaturePlot title={translations.dashboard?.temperature ?? "Temperature sensors"} json={temperatures} />
         </div>
     {/if}
 </div>

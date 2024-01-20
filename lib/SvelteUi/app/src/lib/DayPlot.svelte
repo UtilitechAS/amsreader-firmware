@@ -2,6 +2,7 @@
     import { zeropad, addHours, exportcol } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
+    export let title;
     export let json;
     export let sysinfo;
 
@@ -95,7 +96,7 @@
         }
 
         config = {
-            title: "Energy use last 24 hours (kWh)",
+            title: title,
             height: 226,
             width: 1520,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },

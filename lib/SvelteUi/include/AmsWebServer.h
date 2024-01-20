@@ -118,6 +118,7 @@ private:
 	void tariffJson();
 	void realtimeJson();
 	void priceConfigJson();
+	void translationsJson();
 
 	void configurationJson();
 	void handleSave();

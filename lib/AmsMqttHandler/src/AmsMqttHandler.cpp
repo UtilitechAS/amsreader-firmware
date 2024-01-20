@@ -100,8 +100,6 @@ bool AmsMqttHandler::connect() {
 						file.close();
 					}
 				#endif
-
-				LittleFS.end();
 			} else {
 				if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("CA verification disabled\n"));
 				mqttSecureClient->setInsecure();

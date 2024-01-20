@@ -191,6 +191,7 @@ void handleSystem(unsigned long now);
 void handleButton(unsigned long now);
 void handlePriceService(unsigned long now);
 void handleClear(unsigned long now);
+void handleUiLanguage();
 void handleEnergyAccountingChanged();
 bool handleVoltageCheck();
 bool readHanPort();
@@ -388,7 +389,7 @@ void setup() {
 	WiFi.onEvent(WiFiEvent);
 	debugD_P(PSTR("ESP32 LittleFS"));
 	hasFs = LittleFS.begin(true);
-	debugD_P(PSTR(" size: %d"), LittleFS.totalBytes());
+	debugD_P(PSTR(" size: %d, used: %d"), LittleFS.totalBytes(), LittleFS.usedBytes());
 #else
 	debugD_P(PSTR("ESP8266 LittleFS"));
 	hasFs = LittleFS.begin();
@@ -457,7 +458,6 @@ void setup() {
 			flashed = true;
 		}
 		if(flashed) {
-			LittleFS.end();
 			if(Debug.isActive(RemoteDebug::INFO)) {
 				debugI_P(PSTR("Firmware update complete, restarting"));
 				Debug.flush();
@@ -467,7 +467,6 @@ void setup() {
 			return;
 		}
 	}
-	LittleFS.end();
 	yield();
 
 	if(config.hasConfig()) {
@@ -492,6 +491,17 @@ void setup() {
 	ea.load();
 	ea.setPriceService(ps);
 	ws.setup(&config, &gpioConfig, &meterState, &ds, &ea, &rtp);
+
+	UiConfig ui;
+	if(config.getUiConfig(ui) && strlen(ui.language) > 0) {
+		snprintf_P((char*) commonBuffer, BUF_SIZE_COMMON, PSTR("/translations-%s.json"), ui.language);
+		if(!LittleFS.exists((char*) commonBuffer)) {
+			debugI_P(PSTR("Marking %s for download"), commonBuffer);
+			config.setUiLanguageChanged();
+		}
+	}
+
+	yield();
 
 	#if defined(ESP32)
 		esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -619,34 +629,36 @@ void loop() {
 			if(end - start > 1000) {
 				debugW_P(PSTR("Used %dms to handle web"), millis()-start);
 			}
-		}
-		if(mqttHandler != NULL) {
-			start = millis();
-			mqttHandler->loop();
-			delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
-			end = millis();
-			if(end - start > 1000) {
-				debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
-			}
-		}
 
-		#if defined(ESP32)
-		if(config.isCloudChanged()) {
-			CloudConfig cc;
-			if(config.getCloudConfig(cc) && cc.enabled) {
-				if(cloud == NULL) {
-					cloud = new CloudConnector(&Debug);
-				}
-				if(cloud->setup(cc, meterConfig, &hw)) {
-					config.setCloudConfig(cc);
+			if(mqttHandler != NULL) {
+				start = millis();
+				mqttHandler->loop();
+				delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
+				end = millis();
+				if(end - start > 1000) {
+					debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
 				}
 			}
-			config.ackCloudConfig();
+
+			#if defined(ESP32)
+			if(config.isCloudChanged()) {
+				CloudConfig cc;
+				if(config.getCloudConfig(cc) && cc.enabled) {
+					if(cloud == NULL) {
+						cloud = new CloudConnector(&Debug);
+					}
+					if(cloud->setup(cc, meterConfig, &hw)) {
+						config.setCloudConfig(cc);
+					}
+				}
+				config.ackCloudConfig();
+			}
+			if(cloud != NULL) {
+				cloud->update(meterState, ea);
+			}
+			#endif
+			handleUiLanguage();
 		}
-		if(cloud != NULL) {
-			cloud->update(meterState, ea);
-		}
-		#endif
 		/*
 		if(now - lastVoltageCheck > 500) {
 			handleVoltageCheck();
@@ -797,6 +809,58 @@ void loop() {
 
 	if(end-now > 2000) {
 		debugW_P(PSTR("loop() used %dms"), end-now);
+	}
+}
+
+void handleUiLanguage() {
+	if(config.isUiLanguageChanged()) {
+		debugD_P(PSTR("Language has changed"));
+		if(LittleFS.begin()) {
+			UiConfig ui;
+			config.getUiConfig(ui);
+			if(strlen(ui.language) == 0) {
+				debugD_P(PSTR("No language set"));
+				return;
+			}
+			snprintf_P((char*) commonBuffer, BUF_SIZE_COMMON, PSTR("http://hub.amsleser.no/hub/language/%s.json"),
+				strlen(ui.language) > 0 ? ui.language : "en"
+			);
+			HTTPClient http;
+
+			debugI_P(PSTR("Downloading %s"), commonBuffer);
+			#if defined(ESP8266)
+			WiFiClient client;
+			client.setTimeout(5000);
+			if(http.begin(client, (char*) commonBuffer)) {
+			#elif defined(ESP32)
+			if(http.begin((char*) commonBuffer)) {
+			#endif
+				int status = http.GET();
+
+				#if defined(ESP32)
+					esp_task_wdt_reset();
+				#elif defined(ESP8266)
+					ESP.wdtFeed();
+				#endif
+
+				if(status == HTTP_CODE_OK) {
+					snprintf_P((char*) commonBuffer, BUF_SIZE_COMMON, PSTR("/translations-%s.json"), ui.language);
+					File file = LittleFS.open((char*) commonBuffer, FILE_WRITE);
+					size_t written = http.writeToStream(&file);
+					file.close();
+					if(written > 0) {
+						debugD_P(PSTR("Success (%lu written)"), written);
+					} else {
+						debugW_P(PSTR("Failed to write language '%s' (%d written)"), ui.language, written);
+					}
+				} else {
+					debugW_P(PSTR("Failed to download language '%s'"), ui.language);
+				}
+				http.end();
+			}
+		}
+
+		config.ackUiLanguageChange();
 	}
 }
 
@@ -1212,10 +1276,6 @@ void handleDataSuccess(AmsData* data) {
 	if(ea.update(data)) {
 		debugI_P(PSTR("Saving energy accounting"));
 		ea.save();
-		saveData = true; // Trigger LittleFS.end
-	}
-	if(saveData) {
-		LittleFS.end();
 	}
 }
 

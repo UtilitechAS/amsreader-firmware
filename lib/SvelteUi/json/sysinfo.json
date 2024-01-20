@@ -42,7 +42,8 @@
         "l": %d,
         "h": %d,
         "f": %d,
-        "k": %d
+        "k": %d,
+        "lang": "%s"
     },
     "security": %d,
     "context": "%s",

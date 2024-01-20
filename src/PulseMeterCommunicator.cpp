@@ -46,7 +46,7 @@ void PulseMeterCommunicator::getCurrentConfig(MeterConfig& meterConfig) {
 void PulseMeterCommunicator::setupGpio() {
     if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Setting up Pulse Meter GPIO, rx: %d, tx: %d\n"), meterConfig.rxPin, meterConfig.txPin);
     if(meterConfig.rxPin != NOT_A_PIN) {
-        pinMode(meterConfig.rxPin, meterConfig.rxPinPullup ? INPUT_PULLUP : INPUT_PULLDOWN);
+        pinMode(meterConfig.rxPin, meterConfig.rxPinPullup ? INPUT_PULLUP : INPUT);
     }
     if(meterConfig.txPin != NOT_A_PIN) {
         pinMode(meterConfig.txPin, OUTPUT);

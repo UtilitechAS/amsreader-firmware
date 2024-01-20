@@ -845,7 +845,7 @@ void handleUiLanguage() {
 
 				if(status == HTTP_CODE_OK) {
 					snprintf_P((char*) commonBuffer, BUF_SIZE_COMMON, PSTR("/translations-%s.json"), ui.language);
-					File file = LittleFS.open((char*) commonBuffer, FILE_WRITE);
+					File file = LittleFS.open((char*) commonBuffer, "w");
 					size_t written = http.writeToStream(&file);
 					file.close();
 					if(written > 0) {

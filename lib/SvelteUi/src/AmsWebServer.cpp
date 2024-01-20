@@ -1199,7 +1199,7 @@ void AmsWebServer::translationsJson() {
 	}
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
-	File file = LittleFS.open(buf);
+	File file = LittleFS.open(buf, "r");
 	server.setContentLength(file.size());
 
 	server.send(200, MIME_JSON);
@@ -2050,7 +2050,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 			if(LittleFS.exists(path)) {
 				LittleFS.remove(path);
 			}
-		    file = LittleFS.open(path, FILE_WRITE);
+		    file = LittleFS.open(path, "w");
 			if(debugger->isActive(RemoteDebug::DEBUG)) {
 				debugger->printf_P(PSTR("handleFileUpload Open file and write: %u\n"), upload.currentSize);
 			}

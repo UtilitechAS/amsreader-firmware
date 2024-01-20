@@ -32,8 +32,8 @@ CloudConnector::CloudConnector(RemoteDebug* debugger) {
     esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_STA, mac);
     esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_AP, apmac);
 	#endif
-    sprintf(this->mac, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-    sprintf(this->apmac, "%02X:%02X:%02X:%02X:%02X:%02X", apmac[0], apmac[1], apmac[2], apmac[3], apmac[4], apmac[5]);
+    sprintf_P(this->mac, PSTR("%02X:%02X:%02X:%02X:%02X:%02X"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    sprintf_P(this->apmac, PSTR("%02X:%02X:%02X:%02X:%02X:%02X"), apmac[0], apmac[1], apmac[2], apmac[3], apmac[4], apmac[5]);
 }
 
 bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, HwTools* hw) {
@@ -68,10 +68,10 @@ bool CloudConnector::init() {
         //if(config.port == 0) 
         config.port = 7443;
         //if(strlen(config.hostname) == 0) 
-        strcpy(config.hostname, "cloud.amsleser.no");
+        strcpy_P(config.hostname, PSTR("cloud.amsleser.no"));
 
         snprintf_P(clearBuffer, CC_BUF_SIZE, PSTR("http://%s/hub/cloud/public.key"), config.hostname);
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf("(CloudConnector) Downloading public key from %s\n", clearBuffer);
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(CloudConnector) Downloading public key from %s\n"), clearBuffer);
         #if defined(ESP8266)
         WiFiClient client;
         client.setTimeout(5000);
@@ -94,14 +94,14 @@ bool CloudConnector::init() {
                 memset(clearBuffer, 0, CC_BUF_SIZE);
                 snprintf(clearBuffer, CC_BUF_SIZE, pub.c_str());
 
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("Cloud public key:\n%s\n", clearBuffer);
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Cloud public key:\n%s\n"), clearBuffer);
 
                 mbedtls_pk_context pk;
                 mbedtls_pk_init(&pk);
 
                 int error_code = 0;
                 if((error_code =  mbedtls_pk_parse_public_key(&pk, (unsigned char*) clearBuffer, strlen((const char*) clearBuffer)+1)) == 0){
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("RSA public key OK\n");
+                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("RSA public key OK\n"));
                     rsa = mbedtls_pk_rsa(pk);
                     mbedtls_ctr_drbg_init(&ctr_drbg);
                     mbedtls_entropy_init(&entropy);
@@ -110,7 +110,7 @@ bool CloudConnector::init() {
                                                 &entropy, (const unsigned char *) pers,
                                                 strlen(pers));
                     if(ret != 0) {
-                        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("mbedtls_ctr_drbg_seed return code: %d\n", ret);
+                        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("mbedtls_ctr_drbg_seed return code: %d\n"), ret);
                     }
                     return ret == 0;
                 } else {
@@ -136,7 +136,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     if(now-lastUpdate < config.interval*1000) return;
     lastUpdate = now;
     if(!ESPRandom::isValidV4Uuid(config.clientId)) {
-        if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf("(CloudConnector) Client ID is not valid\n");
+        if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("(CloudConnector) Client ID is not valid\n"));
         return;
     }
     if(data.getListType() < 2) return;
@@ -267,7 +267,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
         pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("}"));
     } else {
         if(!init()) {
-            if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf("Unable to initialize cloud connector\n");
+            if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unable to initialize cloud connector\n"));
             return;
         }
 
@@ -305,9 +305,9 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     if(rsa == nullptr) return;
     int ret = mbedtls_rsa_check_pubkey(rsa);
     if(ret != 0) {
-        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("mbedtls_rsa_pkcs1_encrypt return code: %d\n", ret);
+        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("mbedtls_rsa_pkcs1_encrypt return code: %d\n"), ret);
         mbedtls_strerror(ret, clearBuffer, CC_BUF_SIZE);
-        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("%s\n", clearBuffer);
+        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("%s\n"), clearBuffer);
         return;
     }
     memset(encryptedBuffer, 0, rsa->len);
@@ -322,9 +322,9 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             udp.write(encryptedBuffer, rsa->len);
             delay(1);
         } else {
-            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("mbedtls_rsa_pkcs1_encrypt return code: %d\n", ret);
+            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("mbedtls_rsa_pkcs1_encrypt return code: %d\n"), ret);
             mbedtls_strerror(ret, clearBuffer, CC_BUF_SIZE);
-            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("%s\n", clearBuffer);
+            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("%s\n"), clearBuffer);
         }
     }
     udp.endPacket();

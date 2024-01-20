@@ -20,7 +20,7 @@ bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 		config.userConfigured = false;
 		config.dataCollectionConsent = 0;
 		config.energyspeedometer = 0;
-		strcpy(config.country, "");
+		memset(config.country, 0, 3);
 		return false;
 	}
 }
@@ -103,8 +103,8 @@ bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 }
 
 void AmsConfiguration::clearNetworkConfig(NetworkConfig& config) {
-	strcpy(config.ssid, "");
-	strcpy(config.psk, "");
+	memset(config.ssid, 0, 32);
+	memset(config.psk, 0, 64);
 	clearNetworkConfigIp(config);
 
 	uint16_t chipId;
@@ -122,11 +122,11 @@ void AmsConfiguration::clearNetworkConfig(NetworkConfig& config) {
 }
 
 void AmsConfiguration::clearNetworkConfigIp(NetworkConfig& config) {
-	strcpy(config.ip, "");
-	strcpy(config.gateway, "");
-	strcpy(config.subnet, "");
-	strcpy(config.dns1, "");
-	strcpy(config.dns2, "");
+	memset(config.ip, 0, 16);
+	memset(config.gateway, 0, 16);
+	memset(config.subnet, 0, 16);
+	memset(config.dns1, 0, 16);
+	memset(config.dns2, 0, 16);
 }
 
 bool AmsConfiguration::isNetworkConfigChanged() {
@@ -180,13 +180,14 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 }
 
 void AmsConfiguration::clearMqtt(MqttConfig& config) {
-	strcpy(config.host, "");
+	memset(config.host, 0, 128);
 	config.port = 1883;
-	strcpy(config.clientId, "");
-	strcpy(config.publishTopic, "");
-	strcpy(config.subscribeTopic, "");
-	strcpy(config.username, "");
-	strcpy(config.password, "");
+
+	memset(config.clientId, 0, 32);
+	memset(config.publishTopic, 0, 64);
+	memset(config.subscribeTopic, 0, 64);
+	memset(config.username, 0, 128);
+	memset(config.password, 0, 256);
 	config.payloadFormat = 0;
 	config.ssl = false;
 }
@@ -230,9 +231,9 @@ bool AmsConfiguration::setWebConfig(WebConfig& config) {
 
 void AmsConfiguration::clearWebConfig(WebConfig& config) {
 	config.security = 0;
-	strcpy(config.username, "");
-	strcpy(config.password, "");
-	strcpy(config.context, "");
+	memset(config.username, 0, 37);
+	memset(config.password, 0, 37);
+	memset(config.context, 0, 37);
 }
 
 bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
@@ -412,9 +413,9 @@ bool AmsConfiguration::setHomeAssistantConfig(HomeAssistantConfig& config) {
 }
 
 void AmsConfiguration::clearHomeAssistantConfig(HomeAssistantConfig& config) {
-	strcpy(config.discoveryPrefix, "");
-	strcpy(config.discoveryHostname, "");
-	strcpy(config.discoveryNameTag, "");
+	memset(config.discoveryPrefix, 0, 64);
+	memset(config.discoveryHostname, 0, 64);
+	memset(config.discoveryNameTag, 0, 16);
 }
 
 bool AmsConfiguration::pinUsed(uint8_t pin, GpioConfig& config) {
@@ -570,8 +571,8 @@ void AmsConfiguration::ackNtpChange() {
 void AmsConfiguration::clearNtp(NtpConfig& config) {
 	config.enable = true;
 	config.dhcp = true;
-	strcpy(config.server, "pool.ntp.org");
-	strcpy(config.timezone, "Europe/Oslo");
+	strcpy_P(config.server, PSTR("pool.ntp.org"));
+	strcpy_P(config.timezone, PSTR("Europe/Oslo"));
 }
 
 bool AmsConfiguration::getPriceServiceConfig(PriceServiceConfig& config) {
@@ -612,9 +613,9 @@ bool AmsConfiguration::setPriceServiceConfig(PriceServiceConfig& config) {
 }
 
 void AmsConfiguration::clearPriceServiceConfig(PriceServiceConfig& config) {
-	strcpy(config.entsoeToken, "");
-	strcpy(config.area, "");
-	strcpy(config.currency, "");
+	memset(config.entsoeToken, 0, 37);
+	memset(config.area, 0, 17);
+	memset(config.currency, 0, 4);
 	config.unused1 = 1000;
 	config.enabled = false;
 	config.unused2 = 0;
@@ -733,7 +734,7 @@ void AmsConfiguration::clearUiConfig(UiConfig& config) {
 	config.showPerPhasePower = 2;
 	config.showPowerFactor = 2;
 	config.darkMode = 2;
-	strcpy(config.language, "");
+	memset(config.language, 0, 3);
 }
 
 bool AmsConfiguration::isUiLanguageChanged() {
@@ -818,7 +819,7 @@ bool AmsConfiguration::setCloudConfig(CloudConfig& config) {
 
 void AmsConfiguration::clearCloudConfig(CloudConfig& config) {
 	config.enabled = false;
-	strcpy(config.hostname, "cloud.amsleser.no");
+	strcpy_P(config.hostname, PSTR("cloud.amsleser.no"));
 	config.port = 7443;
 	config.interval = 10;
 	memset(config.clientId, 0, 16);
@@ -844,7 +845,7 @@ void AmsConfiguration::clear() {
 	sys.userConfigured = false;
 	sys.dataCollectionConsent = 0;
 	sys.energyspeedometer = 0;
-	strcpy(sys.country, "");
+	memset(sys.country, 0, 3);
 	EEPROM.put(CONFIG_SYSTEM_START, sys);
 
 	MeterConfig meter;
@@ -1055,11 +1056,11 @@ bool AmsConfiguration::relocateConfig103() {
 	};
 
 	WebConfig web = {web103.security};
-	strcpy(web.username, web103.username);
-	strcpy(web.password, web103.password);
-	strcpy(web.context, "");
+	strcpy_P(web.username, web103.username);
+	strcpy_P(web.password, web103.password);
+	memset(web.context, 0, 37);
 
-	strcpy(ui.language, "en");
+	strcpy_P(ui.language, PSTR("en"));
 
 	EEPROM.put(CONFIG_UPGRADE_INFO_START, upinfo);
 	EEPROM.put(CONFIG_NETWORK_START, wifi);

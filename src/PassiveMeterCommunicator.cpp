@@ -72,7 +72,7 @@ bool PassiveMeterCommunicator::loop() {
 
 	dataAvailable = false;
 	ctx = {0,0,0,0};
-	strcpy_P((char*) ctx.system_title, PSTR(""));
+	memset(ctx.system_title, 0, 8);
     pos = DATA_PARSE_INCOMPLETE;
 	// For each byte received, check if we have a complete frame we can handle
 	start = millis();

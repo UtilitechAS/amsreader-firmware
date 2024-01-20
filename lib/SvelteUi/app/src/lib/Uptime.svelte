@@ -20,18 +20,18 @@
 {#if epoch}
     {translations.header?.uptime ?? "Up"}
     {#if days > 1}
-        {days} {translations.common?.days ?? "days"}
+        {days} {translations.common?.days ?? "d"}
     {:else if days > 0}
-        {days} {translations.common?.day ?? "day"}
+        {days} {translations.common?.day ?? "d"}
     {:else if hours > 1}
-        {hours} {translations.common?.hours ?? "hours"}
+        {hours} {translations.common?.hours ?? "h"}
     {:else if hours > 0}
-        {hours} {translations.common?.hour ?? "hour"}
+        {hours} {translations.common?.hour ?? "h"}
     {:else if minutes > 1}
-        {minutes} {translations.common?.minutes ?? "minutes"}
+        {minutes} {translations.common?.minutes ?? "m"}
     {:else if minutes > 0}
-        {minutes} {translations.common?.minute ?? "minute"}
+        {minutes} {translations.common?.minute ?? "m"}
     {:else}
-        {epoch} {translations.common?.seconds ?? "seconds"}
+        {epoch} {translations.common?.seconds ?? "s"}
     {/if}
 {/if}

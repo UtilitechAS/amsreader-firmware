@@ -1611,8 +1611,8 @@ void AmsWebServer::handleSave() {
 			}
 			debugger->setPassword(webConfig.password);
 		} else {
-			strcpy_P(webConfig.username, PSTR(""));
-			strcpy_P(webConfig.password, PSTR(""));
+			memset(webConfig.username, 0, 37);
+			memset(webConfig.password, 0, 37);
 			debugger->setPassword(F(""));
 		}
 		strcpy(webConfig.context, server.arg(F("gc")).c_str());

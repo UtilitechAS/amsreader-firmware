@@ -111,6 +111,7 @@
                         <select name="rt" class="in-m" bind:value={c.t}>
                             <option value={0}>{translations.conf?.price?.fixed ?? "Fixed"}</option>
                             <option value={1}>+</option>
+                            <option value={3}>-</option>
                             <option value={2}>%</option>
                         </select>
                         <input name="rv" type="number" class="in-l tr" style="width: 100px;" min="0.0001" max="99.9999" step="0.0001" bind:value={c.v}/>

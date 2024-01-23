@@ -40,6 +40,7 @@
 #define PRICE_TYPE_FIXED 0x00
 #define PRICE_TYPE_ADD 0x01
 #define PRICE_TYPE_PCT 0x02
+#define PRICE_TYPE_SUBTRACT 0x03
 
 struct PriceConfig {
     char name[32];

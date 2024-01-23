@@ -18,7 +18,6 @@
 ADC_MODE(ADC_VCC);
 #elif defined(ESP32)
 #include <WiFi.h>
-#include <WiFiClientSecure.h>
 #include <ESPmDNS.h>
 #include <ESP32SSDP.h>
 #include "Update.h"
@@ -79,7 +78,7 @@ ADC_MODE(ADC_VCC);
 
 #include "MeterCommunicator.h"
 #include "PassiveMeterCommunicator.h"
-#include "KamstrupPullCommunicator.h"
+//#include "KamstrupPullCommunicator.h"
 #include "PulseMeterCommunicator.h"
 
 #include "Uptime.h"
@@ -173,7 +172,7 @@ RealtimePlot rtp;
 
 MeterCommunicator* mc = NULL;
 PassiveMeterCommunicator* passiveMc = NULL;
-KamstrupPullCommunicator* kamstrupMc = NULL;
+//KamstrupPullCommunicator* kamstrupMc = NULL;
 PulseMeterCommunicator* pulseMc = NULL;
 
 bool networkConnected = false;
@@ -250,9 +249,11 @@ void rxerr(int err) {
 	if(passiveMc != NULL) {
 		passiveMc->rxerr(err);
 	}
+	/*
 	if(kamstrupMc != NULL) {
 		kamstrupMc->rxerr(err);
 	}
+	*/
 }
 #endif
 
@@ -707,10 +708,12 @@ void loop() {
 						delete pulseMc;
 						pulseMc = NULL;
 					}
+					/*
 					if(kamstrupMc != NULL) {
 						delete(kamstrupMc);
 						kamstrupMc = NULL;
 					}
+					*/
 					if(passiveMc == NULL) {
 						passiveMc = new PassiveMeterCommunicator(&Debug);
 					}
@@ -718,6 +721,7 @@ void loop() {
 					hwSerial = passiveMc->getHwSerial();
 					mc = passiveMc;
 					break;
+					/*
 				case METER_PARSER_KAMSTRUP:
 					if(pulseMc != NULL) {
 						delete pulseMc;
@@ -733,12 +737,14 @@ void loop() {
 					kamstrupMc->configure(meterConfig, tz);
 					hwSerial = kamstrupMc->getHwSerial();
 					mc = kamstrupMc;
-					break;
+					break;*/
 				case METER_PARSER_PULSE:
+				/*
 					if(kamstrupMc != NULL) {
 						delete(kamstrupMc);
 						kamstrupMc = NULL;
 					}
+					*/
 					if(passiveMc != NULL) {
 						delete(passiveMc);
 						passiveMc = NULL;

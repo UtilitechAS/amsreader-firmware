@@ -8,10 +8,6 @@
     import Uptime from "./Uptime.svelte";
     import Badge from './Badge.svelte';
     import Clock from './Clock.svelte';
-    import GearIcon from './GearIcon.svelte';
-    import InfoIcon from "./InfoIcon.svelte";
-    import HelpIcon from "./HelpIcon.svelte";
-    import DownloadIcon from "./DownloadIcon.svelte";
 
     export let basepath = "/";
     export let data = {};
@@ -72,7 +68,7 @@
         <div class="bd-red">{ (translations.header?.mqtt ?? "MQTT") + ': ' + (translations.errors?.mqtt?.[data.me] ?? data.me) }</div>
         {/if}
         {#if data.ee > 0 || data.ee < 0}
-        <div class="bd-red">{ (translations.header?.price ?? "Price service") + ': ' + (translations.errors?.price?.[data.ee] ?? data.ee) }</div>
+        <div class="bd-red">{ (translations.header?.price ?? "PS") + ': ' + (translations.errors?.price?.[data.ee] ?? data.ee) }</div>
         {/if}
       <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">
           <div class="flex-none">
@@ -83,19 +79,19 @@
           </div>
           {#if sysinfo.vndcfg && sysinfo.usrcfg}
           <div class="flex-none px-1 mt-1" title={translations.header?.config ?? ""}>
-            <Link to="/configuration"><GearIcon/></Link>
+            <Link to="/configuration">&#9881;</Link>
           </div>
           <div class="flex-none px-1 mt-1" title={translations.header?.status ?? ""}>
-            <Link to="/status"><InfoIcon/></Link>
+            <Link to="/status">&#9432;</Link>
           </div>
           {/if}
           <div class="flex-none px-1 mt-1" title={translations.header?.doc ?? ""}>
-            <a href={wiki('')} target='_blank' rel="noreferrer"><HelpIcon/></a>
+            <a href={wiki('')} target='_blank' rel="noreferrer">&#128462;</a>
           </div>
           {#if sysinfo.fwconsent === 1 && nextVersion}
           <div class="flex-none mr-3 text-yellow-500" title={(translations.header?.new_version ?? "New version") + ': ' + nextVersion.tag_name}>
             {#if sysinfo.security == 0 || data.a}
-            <button on:click={askUpgrade} class="flex"><span class="mt-1">{translations.header?.new_version ?? "New version"}: {nextVersion.tag_name}</span> <DownloadIcon/></button>
+            <button on:click={askUpgrade} class="flex"><span class="mt-1">{translations.header?.new_version ?? "New version"}: {nextVersion.tag_name}</span></button>
             {:else}
             <span>{translations.header?.new_version ?? "New version"}: {nextVersion.tag_name}</span>
             {/if}

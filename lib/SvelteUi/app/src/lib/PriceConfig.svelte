@@ -3,8 +3,6 @@
     import { translationsStore } from './TranslationService';
     import { wiki } from './Helpers.js';
     import Mask from './Mask.svelte'
-    import HelpIcon from './HelpIcon.svelte';
-    import TrashIcon from './TrashIcon.svelte';
     import {  navigate } from 'svelte-navigator';
 
     export let basepath = "/";
@@ -91,8 +89,8 @@
     };
 </script>
 <div class="cnt">
-    <strong class="text-sm">{translations.conf?.price?.title ?? "Price configuration"}</strong>
-    <a href="{wiki('Price-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
+    <strong class="text-sm">{translations.conf?.price?.title ?? "Price"}</strong>
+    <a href="{wiki('Price-configuration')}" target="_blank" class="float-right">&#9432;</a>
     <hr class="m-3"/>
     <form on:submit|preventDefault={handleSubmit} autocomplete="off">
         <input type="hidden" name="r" value="true"/>
@@ -173,7 +171,7 @@
                     </div>
                     
                     <div class="mt-1.5 ml-3">
-                        <span class="text-red-500 text-xs" on:click={() => deleteRow(rn)} on:keypress={() => deleteRow(rn)}><TrashIcon/></span>
+                        <span class="text-red-500 text-xs" on:click={() => deleteRow(rn)} on:keypress={() => deleteRow(rn)}>&#128465;</span>
                     </div>
                 </div>
                 <hr class="m-3"/>

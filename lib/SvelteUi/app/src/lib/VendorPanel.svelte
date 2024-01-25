@@ -76,4 +76,4 @@
         </form>
     </div>
 </div>
-<Mask active={loadingOrSaving} message="Saving device configuration" />
+<Mask active={loadingOrSaving} message="Saving" />

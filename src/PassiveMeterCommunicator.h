@@ -11,9 +11,12 @@
 #include "RemoteDebug.h"
 #include "AmsConfiguration.h"
 #include "DataParsers.h"
-#include "SoftwareSerial.h"
 #include "Timezone.h"
 #include "PassthroughMqttHandler.h"
+
+#if defined(ESP8266)
+#include "SoftwareSerial.h"
+#endif
 
 class PassiveMeterCommunicator : public MeterCommunicator  {
 public:
@@ -40,7 +43,9 @@ protected:
     uint8_t *hanBuffer = NULL;
     uint16_t hanBufferSize = 0;
     Stream *hanSerial;
+    #if defined(ESP8266)
     SoftwareSerial *swSerial = NULL;
+    #endif
     HardwareSerial *hwSerial = NULL;
     uint8_t rxBufferErrors = 0;
 

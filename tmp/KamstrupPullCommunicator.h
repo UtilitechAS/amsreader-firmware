@@ -11,7 +11,6 @@
 #include "RemoteDebug.h"
 #include "AmsConfiguration.h"
 #include "DataParsers.h"
-#include "SoftwareSerial.h"
 #include "Timezone.h"
 #include "PassthroughMqttHandler.h"
 #include "HdlcParser.h"

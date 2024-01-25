@@ -6,11 +6,9 @@
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
     import Badge from './Badge.svelte';
-    import HelpIcon from './HelpIcon.svelte';
     import CountrySelectOptions from './CountrySelectOptions.svelte';
     import { Link, navigate } from 'svelte-navigator';
     import SubnetOptions from './SubnetOptions.svelte';
-    import TrashIcon from './TrashIcon.svelte';
     import QrCode from 'svelte-qrcode';
     import { scanForDevice } from './Helpers.js';
 
@@ -141,7 +139,7 @@
     let isFactoryReset = false;
     let isFactoryResetComplete = false;
     async function factoryReset() {
-        if(confirm("Are you sure you want to factory reset the device?")) {
+        if(confirm("Factory reset?")) {
             isFactoryReset = true;
             const data = new URLSearchParams();
             data.append("perform", "true");
@@ -209,7 +207,7 @@
     }
 
     const askReboot = function() {
-      if(confirm('Are you sure you want to reboot the device?')) {
+      if(confirm('Reboot?')) {
         sysinfoStore.update(s => {
             s.booting = true;
             return s;
@@ -282,7 +280,7 @@
     <div class="grid xl:grid-cols-4 lg:grid-cols-2 md:grid-cols-2">
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.general?.title ?? "General"}</strong>
-            <a href="{wiki('General-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('General-configuration')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="g" value="true"/>
             <div class="my-1">
                 <div class="flex">
@@ -380,7 +378,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.meter?.title ?? "Meter"}</strong>
-            <a href="{wiki('Meter-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('Meter-configuration')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="m" value="true"/>
             <input type="hidden" name="mo" value="1"/>
             <div class="my-1">
@@ -481,7 +479,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.connection?.title ?? "Connection"}</strong>
-            <a href="{wiki('WiFi-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('WiFi-configuration')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="w" value="true"/>
             <div class="my-1">
                 <select name="nc" class="in-s" bind:value={configuration.n.c}>
@@ -526,7 +524,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.network?.title ?? "Network"}</strong>
-            <a href="{wiki('Network-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('Network-configuration')}" target="_blank" class="float-right">&#9432;</a>
             <div class="my-1">
                 {translations.conf?.network?.ip ?? "IP"}<br/>
                 <div class="flex">
@@ -566,7 +564,7 @@
         </div>
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.mqtt?.title ?? "MQTT"}</strong>
-            <a href="{wiki('MQTT-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('MQTT-configuration')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="q" value="true"/>
             <div class="my-1">
                 {translations.conf?.mqtt?.server ?? "Server"}
@@ -583,8 +581,8 @@
             <div class="my-1 flex">
                 <span class="flex pr-2">
                     {#if configuration.q.s.c}
-                    <span class="rounded-l-md bg-green-500 text-green-100 text-xs font-semibold px-2.5 py-1"><Link to="/mqtt-ca">{translations.conf?.mqtt?.ca_ok ?? "CA OK"}</Link></span>
-                    <span class="rounded-r-md bg-red-500 text-red-100 text-xs px-2.5 py-1"  on:click={askDeleteCa} on:keypress={askDeleteCa}><TrashIcon/></span>
+                    <span class="bd-on"><Link to="/mqtt-ca">{translations.conf?.mqtt?.ca_ok ?? "CA OK"}</Link></span>
+                    <span class="bd-off"  on:click={askDeleteCa} on:keypress={askDeleteCa}>&#128465;</span>
                     {:else}
                     <Link to="/mqtt-ca"><Badge color="blue" text={translations.conf?.mqtt?.btn_ca_upload ?? "Upload CA"} title={translations.conf?.mqtt?.title_ca ?? ""}/></Link>
                     {/if}
@@ -592,8 +590,8 @@
 
                 <span class="flex pr-2">
                     {#if configuration.q.s.r}
-                    <span class="rounded-l-md bg-green-500 text-green-100 text-xs font-semibold px-2.5 py-1"><Link to="/mqtt-cert">{translations.conf?.mqtt?.crt_ok ?? "Cert OK"}</Link></span>
-                    <span class="rounded-r-md bg-red-500 text-red-100 text-xs px-2.5 py-1" on:click={askDeleteCert} on:keypress={askDeleteCert}><TrashIcon/></span>
+                    <span class="bd-on"><Link to="/mqtt-cert">{translations.conf?.mqtt?.crt_ok ?? "Cert OK"}</Link></span>
+                    <span class="bd-off" on:click={askDeleteCert} on:keypress={askDeleteCert}>&#128465;</span>
                     {:else}
                     <Link to="/mqtt-cert"><Badge color="blue" text={translations.conf?.mqtt?.btn_crt_upload ?? "Upload cert"} title={translations.conf?.mqtt?.title_crt ?? ""}/></Link>
                     {/if}
@@ -601,8 +599,8 @@
 
                 <span class="flex pr-2">
                     {#if configuration.q.s.k}
-                    <span class="rounded-l-md bg-green-500 text-green-100 text-xs font-semibold px-2.5 py-1"><Link to="/mqtt-key">{translations.conf?.mqtt?.key_ok ?? "Key OK"}</Link></span>
-                    <span class="rounded-r-md bg-red-500 text-red-100 text-xs px-2.5 py-1" on:click={askDeleteKey} on:keypress={askDeleteKey}><TrashIcon/></span>
+                    <span class="bd-on"><Link to="/mqtt-key">{translations.conf?.mqtt?.key_ok ?? "Key OK"}</Link></span>
+                    <span class="bd-off" on:click={askDeleteKey} on:keypress={askDeleteKey}>&#128465;</span>
                     {:else}
                     <Link to="/mqtt-key"><Badge color="blue" text={translations.conf?.mqtt?.btn_key_upload ?? "Upload key"} title={translations.conf?.mqtt?.title_key ?? ""}/></Link>
                     {/if}
@@ -642,7 +640,7 @@
         {#if configuration.q.m == 3}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.mqtt?.domoticz?.title ?? "Domoticz"}</strong>
-                <a href="{wiki('MQTT-configuration#domoticz')}" target="_blank" class="float-right"><HelpIcon/></a>
+                <a href="{wiki('MQTT-configuration#domoticz')}" target="_blank" class="float-right">&#9432;</a>
                 <input type="hidden" name="o" value="true"/>
                 <div class="my-1 flex">
                     <div class="w-1/2">
@@ -667,7 +665,7 @@
         {#if configuration.q.m == 4}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.mqtt?.ha?.title ?? "Home-Assistant"}</strong>
-                <a href="{wiki('MQTT-configuration#home-assistant')}" target="_blank" class="float-right"><HelpIcon/></a>
+                <a href="{wiki('MQTT-configuration#home-assistant')}" target="_blank" class="float-right">&#9432;</a>
                 <input type="hidden" name="h" value="true"/>
                 <div class="my-1">
                     {translations.conf?.mqtt?.ha?.discovery ?? "Discovery topic prefix"}<br/>
@@ -686,7 +684,7 @@
         {#if configuration.c.es != null}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.cloud?.title ?? "Cloud connections"}</strong>
-                <a href="{wiki('Cloud')}" target="_blank" class="float-right"><HelpIcon/></a>
+                <a href="{wiki('Cloud')}" target="_blank" class="float-right">&#9432;</a>
                 <input type="hidden" name="c" value="true"/>
                 <div class="my-1">
                     <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> {translations.conf?.cloud?.ams ?? "AMS reader cloud"}</label>
@@ -708,7 +706,7 @@
         {#if configuration.p.r.startsWith("10YNO") || configuration.p.r.startsWith('10Y1001A1001A4')}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.thresholds?.title ?? "Thresholds"}</strong>
-                <a href="{wiki('Threshold-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
+                <a href="{wiki('Threshold-configuration')}" target="_blank" class="float-right">&#9432;</a>
                 <input type="hidden" name="t" value="true"/>
                 <div class="flex flex-wrap my-1">
                     {#each {length: 9} as _, i}
@@ -728,7 +726,7 @@
         {/if}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.ui?.title ?? "User interface"}</strong>
-            <a href="{wiki('User-interface')}" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('User-interface')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="u" value="true"/>
             <div class="flex flex-wrap">
                 {#each uiElements as el}
@@ -754,7 +752,7 @@
         {#if sysinfo.board > 20 || sysinfo.chip == 'esp8266' || configuration.i.d.d > 0}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.hw?.title ?? "Hardware"}</strong>
-            <a href="{wiki('GPIO-configuration')}" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="{wiki('GPIO-configuration')}" target="_blank" class="float-right">&#9432;</a>
             {#if sysinfo.board > 20}
             <input type="hidden" name="i" value="true"/>
             <div class="flex flex-wrap">
@@ -859,7 +857,7 @@
         {/if}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.debug?.title ?? "Debugging"}</strong>
-            <a href="https://amsleser.no/blog/post/24-telnet-debug" target="_blank" class="float-right"><HelpIcon/></a>
+            <a href="https://amsleser.no/blog/post/24-telnet-debug" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="d" value="true"/>
             <div class="mt-3">
                 <label><input type="checkbox" name="ds" value="true" bind:checked={configuration.d.s} class="rounded mb-1"/> {translations.conf?.debug?.enable ?? "Enable debugging"}</label>

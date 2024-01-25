@@ -1268,6 +1268,164 @@ void AmsConfiguration::print(Print* debugger)
 			debugger->printf_P(PSTR("ENTSO-E Token:        %s\r\n"), price.entsoeToken);
 		}
 		debugger->println(F(""));
+		delay(10);	debugger->println(F("-----------------------------------------------"));
+	NetworkConfig network;
+	if(getNetworkConfig(network)) {
+		debugger->println(F("--Network configuration--"));
+		switch(network.mode) {
+			case 1:
+				debugger->printf_P(PSTR("Mode:                 'WiFi client'\r\n"));
+				break;
+			case 2:
+				debugger->printf_P(PSTR("Mode:                 'WiFi AP'\r\n"));
+				break;
+			case 3:
+				debugger->printf_P(PSTR("Mode:                 'Ethernet'\r\n"));
+				break;
+		}
+		debugger->printf_P(PSTR("SSID:                 '%s'\r\n"), network.ssid);
+		debugger->printf_P(PSTR("Psk:                  '%s'\r\n"), network.psk);
+		if(strlen(network.ip) > 0) {
+			debugger->printf_P(PSTR("IP:                   '%s'\r\n"), network.ip);
+			debugger->printf_P(PSTR("Gateway:              '%s'\r\n"), network.gateway);
+			debugger->printf_P(PSTR("Subnet:               '%s'\r\n"), network.subnet);
+			debugger->printf_P(PSTR("DNS1:                 '%s'\r\n"), network.dns1);
+			debugger->printf_P(PSTR("DNS2:                 '%s'\r\n"), network.dns2);
+		}
+		debugger->printf_P(PSTR("Hostname:             '%s'\r\n"), network.hostname);
+		debugger->printf_P(PSTR("mDNS:                 '%s'\r\n"), network.mdns ? "Yes" : "No");
+		debugger->printf_P(PSTR("802.11b:              '%s'\r\n"), network.use11b ? "Yes" : "No");
+		debugger->println(F(""));
+		delay(10);
+		debugger->flush();
+	}
+
+	MqttConfig mqtt;
+	if(getMqttConfig(mqtt)) {
+		debugger->println(F("--MQTT configuration--"));
+		if(strlen(mqtt.host) > 0) {
+			debugger->printf_P(PSTR("Enabled:              Yes\r\n"));
+			debugger->printf_P(PSTR("Host:                 '%s'\r\n"), mqtt.host);
+			debugger->printf_P(PSTR("Port:                 %i\r\n"), mqtt.port);
+			debugger->printf_P(PSTR("Client ID:            '%s'\r\n"), mqtt.clientId);
+			debugger->printf_P(PSTR("Publish topic:        '%s'\r\n"), mqtt.publishTopic);
+			debugger->printf_P(PSTR("Subscribe topic:      '%s'\r\n"), mqtt.subscribeTopic);
+			if (strlen(mqtt.username) > 0) {
+				debugger->printf_P(PSTR("Username:             '%s'\r\n"), mqtt.username);
+				debugger->printf_P(PSTR("Password:             '%s'\r\n"), mqtt.password);
+			}
+			debugger->printf_P(PSTR("Payload format:       %i\r\n"), mqtt.payloadFormat);
+			debugger->printf_P(PSTR("SSL:                  %s\r\n"), mqtt.ssl ? "Yes" : "No");
+		} else {
+			debugger->printf_P(PSTR("Enabled:              No\r\n"));
+		}
+		debugger->println(F(""));
+		delay(10);
+		debugger->flush();
+	}
+
+	WebConfig web;
+	if(getWebConfig(web)) {
+		debugger->println(F("--Web configuration--"));
+		debugger->printf_P(PSTR("Security:             %i\r\n"), web.security);
+		if (web.security > 0) {
+			debugger->printf_P(PSTR("Username:             '%s'\r\n"), web.username);
+			debugger->printf_P(PSTR("Password:             '%s'\r\n"), web.password);
+		}
+		debugger->println(F(""));
+		delay(10);
+		debugger->flush();
+	}
+
+	MeterConfig meter;
+	if(getMeterConfig(meter)) {
+		debugger->println(F("--Meter configuration--"));
+		debugger->printf_P(PSTR("HAN RX:               %i\r\n"), meter.rxPin);
+		debugger->printf_P(PSTR("HAN RX pullup         %s\r\n"), meter.rxPinPullup ? "Yes" : "No");
+		debugger->printf_P(PSTR("Baud:                 %i\r\n"), meter.baud);
+		debugger->printf_P(PSTR("Parity:               %i\r\n"), meter.parity);
+		debugger->printf_P(PSTR("Invert serial:        %s\r\n"), meter.invert ? "Yes" : "No");
+		debugger->printf_P(PSTR("Buffer size:          %i\r\n"), meter.bufferSize * 64);
+		debugger->printf_P(PSTR("Distribution system:  %i\r\n"), meter.distributionSystem);
+		debugger->printf_P(PSTR("Main fuse:            %i\r\n"), meter.mainFuse);
+		debugger->printf_P(PSTR("Production Capacity:  %i\r\n"), meter.productionCapacity);
+		debugger->println(F(""));
+		delay(10);
+		debugger->flush();
+	}
+
+	GpioConfig gpio;
+	if(getGpioConfig(gpio)) {
+		debugger->println(F("--GPIO configuration--"));
+		debugger->printf_P(PSTR("LED pin:              %i\r\n"), gpio.ledPin);
+		debugger->printf_P(PSTR("LED inverted:         %s\r\n"), gpio.ledInverted ? "Yes" : "No");
+		debugger->printf_P(PSTR("LED red pin:          %i\r\n"), gpio.ledPinRed);
+		debugger->printf_P(PSTR("LED green pin:        %i\r\n"), gpio.ledPinGreen);
+		debugger->printf_P(PSTR("LED blue pin:         %i\r\n"), gpio.ledPinBlue);
+		debugger->printf_P(PSTR("LED inverted:         %s\r\n"), gpio.ledRgbInverted ? "Yes" : "No");
+		debugger->printf_P(PSTR("AP pin:               %i\r\n"), gpio.apPin);
+		debugger->printf_P(PSTR("Temperature pin:      %i\r\n"), gpio.tempSensorPin);
+		debugger->printf_P(PSTR("Temp analog pin:      %i\r\n"), gpio.tempAnalogSensorPin);
+		debugger->printf_P(PSTR("Vcc pin:              %i\r\n"), gpio.vccPin);
+		debugger->printf_P(PSTR("LED disable pin:      %i\r\n"), gpio.ledDisablePin);
+		debugger->printf_P(PSTR("LED behaviour:        %i\r\n"), gpio.ledBehaviour);
+		if(gpio.vccMultiplier > 0) {
+			debugger->printf_P(PSTR("Vcc multiplier:       %f\r\n"), gpio.vccMultiplier / 1000.0);
+		}
+		if(gpio.vccOffset > 0) {
+			debugger->printf_P(PSTR("Vcc offset:           %f\r\n"), gpio.vccOffset / 100.0);
+		}
+		if(gpio.vccBootLimit > 0) {
+			debugger->printf_P(PSTR("Vcc boot limit:       %f\r\n"), gpio.vccBootLimit / 10.0);
+		}
+		debugger->printf_P(PSTR("GND resistor:         %i\r\n"), gpio.vccResistorGnd);
+		debugger->printf_P(PSTR("Vcc resistor:         %i\r\n"), gpio.vccResistorVcc);
+		debugger->println(F(""));
+		delay(10);
+		debugger->flush();
+	}
+
+	DomoticzConfig domo;
+	if(getDomoticzConfig(domo)) {
+		debugger->println(F("--Domoticz configuration--"));
+		if(mqtt.payloadFormat == 3 && domo.elidx > 0) {
+			debugger->printf_P(PSTR("Enabled:              Yes\r\n"));
+			debugger->printf_P(PSTR("Domoticz ELIDX:       %i\r\n"), domo.elidx);
+			debugger->printf_P(PSTR("Domoticz VL1IDX:      %i\r\n"), domo.vl1idx);
+			debugger->printf_P(PSTR("Domoticz VL2IDX:      %i\r\n"), domo.vl2idx);
+			debugger->printf_P(PSTR("Domoticz VL3IDX:      %i\r\n"), domo.vl3idx);
+			debugger->printf_P(PSTR("Domoticz CL1IDX:      %i\r\n"), domo.cl1idx);
+		} else {
+			debugger->printf_P(PSTR("Enabled:              No\r\n"));
+		}
+		debugger->println(F(""));
+		delay(10);
+		debugger->flush();
+	}
+
+	NtpConfig ntp;
+	if(getNtpConfig(ntp)) {
+		debugger->println(F("--NTP configuration--"));
+		debugger->printf_P(PSTR("Enabled:              %s\r\n"), ntp.enable ? "Yes" : "No");
+		if(ntp.enable) {
+			debugger->printf_P(PSTR("Timezone:             %s\r\n"), ntp.timezone);
+			debugger->printf_P(PSTR("Server:               %s\r\n"), ntp.server);
+			debugger->printf_P(PSTR("DHCP:                 %s\r\n"), ntp.dhcp ? "Yes" : "No");
+		}
+		debugger->println(F(""));
+		delay(10);
+		debugger->flush();
+	}
+
+	PriceServiceConfig price;
+	if(getPriceServiceConfig(price)) {
+		if(strlen(price.area) > 0) {
+			debugger->println(F("--Price configuration--"));
+			debugger->printf_P(PSTR("Area:                 %s\r\n"), price.area);
+			debugger->printf_P(PSTR("Currency:             %s\r\n"), price.currency);
+			debugger->printf_P(PSTR("ENTSO-E Token:        %s\r\n"), price.entsoeToken);
+		}
+		debugger->println(F(""));
 		delay(10);
 		debugger->flush();
 	}
@@ -1279,4 +1437,6 @@ void AmsConfiguration::print(Print* debugger)
 	}
 
 	debugger->println(F("-----------------------------------------------"));
+		debugger->flush();
+	}
 }

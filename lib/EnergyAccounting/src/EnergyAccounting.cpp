@@ -55,7 +55,6 @@ bool EnergyAccounting::update(AmsData* amsData) {
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return false;
     if(tz == NULL) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Timezone is missing\n"));
         return false;
     }
 
@@ -68,9 +67,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         this->realtimeData->lastExportUpdateMillis = 0;
         this->realtimeData->currentHour = local.Hour;
         this->realtimeData->currentDay = local.Day;
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EnergyAccounting) Initializing data at %lu\n"), (int32_t) now);
         if(!load()) {
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EnergyAccounting) Unable to load existing data\n"));
             data = { 6, local.Month, 
                 0, 0, 0, // Cost
                 0, 0, 0, // Income
@@ -81,25 +78,16 @@ bool EnergyAccounting::update(AmsData* amsData) {
                 0, 0, // Peak 4
                 0, 0 // Peak 5
             };
-        } else if(debugger->isActive(RemoteDebug::DEBUG)) {
-            for(uint8_t i = 0; i < 5; i++) {
-                debugger->printf_P(PSTR("(EnergyAccounting) Peak hour from day %d: %d\n"), data.peaks[i].day, data.peaks[i].value*10);
-            }
-            debugger->printf_P(PSTR("(EnergyAccounting) Loaded cost yesterday: %.2f, this month: %d, last month: %d\n"), data.costYesterday / 100.0, data.costThisMonth / 100.0, data.costLastMonth / 100.0);
-            debugger->printf_P(PSTR("(EnergyAccounting) Loaded income yesterday: %.2f, this month: %d, last month: %d\n"), data.incomeYesterday / 100.0, data.incomeThisMonth / 100.0, data.incomeLastMonth / 100.0);
         }
         init = true;
     }
 
     float price = getPriceForHour(PRICE_DIRECTION_IMPORT, 0);
     if(!initPrice && price != PRICE_NO_VALUE) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EnergyAccounting) Initializing prices at %lu\n"), (int32_t) now);
         calcDayCost();
     }
 
     if(local.Hour != this->realtimeData->currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EnergyAccounting) New local hour %d\n"), local.Hour);
-
         tmElements_t oneHrAgo, oneHrAgoLocal;
         breakTime(now-3600, oneHrAgo);
         uint16_t val = ds->getHourImport(oneHrAgo.Hour) / 10;
@@ -119,7 +107,6 @@ bool EnergyAccounting::update(AmsData* amsData) {
 
         uint8_t prevDay = this->realtimeData->currentDay;
         if(local.Day != this->realtimeData->currentDay) {
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EnergyAccounting) New day %d\n"), local.Day);
             data.costYesterday = this->realtimeData->costDay * 100;
             data.costThisMonth += this->realtimeData->costDay * 100;
             this->realtimeData->costDay = 0;
@@ -133,7 +120,6 @@ bool EnergyAccounting::update(AmsData* amsData) {
         }
 
         if(local.Month != data.month) {
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EnergyAccounting) New month %d\n"), local.Month);
             data.costLastMonth = data.costThisMonth;
             data.costThisMonth = 0;
             data.incomeLastMonth = data.incomeThisMonth;
@@ -168,11 +154,9 @@ bool EnergyAccounting::update(AmsData* amsData) {
         unsigned long ms = amsData->getLastUpdateMillis() - this->realtimeData->lastImportUpdateMillis;
         float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
         if(kwhi > 0) {
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh import\n"), kwhi);
             this->realtimeData->use += kwhi;
             if(price != PRICE_NO_VALUE) {
                 float cost = price * kwhi;
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), cost / 100.0, currency.c_str());
                 this->realtimeData->costHour += cost;
                 this->realtimeData->costDay += cost;
             }
@@ -184,11 +168,9 @@ bool EnergyAccounting::update(AmsData* amsData) {
         unsigned long ms = amsData->getLastUpdateMillis() - this->realtimeData->lastExportUpdateMillis;
         float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
         if(kwhe > 0) {
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting) Adding %.4f kWh export\n"), kwhe);
             this->realtimeData->produce += kwhe;
             if(price != PRICE_NO_VALUE) {
                 float income = price * kwhe;
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  and %.4f %s\n"), income / 100.0, currency.c_str());
                 this->realtimeData->incomeHour += income;
                 this->realtimeData->incomeDay += income;
             }
@@ -197,9 +179,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     }
 
     if(config != NULL) {
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  calculating threshold, currently at %d\n"), this->realtimeData->currentThresholdIdx);
         while(getMonthMax() > config->thresholds[this->realtimeData->currentThresholdIdx] && this->realtimeData->currentThresholdIdx < 10) this->realtimeData->currentThresholdIdx++;
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(EnergyAccounting)  new threshold %d\n"), this->realtimeData->currentThresholdIdx);
     }
 
     return ret;
@@ -413,9 +393,6 @@ EnergyAccountingPeak EnergyAccounting::getPeak(uint8_t num) {
 
 bool EnergyAccounting::load() {
     if(!LittleFS.begin()) {
-        if(debugger->isActive(RemoteDebug::ERROR)) {
-            debugger->printf_P(PSTR("(EnergyAccounting) Unable to load LittleFS\n"));
-        }
         return false;
     }
 
@@ -425,7 +402,6 @@ bool EnergyAccounting::load() {
         char buf[file.size()];
         file.readBytes(buf, file.size());
 
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(EnergyAccounting) Data version %d\n"), buf[0]);
         if(buf[0] == 6) {
             EnergyAccountingData* data = (EnergyAccountingData*) buf;
             memcpy(&this->data, data, sizeof(this->data));
@@ -503,14 +479,11 @@ bool EnergyAccounting::load() {
                 }
                 ret = true;
             } else {
-                if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("(EnergyAccounting) Unknown version\n"));
                 ret = false;
             }
         }
 
         file.close();
-    } else {
-        if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("(EnergyAccounting) File not found\n"));
     }
 
     return ret;
@@ -518,9 +491,6 @@ bool EnergyAccounting::load() {
 
 bool EnergyAccounting::save() {
     if(!LittleFS.begin()) {
-        if(debugger->isActive(RemoteDebug::ERROR)) {
-            debugger->printf_P(PSTR("(EnergyAccounting) Unable to load LittleFS\n"));
-        }
         return false;
     }
     {
@@ -547,7 +517,6 @@ bool EnergyAccounting::updateMax(uint16_t val, uint8_t day) {
     for(uint8_t i = 0; i < 5; i++) {
         if(data.peaks[i].day == day || data.peaks[i].day == 0) {
             if(val > data.peaks[i].value) {
-                if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EnergyAccounting) Adding new max %d for day %d which is larger than %d\n"), val*10, day, data.peaks[i].value*10);
                 data.peaks[i].day = day;
                 data.peaks[i].value = val;
                 return true;
@@ -566,7 +535,6 @@ bool EnergyAccounting::updateMax(uint16_t val, uint8_t day) {
         }
     }
     if(idx < 5) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(EnergyAccounting) Adding new max %d for day %d\n"), val*10, day);
         data.peaks[idx].value = val;
         data.peaks[idx].day = day;
         return true;

@@ -10,7 +10,7 @@
 #include "LNG.h"
 #include "LNG2.h"
 
-#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3)
+#if defined(ESP32)
 #include <driver/uart.h>
 #endif
 
@@ -254,8 +254,8 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
 }
 
 int PassiveMeterCommunicator::getLastError() {
+	#if defined ESP8266
 	if(hwSerial != NULL) {
-		#if defined ESP8266
 		if(hwSerial->hasRxError()) {
 			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Serial RX error\n"));
 			lastError = 96;
@@ -263,12 +263,12 @@ int PassiveMeterCommunicator::getLastError() {
 		if(hwSerial->hasOverrun()) {
 			rxerr(2);
 		}
-		#endif
 	} else if(swSerial != NULL) {
 		if(swSerial->overflow()) {
 			rxerr(2);
 		}
 	}
+	#endif
     return lastError;
 }
 
@@ -488,15 +488,11 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 	}
 
 	#if defined(ESP32)
-		if(pin == 9) {
-			hwSerial = &Serial1;
-		}
+		hwSerial = &Serial1;
 		#if defined(CONFIG_IDF_TARGET_ESP32)
 			if(pin == 16) {
 				hwSerial = &Serial2;
 			}
-		#elif defined(CONFIG_IDF_TARGET_ESP32S2) ||  defined(CONFIG_IDF_TARGET_ESP32C3) ||  defined(CONFIG_IDF_TARGET_ESP32S3)
-			hwSerial = &Serial1;
 		#endif
 	#endif
 
@@ -533,11 +529,9 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		if(meterConfig.bufferSize < 4) meterConfig.bufferSize = 4; // 64 bytes (1) is default for software serial, 256 bytes (4) for hardware
 
 		hwSerial->setRxBufferSize(64 * meterConfig.bufferSize);
-		#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3)
-			hwSerial->begin(baud, serialConfig, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, invert);
-			uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-		#elif defined(ESP32)
+		#if defined(ESP32)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
+			uart_set_pin(UART_NUM_1, -1, pin, -1, -1);
 		#else
 			hwSerial->begin(baud, serialConfig, SERIAL_FULL, 1, invert);
 		#endif
@@ -570,48 +564,55 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		#endif
 
 		hanSerial = hwSerial;
+		#if defined(ESP8266)
 		if(swSerial != NULL) {
 			swSerial->end();
 			delete swSerial;
 			swSerial = NULL;
 		}
-	} else {
-		if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Software serial\n"));
-		Serial.flush();
-		
-		if(swSerial == NULL) {
-			swSerial = new SoftwareSerial(pin, -1, invert);
-		} else {
-			swSerial->end();
-		}
-
-		SoftwareSerialConfig serialConfig;
-		switch(parityOrdinal) {
-			case 2:
-				serialConfig = SWSERIAL_7N1;
-				break;
-			case 3:
-				serialConfig = SWSERIAL_8N1;
-				break;
-			case 10:
-				serialConfig = SWSERIAL_7E1;
-				break;
-			default:
-				serialConfig = SWSERIAL_8E1;
-				break;
-		}
-
-		uint8_t bufferSize = meterConfig.bufferSize;
-		#if defined(ESP8266)
-		if(bufferSize > 2) bufferSize = 2;
 		#endif
-		if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Using serial buffer size %d"), 64 * bufferSize);
-		swSerial->begin(baud, serialConfig, pin, -1, invert, meterConfig.bufferSize * 64);
-		hanSerial = swSerial;
+	} else {
+		#if defined(ESP8266)
+			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Software serial\n"));
+			Serial.flush();
+			
+			if(swSerial == NULL) {
+				swSerial = new SoftwareSerial(pin, -1, invert);
+			} else {
+				swSerial->end();
+			}
 
-		Serial.end();
-		Serial.begin(115200);
-		hwSerial = NULL;
+			SoftwareSerialConfig serialConfig;
+			switch(parityOrdinal) {
+				case 2:
+					serialConfig = SWSERIAL_7N1;
+					break;
+				case 3:
+					serialConfig = SWSERIAL_8N1;
+					break;
+				case 10:
+					serialConfig = SWSERIAL_7E1;
+					break;
+				default:
+					serialConfig = SWSERIAL_8E1;
+					break;
+			}
+
+			uint8_t bufferSize = meterConfig.bufferSize;
+			#if defined(ESP8266)
+			if(bufferSize > 2) bufferSize = 2;
+			#endif
+			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Using serial buffer size %d"), 64 * bufferSize);
+			swSerial->begin(baud, serialConfig, pin, -1, invert, meterConfig.bufferSize * 64);
+			hanSerial = swSerial;
+
+			Serial.end();
+			Serial.begin(115200);
+			hwSerial = NULL;
+		#else
+			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Software serial not available\n"));
+			return;
+		#endif
 	}
 
 	if(hanBuffer != NULL) {

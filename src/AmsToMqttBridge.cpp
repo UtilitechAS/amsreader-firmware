@@ -146,7 +146,6 @@ MqttConfig energySpeedometerConfig = {
 #endif
 
 Stream *hanSerial;
-SoftwareSerial *swSerial = NULL;
 HardwareSerial *hwSerial = NULL;
 uint8_t rxBufferErrors = 0;
 

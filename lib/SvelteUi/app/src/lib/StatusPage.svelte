@@ -3,7 +3,6 @@
     import { getSysinfo, gitHubReleaseStore, sysinfoStore } from './DataStores.js';
     import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
     import { translationsStore } from './TranslationService.js';
-    import DownloadIcon from './DownloadIcon.svelte';
     import { Link } from 'svelte-navigator';
     import Clock from './Clock.svelte';
     import Mask from './Mask.svelte';
@@ -223,7 +222,7 @@
                 <a href={nextVersion.html_url} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{nextVersion.tag_name}</a>
                 {#if (sysinfo.security == 0 || data.a) && sysinfo.fwconsent === 1 && nextVersion && nextVersion.tag_name != sysinfo.version}
                 <div class="flex-none ml-2 text-green-500" title={translations.status?.firmware?.install ?? "Install"}>
-                    <button on:click={askUpgrade}><DownloadIcon/></button>
+                    <button on:click={askUpgrade}>&#8659;</button>
                 </div>
                 {/if}
             </div>

@@ -9,12 +9,6 @@
 #define GCM_DECRYPT_FAILED -52
 #define GCM_ENCRYPTION_KEY_FAILED -53
 
-typedef struct GCMSizeDef {
-	uint8_t  flag;
-	uint16_t format;
-} __attribute__((packed)) GCMSizeDef;
-
-
 class GCMParser {
 public:
     GCMParser(uint8_t *encryption_key, uint8_t *authentication_key);

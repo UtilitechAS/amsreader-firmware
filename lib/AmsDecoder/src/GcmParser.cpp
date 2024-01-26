@@ -27,32 +27,34 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx) {
     memcpy(ctx.system_title, ptr, systemTitleLength);
     memcpy(initialization_vector, ctx.system_title, systemTitleLength);
 
-    int len = 0;
-    int headersize = 2 + systemTitleLength;
+    uint32_t len = 0;
+    uint32_t headersize = 2 + systemTitleLength;
     ptr += systemTitleLength;
     if(((*ptr) & 0xFF) == 0x81) {
-        ptr++;
-        len = *ptr;
         // 1-byte payload length
         ptr++;
+        len = *ptr++;
         headersize += 2;
     } else if(((*ptr) & 0xFF) == 0x82) {
-        GCMSizeDef* h = (GCMSizeDef*) ptr;
-
         // 2-byte payload length
-        len = (ntohs(h->format) & 0xFFFF);
-
-        ptr += 3;
-        headersize += 3;
-    } else {
-        len = *ptr;
         ptr++;
+        len = *ptr++ << 8;
+        len |= *ptr++;
+        headersize += 3;
+    } else if(((*ptr) & 0xFF) == 0x84) {
+        // 4-byte payload length
+        ptr++;
+        len = *ptr++ << 24;
+        len |= *ptr++ << 16;
+        len |= *ptr++ << 8;
+        len |= *ptr++;
+        headersize += 5;
+    } else {
+        len = *ptr++;
         headersize++;
     }
     if(len + headersize > ctx.length)
         return DATA_PARSE_INCOMPLETE;
-
-    //Serial.printf("\nL: %d : %d, %d\n", length, len, headersize);
 
     uint8_t additional_authenticated_data[17];
     memcpy(additional_authenticated_data, ptr, 1);
@@ -70,6 +72,7 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx) {
     int footersize = 0;
 
     // Authentication enabled
+    bool authenticate = false;
     uint8_t authentication_tag[12];
     uint8_t authkeylen = 0, aadlen = 0;
     if((sec & 0x10) == 0x10) {
@@ -78,6 +81,7 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx) {
         footersize += authkeylen;
         memcpy(additional_authenticated_data + 1, authentication_key, 16);
         memcpy(authentication_tag, ptr + len - footersize - 5, authkeylen);
+        for(uint8_t i; i < 16; i++) authenticate |= authentication_key[i] > 0;
     }
 
     #if defined(ESP8266)
@@ -86,7 +90,7 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx) {
         br_aes_ct_ctr_init(&bc, encryption_key, 16);
         br_gcm_init(&gcmCtx, &bc.vtable, br_ghash_ctmul32);
         br_gcm_reset(&gcmCtx, initialization_vector, sizeof(initialization_vector));
-        if(authkeylen > 0) {
+        if(authenticate) {
             br_gcm_aad_inject(&gcmCtx, additional_authenticated_data, aadlen);
         }
         br_gcm_flip(&gcmCtx);
@@ -104,7 +108,7 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx) {
         if (0 != success) {
             return GCM_ENCRYPTION_KEY_FAILED;
         }
-        if (0 < authkeylen) {
+        if (authenticate) {
             success = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text), initialization_vector, sizeof(initialization_vector),
                 additional_authenticated_data, aadlen, authentication_tag, authkeylen,
                 cipher_text, (unsigned char*)(ptr));

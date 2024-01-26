@@ -101,6 +101,8 @@ bool AmsMqttHandler::connect() {
 
 	mqttConfigChanged = false;
 	mqtt.begin(mqttConfig.host, mqttConfig.port, *actualClient);
+	String statusTopic = String(mqttConfig.publishTopic) + "/status";
+	mqtt.setWill(statusTopic.c_str(), "offline", true, 0);
 
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
@@ -120,6 +122,7 @@ bool AmsMqttHandler::connect() {
 				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("  Unable to subscribe to to [%s]\n"), mqttConfig.subscribeTopic);
 			}
 		}
+		mqtt.publish(statusTopic, "online", true, 0);
         return true;
 	} else {
 		if (debugger->isActive(RemoteDebug::ERROR)) {

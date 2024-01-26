@@ -27,7 +27,6 @@ AmsData* PulseMeterCommunicator::getData(AmsData& meterState) {
 
     AmsData* ret = new AmsData();
     ret->apply(state);
-    if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("Returning AMS data, list type: %d\n"), ret->getListType());
     return ret;
 }
 
@@ -65,7 +64,6 @@ void PulseMeterCommunicator::onPulse(uint8_t pulses) {
         }
         return;
     }
-    if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("PULSE\n"));
     if(!initialized) {
         if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Pulse communicator not initialized\n"));
         return;

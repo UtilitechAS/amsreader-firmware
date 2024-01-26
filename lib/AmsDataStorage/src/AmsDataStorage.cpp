@@ -564,6 +564,5 @@ double AmsDataStorage::getEstimatedImportCounter() {
         total += getHourImport(i);
     }
     double perHour = total / 24.0;
-    debugger->printf_P(PSTR("now: %lu, hours: %.4f, total: %lu, per hour: %.4f,  %.4f\n"), now, hours, total, perHour, perHour * hours);
     return (day.activeImport + (perHour * hours)) / 1000.0;
 }

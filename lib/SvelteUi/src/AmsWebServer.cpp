@@ -244,22 +244,16 @@ void AmsWebServer::notFound() {
 }
 
 void AmsWebServer::githubSvg() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /github.svg over http...\n"));
-
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
 	server.send_P(200, "image/svg+xml", GITHUB_SVG);
 }
 
 void AmsWebServer::faviconSvg() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /favicon.ico over http...\n"));
-
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
 	server.send_P(200, "image/svg+xml", FAVICON_SVG);
 }
 
 void AmsWebServer::sysinfoJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /sysinfo.json over http...\n"));
-
 	SystemConfig sys;
 	config->getSystemConfig(sys);
 
@@ -440,7 +434,6 @@ void AmsWebServer::sysinfoJson() {
 }
 
 void AmsWebServer::dataJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /data.json over http...\n"));
 	uint64_t millis = millis64();
 
 	if(!checkSecurity(2, true))
@@ -594,8 +587,6 @@ void AmsWebServer::dataJson() {
 }
 
 void AmsWebServer::dayplotJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /dayplot.json over http...\n"));
-
 	if(!checkSecurity(2))
 		return;
 
@@ -663,8 +654,6 @@ void AmsWebServer::dayplotJson() {
 }
 
 void AmsWebServer::monthplotJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /monthplot.json over http...\n"));
-
 	if(!checkSecurity(2))
 		return;
 
@@ -746,8 +735,6 @@ void AmsWebServer::monthplotJson() {
 }
 
 void AmsWebServer::energyPriceJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /energyprice.json over http...\n"));
-
 	if(!checkSecurity(2))
 		return;
 
@@ -806,8 +793,6 @@ void AmsWebServer::energyPriceJson() {
 }
 
 void AmsWebServer::temperatureJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /temperature.json over http...\n"));
-
 	if(!checkSecurity(2))
 		return;
 
@@ -840,8 +825,6 @@ void AmsWebServer::temperatureJson() {
 }
 
 void AmsWebServer::indexHtml() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /index.html over http...\n"));
-
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -869,7 +852,6 @@ void AmsWebServer::indexHtml() {
 }
 
 void AmsWebServer::indexCss() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /index.css over http...\n"));
 
 	if(!checkSecurity(2))
 		return;
@@ -880,8 +862,6 @@ void AmsWebServer::indexCss() {
 }
 
 void AmsWebServer::indexJs() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /index.js over http...\n"));
-
 	if(!checkSecurity(2))
 		return;
 
@@ -891,8 +871,6 @@ void AmsWebServer::indexJs() {
 }
 
 void AmsWebServer::configurationJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /configuration.json over http...\n"));
-
 	if(!checkSecurity(1))
 		return;
 		
@@ -1121,8 +1099,6 @@ void AmsWebServer::configurationJson() {
 }
 
 void AmsWebServer::priceConfigJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /priceconfig.json over http...\n"));
-
 	if(!checkSecurity(1))
 		return;
 
@@ -1176,8 +1152,6 @@ void AmsWebServer::priceConfigJson() {
 }
 
 void AmsWebServer::translationsJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /translations.json over http...\n"));
-
 	if(!LittleFS.begin()) {
 		server.send_P(500, MIME_PLAIN, PSTR("500: Filesystem unavailable"));
 		return;
@@ -1861,8 +1835,6 @@ void AmsWebServer::handleSave() {
 }
 
 void AmsWebServer::reboot() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /reboot over http...\n"));
-
 	if(!checkSecurity(1))
 		return;
 
@@ -1881,8 +1853,6 @@ void AmsWebServer::reboot() {
 }
 
 void AmsWebServer::upgrade() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /upgrade over http...\n"));
-
 	if(!checkSecurity(1))
 		return;
 
@@ -1965,8 +1935,6 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 }
 
 void AmsWebServer::firmwareHtml() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /firmware.html over http...\n"));
-
 	if(!checkSecurity(1))
 		return;
 
@@ -2249,8 +2217,6 @@ void AmsWebServer::deleteFile(const char* path) {
 }
 
 void AmsWebServer::tariffJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /tariff.json over http...\n"));
-
 	if(!checkSecurity(2))
 		return;
 
@@ -2293,7 +2259,6 @@ void AmsWebServer::tariffJson() {
 }
 
 void AmsWebServer::realtimeJson() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /realtime.json over http...\n"));
 	if(rtp == NULL) {
 		server.send_P(500, MIME_PLAIN, PSTR("500: Not available"));
 		return;
@@ -2322,8 +2287,6 @@ void AmsWebServer::setPriceSettings(String region, String currency) {
 }
 
 void AmsWebServer::configFileDownload() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Serving /configfile.cfg over http...\n"));
-
 	if(!checkSecurity(1))
 		return;
 

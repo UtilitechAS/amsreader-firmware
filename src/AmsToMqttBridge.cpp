@@ -752,7 +752,7 @@ void loop() {
 						pulseMc = new PulseMeterCommunicator(&Debug);
 					}
 					pulseMc->configure(meterConfig, tz);
-					attachInterrupt(digitalPinToInterrupt(meterConfig.rxPin), onPulse, meterConfig.rxPinPullup ? RISING : FALLING);
+					attachInterrupt(digitalPinToInterrupt(meterConfig.rxPin), onPulse, RISING);
 
 					mc = pulseMc;
 					break;

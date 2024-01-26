@@ -1162,7 +1162,11 @@ void toggleSetupMode() {
 		*/
 
 		WiFi.mode(WIFI_AP_STA);
+		#if defined(ESP32) && defined(AMS2MQTT_SC_KEY)
+		WiFi.beginSmartConfig(SC_TYPE_ESPTOUCH_V2, AMS2MQTT_SC_KEY);
+		#else
 		WiFi.beginSmartConfig();
+		#endif
 		WiFi.softAP(PSTR("AMS2MQTT"));
 
 		if(dnsServer == NULL) {

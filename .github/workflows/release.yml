@@ -28,6 +28,7 @@ jobs:
       run: |
         sed -i 's/NO_AMS2MQTT_PRICE_KEY/AMS2MQTT_PRICE_KEY="${{secrets.AMS2MQTT_PRICE_KEY}}"/g' platformio.ini
         sed -i 's/NO_AMS2MQTT_PRICE_AUTHENTICATION/AMS2MQTT_PRICE_AUTHENTICATION="${{secrets.AMS2MQTT_PRICE_AUTHENTICATION}}"/g' platformio.ini
+        sed -i 's/NO_AMS2MQTT_SC_KEY/AMS2MQTT_SC_KEY=\\"${{secrets.AMS2MQTT_SC_KEY}}\\"/g' platformio.ini
         sed -i 's/NO_ENERGY_SPEEDOMETER_USER/ENERGY_SPEEDOMETER_USER=\\"${{secrets.ENERGY_SPEEDOMETER_USER}}\\"/g' platformio.ini
         sed -i 's/NO_ENERGY_SPEEDOMETER_PASS/ENERGY_SPEEDOMETER_PASS=\\"${{secrets.ENERGY_SPEEDOMETER_PASS}}\\"/g' platformio.ini
 

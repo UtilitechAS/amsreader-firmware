@@ -6,6 +6,7 @@
 class ImpulseAmsData : public AmsData {
 public:
     ImpulseAmsData(AmsData &state, uint16_t pulsePerKwh, uint8_t pulses);
+    ImpulseAmsData(double activeImportCounter);
 };
 
 #endif

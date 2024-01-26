@@ -1195,6 +1195,13 @@ bool readHanPort() {
 	if(pulseMc != NULL) {
 		pulseMc->onPulse(pulses);
 		pulses = 0;
+		if(meterState.getListType() < 3) {
+			time_t now = time(nullptr);
+			if(now > FirmwareVersion::BuildEpoch) {
+				ImpulseAmsData init = ImpulseAmsData(ds.getEstimatedImportCounter());
+				meterState.apply(init);
+			}
+		}
 	}
 	if(!mc->loop()) {
 		meterState.setLastError(mc->getLastError());

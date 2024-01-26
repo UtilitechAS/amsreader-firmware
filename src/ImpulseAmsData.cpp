@@ -14,3 +14,8 @@ ImpulseAmsData::ImpulseAmsData(AmsData& state, uint16_t pulsePerKwh, uint8_t pul
         lastUpdateMillis = state.getLastUpdateMillis();
     }
 }
+
+ImpulseAmsData::ImpulseAmsData(double activeImportCounter) {
+    this->activeImportCounter = activeImportCounter;
+    this->listType = 3;
+}

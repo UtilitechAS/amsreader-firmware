@@ -48,10 +48,10 @@ void PulseMeterCommunicator::setupGpio() {
     if(meterConfig.rxPin != NOT_A_PIN) {
         pinMode(meterConfig.rxPin, meterConfig.rxPinPullup ? INPUT_PULLUP : INPUT);
     }
-    if(meterConfig.txPin != NOT_A_PIN) {
-        pinMode(meterConfig.txPin, OUTPUT);
-        digitalWrite(meterConfig.txPin, HIGH);
-    }
+// Export counter?
+//    if(meterConfig.txPin != NOT_A_PIN) {
+//        pinMode(meterConfig.txPin, meterConfig.rxPinPullup ? INPUT_PULLUP : INPUT);
+//    }
 }
 
 void PulseMeterCommunicator::onPulse(uint8_t pulses) {

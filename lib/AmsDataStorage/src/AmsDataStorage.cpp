@@ -553,3 +553,17 @@ bool AmsDataStorage::isMonthHappy() {
 
     return true;
 }
+
+double AmsDataStorage::getEstimatedImportCounter() {
+    if(day.lastMeterReadTime == 0) return 0;
+
+    time_t now = time(nullptr);
+    double hours = (now - day.lastMeterReadTime) / 3600.0;
+    uint64_t total = 0;
+    for(uint8_t i = 0; i < 24; i++) {
+        total += getHourImport(i);
+    }
+    double perHour = total / 24.0;
+    debugger->printf_P(PSTR("now: %lu, hours: %.4f, total: %lu, per hour: %.4f,  %.4f\n"), now, hours, total, perHour, perHour * hours);
+    return (day.activeImport + (perHour * hours)) / 1000.0;
+}

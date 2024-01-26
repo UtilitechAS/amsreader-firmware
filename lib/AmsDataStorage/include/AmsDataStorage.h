@@ -57,6 +57,8 @@ public:
     bool isDayHappy();
     bool isMonthHappy();
 
+    double getEstimatedImportCounter();
+
 private:
     Timezone* tz;
     DayDataPoints day = {

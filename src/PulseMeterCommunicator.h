@@ -16,7 +16,7 @@
 class PulseMeterCommunicator : public MeterCommunicator  {
 public:
     PulseMeterCommunicator(RemoteDebug* debugger);
-    void configure(MeterConfig&, Timezone*);
+    void configure(MeterConfig& config, Timezone* tz);
     bool loop();
     AmsData* getData(AmsData& meterState);
     int getLastError();

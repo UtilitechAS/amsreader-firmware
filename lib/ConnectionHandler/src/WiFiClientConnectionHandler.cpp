@@ -7,6 +7,7 @@
 #include "WiFiClientConnectionHandler.h"
 #if defined(ESP32)
 #include <esp_wifi.h>
+#include <lwip/dns.h>
 #endif
 
 WiFiClientConnectionHandler::WiFiClientConnectionHandler(RemoteDebug* debugger) {
@@ -144,13 +145,11 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
 				esp_wifi_config_11b_rate(WIFI_IF_STA, true);
 			}
 			break;
-		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
+		case ARDUINO_EVENT_WIFI_STA_CONNECTED:
             if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully connected to WiFi!\n"));
-            if(debugger->isActive(RemoteDebug::INFO)) {
-                debugger->printf_P(PSTR("IP:  %s\n"), WiFi.localIP().toString().c_str());
-                debugger->printf_P(PSTR("GW:  %s\n"), WiFi.gatewayIP().toString().c_str());
-                debugger->printf_P(PSTR("DNS: %s\n"), WiFi.dnsIP().toString().c_str());
-            }
+			if(config.ipv6 && !WiFi.enableIpV6()) {
+				debugger->printf_P(PSTR("Unable to enable IPv6\n"));
+			}
             #if defined(ESP32)
 				if(firstConnect && config.use11b) {
 					// If first boot and phyMode is better than 11b, disable 11b for BUS powered devices
@@ -194,7 +193,38 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
             #elif defined(ESP8266)
                 WiFi.setOutputPower(config.power / 10.0);
             #endif
+			break;
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
+            if(debugger->isActive(RemoteDebug::INFO)) {
+                debugger->printf_P(PSTR("IP:  %s\n"), getIP().toString().c_str());
+                debugger->printf_P(PSTR("GW:  %s\n"), getGateway().toString().c_str());
+				for(uint8_t i = 0; i < 3; i++) {
+					IPAddress dns4 = getDns(i);
+					if(!dns4.isAny()) debugger->printf_P(PSTR("DNS: %s\n"), dns4.toString().c_str());
+				}
+            }
+			break;
         }
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP6: {
+            if(debugger->isActive(RemoteDebug::INFO)) {
+				IPv6Address ipv6 = getIPv6();
+				if(ipv6 == IPv6Address()) {
+					// No IP
+				} else {
+					debugger->printf_P(PSTR("IPv6:  %s\n"), ipv6.toString().c_str());
+				}
+
+				for(uint8_t i = 0; i < 3; i++) {
+					IPv6Address dns6 = getDNSv6(i);
+					if(dns6 == IPv6Address()) {
+						// No IP
+					} else {
+						debugger->printf_P(PSTR("DNSv6: %s\n"), dns6.toString().c_str());
+					}
+				}
+            }
+			break;
+		}
 		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
 			wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
 			const char* descr = WiFi.disconnectReasonName(reason);
@@ -236,5 +266,35 @@ IPAddress WiFiClientConnectionHandler::getGateway() {
 }
 
 IPAddress WiFiClientConnectionHandler::getDns(uint8_t idx) {
-	return WiFi.dnsIP(idx);
+	#if defined(ESP32)
+	for(uint8_t i = 0; i < 3; i++) {
+		const ip_addr_t * dns = dns_getserver(i);
+		if(dns->type == IPADDR_TYPE_V4) {
+			if(idx-- == 0) return IPAddress(dns->u_addr.ip4.addr);
+		}
+	}
+	#else
+		return WiFi.dnsIP(idx);
+	#endif
+	return IPAddress();
 }
+
+#if defined(ESP32)
+IPv6Address WiFiClientConnectionHandler::getIPv6() {
+	esp_ip6_addr_t addr;
+	if(esp_netif_get_ip6_global(get_esp_interface_netif(ESP_IF_WIFI_STA), &addr) == ESP_OK) {
+		return IPv6Address(addr.addr);
+	}
+	return IPv6Address();
+}
+
+IPv6Address WiFiClientConnectionHandler::getDNSv6(uint8_t idx) {
+	for(uint8_t i = 0; i < 3; i++) {
+		const ip_addr_t * dns = dns_getserver(i);
+		if(dns->type == IPADDR_TYPE_V6) {
+			if(idx-- == 0) return IPv6Address(dns->u_addr.ip6.addr);
+		}
+	}
+	return IPv6Address();
+}
+#endif

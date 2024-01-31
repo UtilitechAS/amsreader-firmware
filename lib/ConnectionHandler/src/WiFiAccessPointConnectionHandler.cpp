@@ -90,3 +90,13 @@ IPAddress WiFiAccessPointConnectionHandler::getGateway() {
 IPAddress WiFiAccessPointConnectionHandler::getDns(uint8_t idx) {
 	return WiFi.softAPIP();
 }
+
+#if defined(ESP32)
+IPv6Address WiFiAccessPointConnectionHandler::getIPv6() {
+    return IPv6Address();
+}
+
+IPv6Address WiFiAccessPointConnectionHandler::getDNSv6(uint8_t idx) {
+    return IPv6Address();
+}
+#endif

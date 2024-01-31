@@ -12,6 +12,7 @@
 #include <ESP8266WiFi.h>
 #elif defined(ESP32)
 #include <WiFi.h>
+esp_netif_t* get_esp_interface_netif(esp_interface_t interface);
 #endif
 
 #define NETWORK_MODE_WIFI_CLIENT 1
@@ -31,6 +32,8 @@ public:
     virtual IPAddress getGateway();
     virtual IPAddress getDns(uint8_t idx);
     #if defined(ESP32)
+    virtual IPv6Address getIPv6();
+    virtual IPv6Address getDNSv6(uint8_t idx);
     virtual void eventHandler(WiFiEvent_t event, WiFiEventInfo_t info);
     #endif
 

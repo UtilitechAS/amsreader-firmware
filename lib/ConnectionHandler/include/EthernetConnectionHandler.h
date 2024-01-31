@@ -26,8 +26,9 @@ public:
     IPAddress getSubnetMask();
     IPAddress getGateway();
     IPAddress getDns(uint8_t idx);
-
     #if defined(ESP32)
+    IPv6Address getIPv6();
+    IPv6Address getDNSv6(uint8_t idx);
     void eventHandler(WiFiEvent_t event, WiFiEventInfo_t info);
     #endif
 

@@ -279,6 +279,11 @@ void AmsWebServer::sysinfoJson() {
 	IPAddress gateway;
 	IPAddress dns1;
 	IPAddress dns2;
+	#if defined(ESP32)
+	IPv6Address ipv6;
+	IPv6Address dns1v6;
+	IPv6Address dns2v6;
+	#endif
 
 	if(ch == NULL) {
 		localIp = WiFi.softAPIP();
@@ -292,6 +297,11 @@ void AmsWebServer::sysinfoJson() {
 		gateway = ch->getGateway();
 		dns1 = ch->getDns(0);
 		dns2 = ch->getDns(1);
+		#if defined(ESP32)
+		ipv6 = ch->getIPv6();
+		dns1v6 = ch->getDNSv6(0);
+		dns2v6 = ch->getDNSv6(1);
+		#endif
 	}
 
     char macStr[18] = { 0 };
@@ -361,12 +371,18 @@ void AmsWebServer::sysinfoJson() {
 		gateway.isSet() ? gateway.toString().c_str() : "",
 		dns1.isSet() ? dns1.toString().c_str() : "",
 		dns2.isSet() ? dns2.toString().c_str() : "",
+		"",
+		"",
+		"",
 		#else
 		localIp != INADDR_NONE ? localIp.toString().c_str() : "",
 		subnet != INADDR_NONE ? subnet.toString().c_str() : "",
 		gateway != INADDR_NONE ? gateway.toString().c_str() : "",
 		dns1 != INADDR_NONE ? dns1.toString().c_str() : "",
 		dns2 != INADDR_NONE ? dns2.toString().c_str() : "",
+		ipv6 == IPv6Address() ? "" : ipv6.toString().c_str(),
+		dns1v6 == IPv6Address() ? "" : dns1v6.toString().c_str(),
+		dns2v6 == IPv6Address() ? "" : dns2v6.toString().c_str(),
 		#endif
 		sys.boardType > 240 && sys.boardType < 250 ? "true" : "false",
 		meterState->getMeterType(),
@@ -999,7 +1015,8 @@ void AmsWebServer::configurationJson() {
 		networkConfig.dns2,
 		networkConfig.mdns ? "true" : "false",
 		ntpConfig.server,
-		ntpConfig.dhcp ? "true" : "false"
+		ntpConfig.dhcp ? "true" : "false",
+		networkConfig.ipv6 ? "true" : "false"
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_MQTT_JSON,

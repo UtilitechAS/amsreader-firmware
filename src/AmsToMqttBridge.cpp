@@ -205,18 +205,30 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 	if(setupMode) return; // None of this necessary in setup mode
 	if(ch != NULL) ch->eventHandler(event, info);
 	switch(event) {
+		case ARDUINO_EVENT_WIFI_STA_CONNECTED: {
+			dnsState = 0;
+			if(ch != NULL) {
+				NetworkConfig conf;
+				ch->getCurrentConfig(conf);
+				dnsState = conf.ipv6 ? 2 : 0; // Never reset if IPv6 is enabled
+				debugI_P(PSTR("IPv6 enabled, not monitoring DNS poisoning"));
+			}
+			break;
+		}
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
-			const ip_addr_t* dns = dns_getserver(0);
-			memcpy(&dns0, dns, sizeof(dns0));
+			if(dnsState == 0) {
+				const ip_addr_t* dns = dns_getserver(0);
+				memcpy(&dns0, dns, sizeof(dns0));
 
-			IPAddress res;
-			int ret = WiFi.hostByName("hub.amsleser.no", res);
-			if(ret == 0) {
-				dnsState = 2;
-				debugI_P(PSTR("No DNS, probably a closed network"));
-			} else {
-				debugI_P(PSTR("DNS is present and working, monitoring"));
-				dnsState = 1;
+				IPAddress res;
+				int ret = WiFi.hostByName("hub.amsleser.no", res);
+				if(ret == 0) {
+					dnsState = 2;
+					debugI_P(PSTR("No DNS, probably a closed network"));
+				} else {
+					debugI_P(PSTR("DNS is present and working, monitoring DNS poisoning"));
+					dnsState = 1;
+				}
 			}
 			break;
 		}

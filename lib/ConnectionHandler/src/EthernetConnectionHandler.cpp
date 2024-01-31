@@ -8,6 +8,8 @@
 
 #if defined(ESP32)
 #include <ETH.h>
+#include <esp_wifi.h>
+#include <lwip/dns.h>
 #endif
 
 EthernetConnectionHandler::EthernetConnectionHandler(RemoteDebug* debugger) {
@@ -125,11 +127,34 @@ void EthernetConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_t 
             break;
         case ARDUINO_EVENT_ETH_GOT_IP:
             if(debugger->isActive(RemoteDebug::INFO)) {
-                debugger->printf_P(PSTR("IP:  %s\n"), ETH.localIP().toString().c_str());
-                debugger->printf_P(PSTR("GW:  %s\n"), ETH.gatewayIP().toString().c_str());
-                debugger->printf_P(PSTR("DNS: %s\n"), ETH.dnsIP().toString().c_str());
+                debugger->printf_P(PSTR("IP:  %s\n"), getIP().toString().c_str());
+                debugger->printf_P(PSTR("GW:  %s\n"), getGateway().toString().c_str());
+				for(uint8_t i = 0; i < 3; i++) {
+					IPAddress dns4 = getDns(i);
+					if(!dns4.isAny()) debugger->printf_P(PSTR("DNS: %s\n"), dns4.toString().c_str());
+				}
             }
-            break;
+			break;
+		case ARDUINO_EVENT_ETH_GOT_IP6: {
+            if(debugger->isActive(RemoteDebug::INFO)) {
+				IPv6Address ipv6 = getIPv6();
+				if(ipv6 == IPv6Address()) {
+					// No IP
+				} else {
+					debugger->printf_P(PSTR("IPv6:  %s\n"), ipv6.toString().c_str());
+				}
+
+				for(uint8_t i = 0; i < 3; i++) {
+					IPv6Address dns6 = getDNSv6(i);
+					if(dns6 == IPv6Address()) {
+						// No IP
+					} else {
+						debugger->printf_P(PSTR("DNSv6: %s\n"), dns6.toString().c_str());
+					}
+				}
+            }
+			break;
+		}
         case ARDUINO_EVENT_ETH_DISCONNECTED:
             connected = false;
             if(debugger->isActive(RemoteDebug::WARNING)) {
@@ -179,3 +204,23 @@ IPAddress EthernetConnectionHandler::getDns(uint8_t idx) {
     return NULL;
     #endif
 }
+
+#if defined(ESP32)
+IPv6Address EthernetConnectionHandler::getIPv6() {
+	esp_ip6_addr_t addr;
+	if(esp_netif_get_ip6_global(get_esp_interface_netif(ESP_IF_ETH), &addr) == ESP_OK) {
+		return IPv6Address(addr.addr);
+	}
+	return IPv6Address();
+}
+
+IPv6Address EthernetConnectionHandler::getDNSv6(uint8_t idx) {
+	for(uint8_t i = 0; i < 3; i++) {
+		const ip_addr_t * dns = dns_getserver(i);
+		if(dns->type == IPADDR_TYPE_V6) {
+			if(idx-- == 0) return IPv6Address(dns->u_addr.ip6.addr);
+		}
+	}
+	return IPv6Address();
+}
+#endif

@@ -199,8 +199,18 @@
             {translations.conf?.network?.gw ?? "Gateway"}: {sysinfo.net.gw}
         </div>
         <div class="my-2">
-            {translations.conf?.network?.dns ?? "DNS"}: {sysinfo.net.dns1} {#if sysinfo.net.dns2}/ {sysinfo.net.dns2}{/if}
+            {#if sysinfo.net.dns1}{translations.conf?.network?.dns ?? "DNS"}: {sysinfo.net.dns1}{/if}
+            {#if sysinfo.net.dns2}{translations.conf?.network?.dns ?? "DNS"}: {sysinfo.net.dns2}{/if}
         </div>
+        {#if sysinfo.net.ipv6}
+            <div class="my-2">
+                IPv6: {sysinfo.net.ipv6}
+            </div>
+            <div class="my-2">
+                {#if sysinfo.net.dns1v6}DNSv6: {sysinfo.net.dns1v6}{/if}
+                {#if sysinfo.net.dns2v6}DNSv6: {sysinfo.net.dns2v6}{/if}
+            </div>
+        {/if}
     </div>
     {/if}
     <div class="cnt">

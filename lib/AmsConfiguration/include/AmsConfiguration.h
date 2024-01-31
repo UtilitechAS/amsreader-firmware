@@ -72,7 +72,7 @@ struct NetworkConfig {
 	uint8_t power;
 	uint8_t sleep;
 	uint8_t use11b;
-	bool unused;
+	bool ipv6;
 	uint8_t mode;
 }; // 214
 

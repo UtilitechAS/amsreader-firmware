@@ -81,7 +81,7 @@
         },
         w: { s: '', p: '', w: 0.0, z: 255, a: true, b: true },
         n: {
-            m: '', i: '', s: '', g: '', d1: '', d2: '', d: false, n1: '', n2: '', h: false
+            m: '', i: '', s: '', g: '', d1: '', d2: '', d: false, n1: '', n2: '', h: false, x: false
         },
         q: {
             h: '', p: 1883, u: '', a: '', b: '',
@@ -558,6 +558,9 @@
                 </div>
             </div>
             {/if}
+            <div class="my-1">
+                <label><input name="nx" value="true" bind:checked={configuration.n.x} type="checkbox" class="rounded mb-1"/> IPv6</label>
+            </div>
             <div class="my-1">
                 <label><input name="nd" value="true" bind:checked={configuration.n.d} type="checkbox" class="rounded mb-1"/> {translations.conf?.network?.tick_mdns ?? "mDNS"}</label>
             </div>

@@ -1924,9 +1924,11 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 	#if defined(ESP8266)
 		ESP8266HTTPUpdate httpUpdate = ESP8266HTTPUpdate(60000);
 		String currentVersion = FirmwareVersion::VersionString;
+		ESP.wdtEnable(300000);
 	#elif defined(ESP32)
 		HTTPUpdate httpUpdate = HTTPUpdate(60000);
 		String currentVersion = String(FirmwareVersion::VersionString) + "-" + chipType;
+		esp_task_wdt_init(300, true);
 	#endif
 
 	httpUpdate.rebootOnUpdate(false);
@@ -2293,6 +2295,7 @@ void AmsWebServer::realtimeJson() {
 		snprintf_P(buf, BufferSize, PSTR("%s%d"), first ? "" : ",", rtp->getValue(i));
 		server.sendContent(buf);
 		first = false;
+		delay(1);
 	}
 	snprintf_P(buf, BufferSize, PSTR("]}"));
 	server.sendContent(buf);

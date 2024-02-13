@@ -26,7 +26,7 @@ ADC_MODE(ADC_VCC);
 #include "CloudConnector.h"
 #endif
 
-#define WDT_TIMEOUT 60
+#define WDT_TIMEOUT 120
 
 #define METER_SOURCE_NONE 0
 #define METER_SOURCE_GPIO 1

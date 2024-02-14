@@ -1452,7 +1452,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("m")) && server.arg(F("m")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received meter config\n"));
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
 		meterConfig.source = server.arg(F("mo")).toInt();
@@ -1495,7 +1494,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("w")) && server.arg(F("w")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received WiFi config\n"));
 		NetworkConfig network;
 		config->getNetworkConfig(network);
 		strcpy(network.ssid, server.arg(F("ws")).c_str());
@@ -1539,7 +1537,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("q")) && server.arg(F("q")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received MQTT config\n"));
 		MqttConfig mqtt;
 		config->getMqttConfig(mqtt);
 		if(server.hasArg(F("qh")) && !server.arg(F("qh")).isEmpty()) {
@@ -1570,7 +1567,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("o")) && server.arg(F("o")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Domoticz config\n"));
 		DomoticzConfig domo {
 			static_cast<uint16_t>(server.arg(F("oe")).toInt()),
 			static_cast<uint16_t>(server.arg(F("ou1")).toInt()),
@@ -1582,7 +1578,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("h")) && server.arg(F("h")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Home-Assistant config\n"));
 		HomeAssistantConfig haconf;
 		config->getHomeAssistantConfig(haconf);
 		strcpy(haconf.discoveryPrefix, server.arg(F("ht")).c_str());
@@ -1592,7 +1587,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("g")) && server.arg(F("g")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received web config\n"));
 		webConfig.security = server.arg(F("gs")).toInt();
 		if(webConfig.security > 0) {
 			strcpy(webConfig.username, server.arg(F("gu")).c_str());
@@ -1623,7 +1617,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("i")) && server.arg(F("i")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received GPIO config\n"));
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
 		meterConfig.rxPin = server.hasArg(F("ihp")) && !server.arg(F("ihp")).isEmpty() ? server.arg(F("ihp")).toInt() : 3;
@@ -1653,7 +1646,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("iv")) && server.arg(F("iv")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Vcc config\n"));
 		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toFloat() * 100 : 0;
 		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toFloat() * 1000 : 1000;
 		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? server.arg(F("ivb")).toFloat() * 10 : 0;
@@ -1661,7 +1653,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("d")) && server.arg(F("d")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received Debug config\n"));
 		DebugConfig debug;
 		config->getDebugConfig(debug);
 		bool active = debug.serial || debug.telnet;
@@ -1713,8 +1704,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("p")) && server.arg(F("p")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received price API config\n"));
-
 		priceRegion = server.arg(F("pr"));
 
 		PriceServiceConfig price;
@@ -1726,7 +1715,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("t")) && server.arg(F("t")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received energy accounting config\n"));
 		EnergyAccountingConfig eac;
 		eac.thresholds[0] = server.arg(F("t0")).toInt();
 		eac.thresholds[1] = server.arg(F("t1")).toInt();
@@ -1742,7 +1730,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("c")) && server.arg(F("c")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received cloud config\n"));
 		SystemConfig sys;
 		config->getSystemConfig(sys);
 		sys.energyspeedometer = server.hasArg(F("ces")) && server.arg(F("ces")) == F("true") ? 7 : 0;
@@ -1755,7 +1742,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("r")) && server.arg(F("r")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received price config\n"));
 		if(ps != NULL) {
 			uint8_t count = server.arg(F("rc")).toInt();
 			for(uint8_t i = 0; i < count; i++) {
@@ -1966,7 +1952,6 @@ void AmsWebServer::firmwareHtml() {
 }
 
 void AmsWebServer::firmwarePost() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Handling firmware post...\n"));
 	if(!checkSecurity(1))
 		return;
 	

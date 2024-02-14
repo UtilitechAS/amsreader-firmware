@@ -243,7 +243,6 @@ bool PriceService::loop() {
     }
     
     if(currentDay != tm.Day) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Rotating price objects at %lu\n"), t);
         if(today != NULL) delete today;
         if(tomorrow != NULL) {
             today = tomorrow;
@@ -295,8 +294,6 @@ bool PriceService::loop() {
 bool PriceService::retrieve(const char* url, Stream* doc) {
     #if defined(ESP32)
         if(http->begin(url)) {
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Connection established\n"));
-
             #if defined(ESP32)
                 esp_task_wdt_reset();
             #elif defined(ESP8266)
@@ -312,7 +309,6 @@ bool PriceService::retrieve(const char* url, Stream* doc) {
             #endif
 
             if(status == HTTP_CODE_OK) {
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Receiving data\n"));
                 http->writeToStream(doc);
                 http->end();
                 lastError = 0;
@@ -359,15 +355,11 @@ float PriceService::getCurrencyMultiplier(const char* from, const char* to, time
 
         float currencyMultiplier = 0;
         snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), from);
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Retrieving %s to NOK conversion\n"), from);
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
         if(retrieve(buf, &p)) {
             if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  got exchange rate %.4f\n"), p.getValue());
             currencyMultiplier = p.getValue();
             if(strncmp(to, "NOK", 3) != 0) {
                 snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), to);
-                if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Retrieving %s to NOK conversion\n"), to);
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
                 if(retrieve(buf, &p)) {
                     if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  got exchange rate %.4f\n"), p.getValue());
                     if(p.getValue() > 0.0) {
@@ -455,26 +447,16 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
             #endif
 
             if(status == HTTP_CODE_OK) {
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Receiving data\n"));
                 data = http->getString();
                 http->end();
                 
                 uint8_t* content = (uint8_t*) (data.c_str());
-                if(debugger->isActive(RemoteDebug::DEBUG)) {
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received content for prices:\n"));
-                    debugPrint(content, 0, data.length());
-                }
 
                 DataParserContext ctx = {0,0,0,0};
                 ctx.length = data.length();
                 GCMParser gcm(key, auth);
                 int8_t gcmRet = gcm.parse(content, ctx);
-                if(debugger->isActive(RemoteDebug::DEBUG)) {
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Decrypted content for prices:\n"));
-                    debugPrint(content, 0, data.length());
-                }
                 if(gcmRet > 0) {
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService) Price data starting at: %d\n"), gcmRet);
                     PricesContainer* ret = new PricesContainer();
                     for(uint8_t i = 0; i < 25; i++) {
                         ret->points[i] = PRICE_NO_VALUE;

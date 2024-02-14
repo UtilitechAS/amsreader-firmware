@@ -26,7 +26,6 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
         for(uint8_t x = 0;  x < h->arrayLength-1; x++) {
             ptr = (uint8_t*) &descriptor[1];
             descriptor = (LngObisDescriptor*) ptr;
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(L&G) OBIS %d.%d.%d with type 0x%02X\n"), descriptor->obis[2], descriptor->obis[3], descriptor->obis[4], *data);
 
             CosemData* item = (CosemData*) data;
             if(descriptor->obis[2] == 1) {
@@ -34,22 +33,18 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                     if(descriptor->obis[4] == 0) {
                         o170 = getNumber(item);
                         listType = listType >= 1 ? listType : 1;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o170);
                     }
                 } else if(descriptor->obis[3] == 8) {
                     if(descriptor->obis[4] == 0) {
                         o180 = getNumber(item);
                         listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o180);
                         activeImportCounter = o180 / 1000.0;
                     } else if(descriptor->obis[4] == 1) {
                         o181 = getNumber(item);
                         listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o181);
                     } else if(descriptor->obis[4] == 2) {
                         o182 = getNumber(item);
                         listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o182);
                     }
                 } 
             } else if(descriptor->obis[2] == 2) {
@@ -57,22 +52,18 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                     if(descriptor->obis[4] == 0) {
                         o270 = getNumber(item);
                         listType = listType >= 2 ? listType : 2;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o270);
                     }
                 } else if(descriptor->obis[3] == 8) {
                     if(descriptor->obis[4] == 0) {
                         o280 = getNumber(item);
                         listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o280);
                         activeExportCounter = o280 / 1000.0;
                     } else if(descriptor->obis[4] == 1) {
                         o281 = getNumber(item);
                         listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o281);
                     } else if(descriptor->obis[4] == 2) {
                         o282 = getNumber(item);
                         listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o282);
                     }
                 } 
             } else if(descriptor->obis[2] == 96) {
@@ -83,19 +74,15 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                         str[item->oct.length] = '\0';
                         meterId = String(str);
                         listType = listType >= 2 ? listType : 2;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %s (oct)\n"), str);
                     } else if(descriptor->obis[4] == 1) {
                         char str[item->oct.length+1];
                         memcpy(str, item->oct.data, item->oct.length);
                         str[item->oct.length] = '\0';
                         meterModel = String(str);
                         listType = listType >= 2 ? listType : 2;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %s (oct)\n"), str);
                     }
                 }
             }
-
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("\n"));
 
             if(o170 > 0 || o270 > 0) {
                 int32_t sum = o170-o270;

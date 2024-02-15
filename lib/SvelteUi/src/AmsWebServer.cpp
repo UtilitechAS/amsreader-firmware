@@ -1523,6 +1523,7 @@ void AmsWebServer::handleSave() {
 				strcpy(network.dns2, "");
 			}
 		}
+		network.ipv6 = server.hasArg(F("nx")) && server.arg(F("nx")) == F("true");
 		network.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == F("true");
 		config->setNetworkConfig(network);
 	}

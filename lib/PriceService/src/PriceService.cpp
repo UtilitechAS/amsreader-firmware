@@ -431,6 +431,8 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
             tm.Day,
             config->currency
         );
+        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Fetching prices for %02d.%02d.%04d\n"), tm.Day, tm.Month, tm.Year+1970);
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
         #if defined(ESP8266)
         WiFiClient client;
         client.setTimeout(5000);

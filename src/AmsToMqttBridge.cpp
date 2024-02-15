@@ -321,7 +321,7 @@ void setup() {
 	hw.ledBlink(LED_BLUE, 1);
 
 	PriceServiceConfig price;
-	if(config.getPriceServiceConfig(price) && price.enabled && strlen(price.area) > 0) {
+	if(config.getPriceServiceConfig(price)) {
 		ps = new PriceService(&Debug);
 		ps->setup(price);
 		ws.setPriceService(ps);

@@ -1075,7 +1075,7 @@ void handleButton(unsigned long now) {
 void errorBlink() {
 	if(lastError == 3)
 		lastError = 0;
-	lastErrorBlink = millis();
+	lastErrorBlink = millis64();
 	while(lastError < 3) {
 		switch(lastError++) {
 			case 0:

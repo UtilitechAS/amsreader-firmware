@@ -712,7 +712,7 @@ void loop() {
 
 	if(config.isMeterChanged()) {
 		config.getMeterConfig(meterConfig);
-		if(meterConfig.source = METER_SOURCE_GPIO) {
+		if(meterConfig.source == METER_SOURCE_GPIO) {
 			switch(meterConfig.parser) {
 				case METER_PARSER_PASSIVE:
 					if(pulseMc != NULL) {

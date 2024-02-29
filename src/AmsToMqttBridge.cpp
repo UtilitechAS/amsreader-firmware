@@ -1152,7 +1152,7 @@ void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, 
 void errorBlink() {
 	if(lastError == 3)
 		lastError = 0;
-	lastErrorBlink = millis();
+	lastErrorBlink = millis64();
 	while(lastError < 3) {
 		switch(lastError++) {
 			case 0:

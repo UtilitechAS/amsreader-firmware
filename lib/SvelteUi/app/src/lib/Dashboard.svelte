@@ -1,6 +1,6 @@
 <script>
     import { pricesStore, dayPlotStore, monthPlotStore, temperaturesStore } from './DataStores.js';
-    import { ampcol, exportcol, metertype, uiVisibility } from './Helpers.js';
+    import { ampcol, exportcol, metertype, uiVisibility, formatUnit } from './Helpers.js';
     import { translationsStore } from './TranslationService.js';
     import PowerGauge from './PowerGauge.svelte';
     import VoltPlot from './VoltPlot.svelte';
@@ -37,6 +37,12 @@
     translationsStore.subscribe(update => {
       translations = update;
     });
+
+    let it,et;
+    $: {
+        it = formatUnit(data?.ic * 1000, "Wh");
+        et = formatUnit(data?.ec * 1000, "Wh");
+    }
 </script>
 
 <div class="grid 2xl:grid-cols-6 xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-2">
@@ -47,7 +53,7 @@
                     <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label={translations.common?.import ?? "Import"} sub={data.p} subunit={data.pc} colorFn={ampcol}/>
                 </div>
                 <div>{data.mt ? metertype(data.mt) : '-'}</div>
-                <div class="text-right">{data.ic ? data.ic.toFixed(1) : '-'} kWh</div>
+                <div class="text-right">{it[0]} {it[1]}</div>
             </div>
         </div>
     {/if}
@@ -58,7 +64,7 @@
                     <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om * 1000 : 10000} unit="W" label={translations.common?.export ?? "Export"} colorFn={exportcol}/>
                 </div>
                 <div></div>
-                <div class="text-right">{data.ec ? data.ec.toFixed(1) : '-'} kWh</div>
+                <div class="text-right">{et[0]} {et[1]}</div>
             </div>
         </div>
     {/if}

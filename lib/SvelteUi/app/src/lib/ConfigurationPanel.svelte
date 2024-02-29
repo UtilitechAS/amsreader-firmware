@@ -10,7 +10,6 @@
     import { Link, navigate } from 'svelte-navigator';
     import SubnetOptions from './SubnetOptions.svelte';
     import QrCode from 'svelte-qrcode';
-    import { scanForDevice } from './Helpers.js';
 
     export let basepath = "/";
     export let sysinfo = {};
@@ -153,13 +152,6 @@
         }
     }
 
-    function updateSysinfo(url) {
-        sysinfoStore.update(s => {
-            s.trying = url;
-            return s;
-        });
-    }
-
     async function handleSubmit(e) {
         saving = true;
 		const formData = new FormData(e.target);
@@ -185,7 +177,6 @@
                 s.net.gw = formData.get('ng');
                 s.net.dns1 = formData.get('nd');
             }
-            setTimeout(scanForDevice, 5000, sysinfo, updateSysinfo);
             return s;
         });
 
@@ -583,8 +574,8 @@
                 {/if}
                 <br/>
                 <div class="flex">
-                    <input name="qh" bind:value={configuration.q.h} type="text" class="in-f w-3/4"/>
-                    <input name="qp" bind:value={configuration.q.p} type="number" min="1024" max="65535" class="in-l tr w-1/4"/>
+                    <input name="qh" bind:value={configuration.q.h} type="text" class="in-f w-2/3"/>
+                    <input name="qp" bind:value={configuration.q.p} type="number" min="1024" max="65535" class="in-l tr w-1/3"/>
                 </div>
             </div>
             {#if configuration.q.s.e}

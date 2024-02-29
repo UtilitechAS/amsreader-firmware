@@ -255,7 +255,7 @@
                 <button type="button" on:click={()=>{firmwareFileInput.click();}} class="btn-pri-sm float-right">{translations.status?.firmware?.btn_select_file ?? "Select file"}</button>
                 {:else}
                 {firmwareFiles[0].name}
-                <button type="submit" class="btn-pri-sm float-right">{translations.btn?.upload ?? "Upload"}</button>
+                <button type="submit" class="btn-pri-sm float-right ml-2">{translations.btn?.upload ?? "Upload"}</button>
                 {/if}
             </form>
         </div>

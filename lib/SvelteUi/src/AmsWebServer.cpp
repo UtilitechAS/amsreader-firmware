@@ -1189,7 +1189,11 @@ void AmsWebServer::translationsJson() {
 		return;
 	}
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
+//	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
 	File file = LittleFS.open(buf, "r");
 	server.setContentLength(file.size());
 

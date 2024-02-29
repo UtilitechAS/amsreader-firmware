@@ -505,7 +505,11 @@ void setup() {
 	ws.setup(&config, &gpioConfig, &meterState, &ds, &ea, &rtp);
 
 	UiConfig ui;
-	if(config.getUiConfig(ui) && strlen(ui.language) > 0) {
+	if(config.getUiConfig(ui)) {
+		if(strlen(ui.language) == 0) {
+			strcpy(ui.language, "en");
+			config.setUiConfig(ui);
+		}
 		snprintf_P((char*) commonBuffer, BUF_SIZE_COMMON, PSTR("/translations-%s.json"), ui.language);
 		if(!LittleFS.exists((char*) commonBuffer)) {
 			debugI_P(PSTR("Marking %s for download"), commonBuffer);

@@ -78,15 +78,15 @@
             <Clock timestamp={ data.c ? new Date(data.c * 1000) : new Date(0) } offset={sysinfo.clock_offset} fullTimeColor="text-red-500" />
           </div>
           {#if sysinfo.vndcfg && sysinfo.usrcfg}
-          <div class="flex-none px-1 mt-1" title={translations.header?.config ?? ""}>
-            <Link to="/configuration">&#9881;</Link>
+          <div class="flex-none px-1 mt-1" style="font-size: 24px;font-weight:bold;" title={translations.header?.config ?? ""}>
+            <Link to="/configuration">&#9965;</Link>
           </div>
-          <div class="flex-none px-1 mt-1" title={translations.header?.status ?? ""}>
+          <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.status ?? ""}>
             <Link to="/status">&#9432;</Link>
           </div>
           {/if}
-          <div class="flex-none px-1 mt-1" title={translations.header?.doc ?? ""}>
-            <a href={wiki('')} target='_blank' rel="noreferrer">&#128462;</a>
+          <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.doc ?? ""}>
+            <a href={wiki('')} target='_blank' rel="noreferrer">&#128366;</a>
           </div>
           {#if sysinfo.fwconsent === 1 && nextVersion}
           <div class="flex-none mr-3 text-yellow-500" title={(translations.header?.new_version ?? "New version") + ': ' + nextVersion.tag_name}>

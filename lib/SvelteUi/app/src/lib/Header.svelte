@@ -4,7 +4,7 @@
     import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
     import { boardtype, isBusPowered, wiki, bcol } from './Helpers.js';
     import { translationsStore } from "./TranslationService.js";
-    import GitHubLogo from './../assets/github.svg';
+    import FavIco from './../assets/favicon.svg';
     import Uptime from "./Uptime.svelte";
     import Badge from './Badge.svelte';
     import Clock from './Clock.svelte';
@@ -72,7 +72,7 @@
         {/if}
       <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">
           <div class="flex-none">
-            <a class="float-right" href='https://github.com/UtilitechAS/amsreader-firmware' target='_blank' rel="noreferrer" aria-label="GitHub"><img class="gh-logo" src={(basepath + GitHubLogo).replace('//','/')} alt="GitHub repo"/></a>
+            <a class="float-right" href='https://github.com/UtilitechAS/amsreader-firmware' target='_blank' rel="noreferrer" aria-label="GitHub"><img class="gh-logo" src={(basepath + FavIco).replace('//','/')} alt="GitHub repo"/></a>
           </div>
           <div class="flex-none my-auto px-2">
             <Clock timestamp={ data.c ? new Date(data.c * 1000) : new Date(0) } offset={sysinfo.clock_offset} fullTimeColor="text-red-500" />

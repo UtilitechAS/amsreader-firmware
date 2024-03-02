@@ -106,7 +106,6 @@ private:
 	void indexHtml();
 	void indexJs();
 	void indexCss();
-	void githubSvg();
 	void faviconSvg();
 
     void sysinfoJson();

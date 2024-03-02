@@ -13,7 +13,6 @@
 #include "html/index_html.h"
 #include "html/index_css.h"
 #include "html/index_js.h"
-#include "html/github_svg.h"
 #include "html/favicon_svg.h"
 #include "html/data_json.h"
 #include "html/dayplot_json.h"
@@ -115,7 +114,6 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/mqtt-cert"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(context + F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	
-	server.on(context + F("/github.svg"), HTTP_GET, std::bind(&AmsWebServer::githubSvg, this)); 
 	server.on(context + F("/favicon.svg"), HTTP_GET, std::bind(&AmsWebServer::faviconSvg, this)); 
 	server.on(context + F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
 	server.on(context + F("/data.json"), HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
@@ -241,11 +239,6 @@ void AmsWebServer::notFound() {
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 	server.send_P(404, MIME_HTML, PSTR("Not found"));
-}
-
-void AmsWebServer::githubSvg() {
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
-	server.send_P(200, "image/svg+xml", GITHUB_SVG);
 }
 
 void AmsWebServer::faviconSvg() {

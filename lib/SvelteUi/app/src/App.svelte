@@ -1,6 +1,7 @@
 <script>
   import { Router, Route, navigate } from "svelte-navigator";
   import { getSysinfo, sysinfoStore, dataStore } from './lib/DataStores.js';
+  import { translationsStore, getTranslations } from "./lib/TranslationService.js";
   import Favicon from './assets/favicon.svg'; // Need this for the build
   import Header from './lib/Header.svelte';
   import Dashboard from './lib/Dashboard.svelte';
@@ -15,6 +16,11 @@
   
   let basepath = document.getElementsByTagName('base')[0].getAttribute("href");
   if(!basepath) basepath = "/";
+
+  let translations = {};
+  translationsStore.subscribe(update => {
+    translations = update;
+  });
 
   let sysinfo = {};
   sysinfoStore.subscribe(update => {
@@ -41,6 +47,10 @@
             console.log("light auto");
             document.documentElement.classList.remove('dark')
         }
+    }
+
+    if(sysinfo.ui.lang && sysinfo.ui.lang != translations?.language?.code) {
+      getTranslations(sysinfo.ui.lang);
     }
   });
   getSysinfo();

@@ -1174,6 +1174,7 @@ void AmsWebServer::translationsJson() {
 			lang = String(ui.language);
 		}
 	}
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Sending translation file for language: %s\n"), lang.c_str());
 
 	snprintf_P(buf, BufferSize, PSTR("/translations-%s.json"), lang.c_str());
 	if(!LittleFS.exists(buf)) {
@@ -1181,6 +1182,7 @@ void AmsWebServer::translationsJson() {
 		notFound();
 		return;
 	}
+	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Language file %s\n"), buf);
 
 //	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);

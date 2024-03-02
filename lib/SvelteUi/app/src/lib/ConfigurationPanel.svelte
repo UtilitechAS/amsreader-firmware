@@ -177,11 +177,6 @@
                 s.net.gw = formData.get('ng');
                 s.net.dns1 = formData.get('nd');
             }
-            return s;
-        });
-
-        sysinfoStore.update(s => {
-            s.booting = res.reboot;
             s.ui = configuration.u;
             return s;
         });
@@ -258,6 +253,7 @@
         if(configuration.u.lang == 'hub') {
             const response = await fetchWithTimeout("http://hub.amsleser.no/hub/language/list.json");
             languages = (await response.json())
+            configuration.u.lang = translations.language.code;
         }
     }
 

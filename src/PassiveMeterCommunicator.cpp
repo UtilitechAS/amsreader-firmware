@@ -487,11 +487,14 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		#endif
 	}
 
+	uint8_t uart_num = 0;
 	#if defined(ESP32)
 		hwSerial = &Serial1;
+		uart_num = UART_NUM_1;
 		#if defined(CONFIG_IDF_TARGET_ESP32)
 			if(pin == 16) {
 				hwSerial = &Serial2;
+				uart_num = UART_NUM_2;
 			}
 		#endif
 	#endif
@@ -531,7 +534,7 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		hwSerial->setRxBufferSize(64 * meterConfig.bufferSize);
 		#if defined(ESP32)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
-			uart_set_pin(UART_NUM_1, -1, pin, -1, -1);
+			uart_set_pin(uart_num, -1, pin, -1, -1);
 		#else
 			hwSerial->begin(baud, serialConfig, SERIAL_FULL, 1, invert);
 		#endif

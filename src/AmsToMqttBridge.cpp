@@ -78,7 +78,7 @@ ADC_MODE(ADC_VCC);
 
 #include "MeterCommunicator.h"
 #include "PassiveMeterCommunicator.h"
-//#include "KamstrupPullCommunicator.h"
+#include "KmpCommunicator.h"
 #include "PulseMeterCommunicator.h"
 
 #include "Uptime.h"
@@ -171,7 +171,7 @@ RealtimePlot rtp;
 
 MeterCommunicator* mc = NULL;
 PassiveMeterCommunicator* passiveMc = NULL;
-//KamstrupPullCommunicator* kamstrupMc = NULL;
+KmpCommunicator* kmpMc = NULL;
 PulseMeterCommunicator* pulseMc = NULL;
 
 bool networkConnected = false;
@@ -260,11 +260,9 @@ void rxerr(int err) {
 	if(passiveMc != NULL) {
 		passiveMc->rxerr(err);
 	}
-	/*
-	if(kamstrupMc != NULL) {
-		kamstrupMc->rxerr(err);
+	if(kmpMc != NULL) {
+		kmpMc->rxerr(err);
 	}
-	*/
 }
 #endif
 
@@ -723,12 +721,10 @@ void loop() {
 						delete pulseMc;
 						pulseMc = NULL;
 					}
-					/*
-					if(kamstrupMc != NULL) {
-						delete(kamstrupMc);
-						kamstrupMc = NULL;
+					if(kmpMc != NULL) {
+						delete(kmpMc);
+						kmpMc = NULL;
 					}
-					*/
 					if(passiveMc == NULL) {
 						passiveMc = new PassiveMeterCommunicator(&Debug);
 					}
@@ -736,7 +732,6 @@ void loop() {
 					hwSerial = passiveMc->getHwSerial();
 					mc = passiveMc;
 					break;
-					/*
 				case METER_PARSER_KAMSTRUP:
 					if(pulseMc != NULL) {
 						delete pulseMc;
@@ -746,20 +741,18 @@ void loop() {
 						delete(passiveMc);
 						passiveMc = NULL;
 					}
-					if(kamstrupMc == NULL) {
-						kamstrupMc = new KamstrupPullCommunicator(&Debug);
+					if(kmpMc == NULL) {
+						kmpMc = new KmpCommunicator(&Debug);
 					}
-					kamstrupMc->configure(meterConfig, tz);
-					hwSerial = kamstrupMc->getHwSerial();
-					mc = kamstrupMc;
-					break;*/
+					kmpMc->configure(meterConfig, tz);
+					hwSerial = kmpMc->getHwSerial();
+					mc = kmpMc;
+					break;
 				case METER_PARSER_PULSE:
-				/*
-					if(kamstrupMc != NULL) {
-						delete(kamstrupMc);
-						kamstrupMc = NULL;
+					if(kmpMc != NULL) {
+						delete(kmpMc);
+						kmpMc = NULL;
 					}
-					*/
 					if(passiveMc != NULL) {
 						delete(passiveMc);
 						passiveMc = NULL;

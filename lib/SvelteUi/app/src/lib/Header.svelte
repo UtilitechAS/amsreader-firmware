@@ -14,7 +14,7 @@
     let sysinfo = {};
 
     let nextVersion = {};
- 
+
     function askUpgrade() {
         if(confirm((translations.header?.upgrade ?? "Upgrade to {0}?").replace('{0}',nextVersion.tag_name))) {
           if(!isBusPowered(sysinfo.board) || confirm(upgradeWarningText(boardtype(sysinfo.chip, sysinfo.board)))) {
@@ -78,7 +78,7 @@
             <Clock timestamp={ data.c ? new Date(data.c * 1000) : new Date(0) } offset={sysinfo.clock_offset} fullTimeColor="text-red-500" />
           </div>
           {#if sysinfo.vndcfg && sysinfo.usrcfg}
-          <div class="flex-none px-1 mt-1" style="font-size: 24px;font-weight:bold;" title={translations.header?.config ?? ""}>
+          <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.config ?? ""}>
             <Link to="/configuration">&#9965;</Link>
           </div>
           <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.status ?? ""}>
@@ -86,7 +86,7 @@
           </div>
           {/if}
           <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.doc ?? ""}>
-            <a href={wiki('')} target='_blank' rel="noreferrer">&#128366;</a>
+            <a href={wiki('')} target='_blank' rel="noreferrer">&#128464;</a>
           </div>
           {#if sysinfo.fwconsent === 1 && nextVersion}
           <div class="flex-none mr-3 text-yellow-500" title={(translations.header?.new_version ?? "New version") + ': ' + nextVersion.tag_name}>

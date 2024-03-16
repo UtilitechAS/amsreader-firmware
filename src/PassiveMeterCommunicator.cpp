@@ -466,9 +466,10 @@ void PassiveMeterCommunicator::printHanReadError(int pos) {
 }
 
 void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal, bool invert) {
-	uint8_t pin = meterConfig.rxPin;
+	int8_t rxpin = meterConfig.rxPin;
+	int8_t txpin = meterConfig.txPin;
 
-	if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n"), pin, baud, parityOrdinal);
+	if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(setupHanPort) Setting up HAN on pin %d/%d with baud %d and parity %d\n"), rxpin, txpin, baud, parityOrdinal);
 
 	if(baud == 0) {
 		baud = bauds[meterAutoIndex];
@@ -479,7 +480,7 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		parityOrdinal = 3; // 8N1
 	}
 
-	if(pin == 3 || pin == 113) {
+	if(rxpin == 3 || rxpin == 113) {
 		#if ARDUINO_USB_CDC_ON_BOOT
 			hwSerial = &Serial0;
 		#else
@@ -492,14 +493,14 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		hwSerial = &Serial1;
 		uart_num = UART_NUM_1;
 		#if defined(CONFIG_IDF_TARGET_ESP32)
-			if(pin == 16) {
+			if(rxpin == 16) {
 				hwSerial = &Serial2;
 				uart_num = UART_NUM_2;
 			}
 		#endif
 	#endif
 
-	if(pin == 0) {
+	if(rxpin == 0) {
 		if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Invalid GPIO configured for HAN\n"));
 		return;
 	}
@@ -534,7 +535,7 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		hwSerial->setRxBufferSize(64 * meterConfig.bufferSize);
 		#if defined(ESP32)
 			hwSerial->begin(baud, serialConfig, -1, -1, invert);
-			uart_set_pin(uart_num, -1, pin, -1, -1);
+			uart_set_pin(uart_num, txpin, rxpin, -1, -1);
 		#else
 			hwSerial->begin(baud, serialConfig, SERIAL_FULL, 1, invert);
 		#endif
@@ -551,13 +552,13 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 
  		// Prevent pullup on TX pin if not uart0
 		#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32S3)
-			pinMode(17, INPUT);
+			if(txpin != 17) pinMode(17, INPUT);
 		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-			pinMode(7, INPUT);
+			if(txpin != 7) pinMode(7, INPUT);
 		#elif defined(ESP32)
-			if(pin == 9) {
+			if(rxpin == 9 && txpin != 10) {
 				pinMode(10, INPUT);
-			} else if(pin == 16) {
+			} else if(rxpin == 16 && txpin != 17) {
 				pinMode(17, INPUT);
 			}
 		#elif defined(ESP8266)
@@ -580,7 +581,7 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 			Serial.flush();
 			
 			if(swSerial == NULL) {
-				swSerial = new SoftwareSerial(pin, -1, invert);
+				swSerial = new SoftwareSerial(rxpin, txpin, invert);
 			} else {
 				swSerial->end();
 			}
@@ -606,7 +607,7 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 			if(bufferSize > 2) bufferSize = 2;
 			#endif
 			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Using serial buffer size %d"), 64 * bufferSize);
-			swSerial->begin(baud, serialConfig, pin, -1, invert, meterConfig.bufferSize * 64);
+			swSerial->begin(baud, serialConfig, rxpin, txpin, invert, meterConfig.bufferSize * 64);
 			hanSerial = swSerial;
 
 			Serial.end();

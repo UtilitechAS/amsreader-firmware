@@ -275,7 +275,23 @@ void setup() {
 	if(!config.getGpioConfig(gpioConfig)) {
 		config.clearGpio(gpioConfig);
 	}
-	if(!config.getSystemConfig(sysConfig)) {
+	if(config.getSystemConfig(sysConfig)) {
+		switch(sysConfig.boardType) {
+			case 5:
+			case 6:
+			case 7:
+				config.clearGpio(gpioConfig);
+				gpioConfig.apPin = 0;
+				gpioConfig.ledPinRed = 13;
+				gpioConfig.ledPinGreen = 14;
+				gpioConfig.ledRgbInverted = true;
+				gpioConfig.vccPin = 10;
+				gpioConfig.vccResistorGnd = 22;
+				gpioConfig.vccResistorVcc = 33;
+				gpioConfig.ledDisablePin = 6;
+				break;
+		}
+	} else {
 		sysConfig.boardType = 0;
 		sysConfig.vendorConfigured = false;
 		sysConfig.userConfigured = false;

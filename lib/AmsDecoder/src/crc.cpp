@@ -21,7 +21,7 @@ uint16_t crc16 (const uint8_t *p, int len) {
     uint16_t crc = 0;
 
     while (len--) {
-		int i;
+		uint8_t i;
 		crc ^= *p++;
 		for (i = 0 ; i < 8 ; ++i) {
 			if (crc & 1)
@@ -32,4 +32,22 @@ uint16_t crc16 (const uint8_t *p, int len) {
     }
     
     return crc;
+}
+
+uint16_t crc16_ccit(const uint8_t *p, int len)
+{
+    int  crc;
+    char i;
+    crc = 0;
+    while (len--) {
+        uint8_t i;
+      	crc = crc ^ (uint8_t) *p++ << 8;
+		for (i = 0 ; i < 8 ; ++i) {
+			if (crc & 0x8000)
+				crc = crc << 1 ^ 0x1021;
+			else
+				crc = crc << 1;
+		}
+   }
+   return (crc);
 }

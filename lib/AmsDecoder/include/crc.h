@@ -12,5 +12,6 @@
 
 uint16_t crc16(const uint8_t* p, int len);
 uint16_t crc16_x25(const uint8_t* p, int len);
+uint16_t crc16_ccit(const uint8_t* p, int len);
 
 #endif

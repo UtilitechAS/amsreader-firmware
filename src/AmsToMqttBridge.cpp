@@ -346,6 +346,15 @@ void setup() {
 	Serial.flush();
 	Serial.end();
 	config.getMeterConfig(meterConfig);
+	switch(sysConfig.boardType) {
+		case 5:
+		case 6:
+		case 7:
+			meterConfig.rxPin = 16;
+			meterConfig.txPin = 9;
+			break;
+	}
+
 	if(meterConfig.rxPin == 3) {
 		shared = true;
 		#if defined(ESP8266)

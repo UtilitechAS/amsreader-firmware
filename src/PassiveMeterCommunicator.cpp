@@ -523,6 +523,9 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 			case 3:
 				serialConfig = SERIAL_8N1;
 				break;
+			case 7:
+				serialConfig = SERIAL_8N2;
+				break;
 			case 10:
 				serialConfig = SERIAL_7E1;
 				break;
@@ -593,6 +596,9 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 					break;
 				case 3:
 					serialConfig = SWSERIAL_8N1;
+					break;
+				case 7:
+					serialConfig = SWSERIAL_8N2;
 					break;
 				case 10:
 					serialConfig = SWSERIAL_7E1;

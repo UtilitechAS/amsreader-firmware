@@ -369,6 +369,9 @@ void setup() {
 			case 3:
 				serialConfig = SERIAL_8N1;
 				break;
+			case 7:
+				serialConfig = SERIAL_8N2;
+				break;
 			case 10:
 				serialConfig = SERIAL_7E1;
 				break;
@@ -1587,6 +1590,7 @@ void configFileParse() {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			if(strncmp_P(buf+12, PSTR("7N1"), 3) == 0) meter.parity = 2;
 			if(strncmp_P(buf+12, PSTR("8N1"), 3) == 0) meter.parity = 3;
+			if(strncmp_P(buf+12, PSTR("8N2"), 3) == 0) meter.parity = 7;
 			if(strncmp_P(buf+12, PSTR("7E1"), 3) == 0) meter.parity = 10;
 			if(strncmp_P(buf+12, PSTR("8E1"), 3) == 0) meter.parity = 11;
 		} else if(strncmp_P(buf, PSTR("meterInvert "), 12) == 0) {

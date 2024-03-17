@@ -404,6 +404,7 @@
                             <option value={0} disabled={configuration.m.b != 0}>-</option>
                             <option value={2}>7N1</option>
                             <option value={3}>8N1</option>
+                            <option value={7}>8N2</option>
                             <option value={10}>7E1</option>
                             <option value={11}>8E1</option>
                         </select>

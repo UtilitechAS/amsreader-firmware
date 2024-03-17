@@ -2389,6 +2389,9 @@ void AmsWebServer::configFileDownload() {
 			case 3:
 				strcpy_P(parity, PSTR("8N1"));
 				break;
+			case 7:
+				strcpy_P(parity, PSTR("8N2"));
+				break;
 			case 10:
 				strcpy_P(parity, PSTR("7E1"));
 				break;

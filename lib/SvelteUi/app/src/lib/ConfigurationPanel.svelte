@@ -396,7 +396,7 @@
                     <div class="flex w-full">
                         <select name="mb" bind:value={configuration.m.b} class="in-f tr w-1/2">
                             <option value={0} disabled={configuration.m.b != 0}>Autodetect</option>
-                            {#each [24,48,96,192,384,576,1152] as b}
+                            {#each [3,12,24,48,96,192,384,576,1152] as b}
                             <option value={b*100}>{b*100}</option>
                             {/each}
                         </select>

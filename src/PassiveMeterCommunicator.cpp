@@ -544,10 +544,10 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		#endif
 		
 		#if defined(ESP8266)
-			if(pin == 3) {
+			if(rxpin == 3) {
 				if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Switching UART0 to pin 1 & 3\n"));
 				Serial.pins(1,3);
-			} else if(pin == 113) {
+			} else if(rxpin == 113) {
 				if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Switching UART0 to pin 15 & 13\n"));
 				Serial.pins(15,13);
 			}
@@ -565,7 +565,7 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 				pinMode(17, INPUT);
 			}
 		#elif defined(ESP8266)
-			if(pin == 113) {
+			if(rxpin == 113) {
 				pinMode(15, INPUT);
 			}
 		#endif

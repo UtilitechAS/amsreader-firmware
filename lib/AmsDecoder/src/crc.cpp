@@ -34,14 +34,13 @@ uint16_t crc16 (const uint8_t *p, int len) {
     return crc;
 }
 
-uint16_t crc16_1021(const uint8_t *p, int len)
-{
-	uint16_t crc = 0x0000;
-	for(uint16_t i = 0; i < len; i++) {
-		uint16_t mask = 0x80;
+uint16_t crc16_1021(const uint8_t *p, int len) {
+	uint32_t crc = 0x0000;
+	for(int i = 0; i < len; i++) {
+		int mask = 0x80;
 		while(mask > 0) {
 			crc <<= 1;
-			if (p[i] & mask) {
+			if (p[i] & mask){
 				crc |= 1;
 			}
 			mask>>=1;
@@ -52,5 +51,4 @@ uint16_t crc16_1021(const uint8_t *p, int len)
 		}
 	}
 	return crc;
-
 }

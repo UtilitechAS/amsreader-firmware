@@ -33,7 +33,6 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
         uint8_t ethMdio = 0;
 
         if(sys.boardType == 241) {
-			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("LilyGO T-ETH-POE\n"));
             ethType = ETH_PHY_LAN8720;
             ethEnablePin = -1;
             ethAddr = 0;
@@ -42,7 +41,6 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
             ethMdc = 23;
             ethMdio = 18;
         } else if(sys.boardType == 242) {
-			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("M5 PoESP32\n"));
             ethType = ETH_PHY_IP101;
             ethEnablePin = -1;
             ethAddr = 1;
@@ -51,7 +49,6 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
             ethMdc = 23;
             ethMdio = 18;
         } else if(sys.boardType == 243) {
-			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("WT32-ETH01\n"));
             ethType = ETH_PHY_LAN8720;
             ethEnablePin = -1;
             ethAddr = 1;

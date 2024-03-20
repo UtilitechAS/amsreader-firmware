@@ -18,7 +18,6 @@ bool PulseMeterCommunicator::loop() {
 
 AmsData* PulseMeterCommunicator::getData(AmsData& meterState) {
     if(!initialized) {
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Initializing pulse meter state\n"));
         state.apply(meterState);
         initialized = true;
         return NULL;
@@ -65,7 +64,6 @@ void PulseMeterCommunicator::onPulse(uint8_t pulses) {
         return;
     }
     if(!initialized) {
-        if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Pulse communicator not initialized\n"));
         return;
     }
 

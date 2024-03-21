@@ -702,7 +702,7 @@
                 </div>
             </div>
         {/if}
-        {#if configuration.p.r.startsWith("10YNO") || configuration.p.r.startsWith('10Y1001A1001A4')}
+        {#if configuration.p.r.startsWith("NO") || configuration.p.r.startsWith("10YNO") || configuration.p.r.startsWith('10Y1001A1001A4')}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.thresholds?.title ?? "Thresholds"}</strong>
                 <a href="{wiki('Threshold-configuration')}" target="_blank" class="float-right">&#9432;</a>

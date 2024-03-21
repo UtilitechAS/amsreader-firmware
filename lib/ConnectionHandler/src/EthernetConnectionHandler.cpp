@@ -32,7 +32,7 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
         uint8_t ethMdc = 0;
         uint8_t ethMdio = 0;
 
-        if(sys.boardType == 241) {
+        if(sys.boardType == 241) { // LilyGO T-ETH-POE
             ethType = ETH_PHY_LAN8720;
             ethEnablePin = -1;
             ethAddr = 0;
@@ -40,7 +40,7 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
             ethPowerPin = 5;
             ethMdc = 23;
             ethMdio = 18;
-        } else if(sys.boardType == 242) {
+        } else if(sys.boardType == 242) { // M5 PoESP32
             ethType = ETH_PHY_IP101;
             ethEnablePin = -1;
             ethAddr = 1;
@@ -48,7 +48,7 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
             ethPowerPin = 5;
             ethMdc = 23;
             ethMdio = 18;
-        } else if(sys.boardType == 243) {
+        } else if(sys.boardType == 243) { // WT32-ETH01
             ethType = ETH_PHY_LAN8720;
             ethEnablePin = -1;
             ethAddr = 1;

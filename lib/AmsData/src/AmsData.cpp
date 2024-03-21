@@ -14,23 +14,27 @@ void AmsData::apply(AmsData& other) {
 
         if(ms > 0) {
             if(other.getActiveImportPower() > 0) {
-                float add = other.getActiveImportPower() * (((float) ms) / 3600000.0);
+                uint32_t power = (activeImportPower + other.getActiveImportPower()) / 2;
+                float add = power * (((float) ms) / 3600000.0);
                 activeImportCounter += add / 1000.0;
                 //Serial.printf("%dW, %dms, %.6fkWh added\n", other.getActiveImportPower(), ms, add);
             }
 
             if(other.getListType() > 1) {
-                ms = this->lastUpdateMillis > other.getLastUpdateMillis() ? 0 : other.getLastUpdateMillis() - this->lastList2;
+                ms = this->lastList2 > other.getLastUpdateMillis() ? 0 : other.getLastUpdateMillis() - this->lastList2;
                 if(other.getActiveExportPower() > 0) {
-                    float add = other.getActiveExportPower() * (((float) ms) / 3600000.0);
+                    uint32_t power = (activeExportPower + other.getActiveExportPower()) / 2;
+                    float add = power * (((float) ms) / 3600000.0);
                     activeExportCounter += add / 1000.0;
                 }
                 if(other.getReactiveImportPower() > 0) {
-                    float add = other.getReactiveImportPower() * (((float) ms) / 3600000.0);
+                    uint32_t power = (reactiveImportPower + other.getReactiveImportPower()) / 2;
+                    float add = power * (((float) ms) / 3600000.0);
                     reactiveImportCounter += add / 1000.0;
                 }
                 if(other.getReactiveExportPower() > 0) {
-                    float add = other.getReactiveExportPower() * (((float) ms) / 3600000.0);
+                    uint32_t power = (reactiveExportPower + other.getReactiveExportPower()) / 2;
+                    float add = power * (((float) ms) / 3600000.0);
                     reactiveExportCounter += add / 1000.0;
                 }
             }

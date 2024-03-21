@@ -267,6 +267,12 @@ bool AmsConfiguration::setMeterConfig(MeterConfig& config) {
 		meterChanged |= config.rxPin != existing.rxPin;
 		meterChanged |= config.rxPinPullup != existing.rxPinPullup;
 		meterChanged |= config.txPin != existing.txPin;
+		meterChanged |= config.wattageMultiplier != existing.wattageMultiplier;
+		meterChanged |= config.voltageMultiplier != existing.voltageMultiplier;
+		meterChanged |= config.amperageMultiplier != existing.amperageMultiplier;
+		meterChanged |= config.accumulatedMultiplier != existing.accumulatedMultiplier;
+		meterChanged |= config.source != existing.source;
+		meterChanged |= config.parser != existing.parser;
 	} else {
 		meterChanged = true;
 	}

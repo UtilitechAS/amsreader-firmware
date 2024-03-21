@@ -90,7 +90,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
     if(local.Hour != this->realtimeData->currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
         tmElements_t oneHrAgo, oneHrAgoLocal;
         breakTime(now-3600, oneHrAgo);
-        uint16_t val = ds->getHourImport(oneHrAgo.Hour) / 10;
+        uint16_t val = round(ds->getHourImport(oneHrAgo.Hour) / 10.0);
 
         breakTime(tz->toLocal(now-3600), oneHrAgoLocal);
         ret |= updateMax(val, oneHrAgoLocal.Day);

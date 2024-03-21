@@ -15,20 +15,20 @@ struct DayDataPoints {
     uint8_t version;
     uint16_t hImport[24];
     time_t lastMeterReadTime;
-    uint32_t activeImport;
-    uint32_t activeExport;
+    uint64_t activeImport;
     uint16_t hExport[24];
     uint8_t accuracy;
-}; // 113 bytes
+    uint64_t activeExport;
+};
 
 struct MonthDataPoints {
     uint8_t version;
     uint16_t dImport[31];
     time_t lastMeterReadTime;
-    uint32_t activeImport;
-    uint32_t activeExport;
+    uint64_t activeImport;
     uint16_t dExport[31];
     uint8_t accuracy;
+    uint64_t activeExport;
 }; // 142 bytes
 
 class AmsDataStorage {

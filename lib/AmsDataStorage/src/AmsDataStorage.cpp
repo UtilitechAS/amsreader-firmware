@@ -11,9 +11,9 @@
 #include "FirmwareVersion.h"
 
 AmsDataStorage::AmsDataStorage(RemoteDebug* debugger) {
-    day.version = 5;
+    day.version = 6;
     day.accuracy = 1;
-    month.version = 6;
+    month.version = 7;
     month.accuracy = 1;
     this->debugger = debugger;
 }
@@ -48,8 +48,8 @@ bool AmsDataStorage::update(AmsData* data) {
     breakTime(now-3600, utcYesterday);
     breakTime(tz->toLocal(now-3600), ltzYesterDay);
 
-    uint32_t importCounter = data->getActiveImportCounter() * 1000;
-    uint32_t exportCounter = data->getActiveExportCounter() * 1000;
+    uint64_t importCounter = data->getActiveImportCounter() * 1000;
+    uint64_t exportCounter = data->getActiveExportCounter() * 1000;
 
     // Clear hours between last update and now
     if(day.lastMeterReadTime > now) {
@@ -381,6 +381,13 @@ bool AmsDataStorage::load() {
         char buf[file.size()];
         file.readBytes(buf, file.size());
         DayDataPoints* day = (DayDataPoints*) buf;
+        if(day->version < 6) {
+            uint32_t counters[2];
+            memcpy((uint8_t*) counters, (uint8_t*) &day->activeImport, 8);
+            day->activeImport = counters[0];
+            day->activeExport = counters[1];
+            day->version = 6;
+        }
         file.close();
         ret = setDayData(*day);
     }
@@ -390,6 +397,13 @@ bool AmsDataStorage::load() {
         char buf[file.size()];
         file.readBytes(buf, file.size());
         MonthDataPoints* month = (MonthDataPoints*) buf;
+        if(month->version < 6) {
+            uint32_t counters[2];
+            memcpy((uint8_t*) counters, (uint8_t*) &month->activeImport, 8);
+            month->activeImport = counters[0];
+            month->activeExport = counters[1];
+            month->version = 7;
+        }
         file.close();
         ret = ret && setMonthData(*month);
     }

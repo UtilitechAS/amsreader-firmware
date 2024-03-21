@@ -173,8 +173,8 @@ bool AmsDataStorage::update(AmsData* data) {
             setDayImport(ltzYesterDay.Day, 0);
             setDayExport(ltzYesterDay.Day, 0);
         } else if(now - month.lastMeterReadTime < 90100 && now - month.lastMeterReadTime > 82700) { // DST days are 23h (82800s) and 25h (90000)
-            int32_t imp = importCounter - month.activeImport;
-            int32_t exp = exportCounter - month.activeExport;
+            uint32_t imp = importCounter - month.activeImport;
+            uint32_t exp = exportCounter - month.activeExport;
 
             setDayImport(ltzYesterDay.Day, imp);
             setDayExport(ltzYesterDay.Day, exp);

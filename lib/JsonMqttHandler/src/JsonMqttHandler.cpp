@@ -13,7 +13,6 @@
 #include "json/json3_json.h"
 #include "json/json4_json.h"
 #include "json/jsonsys_json.h"
-#include "json/jsonprices_json.h"
 
 bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     if(strlen(mqttConfig.publishTopic) == 0) {
@@ -298,46 +297,16 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
 		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
-    snprintf_P(json, BufferSize, JSONPRICES_JSON,
-        WiFi.macAddress().c_str(),
-        values[0] == PRICE_NO_VALUE ? "null" : String(values[0], 4).c_str(),
-        values[1] == PRICE_NO_VALUE ? "null" : String(values[1], 4).c_str(),
-        values[2] == PRICE_NO_VALUE ? "null" : String(values[2], 4).c_str(),
-        values[3] == PRICE_NO_VALUE ? "null" : String(values[3], 4).c_str(),
-        values[4] == PRICE_NO_VALUE ? "null" : String(values[4], 4).c_str(),
-        values[5] == PRICE_NO_VALUE ? "null" : String(values[5], 4).c_str(),
-        values[6] == PRICE_NO_VALUE ? "null" : String(values[6], 4).c_str(),
-        values[7] == PRICE_NO_VALUE ? "null" : String(values[7], 4).c_str(),
-        values[8] == PRICE_NO_VALUE ? "null" : String(values[8], 4).c_str(),
-        values[9] == PRICE_NO_VALUE ? "null" : String(values[9], 4).c_str(),
-        values[10] == PRICE_NO_VALUE ? "null" : String(values[10], 4).c_str(),
-        values[11] == PRICE_NO_VALUE ? "null" : String(values[11], 4).c_str(),
-        values[12] == PRICE_NO_VALUE ? "null" : String(values[12], 4).c_str(),
-        values[13] == PRICE_NO_VALUE ? "null" : String(values[13], 4).c_str(),
-        values[14] == PRICE_NO_VALUE ? "null" : String(values[14], 4).c_str(),
-        values[15] == PRICE_NO_VALUE ? "null" : String(values[15], 4).c_str(),
-        values[16] == PRICE_NO_VALUE ? "null" : String(values[16], 4).c_str(),
-        values[17] == PRICE_NO_VALUE ? "null" : String(values[17], 4).c_str(),
-        values[18] == PRICE_NO_VALUE ? "null" : String(values[18], 4).c_str(),
-        values[19] == PRICE_NO_VALUE ? "null" : String(values[19], 4).c_str(),
-        values[20] == PRICE_NO_VALUE ? "null" : String(values[20], 4).c_str(),
-        values[21] == PRICE_NO_VALUE ? "null" : String(values[21], 4).c_str(),
-        values[22] == PRICE_NO_VALUE ? "null" : String(values[22], 4).c_str(),
-        values[23] == PRICE_NO_VALUE ? "null" : String(values[23], 4).c_str(),
-        values[24] == PRICE_NO_VALUE ? "null" : String(values[24], 4).c_str(),
-        values[25] == PRICE_NO_VALUE ? "null" : String(values[25], 4).c_str(),
-        values[26] == PRICE_NO_VALUE ? "null" : String(values[26], 4).c_str(),
-        values[27] == PRICE_NO_VALUE ? "null" : String(values[27], 4).c_str(),
-        values[28] == PRICE_NO_VALUE ? "null" : String(values[28], 4).c_str(),
-        values[29] == PRICE_NO_VALUE ? "null" : String(values[29], 4).c_str(),
-        values[30] == PRICE_NO_VALUE ? "null" : String(values[30], 4).c_str(),
-        values[31] == PRICE_NO_VALUE ? "null" : String(values[31], 4).c_str(),
-        values[32] == PRICE_NO_VALUE ? "null" : String(values[32], 4).c_str(),
-        values[33] == PRICE_NO_VALUE ? "null" : String(values[33], 4).c_str(),
-        values[34] == PRICE_NO_VALUE ? "null" : String(values[34], 4).c_str(),
-        values[35] == PRICE_NO_VALUE ? "null" : String(values[35], 4).c_str(),
-        values[36] == PRICE_NO_VALUE ? "null" : String(values[36], 4).c_str(),
-        values[37] == PRICE_NO_VALUE ? "null" : String(values[37], 4).c_str(),
+    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{"), WiFi.macAddress().c_str());
+    for(uint8_t i = 0;i < 38; i++) {
+        if(values[i] == PRICE_NO_VALUE) {
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%d\":null,"), i);
+        } else {
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%d\":%.4f,"), i, values[i]);
+        }
+    }
+
+    snprintf_P(json+pos, BufferSize-pos, PSTR("\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}}"),
         min == INT16_MAX ? 0.0 : min,
         max == INT16_MIN ? 0.0 : max,
         ts1hr,

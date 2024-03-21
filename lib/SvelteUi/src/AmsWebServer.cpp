@@ -15,9 +15,6 @@
 #include "html/index_js.h"
 #include "html/favicon_svg.h"
 #include "html/data_json.h"
-#include "html/dayplot_json.h"
-#include "html/monthplot_json.h"
-#include "html/energyprice_json.h"
 #include "html/tempsensor_json.h"
 #include "html/response_json.h"
 #include "html/sysinfo_json.h"
@@ -602,60 +599,15 @@ void AmsWebServer::dayplotJson() {
 	if(ds == NULL) {
 		notFound();
 	} else {
-		snprintf_P(buf, BufferSize, DAYPLOT_JSON,
-			ds->getHourImport(0) / 1000.0,
-			ds->getHourImport(1) / 1000.0,
-			ds->getHourImport(2) / 1000.0,
-			ds->getHourImport(3) / 1000.0,
-			ds->getHourImport(4) / 1000.0,
-			ds->getHourImport(5) / 1000.0,
-			ds->getHourImport(6) / 1000.0,
-			ds->getHourImport(7) / 1000.0,
-			ds->getHourImport(8) / 1000.0,
-			ds->getHourImport(9) / 1000.0,
-			ds->getHourImport(10) / 1000.0,
-			ds->getHourImport(11) / 1000.0,
-			ds->getHourImport(12) / 1000.0,
-			ds->getHourImport(13) / 1000.0,
-			ds->getHourImport(14) / 1000.0,
-			ds->getHourImport(15) / 1000.0,
-			ds->getHourImport(16) / 1000.0,
-			ds->getHourImport(17) / 1000.0,
-			ds->getHourImport(18) / 1000.0,
-			ds->getHourImport(19) / 1000.0,
-			ds->getHourImport(20) / 1000.0,
-			ds->getHourImport(21) / 1000.0,
-			ds->getHourImport(22) / 1000.0,
-			ds->getHourImport(23) / 1000.0,
-			ds->getHourExport(0) / 1000.0,
-			ds->getHourExport(1) / 1000.0,
-			ds->getHourExport(2) / 1000.0,
-			ds->getHourExport(3) / 1000.0,
-			ds->getHourExport(4) / 1000.0,
-			ds->getHourExport(5) / 1000.0,
-			ds->getHourExport(6) / 1000.0,
-			ds->getHourExport(7) / 1000.0,
-			ds->getHourExport(8) / 1000.0,
-			ds->getHourExport(9) / 1000.0,
-			ds->getHourExport(10) / 1000.0,
-			ds->getHourExport(11) / 1000.0,
-			ds->getHourExport(12) / 1000.0,
-			ds->getHourExport(13) / 1000.0,
-			ds->getHourExport(14) / 1000.0,
-			ds->getHourExport(15) / 1000.0,
-			ds->getHourExport(16) / 1000.0,
-			ds->getHourExport(17) / 1000.0,
-			ds->getHourExport(18) / 1000.0,
-			ds->getHourExport(19) / 1000.0,
-			ds->getHourExport(20) / 1000.0,
-			ds->getHourExport(21) / 1000.0,
-			ds->getHourExport(22) / 1000.0,
-			ds->getHourExport(23) / 1000.0
-		);
+		uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"unit\":\"kwh\""));
+		for(uint8_t i = 0; i < 24; i++) {
+			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.2f,\"e%02d\":%.2f"), i, ds->getHourImport(i) / 1000.0, i, ds->getHourExport(i) / 1000.0);
+		}
+		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
-	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
-	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+		server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 		server.setContentLength(strlen(buf));
 		server.send(200, MIME_JSON, buf);
@@ -669,74 +621,15 @@ void AmsWebServer::monthplotJson() {
 	if(ds == NULL) {
 		notFound();
 	} else {
-		snprintf_P(buf, BufferSize, MONTHPLOT_JSON,
-			ds->getDayImport(1) / 1000.0,
-			ds->getDayImport(2) / 1000.0,
-			ds->getDayImport(3) / 1000.0,
-			ds->getDayImport(4) / 1000.0,
-			ds->getDayImport(5) / 1000.0,
-			ds->getDayImport(6) / 1000.0,
-			ds->getDayImport(7) / 1000.0,
-			ds->getDayImport(8) / 1000.0,
-			ds->getDayImport(9) / 1000.0,
-			ds->getDayImport(10) / 1000.0,
-			ds->getDayImport(11) / 1000.0,
-			ds->getDayImport(12) / 1000.0,
-			ds->getDayImport(13) / 1000.0,
-			ds->getDayImport(14) / 1000.0,
-			ds->getDayImport(15) / 1000.0,
-			ds->getDayImport(16) / 1000.0,
-			ds->getDayImport(17) / 1000.0,
-			ds->getDayImport(18) / 1000.0,
-			ds->getDayImport(19) / 1000.0,
-			ds->getDayImport(20) / 1000.0,
-			ds->getDayImport(21) / 1000.0,
-			ds->getDayImport(22) / 1000.0,
-			ds->getDayImport(23) / 1000.0,
-			ds->getDayImport(24) / 1000.0,
-			ds->getDayImport(25) / 1000.0,
-			ds->getDayImport(26) / 1000.0,
-			ds->getDayImport(27) / 1000.0,
-			ds->getDayImport(28) / 1000.0,
-			ds->getDayImport(29) / 1000.0,
-			ds->getDayImport(30) / 1000.0,
-			ds->getDayImport(31) / 1000.0,
-			ds->getDayExport(1) / 1000.0,
-			ds->getDayExport(2) / 1000.0,
-			ds->getDayExport(3) / 1000.0,
-			ds->getDayExport(4) / 1000.0,
-			ds->getDayExport(5) / 1000.0,
-			ds->getDayExport(6) / 1000.0,
-			ds->getDayExport(7) / 1000.0,
-			ds->getDayExport(8) / 1000.0,
-			ds->getDayExport(9) / 1000.0,
-			ds->getDayExport(10) / 1000.0,
-			ds->getDayExport(11) / 1000.0,
-			ds->getDayExport(12) / 1000.0,
-			ds->getDayExport(13) / 1000.0,
-			ds->getDayExport(14) / 1000.0,
-			ds->getDayExport(15) / 1000.0,
-			ds->getDayExport(16) / 1000.0,
-			ds->getDayExport(17) / 1000.0,
-			ds->getDayExport(18) / 1000.0,
-			ds->getDayExport(19) / 1000.0,
-			ds->getDayExport(20) / 1000.0,
-			ds->getDayExport(21) / 1000.0,
-			ds->getDayExport(22) / 1000.0,
-			ds->getDayExport(23) / 1000.0,
-			ds->getDayExport(24) / 1000.0,
-			ds->getDayExport(25) / 1000.0,
-			ds->getDayExport(26) / 1000.0,
-			ds->getDayExport(27) / 1000.0,
-			ds->getDayExport(28) / 1000.0,
-			ds->getDayExport(29) / 1000.0,
-			ds->getDayExport(30) / 1000.0,
-			ds->getDayExport(31) / 1000.0
-		);
+		uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"unit\":\"kwh\""));
+		for(uint8_t i = 1; i < 32; i++) {
+			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.2f,\"e%02d\":%.2f"), i, ds->getDayImport(i) / 1000.0, i, ds->getDayExport(i) / 1000.0);
+		}
+		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
-	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
-	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+		server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 		server.setContentLength(strlen(buf));
 		server.send(200, MIME_JSON, buf);
@@ -752,46 +645,19 @@ void AmsWebServer::energyPriceJson() {
 		prices[i] = ps == NULL ? PRICE_NO_VALUE : ps->getValueForHour(PRICE_DIRECTION_IMPORT, i);
 	}
 
-	snprintf_P(buf, BufferSize, ENERGYPRICE_JSON, 
+	uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\""),
 		ps == NULL ? "" : ps->getCurrency(),
-		ps == NULL ? "" : ps->getSource(),
-		prices[0] == PRICE_NO_VALUE ? "null" : String(prices[0], 4).c_str(),
-		prices[1] == PRICE_NO_VALUE ? "null" : String(prices[1], 4).c_str(),
-		prices[2] == PRICE_NO_VALUE ? "null" : String(prices[2], 4).c_str(),
-		prices[3] == PRICE_NO_VALUE ? "null" : String(prices[3], 4).c_str(),
-		prices[4] == PRICE_NO_VALUE ? "null" : String(prices[4], 4).c_str(),
-		prices[5] == PRICE_NO_VALUE ? "null" : String(prices[5], 4).c_str(),
-		prices[6] == PRICE_NO_VALUE ? "null" : String(prices[6], 4).c_str(),
-		prices[7] == PRICE_NO_VALUE ? "null" : String(prices[7], 4).c_str(),
-		prices[8] == PRICE_NO_VALUE ? "null" : String(prices[8], 4).c_str(),
-		prices[9] == PRICE_NO_VALUE ? "null" : String(prices[9], 4).c_str(),
-		prices[10] == PRICE_NO_VALUE ? "null" : String(prices[10], 4).c_str(),
-		prices[11] == PRICE_NO_VALUE ? "null" : String(prices[11], 4).c_str(),
-		prices[12] == PRICE_NO_VALUE ? "null" : String(prices[12], 4).c_str(),
-		prices[13] == PRICE_NO_VALUE ? "null" : String(prices[13], 4).c_str(),
-		prices[14] == PRICE_NO_VALUE ? "null" : String(prices[14], 4).c_str(),
-		prices[15] == PRICE_NO_VALUE ? "null" : String(prices[15], 4).c_str(),
-		prices[16] == PRICE_NO_VALUE ? "null" : String(prices[16], 4).c_str(),
-		prices[17] == PRICE_NO_VALUE ? "null" : String(prices[17], 4).c_str(),
-		prices[18] == PRICE_NO_VALUE ? "null" : String(prices[18], 4).c_str(),
-		prices[19] == PRICE_NO_VALUE ? "null" : String(prices[19], 4).c_str(),
-		prices[20] == PRICE_NO_VALUE ? "null" : String(prices[20], 4).c_str(),
-		prices[21] == PRICE_NO_VALUE ? "null" : String(prices[21], 4).c_str(),
-		prices[22] == PRICE_NO_VALUE ? "null" : String(prices[22], 4).c_str(),
-		prices[23] == PRICE_NO_VALUE ? "null" : String(prices[23], 4).c_str(),
-		prices[24] == PRICE_NO_VALUE ? "null" : String(prices[24], 4).c_str(),
-		prices[25] == PRICE_NO_VALUE ? "null" : String(prices[25], 4).c_str(),
-		prices[26] == PRICE_NO_VALUE ? "null" : String(prices[26], 4).c_str(),
-		prices[27] == PRICE_NO_VALUE ? "null" : String(prices[27], 4).c_str(),
-		prices[28] == PRICE_NO_VALUE ? "null" : String(prices[28], 4).c_str(),
-		prices[29] == PRICE_NO_VALUE ? "null" : String(prices[29], 4).c_str(),
-		prices[30] == PRICE_NO_VALUE ? "null" : String(prices[30], 4).c_str(),
-		prices[31] == PRICE_NO_VALUE ? "null" : String(prices[31], 4).c_str(),
-		prices[32] == PRICE_NO_VALUE ? "null" : String(prices[32], 4).c_str(),
-		prices[33] == PRICE_NO_VALUE ? "null" : String(prices[33], 4).c_str(),
-		prices[34] == PRICE_NO_VALUE ? "null" : String(prices[34], 4).c_str(),
-		prices[35] == PRICE_NO_VALUE ? "null" : String(prices[35], 4).c_str()
+		ps == NULL ? "" : ps->getSource()
 	);
+
+    for(uint8_t i = 0;i < 36; i++) {
+        if(prices[i] == PRICE_NO_VALUE) {
+            pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"%02d\":null"), i);
+        } else {
+            pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"%02d\":%.4f"), i, prices[i]);
+        }
+    }
+	snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);

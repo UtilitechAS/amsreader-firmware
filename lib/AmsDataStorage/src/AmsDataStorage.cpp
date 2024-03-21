@@ -44,6 +44,13 @@ bool AmsDataStorage::update(AmsData* data) {
 
     tmElements_t utc, ltz, utcYesterday, ltzYesterDay;
     breakTime(now, utc);
+    /* debugging code
+    if(utc.Hour%2 == 1) {
+        now -= 60;
+        breakTime(now, utc);
+    }
+    */
+
     breakTime(tz->toLocal(now), ltz);
     breakTime(now-3600, utcYesterday);
     breakTime(tz->toLocal(now-3600), ltzYesterDay);
@@ -381,13 +388,6 @@ bool AmsDataStorage::load() {
         char buf[file.size()];
         file.readBytes(buf, file.size());
         DayDataPoints* day = (DayDataPoints*) buf;
-        if(day->version < 6) {
-            uint32_t counters[2];
-            memcpy((uint8_t*) counters, (uint8_t*) &day->activeImport, 8);
-            day->activeImport = counters[0];
-            day->activeExport = counters[1];
-            day->version = 6;
-        }
         file.close();
         ret = setDayData(*day);
     }
@@ -397,13 +397,6 @@ bool AmsDataStorage::load() {
         char buf[file.size()];
         file.readBytes(buf, file.size());
         MonthDataPoints* month = (MonthDataPoints*) buf;
-        if(month->version < 6) {
-            uint32_t counters[2];
-            memcpy((uint8_t*) counters, (uint8_t*) &month->activeImport, 8);
-            month->activeImport = counters[0];
-            month->activeExport = counters[1];
-            month->version = 7;
-        }
         file.close();
         ret = ret && setMonthData(*month);
     }
@@ -445,38 +438,53 @@ MonthDataPoints AmsDataStorage::getMonthData() {
 }
 
 bool AmsDataStorage::setDayData(DayDataPoints& day) {
-    if(day.version == 5) {
+    if(day.version > 2 && day.version < 6) {
+        uint32_t counters[2];
+        memcpy((uint8_t*) counters, (uint8_t*) &day.activeImport, 8);
+        day.activeImport = counters[0];
+        day.activeExport = counters[1];
+    }
+    if(day.version == 5 || day.version == 6) {
         this->day = day;
+        this->day.version = 6;
         return true;
     } else if(day.version == 4) {
         this->day = day;
         this->day.accuracy = 1;
-        this->day.version = 5;
+        this->day.version = 6;
         return true;
     } else if(day.version == 3) {
         this->day = day;
         for(uint8_t i = 0; i < 24; i++) this->day.hExport[i] = 0;
         this->day.accuracy = 1;
-        this->day.version = 5;
+        this->day.version = 6;
         return true;
     }
     return false;
 }
 
 bool AmsDataStorage::setMonthData(MonthDataPoints& month) {
-    if(month.version == 6) {
+    if(month.version > 3 && month.version < 7) {
+        uint32_t counters[2];
+        memcpy((uint8_t*) counters, (uint8_t*) &month.activeImport, 8);
+        month.activeImport = counters[0];
+        month.activeExport = counters[1];
+    }
+
+    if(month.version == 6 || month.version == 7) {
         this->month = month;
+        this->month.version = 7;
         return true;
     } else if(month.version == 5) {
         this->month = month;
         this->month.accuracy = 1;
-        this->month.version = 6;
+        this->month.version = 7;
         return true;
     } else if(month.version == 4) {
         this->month = month;
         for(uint8_t i = 0; i < 31; i++) this->month.dExport[i] = 0;
         this->month.accuracy = 1;
-        this->month.version = 6;
+        this->month.version = 7;
         return true;
     }
     return false;

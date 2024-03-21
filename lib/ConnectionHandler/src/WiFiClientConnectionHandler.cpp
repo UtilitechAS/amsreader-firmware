@@ -94,7 +94,7 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 			WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
 		#endif
 		WiFi.setAutoReconnect(true);
-		if(WiFi.begin(config.ssid, config.psk)) {
+		if(begin(config.ssid, config.psk)) {
 			if(config.sleep <= 2) {
 				switch(config.sleep) {
 					case 0:
@@ -117,6 +117,94 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
   	}
     return false;
 }
+
+wl_status_t WiFiClientConnectionHandler::begin(const char* ssid, const char* passphrase) {
+   if(!WiFi.enableSTA(true)) {
+        log_e("STA enable failed!");
+        return WL_CONNECT_FAILED;
+    }
+
+    if(!ssid || *ssid == 0x00 || strlen(ssid) > 32) {
+        log_e("SSID too long or missing!");
+        return WL_CONNECT_FAILED;
+    }
+
+    if(passphrase && strlen(passphrase) > 64) {
+        log_e("passphrase too long!");
+        return WL_CONNECT_FAILED;
+    }
+
+    wifi_config_t conf;
+    memset(&conf, 0, sizeof(wifi_config_t));
+
+    wifi_sta_config(&conf, ssid, passphrase, NULL, 0, WIFI_AUTH_WPA2_PSK, WIFI_ALL_CHANNEL_SCAN, WIFI_CONNECT_AP_BY_SIGNAL);
+
+    wifi_config_t current_conf;
+    if(esp_wifi_get_config((wifi_interface_t)ESP_IF_WIFI_STA, &current_conf) != ESP_OK){
+        log_e("get current config failed!");
+        return WL_CONNECT_FAILED;
+    }
+    if(memcmp(&current_conf, &conf, sizeof(wifi_config_t)) == 0) {
+        if(esp_wifi_disconnect()){
+            log_e("disconnect failed!");
+            return WL_CONNECT_FAILED;
+        }
+
+        if(esp_wifi_set_config((wifi_interface_t)ESP_IF_WIFI_STA, &conf) != ESP_OK){
+            log_e("set config failed!");
+            return WL_CONNECT_FAILED;
+        }
+    } else if(WiFi.status() == WL_CONNECTED){
+        return WL_CONNECTED;
+    } else {
+        if(esp_wifi_set_config((wifi_interface_t)ESP_IF_WIFI_STA, &conf) != ESP_OK){
+            log_e("set config failed!");
+            return WL_CONNECT_FAILED;
+        }
+    }
+
+    if(strlen(config.ip) > 0){
+    	if(set_esp_interface_ip(ESP_IF_WIFI_STA) != ESP_OK) {
+            return WL_CONNECT_FAILED;
+        }
+    }
+
+	if(esp_wifi_connect() != ESP_OK) {
+		log_e("connect failed!");
+		return WL_CONNECT_FAILED;
+	}
+	return WiFi.status();
+}
+
+void WiFiClientConnectionHandler::wifi_sta_config(wifi_config_t * wifi_config, const char * ssid, const char * password, const uint8_t * bssid, uint8_t channel, wifi_auth_mode_t min_security, wifi_scan_method_t scan_method, wifi_sort_method_t sort_method, uint16_t listen_interval, bool pmf_required){
+    wifi_config->sta.channel = channel;
+    wifi_config->sta.listen_interval = listen_interval;
+    wifi_config->sta.scan_method = scan_method;//WIFI_ALL_CHANNEL_SCAN or WIFI_FAST_SCAN
+    wifi_config->sta.sort_method = sort_method;//WIFI_CONNECT_AP_BY_SIGNAL or WIFI_CONNECT_AP_BY_SECURITY
+    wifi_config->sta.threshold.rssi = -127;
+    wifi_config->sta.pmf_cfg.capable = true;
+    wifi_config->sta.pmf_cfg.required = pmf_required;
+    wifi_config->sta.bssid_set = 0;
+    memset(wifi_config->sta.bssid, 0, 6);
+    wifi_config->sta.threshold.authmode = WIFI_AUTH_OPEN;
+    wifi_config->sta.ssid[0] = 0;
+    wifi_config->sta.password[0] = 0;
+    if(ssid != NULL && ssid[0] != 0){
+        strncpy((char*)wifi_config->sta.ssid, ssid, 32);
+    	if(password != NULL && password[0] != 0){
+    		wifi_config->sta.threshold.authmode = min_security;
+    		strncpy((char*)wifi_config->sta.password, password, 64);
+    	}
+        if(bssid != NULL){
+            wifi_config->sta.bssid_set = 1;
+            memcpy(wifi_config->sta.bssid, bssid, 6);
+        }
+    }
+	wifi_config->sta.rm_enabled = true;
+	wifi_config->sta.btm_enabled = true;
+	wifi_config->sta.mbo_enabled = true;
+}
+
 
 void WiFiClientConnectionHandler::disconnect(unsigned long reconnectDelay) {
 	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Disconnecting!\n"));

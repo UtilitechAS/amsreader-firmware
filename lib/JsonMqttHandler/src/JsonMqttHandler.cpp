@@ -8,11 +8,6 @@
 #include "FirmwareVersion.h"
 #include "hexutils.h"
 #include "Uptime.h"
-#include "json/json1_json.h"
-#include "json/json2_json.h"
-#include "json/json3_json.h"
-#include "json/json4_json.h"
-#include "json/jsonsys_json.h"
 
 bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     if(strlen(mqttConfig.publishTopic) == 0) {
@@ -25,6 +20,7 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
     }
 
     bool ret = false;
+    memset(json, 0, BufferSize);
 
     if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Publishing list ID %d!\n"), data->getListType());
     if(data->getListType() == 1) {
@@ -40,35 +36,67 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
     return ret;
 }
 
-bool JsonMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
-    snprintf_P(json, BufferSize, JSON1_JSON,
+uint16_t JsonMqttHandler::appendJsonHeader(AmsData* data) {
+    return snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%u,\"t\":%lu,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,"),
         WiFi.macAddress().c_str(),
         mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
         data->getPackageTimestamp(),
         hw->getVcc(),
         hw->getWifiRssi(),
-        hw->getTemperature(),
-        data->getActiveImportPower(),
-        ea->getUseThisHour(),
-        ea->getUseToday(),
-        ea->getCurrentThreshold(),
-        ea->getMonthMax(),
-        ea->getProducedThisHour(),
-        ea->getProducedToday()
+        hw->getTemperature()
     );
-    return mqtt.publish(mqttConfig.publishTopic, json);
+}
+
+uint16_t JsonMqttHandler::appendJsonFooter(EnergyAccounting* ea, uint16_t pos) {
+    char pf[4];
+    if(mqttConfig.payloadFormat == 6) {
+        strcpy_P(pf, PSTR("rt_"));
+    } else {
+        memset(pf, 0, 4);
+    }
+    
+    return snprintf_P(json+pos, BufferSize-pos, PSTR("%s\"%sh\":%.2f,\"%sd\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.2f,\"%sde\":%.1f%s"),
+        strlen(pf) == 0 ? "},\"realtime\":{" : ",",
+        pf,
+        ea->getUseThisHour(),
+        pf,
+        ea->getUseToday(),
+        pf,
+        ea->getCurrentThreshold(),
+        pf,
+        ea->getMonthMax(),
+        pf,
+        ea->getProducedThisHour(),
+        pf,
+        ea->getProducedToday(),
+        strlen(pf) == 0 ? "}" : ""
+    );
+}
+
+bool JsonMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
+    uint16_t pos = appendJsonHeader(data);
+    if(mqttConfig.payloadFormat != 6) {
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"data\":{"));
+    }
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"P\":%d"), data->getActiveImportPower());
+    pos += appendJsonFooter(ea, pos);
+    json[pos] = '}';
+    if(mqttConfig.payloadFormat == 5) {
+        char topic[192];
+        snprintf_P(topic, 192, PSTR("%s/list1"), mqttConfig.publishTopic);
+        return mqtt.publish(topic, json);
+    } else {
+        return mqtt.publish(mqttConfig.publishTopic, json);
+    }
 }
 
 bool JsonMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
-    snprintf_P(json, BufferSize, JSON2_JSON,
-        WiFi.macAddress().c_str(),
-        mqttConfig.clientId,
-        (uint32_t) (millis64()/1000),
-        data->getPackageTimestamp(),
-        hw->getVcc(),
-        hw->getWifiRssi(),
-        hw->getTemperature(),
+    uint16_t pos = appendJsonHeader(data);
+    if(mqttConfig.payloadFormat != 6) {
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"data\":{"));
+    }
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"Q\":%d,\"PO\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f"),
         data->getListId().c_str(),
         data->getMeterId().c_str(),
         getMeterModel(data).c_str(),
@@ -81,26 +109,25 @@ bool JsonMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
         data->getL3Current(),
         data->getL1Voltage(),
         data->getL2Voltage(),
-        data->getL3Voltage(),
-        ea->getUseThisHour(),
-        ea->getUseToday(),
-        ea->getCurrentThreshold(),
-        ea->getMonthMax(),
-        ea->getProducedThisHour(),
-        ea->getProducedToday()
+        data->getL3Voltage()
     );
-    return mqtt.publish(mqttConfig.publishTopic, json);
+    pos += appendJsonFooter(ea, pos);
+    json[pos] = '}';
+    if(mqttConfig.payloadFormat == 5) {
+        char topic[192];
+        snprintf_P(topic, 192, PSTR("%s/list2"), mqttConfig.publishTopic);
+        return mqtt.publish(topic, json);
+    } else {
+        return mqtt.publish(mqttConfig.publishTopic, json);
+    }
 }
 
 bool JsonMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
-    snprintf_P(json, BufferSize, JSON3_JSON,
-        WiFi.macAddress().c_str(),
-        mqttConfig.clientId,
-        (uint32_t) (millis64()/1000),
-        data->getPackageTimestamp(),
-        hw->getVcc(),
-        hw->getWifiRssi(),
-        hw->getTemperature(),
+    uint16_t pos = appendJsonHeader(data);
+    if(mqttConfig.payloadFormat != 6) {
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"data\":{"));
+    }
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"Q\":%d,\"PO\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f,\"tPI\":%.3f,\"tPO\":%.3f,\"tQI\":%.3f,\"tQO\":%.3f,\"rtc\":%lu"),
         data->getListId().c_str(),
         data->getMeterId().c_str(),
         getMeterModel(data).c_str(),
@@ -118,26 +145,25 @@ bool JsonMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
         data->getActiveExportCounter(),
         data->getReactiveImportCounter(),
         data->getReactiveExportCounter(),
-        data->getMeterTimestamp(),
-        ea->getUseThisHour(),
-        ea->getUseToday(),
-        ea->getCurrentThreshold(),
-        ea->getMonthMax(),
-        ea->getProducedThisHour(),
-        ea->getProducedToday()
+        data->getMeterTimestamp()
     );
-    return mqtt.publish(mqttConfig.publishTopic, json);
+    pos += appendJsonFooter(ea, pos);
+    json[pos] = '}';
+    if(mqttConfig.payloadFormat == 5) {
+        char topic[192];
+        snprintf_P(topic, 192, PSTR("%s/list3"), mqttConfig.publishTopic);
+        return mqtt.publish(topic, json);
+    } else {
+        return mqtt.publish(mqttConfig.publishTopic, json);
+    }
 }
 
 bool JsonMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
-    snprintf_P(json, BufferSize, JSON4_JSON,
-        WiFi.macAddress().c_str(),
-        mqttConfig.clientId,
-        (uint32_t) (millis64()/1000),
-        data->getPackageTimestamp(),
-        hw->getVcc(),
-        hw->getWifiRssi(),
-        hw->getTemperature(),
+    uint16_t pos = appendJsonHeader(data);
+    if(mqttConfig.payloadFormat != 6) {
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"data\":{"));
+    }
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"P1\":%d,\"P2\":%d,\"P3\":%d,\"Q\":%d,\"PO\":%d,\"PO1\":%d,\"PO2\":%d,\"PO3\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f,\"PF\":%.2f,\"PF1\":%.2f,\"PF2\":%.2f,\"PF3\":%.2f,\"tPI\":%.3f,\"tPO\":%.3f,\"tQI\":%.3f,\"tQO\":%.3f,\"tPI1\":%.3f,\"tPI2\":%.3f,\"tPI3\":%.3f,\"tPO1\":%.3f,\"tPO2\":%.3f,\"tPO3\":%.3f,\"rtc\":%lu"),
         data->getListId().c_str(),
         data->getMeterId().c_str(),
         getMeterModel(data).c_str(),
@@ -171,15 +197,17 @@ bool JsonMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
         data->getL1ActiveExportCounter(),
         data->getL2ActiveExportCounter(),
         data->getL3ActiveExportCounter(),
-        data->getMeterTimestamp(),
-        ea->getUseThisHour(),
-        ea->getUseToday(),
-        ea->getCurrentThreshold(),
-        ea->getMonthMax(),
-        ea->getProducedThisHour(),
-        ea->getProducedToday()
+        data->getMeterTimestamp()
     );
-    return mqtt.publish(mqttConfig.publishTopic, json);
+    pos += appendJsonFooter(ea, pos);
+    json[pos] = '}';
+    if(mqttConfig.payloadFormat == 5) {
+        char topic[192];
+        snprintf_P(topic, 192, PSTR("%s/list4"), mqttConfig.publishTopic);
+        return mqtt.publish(topic, json);
+    } else {
+        return mqtt.publish(mqttConfig.publishTopic, json);
+    }
 }
 
 String JsonMqttHandler::getMeterModel(AmsData* data) {
@@ -194,22 +222,34 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
         return false;
     }
 
-	snprintf_P(json, 24, PSTR("{\"temperatures\":{"));
-
+	uint16_t pos = 0;
+    if(mqttConfig.payloadFormat == 6) {
+        json[pos++] = '{';
+    } else {
+        pos = snprintf_P(json, 24, PSTR("{\"temperatures\":{"));
+    }
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
         if(data != NULL) {
-            char* pos = json+strlen(json);
-            snprintf_P(pos, 26, PSTR("\"%s\":%.2f,"), 
+            pos += snprintf_P(json+pos, 26, PSTR("\"%s\":%.2f,"), 
                 toHex(data->address, 8).c_str(),
                 data->lastRead
             );
             data->changed = false;
         }
 	}
-	char* pos = json+strlen(json);
-	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("}}"));
-    bool ret = mqtt.publish(mqttConfig.publishTopic, json);
+    bool ret = false;
+    json[pos-1] = '}';
+    if(mqttConfig.payloadFormat != 6) {
+        json[pos] = '}';
+    }
+    if(mqttConfig.payloadFormat == 5) {
+        char topic[192];
+        snprintf_P(topic, 192, PSTR("%s/temperatures"), mqttConfig.publishTopic);
+        ret = mqtt.publish(topic, json);
+    } else {
+        ret = mqtt.publish(mqttConfig.publishTopic, json);
+    }
     loop();
     return ret;
 }
@@ -297,23 +337,46 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
 		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
-    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{"), WiFi.macAddress().c_str());
+    char pf[4];
+    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\","), WiFi.macAddress().c_str());
+    if(mqttConfig.payloadFormat != 6) {
+        memset(pf, 0, 4);
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"prices\":{"));
+    } else {
+        strcpy_P(pf, PSTR("pr_"));
+    }
+
     for(uint8_t i = 0;i < 38; i++) {
         if(values[i] == PRICE_NO_VALUE) {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%d\":null,"), i);
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%d\":null,"), pf, i);
         } else {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%d\":%.4f,"), i, values[i]);
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%d\":%.4f,"), pf, i, values[i]);
         }
     }
 
-    snprintf_P(json+pos, BufferSize-pos, PSTR("\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}}"),
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%smin\":%.4f,\"%smax\":%.4f,\"%scheapest1hr\":\"%s\",\"%scheapest3hr\":\"%s\",\"%scheapest6hr\":\"%s\"}"),
+        pf,
         min == INT16_MAX ? 0.0 : min,
+        pf,
         max == INT16_MIN ? 0.0 : max,
+        pf,
         ts1hr,
+        pf,
         ts3hr,
+        pf,
         ts6hr
     );
-    bool ret = mqtt.publish(mqttConfig.publishTopic, json);
+    if(mqttConfig.payloadFormat != 6) {
+        json[pos] = '}';
+    }
+    bool ret = false;
+    if(mqttConfig.payloadFormat == 5) {
+        char topic[192];
+        snprintf_P(topic, 192, PSTR("%s/prices"), mqttConfig.publishTopic);
+        ret = mqtt.publish(topic, json);
+    } else {
+        ret = mqtt.publish(mqttConfig.publishTopic, json);
+    }
     loop();
     return ret;
 }
@@ -322,7 +385,7 @@ bool JsonMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccount
 	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
 		return false;
 
-    snprintf_P(json, BufferSize, JSONSYS_JSON,
+    snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\"}"),
         WiFi.macAddress().c_str(),
         mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
@@ -331,7 +394,14 @@ bool JsonMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccount
         hw->getTemperature(),
         FirmwareVersion::VersionString
     );
-    bool ret = mqtt.publish(mqttConfig.publishTopic, json);
+    bool ret = false;
+    if(mqttConfig.payloadFormat == 5) {
+        char topic[192];
+        snprintf_P(topic, 192, PSTR("%s/system"), mqttConfig.publishTopic);
+        ret = mqtt.publish(topic, json);
+    } else {
+        ret = mqtt.publish(mqttConfig.publishTopic, json);
+    }
     loop();
     return ret;
 }

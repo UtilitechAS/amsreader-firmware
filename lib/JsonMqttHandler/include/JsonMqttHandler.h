@@ -26,7 +26,8 @@ public:
 
 private:
     HwTools* hw;
-
+    uint16_t appendJsonHeader(AmsData* data);
+    uint16_t appendJsonFooter(EnergyAccounting* ea, uint16_t pos);
     bool publishList1(AmsData* data, EnergyAccounting* ea);
     bool publishList2(AmsData* data, EnergyAccounting* ea);
     bool publishList3(AmsData* data, EnergyAccounting* ea);

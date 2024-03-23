@@ -229,12 +229,6 @@ struct UiConfig {
 	char language[3];
 }; // 15
 
-struct TempSensorConfig {
-	uint8_t address[8];
-	char name[16];
-	bool common;
-};
-
 struct UpgradeInformation {
 	char fromVersion[8];
 	char toVersion[8];

@@ -12,7 +12,6 @@
 #include "json/ha2_json.h"
 #include "json/ha3_json.h"
 #include "json/ha4_json.h"
-#include "json/jsonsys_json.h"
 #include "json/hadiscover_json.h"
 #include "json/realtime_json.h"
 #include "FirmwareVersion.h"
@@ -306,7 +305,7 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, Ener
     publishSystemSensors();
     if(hw->getTemperature() > -50) publishTemperatureSensor(0, "");
 
-    snprintf_P(json, BufferSize, JSONSYS_JSON,
+    snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\"}"),
         WiFi.macAddress().c_str(),
         mqttConfig.clientId,
         (uint32_t) (millis64()/1000),

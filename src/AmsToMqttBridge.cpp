@@ -1433,6 +1433,8 @@ void MQTT_connect() {
 	if(mqttHandler == NULL) {
 		switch(mqttConfig.payloadFormat) {
 			case 0:
+			case 5:
+			case 6:
 				mqttHandler = new JsonMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &hw);
 				break;
 			case 1:

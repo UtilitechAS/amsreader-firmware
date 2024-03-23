@@ -622,11 +622,13 @@
                 <div>
                     {translations.conf?.mqtt?.payload ?? "Payload"}<br/>
                     <select name="qm" bind:value={configuration.q.m} class="in-l">
-                        <option value={0}>JSON</option>
                         <option value={1}>Raw (minimal)</option>
                         <option value={2}>Raw (full)</option>
                         <option value={3}>{translations.conf?.mqtt?.domoticz?.title ?? "Domoticz"}</option>
                         <option value={4}>{translations.conf?.mqtt?.ha?.title ?? "Home-Assistant"}</option>
+                        <option value={0}>JSON (classic)</option>
+                        <option value={5}>JSON (multi topic)</option>
+                        <option value={6}>JSON (flat)</option>
                         <option value={255}>HEX dump</option>
                     </select>
                 </div>

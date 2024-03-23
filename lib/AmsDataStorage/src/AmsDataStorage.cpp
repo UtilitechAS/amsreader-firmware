@@ -44,13 +44,6 @@ bool AmsDataStorage::update(AmsData* data) {
 
     tmElements_t utc, ltz, utcYesterday, ltzYesterDay;
     breakTime(now, utc);
-    /* debugging code
-    if(utc.Hour%2 == 1) {
-        now -= 60;
-        breakTime(now, utc);
-    }
-    */
-
     breakTime(tz->toLocal(now), ltz);
     breakTime(now-3600, utcYesterday);
     breakTime(tz->toLocal(now-3600), ltzYesterDay);

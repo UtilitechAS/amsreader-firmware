@@ -1316,9 +1316,10 @@ void handleDataSuccess(AmsData* data) {
 			#if defined(ESP32)
 			if(saveData && cloud != NULL) cloud->forceUpdate();
 			#endif
-		} else if(tm.Minute == 1 && meterState.getListType() >= 3) {
-			debugV_P(PSTR(" using estimated data"));
-			saveData = ds.update(&meterState);
+		} else if(tm.Minute == 1) {
+			debugV_P(PSTR(" no data, clear"));
+			AmsData nullData;
+			saveData = ds.update(&nullData);
 		}
 		if(saveData) {
 			debugI_P(PSTR("Saving data"));

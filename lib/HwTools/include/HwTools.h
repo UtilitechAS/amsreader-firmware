@@ -42,7 +42,8 @@ struct AdcConfig {
 
 class HwTools {
 public:
-    void setup(GpioConfig*, AmsConfiguration*);
+    bool applyBoardConfig(uint8_t boardType, GpioConfig& gpioConfig, MeterConfig& meterConfig, uint8_t hanPin);
+    void setup(GpioConfig*);
     float getVcc();
     uint8_t getTempSensorCount();
     TempSensorData* getTempSensorData(uint8_t);
@@ -64,7 +65,6 @@ private:
         esp_adc_cal_characteristics_t* voltAdcChar, tempAdcChar;
     #endif
     GpioConfig* config;
-    AmsConfiguration* amsConf;
     bool tempSensorInit;
     OneWire *oneWire = NULL;
     DallasTemperature *sensorApi = NULL;

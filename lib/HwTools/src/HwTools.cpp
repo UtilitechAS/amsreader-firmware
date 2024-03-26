@@ -6,9 +6,146 @@
 
 #include "HwTools.h"
 
-void HwTools::setup(GpioConfig* config, AmsConfiguration* amsConf) {
+bool HwTools::applyBoardConfig(uint8_t boardType, GpioConfig& gpioConfig, MeterConfig& meterConfig, uint8_t hanPin) {
+    #if defined(CONFIG_IDF_TARGET_ESP32S2)
+        switch(boardType) {
+            case 5: // Pow-K+
+                meterConfig.txPin = 9;
+            case 7: // Pow-U+
+            case 6: // Pow-P1
+                meterConfig.rxPin = 16;
+                gpioConfig.apPin = 0;
+                gpioConfig.ledPinRed = 13;
+                gpioConfig.ledPinGreen = 14;
+                gpioConfig.ledRgbInverted = true;
+                gpioConfig.vccPin = 10;
+                gpioConfig.vccResistorGnd = 22;
+                gpioConfig.vccResistorVcc = 33;
+                gpioConfig.ledDisablePin = 6;
+                return true;
+            case 51: // Wemos S2 mini
+                gpioConfig.ledPin = 15;
+                gpioConfig.ledInverted = false;
+                gpioConfig.apPin = 0;
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 18;
+                if(meterConfig.rxPin != 18) {
+                    gpioConfig.vccPin = 18;
+                    gpioConfig.vccResistorGnd = 45;
+                    gpioConfig.vccResistorVcc = 10;
+                }
+                return true;
+            case 50: // Generic ESP32-S2
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 18;
+                return true;
+        }
+    #elif defined(CONFIG_IDF_TARGET_ESP32C3)
+        switch(boardType) {
+            case 8: // dbeinder: HAN mosquito
+                meterConfig.rxPin = 7;
+                meterConfig.rxPinPullup = false;
+                gpioConfig.apPin = 9;
+                gpioConfig.ledRgbInverted = true;
+                gpioConfig.ledPinRed = 5;
+                gpioConfig.ledPinGreen = 6;
+                gpioConfig.ledPinBlue = 4;
+                return true;
+            case 71: // ESP32-C3-DevKitM-1
+                gpioConfig.apPin = 9;
+            case 70: // Generic ESP32-C3
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 7;
+                return true;
+        }
+    #elif defined(CONFIG_IDF_TARGET_ESP32S3)
+        switch(boardType) {
+            case 80: // Generic ESP32-S3
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 18;
+                return true;
+        }
+    #elif defined(ESP32)
+        switch(boardType) {
+            case 241: // LilyGO T-ETH-POE
+                gpioConfig.apPin = 0;
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 39;
+                gpioConfig.ledPin = 2;
+                gpioConfig.ledInverted = true;
+                return true;
+            case 242: // M5 PoESP32
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 16;
+                return true;
+            case 243: // WT32-ETH01
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 39;
+                return true;
+            case 201: // D32
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 16;
+                gpioConfig.apPin = 4;
+                gpioConfig.ledPin = 5;
+                gpioConfig.ledInverted = true;
+                return true;
+            case 202: // Feather
+            case 203: // DevKitC
+            case 200: // ESP32
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 16;
+                gpioConfig.ledPin = 2;
+                gpioConfig.ledInverted = false;
+                return true;
+        }
+    #elif defined(ESP8266)
+        switch(boardType) {
+            case 2: // spenceme
+                gpioConfig.vccBootLimit = 32;
+                meterConfig.rxPin = 3;
+                gpioConfig.apPin = 0;
+                gpioConfig.ledPin = 2;
+                gpioConfig.ledInverted = true;
+                gpioConfig.tempSensorPin = 5;
+                return true;
+            case 0: // roarfred
+                meterConfig.rxPin = 3;
+                gpioConfig.apPin = 0;
+                gpioConfig.ledPin = 2;
+                gpioConfig.ledInverted = true;
+                gpioConfig.tempSensorPin = 5;
+                return true;
+            case 1: // Arnio Kamstrup
+            case 3: // Pow-K UART0
+            case 4: // Pow-U UART0
+                meterConfig.rxPin = 3;
+                gpioConfig.apPin = 0;
+                gpioConfig.ledPin = 2;
+                gpioConfig.ledInverted = true;
+                gpioConfig.ledPinRed = 13;
+                gpioConfig.ledPinGreen = 14;
+                gpioConfig.ledRgbInverted = true;
+                return true;
+            case 5: // Pow-K GPIO12
+            case 7: // Pow-U GPIO12
+                meterConfig.rxPin = 12;
+                gpioConfig.apPin = 0;
+                gpioConfig.ledPin = 2;
+                gpioConfig.ledInverted = true;
+                gpioConfig.ledPinRed = 13;
+                gpioConfig.ledPinGreen = 14;
+                gpioConfig.ledRgbInverted = true;
+                return true;
+            case 101: // D1
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 5;
+                gpioConfig.apPin = 4;
+                gpioConfig.ledPin = 2;
+                gpioConfig.ledInverted = true;
+                gpioConfig.vccMultiplier = 1100;
+                return true;
+            case 100: // ESP8266
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 3;
+                gpioConfig.ledPin = 2;
+                gpioConfig.ledInverted = true;
+                return true;
+        }
+    #endif
+    return false;
+}
+
+void HwTools::setup(GpioConfig* config) {
     this->config = config;
-    this->amsConf = amsConf;
     this->tempSensorInit = false;
     if(sensorApi != NULL)
         delete sensorApi;

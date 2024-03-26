@@ -276,22 +276,13 @@ void setup() {
 		config.clearGpio(gpioConfig);
 	}
 	if(config.getSystemConfig(sysConfig)) {
-		switch(sysConfig.boardType) {
-			case 5:
-			case 6:
-			case 7:
-				config.clearGpio(gpioConfig);
-				gpioConfig.apPin = 0;
-				gpioConfig.ledPinRed = 13;
-				gpioConfig.ledPinGreen = 14;
-				gpioConfig.ledRgbInverted = true;
-				gpioConfig.vccPin = 10;
-				gpioConfig.vccResistorGnd = 22;
-				gpioConfig.vccResistorVcc = 33;
-				gpioConfig.ledDisablePin = 6;
-				break;
+		config.getMeterConfig(meterConfig);
+		if(sysConfig.boardType < 20) {
+			config.clearGpio(gpioConfig);
+			hw.applyBoardConfig(sysConfig.boardType, gpioConfig, meterConfig, 0);
 		}
 	} else {
+		config.clearMeter(meterConfig);
 		sysConfig.boardType = 0;
 		sysConfig.vendorConfigured = false;
 		sysConfig.userConfigured = false;
@@ -299,7 +290,7 @@ void setup() {
 	}
 
 	delay(1);
-	hw.setup(&gpioConfig, &config);
+	hw.setup(&gpioConfig);
 
 	if(gpioConfig.apPin >= 0) {
 		pinMode(gpioConfig.apPin, INPUT_PULLUP);
@@ -345,16 +336,6 @@ void setup() {
 	bool shared = false;
 	Serial.flush();
 	Serial.end();
-	config.getMeterConfig(meterConfig);
-	switch(sysConfig.boardType) {
-		case 5:
-		case 6:
-		case 7:
-			meterConfig.rxPin = 16;
-			meterConfig.txPin = 9;
-			break;
-	}
-
 	if(meterConfig.rxPin == 3) {
 		shared = true;
 		#if defined(ESP8266)

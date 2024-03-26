@@ -1081,155 +1081,8 @@ void AmsWebServer::handleSave() {
 
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
-
-		#if defined(CONFIG_IDF_TARGET_ESP32S2)
-			switch(boardType) {
-				case 5: // Pow-K+
-				case 7: // Pow-U+
-				case 6: // Pow-P1
-					config->clearGpio(*gpioConfig);
-					meterConfig.rxPin = 16;
-					gpioConfig->apPin = 0;
-					gpioConfig->ledPinRed = 13;
-					gpioConfig->ledPinGreen = 14;
-					gpioConfig->ledRgbInverted = true;
-					gpioConfig->vccPin = 10;
-					gpioConfig->vccResistorGnd = 22;
-					gpioConfig->vccResistorVcc = 33;
-					gpioConfig->ledDisablePin = 6;
-					break;
-				case 51: // Wemos S2 mini
-					gpioConfig->ledPin = 15;
-					gpioConfig->ledInverted = false;
-					gpioConfig->apPin = 0;
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 18;
-					if(meterConfig.rxPin != 18) {
-						gpioConfig->vccPin = 18;
-						gpioConfig->vccResistorGnd = 45;
-						gpioConfig->vccResistorVcc = 10;
-					}
-					break;
-				case 50: // Generic ESP32-S2
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 18;
-					break;
-				default:
-					success = false;
-			}
-		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-			switch(boardType) {
-				case 8: // dbeinder: HAN mosquito
-					meterConfig.rxPin = 7;
-					meterConfig.rxPinPullup = false;
-					gpioConfig->apPin = 9;
-					gpioConfig->ledRgbInverted = true;
-					gpioConfig->ledPinRed = 5;
-					gpioConfig->ledPinGreen = 6;
-					gpioConfig->ledPinBlue = 4;
-					break;
-				case 71: // ESP32-C3-DevKitM-1
-					gpioConfig->apPin = 9;
-				case 70: // Generic ESP32-C3
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 7;
-					break;
-				default:
-					success = false;
-			}
-		#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-			switch(boardType) {
-				case 80: // Generic ESP32-S3
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 18;
-					break;
-				default:
-					success = false;
-			}
-		#elif defined(ESP32)
-			switch(boardType) {
-				case 241: // LilyGO T-ETH-POE
-					gpioConfig->apPin = 0;
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 39;
-					gpioConfig->ledPin = 2;
-					gpioConfig->ledInverted = true;
-					break;
-				case 242: // M5 PoESP32
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 16;
-					break;
-				case 243: // WT32-ETH01
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 39;
-					break;
-				case 201: // D32
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 16;
-					gpioConfig->apPin = 4;
-					gpioConfig->ledPin = 5;
-					gpioConfig->ledInverted = true;
-					break;
-				case 202: // Feather
-				case 203: // DevKitC
-				case 200: // ESP32
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 16;
-					gpioConfig->ledPin = 2;
-					gpioConfig->ledInverted = false;
-					break;
-				default:
-					success = false;
-			}
-		#elif defined(ESP8266)
-			switch(boardType) {
-				case 2: // spenceme
-					config->clearGpio(*gpioConfig);
-					gpioConfig->vccBootLimit = 32;
-					meterConfig.rxPin = 3;
-					gpioConfig->apPin = 0;
-					gpioConfig->ledPin = 2;
-					gpioConfig->ledInverted = true;
-					gpioConfig->tempSensorPin = 5;
-					break;
-				case 0: // roarfred
-					config->clearGpio(*gpioConfig);
-					meterConfig.rxPin = 3;
-					gpioConfig->apPin = 0;
-					gpioConfig->ledPin = 2;
-					gpioConfig->ledInverted = true;
-					gpioConfig->tempSensorPin = 5;
-					break;
-				case 1: // Arnio Kamstrup
-				case 3: // Pow-K UART0
-				case 4: // Pow-U UART0
-					config->clearGpio(*gpioConfig);
-					meterConfig.rxPin = 3;
-					gpioConfig->apPin = 0;
-					gpioConfig->ledPin = 2;
-					gpioConfig->ledInverted = true;
-					gpioConfig->ledPinRed = 13;
-					gpioConfig->ledPinGreen = 14;
-					gpioConfig->ledRgbInverted = true;
-					break;
-				case 5: // Pow-K GPIO12
-				case 7: // Pow-U GPIO12
-					config->clearGpio(*gpioConfig);
-					meterConfig.rxPin = 12;
-					gpioConfig->apPin = 0;
-					gpioConfig->ledPin = 2;
-					gpioConfig->ledInverted = true;
-					gpioConfig->ledPinRed = 13;
-					gpioConfig->ledPinGreen = 14;
-					gpioConfig->ledRgbInverted = true;
-					break;
-				case 101: // D1
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 5;
-					gpioConfig->apPin = 4;
-					gpioConfig->ledPin = 2;
-					gpioConfig->ledInverted = true;
-					gpioConfig->vccMultiplier = 1100;
-					break;
-				case 100: // ESP8266
-					meterConfig.rxPin = hanPin > 0 ? hanPin : 3;
-					gpioConfig->ledPin = 2;
-					gpioConfig->ledInverted = true;
-					break;
-				default:
-					success = false;
-			}
-		#endif
+		config->clearGpio(*gpioConfig);
+		hw->applyBoardConfig(boardType, *gpioConfig, meterConfig, hanPin);
 		if(success) {
 			config->setGpioConfig(*gpioConfig);
 			config->setMeterConfig(meterConfig);
@@ -1673,7 +1526,7 @@ void AmsWebServer::handleSave() {
 		if(config->isNetworkConfigChanged() || performRestart) {
 			performRestart = true;
 		} else {
-			hw->setup(gpioConfig, config);
+			hw->setup(gpioConfig);
 		}
 	} else {
 		success = false;

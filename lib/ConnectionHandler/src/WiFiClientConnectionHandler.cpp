@@ -89,10 +89,6 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 				wifi_set_user_limit_rate_mask(LIMIT_RATE_MASK_ALL);
 			}
 		#endif
-		#if defined(ESP32)
-			WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
-			WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
-		#endif
 		WiFi.setAutoReconnect(true);
 		#if defined(ESP32)
 		if(begin(config.ssid, config.psk)) {

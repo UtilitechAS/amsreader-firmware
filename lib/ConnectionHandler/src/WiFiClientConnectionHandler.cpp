@@ -94,7 +94,11 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 			WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
 		#endif
 		WiFi.setAutoReconnect(true);
+		#if defined(ESP32)
 		if(begin(config.ssid, config.psk)) {
+		#else
+		if(WiFi.begin(config.ssid, config.psk)) {
+		#endif
 			if(config.sleep <= 2) {
 				switch(config.sleep) {
 					case 0:
@@ -118,6 +122,7 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
     return false;
 }
 
+#if defined(ESP32)
 wl_status_t WiFiClientConnectionHandler::begin(const char* ssid, const char* passphrase) {
    if(!WiFi.enableSTA(true)) {
         log_e("STA enable failed!");
@@ -204,7 +209,7 @@ void WiFiClientConnectionHandler::wifi_sta_config(wifi_config_t * wifi_config, c
 	wifi_config->sta.btm_enabled = true;
 	wifi_config->sta.mbo_enabled = true;
 }
-
+#endif
 
 void WiFiClientConnectionHandler::disconnect(unsigned long reconnectDelay) {
 	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Disconnecting!\n"));

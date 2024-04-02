@@ -380,18 +380,48 @@ bool AmsDataStorage::load() {
         File file = LittleFS.open(FILE_DAYPLOT, "r");
         char buf[file.size()];
         file.readBytes(buf, file.size());
-        DayDataPoints* day = (DayDataPoints*) buf;
+        if(buf[0] > 5) {
+            DayDataPoints* day = (DayDataPoints*) buf;
+            ret = setDayData(*day);
+        } else {
+            DayDataPoints5* old = (DayDataPoints5*) buf;
+            DayDataPoints day = { old->version };
+            day.lastMeterReadTime = old->lastMeterReadTime;
+            day.activeImport = old->activeImport;
+            day.activeExport = old->activeExport;
+            day.accuracy = old->accuracy;
+            for(uint8_t i = 0; i < 24; i++) {
+                day.hImport[i] = old->hImport[i];
+                day.hExport[i] = old->hExport[i];
+            }
+
+            ret = setDayData(day);
+        }
         file.close();
-        ret = setDayData(*day);
     }
 
     if(LittleFS.exists(FILE_MONTHPLOT)) {
         File file = LittleFS.open(FILE_MONTHPLOT, "r");
         char buf[file.size()];
         file.readBytes(buf, file.size());
-        MonthDataPoints* month = (MonthDataPoints*) buf;
+        if(buf[0] > 6) {
+            MonthDataPoints* month = (MonthDataPoints*) buf;
+            ret &= setMonthData(*month);
+        } else {
+            MonthDataPoints6* old = (MonthDataPoints6*) buf;
+            MonthDataPoints month = { old->version };
+            month.lastMeterReadTime = old->lastMeterReadTime;
+            month.activeImport = old->activeImport;
+            month.activeExport = old->activeExport;
+            month.accuracy = old->accuracy;
+            for(uint8_t i = 0; i < 31; i++) {
+                month.dImport[i] = old->dImport[i];
+                month.dExport[i] = old->dExport[i];
+            }
+
+            ret &= setMonthData(month);
+        }
         file.close();
-        ret = ret && setMonthData(*month);
     }
 
     return ret;
@@ -431,12 +461,6 @@ MonthDataPoints AmsDataStorage::getMonthData() {
 }
 
 bool AmsDataStorage::setDayData(DayDataPoints& day) {
-    if(day.version > 2 && day.version < 6) {
-        uint32_t counters[2];
-        memcpy((uint8_t*) counters, (uint8_t*) &day.activeImport, 8);
-        day.activeImport = counters[0];
-        day.activeExport = counters[1];
-    }
     if(day.version == 5 || day.version == 6) {
         this->day = day;
         this->day.version = 6;
@@ -457,13 +481,6 @@ bool AmsDataStorage::setDayData(DayDataPoints& day) {
 }
 
 bool AmsDataStorage::setMonthData(MonthDataPoints& month) {
-    if(month.version > 3 && month.version < 7) {
-        uint32_t counters[2];
-        memcpy((uint8_t*) counters, (uint8_t*) &month.activeImport, 8);
-        month.activeImport = counters[0];
-        month.activeExport = counters[1];
-    }
-
     if(month.version == 6 || month.version == 7) {
         this->month = month;
         this->month.version = 7;

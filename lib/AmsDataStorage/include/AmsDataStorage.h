@@ -11,14 +11,34 @@
 #include "RemoteDebug.h"
 #include "Timezone.h"
 
+struct DayDataPoints5 {
+    uint8_t version;
+    uint16_t hImport[24];
+    time_t lastMeterReadTime;
+    uint32_t activeImport;
+    uint32_t activeExport;
+    uint16_t hExport[24];
+    uint8_t accuracy;
+};
+
+struct MonthDataPoints6 {
+    uint8_t version;
+    uint16_t dImport[31];
+    time_t lastMeterReadTime;
+    uint32_t activeImport;
+    uint32_t activeExport;
+    uint16_t dExport[31];
+    uint8_t accuracy;
+};
+
 struct DayDataPoints {
     uint8_t version;
     uint16_t hImport[24];
     time_t lastMeterReadTime;
     uint64_t activeImport;
+    uint64_t activeExport;
     uint16_t hExport[24];
     uint8_t accuracy;
-    uint64_t activeExport;
 };
 
 struct MonthDataPoints {
@@ -26,10 +46,10 @@ struct MonthDataPoints {
     uint16_t dImport[31];
     time_t lastMeterReadTime;
     uint64_t activeImport;
+    uint64_t activeExport;
     uint16_t dExport[31];
     uint8_t accuracy;
-    uint64_t activeExport;
-}; // 142 bytes
+};
 
 class AmsDataStorage {
 public:

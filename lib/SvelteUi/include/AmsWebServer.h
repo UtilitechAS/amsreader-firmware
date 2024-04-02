@@ -107,6 +107,7 @@ private:
 	void indexJs();
 	void indexCss();
 	void faviconSvg();
+	void logoSvg();
 
     void sysinfoJson();
     void dataJson();

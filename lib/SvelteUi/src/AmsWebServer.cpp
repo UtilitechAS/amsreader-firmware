@@ -112,6 +112,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	
 	server.on(context + F("/favicon.svg"), HTTP_GET, std::bind(&AmsWebServer::faviconSvg, this)); 
+	server.on(context + F("/logo.svg"), HTTP_GET, std::bind(&AmsWebServer::logoSvg, this)); 
 	server.on(context + F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
 	server.on(context + F("/data.json"), HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
 	server.on(context + F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
@@ -241,6 +242,13 @@ void AmsWebServer::notFound() {
 void AmsWebServer::faviconSvg() {
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
 	server.send_P(200, "image/svg+xml", FAVICON_SVG);
+}
+
+void AmsWebServer::logoSvg() {
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1MO);
+	String svg = String(FAVICON_SVG);
+	svg.replace("045c7c", "f3f4f6");
+	server.send(200, "image/svg+xml", svg.c_str());
 }
 
 void AmsWebServer::sysinfoJson() {

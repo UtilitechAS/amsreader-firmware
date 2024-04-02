@@ -60,7 +60,6 @@
     let yTicks;
     let xTicks;
     let barWidth;
-    let labelSpacing = 12;
     let unit
 
     $:{
@@ -90,7 +89,7 @@
             }
 
             xTicks = [];
-            for(let i = min; i < realtime.size; i+=realtime.size/labelSpacing) {
+            for(let i = 0; i < realtime.size; i+=Math.round(realtime.size/Math.round(barWidth * 3))) {
                 xTicks.push({
                     value: i,
                     label: '-'+Math.round((realtime.size - i) / 6)+' min'
@@ -140,11 +139,9 @@
             <g class="axis x-axis">
                 {#each xTicks as point, i}
                     {#if !isNaN(xScale(point.value))}
-                        {#if i%Math.round(6/barWidth) == 0}
-                            <g class="tick" transform="translate({40+xScale(point.value)},{heightAvailable})">
-                                <text x="{barWidth/2}" y="-4">{point.label}</text>
-                            </g>
-                        {/if}
+                        <g class="tick" transform="translate({40+xScale(point.value)},{heightAvailable})">
+                            <text x="{barWidth/2}" y="-4">{point.label}</text>
+                        </g>
                     {/if}
                 {/each}
             </g>

@@ -34,17 +34,13 @@
     }
 
     if(sysinfo.ui.k === 1) {
-        console.log("dark");
         document.documentElement.classList.add('dark')
     } else if (sysinfo.ui.k === 0) {
-        console.log("light");
         document.documentElement.classList.remove('dark')
     } else {
         if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            console.log("dark auto");
             document.documentElement.classList.add('dark')
         } else {
-            console.log("light auto");
             document.documentElement.classList.remove('dark')
         }
     }

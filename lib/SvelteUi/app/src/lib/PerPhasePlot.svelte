@@ -77,7 +77,6 @@
             ticks.push({ value: maxImport, label: '100%' });
         }
 
-
         config = {
             title: title,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },

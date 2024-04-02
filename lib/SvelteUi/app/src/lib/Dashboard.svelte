@@ -38,10 +38,11 @@
       translations = update;
     });
 
-    let it,et;
+    let it,et,threePhase;
     $: {
         it = formatUnit(data?.ic * 1000, "Wh");
         et = formatUnit(data?.ec * 1000, "Wh");
+        threePhase = data?.l1?.u > 100 && data?.l2?.u > 100 && data?.l3?.u > 100;
     }
 </script>
 
@@ -80,7 +81,7 @@
             {#if data.l1}
                 <PerPhasePlot title={translations.common?.amperage ?? "Amp"} unit="A" importColorFn={ampcol} exportColorFn={exportcol}
                     maxImport={data.mf}
-                    maxExport={data.om ? data.om / 230 : 0}
+                    maxExport={data.om ? threePhase ? data.om / 0.4 / Math.sqrt(3) : data.om / 0.23 : 0}
                     l1={data.l1 && data.l1.u > 100} 
                     l2={data.l2 && data.l2.u > 100} 
                     l3={data.l3 && data.l3.u > 100}
@@ -88,9 +89,9 @@
                     l1i={Math.max(data.l1.i,0)}
                     l2i={Math.max(data.l2.i,0)}
                     l3i={Math.max(data.l3.i,0)}
-                    l1e={Math.min(data.l1.i*-1,0)}
-                    l2e={Math.min(data.l2.i*-1,0)}
-                    l3e={Math.min(data.l3.i*-1,0)}
+                    l1e={Math.max(data.l1.e,0)}
+                    l2e={Math.max(data.l2.e,0)}
+                    l3e={Math.max(data.l3.e,0)}
                 />
             {/if}
         </div>
@@ -100,15 +101,15 @@
             {#if data.l1}
                 <PerPhasePlot title={translations.dashboard?.phase ?? "Phase"} unit="W" importColorFn={ampcol} exportColorFn={exportcol}
                     maxImport={(data.mf ? data.mf : 32) * 230}
-                    maxExport={data.om}
+                    maxExport={data.om ? threePhase ? (data.om * 1000) / Math.sqrt(3) : data.om * 1000 : 0}
                     l1={data.l1 && data.l1.u > 100} 
                     l2={data.l2 && data.l2.u > 100} 
                     l3={data.l3 && data.l3.u > 100}
                     l1i={data.l1.p}
-                    l1e={data.l1.q}
                     l2i={data.l2.p}
-                    l2e={data.l2.q}
                     l3i={data.l3.p}
+                    l1e={data.l1.q}
+                    l2e={data.l2.q}
                     l3e={data.l3.q}
                 />
             {/if}

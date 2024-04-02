@@ -1,34 +1,49 @@
 <script>
-    import { dataStore, realtimeStore } from './DataStores.js';
+    import { dataStore, realtimeStore, getRealtime } from './DataStores.js';
 
     export let title;
 
     let dark = document.documentElement.classList.contains('dark');
 
-    let realtime;
-    realtimeStore.subscribe(update => {
-        realtime = update;
-    });
-
-    let blankTimeout;
+    let addTimeout;
     let lastUp = 0;
     let lastValue = 0;
+    let lastUpdate = 0;
+
+    let realtimeRequested = false;
+    let realtime = null;
+    let realtimeTimeout;
+    realtimeStore.subscribe(update => {
+        realtime = update;
+        lastUpdate = lastUp;
+        if(realtimeTimeout) clearTimeout(realtimeTimeout);
+        realtimeTimeout = setTimeout(getRealtime, 600000);
+    });
 
     function addValue() {
-        if(blankTimeout) clearTimeout(blankTimeout);
-        blankTimeout = setTimeout(addValue, 10000);
-        realtime.data.unshift(lastValue);
-        realtime.data = realtime.data.slice(0,realtime.size);
-        lastUp += 10;
+        if(addTimeout) clearTimeout(addTimeout);
+        if(lastUpdate > lastUp || lastUpdate - lastUp > 300) {
+            getRealtime();
+        } else {
+            while(lastUp > lastUpdate) {
+                realtime.data.unshift(lastValue);
+                realtime.data = realtime.data.slice(0,realtime.size);
+                lastUpdate += 10;
+            }
+            addTimeout = setTimeout(addValue, 10000);
+        }
     }
 
     dataStore.subscribe(update => {
-        if(lastUp == 0) {
-            if(blankTimeout) clearTimeout(blankTimeout);
-            blankTimeout = setTimeout(addValue, 10000);
-        }
         lastValue = update.i-update.e;
         lastUp = update.u;
+        if(!realtimeRequested) {
+            getRealtime();
+            realtimeRequested = true;
+            return;
+        }
+        if(!realtime?.data?.length) return;
+        if(!addTimeout) addTimeout = setTimeout(addValue, 10000);
     });
 
     let max;
@@ -59,6 +74,7 @@
         if(realtime.data) {
             for(let p in realtime.data) {
                 let val = realtime.data[p];
+                if(isNaN(val)) val = 0;
                 max = Math.max(Math.ceil(val/1000.0)*1000, max);
                 min = Math.min(Math.ceil(val/1000.0)*1000, min);
             }
@@ -95,6 +111,7 @@
                     break;
                 }
                 let val = realtime.data[p];
+                if(isNaN(val)) val = 0;
                 points = xScale(i--)+","+yScale(val)+" "+points;
             }
         }

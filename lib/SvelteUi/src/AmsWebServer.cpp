@@ -1991,18 +1991,32 @@ void AmsWebServer::realtimeJson() {
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-	snprintf_P(buf, BufferSize, PSTR("{\"size\":\"%d\",\"data\":["), rtp->getSize());
-	server.send(200, MIME_JSON, buf);
+	uint16_t offset = 0;
+	if(server.hasArg(F("offset"))) {
+		offset = server.arg(F("offset")).toInt();
+	}
+
+	uint16_t size = 60;
+	if(server.hasArg(F("size"))) {
+		size = server.arg(F("size")).toInt();
+	}
+	
+	if(size > rtp->getSize()) {
+		size = rtp->getSize();
+	}
+	if(offset > rtp->getSize()) {
+		offset = rtp->getSize();
+	}
+
+	uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"offset\":%d,\"size\":%d,\"total\":%d,\"data\":["), offset, size, rtp->getSize());
 	bool first = true;
-	for(uint16_t i = 0; i < rtp->getSize(); i++) {
-		snprintf_P(buf, BufferSize, PSTR("%s%d"), first ? "" : ",", rtp->getValue(i));
-		server.sendContent(buf);
+	for(uint16_t i = 0; i < size; i++) {
+		pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("%s%d"), first ? "" : ",", rtp->getValue(offset+i));
 		first = false;
 		delay(1);
 	}
-	snprintf_P(buf, BufferSize, PSTR("]}"));
-	server.sendContent(buf);
+	pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("]}"));
+	server.send(200, MIME_JSON, buf);
 }
 
 void AmsWebServer::setPriceSettings(String region, String currency) {

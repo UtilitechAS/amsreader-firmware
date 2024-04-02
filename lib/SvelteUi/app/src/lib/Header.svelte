@@ -8,6 +8,9 @@
     import Uptime from "./Uptime.svelte";
     import Badge from './Badge.svelte';
     import Clock from './Clock.svelte';
+    import GearIcon from './GearIcon.svelte';
+    import InfoIcon from "./InfoIcon.svelte";
+    import HelpIcon from "./HelpIcon.svelte";
 
     export let basepath = "/";
     export let data = {};
@@ -79,14 +82,14 @@
           </div>
           {#if sysinfo.vndcfg && sysinfo.usrcfg}
           <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.config ?? ""}>
-            <Link to="/configuration">&#9965;</Link>
+            <Link to="/configuration"><GearIcon/></Link>
           </div>
           <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.status ?? ""}>
-            <Link to="/status">&#9432;</Link>
+            <Link to="/status"><InfoIcon/></Link>
           </div>
           {/if}
           <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.doc ?? ""}>
-            <a href={wiki('')} target='_blank' rel="noreferrer">&#128464;</a>
+            <a href={wiki('')} target='_blank' rel="noreferrer"><HelpIcon/></a>
           </div>
           {#if sysinfo.fwconsent === 1 && nextVersion}
           <div class="flex-none mr-3 text-yellow-500" title={(translations.header?.new_version ?? "New version") + ': ' + nextVersion.tag_name}>

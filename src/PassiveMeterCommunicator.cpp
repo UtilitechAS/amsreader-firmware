@@ -213,8 +213,8 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
 		// Rudimentary detector for L&G proprietary format, this is terrible code... Fix later
 		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
 			if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("LNG\n"));
-			LNG lngData = LNG(payload, meterState.getMeterType(), &meterConfig, ctx, debugger);
-			if(lngData.getListType() >= 3) {
+			LNG lngData = LNG(meterState, payload, meterState.getMeterType(), &meterConfig, ctx, debugger);
+			if(lngData.getListType() >= 1) {
 				data = new AmsData();
 				data->apply(meterState);
 				data->apply(lngData);
@@ -228,8 +228,8 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
 			payload[17] == CosemTypeLongUnsigned
 		) {
 			if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("LNG2\n"));
-			LNG2 lngData = LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, debugger);
-			if(lngData.getListType() >= 3) {
+			LNG2 lngData = LNG2(meterState, payload, meterState.getMeterType(), &meterConfig, ctx, debugger);
+			if(lngData.getListType() >= 1) {
 				data = new AmsData();
 				data->apply(meterState);
 				data->apply(lngData);

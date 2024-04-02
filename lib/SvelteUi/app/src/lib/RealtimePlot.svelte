@@ -89,7 +89,7 @@
             }
 
             xTicks = [];
-            for(let i = 0; i < realtime.size; i+=Math.round(realtime.size/Math.round(barWidth * 3))) {
+            for(let i = 0; i < realtime.size; i+=Math.round(realtime.size/Math.round(widthAvailable / 120))) {
                 xTicks.push({
                     value: i,
                     label: '-'+Math.round((realtime.size - i) / 6)+' min'

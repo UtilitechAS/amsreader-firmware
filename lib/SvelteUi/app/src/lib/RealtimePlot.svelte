@@ -5,7 +5,6 @@
 
     let dark = document.documentElement.classList.contains('dark');
 
-    let addTimeout;
     let lastUp = 0;
     let lastValue = 0;
     let lastUpdate = 0;
@@ -21,16 +20,15 @@
     });
 
     function addValue() {
-        if(addTimeout) clearTimeout(addTimeout);
         if(lastUpdate > lastUp || lastUpdate - lastUp > 300) {
             getRealtime();
         } else {
+            console.log("lastUp: " + lastUp+ ", lastUpdate: " + lastUpdate);
             while(lastUp > lastUpdate) {
                 realtime.data.unshift(lastValue);
                 realtime.data = realtime.data.slice(0,realtime.size);
                 lastUpdate += 10;
             }
-            addTimeout = setTimeout(addValue, 10000);
         }
     }
 
@@ -43,7 +41,7 @@
             return;
         }
         if(!realtime?.data?.length) return;
-        if(!addTimeout) addTimeout = setTimeout(addValue, 10000);
+        addValue();
     });
 
     let max;
@@ -139,7 +137,7 @@
             <g class="axis x-axis">
                 {#each xTicks as point, i}
                     {#if !isNaN(xScale(point.value))}
-                        <g class="tick" transform="translate({40+xScale(point.value)},{heightAvailable})">
+                        <g class="tick" transform="translate({xScale(point.value)},{heightAvailable})">
                             <text x="{barWidth/2}" y="-4">{point.label}</text>
                         </g>
                     {/if}

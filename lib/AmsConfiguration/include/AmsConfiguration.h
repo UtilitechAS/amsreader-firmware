@@ -30,6 +30,7 @@
 #define CONFIG_HA_START 1552
 #define CONFIG_UI_START 1720
 #define CONFIG_CLOUD_START 1742
+#define CONFIG_ZC_START 1870
 
 #define CONFIG_METER_START_103 32
 #define CONFIG_UPGRADE_INFO_START_103 216
@@ -242,7 +243,14 @@ struct CloudConfig {
 	char hostname[64];
 	uint16_t port;
 	uint8_t clientId[16];
-}; // 69
+}; // 84
+
+struct ZmartChargeConfig {
+	bool enabled;
+	char token[21];
+}; // 22
+
+
 
 class AmsConfiguration {
 public:
@@ -335,6 +343,13 @@ public:
 	void clearCloudConfig(CloudConfig&);
 	bool isCloudChanged();
 	void ackCloudConfig();
+	
+	bool getZmartChargeConfig(ZmartChargeConfig&);
+	bool setZmartChargeConfig(ZmartChargeConfig&);
+	void clearZmartChargeConfig(ZmartChargeConfig&);
+	bool isZmartChargeConfigChanged();
+	void ackZmartChargeConfig();
+	
 
 	void clear();
 
@@ -343,7 +358,7 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool sysChanged = false, networkChanged, mqttChanged, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false;
+	bool sysChanged = false, networkChanged, mqttChanged, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false, zcChanged = true;
 
 	bool relocateConfig101(); // 2.2.0 through 2.2.8
 	bool relocateConfig102(); // 2.2.9 through 2.2.11

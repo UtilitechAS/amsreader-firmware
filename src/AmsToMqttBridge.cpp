@@ -24,6 +24,7 @@ ADC_MODE(ADC_VCC);
 #include <esp_task_wdt.h>
 #include <lwip/dns.h>
 #include "CloudConnector.h"
+#include "ZmartChargeCloudConnector.h"
 #endif
 
 #define WDT_TIMEOUT 120
@@ -161,6 +162,7 @@ bool mdnsEnabled = false;
 AmsDataStorage ds(&Debug);
 #if defined(ESP32)
 CloudConnector *cloud = NULL;
+ZmartChargeCloudConnector *zcloud = NULL;
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
 #else
 EnergyAccountingRealtimeData rtd;
@@ -673,11 +675,31 @@ void loop() {
 					if(cloud->setup(cc, meterConfig, &hw)) {
 						config.setCloudConfig(cc);
 					}
+				} else if (cloud != NULL) {
+					delete cloud;
+					cloud = NULL;
 				}
 				config.ackCloudConfig();
 			}
 			if(cloud != NULL) {
 				cloud->update(meterState, ea);
+			}
+
+			if(config.isZmartChargeConfigChanged()) {
+				ZmartChargeConfig zcc;
+				if(config.getZmartChargeConfig(zcc) && zcc.enabled) {
+					if(zcloud == NULL) {
+						zcloud = new ZmartChargeCloudConnector(&Debug, (char*) commonBuffer);
+					}
+					zcloud->setToken(zcc.token);
+				} else if(zcloud != NULL) {
+					delete zcloud;
+					zcloud = NULL;
+				}
+				config.ackZmartChargeConfig();
+			}
+			if(zcloud != NULL) {
+				zcloud->update(meterState);
 			}
 			#endif
 			handleUiLanguage();

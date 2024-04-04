@@ -801,6 +801,8 @@ void AmsWebServer::configurationJson() {
 	config->getHomeAssistantConfig(haconf);
 	CloudConfig cloud;
 	config->getCloudConfig(cloud);
+	ZmartChargeConfig zcc;
+	config->getZmartChargeConfig(zcc);
 
 	bool qsc = false;
 	bool qsr = false;
@@ -973,10 +975,12 @@ void AmsWebServer::configurationJson() {
 	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
 		cloud.enabled ? "true" : "false",
 		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
-		sysConfig.energyspeedometer == 7 ? "true" : "false"
+		sysConfig.energyspeedometer == 7 ? "true" : "false",
 		#else
-		"null"
+		"null",
 		#endif
+		zcc.enabled ? "true" : "false",
+		zcc.token
 	);
 	server.sendContent(buf);
 	server.sendContent_P(PSTR("}"));
@@ -1466,6 +1470,13 @@ void AmsWebServer::handleSave() {
 		config->getCloudConfig(cloud);
 		cloud.enabled = server.hasArg(F("ce")) && server.arg(F("ce")) == F("true");
 		config->setCloudConfig(cloud);
+
+		ZmartChargeConfig zcc;
+		config->getZmartChargeConfig(zcc);
+		zcc.enabled = server.hasArg(F("cze")) && server.arg(F("cze")) == F("true");
+		String token = server.arg(F("czt"));
+		strcpy(zcc.token, token.c_str());
+		config->setZmartChargeConfig(zcc);
 	}
 
 	if(server.hasArg(F("r")) && server.arg(F("r")) == F("true")) {

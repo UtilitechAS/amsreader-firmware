@@ -839,6 +839,49 @@ void AmsConfiguration::ackCloudConfig() {
 	cloudChanged = false;
 }
 
+bool AmsConfiguration::getZmartChargeConfig(ZmartChargeConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_ZC_START, config);
+		EEPROM.end();
+		return true;
+	} else {
+		clearZmartChargeConfig(config);
+		return false;
+	}
+}
+
+bool AmsConfiguration::setZmartChargeConfig(ZmartChargeConfig& config) {
+	ZmartChargeConfig existing;
+	if(getZmartChargeConfig(existing)) {
+		zcChanged |= config.enabled != existing.enabled;
+		zcChanged |= memcmp(config.token, existing.token, 16) != 0;
+	} else {
+		zcChanged = true;
+	}
+
+	stripNonAscii((uint8_t*) config.token, 21);
+
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_ZC_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+void AmsConfiguration::clearZmartChargeConfig(ZmartChargeConfig& config) {
+	config.enabled = false;
+	memset(config.token, 0, 21);
+}
+
+bool AmsConfiguration::isZmartChargeConfigChanged() {
+	return zcChanged;
+}
+
+void AmsConfiguration::ackZmartChargeConfig() {
+	zcChanged = false;
+}
+
 void AmsConfiguration::setUiLanguageChanged() {
 	uiLanguageChanged = true;
 }

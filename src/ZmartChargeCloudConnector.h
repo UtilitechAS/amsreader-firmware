@@ -38,7 +38,7 @@ private:
     uint64_t lastUpdate = 0;
     HTTPClient* http = NULL;
 
-    uint16_t heartbeat = 300;
-    uint16_t heartbeatFast = 6;
+    uint16_t heartbeat = 30;
+    uint16_t heartbeatFast = 10;
     uint16_t heartbeatFastThreshold = 32;
 };

@@ -9,11 +9,21 @@ void ZmartChargeCloudConnector::setToken(const char* token) {
 void ZmartChargeCloudConnector::update(AmsData& data) {
     if(strlen(token) == 0) return;
 
+    uint64_t now = millis64();
+
     float maximum = max(max(data.getL1Current(), data.getL1Current()), data.getL3Current());
     bool fast = maximum > heartbeatFastThreshold;
 
-    uint64_t now = millis64();
+    if(now - lastUpdate < (fast ? heartbeatFast : heartbeat) * 1000) return;
+
+    if(strlen(token) != 20) {
+        lastUpdate = now;
+        if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("(ZmartCharge) Token defined, but is incorrect length (%s, %d)\n"), token, strlen(token));
+        return;
+    }
+
     if(((now - lastUpdate) / 1000) > (fast || lastFailed ? heartbeatFast : heartbeat)) {
+        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(ZmartCharge) Preparing to update cloud\n"));
         memset(json, 0, BufferSize);
         snprintf_P(json, BufferSize, ZC_LB_JSON,
             token,
@@ -25,11 +35,14 @@ void ZmartChargeCloudConnector::update(AmsData& data) {
         );
         lastFailed = true;
         if(http->begin(F("https://central.zmartcharge.com/api/loadbalancer"))) {
+            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(ZmartCharge) Sending data: %s\n"), json);
             int status = http->POST(json);
             if(status == 200) {
                 lastFailed = false;
                 JsonDocument doc;
-                deserializeJson(doc, http->getString());
+                String body = http->getString();
+                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(ZmartCharge) Received data: %s\n"), body.c_str());
+                deserializeJson(doc, body);
                 if(doc.containsKey("Settings")) {
                     if(doc["Settings"].containsKey("HeartBeatTime")) {
                         heartbeat = doc["Settings"]["HeartBeatTime"].as<long>();
@@ -41,7 +54,16 @@ void ZmartChargeCloudConnector::update(AmsData& data) {
                         heartbeatFastThreshold = doc["Settings"]["HeartBeatTimeFastThreshold"].as<long>();
                     }
                 }
+                http->end();
+            } else {
+                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(ZmartCharge) Communication error, returned status: %d\n"), status);
+                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(http->errorToString(status).c_str());
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http->getString().c_str());
+
+                http->end();
             }
+        } else {
+            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(ZmartCharge) Unable to establish connection with cloud\n"));
         }
         lastUpdate = now;
     }

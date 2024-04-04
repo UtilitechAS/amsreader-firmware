@@ -803,6 +803,7 @@ void AmsWebServer::configurationJson() {
 	config->getCloudConfig(cloud);
 	ZmartChargeConfig zcc;
 	config->getZmartChargeConfig(zcc);
+	stripNonAscii((uint8_t*) zcc.token, 21);
 
 	bool qsc = false;
 	bool qsr = false;

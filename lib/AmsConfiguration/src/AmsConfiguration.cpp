@@ -856,7 +856,7 @@ bool AmsConfiguration::setZmartChargeConfig(ZmartChargeConfig& config) {
 	ZmartChargeConfig existing;
 	if(getZmartChargeConfig(existing)) {
 		zcChanged |= config.enabled != existing.enabled;
-		zcChanged |= memcmp(config.token, existing.token, 16) != 0;
+		zcChanged |= memcmp(config.token, existing.token, 21) != 0;
 	} else {
 		zcChanged = true;
 	}
@@ -1133,6 +1133,10 @@ bool AmsConfiguration::relocateConfig103() {
 	CloudConfig cloud;
 	clearCloudConfig(cloud);
 	EEPROM.put(CONFIG_CLOUD_START, cloud);
+
+	ZmartChargeConfig zcc;
+	clearZmartChargeConfig(zcc);
+	EEPROM.put(CONFIG_ZC_START, zcc);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 104);
 	bool ret = EEPROM.commit();

@@ -67,6 +67,7 @@ bool AmsConfiguration::getNetworkConfig(NetworkConfig& config) {
 bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 	NetworkConfig existing;
 	if(config.sleep > 2) config.sleep = 1;
+	if(config.mode < 1 || config.mode > 4) config.mode = 1;
 	if(getNetworkConfig(existing)) {
 		networkChanged |= strcmp(config.ssid, existing.ssid) != 0;
 		networkChanged |= strcmp(config.psk, existing.psk) != 0;

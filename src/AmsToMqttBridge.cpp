@@ -282,6 +282,8 @@ void setup() {
 		if(sysConfig.boardType < 20) {
 			config.clearGpio(gpioConfig);
 			hw.applyBoardConfig(sysConfig.boardType, gpioConfig, meterConfig, 0);
+			config.setMeterConfig(meterConfig);
+			config.setGpioConfig(gpioConfig);
 		}
 	} else {
 		config.clearMeter(meterConfig);
@@ -1511,7 +1513,7 @@ void configFileParse() {
 			sys.boardType = String(buf+10).toInt();
 		} else if(strncmp_P(buf, PSTR("netmode "), 8) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
-			network.mode = String(buf+5).toInt();
+			network.mode = String(buf+8).toInt();
 		} else if(strncmp_P(buf, PSTR("ssid "), 5) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
 			strcpy(network.ssid, buf+5);
@@ -1705,21 +1707,24 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("entsoeFixedPrice "), 17) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			price.unused2 = String(buf+17).toFloat() * 1000;
+		} else if(strncmp_P(buf, PSTR("priceEnabled "), 13) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			price.enabled = String(buf+13).toInt() == 1;
 		} else if(strncmp_P(buf, PSTR("priceEntsoeToken "), 17) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			strcpy(price.entsoeToken, buf+12);
+			strcpy(price.entsoeToken, buf+17);
 		} else if(strncmp_P(buf, PSTR("priceArea "), 10) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			strcpy(price.area, buf+11);
+			strcpy(price.area, buf+10);
 		} else if(strncmp_P(buf, PSTR("priceCurrency "), 14) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			strcpy(price.currency, buf+15);
+			strcpy(price.currency, buf+14);
 		} else if(strncmp_P(buf, PSTR("priceMultiplier "), 16) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.unused1 = String(buf+17).toFloat() * 1000;
+			price.unused1 = String(buf+16).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("priceFixedPrice "), 16) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.unused2 = String(buf+17).toFloat() * 1000;
+			price.unused2 = String(buf+16).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("thresholds "), 11) == 0) {
 			if(!lEac) { config.getEnergyAccountingConfig(eac); lEac = true; };
 			int i = 0;
@@ -1734,7 +1739,7 @@ void configFileParse() {
 			DayDataPoints day = { 0 };
 			char * pch = strtok (buf+8," ");
 			while (pch != NULL) {
-				int64_t val = String(pch).toInt();
+				double val = String(pch).toDouble();
 				if(day.version < 5) {
 					if(i == 0) {
 						day.version = val;
@@ -1753,13 +1758,13 @@ void configFileParse() {
 					if(i == 1) {
 						day.lastMeterReadTime = val;
 					} else if(i == 2) {
-						day.activeImport = val;
+						day.activeImport = day.version > 5 ? val * 1000 : val;
 					} else if(i == 3) {
 						day.accuracy = val;
 					} else if(i > 3 && i < 28) {
 						day.hImport[i-4] = val / pow(10, day.accuracy);
 					} else if(i == 28) {
-						day.activeExport = val;
+						day.activeExport = day.version > 5 ? val * 1000 : val;
 					} else if(i > 28 && i < 53) {
 						day.hExport[i-29] = val / pow(10, day.accuracy);
 					}
@@ -1775,7 +1780,7 @@ void configFileParse() {
 			MonthDataPoints month = { 0 };
 			char * pch = strtok (buf+10," ");
 			while (pch != NULL) {
-				int64_t val = String(pch).toInt();
+				double val = String(pch).toDouble();
 				if(month.version < 6) {
 					if(i == 0) {
 						month.version = val;
@@ -1794,13 +1799,13 @@ void configFileParse() {
 					if(i == 1) {
 						month.lastMeterReadTime = val;
 					} else if(i == 2) {
-						month.activeImport = val;
+						month.activeImport = month.version > 6 ? val * 1000 : val;
 					} else if(i == 3) {
 						month.accuracy = val;
 					} else if(i > 3 && i < 35) {
 						month.dImport[i-4] = val / pow(10, month.accuracy);
 					} else if(i == 35) {
-						month.activeExport = val;
+						month.activeExport = month.version > 6 ? val * 1000 : val;
 					} else if(i > 35 && i < 67) {
 						month.dExport[i-36] = val / pow(10, month.accuracy);
 					}

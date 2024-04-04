@@ -23,7 +23,6 @@
         if(lastUpdate > lastUp || lastUpdate - lastUp > 300) {
             getRealtime();
         } else {
-            console.log("lastUp: " + lastUp+ ", lastUpdate: " + lastUpdate);
             while(lastUp > lastUpdate) {
                 realtime.data.unshift(lastValue);
                 realtime.data = realtime.data.slice(0,realtime.size);

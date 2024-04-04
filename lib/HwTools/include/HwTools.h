@@ -55,7 +55,7 @@ public:
     bool ledOn(uint8_t color);
     bool ledOff(uint8_t color);
     bool ledBlink(uint8_t color, uint8_t blink);
-    void setBootSuccessful();
+    void setBootSuccessful(bool value);
 
     HwTools() {};
 private:

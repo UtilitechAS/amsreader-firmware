@@ -716,12 +716,6 @@ void loop() {
 		if(dnsServer != NULL) {
 			dnsServer->processNextRequest();
 		}
-		// Continously flash the LED when AP mode
-		if (now / 50 % 64 == 0) {
-			if(!hw.ledBlink(LED_YELLOW, 1)) {
-				hw.ledBlink(LED_INTERNAL, 1);
-			}
-		}
 		ws.loop();
 	}
 
@@ -811,7 +805,7 @@ void loop() {
 			}
 			handleTemperature(now);
 			handleSystem(now);
-			hw.setBootSuccessful();
+			hw.setBootSuccessful(true);
 		} else {
 			end = millis();
 			if(end - start > 1000) {
@@ -1092,6 +1086,7 @@ void errorBlink() {
 	if(lastError == 3)
 		lastError = 0;
 	lastErrorBlink = millis64();
+	if(setupMode) return;
 	while(lastError < 3) {
 		switch(lastError++) {
 			case 0:
@@ -1207,6 +1202,11 @@ void toggleSetupMode() {
 			Debug.begin(F("192.168.4.1"), 23, RemoteDebug::VERBOSE);
 		#endif
 		setupMode = true;
+
+		hw.setBootSuccessful(false);
+		if(gpioConfig.ledDisablePin != 0xFF) {
+			digitalWrite(gpioConfig.ledDisablePin, LOW);
+		}
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Exiting setup mode"));
 		if(dnsServer != NULL) {
@@ -1215,10 +1215,11 @@ void toggleSetupMode() {
 		}
 		connectToNetwork();
 		setupMode = false;
-	}
-	delay(500);
-	if(!hw.ledOff(LED_YELLOW)) {
-		hw.ledOff(LED_INTERNAL);
+		delay(500);
+		if(!hw.ledOff(LED_YELLOW)) {
+			hw.ledOff(LED_INTERNAL);
+		}
+		hw.setBootSuccessful(true);
 	}
 }
 
@@ -1258,7 +1259,7 @@ bool readHanPort() {
 }
 
 void handleDataSuccess(AmsData* data) {
-	if(!hw.ledBlink(LED_GREEN, 1))
+	if(!setupMode && !hw.ledBlink(LED_GREEN, 1))
 		hw.ledBlink(LED_INTERNAL, 1);
 
 	if(mqttHandler != NULL) {

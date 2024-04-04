@@ -1068,6 +1068,9 @@ bool AmsConfiguration::relocateConfig103() {
 	memset(web.context, 0, 37);
 
 	strcpy_P(ui.language, PSTR("en"));
+	ui.showPerPhasePower = 2;
+	ui.showPowerFactor = 2;
+	ui.darkMode = 2;
 
 	EEPROM.put(CONFIG_UPGRADE_INFO_START, upinfo);
 	EEPROM.put(CONFIG_NETWORK_START, wifi);

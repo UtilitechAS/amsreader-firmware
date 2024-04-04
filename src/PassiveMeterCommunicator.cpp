@@ -142,8 +142,12 @@ bool PassiveMeterCommunicator::loop() {
 		printHanReadError(pos);
 		len += hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
         if(pt != NULL) {
-            pt->publishBytes(hanBuffer+pos, len);
+            pt->publishBytes(hanBuffer, len);
         }
+		if(debugger->isActive(RemoteDebug::VERBOSE)) {
+			debugger->printf_P(PSTR("  payload:\n"));
+			debugPrint(hanBuffer, 0, len);
+		}
 		while(hanSerial->available()) hanSerial->read(); // Make sure it is all empty, in case we overflowed buffer above
 		len = 0;
 		return false;

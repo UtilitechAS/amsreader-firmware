@@ -1521,6 +1521,7 @@ void AmsWebServer::handleSave() {
 
 				ps->setPriceConfig(i, pc);
 			}
+			ps->cropPriceConfig(count);
 			ps->save();
 		} else {
 			if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Price service missing...\n"));

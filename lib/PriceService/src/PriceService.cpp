@@ -533,6 +533,12 @@ void PriceService::setPriceConfig(uint8_t index, PriceConfig &priceConfig) {
         this->priceConfig.push_back(priceConfig);
 }
 
+void PriceService::cropPriceConfig(uint8_t size) {
+    this->priceConfig.resize(size);
+    this->priceConfig.shrink_to_fit();
+
+}
+
 bool PriceService::save() {
     if(!LittleFS.begin()) {
         if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Unable to load LittleFS\n"));

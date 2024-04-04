@@ -78,6 +78,7 @@ public:
 
     std::vector<PriceConfig>& getPriceConfig();
     void setPriceConfig(uint8_t index, PriceConfig &priceConfig);
+    void cropPriceConfig(uint8_t size);
 
     PricePart getPricePart(uint8_t index);
 

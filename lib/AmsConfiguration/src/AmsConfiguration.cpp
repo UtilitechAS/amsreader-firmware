@@ -119,6 +119,7 @@ void AmsConfiguration::clearNetworkConfig(NetworkConfig& config) {
 	config.mdns = true;
 	config.sleep = 0xFF;
 	config.use11b = 1;
+	config.ipv6 = false;
 }
 
 void AmsConfiguration::clearNetworkConfigIp(NetworkConfig& config) {

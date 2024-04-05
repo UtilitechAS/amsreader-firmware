@@ -1294,6 +1294,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf_P(PSTR("Language:             %s\r\n"), ui.language);
 	}
 
+	#if defined(ESP32)
 	CloudConfig cc;
 	if(getCloudConfig(cc)) {
 		String uuid = ESPRandom::uuidToString(cc.clientId);;
@@ -1303,6 +1304,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf_P(PSTR("Client ID:            %s\r\n"), uuid.c_str());
 		debugger->printf_P(PSTR("Interval:             %d\r\n"), cc.interval);
 	}
+	#endif
 
 	debugger->println(F("-----------------------------------------------"));
 	debugger->flush();

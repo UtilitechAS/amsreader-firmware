@@ -18,3 +18,5 @@ platformio-user.ini
 node_modules
 /gui/dist
 /scripts/*dev
+/src/KmpCommunicator.cpp
+/src/KmpCommunicatorDefs.h

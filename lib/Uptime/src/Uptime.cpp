@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "Uptime.h"
 
 uint32_t _uptime_last_value = 0;

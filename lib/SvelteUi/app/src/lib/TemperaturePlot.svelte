@@ -1,7 +1,10 @@
 <script>
     import BarChart from './BarChart.svelte';
 
+    export let title;
     export let json;
+
+    let dark = document.documentElement.classList.contains('dark');
 
     let config = {};
     let max = 0;
@@ -24,7 +27,7 @@
                 points.push({
                     label: val.toFixed(1),
                     value: val, 
-                    color: '#7c3aed' 
+                    color: dark ? '#5c2da5' : '#7c3aed'
                 });
                 min = Math.min(min, val);
                 max = Math.max(max, val);
@@ -45,7 +48,7 @@
         }
 
         config = {
-            title: "Temperature sensors (°C)",
+            title: title + " (°C)",
             height: 226,
             width: 1520,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },

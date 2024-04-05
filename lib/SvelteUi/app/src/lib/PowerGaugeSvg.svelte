@@ -26,6 +26,6 @@
 </script>
 
 <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" height="100%">
-    <path d="{ describeArc(150, 150, 115, 210, 510) }" stroke="#eee" fill="none" stroke-width="55"/>
+    <path d="{ describeArc(150, 150, 115, 210, 510) }" stroke="rgba(128, 128, 128, 0.15)" fill="none" stroke-width="55"/>
     <path d="{ describeArc(150, 150, 115, 210, 210 + (300*pct/100)) }" stroke={color} fill="none" stroke-width="55"/>
 </svg>

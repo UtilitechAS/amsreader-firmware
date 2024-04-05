@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "MbusParser.h"
 
 int8_t MBUSParser::parse(uint8_t *d, DataParserContext &ctx) {

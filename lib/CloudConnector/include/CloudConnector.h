@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _CLOUDCONNECTOR_H
 #define _CLOUDCONNECTOR_H
 
@@ -11,18 +17,31 @@
 #include "mbedtls/error.h"
 #include "mbedtls/certs.h"
 #include "mbedtls/rsa.h"
+#include "AmsConfiguration.h"
+#include "AmsData.h"
+#include "EnergyAccounting.h"
+#include "HwTools.h"
+#include "AmsMqttHandler.h"
 
+#if defined(ESP8266)
+	#include <ESP8266HTTPClient.h>
+#elif defined(ESP32) // ARDUINO_ARCH_ESP32
+	#include <HTTPClient.h>
+    #include <esp_wifi.h>
+    #include <esp_task_wdt.h>
+    #include <WiFiUdp.h>
+#else
+	#warning "Unsupported board type"
+#endif
 
-const unsigned char PUBLIC_KEY[] = \
-"-----BEGIN PUBLIC KEY-----\n"\
-"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDoIo0CSuuX3tAdF7KPssdlzJNX\n"\
-"QryhgVV1rQIFPhHv3SxzyKtRrRM9s0CVfymcibhnEBXxxg3pxlGmwI/R6k7HHXJN\n"\
-"lBsXzzDtZ/GHDVnw+xRakTfRT0Zt+xdJSH5xJNWq4EwpvJfjA22L1Nz4dKSpgWMx\n"\
-"VRndAaXf0s7Q1XBz2wIDAQAB\n"\
-"-----END PUBLIC KEY-----\0";
+#define CC_BUF_SIZE 1024
 
-
-//const unsigned char PUBLIC_KEY[] = { 0x30, 0x81, 0x9f, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05, 0x00, 0x03, 0x81, 0x8d, 0x00, 0x30, 0x81, 0x89, 0x02, 0x81, 0x81, 0x00, 0xe8, 0x22, 0x8d, 0x02, 0x4a, 0xeb, 0x97, 0xde, 0xd0, 0x1d, 0x17, 0xb2, 0x8f, 0xb2, 0xc7, 0x65, 0xcc, 0x93, 0x57, 0x42, 0xbc, 0xa1, 0x81, 0x55, 0x75, 0xad, 0x02, 0x05, 0x3e, 0x11, 0xef, 0xdd, 0x2c, 0x73, 0xc8, 0xab, 0x51, 0xad, 0x13, 0x3d, 0xb3, 0x40, 0x95, 0x7f, 0x29, 0x9c, 0x89, 0xb8, 0x67, 0x10, 0x15, 0xf1, 0xc6, 0x0d, 0xe9, 0xc6, 0x51, 0xa6, 0xc0, 0x8f, 0xd1, 0xea, 0x4e, 0xc7, 0x1d, 0x72, 0x4d, 0x94, 0x1b, 0x17, 0xcf, 0x30, 0xed, 0x67, 0xf1, 0x87, 0x0d, 0x59, 0xf0, 0xfb, 0x14, 0x5a, 0x91, 0x37, 0xd1, 0x4f, 0x46, 0x6d, 0xfb, 0x17, 0x49, 0x48, 0x7e, 0x71, 0x24, 0xd5, 0xaa, 0xe0, 0x4c, 0x29, 0xbc, 0x97, 0xe3, 0x03, 0x6d, 0x8b, 0xd4, 0xdc, 0xf8, 0x74, 0xa4, 0xa9, 0x81, 0x63, 0x31, 0x55, 0x19, 0xdd, 0x01, 0xa5, 0xdf, 0xd2, 0xce, 0xd0, 0xd5, 0x70, 0x73, 0xdb, 0x02, 0x03, 0x01, 0x00, 0x01};
+static const char CC_JSON_POWER[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu}";
+static const char CC_JSON_POWER_LIST3[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu,\"tP\":%.3f,\"tQ\":%.3f}";
+static const char CC_JSON_PHASE[] PROGMEM = "%s\"%d\":{\"u\":%.2f,\"i\":%s}";
+static const char CC_JSON_PHASE_LIST4[] PROGMEM = "%s\"%d\":{\"u\":%.2f,\"i\":%s,\"Pim\":%lu,\"Pex\":%lu,\"pf\":%.2f}";
+static const char CC_JSON_STATUS[] PROGMEM = ",\"status\":{\"esp\":{\"state\":%d,\"error\":%d},\"han\":{\"state\":%d,\"error\":%d},\"wifi\":{\"state\":%d,\"error\":%d},\"mqtt\":{\"state\":%d,\"error\":%d}}";
+static const char CC_JSON_INIT[] PROGMEM = "{\"id\":\"%s\",\"init\":{\"mac\":\"%s\",\"apmac\":\"%s\",\"version\":\"%s\"},\"meter\":{\"manufacturerId\":%d,\"manufacturer\":\"%s\",\"model\":\"%s\",\"id\":\"%s\",\"system\":\"%s\",\"fuse\":%d,\"import\":%d,\"export\":%d}";
 
 struct CloudData {
     uint8_t type;
@@ -32,16 +51,57 @@ struct CloudData {
 class CloudConnector {
 public:
     CloudConnector(RemoteDebug*);
-    void setup(const unsigned char * key);
-    void send();
+    bool setup(CloudConfig& config, MeterConfig& meter, HwTools* hw);
+    void setMqttHandler(AmsMqttHandler* mqttHandler);
+    void update(AmsData& data, EnergyAccounting& ea);
+    void forceUpdate();
 
 private:
     RemoteDebug* debugger;
+    HwTools* hw;
+    AmsMqttHandler* mqttHandler = NULL;
+    CloudConfig config;
+    HTTPClient http;
+    WiFiUDP udp;
+	int maxPwr = 0;
+	uint8_t distributionSystem = 0;
+	uint16_t mainFuse = 0, productionCapacity = 0;
 
-    unsigned char buf[4096];
+    String uuid;
+    bool initialized = false;
+    unsigned long lastUpdate = 0;
+    char mac[18];
+    char apmac[18];
+
+    char clearBuffer[CC_BUF_SIZE];
+    unsigned char encryptedBuffer[256];
     mbedtls_rsa_context* rsa = nullptr;
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_entropy_context entropy;
+    char* pers = "amsreader";
 
+    bool init();
     void debugPrint(byte *buffer, int start, int length);
+
+    String meterManufacturer(uint8_t type) {
+        switch(type) {
+            case AmsTypeAidon: return F("Aidon");
+            case AmsTypeKaifa: return F("Kaifa");
+            case AmsTypeKamstrup: return F("Kamstrup");
+            case AmsTypeIskra: return F("Iskra");
+            case AmsTypeLandisGyr: return F("Landis+Gyr");
+            case AmsTypeSagemcom: return F("Sagemcom");
+        }
+        return F("");
+    }
+
+    String distributionSystemStr(uint8_t ds) {
+        switch(ds) {
+            case 1: return F("IT");
+            case 2: return F("TN");
+        }
+        return F("");
+    }
 
 };
 #endif

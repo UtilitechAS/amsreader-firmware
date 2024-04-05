@@ -28,6 +28,7 @@ jobs:
       run: |
         sed -i 's/NO_AMS2MQTT_PRICE_KEY/AMS2MQTT_PRICE_KEY="${{secrets.AMS2MQTT_PRICE_KEY}}"/g' platformio.ini
         sed -i 's/NO_AMS2MQTT_PRICE_AUTHENTICATION/AMS2MQTT_PRICE_AUTHENTICATION="${{secrets.AMS2MQTT_PRICE_AUTHENTICATION}}"/g' platformio.ini
+        sed -i 's/NO_AMS2MQTT_SC_KEY/AMS2MQTT_SC_KEY=\\"${{secrets.AMS2MQTT_SC_KEY}}\\"/g' platformio.ini
         sed -i 's/NO_ENERGY_SPEEDOMETER_USER/ENERGY_SPEEDOMETER_USER=\\"${{secrets.ENERGY_SPEEDOMETER_USER}}\\"/g' platformio.ini
         sed -i 's/NO_ENERGY_SPEEDOMETER_PASS/ENERGY_SPEEDOMETER_PASS=\\"${{secrets.ENERGY_SPEEDOMETER_PASS}}\\"/g' platformio.ini
 
@@ -144,6 +145,29 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: esp32s2.zip
         asset_name: ams2mqtt-esp32s2-${{ steps.release_tag.outputs.tag }}.zip
+        asset_content_type: application/zip
+
+    - name: Build esp32s3 firmware
+      run: pio run -e esp32s3
+    - name: Create esp32s3 zip file
+      run: /bin/sh scripts/esp32s3/mkzip.sh
+    - name: Upload esp32s3 binary to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: .pio/build/esp32s3/firmware.bin
+        asset_name: ams2mqtt-esp32s3-${{ steps.release_tag.outputs.tag }}.bin
+        asset_content_type: application/octet-stream
+    - name: Upload esp32s3 zip to release
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: esp32s3.zip
+        asset_name: ams2mqtt-esp32s3-${{ steps.release_tag.outputs.tag }}.zip
         asset_content_type: application/zip
 
     - name: Build esp32solo firmware

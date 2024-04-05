@@ -1,52 +1,27 @@
 <script>
     import { sysinfoStore } from './DataStores.js';
+    import { translationsStore } from './TranslationService.js';
     import Mask from './Mask.svelte'
     import SubnetOptions from './SubnetOptions.svelte';
+    import { scanForDevice } from './Helpers.js';
+
+    let translations = {};
+    translationsStore.subscribe(update => {
+      translations = update;
+    });
 
     export let sysinfo = {}
 
     let staticIp = false;
+    let connectionMode = 1;
     let loadingOrSaving = false;
 
-    let tries = 0; 
-    function scanForDevice() {
-        var url = "";
-        tries++;
-
-        var retry = function() {
-            setTimeout(scanForDevice, 1000);
-        };
-
-        if(sysinfo.net.ip && tries%3 == 0) {
-            if(!sysinfo.net.ip) {
-                retry();
-                return;
-            };
-            url = "http://" + sysinfo.net.ip;
-        } else if(sysinfo.hostname && tries%3 == 1) {
-            url = "http://" + sysinfo.hostname;
-        } else if(sysinfo.hostname && tries%3 == 2) {
-            url = "http://" + sysinfo.hostname + ".local";
-        } else {
-            url = "";
-        }
-        if(console) console.log("Trying url " + url);
+    function updateSysinfo(url) {
         sysinfoStore.update(s => {
             s.trying = url;
             return s;
         });
-        
-        var xhr = new XMLHttpRequest();
-        xhr.timeout = 5000;
-        xhr.addEventListener('abort', retry);
-        xhr.addEventListener('error', retry);
-        xhr.addEventListener('timeout', retry);
-        xhr.addEventListener('load', function(e) {
-            window.location.href = url ? url : "/";
-        });
-        xhr.open("GET", url + "/is-alive", true);
-        xhr.send();
-    };
+    }
 
     async function handleSubmit(e) {
         loadingOrSaving = true;
@@ -57,7 +32,7 @@
 			data.append(key, value)
         }
 
-        const response = await fetch('/save', {
+        const response = await fetch('save', {
             method: 'POST',
             body: data
         });
@@ -74,7 +49,7 @@
                 s.net.gw = formData.get('sg');
                 s.net.dns1 = formData.get('sd');
             }
-            setTimeout(scanForDevice, 5000);
+            if(res.reboot) setTimeout(scanForDevice, 5000, sysinfo, updateSysinfo);
             return s;
         });
     }
@@ -85,21 +60,33 @@
     <div class="cnt">
         <form on:submit|preventDefault={handleSubmit}>
             <input type="hidden" name="s" value="true"/>
-            <strong class="text-sm">Setup</strong>
+            <strong class="text-sm">{translations.setup?.title ?? "Setup"}</strong>
             <div class="my-3">
-                SSID<br/>
-                <input name="ss" type="text" class="in-s" required/>
+                {translations.conf?.connection?.title ?? "Connection"}<br/>
+                <select name="sc" class="in-s" bind:value={connectionMode}>
+                    <option value={1}>{translations.conf?.connection?.wifi ?? "Connect to WiFi"}</option>
+                    <option value={2}>{translations.conf?.connection?.ap ?? "Standalone access point"}</option>
+                    {#if sysinfo.if && sysinfo.if.eth}
+                    <option value={3}>{translations.conf?.connection?.eth ?? "Ethernet"}</option>
+                    {/if}
+                </select>
             </div>
-            <div class="my-3">
-                PSK<br/>
-                <input name="sp" type="password" class="in-s" autocomplete="off"/>
-            </div>
+            {#if connectionMode == 1 || connectionMode == 2}
+                <div class="my-3">
+                    {translations.conf?.connection?.ssid ?? "SSID"}<br/>
+                    <input name="ss" type="text" class="in-s" required={connectionMode == 1 || connectionMode == 2}/>
+                </div>
+                <div class="my-3">
+                    {translations.conf?.connection?.psk ?? "Password"}<br/>
+                    <input name="sp" type="password" class="in-s" autocomplete="off" required={connectionMode == 2}/>
+                </div>
+            {/if}
             <div>
-                Hostname
+                {translations.conf?.general?.hostname ?? "Hostname"}
                 <input name="sh" bind:value={sysinfo.hostname} type="text" class="in-s" maxlength="32" pattern="[a-z0-9_-]+" placeholder="Optional, ex.: ams-reader" autocomplete="off"/>
             </div>
             <div class="my-3">
-                <label><input type="checkbox" name="sm" value="static" class="rounded mb-1" bind:checked={staticIp} /> Static IP</label>
+                <label><input type="checkbox" name="sm" value="static" class="rounded mb-1" bind:checked={staticIp} /> {translations.setup?.static ?? "Static IP"}</label>
                 {#if staticIp}
                 <br/>
                 <div class="flex">
@@ -113,20 +100,20 @@
             {#if staticIp}
             <div class="my-3 flex">
                 <div>
-                    Gateway<br/>
+                    {translations.conf?.network?.gw ?? "Gateway"}<br/>
                     <input name="sg" type="text" class="in-f w-full"/>
                 </div>
                 <div>
-                    DNS<br/>
+                    {translations.conf?.network?.dns ?? "DNS"}<br/>
                     <input name="sd" type="text" class="in-l w-full"/>
                 </div>
             </div>
             {/if}
             <div class="my-3">
-                <button type="submit" class="btn-pri">Save</button>
+                <button type="submit" class="btn-pri">{translations.btn?.save ?? "Save"}</button>
             </div>
         </form>
     </div>
 </div>
 
-<Mask active={loadingOrSaving} message="Saving your configuration to the device"/>
+<Mask active={loadingOrSaving} message={translations.setup?.mask ?? "Saving"}/>

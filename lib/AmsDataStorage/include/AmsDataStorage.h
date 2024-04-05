@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _AMSDATASTORAGE_H
 #define _AMSDATASTORAGE_H
 #include "Arduino.h"
@@ -5,7 +11,7 @@
 #include "RemoteDebug.h"
 #include "Timezone.h"
 
-struct DayDataPoints {
+struct DayDataPoints5 {
     uint8_t version;
     uint16_t hImport[24];
     time_t lastMeterReadTime;
@@ -13,9 +19,9 @@ struct DayDataPoints {
     uint32_t activeExport;
     uint16_t hExport[24];
     uint8_t accuracy;
-}; // 113 bytes
+};
 
-struct MonthDataPoints {
+struct MonthDataPoints6 {
     uint8_t version;
     uint16_t dImport[31];
     time_t lastMeterReadTime;
@@ -23,7 +29,27 @@ struct MonthDataPoints {
     uint32_t activeExport;
     uint16_t dExport[31];
     uint8_t accuracy;
-}; // 142 bytes
+};
+
+struct DayDataPoints {
+    uint8_t version;
+    uint16_t hImport[24];
+    time_t lastMeterReadTime;
+    uint64_t activeImport;
+    uint64_t activeExport;
+    uint16_t hExport[24];
+    uint8_t accuracy;
+};
+
+struct MonthDataPoints {
+    uint8_t version;
+    uint16_t dImport[31];
+    time_t lastMeterReadTime;
+    uint64_t activeImport;
+    uint64_t activeExport;
+    uint16_t dExport[31];
+    uint8_t accuracy;
+};
 
 class AmsDataStorage {
 public:
@@ -50,6 +76,8 @@ public:
     bool isHappy();
     bool isDayHappy();
     bool isMonthHappy();
+
+    double getEstimatedImportCounter();
 
 private:
     Timezone* tz;

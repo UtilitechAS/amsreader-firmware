@@ -5,7 +5,8 @@
     import Mask from './Mask.svelte'
     import { navigate } from 'svelte-navigator';
 
-    export let sysinfo = {}
+    export let basepath = "/";
+    export let sysinfo = {};
 
     let loadingOrSaving = false;
     async function handleSubmit(e) {
@@ -17,7 +18,7 @@
 			data.append(key, value)
 		}
 
-        const response = await fetch('/save', {
+        const response = await fetch('save', {
             method: 'POST',
             body: data
         });
@@ -27,9 +28,11 @@
         sysinfoStore.update(s => {
             s.vndcfg = res.success;
             s.booting = res.reboot;
+            s.if.eth = s.boardType > 240 && s.boardType < 250;
+
             return s;
         });
-        navigate(sysinfo.usrcfg ? "/" : "/setup");
+        navigate(basepath + (sysinfo.usrcfg ? "/" : "/setup"));
 	}
 
     let cc = false;
@@ -73,4 +76,4 @@
         </form>
     </div>
 </div>
-<Mask active={loadingOrSaving} message="Saving device configuration" />
+<Mask active={loadingOrSaving} message="Saving" />

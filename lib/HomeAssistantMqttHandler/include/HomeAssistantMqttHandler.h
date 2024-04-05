@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _HOMEASSISTANTMQTTHANDLER_H
 #define _HOMEASSISTANTMQTTHANDLER_H
 
@@ -58,11 +64,10 @@ public:
         }
         strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
     };
-
-    bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);
+    bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
-    bool publishPrices(EntsoeApi*);
-    bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
+    bool publishPrices(PriceService*);
+    bool publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea);
     bool publishRaw(String data);
 
     void onMessage(String &topic, String &payload);
@@ -93,7 +98,7 @@ private:
     bool publishList3(AmsData* data, EnergyAccounting* ea);
     bool publishList4(AmsData* data, EnergyAccounting* ea);
     String getMeterModel(AmsData* data);
-    bool publishRealtime(AmsData* data, EnergyAccounting* ea, EntsoeApi* eapi);
+    bool publishRealtime(AmsData* data, EnergyAccounting* ea, PriceService* ps);
     void publishSensor(const HomeAssistantSensor sensor);
     void publishList1Sensors();
     void publishList1ExportSensors();
@@ -103,10 +108,10 @@ private:
     void publishList3ExportSensors();
     void publishList4Sensors();
     void publishList4ExportSensors();
-    void publishRealtimeSensors(EnergyAccounting* ea, EntsoeApi* eapi);
-    void publishRealtimeExportSensors(EnergyAccounting* ea, EntsoeApi* eapi);
+    void publishRealtimeSensors(EnergyAccounting* ea, PriceService* ps);
+    void publishRealtimeExportSensors(EnergyAccounting* ea, PriceService* ps);
     void publishTemperatureSensor(uint8_t index, String id);
-    void publishPriceSensors(EntsoeApi* eapi);
+    void publishPriceSensors(PriceService* ps);
     void publishSystemSensors();
 
     String boardTypeToString(uint8_t b) {
@@ -155,6 +160,8 @@ private:
                 return F("ESP32-C3");
             case 71:
                 return F("ESP32-C3-DevKitM-1");
+            case 80:
+                return F("ESP32-S3");
         }
         #if defined(ESP8266)
             return F("ESP8266");

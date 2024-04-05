@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _DATAPASERSER_H
 #define _DATAPASERSER_H
 
@@ -10,6 +16,10 @@
 #define DATA_TAG_MBUS 0x68
 #define DATA_TAG_GBT 0xE0
 #define DATA_TAG_GCM 0xDB
+#define DATA_TAG_SNRM 0x81
+#define DATA_TAG_AARQ 0x60
+#define DATA_TAG_AARE 0x61
+#define DATA_TAG_RES 0xC4 // Get Response
 
 #define DATA_PARSE_OK 0
 #define DATA_PARSE_FAIL -1

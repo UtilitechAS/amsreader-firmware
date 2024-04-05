@@ -1,10 +1,16 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _ENERGYACCOUNTING_H
 #define _ENERGYACCOUNTING_H
 
 #include "Arduino.h"
 #include "AmsData.h"
 #include "AmsDataStorage.h"
-#include "EntsoeApi.h"
+#include "PriceService.h"
 
 struct EnergyAccountingPeak {
     uint8_t day;
@@ -76,7 +82,7 @@ class EnergyAccounting {
 public:
     EnergyAccounting(RemoteDebug*, EnergyAccountingRealtimeData*);
     void setup(AmsDataStorage *ds, EnergyAccountingConfig *config);
-    void setEapi(EntsoeApi *eapi);
+    void setPriceService(PriceService *ps);
     void setTimezone(Timezone*);
     EnergyAccountingConfig* getConfig();
     bool update(AmsData* amsData);
@@ -113,19 +119,18 @@ public:
     EnergyAccountingData getData();
     void setData(EnergyAccountingData&);
 
-    void setFixedPrice(float price, String currency);
-    float getPriceForHour(uint8_t h);
+    void setCurrency(String currency);
+    float getPriceForHour(uint8_t d, uint8_t h);
 
 private:
     RemoteDebug* debugger = NULL;
     bool init = false, initPrice = false;
     AmsDataStorage *ds = NULL;
-    EntsoeApi *eapi = NULL;
+    PriceService *ps = NULL;
     EnergyAccountingConfig *config = NULL;
     Timezone *tz = NULL;
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     EnergyAccountingRealtimeData* realtimeData = NULL;
-    float fixedPrice = 0;
     String currency = "";
 
     void calcDayCost();

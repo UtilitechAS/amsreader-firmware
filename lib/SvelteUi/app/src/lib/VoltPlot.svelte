@@ -2,6 +2,7 @@
     import BarChart from './BarChart.svelte';
     import { fmtnum, voltcol } from './Helpers.js';
 
+    export let title;
     export let u1;
     export let u2;
     export let u3;
@@ -14,7 +15,7 @@
             label: fmtnum(v) + 'V', 
             title: v.toFixed(1) + ' V',
             value: isNaN(v) ? 0 : v, 
-            color: voltcol(v ? v : 0) 
+            color: voltcol(v ? v : 0, document.documentElement.classList.contains('dark')) 
         };
     };
 
@@ -34,7 +35,7 @@
             points.push(point(u3));
         }
         config = {
-            title: 'Voltage',
+            title: title,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
             y: {
                 min: 200,

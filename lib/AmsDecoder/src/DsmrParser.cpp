@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "DsmrParser.h"
 #include "crc.h"
 #include "hexutils.h"

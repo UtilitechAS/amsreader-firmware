@@ -1,6 +1,8 @@
 <script>
   import { Router, Route, navigate } from "svelte-navigator";
   import { getSysinfo, sysinfoStore, dataStore } from './lib/DataStores.js';
+  import { translationsStore, getTranslations } from "./lib/TranslationService.js";
+  import Favicon from './assets/favicon.svg'; // Need this for the build
   import Header from './lib/Header.svelte';
   import Dashboard from './lib/Dashboard.svelte';
   import ConfigurationPanel from './lib/ConfigurationPanel.svelte';
@@ -10,16 +12,41 @@
   import Mask from './lib/Mask.svelte';
   import FileUploadComponent from "./lib/FileUploadComponent.svelte";
   import ConsentComponent from "./lib/ConsentComponent.svelte";
+  import PriceConfig from "./lib/PriceConfig.svelte";
   
+  let basepath = document.getElementsByTagName('base')[0].getAttribute("href");
+  if(!basepath) basepath = "/";
+
+  let translations = {};
+  translationsStore.subscribe(update => {
+    translations = update;
+  });
+
   let sysinfo = {};
   sysinfoStore.subscribe(update => {
     sysinfo = update;
     if(sysinfo.vndcfg === false) {
-      navigate("/vendor");
+      navigate(basepath + "vendor");
     } else if(sysinfo.usrcfg === false) {
-      navigate("/setup");
+      navigate(basepath + "setup");
     } else if(sysinfo.fwconsent === 0) {
-      navigate("/consent");
+      navigate(basepath + "consent");
+    }
+
+    if(sysinfo.ui.k === 1) {
+        document.documentElement.classList.add('dark')
+    } else if (sysinfo.ui.k === 0) {
+        document.documentElement.classList.remove('dark')
+    } else {
+        if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark')
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    }
+
+    if(sysinfo.ui.lang && sysinfo.ui.lang != translations?.language?.code) {
+      getTranslations(sysinfo.ui.lang);
     }
   });
   getSysinfo();
@@ -27,16 +54,20 @@
   dataStore.subscribe(update => {
     data = update;
   });
-  </script>
+
+</script>
 
 <div class="container mx-auto m-3">
-  <Router>
-    <Header data={data}/>
+  <Router basepath={basepath}>
+    <Header data={data} basepath={basepath}/>
     <Route path="/">
       <Dashboard data={data} sysinfo={sysinfo}/>
     </Route>
     <Route path="/configuration">
-      <ConfigurationPanel sysinfo={sysinfo}/>
+      <ConfigurationPanel sysinfo={sysinfo} basepath={basepath}/>
+    </Route>
+    <Route path="/priceconfig">
+      <PriceConfig basepath={basepath}/>
     </Route>
     <Route path="/status">
       <StatusPage sysinfo={sysinfo} data={data}/>
@@ -51,13 +82,13 @@
       <FileUploadComponent title="private key" action="/mqtt-key"/>
     </Route>
     <Route path="/consent">
-      <ConsentComponent sysinfo={sysinfo}/>
+      <ConsentComponent sysinfo={sysinfo} basepath={basepath}/>
     </Route>
     <Route path="/setup">
       <SetupPanel sysinfo={sysinfo}/>
     </Route>
     <Route path="/vendor">
-      <VendorPanel sysinfo={sysinfo}/>
+      <VendorPanel sysinfo={sysinfo} basepath={basepath}/>
     </Route>
   </Router>
 

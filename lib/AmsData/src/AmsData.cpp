@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "AmsData.h"
 
 AmsData::AmsData() {}
@@ -8,23 +14,27 @@ void AmsData::apply(AmsData& other) {
 
         if(ms > 0) {
             if(other.getActiveImportPower() > 0) {
-                float add = other.getActiveImportPower() * (((float) ms) / 3600000.0);
+                uint32_t power = (activeImportPower + other.getActiveImportPower()) / 2;
+                float add = power * (((float) ms) / 3600000.0);
                 activeImportCounter += add / 1000.0;
                 //Serial.printf("%dW, %dms, %.6fkWh added\n", other.getActiveImportPower(), ms, add);
             }
 
             if(other.getListType() > 1) {
-                ms = this->lastUpdateMillis > other.getLastUpdateMillis() ? 0 : other.getLastUpdateMillis() - this->lastList2;
+                ms = this->lastList2 > other.getLastUpdateMillis() ? 0 : other.getLastUpdateMillis() - this->lastList2;
                 if(other.getActiveExportPower() > 0) {
-                    float add = other.getActiveExportPower() * (((float) ms) / 3600000.0);
+                    uint32_t power = (activeExportPower + other.getActiveExportPower()) / 2;
+                    float add = power * (((float) ms) / 3600000.0);
                     activeExportCounter += add / 1000.0;
                 }
                 if(other.getReactiveImportPower() > 0) {
-                    float add = other.getReactiveImportPower() * (((float) ms) / 3600000.0);
+                    uint32_t power = (reactiveImportPower + other.getReactiveImportPower()) / 2;
+                    float add = power * (((float) ms) / 3600000.0);
                     reactiveImportCounter += add / 1000.0;
                 }
                 if(other.getReactiveExportPower() > 0) {
-                    float add = other.getReactiveExportPower() * (((float) ms) / 3600000.0);
+                    uint32_t power = (reactiveExportPower + other.getReactiveExportPower()) / 2;
+                    float add = power * (((float) ms) / 3600000.0);
                     reactiveExportCounter += add / 1000.0;
                 }
             }
@@ -87,6 +97,91 @@ void AmsData::apply(AmsData& other) {
         this->activeImportPower = other.getActiveImportPower();
     if(other.getListType() == 2 || (other.getActiveImportPower() > 0 || other.getActiveExportPower() > 0))
         this->activeExportPower = other.getActiveExportPower();
+}
+
+void AmsData::apply(OBIS_code_t obis, double value) {
+    switch(obis.gr) {
+        case 1:
+            switch(obis.sensor) {
+                case 7:
+                    switch(obis.tariff) {
+                        case 0:
+                            activeImportPower = value; 
+                            listType = max(listType, (uint8_t) 1);
+                            break;
+                    }
+                    break;
+                case 8:
+                    switch(obis.tariff) {
+                        case 0:
+                            activeImportCounter = value; 
+                            listType = max(listType, (uint8_t) 3);
+                            break;
+                    }
+                    break;
+            }
+            break;
+        case 2:
+            switch(obis.sensor) {
+                case 7:
+                    switch(obis.tariff) {
+                        case 0:
+                            activeExportPower = value; 
+                            listType = max(listType, (uint8_t) 2);
+                            break;
+                    }
+                    break;
+                case 8:
+                    switch(obis.tariff) {
+                        case 0:
+                            activeExportCounter = value; 
+                            listType = max(listType, (uint8_t) 3);
+                            break;
+                    }
+                    break;
+            }
+            break;
+        case 3:
+            switch(obis.sensor) {
+                case 7:
+                    switch(obis.tariff) {
+                        case 0:
+                            reactiveImportPower = value; 
+                            listType = max(listType, (uint8_t) 2);
+                            break;
+                    }
+                    break;
+                case 8:
+                    switch(obis.tariff) {
+                        case 0:
+                            reactiveImportCounter = value; 
+                            listType = max(listType, (uint8_t) 3);
+                            break;
+                    }
+                    break;
+            }
+            break;
+        case 4:
+            switch(obis.sensor) {
+                case 7:
+                    switch(obis.tariff) {
+                        case 0:
+                            reactiveExportPower = value; 
+                            listType = max(listType, (uint8_t) 2);
+                            break;
+                    }
+                    break;
+                case 8:
+                    switch(obis.tariff) {
+                        case 0:
+                            reactiveExportCounter = value; 
+                            listType = max(listType, (uint8_t) 3);
+                            break;
+                    }
+                    break;
+            }
+            break;
+    }
 }
 
 uint64_t AmsData::getLastUpdateMillis() {
@@ -177,27 +272,27 @@ float AmsData::getL3PowerFactor() {
     return this->l3PowerFactor;
 }
 
-float AmsData::getL1ActiveImportPower() {
+uint32_t AmsData::getL1ActiveImportPower() {
     return this->l1activeImportPower;
 }
 
-float AmsData::getL2ActiveImportPower() {
+uint32_t AmsData::getL2ActiveImportPower() {
     return this->l2activeImportPower;
 }
 
-float AmsData::getL3ActiveImportPower() {
+uint32_t AmsData::getL3ActiveImportPower() {
     return this->l3activeImportPower;
 }
 
-float AmsData::getL1ActiveExportPower() {
+uint32_t AmsData::getL1ActiveExportPower() {
     return this->l1activeExportPower;
 }
 
-float AmsData::getL2ActiveExportPower() {
+uint32_t AmsData::getL2ActiveExportPower() {
     return this->l2activeExportPower;
 }
 
-float AmsData::getL3ActiveExportPower() {
+uint32_t AmsData::getL3ActiveExportPower() {
     return this->l3activeExportPower;
 }
 
@@ -247,6 +342,10 @@ bool AmsData::isThreePhase() {
 
 bool AmsData::isTwoPhase() {
     return this->twoPhase;
+}
+
+bool AmsData::isCounterEstimated() {
+    return this->counterEstimated;
 }
 
 bool AmsData::isL2currentMissing() {

@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "IEC6205675.h"
 #include "lwip/def.h"
 #include "Timezone.h"

@@ -1,7 +1,13 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "DomoticzMqttHandler.h"
 #include "json/domoticz_json.h"
 
-bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
+bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     bool ret = false;
     if (config.elidx > 0) {
         if(data->getActiveImportCounter() > 1.0) {
@@ -67,11 +73,11 @@ bool DomoticzMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools*
     return false;
 }
 
-bool DomoticzMqttHandler::publishPrices(EntsoeApi* eapi) {
+bool DomoticzMqttHandler::publishPrices(PriceService* ps) {
     return false;
 }
 
-bool DomoticzMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
+bool DomoticzMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea) {
     return false;
 }
 

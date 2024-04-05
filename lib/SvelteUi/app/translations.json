@@ -1,0 +1,405 @@
+{
+    "language" : {
+        "code" : "en",
+        "name" : "English"
+    },
+    "common" : {
+        "import" : "Import",
+        "export" : "Export",
+        "voltage" : "Voltage",
+        "amperage" : "Amperage",
+        "seconds" : "seconds",
+        "minute" : "minute",
+        "minutes" : "minutes",
+        "hour" : "hour",
+        "hours" : "hours",
+        "day" : "day",
+        "days" : "days",
+        "month" : "month",
+        "unknown" : "Unknown"
+    },
+    "btn" : {
+        "reboot" : "Reboot",
+        "save" : "Save",
+        "upload" : "Upload"
+    },
+    "header" : {
+        "mem" : "Free mem",
+        "price" : "Price service",
+        "booting" : "Booting",
+        "config" : "Configuration",
+        "status" : "Device information",
+        "doc" : "Documentation",
+        "new_version" : "New version",
+        "upgrade" : "Do you want to upgrade this device to {0}?",
+        "uptime" : "Up"
+    },
+    "dashboard" : {
+        "phase" : "Phase power",
+        "pf" : "Power factor",
+        "tariffpeak" : "Tariff peaks",
+        "realtime" : "Real-time plot",
+        "price" : "Future energy price",
+        "day" : "Energy use last 24 hours",
+        "month" : "Energy use last {0} days",
+        "temperature" : "Temperature sensors"
+    },
+    "reactive" : {
+        "title" : "Reactive",
+        "instant_in" : "Instant in",
+        "instant_out" : "Instant out",
+        "total_in" : "Total in",
+        "total_out" : "Total out"
+    },
+    "realtime" : {
+        "title" : "Real-time calculations",
+        "consumption" : "Consumption",
+        "cost" : "Cost",
+        "last_month" : "Last month",
+        "last_mo" : "Last mo."
+    },
+    "status" : {
+        "device" : {
+            "title" : "Device information",
+            "chip" : "Chip",
+            "device" : "Device",
+            "mac" : "MAC",
+            "apmac" : "AP MAC",
+            "last_boot" : "Last boot",
+            "reason" : "Reason",
+            "btn_consents" : "Update consents",
+            "reboot_confirm" : "Are you sure you want to reboot the device"
+        },
+        "meter" : {
+            "title" : "Meter",
+            "manufacturer" : "Manufacturer",
+            "model" : "Model",
+            "id" : "ID"
+        },
+        "network" : {
+            "title" : "Network"
+        },
+        "firmware" : {
+            "title" : "Firmware",
+            "installed" : "Installed version",
+            "latest" : "Latest version",
+            "install" : "Install this version",
+            "failed" : "Previous upgrade attempt from {0} to {1} failed",
+            "btn_select_file" : "Select firmware file for upgrade",
+            "no_one_click" : "You have disabled one-click firmware upgrade, link to self-upgrade is disabled"
+        },
+        "backup" : {
+            "title" : "Backup & restore",
+            "iw" : "WiFi",
+            "im" : "MQTT",
+            "ie" : "Web",
+            "it" : "Meter",
+            "ih" : "Thresholds",
+            "ig" : "GPIO",
+            "in" : "NTP",
+            "is" : "Price API",
+            "secrets" : "Include secrets",
+            "secrets_desc" : "(SSID, PSK, passwords and tokens)",
+            "btn_select_file" : "Select file...",
+            "btn_download" : "Download"
+        },
+        "mask" : {
+            "firmware" : "Uploading firmware, please wait",
+            "config" : "Uploading configuration, please wait"
+        }
+    },
+    "conf" : {
+        "general" : {
+            "title" : "General",
+            "hostname" : "Hostname",
+            "timezone" : "Time zone",
+            "security" : {
+                "title" : "Security",
+                "none" : "None",
+                "conf" : "Only configuration",
+                "all" : "Everything"
+            },
+            "context" : "Context",
+            "context_placeholder" : "[root]"
+        },
+        "price" : {
+            "title" : "Price configuration",
+            "region" : "Price region",
+            "currency" : "Currency",
+            "conf" : "Configure price",
+            "enabled" : "Enable price fetch from remote server",
+            "api_key_placeholder" : "ENTSO-E API key, optional, read docs",
+            "both" : "Both",
+            "fixed" : "Fixed",
+            "btn_add" : "Add",
+            "mask_loading" : "Loading price configuration",
+            "mask_saving" : "Saving price configuration"
+        },
+        "meter" : {
+            "title" : "Meter",
+            "comm" : {
+                "title" : "Communication",
+                "passive" : "Passive (Push)",
+                "pulse" : "Pulse"
+            },
+            "serial" : "Serial conf.",
+            "inverted" : "inverted",
+            "buffer" : "Buffer size",
+            "pulses" : "Pulses per kWh",
+            "voltage" : "Voltage",
+            "fuse" :  "Main fuse",
+            "prod" : "Production",
+            "encrypted" : "Meter is encrypted",
+            "authkey" : "Authentication key",
+            "multipliers" : {
+                "title" : "Multipliers",
+                "watt" : "Watt",
+                "volt" : "Volt",
+                "amp" : "Amp",
+                "kwh" : "kWh"
+            }
+        },
+        "connection" : {
+            "title" : "Connection",
+            "wifi" : "Connect to WiFi",
+            "ap" : "Standalone access point",
+            "eth" : "Ethernet",
+            "ssid" : "SSID",
+            "psk" : "Password",
+            "ps" : {
+                "title" : "Power saving",
+                "default" : "Default",
+                "off" : "Off",
+                "min" : "Minimum",
+                "max" : "Maximum"
+            },
+            "pwr" : "Power",
+            "tick_11b" : "Allow 802.11b legacy rates"
+        },
+        "network" : {
+            "title" : "Network",
+            "ip" : "IP",
+            "static" : "Static",
+            "dhcp" : "DHCP",
+            "gw" : "Gateway",
+            "dns" : "DNS",
+            "tick_mdns" : "enable mDNS",
+            "ntp" : "NTP",
+            "tick_ntp_dhcp" : "obtain from DHCP"
+        },
+        "mqtt" : {
+            "title" : "MQTT",
+            "server" : "Server",
+            "user" : "Username",
+            "pass" : "Password",
+            "id" : "Client ID",
+            "payload" : "Payload",
+            "publish" : "Publish topic",
+            "btn_ca_upload" : "Upload CA",
+            "btn_crt_upload" : "Upload cert",
+            "btn_key_upload" : "Upload key",
+            "ca_ok" : "CA OK",
+            "crt_ok" : "Cert OK",
+            "key_ok" : "Key OK",
+            "title_ca" : "Click here to upload CA",
+            "title_crt" : "Click here to upload certificate",
+            "title_key" : "Click here to upload private key",
+            "domoticz" : {
+                "title" : "Domoticz",
+                "eidx" : "Electricity IDX",
+                "cidx" : "Current IDX",
+                "vidx" : "Voltage IDX"
+            },
+            "ha" : {
+                "title" : "Home-Assistant",
+                "discovery" : "Discovery topic prefix",
+                "hostname" : "Hostname for URL",
+                "tag" : "Name tag"
+            }
+        },
+        "cloud" : {
+            "title" : "Cloud connections",
+            "ams" : "AMS reader cloud",
+            "es" : "Energy Speedometer"
+        },
+        "thresholds" : {
+            "title" : "Tariff thresholds",
+            "avg" : "Average of"
+        },
+        "ui" : {
+            "title" : "User interface",
+            "i" : "Import gauge",
+            "e" : "Export gauge",
+            "v" : "Voltage",
+            "a" : "Amperage",
+            "h" : "Per phase",
+            "f" : "Power factor",
+            "r" : "Reactive",
+            "c" : "Real-time",
+            "t" : "Peaks",
+            "l" : "Real-time plot",
+            "p" : "Price",
+            "d" : "Day plot",
+            "m" : "Month plot",
+            "s" : "Temperature plot",
+            "k" : "Dark mode",
+            "lang" : "Language",
+            "enabled" : "Enabled",
+            "disabled" : "Disabled",
+            "auto" : "Auto"
+        },
+        "hw" : {
+            "title" : "Hardware",
+            "han" : {
+                "rx" : "HAN RX",
+                "tx" : "HAN TX",
+                "pullup" : "Pullup"
+            },
+            "ap_btn" : "AP button",
+            "led" : {
+                "title" : "LED",
+                "rgb" : "RGB",
+                "inverted" : "inverted",
+                "disable" : "LED dis. GPIO",
+                "behaviour" : {
+                    "title" : "LED behaviour",
+                    "enabled" : "Enabled",
+                    "disabled" : "Disabled"
+                }
+            },
+            "temp" : "Temperature",
+            "temp_analog" : "Analog temp",
+            "vcc" : {
+                "title" : "Vcc",
+                "offset" : "Vcc offset",
+                "multiplier" : "Multiplier",
+                "divider" : "Voltage divider",
+                "div_vcc" : "VCC",
+                "div_gnd" : "GND",
+                "boot" : "Boot limit"
+            }
+        },
+        "debug" : {
+            "title" : "Debugging",
+            "enable" : "Enable debugging",
+            "danger" : "Debug can cause sudden reboots. Do not leave on!",
+            "telnet" : "Enable telnet",
+            "telnet_danger" : "Telnet is unsafe and should be off when not in use"
+        },
+        "btn_reset" : "Factory reset",
+        "mask" : {
+            "loading" : "Loading configuration",
+            "saving" : "Saving configuration",
+            "reset" : "Performing factory reset",
+            "reset_done" : "Device have been factory reset and switched to AP mode"
+        }
+    },
+    "consent" : {
+        "title" : "Various permissions we need to do stuff",
+        "one_click" : "Enable one-click upgrade? (implies data collection)",
+        "read_more" : "Read more",
+        "yes" : "Yes",
+        "no" : "No",
+        "mask_saving" : "Saving preferences"
+    },
+    "upload" : {
+        "title" : "Upload",
+        "desc" : "Select a suitable file and click upload",
+        "mask" : "Uploading file, please wait"
+    },
+    "setup" : {
+        "title" : "Setup",
+        "static" : "Static IP",
+        "mask" : "Saving your configuration to the device"
+    },
+    "errors" : {
+        "han" : {
+            "-1" : "Parse error",
+            "-2" : "Incomplete data received",
+            "-3" : "Payload boundry flag missing",
+            "-4" : "Header checksum error",
+            "-5" : "Footer checksum error",
+            "-9" : "Unknown data received, check meter config",
+            "-41" : "Frame length not equal",
+            "-51" : "Authentication failed",
+            "-52" : "Decryption failed",
+            "-53" : "Encryption key invalid",
+            "90" : "No HAN data received for at least 30s",
+            "91" : "Serial break",
+            "92" : "Serial buffer full",
+            "93" : "Serial FIFO overflow",
+            "94" : "Serial frame error",
+            "95" : "Serial parity error",
+            "96" : "RX error",
+            "98" : "Exception in code, debugging necessary",
+            "99" : "Autodetection failed"
+        },
+        "mqtt" : {
+            "-3" : "Connection failed",
+            "-4" : "Network timeout",
+            "-10" : "Connection denied",
+            "-11" : "Failed to subscribe",
+            "-13" : "Connection lost"
+        },
+        "price" : {
+            "400" : "Unrecognized data in request",
+            "401" : "Unauthorized, check API key",
+            "403" : "Unauthorized, check API key",
+            "404" : "Price unavailable, not found",
+            "425" : "Server says its too early",
+            "429" : "Exceeded API rate limit",
+            "500" : "Internal server error",
+            "-1" : "Connection error",
+            "-2" : "Incomplete data received",
+            "-3" : "Invalid data, tag missing",
+            "-51" : "Authentication failed",
+            "-52" : "Decryption failed",
+            "-53" : "Encryption key invalid"
+        },
+        "http" : {
+            "255" : "Unable to start upgrade",
+            "-1": "Connection refused",
+            "-2": "Failed to send headers",
+            "-3": "Failed to send payload",
+            "-4": "Not connected",
+            "-5": "Connection lost",
+            "-6": "No stream",
+            "-7": "Not a HTTP server",
+            "-8": "Not enough memory",
+            "-9": "Encoding error",
+            "-10": "Stream write",
+            "-11": "Read timeout"
+        }
+    },
+    "esp8266" : {
+        "reason" : {
+            "0": "Normal",
+            "1": "WDT reset",
+            "2": "Exception reset",
+            "3": "Soft WDT reset",
+            "4": "Software restart",
+            "5": "Deep sleep",
+            "6": "External reset"
+        }
+    },
+    "esp32" : {
+        "reason" : {
+            "1" : "Vbat power on reset",
+            "3" : "Software reset",
+            "4" : "WDT reset",
+            "5" : "Deep sleep",
+            "6" : "SLC reset",
+            "7" : "Timer Group0 WDT reset",
+            "8" : "Timer Group1 WDT reset",
+            "9" : "RTC WDT reset",
+            "10": "Instrusion test reset CPU",
+            "11": "Time Group reset CPU",
+            "12": "Software reset CPU",
+            "13": "RTC WTD reset CPU",
+            "14": "PRO CPU",
+            "15": "Brownout",
+            "16": "RTC reset"
+        }
+    },
+    "months" : ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+}

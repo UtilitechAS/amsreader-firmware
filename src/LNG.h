@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _LNG_H
 #define _LNG_H
 
@@ -25,7 +31,7 @@ struct LngObisDescriptor {
 
 class LNG : public AmsData {
 public:
-    LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger);
+    LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger);
     uint64_t getNumber(CosemData* item);
 };
 

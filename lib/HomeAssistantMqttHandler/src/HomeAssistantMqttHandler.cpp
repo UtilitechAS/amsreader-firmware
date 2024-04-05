@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "HomeAssistantMqttHandler.h"
 #include "hexutils.h"
 #include "Uptime.h"
@@ -6,8 +12,6 @@
 #include "json/ha2_json.h"
 #include "json/ha3_json.h"
 #include "json/ha4_json.h"
-#include "json/jsonsys_json.h"
-#include "json/jsonprices_json.h"
 #include "json/hadiscover_json.h"
 #include "json/realtime_json.h"
 #include "FirmwareVersion.h"
@@ -16,7 +20,7 @@
 #include <esp_task_wdt.h>
 #endif
 
-bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi) {
+bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
 
@@ -38,7 +42,7 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
     loop();
 
     if(ea->isInitialized()) {
-        publishRealtime(data, ea, eapi);
+        publishRealtime(data, ea, ps);
         loop();
     }
     return true;
@@ -127,9 +131,9 @@ String HomeAssistantMqttHandler::getMeterModel(AmsData* data) {
     return meterModel;
 }
 
-bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* ea, EntsoeApi* eapi) {
-    publishRealtimeSensors(ea, eapi);
-    if(ea->getProducedThisHour() > 0.0 || ea->getProducedToday() > 0.0 || ea->getProducedThisMonth() > 0.0) publishRealtimeExportSensors(ea, eapi);
+bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* ea, PriceService* ps) {
+    publishRealtimeSensors(ea, ps);
+    if(ea->getProducedThisHour() > 0.0 || ea->getProducedToday() > 0.0 || ea->getProducedThisMonth() > 0.0) publishRealtimeExportSensors(ea, ps);
     String peaks = "";
     uint8_t peakCount = ea->getConfig()->hours;
     if(peakCount > 5) peakCount = 5;
@@ -187,13 +191,13 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
     return ret;
 }
 
-bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
+bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
-	if(eapi->getValueForHour(0) == ENTSOE_NO_VALUE)
+	if(ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) == PRICE_NO_VALUE)
 		return false;
 
-    publishPriceSensors(eapi);
+    publishPriceSensors(ps);
 
 	time_t now = time(nullptr);
 
@@ -201,12 +205,12 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[38];
-    for(int i = 0;i < 38; i++) values[i] = ENTSOE_NO_VALUE;
+    for(int i = 0;i < 38; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 38; i++) {
-		float val = eapi->getValueForHour(now, i);
+		float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, now, i);
 		values[i] = val;
 
-		if(val == ENTSOE_NO_VALUE) break;
+		if(val == PRICE_NO_VALUE) break;
 		
 		if(val < min) min = val;
 		if(val > max) max = val;
@@ -221,7 +225,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 			float val1 = values[i++];
 			float val2 = values[i++];
 			float val3 = val;
-			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE) continue;
+			if(val1 == PRICE_NO_VALUE || val2 == PRICE_NO_VALUE || val3 == PRICE_NO_VALUE) continue;
 			float val3hr = val1+val2+val3;
 			if(min3hrIdx == -1 || min3hr > val3hr) {
 				min3hr = val3hr;
@@ -237,7 +241,7 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
 			float val4 = values[i++];
 			float val5 = values[i++];
 			float val6 = val;
-			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE || val4 == ENTSOE_NO_VALUE || val5 == ENTSOE_NO_VALUE || val6 == ENTSOE_NO_VALUE) continue;
+			if(val1 == PRICE_NO_VALUE || val2 == PRICE_NO_VALUE || val3 == PRICE_NO_VALUE || val4 == PRICE_NO_VALUE || val5 == PRICE_NO_VALUE || val6 == PRICE_NO_VALUE) continue;
 			float val6hr = val1+val2+val3+val4+val5+val6;
 			if(min6hrIdx == -1 || min6hr > val6hr) {
 				min6hr = val6hr;
@@ -271,65 +275,37 @@ bool HomeAssistantMqttHandler::publishPrices(EntsoeApi* eapi) {
         breakTime(ts, tm);
 		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
-    snprintf_P(json, BufferSize, JSONPRICES_JSON,
-        WiFi.macAddress().c_str(),
-        values[0] == ENTSOE_NO_VALUE ? "null" : String(values[0], 4).c_str(),
-        values[1] == ENTSOE_NO_VALUE ? "null" : String(values[1], 4).c_str(),
-        values[2] == ENTSOE_NO_VALUE ? "null" : String(values[2], 4).c_str(),
-        values[3] == ENTSOE_NO_VALUE ? "null" : String(values[3], 4).c_str(),
-        values[4] == ENTSOE_NO_VALUE ? "null" : String(values[4], 4).c_str(),
-        values[5] == ENTSOE_NO_VALUE ? "null" : String(values[5], 4).c_str(),
-        values[6] == ENTSOE_NO_VALUE ? "null" : String(values[6], 4).c_str(),
-        values[7] == ENTSOE_NO_VALUE ? "null" : String(values[7], 4).c_str(),
-        values[8] == ENTSOE_NO_VALUE ? "null" : String(values[8], 4).c_str(),
-        values[9] == ENTSOE_NO_VALUE ? "null" : String(values[9], 4).c_str(),
-        values[10] == ENTSOE_NO_VALUE ? "null" : String(values[10], 4).c_str(),
-        values[11] == ENTSOE_NO_VALUE ? "null" : String(values[11], 4).c_str(),
-        values[12] == ENTSOE_NO_VALUE ? "null" : String(values[12], 4).c_str(),
-        values[13] == ENTSOE_NO_VALUE ? "null" : String(values[13], 4).c_str(),
-        values[14] == ENTSOE_NO_VALUE ? "null" : String(values[14], 4).c_str(),
-        values[15] == ENTSOE_NO_VALUE ? "null" : String(values[15], 4).c_str(),
-        values[16] == ENTSOE_NO_VALUE ? "null" : String(values[16], 4).c_str(),
-        values[17] == ENTSOE_NO_VALUE ? "null" : String(values[17], 4).c_str(),
-        values[18] == ENTSOE_NO_VALUE ? "null" : String(values[18], 4).c_str(),
-        values[19] == ENTSOE_NO_VALUE ? "null" : String(values[19], 4).c_str(),
-        values[20] == ENTSOE_NO_VALUE ? "null" : String(values[20], 4).c_str(),
-        values[21] == ENTSOE_NO_VALUE ? "null" : String(values[21], 4).c_str(),
-        values[22] == ENTSOE_NO_VALUE ? "null" : String(values[22], 4).c_str(),
-        values[23] == ENTSOE_NO_VALUE ? "null" : String(values[23], 4).c_str(),
-        values[24] == ENTSOE_NO_VALUE ? "null" : String(values[24], 4).c_str(),
-        values[25] == ENTSOE_NO_VALUE ? "null" : String(values[25], 4).c_str(),
-        values[26] == ENTSOE_NO_VALUE ? "null" : String(values[26], 4).c_str(),
-        values[27] == ENTSOE_NO_VALUE ? "null" : String(values[27], 4).c_str(),
-        values[28] == ENTSOE_NO_VALUE ? "null" : String(values[28], 4).c_str(),
-        values[29] == ENTSOE_NO_VALUE ? "null" : String(values[29], 4).c_str(),
-        values[30] == ENTSOE_NO_VALUE ? "null" : String(values[30], 4).c_str(),
-        values[31] == ENTSOE_NO_VALUE ? "null" : String(values[31], 4).c_str(),
-        values[32] == ENTSOE_NO_VALUE ? "null" : String(values[32], 4).c_str(),
-        values[33] == ENTSOE_NO_VALUE ? "null" : String(values[33], 4).c_str(),
-        values[34] == ENTSOE_NO_VALUE ? "null" : String(values[34], 4).c_str(),
-        values[35] == ENTSOE_NO_VALUE ? "null" : String(values[35], 4).c_str(),
-        values[36] == ENTSOE_NO_VALUE ? "null" : String(values[36], 4).c_str(),
-        values[37] == ENTSOE_NO_VALUE ? "null" : String(values[37], 4).c_str(),
+
+    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{"), WiFi.macAddress().c_str());
+    for(uint8_t i = 0;i < 38; i++) {
+        if(values[i] == PRICE_NO_VALUE) {
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%d\":null,"), i);
+        } else {
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%d\":%.4f,"), i, values[i]);
+        }
+    }
+
+    snprintf_P(json+pos, BufferSize-pos, PSTR("\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}}"),
         min == INT16_MAX ? 0.0 : min,
         max == INT16_MIN ? 0.0 : max,
         ts1hr,
         ts3hr,
         ts6hr
     );
+
     bool ret = mqtt.publish(topic + "/prices", json, true, 0);
     loop();
     return ret;
 }
 
-bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
+bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
 
     publishSystemSensors();
     if(hw->getTemperature() > -50) publishTemperatureSensor(0, "");
 
-    snprintf_P(json, BufferSize, JSONSYS_JSON,
+    snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\"}"),
         WiFi.macAddress().c_str(),
         mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
@@ -436,13 +412,13 @@ void HomeAssistantMqttHandler::publishList4ExportSensors() {
     l4eInit = true;
 }
 
-void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, EntsoeApi* eapi) {
+void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, PriceService* ps) {
     if(rtInit) return;
     for(uint8_t i = 0; i < RealtimeSensorCount; i++) {
         HomeAssistantSensor sensor = RealtimeSensors[i];
         if(strncmp_P(sensor.devcl, PSTR("monetary"), 8) == 0) {
-            if(eapi == NULL) continue;
-            sensor.uom = eapi->getCurrency();
+            if(ps == NULL) continue;
+            sensor.uom = ps->getCurrency();
         }
         publishSensor(sensor);
     }
@@ -467,13 +443,13 @@ void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, Ents
     rtInit = true;
 }
 
-void HomeAssistantMqttHandler::publishRealtimeExportSensors(EnergyAccounting* ea, EntsoeApi* eapi) {
+void HomeAssistantMqttHandler::publishRealtimeExportSensors(EnergyAccounting* ea, PriceService* ps) {
     if(rteInit) return;
     for(uint8_t i = 0; i < RealtimeExportSensorCount; i++) {
         HomeAssistantSensor sensor = RealtimeExportSensors[i];
         if(strncmp_P(sensor.devcl, PSTR("monetary"), 8) == 0) {
-            if(eapi == NULL) continue;
-            sensor.uom = eapi->getCurrency();
+            if(ps == NULL) continue;
+            sensor.uom = ps->getCurrency();
         }
         publishSensor(sensor);
     }
@@ -505,9 +481,9 @@ void HomeAssistantMqttHandler::publishTemperatureSensor(uint8_t index, String id
     tInit[index] = true;
 }
 
-void HomeAssistantMqttHandler::publishPriceSensors(EntsoeApi* eapi) {
-    if(eapi == NULL) return;
-    String uom = String(eapi->getCurrency()) + "/kWh";
+void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
+    if(ps == NULL) return;
+    String uom = String(ps->getCurrency()) + "/kWh";
 
     if(!pInit) {
         for(uint8_t i = 0; i < PriceSensorCount; i++) {
@@ -521,8 +497,8 @@ void HomeAssistantMqttHandler::publishPriceSensors(EntsoeApi* eapi) {
     }
     for(uint8_t i = 0; i < 38; i++) {
         if(prInit[i]) continue;
-        float val = eapi->getValueForHour(i);
-        if(val == ENTSOE_NO_VALUE) continue;
+        float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, i);
+        if(val == PRICE_NO_VALUE) continue;
         
         char name[strlen(PriceSensor.name)+2];
         snprintf(name, strlen(PriceSensor.name)+2, PriceSensor.name, i, i == 1 ? "hour" : "hours");

@@ -1,5 +1,13 @@
 <script>
+    import { translationsStore } from "./TranslationService";
+
     export let epoch;
+
+    let translations = {};
+    translationsStore.subscribe(update => {
+      translations = update;
+    });
+
     let days = 0;
     let hours = 0;
     let minutes = 0;
@@ -10,20 +18,20 @@
     }
 </script>
 {#if epoch}
-    Up
+    {translations.header?.uptime ?? "Up"}
     {#if days > 1}
-        {days} days
+        {days} {translations.common?.days ?? "d"}
     {:else if days > 0}
-        {days} day
+        {days} {translations.common?.day ?? "d"}
     {:else if hours > 1}
-        {hours} hours
+        {hours} {translations.common?.hours ?? "h"}
     {:else if hours > 0}
-        {hours} hour
+        {hours} {translations.common?.hour ?? "h"}
     {:else if minutes > 1}
-        {minutes} minutes
+        {minutes} {translations.common?.minutes ?? "m"}
     {:else if minutes > 0}
-        {minutes} minute
+        {minutes} {translations.common?.minute ?? "m"}
     {:else}
-        {epoch} seconds
+        {epoch} {translations.common?.seconds ?? "s"}
     {/if}
 {/if}

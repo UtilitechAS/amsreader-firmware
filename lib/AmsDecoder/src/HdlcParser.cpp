@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "HdlcParser.h"
 #include "lwip/def.h"
 #include "crc.h"
@@ -49,8 +55,41 @@ int8_t HDLCParser::parse(uint8_t *d, DataParserContext &ctx) {
         ptr += 3;
 
         // Exclude all of header and 3 byte footer
-        ctx.length -= ptr-d+3;
-        return ptr-d;
+        ctx.length -= ptr-d;
+        if(ctx.length > 1) {
+            ctx.length -= 3;
+        }
+
+        // Payload incomplete
+        if((h->format & 0x08) == 0x08) {
+            if(lastSequenceNumber == 0) {
+                if(buf == NULL) buf = (uint8_t *)malloc((size_t)1024);
+                pos = 0;
+            }
+
+            if(buf == NULL) return DATA_PARSE_FAIL;
+
+            memcpy(buf + pos, ptr+3, ctx.length); // +3 to skip LLC
+            pos += ctx.length;
+
+            lastSequenceNumber++;
+            return DATA_PARSE_INTERMEDIATE_SEGMENT;
+        } else if(lastSequenceNumber > 0) {
+            lastSequenceNumber = 0;
+            if(buf == NULL) return DATA_PARSE_FAIL;
+
+            memcpy(buf + pos, ptr+3, ctx.length); // +3 to skip LLC
+            pos += ctx.length;
+
+            memcpy((uint8_t *) d, buf, pos);
+            free(buf);
+            buf = NULL;
+            ctx.length = pos;
+            pos = 0;
+            return DATA_PARSE_OK;
+        } else {
+            return ptr-d;
+        }
     }
     return DATA_PARSE_UNKNOWN_DATA;
 }

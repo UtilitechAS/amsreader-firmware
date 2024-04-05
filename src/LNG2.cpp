@@ -1,9 +1,16 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "LNG2.h"
 #include "Uptime.h"
 
-LNG2::LNG2(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
+LNG2::LNG2(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
     CosemBasic* h = (CosemBasic*) payload;
     if(h->length == 0x0e) {
+        apply(meterState);
         meterType = AmsTypeLandisGyr;
         this->packageTimestamp = ctx.timestamp;
 

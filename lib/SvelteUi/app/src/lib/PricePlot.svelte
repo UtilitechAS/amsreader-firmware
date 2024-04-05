@@ -2,12 +2,15 @@
     import { zeropad, addHours, getPriceSourceName, getPriceSourceUrl } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
+    export let title;
     export let json;
     export let sysinfo;
 
     let config = {};
     let max;
     let min;
+
+    let dark = document.documentElement.classList.contains('dark');
 
     $: {
         let currency = json.currency;
@@ -81,7 +84,7 @@
                 label2: disp < 0 ? disp.toFixed(d) : '',
                 title2: disp < 0 ? disp.toFixed(2) + ' ' + currency : '',
                 value2: val < 0 ? Math.abs(val) : 0,
-                color: '#7c3aed'
+                color: dark ? '#5c2da5' : '#7c3aed'
             });
         }
         let range = Math.max(max, Math.abs(min));
@@ -111,7 +114,7 @@
         }
 
         config = {
-            title: "Future energy price (" + currency + ")",
+            title: title + " (" + currency + ")",
             padding: { top: 20, right: 15, bottom: 20, left: 35 },
             y: {
                 min: min,

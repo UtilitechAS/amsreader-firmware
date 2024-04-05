@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _CRC_H
 #define _CRC_H
 
@@ -6,5 +12,6 @@
 
 uint16_t crc16(const uint8_t* p, int len);
 uint16_t crc16_x25(const uint8_t* p, int len);
+uint16_t crc16_1021(const uint8_t* p, int len);
 
 #endif

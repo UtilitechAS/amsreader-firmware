@@ -1,8 +1,15 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _AMSDATA_H
 #define _AMSDATA_H
 
 #include "Arduino.h"
 #include <Timezone.h>
+#include "OBIScodes.h"
 
 enum AmsType {
     AmsTypeAutodetect = 0x00,
@@ -21,6 +28,7 @@ public:
     AmsData();
 
     void apply(AmsData& other);
+    void apply(const OBIS_code_t obis, double value);
 
     uint64_t getLastUpdateMillis();
 
@@ -53,13 +61,13 @@ public:
     float getL2PowerFactor();
     float getL3PowerFactor();
 
-    float getL1ActiveImportPower();
-    float getL2ActiveImportPower();
-    float getL3ActiveImportPower();
+    uint32_t getL1ActiveImportPower();
+    uint32_t getL2ActiveImportPower();
+    uint32_t getL3ActiveImportPower();
 
-    float getL1ActiveExportPower();
-    float getL2ActiveExportPower();
-    float getL3ActiveExportPower();
+    uint32_t getL1ActiveExportPower();
+    uint32_t getL2ActiveExportPower();
+    uint32_t getL3ActiveExportPower();
 
     double getL1ActiveImportCounter();
     double getL2ActiveImportCounter();
@@ -76,6 +84,7 @@ public:
 
     bool isThreePhase();
     bool isTwoPhase();
+    bool isCounterEstimated();
     bool isL2currentMissing();
 
     int8_t getLastError();
@@ -90,8 +99,8 @@ protected:
     time_t meterTimestamp = 0;
     uint32_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
     float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
-    float l1activeImportPower = 0, l2activeImportPower = 0, l3activeImportPower = 0;
-    float l1activeExportPower = 0, l2activeExportPower = 0, l3activeExportPower = 0;
+    uint32_t l1activeImportPower = 0, l2activeImportPower = 0, l3activeImportPower = 0;
+    uint32_t l1activeExportPower = 0, l2activeExportPower = 0, l3activeExportPower = 0;
     double l1activeImportCounter = 0, l2activeImportCounter = 0, l3activeImportCounter = 0;
     double l1activeExportCounter = 0, l2activeExportCounter = 0, l3activeExportCounter = 0;
     float powerFactor = 0, l1PowerFactor = 0, l2PowerFactor = 0, l3PowerFactor = 0;

@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _AMSWEBSERVER_h
 #define _AMSWEBSERVER_h
 
@@ -11,7 +17,9 @@
 #include "EnergyAccounting.h"
 #include "Uptime.h"
 #include "RemoteDebug.h"
-#include "EntsoeApi.h"
+#include "PriceService.h"
+#include "RealtimePlot.h"
+#include "ConnectionHandler.h"
 
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>
@@ -40,31 +48,37 @@ struct ResetDataContainer {
 class AmsWebServer {
 public:
 	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc);
-    void setup(AmsConfiguration*, GpioConfig*, MeterConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*);
+    void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*);
     void loop();
 	void setMqtt(MQTTClient* mqtt);
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
-	void setEntsoeApi(EntsoeApi* eapi);
+	void setPriceService(PriceService* ps);
 	void setPriceSettings(String region, String currency);
+	void setMeterConfig(uint8_t distributionSystem, uint16_t mainFuse, uint16_t productionCapacity);
 	void setMqttHandler(AmsMqttHandler* mqttHandler);
+	void setConnectionHandler(ConnectionHandler* ch);
 
 private:
 	RemoteDebug* debugger;
 	ResetDataContainer* rdc;
 	bool mqttEnabled = false;
 	int maxPwr = 0;
+	uint8_t distributionSystem = 0;
+	uint16_t mainFuse = 0, productionCapacity = 0;
+
 	HwTools* hw;
 	Timezone* tz;
-	EntsoeApi* eapi = NULL;
+	PriceService* ps = NULL;
 	AmsConfiguration* config;
 	GpioConfig* gpioConfig;
-	MeterConfig* meterConfig;
 	WebConfig webConfig;
 	AmsData* meterState;
 	AmsDataStorage* ds;
     EnergyAccounting* ea = NULL;
+	RealtimePlot* rtp = NULL;
 	AmsMqttHandler* mqttHandler = NULL;
+	ConnectionHandler* ch = NULL;
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
@@ -92,8 +106,8 @@ private:
 	void indexHtml();
 	void indexJs();
 	void indexCss();
-	void githubSvg();
 	void faviconSvg();
+	void logoSvg();
 
     void sysinfoJson();
     void dataJson();
@@ -102,6 +116,9 @@ private:
 	void energyPriceJson();
 	void temperatureJson();
 	void tariffJson();
+	void realtimeJson();
+	void priceConfigJson();
+	void translationsJson();
 
 	void configurationJson();
 	void handleSave();
@@ -124,6 +141,7 @@ private:
 
 	void configFileDownload();
 	void configFileUpload();
+	void configFilePost();
 	void factoryResetPost();
 
 	void notFound();

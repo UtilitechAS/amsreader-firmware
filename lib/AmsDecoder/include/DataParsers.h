@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _DATAPASERSERS_H
 #define _DATAPASERSERS_H
 

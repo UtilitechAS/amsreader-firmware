@@ -12,22 +12,44 @@
 #include <Arduino.h>
 
 #if defined(ESP8266)
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <ESP8266SSDP.h>
 ADC_MODE(ADC_VCC);
-#endif
-
-#if defined(ESP32)
-#include <esp_wifi.h>
+#elif defined(ESP32)
+#include <WiFi.h>
+#include <ESPmDNS.h>
+#include <ESP32SSDP.h>
+#include "Update.h"
 #include <esp_task_wdt.h>
 #include <lwip/dns.h>
+#include "CloudConnector.h"
 #endif
-#define WDT_TIMEOUT 60
 
-#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
-#include <driver/uart.h>
-#endif
+#define WDT_TIMEOUT 120
+
+#define METER_SOURCE_NONE 0
+#define METER_SOURCE_GPIO 1
+#define METER_SOURCE_MQTT 2
+#define METER_SOURCE_ESPNOW 3
+
+#define METER_PARSER_PASSIVE 0
+#define METER_PARSER_PULSE 2
+#define METER_PARSER_KAMSTRUP 9
+
+#define METER_ERROR_NO_DATA 90
+#define METER_ERROR_BREAK 91
+#define METER_ERROR_BUFFER 92
+#define METER_ERROR_FIFO 93
+#define METER_ERROR_FRAME 94
+#define METER_ERROR_PARITY 95
+#define METER_ERROR_RX 96
+#define METER_ERROR_EXCEPTION 98
+#define METER_ERROR_AUTODETECT 99
+
+#include "LittleFS.h"
 
 #include "FirmwareVersion.h"
-#include "AmsToMqttBridge.h"
 #include "AmsStorage.h"
 #include "AmsDataStorage.h"
 #include "EnergyAccounting.h"
@@ -38,8 +60,12 @@ ADC_MODE(ADC_VCC);
 #include "hexutils.h"
 #include "HwTools.h"
 
-#include "EntsoeApi.h"
-
+#include "ConnectionHandler.h"
+#include "WiFiClientConnectionHandler.h"
+#include "WiFiAccessPointConnectionHandler.h"
+#include "EthernetConnectionHandler.h"
+#include "PriceService.h"
+#include "RealtimePlot.h"
 #include "AmsWebServer.h"
 #include "AmsConfiguration.h"
 
@@ -49,6 +75,11 @@ ADC_MODE(ADC_VCC);
 #include "DomoticzMqttHandler.h"
 #include "HomeAssistantMqttHandler.h"
 #include "PassthroughMqttHandler.h"
+
+#include "MeterCommunicator.h"
+#include "PassiveMeterCommunicator.h"
+//#include "KmpCommunicator.h"
+#include "PulseMeterCommunicator.h"
 
 #include "Uptime.h"
 
@@ -61,20 +92,11 @@ ADC_MODE(ADC_VCC);
 #define debugE_P(x, ...)	if (Debug.isActive(Debug.ERROR)) 	{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
 #define debugA_P(x, ...)	if (Debug.isActive(Debug.ANY)) 		{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
 
-
 #define BUF_SIZE_COMMON (2048)
 
-#include "IEC6205621.h"
-#include "IEC6205675.h"
-#include "LNG.h"
-#include "LNG2.h"
-
-#include "DataParsers.h"
 #include "Timezones.h"
 
 uint8_t commonBuffer[BUF_SIZE_COMMON];
-uint8_t* hanBuffer;
-uint16_t hanBufferSize;
 
 HwTools hw;
 
@@ -84,9 +106,11 @@ AmsConfiguration config;
 
 RemoteDebug Debug;
 
-EntsoeApi* eapi = NULL;
+PriceService* ps = NULL;
 
 Timezone* tz = NULL;
+
+ConnectionHandler* ch = NULL;
 
 #if defined(ESP32)
 __NOINIT_ATTR ResetDataContainer rdc;
@@ -122,12 +146,12 @@ MqttConfig energySpeedometerConfig = {
 #endif
 
 Stream *hanSerial;
-SoftwareSerial *swSerial = NULL;
 HardwareSerial *hwSerial = NULL;
 uint8_t rxBufferErrors = 0;
 
 SystemConfig sysConfig;
 GpioConfig gpioConfig;
+
 MeterConfig meterConfig;
 AmsData meterState;
 bool ntpEnabled = false;
@@ -136,98 +160,111 @@ bool mdnsEnabled = false;
 
 AmsDataStorage ds(&Debug);
 #if defined(ESP32)
+CloudConnector *cloud = NULL;
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
 #else
 EnergyAccountingRealtimeData rtd;
 #endif
 EnergyAccounting ea(&Debug, &rtd);
 
-bool wifiDisable11b = false;
+RealtimePlot rtp;
 
-HDLCParser *hdlcParser = NULL;
-MBUSParser *mbusParser = NULL;
-GBTParser *gbtParser = NULL;
-GCMParser *gcmParser = NULL;
-LLCParser *llcParser = NULL;
-DLMSParser *dlmsParser = NULL;
-DSMRParser *dsmrParser = NULL;
+MeterCommunicator* mc = NULL;
+PassiveMeterCommunicator* passiveMc = NULL;
+//KmpCommunicator* kmpMc = NULL;
+PulseMeterCommunicator* pulseMc = NULL;
 
-bool maxDetectPayloadDetectDone = false;
-uint8_t maxDetectedPayloadSize = 64;
-
-
+bool networkConnected = false;
+bool setupMode = false;
 
 void configFileParse();
-void swapWifiMode();
-void WiFi_connect();
-void WiFi_post_connect();
-void WiFi_disconnect(unsigned long timeout);
+void connectToNetwork();
+void toggleSetupMode();
+void postConnect();
 void MQTT_connect();
 void handleNtpChange();
 void handleDataSuccess(AmsData* data);
 void handleTemperature(unsigned long now);
 void handleSystem(unsigned long now);
-void handleAutodetect(unsigned long now);
 void handleButton(unsigned long now);
-void handlePriceApi(unsigned long now);
+void handlePriceService(unsigned long now);
 void handleClear(unsigned long now);
+void handleUiLanguage();
 void handleEnergyAccountingChanged();
 bool handleVoltageCheck();
 bool readHanPort();
-void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert);
-void rxerr(int err);
-int16_t unwrapData(uint8_t *buf, DataParserContext &context);
 void errorBlink();
-void printHanReadError(int pos);
-void debugPrint(byte *buffer, int start, int length);
 
+uint8_t pulses = 0;
+void onPulse();
 
 #if defined(ESP32)
 uint8_t dnsState = 0;
 ip_addr_t dns0;
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
+	if(setupMode) return; // None of this necessary in setup mode
+	if(ch != NULL) ch->eventHandler(event, info);
 	switch(event) {
-		case ARDUINO_EVENT_WIFI_READY:
-			if (wifiDisable11b) {
-				esp_wifi_config_11b_rate(WIFI_IF_AP, true);
-				esp_wifi_config_11b_rate(WIFI_IF_STA, true);
-			}
-			break;
-		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
-			const ip_addr_t* dns = dns_getserver(0);
-			memcpy(&dns0, dns, sizeof(dns0));
-
-			IPAddress res;
-			int ret = WiFi.hostByName("hub.amsleser.no", res);
-			if(ret == 0) {
-				dnsState = 2;
-				debugI_P(PSTR("No DNS, probably a closed network"));
-			} else {
-				debugI_P(PSTR("DNS is present and working, monitoring"));
-				dnsState = 1;
+		case ARDUINO_EVENT_WIFI_STA_CONNECTED: {
+			dnsState = 0;
+			if(ch != NULL) {
+				NetworkConfig conf;
+				ch->getCurrentConfig(conf);
+				dnsState = conf.ipv6 ? 2 : 0; // Never reset if IPv6 is enabled
+				debugI_P(PSTR("IPv6 enabled, not monitoring DNS poisoning"));
 			}
 			break;
 		}
-		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:
-			wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
-			const char* descr = WiFi.disconnectReasonName(reason);
-			debugI_P(PSTR("WiFi disconnected, reason %s"), descr);
-			switch(reason) {
-				case WIFI_REASON_AUTH_FAIL:
-				case WIFI_REASON_NO_AP_FOUND:
-					if(sysConfig.dataCollectionConsent == 0) {
-						swapWifiMode();
-					} else if(strlen(descr) > 0) {
-						WiFi_disconnect(5000);
-					}
-					break;
-				default:
-					if(strlen(descr) > 0) {
-						WiFi_disconnect(2000);
-					}
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
+			if(dnsState == 0) {
+				const ip_addr_t* dns = dns_getserver(0);
+				memcpy(&dns0, dns, sizeof(dns0));
+
+				IPAddress res;
+				int ret = WiFi.hostByName("hub.amsleser.no", res);
+				if(ret == 0) {
+					dnsState = 2;
+					debugI_P(PSTR("No DNS, probably a closed network"));
+				} else {
+					debugI_P(PSTR("DNS is present and working, monitoring DNS poisoning"));
+					dnsState = 1;
+				}
 			}
 			break;
+		}
+		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
+			if(WiFi.getMode() == WIFI_STA) {
+				wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
+				switch(reason) {
+					case WIFI_REASON_AUTH_FAIL:
+					case WIFI_REASON_NO_AP_FOUND:
+						if(sysConfig.dataCollectionConsent == 0) {
+							debugI_P(PSTR("Unable to connect to configured AP, swapping to AP mode"));
+							toggleSetupMode();
+						}
+						break;
+				}
+			}
+			break;
+		}
+		case ARDUINO_EVENT_SC_FOUND_CHANNEL:
+			debugI_P(PSTR("SmartConfig found channel"));
+			break;
+		case ARDUINO_EVENT_SC_GOT_SSID_PSWD:
+			debugI_P(PSTR("SmartConfig got config"));
+			break;
 	}
+}
+
+void rxerr(int err) {
+	if(passiveMc != NULL) {
+		passiveMc->rxerr(err);
+	}
+	/*
+	if(kmpMc != NULL) {
+		kmpMc->rxerr(err);
+	}
+	*/
 }
 #endif
 
@@ -240,7 +277,16 @@ void setup() {
 	if(!config.getGpioConfig(gpioConfig)) {
 		config.clearGpio(gpioConfig);
 	}
-	if(!config.getSystemConfig(sysConfig)) {
+	if(config.getSystemConfig(sysConfig)) {
+		config.getMeterConfig(meterConfig);
+		if(sysConfig.boardType < 20) {
+			config.clearGpio(gpioConfig);
+			hw.applyBoardConfig(sysConfig.boardType, gpioConfig, meterConfig, 0);
+			config.setMeterConfig(meterConfig);
+			config.setGpioConfig(gpioConfig);
+		}
+	} else {
+		config.clearMeter(meterConfig);
 		sysConfig.boardType = 0;
 		sysConfig.vendorConfigured = false;
 		sysConfig.userConfigured = false;
@@ -248,8 +294,7 @@ void setup() {
 	}
 
 	delay(1);
-	config.loadTempSensors();
-	hw.setup(&gpioConfig, &config);
+	hw.setup(&gpioConfig);
 
 	if(gpioConfig.apPin >= 0) {
 		pinMode(gpioConfig.apPin, INPUT_PULLUP);
@@ -284,19 +329,18 @@ void setup() {
 	hw.ledBlink(LED_GREEN, 1);
 	hw.ledBlink(LED_BLUE, 1);
 
-	EntsoeConfig entsoe;
-	if(config.getEntsoeConfig(entsoe) && entsoe.enabled && strlen(entsoe.area) > 0) {
-		eapi = new EntsoeApi(&Debug);
-		eapi->setup(entsoe);
-		ws.setEntsoeApi(eapi);
+	PriceServiceConfig price;
+	if(config.getPriceServiceConfig(price)) {
+		ps = new PriceService(&Debug);
+		ps->setup(price);
+		ws.setPriceService(ps);
 	}
-	ws.setPriceSettings(entsoe.area, entsoe.currency);
-	ea.setFixedPrice(entsoe.fixedPrice / 1000.0, entsoe.currency);
+	ws.setPriceSettings(price.area, price.currency);
+	ea.setCurrency(price.currency);
 	bool shared = false;
-	config.getMeterConfig(meterConfig);
 	Serial.flush();
 	Serial.end();
-	if(gpioConfig.hanPin == 3) {
+	if(meterConfig.rxPin == 3) {
 		shared = true;
 		#if defined(ESP8266)
 			SerialConfig serialConfig;
@@ -309,6 +353,9 @@ void setup() {
 				break;
 			case 3:
 				serialConfig = SERIAL_8N1;
+				break;
+			case 7:
+				serialConfig = SERIAL_8N2;
 				break;
 			case 10:
 				serialConfig = SERIAL_7E1;
@@ -356,18 +403,16 @@ void setup() {
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
-
-	WiFiConfig wifiConf;
-	if(config.getWiFiConfig(wifiConf)) {
-		wifiDisable11b = !wifiConf.use11b;
-	}
+	#if defined(ESP32)
+	WiFi.onEvent(WiFiEvent);
+	#endif
 
 	bool hasFs = false;
 #if defined(ESP32)
 	WiFi.onEvent(WiFiEvent);
 	debugD_P(PSTR("ESP32 LittleFS"));
 	hasFs = LittleFS.begin(true);
-	debugD_P(PSTR(" size: %d"), LittleFS.totalBytes());
+	debugD_P(PSTR(" size: %d, used: %d"), LittleFS.totalBytes(), LittleFS.usedBytes());
 #else
 	debugD_P(PSTR("ESP8266 LittleFS"));
 	hasFs = LittleFS.begin();
@@ -436,7 +481,6 @@ void setup() {
 			flashed = true;
 		}
 		if(flashed) {
-			LittleFS.end();
 			if(Debug.isActive(RemoteDebug::INFO)) {
 				debugI_P(PSTR("Firmware update complete, restarting"));
 				Debug.flush();
@@ -446,19 +490,18 @@ void setup() {
 			return;
 		}
 	}
-	LittleFS.end();
 	yield();
 
 	if(config.hasConfig()) {
 		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
-		WiFi_connect();
+		connectToNetwork();
 		handleNtpChange();
 		ds.load();
 	} else {
 		if(Debug.isActive(RemoteDebug::INFO)) {
 			debugI_P(PSTR("No configuration, booting AP"));
 		}
-		swapWifiMode();
+		toggleSetupMode();
 	}
 
 	EnergyAccountingConfig *eac = new EnergyAccountingConfig();
@@ -469,8 +512,23 @@ void setup() {
 	}
 	ea.setup(&ds, eac);
 	ea.load();
-	ea.setEapi(eapi);
-	ws.setup(&config, &gpioConfig, &meterConfig, &meterState, &ds, &ea);
+	ea.setPriceService(ps);
+	ws.setup(&config, &gpioConfig, &meterState, &ds, &ea, &rtp);
+
+	UiConfig ui;
+	if(config.getUiConfig(ui)) {
+		if(strlen(ui.language) == 0) {
+			strcpy(ui.language, "en");
+			config.setUiConfig(ui);
+		}
+		snprintf_P((char*) commonBuffer, BUF_SIZE_COMMON, PSTR("/translations-%s.json"), ui.language);
+		if(!LittleFS.exists((char*) commonBuffer)) {
+			debugI_P(PSTR("Marking %s for download"), commonBuffer);
+			config.setUiLanguageChanged();
+		}
+	}
+
+	yield();
 
 	#if defined(ESP32)
 		esp_task_wdt_init(WDT_TIMEOUT, true);
@@ -485,20 +543,11 @@ bool buttonActive = false;
 unsigned long longPressTime = 5000;
 bool longPressActive = false;
 
-bool wifiConnected = false;
-
 unsigned long lastTemperatureRead = 0;
 unsigned long lastSysupdate = 0;
 unsigned long lastErrorBlink = 0; 
 unsigned long lastVoltageCheck = 0;
 int lastError = 0;
-
-bool meterAutodetect = false;
-unsigned long meterAutodetectLastChange = 0;
-uint8_t meterAutoIndex = 0;
-uint32_t bauds[] = { 2400, 2400, 115200, 115200 };
-uint8_t parities[] = { 11, 3, 3, 3 };
-bool inverts[] = { false, false, false, true };
 
 void loop() {
 	unsigned long now = millis();
@@ -515,31 +564,21 @@ void loop() {
 		errorBlink();
 	}
 
-	if(hwSerial != NULL) {
-		#if defined ESP8266
-		if(hwSerial->hasRxError()) {
-			debugE_P(PSTR("Serial RX error"));
-			meterState.setLastError(METER_ERROR_RX);
-		}
-		if(hwSerial->hasOverrun()) {
-			rxerr(2);
-		}
-		#endif
-	} else if(swSerial != NULL) {
-		if(swSerial->overflow()) {
-			rxerr(2);
-		}
-	}
-
 	// Only do normal stuff if we're not booted as AP
-	if (WiFi.getMode() != WIFI_AP) {
-		if (WiFi.status() != WL_CONNECTED) {
-			wifiConnected = false;
-			Debug.stop();
-			WiFi_connect();
+	if (!setupMode) {
+		if (ch != NULL && !ch->isConnected()) {
+			if(networkConnected) {
+				Debug.stop();
+				MDNS.end();
+				if(mqttHandler != NULL) {
+					mqttHandler->disconnect();
+				}
+			}
+			networkConnected = false;
+			connectToNetwork();
 		} else {
-			if(!wifiConnected) {
-				WiFi_post_connect();
+			if(!networkConnected) {
+				postConnect();
 			}
 			if(config.isNtpChanged()) {
 				handleNtpChange();
@@ -590,7 +629,7 @@ void loop() {
 						if(err > 0)
 							debugE_P(PSTR("Energyspeedometer connector reporting error (%d)"), err);
 						energySpeedometer->connect();
-						energySpeedometer->publishSystem(&hw, eapi, &ea);
+						energySpeedometer->publishSystem(&hw, ps, &ea);
 					}
 					energySpeedometer->loop();
 					delay(10);
@@ -607,9 +646,9 @@ void loop() {
 			#endif
 
 			try {
-				handlePriceApi(now);
+				handlePriceService(now);
 			} catch(const std::exception& e) {
-				debugE_P(PSTR("Exception in ENTSO-E loop (%s)"), e.what());
+				debugE_P(PSTR("Exception in PriceService loop (%s)"), e.what());
 			}
 			start = millis();
 			ws.loop();
@@ -617,15 +656,35 @@ void loop() {
 			if(end - start > 1000) {
 				debugW_P(PSTR("Used %dms to handle web"), millis()-start);
 			}
-		}
-		if(mqttHandler != NULL) {
-			start = millis();
-			mqttHandler->loop();
-			delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
-			end = millis();
-			if(end - start > 1000) {
-				debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
+
+			if(mqttHandler != NULL) {
+				start = millis();
+				mqttHandler->loop();
+				delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
+				end = millis();
+				if(end - start > 1000) {
+					debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
+				}
 			}
+
+			#if defined(ESP32)
+			if(config.isCloudChanged()) {
+				CloudConfig cc;
+				if(config.getCloudConfig(cc) && cc.enabled) {
+					if(cloud == NULL) {
+						cloud = new CloudConnector(&Debug);
+					}
+					if(cloud->setup(cc, meterConfig, &hw)) {
+						config.setCloudConfig(cc);
+					}
+				}
+				config.ackCloudConfig();
+			}
+			if(cloud != NULL) {
+				cloud->update(meterState, ea);
+			}
+			#endif
+			handleUiLanguage();
 		}
 		/*
 		if(now - lastVoltageCheck > 500) {
@@ -634,26 +693,104 @@ void loop() {
 		}
 		*/
 	} else {
+		if(WiFi.smartConfigDone()) {
+			debugI_P(PSTR("Smart config DONE!"));
+
+			NetworkConfig network;
+			config.getNetworkConfig(network);
+			strcpy(network.ssid, WiFi.SSID().c_str());
+			strcpy(network.psk, WiFi.psk().c_str());
+			network.mode = 1;
+			network.mdns = true;
+			config.setNetworkConfig(network);
+
+			SystemConfig sys;
+			config.getSystemConfig(sys);
+			sys.userConfigured = true;
+			sys.dataCollectionConsent = 0;
+			config.setSystemConfig(sys);
+			config.save();
+
+			ESP.restart();
+		}
 		if(dnsServer != NULL) {
 			dnsServer->processNextRequest();
-		}
-		// Continously flash the LED when AP mode
-		if (now / 50 % 64 == 0) {
-			if(!hw.ledBlink(LED_YELLOW, 1)) {
-				hw.ledBlink(LED_INTERNAL, 1);
-			}
 		}
 		ws.loop();
 	}
 
 	if(config.isMeterChanged()) {
 		config.getMeterConfig(meterConfig);
-		setupHanPort(gpioConfig, meterConfig.baud, meterConfig.parity, meterConfig.invert);
-		config.ackMeterChanged();
-		if(gcmParser != NULL) {
-			delete gcmParser;
-			gcmParser = NULL;
+		if(meterConfig.source == METER_SOURCE_GPIO) {
+			switch(meterConfig.parser) {
+				case METER_PARSER_PASSIVE:
+					if(pulseMc != NULL) {
+						delete pulseMc;
+						pulseMc = NULL;
+					}
+					/*
+					if(kmpMc != NULL) {
+						delete(kmpMc);
+						kmpMc = NULL;
+					}
+					*/
+					if(passiveMc == NULL) {
+						passiveMc = new PassiveMeterCommunicator(&Debug);
+					}
+					passiveMc->configure(meterConfig, tz);
+					hwSerial = passiveMc->getHwSerial();
+					mc = passiveMc;
+					break;
+					/*
+				case METER_PARSER_KAMSTRUP:
+					if(pulseMc != NULL) {
+						delete pulseMc;
+						pulseMc = NULL;
+					}
+					if(passiveMc != NULL) {
+						delete(passiveMc);
+						passiveMc = NULL;
+					}
+					if(kmpMc == NULL) {
+						kmpMc = new KmpCommunicator(&Debug);
+					}
+					kmpMc->configure(meterConfig, tz);
+					hwSerial = kmpMc->getHwSerial();
+					mc = kmpMc;
+					break;
+					*/
+				case METER_PARSER_PULSE:
+					/*
+					if(kmpMc != NULL) {
+						delete(kmpMc);
+						kmpMc = NULL;
+					}
+					*/
+					if(passiveMc != NULL) {
+						delete(passiveMc);
+						passiveMc = NULL;
+					}
+					if(pulseMc == NULL) {
+						pulseMc = new PulseMeterCommunicator(&Debug);
+					}
+					pulseMc->configure(meterConfig, tz);
+					attachInterrupt(digitalPinToInterrupt(meterConfig.rxPin), onPulse, RISING);
+
+					mc = pulseMc;
+					break;
+				default:
+					debugE_P(PSTR("Unknown meter parser selected: %d"), meterConfig.parser);
+			}
+			#if defined(ESP32)
+				if(hwSerial != NULL) {
+					hwSerial->onReceiveError(rxerr);
+				}
+			#endif
+		} else {
+			debugE_P(PSTR("Unknown meter source selected: %d"), meterConfig.source);
 		}
+		ws.setMeterConfig(meterConfig.distributionSystem, meterConfig.mainFuse, meterConfig.productionCapacity);
+		config.ackMeterChanged();
 	}
 
 	if(config.isEnergyAccountingChanged()) {
@@ -668,6 +805,7 @@ void loop() {
 			}
 			handleTemperature(now);
 			handleSystem(now);
+			hw.setBootSuccessful(true);
 		} else {
 			end = millis();
 			if(end - start > 1000) {
@@ -680,12 +818,6 @@ void loop() {
 	} catch(const std::exception& e) {
 		debugE_P(PSTR("Exception in readHanPort (%s)"), e.what());
 		meterState.setLastError(METER_ERROR_EXCEPTION);
-	}
-	try {
-		handleAutodetect(now);
-	} catch(const std::exception& e) {
-		debugE_P(PSTR("Exception in meter autodetect (%s)"), e.what());
-		meterState.setLastError(METER_ERROR_AUTODETECT);
 	}
 
 	delay(10); // Needed for auto modem sleep
@@ -704,6 +836,58 @@ void loop() {
 
 	if(end-now > 2000) {
 		debugW_P(PSTR("loop() used %dms"), end-now);
+	}
+}
+
+void handleUiLanguage() {
+	if(config.isUiLanguageChanged()) {
+		debugD_P(PSTR("Language has changed"));
+		if(LittleFS.begin()) {
+			UiConfig ui;
+			config.getUiConfig(ui);
+			if(strlen(ui.language) == 0) {
+				debugD_P(PSTR("No language set"));
+				return;
+			}
+			snprintf_P((char*) commonBuffer, BUF_SIZE_COMMON, PSTR("http://hub.amsleser.no/hub/language/%s.json"),
+				strlen(ui.language) > 0 ? ui.language : "en"
+			);
+			HTTPClient http;
+
+			debugI_P(PSTR("Downloading %s"), commonBuffer);
+			#if defined(ESP8266)
+			WiFiClient client;
+			client.setTimeout(5000);
+			if(http.begin(client, (char*) commonBuffer)) {
+			#elif defined(ESP32)
+			if(http.begin((char*) commonBuffer)) {
+			#endif
+				int status = http.GET();
+
+				#if defined(ESP32)
+					esp_task_wdt_reset();
+				#elif defined(ESP8266)
+					ESP.wdtFeed();
+				#endif
+
+				if(status == HTTP_CODE_OK) {
+					snprintf_P((char*) commonBuffer, BUF_SIZE_COMMON, PSTR("/translations-%s.json"), ui.language);
+					File file = LittleFS.open((char*) commonBuffer, "w");
+					size_t written = http.writeToStream(&file);
+					file.close();
+					if(written > 0) {
+						debugD_P(PSTR("Success (%lu written)"), written);
+					} else {
+						debugW_P(PSTR("Failed to write language '%s' (%d written)"), ui.language, written);
+					}
+				} else {
+					debugW_P(PSTR("Failed to download language '%s'"), ui.language);
+				}
+				http.end();
+			}
+		}
+
+		config.ackUiLanguageChange();
 	}
 }
 
@@ -761,11 +945,11 @@ void handleSystem(unsigned long now) {
 		start = millis();
 		if(WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED) {
 			if(mqttHandler != NULL) {
-				mqttHandler->publishSystem(&hw, eapi, &ea);
+				mqttHandler->publishSystem(&hw, ps, &ea);
 			}
 			#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 			if(energySpeedometer != NULL) {
-				energySpeedometer->publishSystem(&hw, eapi, &ea);
+				energySpeedometer->publishSystem(&hw, ps, &ea);
 			}
 			#endif
 		}
@@ -786,25 +970,27 @@ void handleSystem(unsigned long now) {
 		#endif
 	}
 
-	// After one hour, adjust buffer size to match the largest payload
-	if(!maxDetectPayloadDetectDone && now > 3600000) {
-		if(maxDetectedPayloadSize * 1.25 > meterConfig.bufferSize * 64) {
-			int bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.25) / 64));
-			#if defined(ESP8266)
-				if(gpioConfig.hanPin != 3 && gpioConfig.hanPin != 113) {
-					bufferSize = min(bufferSize, 2);
-				} else {
-					bufferSize = min(bufferSize, 8);
-				}
-			#endif
-			if(bufferSize != meterConfig.bufferSize) {
-				debugI_P(PSTR("Increasing RX buffer to %d bytes"), bufferSize * 64);
-				meterConfig.bufferSize = bufferSize;
-				config.setMeterConfig(meterConfig);
+	handleVoltageCheck();
+}
+
+bool handleVoltageCheck() {
+	if(sysConfig.boardType == 7 && maxVcc > 2.8) { // Pow-U
+		float vcc = hw.getVcc();
+		if(vcc > 3.4 || vcc < 2.8) {
+			maxVcc = 0;
+		} else if(vcc > maxVcc) {
+			debugD_P(PSTR("Setting new max Vcc to %.2f"), vcc);
+			maxVcc = vcc;
+		} else if(WiFi.getMode() != WIFI_OFF) {
+			float diff = min(maxVcc, (float) 3.3)-vcc;
+			if(diff > 0.4) {
+				debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for 5 seconds to preserve power"), vcc);
+				ch->disconnect(5000);
+				return false;
 			}
 		}
-		maxDetectPayloadDetectDone = true;
 	}
+	return true;
 }
 
 void handleTemperature(unsigned long now) {
@@ -825,18 +1011,18 @@ void handleTemperature(unsigned long now) {
 	}
 }
 
-void handlePriceApi(unsigned long now) {
+void handlePriceService(unsigned long now) {
 	unsigned long start, end;
-	if(eapi != NULL && ntpEnabled) {
+	if(ps != NULL && ntpEnabled) {
 		start = millis();
-		if(eapi->loop() && mqttHandler != NULL) {
+		if(ps->loop() && mqttHandler != NULL) {
 			end = millis();
 			if(end - start > 1000) {
 				debugW_P(PSTR("Used %dms to update prices"), millis()-start);
 			}
 
 			start = millis();
-			mqttHandler->publishPrices(eapi);
+			mqttHandler->publishPrices(ps);
 			end = millis();
 			if(end - start > 1000) {
 				debugW_P(PSTR("Used %dms to publish prices to MQTT"), millis()-start);
@@ -849,44 +1035,23 @@ void handlePriceApi(unsigned long now) {
 		}
 	}
 	
-	if(config.isEntsoeChanged()) {
-		EntsoeConfig entsoe;
-		if(config.getEntsoeConfig(entsoe) && entsoe.enabled && strlen(entsoe.area) > 0) {
-			if(eapi == NULL) {
-				eapi = new EntsoeApi(&Debug);
-				ea.setEapi(eapi);
-				ws.setEntsoeApi(eapi);
+	if(config.isPriceServiceChanged()) {
+		PriceServiceConfig price;
+		if(config.getPriceServiceConfig(price) && price.enabled && strlen(price.area) > 0) {
+			if(ps == NULL) {
+				ps = new PriceService(&Debug);
+				ea.setPriceService(ps);
+				ws.setPriceService(ps);
 			}
-			eapi->setup(entsoe);
-		} else if(eapi != NULL) {
-			delete eapi;
-			eapi = NULL;
-			ws.setEntsoeApi(NULL);
+			ps->setup(price);
+		} else if(ps != NULL) {
+			delete ps;
+			ps = NULL;
+			ws.setPriceService(NULL);
 		}
-		ws.setPriceSettings(entsoe.area, entsoe.currency);
-		config.ackEntsoeChange();
-		ea.setFixedPrice(entsoe.fixedPrice / 1000.0, entsoe.currency);
-	}
-}
-
-void handleAutodetect(unsigned long now) {
-	if(meterState.getListType() == 0) {
-		if(now - meterAutodetectLastChange > 20000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
-			meterAutodetect = true;
-			meterAutoIndex++; // Default is to try the first one in setup()
-			debugI_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
-			if(meterAutoIndex >= 4) meterAutoIndex = 0;
-			setupHanPort(gpioConfig, bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex]);
-			meterAutodetectLastChange = now;
-		}
-	} else if(meterAutodetect) {
-		debugI_P(PSTR("Meter serial autodetected, saving: %d, %d, %s"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
-		meterAutodetect = false;
-		meterConfig.baud = bauds[meterAutoIndex];
-		meterConfig.parity = parities[meterAutoIndex];
-		meterConfig.invert = inverts[meterAutoIndex];
-		config.setMeterConfig(meterConfig);
-		setupHanPort(gpioConfig, meterConfig.baud, meterConfig.parity, meterConfig.invert);
+		ws.setPriceSettings(price.area, price.currency);
+		config.ackPriceServiceChange();
+		ea.setCurrency(price.currency);
 	}
 }
 
@@ -900,7 +1065,8 @@ void handleButton(unsigned long now) {
 
 			if ((now - buttonTimer > longPressTime) && (longPressActive == false)) {
 				longPressActive = true;
-				swapWifiMode();
+				debugD_P(PSTR("Button was held, triggering setup mode"));
+				toggleSetupMode();
 			}
 		} else {
 			if (buttonActive == true) {
@@ -916,243 +1082,11 @@ void handleButton(unsigned long now) {
 	}
 }
 
-bool handleVoltageCheck() {
-	if(sysConfig.boardType == 7 && maxVcc > 2.8) { // Pow-U
-		float vcc = hw.getVcc();
-		if(vcc > 3.4 || vcc < 2.8) {
-			maxVcc = 0;
-		} else if(vcc > maxVcc) {
-			debugD_P(PSTR("Setting new max Vcc to %.2f"), vcc);
-			maxVcc = vcc;
-		} else if(WiFi.getMode() != WIFI_OFF) {
-			float diff = min(maxVcc, (float) 3.3)-vcc;
-			if(diff > 0.4) {
-				debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for 5 seconds to preserve power"), vcc);
-				WiFi_disconnect(2000);
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
-void rxerr(int err) {
-	if(err == 0) return;
-	switch(err) {
-		case 2:
-			debugE_P(PSTR("Serial buffer overflow"));
-			rxBufferErrors++;
-			if(rxBufferErrors > 3 && meterConfig.bufferSize < 64) {
-				meterConfig.bufferSize += 2;
-				debugI_P(PSTR("Increasing RX buffer to %d bytes"), meterConfig.bufferSize * 64);
-				config.setMeterConfig(meterConfig);
-				rxBufferErrors = 0;
-			}
-			break;
-		case 3:
-			debugE_P(PSTR("Serial FIFO overflow"));
-			break;
-		case 4:
-			debugW_P(PSTR("Serial frame error"));
-			break;
-		case 5:
-			debugW_P(PSTR("Serial parity error"));
-			break;
-	}
-	// Do not include serial break
-	if(err > 1) meterState.setLastError(90+err);
-}
-
-void setupHanPort(GpioConfig& gpioConfig, uint32_t baud, uint8_t parityOrdinal, bool invert) {
-	uint8_t pin = gpioConfig.hanPin;
-
-	if(Debug.isActive(RemoteDebug::INFO)) Debug.printf_P(PSTR("(setupHanPort) Setting up HAN on pin %d with baud %d and parity %d\n"), pin, baud, parityOrdinal);
-
-	if(baud == 0) {
-		baud = bauds[meterAutoIndex];
-		parityOrdinal = parities[meterAutoIndex];
-		invert = inverts[meterAutoIndex];
-	}
-	if(parityOrdinal == 0) {
-		parityOrdinal = 3; // 8N1
-	}
-
-	switch(sysConfig.boardType) {
-		case 8: // HAN mosquito: has inverting level shifter
-			invert = !invert;
-			break;
-	}
-
-	if(pin == 3 || pin == 113) {
-		#if ARDUINO_USB_CDC_ON_BOOT
-			hwSerial = &Serial0;
-		#else
-			hwSerial = &Serial;
-		#endif
-	}
-
-	#if defined(ESP32)
-		if(pin == 9) {
-			hwSerial = &Serial1;
-		}
-		#if defined(CONFIG_IDF_TARGET_ESP32)
-			if(pin == 16) {
-				hwSerial = &Serial2;
-			}
-		#elif defined(CONFIG_IDF_TARGET_ESP32S2) ||  defined(CONFIG_IDF_TARGET_ESP32C3)
-			hwSerial = &Serial1;
-		#endif
-	#endif
-
-	if(pin == 0) {
-		debugE_P(PSTR("Invalid GPIO configured for HAN"));
-		return;
-	}
-
-	if(meterConfig.bufferSize < 1) meterConfig.bufferSize = 1;
-	if(meterConfig.bufferSize > 64) meterConfig.bufferSize = 64;
-
-	if(hwSerial != NULL) {
-		debugD_P(PSTR("Hardware serial"));
-		Serial.flush();
-		#if defined(ESP8266)
-			SerialConfig serialConfig;
-		#elif defined(ESP32)
-			uint32_t serialConfig;
-		#endif
-		switch(parityOrdinal) {
-			case 2:
-				serialConfig = SERIAL_7N1;
-				break;
-			case 3:
-				serialConfig = SERIAL_8N1;
-				break;
-			case 10:
-				serialConfig = SERIAL_7E1;
-				break;
-			default:
-				serialConfig = SERIAL_8E1;
-				break;
-		}
-		if(meterConfig.bufferSize < 4) meterConfig.bufferSize = 4; // 64 bytes (1) is default for software serial, 256 bytes (4) for hardware
-
-		debugD_P(PSTR("Using serial buffer size %d"), 64 * meterConfig.bufferSize);
-		hwSerial->setRxBufferSize(64 * meterConfig.bufferSize);
-		#if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
-			hwSerial->begin(baud, serialConfig, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE, invert);
-			uart_set_pin(UART_NUM_1, UART_PIN_NO_CHANGE, pin, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
-		#elif defined(ESP32)
-			hwSerial->begin(baud, serialConfig, -1, -1, invert);
-		#else
-			hwSerial->begin(baud, serialConfig, SERIAL_FULL, 1, invert);
-		#endif
-		
-		#if defined(ESP8266)
-			if(pin == 3) {
-				debugI_P(PSTR("Switching UART0 to pin 1 & 3"));
-				Serial.pins(1,3);
-			} else if(pin == 113) {
-				debugI_P(PSTR("Switching UART0 to pin 15 & 13"));
-				Serial.pins(15,13);
-			}
-		#endif
-
- 		// Prevent pullup on TX pin if not uart0
-		#if defined(CONFIG_IDF_TARGET_ESP32S2)
-			pinMode(17, INPUT);
-		#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-			pinMode(7, INPUT);
-		#elif defined(ESP32)
-			if(pin == 9) {
-				pinMode(10, INPUT);
-			} else if(pin == 16) {
-				pinMode(17, INPUT);
-			}
-		#elif defined(ESP8266)
-			if(pin == 113) {
-				pinMode(15, INPUT);
-			}
-		#endif
-
-		#if defined(ESP32)
-		hwSerial->onReceiveError(rxerr);
-		#endif
-		hanSerial = hwSerial;
-		if(swSerial != NULL) {
-			swSerial->end();
-			delete swSerial;
-			swSerial = NULL;
-		}
-	} else {
-		debugD_P(PSTR("Software serial"));
-		Serial.flush();
-		
-		if(swSerial == NULL) {
-			swSerial = new SoftwareSerial(pin, -1, invert);
-		} else {
-			swSerial->end();
-		}
-
-		SoftwareSerialConfig serialConfig;
-		switch(parityOrdinal) {
-			case 2:
-				serialConfig = SWSERIAL_7N1;
-				break;
-			case 3:
-				serialConfig = SWSERIAL_8N1;
-				break;
-			case 10:
-				serialConfig = SWSERIAL_7E1;
-				break;
-			default:
-				serialConfig = SWSERIAL_8E1;
-				break;
-		}
-
-		uint8_t bufferSize = meterConfig.bufferSize;
-		#if defined(ESP8266)
-		if(bufferSize > 2) bufferSize = 2;
-		#endif
-		debugD_P(PSTR("Using serial buffer size %d"), 64 * bufferSize);
-		swSerial->begin(baud, serialConfig, pin, -1, invert, bufferSize * 64);
-		hanSerial = swSerial;
-
-		Serial.end();
-		Serial.begin(115200);
-		hwSerial = NULL;
-	}
-
-	if(hanBuffer != NULL) {
-		free(hanBuffer);
-	}
-	hanBufferSize = max(64 * meterConfig.bufferSize * 2, 1280);
-	hanBuffer = (uint8_t*) malloc(hanBufferSize);
-
-	// The library automatically sets the pullup in Serial.begin()
-	if(!gpioConfig.hanPinPullup) {
-		debugI_P(PSTR("HAN pin pullup disabled"));
-		pinMode(gpioConfig.hanPin, INPUT);
-	}
-
-	hanSerial->setTimeout(250);
-
-	// Empty buffer before starting
-	while (hanSerial->available() > 0) {
-		hanSerial->read();
-	}
-	#if defined(ESP8266)
-	if(hwSerial != NULL) {
-		hwSerial->hasOverrun();
-	} else if(swSerial != NULL) {
-		swSerial->overflow();
-	}
-	#endif
-}
-
 void errorBlink() {
 	if(lastError == 3)
 		lastError = 0;
 	lastErrorBlink = millis64();
+	if(setupMode) return;
 	while(lastError < 3) {
 		switch(lastError++) {
 			case 0:
@@ -1171,7 +1105,7 @@ void errorBlink() {
 				}
 				break;
 			case 2:
-				if(WiFi.getMode() != WIFI_AP && WiFi.status() != WL_CONNECTED) {
+				if(WiFi.getMode() == WIFI_STA && WiFi.status() != WL_CONNECTED) {
 					debugW_P(PSTR("WiFi not connected, tripe blink"));
 					hw.ledBlink(LED_RED, 3); // If WiFi not connected, blink three times
 					return;
@@ -1181,22 +1115,62 @@ void errorBlink() {
 	}
 }
 
-void swapWifiMode() {
+void connectToNetwork() {
+	if(!handleVoltageCheck()) {
+		debugW_P(PSTR("Voltage is not high enough to reconnect"));
+		return;
+	}
+	NetworkConfig network;
+	if(config.getNetworkConfig(network)) {
+		if(network.mode == 0 || network.mode > 3) network.mode = NETWORK_MODE_WIFI_CLIENT;
+		if(ch != NULL && ch->getMode() != network.mode) {
+			delete ch;
+			ch = NULL;
+		}
+		switch(network.mode) {
+			case NETWORK_MODE_WIFI_CLIENT:
+				if(ch == NULL) {
+					ch = new WiFiClientConnectionHandler(&Debug);
+				}
+				break;
+			case NETWORK_MODE_WIFI_AP:
+				if(ch == NULL) {
+					ch = new WiFiAccessPointConnectionHandler(&Debug);
+				}
+				break;
+			case NETWORK_MODE_ETH_CLIENT:
+				if(ch == NULL) {
+					ch = new EthernetConnectionHandler(&Debug);
+				}
+				break;
+			default:
+				setupMode = false;
+				toggleSetupMode();
+		}
+		ch->connect(network, sysConfig);
+		ws.setConnectionHandler(ch);
+	} else {
+		setupMode = false;
+		toggleSetupMode();
+	}
+}
+
+void toggleSetupMode() {
 	if(!hw.ledOn(LED_YELLOW)) {
 		hw.ledOn(LED_INTERNAL);
 	}
-	WiFiMode_t mode = WiFi.getMode();
 	if(dnsServer != NULL) {
 		dnsServer->stop();
 	}
+	WiFi.stopSmartConfig();
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
 	delay(10);
 	yield();
 
-	if (mode != WIFI_AP || !config.hasConfig()) {
-		if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Swapping to AP mode"));
+	if (!setupMode || !config.hasConfig()) {
+		if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Entering setup mode"));
 
 		//wifi_softap_set_dhcps_offer_option(OFFER_ROUTER, 0); // Disable default gw
 
@@ -1210,8 +1184,13 @@ void swapWifiMode() {
 		});
 		*/
 
+		WiFi.mode(WIFI_AP_STA);
+		#if defined(ESP32) && defined(AMS2MQTT_SC_KEY)
+		WiFi.beginSmartConfig(SC_TYPE_ESPTOUCH_V2, AMS2MQTT_SC_KEY);
+		#else
+		WiFi.beginSmartConfig();
+		#endif
 		WiFi.softAP(PSTR("AMS2MQTT"));
-		WiFi.mode(WIFI_AP);
 
 		if(dnsServer == NULL) {
 			dnsServer = new DNSServer();
@@ -1222,154 +1201,52 @@ void swapWifiMode() {
 			Debug.setSerialEnabled(true);
 			Debug.begin(F("192.168.4.1"), 23, RemoteDebug::VERBOSE);
 		#endif
+		setupMode = true;
+
+		hw.setBootSuccessful(false);
+		if(gpioConfig.ledDisablePin != 0xFF) {
+			digitalWrite(gpioConfig.ledDisablePin, LOW);
+		}
 	} else {
-		if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Swapping to STA mode"));
+		if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Exiting setup mode"));
 		if(dnsServer != NULL) {
 			delete dnsServer;
 			dnsServer = NULL;
 		}
-		WiFi_connect();
-	}
-	delay(500);
-	if(!hw.ledOff(LED_YELLOW)) {
-		hw.ledOff(LED_INTERNAL);
+		connectToNetwork();
+		setupMode = false;
+		delay(500);
+		if(!hw.ledOff(LED_YELLOW)) {
+			hw.ledOff(LED_INTERNAL);
+		}
+		hw.setBootSuccessful(true);
 	}
 }
 
-int len = 0;
-bool serialInit = false;
 bool readHanPort() {
-	unsigned long start, end;
-	if(!hanSerial->available()) {
-		return false;
-	}
-
-	// Before reading, empty serial buffer to increase chance of getting first byte of a data transfer
-	if(!serialInit) {
-		hanSerial->readBytes(hanBuffer, hanBufferSize);
-		serialInit = true;
-		return false;
-	}
-
-	DataParserContext ctx = {0,0,0,0};
-	strcpy_P((char*) ctx.system_title, PSTR(""));
-	int pos = DATA_PARSE_INCOMPLETE;
-	// For each byte received, check if we have a complete frame we can handle
-	start = millis();
-	while(hanSerial->available() && pos == DATA_PARSE_INCOMPLETE) {
-		// If buffer was overflowed, reset
-		if(len >= hanBufferSize) {
-			hanSerial->readBytes(hanBuffer, hanBufferSize);
-			len = 0;
-			debugI_P(PSTR("Buffer overflow, resetting"));
-			#if defined(ESP32)
-			meterConfig.bufferSize += 4;
-			config.setMeterConfig(meterConfig);
-			#endif
-			return false;
-		}
-		hanBuffer[len++] = hanSerial->read();
-		ctx.length = len;
-		pos = unwrapData((uint8_t *) hanBuffer, ctx);
-		if(ctx.type > 0 && pos >= 0) {
-			if(ctx.type == DATA_TAG_DLMS) {
-				debugD_P(PSTR("Received valid DLMS at %d"), pos);
-			} else if(ctx.type == DATA_TAG_DSMR) {
-				debugD_P(PSTR("Received valid DSMR at %d"), pos);
-			} else {
-				// TODO: Move this so that payload is sent to MQTT
-				debugE_P(PSTR("Unknown tag %02X at pos %d"), ctx.type, pos);
-				len = 0;
-				return false;
+	if(mc == NULL) return false;
+	if(pulseMc != NULL) {
+		pulseMc->onPulse(pulses);
+		pulses = 0;
+		if(meterState.getListType() < 3) {
+			time_t now = time(nullptr);
+			if(now > FirmwareVersion::BuildEpoch) {
+				ImpulseAmsData init = ImpulseAmsData(ds.getEstimatedImportCounter());
+				meterState.apply(init);
 			}
 		}
-		yield();
 	}
-	end = millis();
-	if(end-start > 1000) {
-		debugW_P(PSTR("Used %dms to unwrap HAN data"), end-start);
-	}
-
-	if(pos == DATA_PARSE_INCOMPLETE) {
-		return false;
-	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
-		debugW_P(PSTR("Unknown data received"));
-		meterState.setLastError(pos);
-		len = len + hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
-		if(Debug.isActive(RemoteDebug::VERBOSE)) {
-			debugV_P(PSTR("  payload:"));
-			debugPrint(hanBuffer, 0, len);
-		}
-		len = 0;
+	if(!mc->loop()) {
+		meterState.setLastError(mc->getLastError());
 		return false;
 	}
-
-	if(pos == DATA_PARSE_INTERMEDIATE_SEGMENT) {
-		len = 0;
-		return false;
-	} else if(pos < 0) {
-		meterState.setLastError(pos);
-		printHanReadError(pos);
-		len += hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
-		if(mqttHandler != NULL) {
-			mqttHandler->publishRaw(toHex(hanBuffer+pos, len));
-		}
-		while(hanSerial->available()) hanSerial->read(); // Make sure it is all empty, in case we overflowed buffer above
-		len = 0;
-		return false;
+	if(mc->isConfigChanged()) {
+		mc->getCurrentConfig(meterConfig);
+		config.setMeterConfig(meterConfig);
 	}
+	meterState.setLastError(mc->getLastError());
 
-	// Data is valid, clear the rest of the buffer to avoid tainted parsing
-	for(int i = pos+ctx.length; i<hanBufferSize; i++) {
-		hanBuffer[i] = 0x00;
-	}
-	meterState.setLastError(DATA_PARSE_OK);
-
-	AmsData* data = NULL;
-	char* payload = ((char *) (hanBuffer)) + pos;
-	if(maxDetectedPayloadSize < pos) maxDetectedPayloadSize = pos;
-	if(ctx.type == DATA_TAG_DLMS) {
-		// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
-		if(mqttHandler != NULL) {
-			mqttHandler->publishRaw(toHex((byte*) payload, ctx.length));
-		}
-
-		debugV_P(PSTR("Using application data:"));
-		if(Debug.isActive(RemoteDebug::VERBOSE)) debugPrint((byte*) payload, 0, ctx.length);
-
-		// Rudimentary detector for L&G proprietary format, this is terrible code... Fix later
-		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
-			debugV_P(PSTR("LNG"));
-			LNG lngData = LNG(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
-			if(lngData.getListType() >= 3) {
-				data = new AmsData();
-				data->apply(meterState);
-				data->apply(lngData);
-			}
-		} else if(payload[0] == CosemTypeStructure && 
-			payload[2] == CosemTypeLongUnsigned && 
-			payload[5] == CosemTypeLongUnsigned && 
-			payload[8] == CosemTypeLongUnsigned && 
-			payload[11] == CosemTypeLongUnsigned && 
-			payload[14] == CosemTypeLongUnsigned && 
-			payload[17] == CosemTypeLongUnsigned
-		) {
-			debugV_P(PSTR("LNG2"));
-			LNG2 lngData = LNG2(payload, meterState.getMeterType(), &meterConfig, ctx, &Debug);
-			if(lngData.getListType() >= 3) {
-				data = new AmsData();
-				data->apply(meterState);
-				data->apply(lngData);
-			}
-		} else {
-			debugV_P(PSTR("DLMS"));
-			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
-			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx, meterState);
-		}
-	} else if(ctx.type == DATA_TAG_DSMR) {
-		data = new IEC6205621(payload, tz, &meterConfig);
-	}
-	len = 0;
+	AmsData* data = mc->getData(meterState);
 
 	if(data != NULL) {
 		if(data->getListType() > 0) {
@@ -1382,8 +1259,7 @@ bool readHanPort() {
 }
 
 void handleDataSuccess(AmsData* data) {
-	if(rxBufferErrors > 0) rxBufferErrors--;
-	if(!hw.ledBlink(LED_GREEN, 1))
+	if(!setupMode && !hw.ledBlink(LED_GREEN, 1))
 		hw.ledBlink(LED_INTERNAL, 1);
 
 	if(mqttHandler != NULL) {
@@ -1393,12 +1269,12 @@ void handleDataSuccess(AmsData* data) {
 			ESP.wdtFeed();
 		#endif
 		yield();
-		if(mqttHandler->publish(data, &meterState, &ea, eapi)) {
+		if(mqttHandler->publish(data, &meterState, &ea, ps)) {
 			delay(10);
 		}
 	}
 	#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
-	if(energySpeedometer != NULL && energySpeedometer->publish(&meterState, &meterState, &ea, eapi)) {
+	if(energySpeedometer != NULL && energySpeedometer->publish(&meterState, &meterState, &ea, ps)) {
 		delay(10);
 	}
 	#endif
@@ -1419,6 +1295,7 @@ void handleDataSuccess(AmsData* data) {
 	}
 
 	meterState.apply(*data);
+	rtp.update(meterState);
 
 	bool saveData = false;
 	if(!ds.isHappy() && now > FirmwareVersion::BuildEpoch) { // Must use "isHappy()" in case day state gets reset and lastTimestamp is "now"
@@ -1428,9 +1305,13 @@ void handleDataSuccess(AmsData* data) {
 		if(tm.Minute == 0 && data->getListType() >= 3) {
 			debugV_P(PSTR(" using actual data"));
 			saveData = ds.update(data);
-		} else if(tm.Minute == 1 && meterState.getListType() >= 3) {
-			debugV_P(PSTR(" using estimated data"));
-			saveData = ds.update(&meterState);
+			#if defined(ESP32)
+			if(saveData && cloud != NULL) cloud->forceUpdate();
+			#endif
+		} else if(tm.Minute == 1) {
+			debugV_P(PSTR(" no data, clear"));
+			AmsData nullData;
+			saveData = ds.update(&nullData);
 		}
 		if(saveData) {
 			debugI_P(PSTR("Saving data"));
@@ -1441,270 +1322,38 @@ void handleDataSuccess(AmsData* data) {
 	if(ea.update(data)) {
 		debugI_P(PSTR("Saving energy accounting"));
 		ea.save();
-		saveData = true; // Trigger LittleFS.end
-	}
-	if(saveData) {
-		LittleFS.end();
 	}
 }
 
-void printHanReadError(int pos) {
-	if(Debug.isActive(RemoteDebug::WARNING)) {
-		switch(pos) {
-			case DATA_PARSE_BOUNDRY_FLAG_MISSING:
-				debugW_P(PSTR("Boundry flag missing"));
-				break;
-			case DATA_PARSE_HEADER_CHECKSUM_ERROR:
-				debugW_P(PSTR("Header checksum error"));
-				break;
-			case DATA_PARSE_FOOTER_CHECKSUM_ERROR:
-				debugW_P(PSTR("Frame checksum error (%04x)"), dsmrParser == NULL ? 0x0000 : dsmrParser->getCrcCalc());
-				break;
-			case DATA_PARSE_INCOMPLETE:
-				debugW_P(PSTR("Received frame is incomplete"));
-				break;
-			case GCM_AUTH_FAILED:
-				debugW_P(PSTR("Decrypt authentication failed"));
-				break;
-			case GCM_ENCRYPTION_KEY_FAILED:
-				debugW_P(PSTR("Setting decryption key failed"));
-				break;
-			case GCM_DECRYPT_FAILED:
-				debugW_P(PSTR("Decryption failed"));
-				break;
-			case MBUS_FRAME_LENGTH_NOT_EQUAL:
-				debugW_P(PSTR("Frame length mismatch"));
-				break;
-			case DATA_PARSE_INTERMEDIATE_SEGMENT:
-				debugI_P(PSTR("Intermediate segment received"));
-				break;
-			case DATA_PARSE_UNKNOWN_DATA:
-				debugW_P(PSTR("Unknown data format %02X"), hanBuffer[0]);
-				break;
-			default:
-				debugW_P(PSTR("Unspecified error while reading data: %d"), pos);
-		}
+void postConnect() {
+	networkConnected = true;
+
+	NetworkConfig network;
+	ch->getCurrentConfig(network);
+	if(ch->isConfigChanged()) {
+		config.setNetworkConfig(network);
 	}
-}
-
-void debugPrint(byte *buffer, int start, int length) {
-	for (int i = start; i < start + length; i++) {
-		if (buffer[i] < 0x10)
-			Debug.print(F("0"));
-		Debug.print(buffer[i], HEX);
-		Debug.print(F(" "));
-		if ((i - start + 1) % 16 == 0)
-			Debug.println(F(""));
-		else if ((i - start + 1) % 4 == 0)
-			Debug.print(F(" "));
-
-		yield(); // Let other get some resources too
+	WebConfig web;
+	if(config.getWebConfig(web) && web.security > 0) {
+		Debug.setPassword(web.password);
 	}
-	Debug.println(F(""));
-}
-
-unsigned long wifiTimeout = WIFI_CONNECTION_TIMEOUT;
-unsigned long lastWifiRetry = -WIFI_CONNECTION_TIMEOUT;
-
-void WiFi_disconnect(unsigned long timeout) {
-	if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Not connected to WiFi, closing resources"));
-	if(mqttHandler != NULL) {
-		mqttHandler->disconnect();
-	}
-
-	#if defined(ESP8266)
-		WiFiClient::stopAll();
-	#endif
-
-	MDNS.end();
-	WiFi.disconnect(true);
-	WiFi.softAPdisconnect(true);
-	WiFi.enableAP(false);
-	WiFi.mode(WIFI_OFF);
-	yield();
-	wifiTimeout = timeout;
-}
-
-void WiFi_connect() {
-	if(millis() - lastWifiRetry < wifiTimeout) {
-		delay(50);
-		return;
-	}
-	lastWifiRetry = millis();
-
-	/*
-	if(!handleVoltageCheck()) {
-		debugW_P(PSTR("Voltage is not high enough to reconnect"));
-		return;
-	}
-	*/
-
-	if (WiFi.status() != WL_CONNECTED) {
-		WiFiConfig wifi;
-		if(!config.getWiFiConfig(wifi) || strlen(wifi.ssid) == 0) {
-			swapWifiMode();
-			return;
-		}
-
-		if(WiFi.getMode() != WIFI_OFF) {
-			WiFi_disconnect(5000);
-			return;
-		}
-
-		wifiTimeout = WIFI_CONNECTION_TIMEOUT;
-
-		if (Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Connecting to WiFi network: %s"), wifi.ssid);
-
-		#if defined(ESP32)
-			if(strlen(wifi.hostname) > 0) {
-				WiFi.setHostname(wifi.hostname);
-			}
-		#endif
-		WiFi.mode(WIFI_STA);
-
-		if(strlen(wifi.ip) > 0) {
-			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
-			ip.fromString(wifi.ip);
-			gw.fromString(wifi.gateway);
-			sn.fromString(wifi.subnet);
-			if(strlen(wifi.dns1) > 0) {
-				dns1.fromString(wifi.dns1);
-			} else if(strlen(wifi.gateway) > 0) {
-				dns1.fromString(wifi.gateway); // If no DNS, set gateway by default
-			}
-			if(strlen(wifi.dns2) > 0) {
-				dns2.fromString(wifi.dns2);
-			} else if(dns1.toString().isEmpty()) {
-				dns2.fromString(F("208.67.220.220")); // Add OpenDNS as second by default if nothing is configured
-			}
-			if(!WiFi.config(ip, gw, sn, dns1, dns2)) {
-				debugE_P(PSTR("Static IP configuration is invalid, not using"));
-			}
-		}
-		#if defined(ESP8266)
-			if(strlen(wifi.hostname) > 0) {
-				WiFi.hostname(wifi.hostname);
-			}
-			//wifi_set_phy_mode(PHY_MODE_11N);
-			if(!wifi.use11b) {
-				wifi_set_user_sup_rate(RATE_11G6M, RATE_11G54M);
-				wifi_set_user_rate_limit(RC_LIMIT_11G, 0x00, RATE_11G_G54M, RATE_11G_G6M);
-				wifi_set_user_rate_limit(RC_LIMIT_11N, 0x00, RATE_11N_MCS7S, RATE_11N_MCS0);
-				wifi_set_user_limit_rate_mask(LIMIT_RATE_MASK_ALL);
-			}
-		#endif
-		#if defined(ESP32)
-			WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
-			WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
-		#endif
-		WiFi.setAutoReconnect(true);
-		if(WiFi.begin(wifi.ssid, wifi.psk)) {
-			if(wifi.sleep <= 2) {
-				switch(wifi.sleep) {
-					case 0:
-						WiFi.setSleep(WIFI_PS_NONE);
-						break;
-					case 1:
-						WiFi.setSleep(WIFI_PS_MIN_MODEM);
-						break;
-					case 2:
-						WiFi.setSleep(WIFI_PS_MAX_MODEM);
-						break;
-				}
-			}
-			yield();
-		} else {
-			if (Debug.isActive(RemoteDebug::ERROR)) debugI_P(PSTR("Unable to start WiFi"));
-		}
-  	}
-}
-
-void WiFi_post_connect() {
-	wifiConnected = true;
-
-	WiFiConfig wifi;
-	if(config.getWiFiConfig(wifi)) {
-		#if defined(ESP32)
-			if(sysConfig.dataCollectionConsent == 0 && wifi.use11b) {
-				// If first boot and phyMode is better than 11b, disable 11b for BUS powered devices
-				switch(sysConfig.boardType) {
-					case 2: // spenceme
-					case 3: // Pow-K UART0
-					case 4: // Pow-U UART0
-					case 5: // Pow-K+
-					case 6: // Pow-P1
-					case 7: // Pow-U+
-					case 8: // dbeinder: HAN mosquito
-						wifi_phy_mode_t phyMode;
-						if(esp_wifi_sta_get_negotiated_phymode(&phyMode) == ESP_OK) {
-							if(phyMode > WIFI_PHY_MODE_11B) {
-								debugI_P(PSTR("WiFi supports better rates than 802.11b, disabling"))
-								wifi.use11b = false;
-								config.setWiFiConfig(wifi);
-								return;
-							}
-						}
-						break;
-				}
-			}
-
-			if(wifi.power >= 195)
-				WiFi.setTxPower(WIFI_POWER_19_5dBm);
-			else if(wifi.power >= 190)
-				WiFi.setTxPower(WIFI_POWER_19dBm);
-			else if(wifi.power >= 185)
-				WiFi.setTxPower(WIFI_POWER_18_5dBm);
-			else if(wifi.power >= 170)
-				WiFi.setTxPower(WIFI_POWER_17dBm);
-			else if(wifi.power >= 150)
-				WiFi.setTxPower(WIFI_POWER_15dBm);
-			else if(wifi.power >= 130)
-				WiFi.setTxPower(WIFI_POWER_13dBm);
-			else if(wifi.power >= 110)
-				WiFi.setTxPower(WIFI_POWER_11dBm);
-			else if(wifi.power >= 85)
-				WiFi.setTxPower(WIFI_POWER_8_5dBm);
-			else if(wifi.power >= 70)
-				WiFi.setTxPower(WIFI_POWER_7dBm);
-			else if(wifi.power >= 50)
-				WiFi.setTxPower(WIFI_POWER_5dBm);
-			else if(wifi.power >= 20)
-				WiFi.setTxPower(WIFI_POWER_2dBm);
-			else
-				WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
-		#elif defined(ESP8266)
-			WiFi.setOutputPower(wifi.power / 10.0);
-		#endif
-		
-
-		WebConfig web;
-		if(config.getWebConfig(web) && web.security > 0) {
-			Debug.setPassword(web.password);
-		}
-		DebugConfig debug;
-		if(config.getDebugConfig(debug)) {
-			Debug.begin(wifi.hostname, debug.serial || debug.telnet ? (uint8_t) debug.level : RemoteDebug::WARNING); // I don't know why, but ESP8266 stops working after a while if ERROR level is set
-			if(!debug.telnet) {
-				Debug.stop();
-			}
-		} else {
+	DebugConfig debug;
+	if(config.getDebugConfig(debug)) {
+		Debug.begin(network.hostname, debug.serial || debug.telnet ? (uint8_t) debug.level : RemoteDebug::WARNING); // I don't know why, but ESP8266 stops working after a while if ERROR level is set
+		if(!debug.telnet) {
 			Debug.stop();
 		}
-		if(Debug.isActive(RemoteDebug::INFO)) {
-			debugI_P(PSTR("Successfully connected to WiFi!"));
-			debugI_P(PSTR("IP:  %s"), WiFi.localIP().toString().c_str());
-			debugI_P(PSTR("GW:  %s"), WiFi.gatewayIP().toString().c_str());
-			debugI_P(PSTR("DNS: %s"), WiFi.dnsIP().toString().c_str());
-		}
-		mdnsEnabled = false;
-		if(strlen(wifi.hostname) > 0 && wifi.mdns) {
-			debugD_P(PSTR("mDNS is enabled, using host: %s"), wifi.hostname);
-			if(MDNS.begin(wifi.hostname)) {
-				mdnsEnabled = true;
-				MDNS.addService(F("http"), F("tcp"), 80);
-			} else {
-				debugE_P(PSTR("Failed to set up mDNS!"));
-			}
+	} else {
+		Debug.stop();
+	}
+	mdnsEnabled = false;
+	if(strlen(network.hostname) > 0 && network.mdns) {
+		debugD_P(PSTR("mDNS is enabled, using host: %s"), network.hostname);
+		if(MDNS.begin(network.hostname)) {
+			mdnsEnabled = true;
+			MDNS.addService(F("http"), F("tcp"), 80);
+		} else {
+			debugE_P(PSTR("Failed to set up mDNS!"));
 		}
 	}
 
@@ -1714,7 +1363,7 @@ void WiFi_post_connect() {
 		ws.setMqttEnabled(mqttEnabled);
 	}
 
-	sprintf_P((char*) commonBuffer, PSTR("AMS reader %s"), wifi.hostname);
+	sprintf_P((char*) commonBuffer, PSTR("AMS reader %s"), network.hostname);
 
 	SSDP.setSchemaURL("ssdp/schema.xml");
 	SSDP.setHTTPPort(80);
@@ -1744,117 +1393,6 @@ void WiFi_post_connect() {
 	SSDP.begin();
 }
 
-int16_t unwrapData(uint8_t *buf, DataParserContext &context) {
-	int16_t ret = 0;
-	bool doRet = false;
-	uint16_t end = hanBufferSize;
-	uint8_t tag = (*buf);
-	uint8_t lastTag = DATA_TAG_NONE;
-	while(tag != DATA_TAG_NONE) {
-		int16_t curLen = context.length;
-		int8_t res = 0;
-		switch(tag) {
-			case DATA_TAG_HDLC:
-				if(hdlcParser == NULL) hdlcParser = new HDLCParser();
-				res = hdlcParser->parse(buf, context);
-				break;
-			case DATA_TAG_MBUS:
-				if(mbusParser == NULL) mbusParser =  new MBUSParser();
-				res = mbusParser->parse(buf, context);
-				break;
-			case DATA_TAG_GBT:
-				if(gbtParser == NULL) gbtParser = new GBTParser();
-				res = gbtParser->parse(buf, context);
-				break;
-			case DATA_TAG_GCM:
-				if(gcmParser == NULL) gcmParser = new GCMParser(meterConfig.encryptionKey, meterConfig.authenticationKey);
-				res = gcmParser->parse(buf, context);
-				break;
-			case DATA_TAG_LLC:
-				if(llcParser == NULL) llcParser = new LLCParser();
-				res = llcParser->parse(buf, context);
-				break;
-			case DATA_TAG_DLMS:
-				if(dlmsParser == NULL) dlmsParser = new DLMSParser();
-				res = dlmsParser->parse(buf, context);
-				if(res >= 0) doRet = true;
-				break;
-			case DATA_TAG_DSMR:
-				if(dsmrParser == NULL) dsmrParser = new DSMRParser();
-				res = dsmrParser->parse(buf, context, lastTag != DATA_TAG_NONE);
-				if(res >= 0) doRet = true;
-				break;
-			default:
-				debugE_P(PSTR("Ended up in default case while unwrapping...(tag %02X)"), tag);
-				return DATA_PARSE_UNKNOWN_DATA;
-		}
-		lastTag = tag;
-		if(res == DATA_PARSE_INCOMPLETE) {
-			return res;
-		}
-		if(context.length > end) return false;
-		if(Debug.isActive(RemoteDebug::VERBOSE)) {
-			switch(tag) {
-				case DATA_TAG_HDLC:
-					debugV_P(PSTR("HDLC frame:"));
-					// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
-					if(mqttHandler != NULL) {
-						mqttHandler->publishRaw(toHex(buf, curLen));
-					}
-					break;
-				case DATA_TAG_MBUS:
-					debugV_P(PSTR("MBUS frame:"));
-					// If MQTT bytestream payload is selected (mqttHandler == NULL), send the payload to MQTT
-					if(mqttHandler != NULL) {
-						mqttHandler->publishRaw(toHex(buf, curLen));
-					}
-					break;
-				case DATA_TAG_GBT:
-					debugV_P(PSTR("GBT frame:"));
-					break;
-				case DATA_TAG_GCM:
-					debugV_P(PSTR("GCM frame:"));
-					break;
-				case DATA_TAG_LLC:
-					debugV_P(PSTR("LLC frame:"));
-					break;
-				case DATA_TAG_DLMS:
-					debugV_P(PSTR("DLMS frame:"));
-					break;
-				case DATA_TAG_DSMR:
-					debugV_P(PSTR("DSMR frame:"));
-					if(mqttHandler != NULL) {
-						mqttHandler->publishRaw(String((char*)buf));
-					}
-					break;
-			}
-			debugPrint(buf, 0, curLen);
-		}
-		if(res == DATA_PARSE_FINAL_SEGMENT) {
-			if(tag == DATA_TAG_MBUS) {
-				res = mbusParser->write(buf, context);
-			}
-		}
-
-		if(res < 0) {
-			return res;
-		}
-		buf += res;
-		end -= res;
-		ret += res;
-
-		// If we are ready to return, do that
-		if(doRet) {
-			context.type = tag;
-			return ret;
-		}
-
-		// Use start byte of new buffer position as tag for next round in loop
-		tag = (*buf);
-	}
-	debugE_P(PSTR("Got to end of unwrap method..."));
-	return DATA_PARSE_UNKNOWN_DATA;
-}
 
 unsigned long lastMqttRetry = -20000;
 void MQTT_connect() {
@@ -1887,6 +1425,8 @@ void MQTT_connect() {
 	if(mqttHandler == NULL) {
 		switch(mqttConfig.payloadFormat) {
 			case 0:
+			case 5:
+			case 6:
 				mqttHandler = new JsonMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &hw);
 				break;
 			case 1:
@@ -1912,9 +1452,9 @@ void MQTT_connect() {
 
 	if(mqttHandler != NULL) {
 		mqttHandler->connect();
-		mqttHandler->publishSystem(&hw, eapi, &ea);
-		if(eapi != NULL && eapi->getValueForHour(0) != ENTSOE_NO_VALUE) {
-			mqttHandler->publishPrices(eapi);
+		mqttHandler->publishSystem(&hw, ps, &ea);
+		if(ps != NULL && ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) != PRICE_NO_VALUE) {
+			mqttHandler->publishPrices(ps);
 		}
 	}
 }
@@ -1930,7 +1470,7 @@ void configFileParse() {
 	File file = LittleFS.open(FILE_CFG, (char*) "r");
 
 	bool lSys = false;
-	bool lWiFi = false;
+	bool lNetwork = false;
 	bool lMqtt = false;
 	bool lWeb = false;
 	bool lMeter = false;
@@ -1938,7 +1478,7 @@ void configFileParse() {
 	bool lDomo = false;
 	bool lHa = false;
 	bool lNtp = false;
-	bool lEntsoe = false;
+	bool lPrice = false;
 	bool lEac = false;
 	bool sEa = false;
 	bool sDs = false;
@@ -1946,7 +1486,7 @@ void configFileParse() {
 	ds.load();
 
 	SystemConfig sys;
-	WiFiConfig wifi;
+	NetworkConfig network;
 	MqttConfig mqtt;
 	WebConfig web;
 	MeterConfig meter;
@@ -1954,7 +1494,7 @@ void configFileParse() {
 	DomoticzConfig domo;
 	HomeAssistantConfig haconf;
 	NtpConfig ntp;
-	EntsoeConfig entsoe;
+	PriceServiceConfig price;
 	EnergyAccountingConfig eac;
 
 	size_t size;
@@ -1972,36 +1512,39 @@ void configFileParse() {
 		if(strncmp_P(buf, PSTR("boardType "), 10) == 0) {
 			if(!lSys) { config.getSystemConfig(sys); lSys = true; };
 			sys.boardType = String(buf+10).toInt();
+		} else if(strncmp_P(buf, PSTR("netmode "), 8) == 0) {
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			network.mode = String(buf+8).toInt();
 		} else if(strncmp_P(buf, PSTR("ssid "), 5) == 0) {
-			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			strcpy(wifi.ssid, buf+5);
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			strcpy(network.ssid, buf+5);
 		} else if(strncmp_P(buf, PSTR("psk "), 4) == 0) {
-			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			strcpy(wifi.psk, buf+4);
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			strcpy(network.psk, buf+4);
 		} else if(strncmp_P(buf, PSTR("ip "), 3) == 0) {
-			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			strcpy(wifi.ip, buf+3);
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			strcpy(network.ip, buf+3);
 		} else if(strncmp_P(buf, PSTR("gateway "), 8) == 0) {
-			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			strcpy(wifi.gateway, buf+8);
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			strcpy(network.gateway, buf+8);
 		} else if(strncmp_P(buf, PSTR("subnet "), 7) == 0) {
-			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			strcpy(wifi.subnet, buf+7);
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			strcpy(network.subnet, buf+7);
 		} else if(strncmp_P(buf, PSTR("dns1 "), 5) == 0) {
-			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			strcpy(wifi.dns1, buf+5);
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			strcpy(network.dns1, buf+5);
 		} else if(strncmp_P(buf, PSTR("dns2 "), 5) == 0) {
-			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			strcpy(wifi.dns2, buf+5);
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			strcpy(network.dns2, buf+5);
 		} else if(strncmp_P(buf, PSTR("hostname "), 9) == 0) {
-			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			strcpy(wifi.hostname, buf+9);
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			strcpy(network.hostname, buf+9);
 		} else if(strncmp_P(buf, PSTR("use11b "), 7) == 0) {
-			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			wifi.use11b = String(buf+7).toInt() == 1;
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			network.use11b = String(buf+7).toInt() == 1;
 		} else if(strncmp_P(buf, PSTR("mdns "), 5) == 0) {
-			if(!lWiFi) { config.getWiFiConfig(wifi); lWiFi = true; };
-			wifi.mdns = String(buf+5).toInt() == 1;;
+			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
+			network.mdns = String(buf+5).toInt() == 1;;
 		} else if(strncmp_P(buf, PSTR("mqttHost "), 9) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			strcpy(mqtt.host, buf+9);
@@ -2042,6 +1585,7 @@ void configFileParse() {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			if(strncmp_P(buf+12, PSTR("7N1"), 3) == 0) meter.parity = 2;
 			if(strncmp_P(buf+12, PSTR("8N1"), 3) == 0) meter.parity = 3;
+			if(strncmp_P(buf+12, PSTR("8N2"), 3) == 0) meter.parity = 7;
 			if(strncmp_P(buf+12, PSTR("7E1"), 3) == 0) meter.parity = 10;
 			if(strncmp_P(buf+12, PSTR("8E1"), 3) == 0) meter.parity = 11;
 		} else if(strncmp_P(buf, PSTR("meterInvert "), 12) == 0) {
@@ -2063,11 +1607,11 @@ void configFileParse() {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			fromHex(meter.authenticationKey, String(buf+23), 16);
 		} else if(strncmp_P(buf, PSTR("gpioHanPin "), 11) == 0) {
-			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.hanPin = String(buf+11).toInt();
+			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.rxPin = String(buf+11).toInt();
 		} else if(strncmp_P(buf, PSTR("gpioHanPinPullup "), 17) == 0) {
-			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.hanPinPullup = String(buf+17).toInt() == 1;
+			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.rxPinPullup = String(buf+17).toInt() == 1;
 		} else if(strncmp_P(buf, PSTR("gpioApPin "), 10) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.apPin = String(buf+10).toInt();
@@ -2150,20 +1694,38 @@ void configFileParse() {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			strcpy(ntp.timezone, buf+12);
 		} else if(strncmp_P(buf, PSTR("entsoeToken "), 12) == 0) {
-			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			strcpy(entsoe.token, buf+12);
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.entsoeToken, buf+12);
 		} else if(strncmp_P(buf, PSTR("entsoeArea "), 11) == 0) {
-			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			strcpy(entsoe.area, buf+11);
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.area, buf+11);
 		} else if(strncmp_P(buf, PSTR("entsoeCurrency "), 15) == 0) {
-			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			strcpy(entsoe.currency, buf+15);
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.currency, buf+15);
 		} else if(strncmp_P(buf, PSTR("entsoeMultiplier "), 17) == 0) {
-			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			entsoe.multiplier = String(buf+17).toFloat() * 1000;
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			price.unused1 = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("entsoeFixedPrice "), 17) == 0) {
-			if(!lEntsoe) { config.getEntsoeConfig(entsoe); lEntsoe = true; };
-			entsoe.fixedPrice = String(buf+17).toFloat() * 1000;
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			price.unused2 = String(buf+17).toFloat() * 1000;
+		} else if(strncmp_P(buf, PSTR("priceEnabled "), 13) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			price.enabled = String(buf+13).toInt() == 1;
+		} else if(strncmp_P(buf, PSTR("priceEntsoeToken "), 17) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.entsoeToken, buf+17);
+		} else if(strncmp_P(buf, PSTR("priceArea "), 10) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.area, buf+10);
+		} else if(strncmp_P(buf, PSTR("priceCurrency "), 14) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			strcpy(price.currency, buf+14);
+		} else if(strncmp_P(buf, PSTR("priceMultiplier "), 16) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			price.unused1 = String(buf+16).toFloat() * 1000;
+		} else if(strncmp_P(buf, PSTR("priceFixedPrice "), 16) == 0) {
+			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
+			price.unused2 = String(buf+16).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("thresholds "), 11) == 0) {
 			if(!lEac) { config.getEnergyAccountingConfig(eac); lEac = true; };
 			int i = 0;
@@ -2178,7 +1740,7 @@ void configFileParse() {
 			DayDataPoints day = { 0 };
 			char * pch = strtok (buf+8," ");
 			while (pch != NULL) {
-				int64_t val = String(pch).toInt();
+				double val = String(pch).toDouble();
 				if(day.version < 5) {
 					if(i == 0) {
 						day.version = val;
@@ -2197,13 +1759,13 @@ void configFileParse() {
 					if(i == 1) {
 						day.lastMeterReadTime = val;
 					} else if(i == 2) {
-						day.activeImport = val;
+						day.activeImport = day.version > 5 ? val * 1000 : val;
 					} else if(i == 3) {
 						day.accuracy = val;
 					} else if(i > 3 && i < 28) {
 						day.hImport[i-4] = val / pow(10, day.accuracy);
 					} else if(i == 28) {
-						day.activeExport = val;
+						day.activeExport = day.version > 5 ? val * 1000 : val;
 					} else if(i > 28 && i < 53) {
 						day.hExport[i-29] = val / pow(10, day.accuracy);
 					}
@@ -2219,7 +1781,7 @@ void configFileParse() {
 			MonthDataPoints month = { 0 };
 			char * pch = strtok (buf+10," ");
 			while (pch != NULL) {
-				int64_t val = String(pch).toInt();
+				double val = String(pch).toDouble();
 				if(month.version < 6) {
 					if(i == 0) {
 						month.version = val;
@@ -2238,13 +1800,13 @@ void configFileParse() {
 					if(i == 1) {
 						month.lastMeterReadTime = val;
 					} else if(i == 2) {
-						month.activeImport = val;
+						month.activeImport = month.version > 6 ? val * 1000 : val;
 					} else if(i == 3) {
 						month.accuracy = val;
 					} else if(i > 3 && i < 35) {
 						month.dImport[i-4] = val / pow(10, month.accuracy);
 					} else if(i == 35) {
-						month.activeExport = val;
+						month.activeExport = month.version > 6 ? val * 1000 : val;
 					} else if(i > 35 && i < 67) {
 						month.dExport[i-36] = val / pow(10, month.accuracy);
 					}
@@ -2388,7 +1950,7 @@ void configFileParse() {
 	debugI_P(PSTR("Saving configuration now..."));
 	Serial.flush();
 	if(lSys) config.setSystemConfig(sys);
-	if(lWiFi) config.setWiFiConfig(wifi);
+	if(lNetwork) config.setNetworkConfig(network);
 	if(lMqtt) config.setMqttConfig(mqtt);
 	if(lWeb) config.setWebConfig(web);
 	if(lMeter) config.setMeterConfig(meter);
@@ -2396,10 +1958,14 @@ void configFileParse() {
 	if(lDomo) config.setDomoticzConfig(domo);
 	if(lHa) config.setHomeAssistantConfig(haconf);
 	if(lNtp) config.setNtpConfig(ntp);
-	if(lEntsoe) config.setEntsoeConfig(entsoe);
+	if(lPrice) config.setPriceServiceConfig(price);
 	if(lEac) config.setEnergyAccountingConfig(eac);
 	if(sDs) ds.save();
 	if(sEa) ea.save();
 	config.save();
 	LittleFS.end();
+}
+
+void IRAM_ATTR onPulse() {
+	pulses++;
 }

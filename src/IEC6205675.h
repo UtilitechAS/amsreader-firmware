@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _IEC62056_7_5_H
 #define _IEC62056_7_5_H
 

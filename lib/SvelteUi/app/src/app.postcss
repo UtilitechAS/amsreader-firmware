@@ -2,13 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-.gh-logo {
+.hdr {
+  @apply bg-violet-600 p-1 rounded-md mx-2 dark:bg-violet-900
+}
+
+.logo {
   width: 2rem;
   height: 2rem;
 }
 
 .cnt {
-  @apply bg-white m-2 p-2 rounded shadow-lg;
+  @apply m-2 p-2 rounded dark:bg-gray-800 bg-white dark:text-white shadow-lg dark:shadow-gray-900 dark:drop-shadow-md;
   min-height: 268px;
 }
 
@@ -17,53 +21,70 @@
 }
 
 .in-pre {
-  @apply flex items-center bg-gray-100 rounded-l-md border border-r-0 border-gray-300 px-3 whitespace-nowrap text-sm
+  @apply flex items-center bg-gray-100 dark:bg-gray-600 rounded-l-md border border-r-0 dark:border-gray-800 border-gray-300 px-3 whitespace-nowrap text-sm
 }
 
 .in-post {
-  @apply flex items-center bg-gray-100 rounded-r-md border border-l-0 border-gray-300 px-3 whitespace-nowrap text-sm
+  @apply flex items-center bg-gray-100 dark:bg-gray-600 rounded-r-md border border-l-0 dark:border-gray-800 border-gray-300 px-3 whitespace-nowrap text-sm
 }
 
 .in-txt {
-  @apply h-10 shadow-sm border-gray-300 disabled:bg-gray-200
+  @apply h-10 shadow-sm border-gray-300 dark:border-gray-800 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-white
+  disabled:cursor-not-allowed dark:text-white dark:bg-gray-700 dark:shadow-lg dark:border dark:focus:ring-4 dark:drop-shadow-lg
 }
 .in-f {
-  @apply in-txt rounded-l-md
+  @apply in-txt rounded-l-md dark:placeholder:text-gray-400 dark:default:text-white disabled:text-white default:text-white
 }
 .in-m {
   @apply in-txt border-l-0
 }
 .in-l {
-  @apply in-txt border-l-0 rounded-r-md
+  @apply in-txt border-l-0 rounded-r-md dark:placeholder-white
 }
 .in-s {
-  @apply in-txt rounded-md w-full
+  @apply in-txt rounded-md w-full dark:text-white placeholder:text-gray-400
 }
 .tr {
   @apply text-right
 }
 
 .bd-green {
-  @apply my-auto bg-green-500 text-green-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+  @apply my-auto bg-green-600 text-green-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
 }
 .bd-yellow {
-  @apply my-auto bg-yellow-500 text-yellow-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+  @apply my-auto bg-yellow-600 text-yellow-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
 }
 .bd-red {
-  @apply my-auto bg-red-500 text-red-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+  @apply my-auto bg-red-600 text-red-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
 }
 .bd-blue {
-  @apply my-auto bg-blue-500 text-blue-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+  @apply my-auto bg-blue-600 text-blue-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
 }
 .bd-gray {
-  @apply my-auto bg-gray-500 text-gray-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+  @apply my-auto bg-gray-600 text-gray-100 text-xs font-semibold mr-2 px-2.5 py-0.5 rounded
+}
+
+.bd-on {
+  @apply my-auto bg-green-600 text-green-100 text-xs font-semibold mr-1 px-1 py-0.5 rounded
+}
+.bd-off {
+  @apply my-auto bg-gray-600 text-gray-100 text-xs font-semibold mr-1 px-1 py-0.5 rounded
 }
 
 .btn-pri {
-  @apply py-2 px-4 rounded bg-blue-500 text-white mr-3
+  @apply py-2 px-4 rounded bg-blue-600 text-white mr-3
+}
+.btn-red {
+  @apply py-2 px-4 rounded bg-red-600 text-white ml-2
+}
+.btn-yellow {
+  @apply py-2 px-4 rounded bg-yellow-600 text-white ml-2
 }
 .btn-pri-sm {
-  @apply text-xs py-1 px-2 rounded bg-blue-500 text-white mr-3
+  @apply text-xs py-1 px-2 rounded bg-blue-600 text-white mr-3
+}
+.btn-yellow-sm {
+  @apply text-xs py-1 px-2 rounded bg-yellow-600 text-white mr-3
 }
 
 .pl-root {
@@ -82,6 +103,7 @@
 .pl-unt {
     font-size: 1.0rem;
     color: grey;
+    @apply dark:text-gray-200
 }
 .pl-sub {
     padding-top: 10px;
@@ -90,6 +112,7 @@
 .pl-snt {
     font-size: 0.7rem;
     color: grey;
+    @apply dark:text-gray-200
 }
 .pl-lab {
     font-size: 1.0rem;
@@ -110,6 +133,7 @@ svg {
   font-family: Helvetica, Arial;
   font-size: 0.85em;
   font-weight: 200;
+  @apply dark:fill-white text-white
 }
 
 .tick line {
@@ -120,6 +144,7 @@ svg {
 .tick text {
   fill: #999;
   text-anchor: start;
+  @apply dark:fill-white
 }
 
 .tick.tick-0 line {
@@ -127,19 +152,19 @@ svg {
 }
 
 .tick.tick-green line {
-  stroke: #32d900 !important;
+  stroke: #23ac05 !important;
 }
 
 .tick.tick-green text {
-  fill: #32d900 !important;
+  fill: #23ac05 !important;
 }
 
 .tick.tick-orange line {
-  stroke: #d95600 !important;
+  stroke: #b19601 !important;
 }
 
 .tick.tick-orange text {
-  fill: #d95600 !important;
+  fill: #b19601 !important;
 }
 
 .x-axis .tick text {

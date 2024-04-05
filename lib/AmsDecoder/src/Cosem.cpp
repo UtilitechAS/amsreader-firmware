@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "Cosem.h"
 #include "lwip/def.h"
 #include <TimeLib.h>

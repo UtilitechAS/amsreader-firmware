@@ -17,7 +17,13 @@
         "mask": "%s",
         "gw": "%s",
         "dns1": "%s",
-        "dns2": "%s"
+        "dns2": "%s",
+        "ipv6": "%s",
+        "dns1v6": "%s",
+        "dns2v6": "%s"
+    },
+    "if": {
+        "eth": %s
     },
     "meter": {
         "mfg": %d,
@@ -35,9 +41,15 @@
         "p": %d,
         "d": %d,
         "m": %d,
-        "s": %d
+        "s": %d,
+        "l": %d,
+        "h": %d,
+        "f": %d,
+        "k": %d,
+        "lang": "%s"
     },
     "security": %d,
+    "context": "%s",
     "boot_reason": %d,
     "ex_cause": %d,
     "upgrade": {

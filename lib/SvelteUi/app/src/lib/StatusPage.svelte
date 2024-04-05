@@ -1,11 +1,12 @@
 <script>
-    import { metertype, boardtype, isBusPowered, getResetReason, httpError } from './Helpers.js';
+    import { metertype, boardtype, isBusPowered, getBaseChip } from './Helpers.js';
     import { getSysinfo, gitHubReleaseStore, sysinfoStore } from './DataStores.js';
     import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
-    import DownloadIcon from './DownloadIcon.svelte';
+    import { translationsStore } from './TranslationService.js';
     import { Link } from 'svelte-navigator';
     import Clock from './Clock.svelte';
     import Mask from './Mask.svelte';
+    import { scanForDevice } from './Helpers.js';
   
     export let data;
     export let sysinfo;
@@ -32,10 +33,15 @@
         name: 'NTP',
         key: 'in'
     },{
-        name: 'Price API',
+        name: 'Price',
         key: 'is'
     }];
   
+    let translations = {};
+    translationsStore.subscribe(update => {
+      translations = update;
+    });
+
     let nextVersion = {};
     gitHubReleaseStore.subscribe(releases => {
       nextVersion = getNextVersion(sysinfo.version, releases);
@@ -45,7 +51,7 @@
     });
  
     function askUpgrade() {
-        if(confirm('Do you want to upgrade this device to ' + nextVersion.tag_name + '?')) {
+        if(confirm((translations.header?.upgrade ?? "Upgrade to {0}?").replace('{0}',nextVersion.tag_name))) {
             if((sysinfo.board != 2 && sysinfo.board != 4 && sysinfo.board != 7) || confirm(upgradeWarningText(boardtype(sysinfo.chip, sysinfo.board)))) {
                 sysinfoStore.update(s => {
                     s.upgrading = true;
@@ -57,14 +63,14 @@
     }
 
     async function reboot() {
-      const response = await fetch('/reboot', {
+      const response = await fetch('reboot', {
             method: 'POST'
         });
         let res = (await response.json())
     }
 
     const askReboot = function() {
-      if(confirm('Are you sure you want to reboot the device?')) {
+      if(confirm((translations.device?.reboot_confirm ?? "Reboot?"))) {
         sysinfoStore.update(s => {
             s.booting = true;
             return s;
@@ -82,26 +88,73 @@
     let configUploading = false;
 
     getSysinfo();
+
+    let newconfig = {
+        hostname: '',
+        ip: ''
+    };
+
+    function uploadConfigFile(e) {
+        configUploading=true;
+        const formData = new FormData();
+        formData.append('file', configFiles[0]);
+
+        const upload = fetch('/configfile', {
+            method: 'POST',
+            body: formData
+        }).then((response) => response.json()).then((res) => {
+            sysinfoStore.update(s => {
+                if(newconfig && newconfig.hostname) s.hostname = newconfig.hostname;
+                s.booting = res.reboot;
+                if(newconfig && newconfig.ip) s.net.ip = newconfig.ip;
+                setTimeout(scanForDevice, 5000, sysinfo);
+                return s;
+            });
+        }).catch((error) => {
+            console.error('Error:', error);
+            setTimeout(scanForDevice, 5000, sysinfo);
+        });
+    };
+
+    $: {
+        if(configFiles.length == 1) {
+            let file = configFiles[0];
+            let reader = new FileReader();
+            let parseConfigFile = ( e ) => {
+                let lines = e.target.result.split('\n');
+                for(let i in lines) {
+                    let line = lines[i];
+                    if(line.startsWith('hostname ')) {
+                        newconfig.hostname = line.split(' ')[1];
+                    } else if(line.startsWith('ip ')) {
+                        newconfig.ip = line.split(' ')[1];
+                    }
+                }
+            };
+            reader.onload = parseConfigFile;
+            reader.readAsText(file);
+        }
+    }
 </script>
 
 <div class="grid xl:grid-cols-5 lg:grid-cols-3 md:grid-cols-2">
     <div class="cnt">
-        <strong class="text-sm">Device information</strong>
+        <strong class="text-sm">{translations.status?.device.title ?? "Device"}</strong>
         <div class="my-2">
-            Chip: {sysinfo.chip} ({sysinfo.cpu}MHz)
+            {translations.status?.device?.chip ?? "Chip"}: {sysinfo.chip} ({sysinfo.cpu}MHz)
         </div>
         <div class="my-2">
-            Device: <Link to="/vendor">{boardtype(sysinfo.chip, sysinfo.board)}</Link>
+            {translations.status?.device?.device ?? "Device"}: <Link to="/vendor">{boardtype(sysinfo.chip, sysinfo.board)}</Link>
         </div>
         <div class="my-2">
-            MAC: {sysinfo.mac}
+            {translations.status?.device?.mac ?? "MAC"}: {sysinfo.mac}
         </div>
         {#if sysinfo.apmac && sysinfo.apmac != sysinfo.mac}
         <div class="my-2">
-            AP MAC: {sysinfo.apmac}
+            {translations.status?.device?.apmac ?? "AP MAC"}: {sysinfo.apmac}
         </div>
         <div class="my-2">
-            Last boot:
+            {translations.status?.device?.last_boot ?? "Last boot"}:
             {#if data.u > 0}
             <Clock timestamp={new Date(new Date().getTime() - (data.u * 1000))} fullTimeColor="" />
             {:else}
@@ -109,70 +162,83 @@
             {/if}
         </div>
         <div class="my-2">
-            Reason: {getResetReason(sysinfo)} ({sysinfo.boot_reason}/{sysinfo.ex_cause})
+            {translations.status?.device?.reason ?? "Reason"}: {(translations[getBaseChip(sysinfo.chip)]?.reason?.[sysinfo.boot_reason] ?? sysinfo.boot_reason)} ({sysinfo.boot_reason}/{sysinfo.ex_cause})
         </div>
         {/if}
         <div class="my-2">
             <Link to="/consent">
-                <span class="btn-pri-sm">Update consents</span>
+                <span class="btn-pri-sm">{translations.status?.device?.btn_consents ?? "Consents"}</span>
             </Link>
-            <button on:click={askReboot} class="text-xs py-1 px-2 rounded bg-yellow-500 text-white mr-3 float-right">Reboot</button>
+            <button on:click={askReboot} class="btn-yellow-sm float-right">{translations.btn?.reboot ?? "Reboot"}</button>
         </div>
      </div>
     {#if sysinfo.meter}
     <div class="cnt">
-        <strong class="text-sm">Meter</strong>
+        <strong class="text-sm">{translations.status?.meter?.title ?? "Meter"}</strong>
         <div class="my-2">
-            Manufacturer: {metertype(sysinfo.meter.mfg)}
+            {translations.status?.meter?.manufacturer ?? "Manufacturer"}: {metertype(sysinfo.meter.mfg)}
         </div>
         <div class="my-2">
-            Model: {sysinfo.meter.model ? sysinfo.meter.model : "unknown"}
+            {translations.status?.meter?.model ?? "Model"}: {sysinfo.meter.model ? sysinfo.meter.model : "unknown"}
         </div>
         <div class="my-2">
-            ID: {sysinfo.meter.id ? sysinfo.meter.id : "unknown"}
+            {translations.status?.meter?.id ?? "ID"}: {sysinfo.meter.id ? sysinfo.meter.id : "unknown"}
         </div>
     </div>
     {/if}
     {#if sysinfo.net}
     <div class="cnt">
-        <strong class="text-sm">Network</strong>
+        <strong class="text-sm">{translations.status?.network?.title ?? "Network"}</strong>
         <div class="my-2">
-            IP: {sysinfo.net.ip}
+            {translations.conf?.network?.ip ?? "IP"}: {sysinfo.net.ip}
         </div>
         <div class="my-2">
-            Mask: {sysinfo.net.mask}
+            {translations.conf?.network?.mask ?? "Mask"}: {sysinfo.net.mask}
         </div>
         <div class="my-2">
-            Gateway: {sysinfo.net.gw}
+            {translations.conf?.network?.gw ?? "Gateway"}: {sysinfo.net.gw}
         </div>
         <div class="my-2">
-            DNS: {sysinfo.net.dns1} {#if sysinfo.net.dns2}/ {sysinfo.net.dns2}{/if}
+            {#if sysinfo.net.dns1}{translations.conf?.network?.dns ?? "DNS"}: {sysinfo.net.dns1}{/if}
+            {#if sysinfo.net.dns2}{translations.conf?.network?.dns ?? "DNS"}: {sysinfo.net.dns2}{/if}
         </div>
+        {#if sysinfo.net.ipv6}
+            <div class="my-2">
+                IPv6: {sysinfo.net.ipv6}
+            </div>
+            <div class="my-2">
+                {#if sysinfo.net.dns1v6}DNSv6: {sysinfo.net.dns1v6}{/if}
+                {#if sysinfo.net.dns2v6}DNSv6: {sysinfo.net.dns2v6}{/if}
+            </div>
+        {/if}
     </div>
     {/if}
     <div class="cnt">
-        <strong class="text-sm">Firmware</strong>
+        <strong class="text-sm">{translations.status?.firmware?.title ?? "Firmware"}</strong>
         <div class="my-2">
-            Installed version: {sysinfo.version}
+            {translations.status?.firmware?.installed ?? "Installed"}: {sysinfo.version}
         </div>
         {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version}
         <div class="my-2">
-            <div class="bd-yellow">Previous upgrade attempt from {sysinfo.upgrade.f} to {sysinfo.upgrade.t} failed. {httpError(sysinfo.upgrade.e)}</div>
+            <div class="bd-yellow">
+                {(translations.status?.firmware?.failed ?? "Upgrade from {0} to {1} failed").replace('{0}', sysinfo.upgrade.f).replace('{1}', sysinfo.upgrade.t)}
+                {(translations.errors?.http?.[sysinfo.upgrade.e] ?? sysinfo.upgrade.e)}
+            </div>
         </div>
         {/if}
         {#if nextVersion}
             <div class="my-2 flex">
-                Latest version: 
+                {translations.status?.firmware?.latest ?? "Latest"}: 
                 <a href={nextVersion.html_url} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{nextVersion.tag_name}</a>
                 {#if (sysinfo.security == 0 || data.a) && sysinfo.fwconsent === 1 && nextVersion && nextVersion.tag_name != sysinfo.version}
-                <div class="flex-none ml-2 text-green-500" title="Install this version">
-                    <button on:click={askUpgrade}><DownloadIcon/></button>
+                <div class="flex-none ml-2 text-green-500" title={translations.status?.firmware?.install ?? "Install"}>
+                    <button on:click={askUpgrade}>&#8659;</button>
                 </div>
                 {/if}
             </div>
             {#if sysinfo.fwconsent === 2}
             <div class="my-2">
-                <div class="bd-yellow">You have disabled one-click firmware upgrade, link to self-upgrade is disabled</div>
+                <div class="bd-yellow">{translations.status?.firmware?.no_one_click ?? "One-click upgrade disabled"}</div>
             </div>
             {/if}
         {/if}
@@ -186,10 +252,10 @@
             <form action="/firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true} autocomplete="off">
                 <input style="display:none" name="file" type="file" accept=".bin" bind:this={firmwareFileInput} bind:files={firmwareFiles}>
                 {#if firmwareFiles.length == 0}
-                <button type="button" on:click={()=>{firmwareFileInput.click();}} class="btn-pri-sm float-right">Select firmware file for upgrade</button>
+                <button type="button" on:click={()=>{firmwareFileInput.click();}} class="btn-pri-sm float-right">{translations.status?.firmware?.btn_select_file ?? "Select file"}</button>
                 {:else}
                 {firmwareFiles[0].name}
-                <button type="submit" class="btn-pri-sm float-right">Upload</button>
+                <button type="submit" class="btn-pri-sm float-right ml-2">{translations.btn?.upload ?? "Upload"}</button>
                 {/if}
             </form>
         </div>
@@ -197,29 +263,29 @@
     </div>
     {#if sysinfo.security == 0 || data.a}
     <div class="cnt">
-        <strong class="text-sm">Backup & restore</strong>
+        <strong class="text-sm">{translations.status?.backup?.title ?? "Backup"}</strong>
         <form method="get" action="/configfile.cfg" autocomplete="off">
             <div class="grid grid-cols-2">
                 {#each cfgItems as el}
-                    <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="{el.key}" value="true" checked/> {el.name}</label>
+                    <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="{el.key}" value="true" checked/> {translations.status?.backup?.[el.key] ?? el.name}</label>
                 {/each}
-                <label class="my-1 mx-3 col-span-2"><input type="checkbox" class="rounded" name="ic" value="true"/> Include Secrets<br/><small>(SSID, PSK, passwords and tokens)</small></label>
+                <label class="my-1 mx-3 col-span-2"><input type="checkbox" class="rounded" name="ic" value="true"/> {translations.status?.backup?.secrets ?? "Include secrets"}<br/><small>{translations.status?.backup?.secrets_desc ?? ""}</small></label>
             </div>
             {#if configFiles.length == 0}
-            <button type="submit" class="btn-pri-sm float-right">Download</button>
+            <button type="submit" class="btn-pri-sm float-right">{translations.status?.backup?.btn_download ?? "Download"}</button>
             {/if}
         </form>
-        <form action="/configfile" enctype="multipart/form-data" method="post" on:submit={() => configUploading=true} autocomplete="off">
+        <form on:submit|preventDefault={uploadConfigFile} autocomplete="off">
             <input style="display:none" name="file" type="file" accept=".cfg" bind:this={configFileInput} bind:files={configFiles}>
             {#if configFiles.length == 0}
-            <button type="button" on:click={()=>{configFileInput.click();}} class="btn-pri-sm">Select file...</button>
+            <button type="button" on:click={()=>{configFileInput.click();}} class="btn-pri-sm">{translations.status?.backup?.btn_select_file ?? "Select file"}</button>
             {:else}
             {configFiles[0].name}
-            <button type="submit" class="btn-pri-sm">Upload</button>
+            <button type="submit" class="btn-pri-sm">{translations.btn?.upload ?? "Upload"}</button>
             {/if}
         </form>
     </div>
     {/if}
 </div>
-<Mask active={firmwareUploading} message="Uploading firmware, please wait"/>
-<Mask active={configUploading} message="Uploading configuration, please wait"/>
+<Mask active={firmwareUploading} message={translations.status?.mask?.firmware ?? "Uploading"}/>
+<Mask active={configUploading} message={translations.status?.mask?.config ?? "Uploading"}/>

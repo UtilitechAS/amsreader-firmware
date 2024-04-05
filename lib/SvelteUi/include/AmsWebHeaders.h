@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 static const char HEADER_CACHE_CONTROL[] PROGMEM = "Cache-Control";
 static const char HEADER_CONTENT_ENCODING[] PROGMEM = "Content-Encoding";
 static const char HEADER_PRAGMA[] PROGMEM = "Pragma";
@@ -8,6 +14,7 @@ static const char HEADER_LOCATION[] PROGMEM = "Location";
 static const char CACHE_CONTROL_NO_CACHE[] PROGMEM = "no-cache, no-store, must-revalidate";
 static const char CONTENT_ENCODING_GZIP[] PROGMEM = "gzip";
 static const char CACHE_1HR[] PROGMEM = "public, max-age=3600";
+static const char CACHE_1DA[] PROGMEM = "public, max-age=86400";
 static const char CACHE_1MO[] PROGMEM = "public, max-age=2630000";
 static const char CACHE_1YR[] PROGMEM = "public, max-age=31536000";
 static const char PRAGMA_NO_CACHE[] PROGMEM = "no-cache";

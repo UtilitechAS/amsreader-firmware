@@ -1,11 +1,18 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "LNG.h"
 #include "lwip/def.h"
 #include "ntohll.h"
 #include "Uptime.h"
 
-LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
+LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
     LngHeader* h = (LngHeader*) payload;
     if(h->tag == CosemTypeStructure && h->arrayTag == CosemTypeArray) {
+        apply(meterState);
         meterType = AmsTypeLandisGyr;
         this->packageTimestamp = ctx.timestamp;
 
@@ -16,59 +23,109 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
         uint64_t o180 = 0, o280 = 0;
         uint64_t o181 = 0, o182 = 0;
         uint64_t o281 = 0, o282 = 0;
+        uint64_t o380 = 0, o480 = 0;
+        uint64_t o580 = 0, o680 = 0;
+        uint64_t o780 = 0, o880 = 0;
         LngObisDescriptor* descriptor = (LngObisDescriptor*) ptr;
         for(uint8_t x = 0;  x < h->arrayLength-1; x++) {
             ptr = (uint8_t*) &descriptor[1];
             descriptor = (LngObisDescriptor*) ptr;
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(L&G) OBIS %d.%d.%d with type 0x%02X\n"), descriptor->obis[2], descriptor->obis[3], descriptor->obis[4], *data);
 
             CosemData* item = (CosemData*) data;
-            if(descriptor->obis[2] == 1) {
-                if(descriptor->obis[3] == 7) {
-                    if(descriptor->obis[4] == 0) {
-                        o170 = getNumber(item);
-                        listType = listType >= 1 ? listType : 1;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o170);
-                    }
-                } else if(descriptor->obis[3] == 8) {
-                    if(descriptor->obis[4] == 0) {
-                        o180 = getNumber(item);
-                        listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o180);
-                        activeImportCounter = o180 / 1000.0;
-                    } else if(descriptor->obis[4] == 1) {
-                        o181 = getNumber(item);
-                        listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o181);
-                    } else if(descriptor->obis[4] == 2) {
-                        o182 = getNumber(item);
-                        listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o182);
-                    }
-                } 
-            } else if(descriptor->obis[2] == 2) {
-                if(descriptor->obis[3] == 7) {
-                    if(descriptor->obis[4] == 0) {
-                        o270 = getNumber(item);
+            if(descriptor->obis[3] == 7) {
+                if(descriptor->obis[4] == 0) {
+                    if(descriptor->obis[2] > 1) {
                         listType = listType >= 2 ? listType : 2;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o270);
+                    } else {
+                        listType = listType >= 1 ? listType : 1;
                     }
-                } else if(descriptor->obis[3] == 8) {
-                    if(descriptor->obis[4] == 0) {
-                        o280 = getNumber(item);
-                        listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o280);
-                        activeExportCounter = o280 / 1000.0;
-                    } else if(descriptor->obis[4] == 1) {
-                        o281 = getNumber(item);
-                        listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o281);
-                    } else if(descriptor->obis[4] == 2) {
-                        o282 = getNumber(item);
-                        listType = listType >= 3 ? listType : 3;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %lu\n"), o282);
+                    switch(descriptor->obis[2]) {
+                        case 1:
+                            o170 = getNumber(item);
+                            break;
+                        case 2:
+                            o270 = getNumber(item);
+                            break;
+                        case 3:
+                            reactiveImportPower = getNumber(item);
+                            break;
+                        case 4:
+                            reactiveExportPower = getNumber(item);
+                            break;
+                        case 31:
+                            l1current = getNumber(item) / 100.0;
+                            break;
+                        case 51:
+                            l2current = getNumber(item) / 100.0;
+                            break;
+                        case 71:
+                            l3current = getNumber(item) / 100.0;
+                            break;
+                        case 32:
+                            l1voltage = getNumber(item) / 10.0;
+                            break;
+                        case 52:
+                            l2voltage = getNumber(item) / 10.0;
+                            break;
+                        case 72:
+                            l3voltage = getNumber(item) / 10.0;
+                            break;
                     }
-                } 
+                }
+            } else if(descriptor->obis[3] == 8) {
+                listType = listType >= 3 ? listType : 3;
+                if(descriptor->obis[4] == 0) {
+                    switch(descriptor->obis[2]) {
+                        case 1:
+                            o180 = getNumber(item);
+                            activeImportCounter = o180 / 1000.0;
+                            break;
+                        case 2:
+                            o280 = getNumber(item);
+                            activeExportCounter = o280 / 1000.0;
+                            break;
+                        case 3:
+                            o380 = getNumber(item);
+                            reactiveImportCounter = o380 / 1000.0;
+                            break;
+                        case 4:
+                            o480 = getNumber(item);
+                            reactiveExportCounter = o480 / 1000.0;
+                            break;
+                        case 5:
+                            o580 = getNumber(item);
+                            break;
+                        case 6:
+                            o680 = getNumber(item);
+                            break;
+                        case 7:
+                            o780 = getNumber(item);
+                            break;
+                        case 8:
+                            o880 = getNumber(item);
+                            break;
+                    }
+                } else if(descriptor->obis[4] == 1) {
+                    listType = listType >= 3 ? listType : 3;
+                    switch(descriptor->obis[2]) {
+                        case 1:
+                            o181 = getNumber(item);
+                            break;
+                        case 2:
+                            o281 = getNumber(item);
+                            break;
+                    }
+                } else if(descriptor->obis[4] == 2) {
+                    listType = listType >= 3 ? listType : 3;
+                    switch(descriptor->obis[2]) {
+                        case 1:
+                            o182 = getNumber(item);
+                            break;
+                        case 2:
+                            o282 = getNumber(item);
+                            break;
+                    }
+                }
             } else if(descriptor->obis[2] == 96) {
                 if(descriptor->obis[3] == 1) {
                     if(descriptor->obis[4] == 0) {
@@ -77,19 +134,15 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
                         str[item->oct.length] = '\0';
                         meterId = String(str);
                         listType = listType >= 2 ? listType : 2;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %s (oct)\n"), str);
                     } else if(descriptor->obis[4] == 1) {
                         char str[item->oct.length+1];
                         memcpy(str, item->oct.data, item->oct.length);
                         str[item->oct.length] = '\0';
                         meterModel = String(str);
                         listType = listType >= 2 ? listType : 2;
-                        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR(" and value %s (oct)\n"), str);
                     }
                 }
             }
-
-            if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("\n"));
 
             if(o170 > 0 || o270 > 0) {
                 int32_t sum = o170-o270;
@@ -106,6 +159,13 @@ LNG::LNG(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, Da
             }
             if(o281 > 0 || o282 > 0) {
                 activeExportCounter = (o281 + o282) / 1000.0;
+            }
+
+            if(o580 > 0 || o680 > 0) {
+                reactiveImportCounter = (o580 + o680) / 1000.0;
+            }
+            if(o780 > 0 || o880 > 0) {
+                reactiveExportCounter = (o780 + o880) / 1000.0;
             }
 
             if((*data) == 0x09) {

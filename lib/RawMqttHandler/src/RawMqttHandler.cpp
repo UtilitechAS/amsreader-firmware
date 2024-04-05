@@ -1,8 +1,14 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "RawMqttHandler.h"
 #include "hexutils.h"
 #include "Uptime.h"
 
-bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccounting* ea, EntsoeApi* eapi) {
+bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccounting* ea, PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
         
@@ -89,22 +95,22 @@ bool RawMqttHandler::publishList3(AmsData* data, AmsData* meterState) {
 
 bool RawMqttHandler::publishList4(AmsData* data, AmsData* meterState) {
         if(full || meterState->getL1ActiveImportPower() != data->getL1ActiveImportPower()) {
-            mqtt.publish(topic + "/meter/import/l1", String(data->getL1ActiveImportPower(), 2));
+            mqtt.publish(topic + "/meter/import/l1", String(data->getL1ActiveImportPower()));
         }
         if(full || meterState->getL2ActiveImportPower() != data->getL2ActiveImportPower()) {
-            mqtt.publish(topic + "/meter/import/l2", String(data->getL2ActiveImportPower(), 2));
+            mqtt.publish(topic + "/meter/import/l2", String(data->getL2ActiveImportPower()));
         }
         if(full || meterState->getL3ActiveImportPower() != data->getL3ActiveImportPower()) {
-            mqtt.publish(topic + "/meter/import/l3", String(data->getL3ActiveImportPower(), 2));
+            mqtt.publish(topic + "/meter/import/l3", String(data->getL3ActiveImportPower()));
         }
         if(full || meterState->getL1ActiveExportPower() != data->getL1ActiveExportPower()) {
-            mqtt.publish(topic + "/meter/export/l1", String(data->getL1ActiveExportPower(), 2));
+            mqtt.publish(topic + "/meter/export/l1", String(data->getL1ActiveExportPower()));
         }
         if(full || meterState->getL2ActiveExportPower() != data->getL2ActiveExportPower()) {
-            mqtt.publish(topic + "/meter/export/l2", String(data->getL2ActiveExportPower(), 2));
+            mqtt.publish(topic + "/meter/export/l2", String(data->getL2ActiveExportPower()));
         }
         if(full || meterState->getL3ActiveExportPower() != data->getL3ActiveExportPower()) {
-            mqtt.publish(topic + "/meter/export/l3", String(data->getL3ActiveExportPower(), 2));
+            mqtt.publish(topic + "/meter/export/l3", String(data->getL3ActiveExportPower()));
         }
         if(full || meterState->getL1ActiveImportCounter() != data->getL1ActiveImportCounter()) {
             mqtt.publish(topic + "/meter/import/l1/accumulated", String(data->getL1ActiveImportCounter(), 2));
@@ -170,10 +176,10 @@ bool RawMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) 
     return c > 0;
 }
 
-bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
+bool RawMqttHandler::publishPrices(PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
-	if(eapi->getValueForHour(0) == ENTSOE_NO_VALUE)
+	if(ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) == PRICE_NO_VALUE)
 		return false;
 
 	time_t now = time(nullptr);
@@ -182,13 +188,13 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 	int8_t min1hrIdx = -1, min3hrIdx = -1, min6hrIdx = -1;
 	float min = INT16_MAX, max = INT16_MIN;
 	float values[34];
-    for(int i = 0;i < 34; i++) values[i] = ENTSOE_NO_VALUE;
+    for(int i = 0;i < 34; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 34; i++) {
-		float val = eapi->getValueForHour(now, i);
+		float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, now, i);
 		values[i] = val;
 
         if(i > 23) continue;
-		if(val == ENTSOE_NO_VALUE) break;
+		if(val == PRICE_NO_VALUE) break;
 		
 		if(val < min) min = val;
 		if(val > max) max = val;
@@ -203,7 +209,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 			float val1 = values[i++];
 			float val2 = values[i++];
 			float val3 = val;
-			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE) continue;
+			if(val1 == PRICE_NO_VALUE || val2 == PRICE_NO_VALUE || val3 == PRICE_NO_VALUE) continue;
 			float val3hr = val1+val2+val3;
 			if(min3hrIdx == -1 || min3hr > val3hr) {
 				min3hr = val3hr;
@@ -219,7 +225,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 			float val4 = values[i++];
 			float val5 = values[i++];
 			float val6 = val;
-			if(val1 == ENTSOE_NO_VALUE || val2 == ENTSOE_NO_VALUE || val3 == ENTSOE_NO_VALUE || val4 == ENTSOE_NO_VALUE || val5 == ENTSOE_NO_VALUE || val6 == ENTSOE_NO_VALUE) continue;
+			if(val1 == PRICE_NO_VALUE || val2 == PRICE_NO_VALUE || val3 == PRICE_NO_VALUE || val4 == PRICE_NO_VALUE || val5 == PRICE_NO_VALUE || val6 == PRICE_NO_VALUE) continue;
 			float val6hr = val1+val2+val3+val4+val5+val6;
 			if(min6hrIdx == -1 || min6hr > val6hr) {
 				min6hr = val6hr;
@@ -253,7 +259,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
 
     for(int i = 0; i < 34; i++) {
         float val = values[i];
-        if(val == ENTSOE_NO_VALUE) {
+        if(val == PRICE_NO_VALUE) {
             mqtt.publish(topic + "/price/" + String(i), "", true, 0);
         } else {
             mqtt.publish(topic + "/price/" + String(i), String(val, 4), true, 0);
@@ -280,7 +286,7 @@ bool RawMqttHandler::publishPrices(EntsoeApi* eapi) {
     return true;
 }
 
-bool RawMqttHandler::publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea) {
+bool RawMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
 

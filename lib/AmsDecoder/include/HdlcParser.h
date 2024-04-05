@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _HDLCPARSER_H
 #define _HDLCPARSER_H
 
@@ -24,6 +30,11 @@ typedef struct HDLC3CtrlHcs {
 class HDLCParser {
 public:
     int8_t parse(uint8_t *buf, DataParserContext &ctx);
+
+private:
+    uint8_t lastSequenceNumber = 0;
+    uint16_t pos = 0;
+    uint8_t *buf  = NULL;
 };
 
 #endif

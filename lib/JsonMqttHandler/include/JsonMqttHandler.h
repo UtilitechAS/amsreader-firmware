@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _JSONMQTTHANDLER_H
 #define _JSONMQTTHANDLER_H
 
@@ -8,10 +14,10 @@ public:
     JsonMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
         this->hw = hw;
     };
-    bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, EntsoeApi* eapi);
+    bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
-    bool publishPrices(EntsoeApi*);
-    bool publishSystem(HwTools* hw, EntsoeApi* eapi, EnergyAccounting* ea);
+    bool publishPrices(PriceService*);
+    bool publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea);
     bool publishRaw(String data);
 
     void onMessage(String &topic, String &payload);
@@ -20,7 +26,8 @@ public:
 
 private:
     HwTools* hw;
-
+    uint16_t appendJsonHeader(AmsData* data);
+    uint16_t appendJsonFooter(EnergyAccounting* ea, uint16_t pos);
     bool publishList1(AmsData* data, EnergyAccounting* ea);
     bool publishList2(AmsData* data, EnergyAccounting* ea);
     bool publishList3(AmsData* data, EnergyAccounting* ea);

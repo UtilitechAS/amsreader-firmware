@@ -2,12 +2,15 @@
     import { zeropad, addHours, exportcol } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
+    export let title;
     export let json;
     export let sysinfo;
 
     let config = {};
     let max;
     let min;
+
+    let dark = document.documentElement.classList.contains('dark');
 
     $: {
         let i = 0;
@@ -37,8 +40,8 @@
                 label2: exp.toFixed(exp < 10 ? 1 : 0), 
                 title2: exp.toFixed(2) + ' kWh',
                 value2: exp,
-                color: '#7c3aed',
-                color2: '#37829E' 
+                color: dark ? '#5c2da5' : '#7c3aed',
+                color2: dark ? '#27728e' : '#37829e',
             });
             min = Math.max(min, exp);
             max = Math.max(max, imp);
@@ -59,8 +62,8 @@
                 label2: exp.toFixed(exp < 10 ? 1 : 0), 
                 title2: exp.toFixed(2) + ' kWh', 
                 value2: exp,
-                color: '#7c3aed',
-                color2: '#37829E' 
+                color: dark ? '#5c2da5' : '#7c3aed',
+                color2: dark ? '#27728e' : '#37829e',
             });
             min = Math.max(min, exp);
             max = Math.max(max, imp);
@@ -94,7 +97,7 @@
         }
 
         config = {
-            title: "Energy use last " + lm.getDate() + " days (kWh)",
+            title: title.replace('{0}', lm.getDate().toFixed(0)) + " (kWh)",
             height: 226,
             width: 1520,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },

@@ -1,31 +1,54 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _AMSCONFIGURATION_h
 #define _AMSCONFIGURATION_h
 #include <EEPROM.h>
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 103 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 104 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CLEARED_INDICATOR 0xFC
 #define EEPROM_CONFIG_ADDRESS 0
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
 #define CONFIG_SYSTEM_START 8
-#define CONFIG_METER_START 32
-#define CONFIG_UPGRADE_INFO_START 216
-#define CONFIG_UI_START 248
-#define CONFIG_GPIO_START 266
-#define CONFIG_ENTSOE_START 290
-#define CONFIG_WIFI_START 360
-#define CONFIG_ENERGYACCOUNTING_START 576
-#define CONFIG_WEB_START 648
-#define CONFIG_DEBUG_START 824
-#define CONFIG_DOMOTICZ_START 856 
-#define CONFIG_NTP_START 872
-#define CONFIG_MQTT_START 1004
-#define CONFIG_HA_START 1680
+#define CONFIG_UPGRADE_INFO_START 16
+#define CONFIG_NETWORK_START 40
+#define CONFIG_METER_START 296
+#define CONFIG_GPIO_START 368
+#define CONFIG_PRICE_START 400
+#define CONFIG_ENERGYACCOUNTING_START 472
+#define CONFIG_WEB_START 496
+#define CONFIG_DEBUG_START 632
+#define CONFIG_NTP_START 640
+#define CONFIG_MQTT_START 768
+#define CONFIG_DOMOTICZ_START 1536
+#define CONFIG_HA_START 1552
+#define CONFIG_UI_START 1720
+#define CONFIG_CLOUD_START 1742
 
-#define CONFIG_METER_START_93 224
+#define CONFIG_METER_START_103 32
+#define CONFIG_UPGRADE_INFO_START_103 216
+#define CONFIG_UI_START_103 248
+#define CONFIG_GPIO_START_103 266
+#define CONFIG_ENTSOE_START_103 290
+#define CONFIG_WIFI_START_103 360
+#define CONFIG_ENERGYACCOUNTING_START_103 576
+#define CONFIG_WEB_START_103 648
+#define CONFIG_DEBUG_START_103 824
+#define CONFIG_DOMOTICZ_START_103 856 
+#define CONFIG_NTP_START_103 872
+#define CONFIG_MQTT_START_103 1004
+#define CONFIG_HA_START_103 1680
 
+#define LED_BEHAVIOUR_DEFAULT 0
+#define LED_BEHAVIOUR_BOOT 1
+#define LED_BEHAVIOUR_ERROR_ONLY 3
+#define LED_BEHAVIOUR_OFF 9
 
 struct SystemConfig {
 	uint8_t boardType;
@@ -34,9 +57,9 @@ struct SystemConfig {
 	uint8_t dataCollectionConsent; // 0 = unknown, 1 = accepted, 2 = declined
 	char country[3];
 	uint8_t energyspeedometer;
-}; // 8
+}; // 9
 
-struct WiFiConfig {
+struct NetworkConfig {
 	char ssid[32];
 	char psk[64];
     char ip[16];
@@ -49,8 +72,9 @@ struct WiFiConfig {
 	uint8_t power;
 	uint8_t sleep;
 	uint8_t use11b;
-	bool unused;
-}; // 213
+	bool ipv6;
+	uint8_t mode;
+}; // 214
 
 struct MqttConfig {
 	char host[128];
@@ -65,6 +89,13 @@ struct MqttConfig {
 }; // 676
 
 struct WebConfig {
+	uint8_t security;
+	char username[37];
+	char password[37];
+	char context[37];
+}; // 112
+
+struct WebConfig103 {
 	uint8_t security;
 	char username[64];
 	char password[64];
@@ -86,41 +117,10 @@ struct MeterConfig {
 	uint8_t source;
 	uint8_t parser;
 	uint8_t bufferSize;
-}; // 62
-
-struct MeterConfig100 {
-	uint32_t baud;
-	uint8_t parity;
-	bool invert;
-	uint8_t distributionSystem;
-	uint8_t mainFuse;
-	uint8_t productionCapacity;
-	uint8_t encryptionKey[16];
-	uint8_t authenticationKey[16];
-	uint32_t wattageMultiplier;
-	uint32_t voltageMultiplier;
-	uint32_t amperageMultiplier;
-	uint32_t accumulatedMultiplier;
-	uint8_t source;
-	uint8_t parser;
-}; // 59
-
-struct MeterConfig95 {
-	uint32_t baud;
-	uint8_t parity;
-	bool invert;
-	uint8_t distributionSystem;
-	uint8_t mainFuse;
-	uint8_t productionCapacity;
-	uint8_t encryptionKey[16];
-	uint8_t authenticationKey[16];
-	uint16_t wattageMultiplier;
-	uint16_t voltageMultiplier;
-	uint16_t amperageMultiplier;
-	uint16_t accumulatedMultiplier;
-	uint8_t source;
-	uint8_t parser;
-}; // 50
+	uint8_t rxPin;
+	bool rxPinPullup;
+	uint8_t txPin;
+}; // 65
 
 struct DebugConfig {
 	bool telnet;
@@ -129,6 +129,26 @@ struct DebugConfig {
 }; // 3
 
 struct GpioConfig {
+	uint8_t apPin;
+	uint8_t ledPin;
+	bool ledInverted;
+	uint8_t ledPinRed;
+	uint8_t ledPinGreen;
+	uint8_t ledPinBlue;
+	bool ledRgbInverted;
+	uint8_t tempSensorPin;
+	uint8_t tempAnalogSensorPin;
+	uint8_t vccPin;
+	int16_t vccOffset;
+	uint16_t vccMultiplier;
+	uint8_t vccBootLimit;
+	uint16_t vccResistorGnd;
+	uint16_t vccResistorVcc;
+	uint8_t ledDisablePin;
+	uint8_t ledBehaviour;
+}; // 21
+
+struct GpioConfig103 {
 	uint8_t hanPin;
 	uint8_t apPin;
 	uint8_t ledPin;
@@ -146,7 +166,9 @@ struct GpioConfig {
 	uint16_t vccResistorGnd;
 	uint16_t vccResistorVcc;
 	bool hanPinPullup;
-}; // 21
+	uint8_t ledDisablePin;
+	uint8_t ledBehaviour;
+}; // 23
 
 struct DomoticzConfig {
 	uint16_t elidx;
@@ -169,21 +191,13 @@ struct NtpConfig {
 	char timezone[32];
 }; // 98
 
-struct NtpConfig96 {
-	bool enable;
-	bool dhcp;
-	int16_t offset;
-	int16_t summerOffset;
-	char server[64];
-}; // 70
-
-struct EntsoeConfig {
-	char token[37];
+struct PriceServiceConfig {
+	char entsoeToken[37];
 	char area[17];
 	char currency[4];
-	uint32_t multiplier;
+	uint32_t unused1;
 	bool enabled;
-	uint16_t fixedPrice;
+	uint16_t unused2;
 }; // 64
 
 struct EnergyAccountingConfig {
@@ -208,13 +222,12 @@ struct UiConfig {
 	uint8_t showDayPlot;
 	uint8_t showMonthPlot;
 	uint8_t showTemperaturePlot;
-}; // 11
-
-struct TempSensorConfig {
-	uint8_t address[8];
-	char name[16];
-	bool common;
-};
+	uint8_t showRealtimePlot;
+	uint8_t showPerPhasePower;
+	uint8_t showPowerFactor;
+	uint8_t darkMode;
+	char language[3];
+}; // 15
 
 struct UpgradeInformation {
 	char fromVersion[8];
@@ -222,6 +235,14 @@ struct UpgradeInformation {
 	int16_t exitCode;
 	int16_t errorCode;
 }; // 20
+
+struct CloudConfig {
+	bool enabled;
+	uint8_t interval;
+	char hostname[64];
+	uint16_t port;
+	uint8_t clientId[16];
+}; // 69
 
 class AmsConfiguration {
 public:
@@ -235,12 +256,12 @@ public:
 	bool isSystemConfigChanged();
 	void ackSystemConfigChanged();
 
-	bool getWiFiConfig(WiFiConfig&);
-	bool setWiFiConfig(WiFiConfig&);
-	void clearWifi(WiFiConfig&);
-	void clearWifiIp(WiFiConfig&);
-	bool isWifiChanged();
-	void ackWifiChange();
+	bool getNetworkConfig(NetworkConfig&);
+	bool setNetworkConfig(NetworkConfig&);
+	void clearNetworkConfig(NetworkConfig&);
+	void clearNetworkConfigIp(NetworkConfig&);
+	bool isNetworkConfigChanged();
+	void ackNetworkConfigChange();
 
 	bool getMqttConfig(MqttConfig&);
 	bool setMqttConfig(MqttConfig&);
@@ -251,7 +272,7 @@ public:
 
 	bool getWebConfig(WebConfig&);
 	bool setWebConfig(WebConfig&);
-	void clearAuth(WebConfig&);
+	void clearWebConfig(WebConfig&);
 
 	bool getMeterConfig(MeterConfig&);
 	bool setMeterConfig(MeterConfig&);
@@ -286,11 +307,11 @@ public:
 	bool isNtpChanged();
 	void ackNtpChange();
 
-	bool getEntsoeConfig(EntsoeConfig&);
-	bool setEntsoeConfig(EntsoeConfig&);
-	void clearEntsoe(EntsoeConfig&);
-	bool isEntsoeChanged();
-	void ackEntsoeChange();
+	bool getPriceServiceConfig(PriceServiceConfig&);
+	bool setPriceServiceConfig(PriceServiceConfig&);
+	void clearPriceServiceConfig(PriceServiceConfig&);
+	bool isPriceServiceChanged();
+	void ackPriceServiceChange();
 
 	bool getEnergyAccountingConfig(EnergyAccountingConfig&);
 	bool setEnergyAccountingConfig(EnergyAccountingConfig&);
@@ -301,18 +322,19 @@ public:
 	bool getUiConfig(UiConfig&);
 	bool setUiConfig(UiConfig&);
 	void clearUiConfig(UiConfig&);
-
-	void loadTempSensors();
-	void saveTempSensors();
-	uint8_t getTempSensorCount();
-	TempSensorConfig* getTempSensorConfig(uint8_t address[8]);
-	void updateTempSensorConfig(uint8_t address[8], const char name[32], bool common);
-
-    bool isSensorAddressEqual(uint8_t a[8], uint8_t b[8]);
+	void setUiLanguageChanged();
+	bool isUiLanguageChanged();
+	void ackUiLanguageChange();
 
 	bool getUpgradeInformation(UpgradeInformation&);
 	bool setUpgradeInformation(int16_t exitCode, int16_t errorCode, const char* currentVersion, const char* nextVersion);
 	void clearUpgradeInformation(UpgradeInformation&);
+
+	bool getCloudConfig(CloudConfig&);
+	bool setCloudConfig(CloudConfig&);
+	void clearCloudConfig(CloudConfig&);
+	bool isCloudChanged();
+	void ackCloudConfig();
 
 	void clear();
 
@@ -321,18 +343,11 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool sysChanged = false, wifiChanged = false, mqttChanged = false, meterChanged = true, ntpChanged = true, entsoeChanged = false, energyAccountingChanged = true;
+	bool sysChanged = false, networkChanged, mqttChanged, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false;
 
-	uint8_t tempSensorCount = 0;
-	TempSensorConfig** tempSensors = NULL;
-
-	bool relocateConfig93(); // 2.1.0
-	bool relocateConfig94(); // 2.1.0
-	bool relocateConfig95(); // 2.1.4
-	bool relocateConfig96(); // 2.1.14
-	bool relocateConfig100(); // 2.2-dev
 	bool relocateConfig101(); // 2.2.0 through 2.2.8
 	bool relocateConfig102(); // 2.2.9 through 2.2.11
+	bool relocateConfig103(); // 2.2.12, until, but not including 2.3
 
 	void saveToFs();
 	bool loadFromFs(uint8_t version);

@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #ifndef _HWTOOLS_H
 #define _HWTOOLS_H
 
@@ -36,7 +42,8 @@ struct AdcConfig {
 
 class HwTools {
 public:
-    void setup(GpioConfig*, AmsConfiguration*);
+    bool applyBoardConfig(uint8_t boardType, GpioConfig& gpioConfig, MeterConfig& meterConfig, uint8_t hanPin);
+    void setup(GpioConfig*);
     float getVcc();
     uint8_t getTempSensorCount();
     TempSensorData* getTempSensorData(uint8_t);
@@ -48,6 +55,7 @@ public:
     bool ledOn(uint8_t color);
     bool ledOff(uint8_t color);
     bool ledBlink(uint8_t color, uint8_t blink);
+    void setBootSuccessful(bool value);
 
     HwTools() {};
 private:
@@ -57,12 +65,13 @@ private:
         esp_adc_cal_characteristics_t* voltAdcChar, tempAdcChar;
     #endif
     GpioConfig* config;
-    AmsConfiguration* amsConf;
     bool tempSensorInit;
     OneWire *oneWire = NULL;
     DallasTemperature *sensorApi = NULL;
     uint8_t sensorCount = 0;
     TempSensorData** tempSensors = NULL;
+
+    bool bootSuccessful = false;
 
     bool writeLedPin(uint8_t color, uint8_t state);
     bool isSensorAddressEqual(uint8_t a[8], uint8_t b[8]);

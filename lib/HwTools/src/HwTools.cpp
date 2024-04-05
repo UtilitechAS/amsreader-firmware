@@ -237,19 +237,7 @@ void HwTools::setup(GpioConfig* config) {
     }
     if(config->ledDisablePin > 0 && config->ledDisablePin < 40) {
         pinMode(config->ledDisablePin, OUTPUT_OPEN_DRAIN);
-        switch(config->ledBehaviour) {
-            case LED_BEHAVIOUR_ERROR_ONLY:
-            case LED_BEHAVIOUR_OFF:
-                digitalWrite(config->ledDisablePin, LOW);
-                break;
-            case LED_BEHAVIOUR_BOOT:
-                if(bootSuccessful) {
-                    digitalWrite(config->ledDisablePin, LOW);
-                }
-                break;
-            default:
-                digitalWrite(config->ledDisablePin, HIGH);
-        }
+        setBootSuccessful(false);
     }
 }
 
@@ -538,11 +526,25 @@ int HwTools::getWifiRssi() {
     return isnan(rssi) ? -100.0 : rssi;
 }
 
-void HwTools::setBootSuccessful() {
-    if(bootSuccessful) return;
-    bootSuccessful = true;
-    if(config->ledBehaviour != LED_BEHAVIOUR_DEFAULT) {
-        digitalWrite(config->ledDisablePin, LOW);
+void HwTools::setBootSuccessful(bool value) {
+    if(bootSuccessful && value) return;
+    bootSuccessful = value;
+    if(config->ledDisablePin > 0 && config->ledDisablePin < 40) {
+        switch(config->ledBehaviour) {
+            case LED_BEHAVIOUR_ERROR_ONLY:
+            case LED_BEHAVIOUR_OFF:
+                digitalWrite(config->ledDisablePin, LOW);
+                break;
+            case LED_BEHAVIOUR_BOOT:
+                if(bootSuccessful) {
+                    digitalWrite(config->ledDisablePin, LOW);
+                } else {
+                    digitalWrite(config->ledDisablePin, HIGH);
+                }
+                break;
+            default:
+                digitalWrite(config->ledDisablePin, HIGH);
+        }
     }
 }
 

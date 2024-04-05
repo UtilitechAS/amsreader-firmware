@@ -1225,38 +1225,40 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("w")) && server.arg(F("w")) == F("true")) {
-		NetworkConfig network;
-		config->getNetworkConfig(network);
-		strcpy(network.ssid, server.arg(F("ws")).c_str());
-		String psk = server.arg(F("wp"));
-		if(!psk.equals("***")) {
-			strcpy(network.psk, psk.c_str());
-		}
-		network.power = server.arg(F("ww")).toFloat() * 10;
-		network.sleep = server.arg(F("wz")).toInt();
-		network.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
-		network.mode = server.arg(F("nc")).toInt();
-		if(network.mode > 3) network.mode = 1; // WiFi Client
-		config->setNetworkConfig(network);
-
-		if(server.hasArg(F("nm"))) {
-			if(server.arg(F("nm")) == "static") {
-				strcpy(network.ip, server.arg(F("ni")).c_str());
-				strcpy(network.gateway, server.arg(F("ng")).c_str());
-				strcpy(network.subnet, server.arg(F("ns")).c_str());
-				strcpy(network.dns1, server.arg(F("nd1")).c_str());
-				strcpy(network.dns2, server.arg(F("nd2")).c_str());
-			} else if(server.arg(F("nm")) == "dhcp") {
-				strcpy(network.ip, "");
-				strcpy(network.gateway, "");
-				strcpy(network.subnet, "");
-				strcpy(network.dns1, "");
-				strcpy(network.dns2, "");
+		long mode = server.arg(F("nc")).toInt();
+		if(mode > 0 && mode < 3) {
+			NetworkConfig network;
+			config->getNetworkConfig(network);
+			network.mode = mode;
+			strcpy(network.ssid, server.arg(F("ws")).c_str());
+			String psk = server.arg(F("wp"));
+			if(!psk.equals("***")) {
+				strcpy(network.psk, psk.c_str());
 			}
-		}
-		network.ipv6 = server.hasArg(F("nx")) && server.arg(F("nx")) == F("true");
-		network.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == F("true");
-		config->setNetworkConfig(network);
+			network.power = server.arg(F("ww")).toFloat() * 10;
+			network.sleep = server.arg(F("wz")).toInt();
+			network.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
+
+			if(server.hasArg(F("nm"))) {
+				if(server.arg(F("nm")) == "static") {
+					strcpy(network.ip, server.arg(F("ni")).c_str());
+					strcpy(network.gateway, server.arg(F("ng")).c_str());
+					strcpy(network.subnet, server.arg(F("ns")).c_str());
+					strcpy(network.dns1, server.arg(F("nd1")).c_str());
+					strcpy(network.dns2, server.arg(F("nd2")).c_str());
+				} else if(server.arg(F("nm")) == "dhcp") {
+					strcpy(network.ip, "");
+					strcpy(network.gateway, "");
+					strcpy(network.subnet, "");
+					strcpy(network.dns1, "");
+					strcpy(network.dns2, "");
+				}
+			}
+			network.ipv6 = server.hasArg(F("nx")) && server.arg(F("nx")) == F("true");
+			network.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == F("true");
+			config->setNetworkConfig(network);
+		} 
+
 	}
 
 	if(server.hasArg(F("ntp")) && server.arg(F("ntp")) == F("true")) {
@@ -2200,6 +2202,7 @@ void AmsWebServer::configFileDownload() {
 	if(includePrice) {
 		PriceServiceConfig price;
 		config->getPriceServiceConfig(price);
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEnabled %s\n"), price.enabled ? 1 : 0));
 		if(strlen(price.entsoeToken) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEntsoeToken %s\n"), price.entsoeToken));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceArea %s\n"), price.area));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceCurrency %s\n"), price.currency));
@@ -2227,10 +2230,10 @@ void AmsWebServer::configFileDownload() {
 
 	if(ds != NULL) {
 		DayDataPoints day = ds->getDayData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dayplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dayplot %d %lu %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			day.version,
 			(int32_t) day.lastMeterReadTime,
-			day.activeImport,
+			day.activeImport / 1000.0,
 			day.accuracy,
 			ds->getHourImport(0),
 			ds->getHourImport(1),
@@ -2258,8 +2261,8 @@ void AmsWebServer::configFileDownload() {
 			ds->getHourImport(23)
 		));
 		if(day.activeExport > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR(" %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
-				day.activeExport,
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR(" %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
+				day.activeExport / 1000.0,
 				ds->getHourExport(0),
 				ds->getHourExport(1),
 				ds->getHourExport(2),
@@ -2290,10 +2293,10 @@ void AmsWebServer::configFileDownload() {
 		}
 
 		MonthDataPoints month = ds->getMonthData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("monthplot %d %lu %lu %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("monthplot %d %lu %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			month.version,
 			(int32_t) month.lastMeterReadTime,
-			month.activeImport,
+			month.activeImport / 1000.0,
 			month.accuracy,
 			ds->getDayImport(1),
 			ds->getDayImport(2),
@@ -2328,8 +2331,8 @@ void AmsWebServer::configFileDownload() {
 			ds->getDayImport(31)
 		));
 		if(month.activeExport > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR(" %u %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
-				month.activeExport,
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR(" %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
+				month.activeExport / 1000.0,
 				ds->getDayExport(1),
 				ds->getDayExport(2),
 				ds->getDayExport(3),

@@ -6,6 +6,9 @@
 
 #include "AmsConfiguration.h"
 #include "hexutils.h"
+#if defined(ESP32)
+#include "ESPRandom.h"
+#endif
 
 bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 	EEPROM.begin(EEPROM_SIZE);
@@ -67,6 +70,7 @@ bool AmsConfiguration::getNetworkConfig(NetworkConfig& config) {
 bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 	NetworkConfig existing;
 	if(config.sleep > 2) config.sleep = 1;
+	if(config.mode < 1 || config.mode > 4) config.mode = 1;
 	if(getNetworkConfig(existing)) {
 		networkChanged |= strcmp(config.ssid, existing.ssid) != 0;
 		networkChanged |= strcmp(config.psk, existing.psk) != 0;
@@ -1335,6 +1339,16 @@ void AmsConfiguration::print(Print* debugger)
 	if(getUiConfig(ui)) {
 		debugger->println(F("--UI configuration--"));
 		debugger->printf_P(PSTR("Language:             %s\r\n"), ui.language);
+	}
+
+	CloudConfig cc;
+	if(getCloudConfig(cc)) {
+		String uuid = ESPRandom::uuidToString(cc.clientId);;
+		debugger->println(F("--UI configuration--"));
+		debugger->printf_P(PSTR("Enabled:              %s\r\n"), cc.enabled ? "Yes" : "No");
+		debugger->printf_P(PSTR("Hostname:             %s\r\n"), cc.hostname);
+		debugger->printf_P(PSTR("Client ID:            %s\r\n"), uuid.c_str());
+		debugger->printf_P(PSTR("Interval:             %d\r\n"), cc.interval);
 	}
 
 	debugger->println(F("-----------------------------------------------"));

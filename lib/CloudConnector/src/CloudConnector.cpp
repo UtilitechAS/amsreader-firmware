@@ -184,7 +184,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
         IPAddress dns2;
 
         if(ch == NULL) {
-            localIp = WiFi.softAPIP();
+            localIp = WiFi.localIP();
             subnet = IPAddress(255,255,255,0);
             gateway = WiFi.subnetMask();
             dns1 = WiFi.dnsIP(0);

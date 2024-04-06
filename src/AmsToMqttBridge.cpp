@@ -677,6 +677,8 @@ void loop() {
 					if(cloud->setup(cc, meterConfig, sysConfig, &hw, &rdc)) {
 						config.setCloudConfig(cc);
 					}
+					cloud->setTimezone(tz);
+					cloud->setConnectionHandler(ch);
 				}
 				config.ackCloudConfig();
 			}

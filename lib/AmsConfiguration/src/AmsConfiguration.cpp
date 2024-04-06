@@ -741,7 +741,7 @@ void AmsConfiguration::clearUiConfig(UiConfig& config) {
 	config.showDayPlot = 1;
 	config.showMonthPlot = 1;
 	config.showTemperaturePlot = 2;
-	config.showRealtimePlot = 1;
+	config.showRealtimePlot = 2;
 	config.showPerPhasePower = 2;
 	config.showPowerFactor = 2;
 	config.darkMode = 2;

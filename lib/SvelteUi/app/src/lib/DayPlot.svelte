@@ -97,6 +97,7 @@
 
         config = {
             title: title,
+            dark: document.documentElement.classList.contains('dark'),
             height: 226,
             width: 1520,
             padding: { top: 20, right: 15, bottom: 20, left: 35 },

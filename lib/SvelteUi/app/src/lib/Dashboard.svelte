@@ -145,7 +145,7 @@
             <TariffPeakChart title={translations.dashboard?.tariffpeak ?? "Tariff peaks"}/>
         </div>
     {/if}
-    {#if uiVisibility(sysinfo.ui.l)}
+    {#if uiVisibility(sysinfo.ui.l, data.hm == 1)}
         <div class="cnt gwf">
             <RealtimePlot title={translations.dashboard?.realtime ?? "Real time"}/>
         </div>

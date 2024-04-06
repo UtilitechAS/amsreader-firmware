@@ -13,6 +13,16 @@
 #include <ESPRandom.h>
 #endif
 
+#if CONFIG_IDF_TARGET_ESP32 // ESP32/PICO-D4
+#include "esp32/rom/rtc.h"
+#elif CONFIG_IDF_TARGET_ESP32S2
+#include "esp32s2/rom/rtc.h"
+#elif CONFIG_IDF_TARGET_ESP32C3
+#include "esp32c3/rom/rtc.h"
+#elif CONFIG_IDF_TARGET_ESP32S3
+#include "esp32s3/rom/rtc.h"
+#endif
+
 CloudConnector::CloudConnector(RemoteDebug* debugger) {
     this->debugger = debugger;
 
@@ -36,7 +46,7 @@ CloudConnector::CloudConnector(RemoteDebug* debugger) {
     sprintf_P(this->apmac, PSTR("%02X:%02X:%02X:%02X:%02X:%02X"), apmac[0], apmac[1], apmac[2], apmac[3], apmac[4], apmac[5]);
 }
 
-bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, HwTools* hw) {
+bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, HwTools* hw, ResetDataContainer* rdc) {
     bool ret = false;
     #if defined(ESP32)
     if(!ESPRandom::isValidV4Uuid(config.clientId)) {
@@ -48,6 +58,9 @@ bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, HwTools* hw)
 
     this->config = config;
     this->hw = hw;
+    this->rdc = rdc;
+
+    this->boardType = system.boardType;
 
 	this->maxPwr = 0;
 	this->distributionSystem = meter.distributionSystem;
@@ -134,143 +147,25 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     if(!config.enabled) return;
     unsigned long now = millis();
     if(now-lastUpdate < config.interval*1000) return;
-    lastUpdate = now;
     if(!ESPRandom::isValidV4Uuid(config.clientId)) {
         if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("(CloudConnector) Client ID is not valid\n"));
         return;
     }
     if(data.getListType() < 2) return;
 
+    if(!initialized && !init()) {
+        if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unable to initialize cloud connector\n"));
+        return;
+    }
+    initialized = true;
+
     memset(clearBuffer, 0, CC_BUF_SIZE);
 
     int pos = 0;
-    if(initialized) {
-        float vcc = hw->getVcc();
-        int rssi = hw->getWifiRssi();
 
-        uint8_t espStatus;
-        #if defined(ESP8266)
-        if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
-            espStatus = 1;
-        } else if(vcc > 2.8 && vcc < 3.5) {
-            espStatus = 1;
-        } else if(vcc > 2.7 && vcc < 3.6) {
-            espStatus = 2;
-        } else {
-            espStatus = 3;
-        }
-        #elif defined(ESP32)
-        if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
-            espStatus = 1;
-        } else if(vcc > 3.1 && vcc < 3.5) {
-            espStatus = 1;
-        } else if(vcc > 3.0 && vcc < 3.6) {
-            espStatus = 2;
-        } else {
-            espStatus = 3;
-        }
-        #endif
+    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("{\"id\":\"%s\""), uuid.c_str());
 
-        uint8_t hanStatus;
-        if(data.getLastError() != 0) {
-            hanStatus = 3;
-        } else if(data.getLastUpdateMillis() == 0 && now < 30000) {
-            hanStatus = 0;
-        } else if(now - data.getLastUpdateMillis() < 15000) {
-            hanStatus = 1;
-        } else if(now - data.getLastUpdateMillis() < 30000) {
-            hanStatus = 2;
-        } else {
-            hanStatus = 3;
-        }
-
-        uint8_t wifiStatus;
-        if(rssi > -75) {
-            wifiStatus = 1;
-        } else if(rssi > -95) {
-            wifiStatus = 2;
-        } else {
-            wifiStatus = 3;
-        }
-
-        uint8_t mqttStatus;
-        if(mqttHandler == NULL) {
-            mqttStatus = 0;
-        } else if(mqttHandler->connected()) {
-            mqttStatus = 1;
-        } else if(mqttHandler->lastError() == 0) {
-            mqttStatus = 2;
-        } else {
-            mqttStatus = 3;
-        }
-
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("{\"id\":\"%s\",\"data\":{\"clock\":%lu,\"up\":%lu,\"lastUpdate\":%lu,\"est\":%s"), 
-            uuid.c_str(),
-            (uint32_t) time(nullptr),
-            (uint32_t) (millis64()/1000),
-            (uint32_t) (data.getLastUpdateMillis()/1000),
-            data.isCounterEstimated() ? "true" : "false"
-        );
-        if(data.getListType() > 2) {
-            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER_LIST3, "import", data.getActiveImportPower(), data.getReactiveImportPower(), data.getActiveImportCounter(), data.getReactiveImportCounter());
-        } else {
-            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER, "import", data.getActiveImportPower(), data.getReactiveImportPower());
-        }
-        if(data.getListType() > 2) {
-            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER_LIST3, "export", data.getActiveExportPower(), data.getReactiveExportPower(), data.getActiveExportCounter(), data.getReactiveExportCounter());
-        } else {
-            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER, "export", data.getActiveExportPower(), data.getReactiveExportPower());
-        }
-        
-        if(data.getListType() > 1) {
-            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"phases\":{"));
-            bool first = true;
-            if(data.getL1Voltage() > 0.0) {
-                if(data.getListType() > 3) {
-                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 1, data.getL1Voltage(), String(data.getL1Current(), 2).c_str(), data.getL1ActiveImportPower(), data.getL1ActiveExportPower(), data.getL1PowerFactor());
-                } else {
-                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 1, data.getL1Voltage(), String(data.getL1Current(), 2).c_str());
-                }
-                first = false;
-            }
-            if(data.getL2Voltage() > 0.0) {
-                if(data.getListType() > 3) {
-                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 2, data.getL2Voltage(), String(data.getL2Current(), 2).c_str(), data.getL2ActiveImportPower(), data.getL2ActiveExportPower(), data.getL2PowerFactor());
-                } else {
-                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 2, data.getL2Voltage(), data.isL2currentMissing() ? "null" : String(data.getL2Current(), 2).c_str());
-                }
-                first = false;
-            }
-            if(data.getL3Voltage() > 0.0) {
-                if(data.getListType() > 3) {
-                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 3, data.getL3Voltage(), String(data.getL3Current(), 2).c_str(), data.getL3ActiveImportPower(), data.getL3ActiveExportPower(), data.getL3PowerFactor());
-                } else {
-                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 3, data.getL3Voltage(), String(data.getL3Current(), 2).c_str());
-                }
-                first = false;
-            }
-            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("}"));
-        }
-        if(data.getListType() > 3) {
-            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"pf\":%.2f"), data.getPowerFactor());
-        }
-
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"realtime\":{\"import\":%.3f,\"export\":%.3f}"), ea.getUseThisHour(), ea.getProducedThisHour());
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"vcc\":%.2f,\"temp\":%.2f,\"rssi\":%d,\"free\":%d"), vcc, hw->getTemperature(), hw->getWifiRssi(), ESP.getFreeHeap());
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_STATUS, 
-            espStatus, 0,
-            hanStatus, data.getLastError(),
-            wifiStatus, 0,
-            mqttStatus, mqttHandler == NULL ? 0 : mqttHandler->lastError()
-        );
-
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("}"));
-    } else {
-        if(!init()) {
-            if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unable to initialize cloud connector\n"));
-            return;
-        }
-
+    if(lastUpdate == 0) {
         if(mainFuse > 0 && distributionSystem > 0) {
             int voltage = distributionSystem == 2 ? 400 : 230;
             if(data.isThreePhase()) {
@@ -282,12 +177,34 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             }
         }
 
+        IPAddress localIp;
+        IPAddress subnet;
+        IPAddress gateway;
+        IPAddress dns1;
+        IPAddress dns2;
+
+        if(ch == NULL) {
+            localIp = WiFi.softAPIP();
+            subnet = IPAddress(255,255,255,0);
+            gateway = WiFi.subnetMask();
+            dns1 = WiFi.dnsIP(0);
+            dns2 = WiFi.dnsIP(1);
+        } else {
+            localIp = ch->getIP();
+            subnet = ch->getSubnetMask();
+            gateway = ch->getGateway();
+            dns1 = ch->getDns(0);
+            dns2 = ch->getDns(1);
+        }
 
         pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_INIT,
-            uuid.c_str(),
             mac, 
             apmac, 
             FirmwareVersion::VersionString,
+            boardType,
+            rtc_get_reset_reason(0),
+            rdc == NULL ? 0 : rdc->last_cause,
+            tz == NULL ? 0 : (tz->toLocal(now)-now)/3600,
             data.getMeterType(),
             meterManufacturer(data.getMeterType()).c_str(),
             data.getMeterModel().c_str(),
@@ -295,10 +212,141 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             distributionSystemStr(distributionSystem).c_str(),
             mainFuse,
             maxPwr,
-            productionCapacity
+            productionCapacity,
+            localIp.toString().c_str(),
+            subnet.toString().c_str(),
+            gateway.toString().c_str(),
+            dns1.toString().c_str(),
+            dns2.toString().c_str()
         );
-        initialized = true;
     }
+
+    float vcc = 0.0;
+    int rssi = 0;
+    float temperature = -127;
+    if(hw != NULL) {
+        vcc = hw->getVcc();
+        rssi = hw->getWifiRssi();
+        temperature = hw->getTemperature();
+    }
+
+    uint8_t espStatus;
+    #if defined(ESP8266)
+    if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
+        espStatus = 1;
+    } else if(vcc > 2.8 && vcc < 3.5) {
+        espStatus = 1;
+    } else if(vcc > 2.7 && vcc < 3.6) {
+        espStatus = 2;
+    } else {
+        espStatus = 3;
+    }
+    #elif defined(ESP32)
+    if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
+        espStatus = 1;
+    } else if(vcc > 3.1 && vcc < 3.5) {
+        espStatus = 1;
+    } else if(vcc > 3.0 && vcc < 3.6) {
+        espStatus = 2;
+    } else {
+        espStatus = 3;
+    }
+    #endif
+
+    uint8_t hanStatus;
+    if(data.getLastError() != 0) {
+        hanStatus = 3;
+    } else if(data.getLastUpdateMillis() == 0 && now < 30000) {
+        hanStatus = 0;
+    } else if(now - data.getLastUpdateMillis() < 15000) {
+        hanStatus = 1;
+    } else if(now - data.getLastUpdateMillis() < 30000) {
+        hanStatus = 2;
+    } else {
+        hanStatus = 3;
+    }
+
+    uint8_t wifiStatus;
+    if(rssi > -75) {
+        wifiStatus = 1;
+    } else if(rssi > -95) {
+        wifiStatus = 2;
+    } else {
+        wifiStatus = 3;
+    }
+
+    uint8_t mqttStatus;
+    if(mqttHandler == NULL) {
+        mqttStatus = 0;
+    } else if(mqttHandler->connected()) {
+        mqttStatus = 1;
+    } else if(mqttHandler->lastError() == 0) {
+        mqttStatus = 2;
+    } else {
+        mqttStatus = 3;
+    }
+
+    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"data\":{\"clock\":%lu,\"up\":%lu,\"lastUpdate\":%lu,\"est\":%s"), 
+        (uint32_t) time(nullptr),
+        (uint32_t) (millis64()/1000),
+        (uint32_t) (data.getLastUpdateMillis()/1000),
+        data.isCounterEstimated() ? "true" : "false"
+    );
+    if(data.getListType() > 2) {
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER_LIST3, "import", data.getActiveImportPower(), data.getReactiveImportPower(), data.getActiveImportCounter(), data.getReactiveImportCounter());
+    } else {
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER, "import", data.getActiveImportPower(), data.getReactiveImportPower());
+    }
+    if(data.getListType() > 2) {
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER_LIST3, "export", data.getActiveExportPower(), data.getReactiveExportPower(), data.getActiveExportCounter(), data.getReactiveExportCounter());
+    } else {
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER, "export", data.getActiveExportPower(), data.getReactiveExportPower());
+    }
+    
+    if(data.getListType() > 1) {
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"phases\":{"));
+        bool first = true;
+        if(data.getL1Voltage() > 0.0) {
+            if(data.getListType() > 3) {
+                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 1, data.getL1Voltage(), String(data.getL1Current(), 2).c_str(), data.getL1ActiveImportPower(), data.getL1ActiveExportPower(), data.getL1PowerFactor());
+            } else {
+                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 1, data.getL1Voltage(), String(data.getL1Current(), 2).c_str());
+            }
+            first = false;
+        }
+        if(data.getL2Voltage() > 0.0) {
+            if(data.getListType() > 3) {
+                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 2, data.getL2Voltage(), String(data.getL2Current(), 2).c_str(), data.getL2ActiveImportPower(), data.getL2ActiveExportPower(), data.getL2PowerFactor());
+            } else {
+                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 2, data.getL2Voltage(), data.isL2currentMissing() ? "null" : String(data.getL2Current(), 2).c_str());
+            }
+            first = false;
+        }
+        if(data.getL3Voltage() > 0.0) {
+            if(data.getListType() > 3) {
+                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 3, data.getL3Voltage(), String(data.getL3Current(), 2).c_str(), data.getL3ActiveImportPower(), data.getL3ActiveExportPower(), data.getL3PowerFactor());
+            } else {
+                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 3, data.getL3Voltage(), String(data.getL3Current(), 2).c_str());
+            }
+            first = false;
+        }
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("}"));
+    }
+    if(data.getListType() > 3) {
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"pf\":%.2f"), data.getPowerFactor());
+    }
+
+    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"realtime\":{\"import\":%.3f,\"export\":%.3f}"), ea.getUseThisHour(), ea.getProducedThisHour());
+    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"vcc\":%.2f,\"temp\":%.2f,\"rssi\":%d,\"free\":%d"), vcc, temperature, rssi, ESP.getFreeHeap());
+    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_STATUS, 
+        espStatus, 0,
+        hanStatus, data.getLastError(),
+        wifiStatus, 0,
+        mqttStatus, mqttHandler == NULL ? 0 : mqttHandler->lastError()
+    );
+
+    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("}"));
+
     uint16_t crc = crc16((uint8_t*) clearBuffer, pos);
     pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"crc\":\"%04X\"}"), crc);
 
@@ -328,10 +376,20 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
         }
     }
     udp.endPacket();
+
+    lastUpdate = now;
 }
 
 void CloudConnector::forceUpdate() {
     lastUpdate = 0;
+}
+
+void CloudConnector::setTimezone(Timezone* tz) {
+    this->tz = tz;
+}
+
+void CloudConnector::setConnectionHandler(ConnectionHandler* ch) {
+	this->ch = ch;
 }
 
 void CloudConnector::debugPrint(byte *buffer, int start, int length) {

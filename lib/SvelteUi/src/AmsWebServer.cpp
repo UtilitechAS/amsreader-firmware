@@ -252,6 +252,9 @@ void AmsWebServer::logoSvg() {
 }
 
 void AmsWebServer::sysinfoJson() {
+	if(!checkSecurity(2, true))
+		return;
+
 	SystemConfig sys;
 	config->getSystemConfig(sys);
 

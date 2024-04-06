@@ -674,7 +674,7 @@ void loop() {
 					if(cloud == NULL) {
 						cloud = new CloudConnector(&Debug);
 					}
-					if(cloud->setup(cc, meterConfig, &hw)) {
+					if(cloud->setup(cc, meterConfig, sysConfig, &hw, &rdc)) {
 						config.setCloudConfig(cc);
 					}
 				}
@@ -929,6 +929,11 @@ void handleNtpChange() {
 		ws.setTimezone(tz);
 		ds.setTimezone(tz);
 		ea.setTimezone(tz);
+		#if defined(ESP32)
+		if(cloud != NULL) {
+			cloud->setTimezone(tz);
+		}
+		#endif
 	}
 
 	config.ackNtpChange();
@@ -1149,6 +1154,10 @@ void connectToNetwork() {
 		}
 		ch->connect(network, sysConfig);
 		ws.setConnectionHandler(ch);
+		#if defined(ESP32)
+		if(cloud != NULL)
+			cloud->setConnectionHandler(ch);
+		#endif
 	} else {
 		setupMode = false;
 		toggleSetupMode();

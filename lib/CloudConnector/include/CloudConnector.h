@@ -22,6 +22,7 @@
 #include "EnergyAccounting.h"
 #include "HwTools.h"
 #include "AmsMqttHandler.h"
+#include "ConnectionHandler.h"
 
 #if defined(ESP8266)
 	#include <ESP8266HTTPClient.h>
@@ -34,14 +35,14 @@
 	#warning "Unsupported board type"
 #endif
 
-#define CC_BUF_SIZE 1024
+#define CC_BUF_SIZE 2048
 
 static const char CC_JSON_POWER[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu}";
 static const char CC_JSON_POWER_LIST3[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu,\"tP\":%.3f,\"tQ\":%.3f}";
 static const char CC_JSON_PHASE[] PROGMEM = "%s\"%d\":{\"u\":%.2f,\"i\":%s}";
 static const char CC_JSON_PHASE_LIST4[] PROGMEM = "%s\"%d\":{\"u\":%.2f,\"i\":%s,\"Pim\":%lu,\"Pex\":%lu,\"pf\":%.2f}";
 static const char CC_JSON_STATUS[] PROGMEM = ",\"status\":{\"esp\":{\"state\":%d,\"error\":%d},\"han\":{\"state\":%d,\"error\":%d},\"wifi\":{\"state\":%d,\"error\":%d},\"mqtt\":{\"state\":%d,\"error\":%d}}";
-static const char CC_JSON_INIT[] PROGMEM = "{\"id\":\"%s\",\"init\":{\"mac\":\"%s\",\"apmac\":\"%s\",\"version\":\"%s\"},\"meter\":{\"manufacturerId\":%d,\"manufacturer\":\"%s\",\"model\":\"%s\",\"id\":\"%s\",\"system\":\"%s\",\"fuse\":%d,\"import\":%d,\"export\":%d}";
+static const char CC_JSON_INIT[] PROGMEM = ",\"init\":{\"mac\":\"%s\",\"apmac\":\"%s\",\"version\":\"%s\",\"boardType\":%d,\"bootReason\":%d,\"bootCause\":%d,\"utcOffset\":%d},\"meter\":{\"manufacturerId\":%d,\"manufacturer\":\"%s\",\"model\":\"%s\",\"id\":\"%s\",\"system\":\"%s\",\"fuse\":%d,\"import\":%d,\"export\":%d},\"network\":{\"ip\":\"%s\",\"mask\":\"%s\",\"gw\":\"%s\",\"dns1\":\"%s\",\"dns2\":\"%s\"}";
 
 struct CloudData {
     uint8_t type;
@@ -51,19 +52,25 @@ struct CloudData {
 class CloudConnector {
 public:
     CloudConnector(RemoteDebug*);
-    bool setup(CloudConfig& config, MeterConfig& meter, HwTools* hw);
+    bool setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, HwTools* hw, ResetDataContainer* rdc);
     void setMqttHandler(AmsMqttHandler* mqttHandler);
     void update(AmsData& data, EnergyAccounting& ea);
     void forceUpdate();
+    void setTimezone(Timezone* tz);
+    void setConnectionHandler(ConnectionHandler* ch);
 
 private:
-    RemoteDebug* debugger;
-    HwTools* hw;
+    RemoteDebug* debugger = NULL;
+    HwTools* hw = NULL;
+    ConnectionHandler* ch = NULL;
+    ResetDataContainer* rdc = NULL;
+    Timezone* tz = NULL;
     AmsMqttHandler* mqttHandler = NULL;
     CloudConfig config;
     HTTPClient http;
     WiFiUDP udp;
 	int maxPwr = 0;
+    uint8_t boardType = 0;
 	uint8_t distributionSystem = 0;
 	uint16_t mainFuse = 0, productionCapacity = 0;
 

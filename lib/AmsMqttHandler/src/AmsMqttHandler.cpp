@@ -99,8 +99,6 @@ bool AmsMqttHandler::connect() {
 		actualClient = mqttClient;
 	}
 
-	actualClient->setTimeout(4);
-
 	mqttConfigChanged = false;
 	mqtt.begin(mqttConfig.host, mqttConfig.port, *actualClient);
 	String statusTopic = String(mqttConfig.publishTopic) + "/status";

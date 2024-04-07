@@ -705,7 +705,6 @@ bool AmsConfiguration::getUiConfig(UiConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_UI_START, config);
 		if(config.showImport > 2) clearUiConfig(config); // Must be wrong
-		if(config.showRealtimePlot > 2) config.showRealtimePlot = 1; // TODO: Move to new config version for v2.3
 		EEPROM.end();
 		return true;
 	} else {
@@ -1073,6 +1072,7 @@ bool AmsConfiguration::relocateConfig103() {
 	memset(web.context, 0, 37);
 
 	strcpy_P(ui.language, PSTR("en"));
+	ui.showRealtimePlot = 2;
 	ui.showPerPhasePower = 2;
 	ui.showPowerFactor = 2;
 	ui.darkMode = 2;

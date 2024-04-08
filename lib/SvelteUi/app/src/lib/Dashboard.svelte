@@ -85,13 +85,13 @@
                     l1={data.l1 && data.l1.u > 100} 
                     l2={data.l2 && data.l2.u > 100} 
                     l3={data.l3 && data.l3.u > 100}
-                    l2x={data.i2e}
+                    l2x={data.l2.e}
                     l1i={Math.max(data.l1.i,0)}
                     l2i={Math.max(data.l2.i,0)}
                     l3i={Math.max(data.l3.i,0)}
-                    l1e={Math.max(data.l1.e,0)}
-                    l2e={Math.max(data.l2.e,0)}
-                    l3e={Math.max(data.l3.e,0)}
+                    l1e={Math.max(data.l1.i*-1,0)}
+                    l2e={Math.max(data.l2.i*-1,0)}
+                    l3e={Math.max(data.l3.i*-1,0)}
                 />
             {/if}
         </div>

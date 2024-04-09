@@ -1,2 +1,0 @@
-static const char JSON1_JSON[] PROGMEM = R"=="==({"id":"%s","name":"%s","up":%u,"t":%lu,"vcc":%.3f,"rssi":%d,"temp":%.2f,"data":{"P":%d},"realtime":{"h":%.2f,"d":%.1f,"t":%d,"x":%.2f,"he":%.2f,"de":%.1f}})=="==";
-const int JSON1_JSON_LEN PROGMEM = 155;

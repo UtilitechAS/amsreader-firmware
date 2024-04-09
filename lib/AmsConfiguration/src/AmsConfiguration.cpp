@@ -246,7 +246,13 @@ bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_METER_START, config);
 		EEPROM.end();
-		if(config.bufferSize < 1 || config.bufferSize > 64) config.bufferSize = 4;
+		if(config.bufferSize < 1 || config.bufferSize > 64) {
+			#if defined(ESP32)
+				config.bufferSize = 2;
+			#else
+				config.bufferSize = 1;
+			#endif
+		}
 		return true;
 	} else {
 		clearMeter(config);
@@ -705,7 +711,6 @@ bool AmsConfiguration::getUiConfig(UiConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_UI_START, config);
 		if(config.showImport > 2) clearUiConfig(config); // Must be wrong
-		if(config.showRealtimePlot > 2) config.showRealtimePlot = 1; // TODO: Move to new config version for v2.3
 		EEPROM.end();
 		return true;
 	} else {
@@ -741,7 +746,7 @@ void AmsConfiguration::clearUiConfig(UiConfig& config) {
 	config.showDayPlot = 1;
 	config.showMonthPlot = 1;
 	config.showTemperaturePlot = 2;
-	config.showRealtimePlot = 1;
+	config.showRealtimePlot = 2;
 	config.showPerPhasePower = 2;
 	config.showPowerFactor = 2;
 	config.darkMode = 2;
@@ -1087,6 +1092,13 @@ bool AmsConfiguration::relocateConfig103() {
 	meter.rxPin = gpio103.hanPin;
 	meter.txPin = 0xFF;
 	meter.rxPinPullup = gpio103.hanPinPullup;
+	meter.source = 1;
+	meter.parser = 0;
+	#if defined(ESP8266)
+		if(meter.rxPin != 3 && meter.rxPin != 113) {
+			meter.bufferSize = 1;
+		}
+	#endif
 	wifi.mode = 1; // 1 == WiFi client
 	wifi.ipv6 = false;
 
@@ -1116,6 +1128,7 @@ bool AmsConfiguration::relocateConfig103() {
 	memset(web.context, 0, 37);
 
 	strcpy_P(ui.language, PSTR("en"));
+	ui.showRealtimePlot = 2;
 	ui.showPerPhasePower = 2;
 	ui.showPowerFactor = 2;
 	ui.darkMode = 2;
@@ -1341,6 +1354,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf_P(PSTR("Language:             %s\r\n"), ui.language);
 	}
 
+	#if defined(ESP32)
 	CloudConfig cc;
 	if(getCloudConfig(cc)) {
 		String uuid = ESPRandom::uuidToString(cc.clientId);;
@@ -1350,6 +1364,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf_P(PSTR("Client ID:            %s\r\n"), uuid.c_str());
 		debugger->printf_P(PSTR("Interval:             %d\r\n"), cc.interval);
 	}
+	#endif
 
 	debugger->println(F("-----------------------------------------------"));
 	debugger->flush();

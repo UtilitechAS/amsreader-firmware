@@ -51,24 +51,28 @@ bool RawMqttHandler::publishList2(AmsData* data, AmsData* meterState) {
     if(full || meterState->getMeterModel() != data->getMeterModel()) {
         mqtt.publish(topic + "/meter/type", data->getMeterModel());
     }
+    loop();
     if(full || meterState->getL1Current() != data->getL1Current()) {
         mqtt.publish(topic + "/meter/l1/current", String(data->getL1Current(), 2));
     }
     if(full || meterState->getL1Voltage() != data->getL1Voltage()) {
         mqtt.publish(topic + "/meter/l1/voltage", String(data->getL1Voltage(), 2));
     }
+    loop();
     if(full || meterState->getL2Current() != data->getL2Current()) {
         mqtt.publish(topic + "/meter/l2/current", String(data->getL2Current(), 2));
     }
     if(full || meterState->getL2Voltage() != data->getL2Voltage()) {
         mqtt.publish(topic + "/meter/l2/voltage", String(data->getL2Voltage(), 2));
     }
+    loop();
     if(full || meterState->getL3Current() != data->getL3Current()) {
         mqtt.publish(topic + "/meter/l3/current", String(data->getL3Current(), 2));
     }
     if(full || meterState->getL3Voltage() != data->getL3Voltage()) {
         mqtt.publish(topic + "/meter/l3/voltage", String(data->getL3Voltage(), 2));
     }
+    loop();
     if(full || meterState->getReactiveExportPower() != data->getReactiveExportPower()) {
         mqtt.publish(topic + "/meter/export/reactive", String(data->getReactiveExportPower()));
     }
@@ -96,69 +100,94 @@ bool RawMqttHandler::publishList3(AmsData* data, AmsData* meterState) {
 bool RawMqttHandler::publishList4(AmsData* data, AmsData* meterState) {
         if(full || meterState->getL1ActiveImportPower() != data->getL1ActiveImportPower()) {
             mqtt.publish(topic + "/meter/import/l1", String(data->getL1ActiveImportPower()));
+            mqtt.loop();
         }
         if(full || meterState->getL2ActiveImportPower() != data->getL2ActiveImportPower()) {
             mqtt.publish(topic + "/meter/import/l2", String(data->getL2ActiveImportPower()));
+            mqtt.loop();
         }
         if(full || meterState->getL3ActiveImportPower() != data->getL3ActiveImportPower()) {
             mqtt.publish(topic + "/meter/import/l3", String(data->getL3ActiveImportPower()));
+            mqtt.loop();
         }
         if(full || meterState->getL1ActiveExportPower() != data->getL1ActiveExportPower()) {
             mqtt.publish(topic + "/meter/export/l1", String(data->getL1ActiveExportPower()));
+            mqtt.loop();
         }
         if(full || meterState->getL2ActiveExportPower() != data->getL2ActiveExportPower()) {
             mqtt.publish(topic + "/meter/export/l2", String(data->getL2ActiveExportPower()));
+            mqtt.loop();
         }
         if(full || meterState->getL3ActiveExportPower() != data->getL3ActiveExportPower()) {
             mqtt.publish(topic + "/meter/export/l3", String(data->getL3ActiveExportPower()));
+            mqtt.loop();
         }
         if(full || meterState->getL1ActiveImportCounter() != data->getL1ActiveImportCounter()) {
             mqtt.publish(topic + "/meter/import/l1/accumulated", String(data->getL1ActiveImportCounter(), 2));
+            mqtt.loop();
         }
         if(full || meterState->getL2ActiveImportCounter() != data->getL2ActiveImportCounter()) {
             mqtt.publish(topic + "/meter/import/l2/accumulated", String(data->getL2ActiveImportCounter(), 2));
+            mqtt.loop();
         }
         if(full || meterState->getL3ActiveImportCounter() != data->getL3ActiveImportCounter()) {
             mqtt.publish(topic + "/meter/import/l3/accumulated", String(data->getL3ActiveImportCounter(), 2));
+            mqtt.loop();
         }
         if(full || meterState->getL1ActiveExportCounter() != data->getL1ActiveExportCounter()) {
             mqtt.publish(topic + "/meter/export/l1/accumulated", String(data->getL1ActiveExportCounter(), 2));
+            mqtt.loop();
         }
         if(full || meterState->getL2ActiveExportCounter() != data->getL2ActiveExportCounter()) {
             mqtt.publish(topic + "/meter/export/l2/accumulated", String(data->getL2ActiveExportCounter(), 2));
+            mqtt.loop();
         }
         if(full || meterState->getL3ActiveExportCounter() != data->getL3ActiveExportCounter()) {
             mqtt.publish(topic + "/meter/export/l3/accumulated", String(data->getL3ActiveExportCounter(), 2));
+            mqtt.loop();
         }
         if(full || meterState->getPowerFactor() != data->getPowerFactor()) {
             mqtt.publish(topic + "/meter/powerfactor", String(data->getPowerFactor(), 2));
+            mqtt.loop();
         }
         if(full || meterState->getL1PowerFactor() != data->getL1PowerFactor()) {
             mqtt.publish(topic + "/meter/l1/powerfactor", String(data->getL1PowerFactor(), 2));
+            mqtt.loop();
         }
         if(full || meterState->getL2PowerFactor() != data->getL2PowerFactor()) {
             mqtt.publish(topic + "/meter/l2/powerfactor", String(data->getL2PowerFactor(), 2));
+            mqtt.loop();
         }
         if(full || meterState->getL3PowerFactor() != data->getL3PowerFactor()) {
             mqtt.publish(topic + "/meter/l3/powerfactor", String(data->getL3PowerFactor(), 2));
+            mqtt.loop();
         }
         return true;
 }
 
 bool RawMqttHandler::publishRealtime(EnergyAccounting* ea) {
     mqtt.publish(topic + "/realtime/import/hour", String(ea->getUseThisHour(), 3));
+    mqtt.loop();
     mqtt.publish(topic + "/realtime/import/day", String(ea->getUseToday(), 2));
+    mqtt.loop();
     mqtt.publish(topic + "/realtime/import/month", String(ea->getUseThisMonth(), 1));
+    mqtt.loop();
     uint8_t peakCount = ea->getConfig()->hours;
     if(peakCount > 5) peakCount = 5;
     for(uint8_t i = 1; i <= peakCount; i++) {
         mqtt.publish(topic + "/realtime/import/peak/" + String(i, 10), String(ea->getPeak(i).value / 100.0, 10), true, 0);
+        mqtt.loop();
     }
     mqtt.publish(topic + "/realtime/import/threshold", String(ea->getCurrentThreshold(), 10), true, 0);
+    mqtt.loop();
     mqtt.publish(topic + "/realtime/import/monthmax", String(ea->getMonthMax(), 3), true, 0);
+    mqtt.loop();
     mqtt.publish(topic + "/realtime/export/hour", String(ea->getProducedThisHour(), 3));
+    mqtt.loop();
     mqtt.publish(topic + "/realtime/export/day", String(ea->getProducedToday(), 2));
+    mqtt.loop();
     mqtt.publish(topic + "/realtime/export/month", String(ea->getProducedThisMonth(), 1));
+    mqtt.loop();
     return true;
 }
 
@@ -169,6 +198,7 @@ bool RawMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) 
         if(data != NULL && data->lastValidRead > -85) {
             if(data->changed || full) {
                 mqtt.publish(topic + "/temperature/" + toHex(data->address), String(data->lastValidRead, 2));
+                mqtt.loop();
                 data->changed = false;
             }
         }
@@ -261,27 +291,31 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
         float val = values[i];
         if(val == PRICE_NO_VALUE) {
             mqtt.publish(topic + "/price/" + String(i), "", true, 0);
+            mqtt.loop();
         } else {
             mqtt.publish(topic + "/price/" + String(i), String(val, 4), true, 0);
+            mqtt.loop();
         }
-        mqtt.loop();
-        delay(10);
     }
     if(min != INT16_MAX) {
         mqtt.publish(topic + "/price/min", String(min, 4), true, 0);
+        mqtt.loop();
     }
     if(max != INT16_MIN) {
         mqtt.publish(topic + "/price/max", String(max, 4), true, 0);
+        mqtt.loop();
     }
-
     if(min1hrIdx != -1) {
         mqtt.publish(topic + "/price/cheapest/1hr", String(ts1hr), true, 0);
+        mqtt.loop();
     }
     if(min3hrIdx != -1) {
         mqtt.publish(topic + "/price/cheapest/3hr", String(ts3hr), true, 0);
+        mqtt.loop();
     }
     if(min6hrIdx != -1) {
         mqtt.publish(topic + "/price/cheapest/6hr", String(ts6hr), true, 0);
+        mqtt.loop();
     }
     return true;
 }
@@ -291,15 +325,21 @@ bool RawMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounti
 		return false;
 
 	mqtt.publish(topic + "/id", WiFi.macAddress(), true, 0);
+    mqtt.loop();
 	mqtt.publish(topic + "/uptime", String((uint32_t) (millis64()/1000)));
+    mqtt.loop();
 	float vcc = hw->getVcc();
 	if(vcc > 0) {
 		mqtt.publish(topic + "/vcc", String(vcc, 2));
+        mqtt.loop();
 	}
 	mqtt.publish(topic + "/mem", String(ESP.getFreeHeap()));
+    mqtt.loop();
 	mqtt.publish(topic + "/rssi", String(hw->getWifiRssi()));
+    mqtt.loop();
     if(hw->getTemperature() > -85) {
 		mqtt.publish(topic + "/temperature", String(hw->getTemperature(), 2));
+        mqtt.loop();
     }
     return true;
 }

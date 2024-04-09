@@ -616,7 +616,7 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 			#if defined(ESP8266)
 			if(bufferSize > 2) bufferSize = 2;
 			#endif
-			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Using serial buffer size %d"), 64 * bufferSize);
+			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Using serial buffer size %d\n"), 64 * bufferSize);
 			swSerial->begin(baud, serialConfig, rxpin, txpin, invert, meterConfig.bufferSize * 64);
 			hanSerial = swSerial;
 

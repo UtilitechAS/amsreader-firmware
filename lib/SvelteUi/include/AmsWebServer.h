@@ -39,12 +39,6 @@
 
 #include "LittleFS.h"
 
-struct ResetDataContainer {
-	uint8_t cause;
-	uint8_t last_cause;
-	uint8_t magic;
-};
-
 class AmsWebServer {
 public:
 	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc);

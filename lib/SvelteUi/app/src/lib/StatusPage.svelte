@@ -141,7 +141,7 @@
     <div class="cnt">
         <strong class="text-sm">{translations.status?.device.title ?? "Device"}</strong>
         <div class="my-2">
-            {translations.status?.device?.chip ?? "Chip"}: {sysinfo.chip} ({sysinfo.cpu}MHz)
+            {translations.status?.device?.chip ?? "Chip"}: {sysinfo.chip} {#if sysinfo.cpu}({sysinfo.cpu}MHz){/if}
         </div>
         <div class="my-2">
             {translations.status?.device?.device ?? "Device"}: <Link to="/vendor">{boardtype(sysinfo.chip, sysinfo.board)}</Link>

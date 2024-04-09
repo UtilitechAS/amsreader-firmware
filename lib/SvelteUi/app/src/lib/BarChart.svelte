@@ -83,7 +83,7 @@
                                     width="{barWidth - 4}"
                                     dominant-baseline="middle"
                                     text-anchor="{barWidth < vertSwitch || point.labelAngle ? 'left' : 'middle'}"
-                                    fill="{yScale(point.value) > yScale(0)-labelOffset ? point.color : 'white'}"
+                                    fill="{yScale(point.value) > yScale(0)-labelOffset && !config.dark ? point.color : 'white'}"
                                     transform="translate({xScale(i) + barWidth/2} {yScale(point.value) > yScale(0) - labelOffset ? yScale(point.value) - labelOffset : yScale(point.value) + 10}) rotate({point.labelAngle ? point.labelAngle : barWidth < vertSwitch ? 90 : 0})"
                                     
                                 >{point.label}</text>
@@ -107,7 +107,7 @@
                                     width="{barWidth - 4}"
                                     dominant-baseline="middle"
                                     text-anchor="{'middle'}"
-                                    fill="{yScale(-point.value2) < yScale(0) + 15 ? point.color2 ? point.color2 : point.color : 'white'}"
+                                    fill="{yScale(-point.value2) < yScale(0) + 15 && !config.dark ? point.color2 ? point.color2 : point.color : 'white'}"
                                     transform="translate({xScale(i) + (barWidth/2)} {yScale(-point.value2) < yScale(0) + 15 ? yScale(-point.value2) + 15 : yScale(-point.value2) - 14}) rotate({barWidth < vertSwitch ? 90 : 0})"
                                 >{point.label2}</text>
                                 {#if point.title2}

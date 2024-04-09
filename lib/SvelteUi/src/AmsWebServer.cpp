@@ -252,6 +252,9 @@ void AmsWebServer::logoSvg() {
 }
 
 void AmsWebServer::sysinfoJson() {
+	if(!checkSecurity(2, true))
+		return;
+
 	SystemConfig sys;
 	config->getSystemConfig(sys);
 
@@ -2202,7 +2205,7 @@ void AmsWebServer::configFileDownload() {
 	if(includePrice) {
 		PriceServiceConfig price;
 		config->getPriceServiceConfig(price);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEnabled %s\n"), price.enabled ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEnabled %d\n"), price.enabled ? 1 : 0));
 		if(strlen(price.entsoeToken) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEntsoeToken %s\n"), price.entsoeToken));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceArea %s\n"), price.area));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceCurrency %s\n"), price.currency));

@@ -59,7 +59,7 @@ void RealtimePlot::update(AmsData& data) {
 }
 
 int32_t RealtimePlot::getValue(uint16_t req) {
-    if(req > REALTIME_SAMPLE) return 0;
+    if(req > REALTIME_SIZE) return 0;
 
     unsigned long now = millis();
     if(req * REALTIME_SAMPLE > now) return 0;

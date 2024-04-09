@@ -21,6 +21,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
                 val
             );
             ret = mqtt.publish(F("domoticz/in"), json);
+            mqtt.loop();
         }
     }
 
@@ -35,6 +36,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
             val
         );
         ret |= mqtt.publish(F("domoticz/in"), json);
+        mqtt.loop();
     }
 
     if (config.vl2idx > 0){				
@@ -45,6 +47,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
             val
         );
         ret |= mqtt.publish(F("domoticz/in"), json);
+        mqtt.loop();
     }
 
     if (config.vl3idx > 0){				
@@ -55,6 +58,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
             val
         );
         ret |= mqtt.publish(F("domoticz/in"), json);
+        mqtt.loop();
     }
 
     if (config.cl1idx > 0){				
@@ -65,6 +69,7 @@ bool DomoticzMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyA
             val
         );
         ret |= mqtt.publish(F("domoticz/in"), json);
+        mqtt.loop();
     }			
     return ret;
 }

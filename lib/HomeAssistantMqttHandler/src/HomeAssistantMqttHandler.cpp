@@ -29,22 +29,25 @@ bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, En
 
     if(data->getListType() >= 3) { // publish energy counts
         publishList3(data, ea);
-        loop();
+        mqtt.loop();
     }
 
     if(data->getListType() == 1) { // publish power counts
         publishList1(data, ea);
+        mqtt.loop();
     } else if(data->getListType() <= 3) { // publish power counts and volts/amps
         publishList2(data, ea);
+        mqtt.loop();
     } else if(data->getListType() == 4) { // publish power counts and volts/amps/phase power and PF
         publishList4(data, ea);
+        mqtt.loop();
     }
-    loop();
 
     if(ea->isInitialized()) {
         publishRealtime(data, ea, ps);
-        loop();
+        mqtt.loop();
     }
+    loop();
     return true;
 }
 

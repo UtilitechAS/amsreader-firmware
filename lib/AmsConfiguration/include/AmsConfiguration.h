@@ -51,6 +51,12 @@
 #define LED_BEHAVIOUR_ERROR_ONLY 3
 #define LED_BEHAVIOUR_OFF 9
 
+struct ResetDataContainer {
+	uint8_t cause;
+	uint8_t last_cause;
+	uint8_t magic;
+};
+
 struct SystemConfig {
 	uint8_t boardType;
 	bool vendorConfigured;

@@ -99,8 +99,6 @@ bool AmsMqttHandler::connect() {
 		actualClient = mqttClient;
 	}
 
-	actualClient->setTimeout(4);
-
 	mqttConfigChanged = false;
 	mqtt.begin(mqttConfig.host, mqttConfig.port, *actualClient);
 	String statusTopic = String(mqttConfig.publishTopic) + "/status";
@@ -125,6 +123,7 @@ bool AmsMqttHandler::connect() {
 			}
 		}
 		mqtt.publish(statusTopic, "online", true, 0);
+        mqtt.loop();
         return true;
 	} else {
 		if (debugger->isActive(RemoteDebug::ERROR)) {

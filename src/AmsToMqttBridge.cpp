@@ -283,7 +283,7 @@ void setup() {
 		config.getMeterConfig(meterConfig);
 		if(sysConfig.boardType < 20) {
 			config.clearGpio(gpioConfig);
-			hw.applyBoardConfig(sysConfig.boardType, gpioConfig, meterConfig, 0);
+			hw.applyBoardConfig(sysConfig.boardType, gpioConfig, meterConfig, meterConfig.rxPin);
 			config.setMeterConfig(meterConfig);
 			config.setGpioConfig(gpioConfig);
 		}
@@ -676,9 +676,11 @@ void loop() {
 					if(cloud == NULL) {
 						cloud = new CloudConnector(&Debug);
 					}
-					if(cloud->setup(cc, meterConfig, &hw)) {
+					if(cloud->setup(cc, meterConfig, sysConfig, &hw, &rdc)) {
 						config.setCloudConfig(cc);
 					}
+					cloud->setTimezone(tz);
+					cloud->setConnectionHandler(ch);
 				} else if (cloud != NULL) {
 					delete cloud;
 					cloud = NULL;
@@ -951,6 +953,11 @@ void handleNtpChange() {
 		ws.setTimezone(tz);
 		ds.setTimezone(tz);
 		ea.setTimezone(tz);
+		#if defined(ESP32)
+		if(cloud != NULL) {
+			cloud->setTimezone(tz);
+		}
+		#endif
 	}
 
 	config.ackNtpChange();
@@ -1171,6 +1178,10 @@ void connectToNetwork() {
 		}
 		ch->connect(network, sysConfig);
 		ws.setConnectionHandler(ch);
+		#if defined(ESP32)
+		if(cloud != NULL)
+			cloud->setConnectionHandler(ch);
+		#endif
 	} else {
 		setupMode = false;
 		toggleSetupMode();

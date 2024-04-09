@@ -81,14 +81,14 @@
             <Clock timestamp={ data.c ? new Date(data.c * 1000) : new Date(0) } offset={sysinfo.clock_offset} fullTimeColor="text-red-500" />
           </div>
           {#if sysinfo.vndcfg && sysinfo.usrcfg}
-          <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.config ?? ""}>
+          <div class="flex-none px-1 mt-1" title={translations.header?.config ?? ""}>
             <Link to="/configuration"><GearIcon/></Link>
           </div>
-          <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.status ?? ""}>
+          <div class="flex-none px-1 mt-1" title={translations.header?.status ?? ""}>
             <Link to="/status"><InfoIcon/></Link>
           </div>
           {/if}
-          <div class="flex-none px-1 mt-1" style="font-size: 18px;font-weight:bold;" title={translations.header?.doc ?? ""}>
+          <div class="flex-none px-1 mt-1" title={translations.header?.doc ?? ""}>
             <a href={wiki('')} target='_blank' rel="noreferrer"><HelpIcon/></a>
           </div>
           {#if sysinfo.fwconsent === 1 && nextVersion}

@@ -30,7 +30,7 @@ public:
 
 private:
     RemoteDebug* debugger;
-    char* token;
+    char token[21];
     uint16_t BufferSize = 2048;
     char* json;
 

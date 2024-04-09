@@ -148,7 +148,9 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
                 int32_t sum = o170-o270;
                 if(sum > 0) {
                     activeImportPower = sum;
+                    activeExportPower = 0;
                 } else {
+                    activeImportPower = 0;
                     activeExportPower = sum * -1;
                     listType = listType >= 2 ? listType : 2;
                 }

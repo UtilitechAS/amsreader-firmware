@@ -684,7 +684,7 @@
                 </label>
             </div>
         {/if}
-        {#if configuration?.y}
+        {#if configuration?.u}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.ui?.title ?? "User interface"}</strong>
             <a href="{wiki('User-interface')}" target="_blank" class="float-right">&#9432;</a>

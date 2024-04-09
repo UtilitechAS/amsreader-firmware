@@ -25,12 +25,16 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
     if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Publishing list ID %d!\n"), data->getListType());
     if(data->getListType() == 1) {
         ret = publishList1(data, ea);
+        mqtt.loop();
     } else if(data->getListType() == 2) {
         ret = publishList2(data, ea);
+        mqtt.loop();
     } else if(data->getListType() == 3) {
         ret = publishList3(data, ea);
+        mqtt.loop();
     } else if(data->getListType() == 4) {
         ret = publishList4(data, ea);
+        mqtt.loop();
     }
     loop();
     return ret;

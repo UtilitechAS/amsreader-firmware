@@ -246,7 +246,13 @@ bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_METER_START, config);
 		EEPROM.end();
-		if(config.bufferSize < 1 || config.bufferSize > 64) config.bufferSize = 4;
+		if(config.bufferSize < 1 || config.bufferSize > 64) {
+			#if defined(ESP32)
+				config.bufferSize = 2;
+			#else
+				config.bufferSize = 1;
+			#endif
+		}
 		return true;
 	} else {
 		clearMeter(config);
@@ -1043,6 +1049,13 @@ bool AmsConfiguration::relocateConfig103() {
 	meter.rxPin = gpio103.hanPin;
 	meter.txPin = 0xFF;
 	meter.rxPinPullup = gpio103.hanPinPullup;
+	meter.source = 1;
+	meter.parser = 0;
+	#if defined(ESP8266)
+		if(meter.rxPin != 3 && meter.rxPin != 113) {
+			meter.bufferSize = 1;
+		}
+	#endif
 	wifi.mode = 1; // 1 == WiFi client
 	wifi.ipv6 = false;
 

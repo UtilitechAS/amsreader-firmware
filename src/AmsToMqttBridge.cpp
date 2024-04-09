@@ -281,7 +281,7 @@ void setup() {
 		config.getMeterConfig(meterConfig);
 		if(sysConfig.boardType < 20) {
 			config.clearGpio(gpioConfig);
-			hw.applyBoardConfig(sysConfig.boardType, gpioConfig, meterConfig, 0);
+			hw.applyBoardConfig(sysConfig.boardType, gpioConfig, meterConfig, meterConfig.rxPin);
 			config.setMeterConfig(meterConfig);
 			config.setGpioConfig(gpioConfig);
 		}

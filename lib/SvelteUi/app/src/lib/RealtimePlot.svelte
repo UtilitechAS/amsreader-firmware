@@ -23,12 +23,19 @@
             getRealtime();
             updateCount = 0;
         } else {
-            while(lastUp > lastUpdate) {
-                realtime.data.unshift(lastValue);
-                realtime.data = realtime.data.slice(0,realtime.size);
-                lastUpdate += 10;
-                updateCount++;
-            }
+            realtimeStore.update(s => {
+                if(s.lastUpdate) {
+                    while(lastUp > s.lastUpdate) {
+                        s.data.unshift(lastValue);
+                        s.data = s.data.slice(0,s.size);
+                        s.lastUpdate += 10;
+                        updateCount++;
+                    }
+                } else {
+                    s.lastUpdate = lastUp;
+                }
+                return s;
+            });
         }
     }
 

@@ -165,12 +165,14 @@
             {translations.status?.device?.reason ?? "Reason"}: {(translations[getBaseChip(sysinfo.chip)]?.reason?.[sysinfo.boot_reason] ?? sysinfo.boot_reason)} ({sysinfo.boot_reason}/{sysinfo.ex_cause})
         </div>
         {/if}
+        {#if data?.a}
         <div class="my-2">
             <Link to="/consent">
                 <span class="btn-pri-sm">{translations.status?.device?.btn_consents ?? "Consents"}</span>
             </Link>
             <button on:click={askReboot} class="btn-yellow-sm float-right">{translations.btn?.reboot ?? "Reboot"}</button>
         </div>
+        {/if}
      </div>
     {#if sysinfo.meter}
     <div class="cnt">

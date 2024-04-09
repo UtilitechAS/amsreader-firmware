@@ -64,7 +64,7 @@
       <Dashboard data={data} sysinfo={sysinfo}/>
     </Route>
     <Route path="/configuration">
-      <ConfigurationPanel sysinfo={sysinfo} basepath={basepath}/>
+      <ConfigurationPanel sysinfo={sysinfo} basepath={basepath} data={data}/>
     </Route>
     <Route path="/priceconfig">
       <PriceConfig basepath={basepath}/>

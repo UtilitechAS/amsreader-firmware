@@ -518,7 +518,7 @@ bool AmsConfiguration::setGpioConfig(GpioConfig& config) {
 	return ret;
 }
 
-void AmsConfiguration::clearGpio(GpioConfig& config) {
+void AmsConfiguration::clearGpio(GpioConfig& config, bool all) {
 	config.apPin = 0xFF;
 	config.ledPin = 0xFF;
 	config.ledInverted = true;
@@ -529,13 +529,16 @@ void AmsConfiguration::clearGpio(GpioConfig& config) {
 	config.tempSensorPin = 0xFF;
 	config.tempAnalogSensorPin = 0xFF;
 	config.vccPin = 0xFF;
-	config.vccOffset = 0;
-	config.vccMultiplier = 1000;
-	config.vccBootLimit = 0;
-	config.vccResistorGnd = 0;
-	config.vccResistorVcc = 0;
 	config.ledDisablePin = 0xFF;
-	config.ledBehaviour = LED_BEHAVIOUR_DEFAULT;
+
+	if(all) {
+		config.vccOffset = 0;
+		config.vccMultiplier = 1000;
+		config.vccBootLimit = 0;
+		config.vccResistorGnd = 0;
+		config.vccResistorVcc = 0;
+		config.ledBehaviour = LED_BEHAVIOUR_DEFAULT;
+	}
 }
 
 bool AmsConfiguration::getNtpConfig(NtpConfig& config) {

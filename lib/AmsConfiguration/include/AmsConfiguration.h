@@ -295,7 +295,7 @@ public:
 
 	bool getGpioConfig(GpioConfig&);
 	bool setGpioConfig(GpioConfig&);
-	void clearGpio(GpioConfig&);
+	void clearGpio(GpioConfig& config, bool all=true);
 
 	void print(Print* debugger);
 

@@ -164,7 +164,7 @@ wl_status_t WiFiClientConnectionHandler::begin(const char* ssid, const char* pas
         }
     }
 
-    if(strlen(config.ip) > 0){
+    if(strlen(config.ip) == 0){
     	if(set_esp_interface_ip(ESP_IF_WIFI_STA) != ESP_OK) {
             return WL_CONNECT_FAILED;
         }

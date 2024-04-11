@@ -90,6 +90,7 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 			}
 		#endif
 		WiFi.setAutoReconnect(true);
+        this->config = config;
 		#if defined(ESP32)
 		if(begin(config.ssid, config.psk)) {
 		#else
@@ -112,7 +113,6 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 		} else {
 			if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Unable to start WiFi\n"));
 		}
-        this->config = config;
         return true;
   	}
     return false;

@@ -46,7 +46,7 @@ CloudConnector::CloudConnector(RemoteDebug* debugger) {
     sprintf_P(this->apmac, PSTR("%02X:%02X:%02X:%02X:%02X:%02X"), apmac[0], apmac[1], apmac[2], apmac[3], apmac[4], apmac[5]);
 }
 
-bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, HwTools* hw, ResetDataContainer* rdc) {
+bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc) {
     bool ret = false;
     #if defined(ESP32)
     if(!ESPRandom::isValidV4Uuid(config.clientId)) {
@@ -61,6 +61,7 @@ bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, SystemConfig
     this->rdc = rdc;
 
     this->boardType = system.boardType;
+    strcpy(this->timezone, ntp.timezone);
 
 	this->maxPwr = 0;
 	this->distributionSystem = meter.distributionSystem;
@@ -204,7 +205,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             boardType,
             rtc_get_reset_reason(0),
             rdc == NULL ? 0 : rdc->last_cause,
-            tz == NULL ? 0 : (tz->toLocal(now)-now)/3600,
+            timezone,
             data.getMeterType(),
             meterManufacturer(data.getMeterType()).c_str(),
             data.getMeterModel().c_str(),
@@ -219,6 +220,23 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             dns1.toString().c_str(),
             dns2.toString().c_str()
         );
+    } else if(lastPriceConfig == 0) {
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"price\":{\"area\":\"%s\",\"currency\":\"%s\"}"), priceConfig.area, priceConfig.currency);
+        lastPriceConfig = now;
+    } else if(lastEac == 0) {
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"accounting\":{\"hours\":%d,\"thresholds\":[%d,%d,%d,%d,%d,%d,%d,%d,%d]}"), 
+            eac.hours,
+            eac.thresholds[0],
+            eac.thresholds[1],
+            eac.thresholds[2],
+            eac.thresholds[3],
+            eac.thresholds[4],
+            eac.thresholds[5],
+            eac.thresholds[6],
+            eac.thresholds[7],
+            eac.thresholds[8]
+        );
+        lastEac = now;
     }
 
     float vcc = 0.0;
@@ -382,14 +400,22 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
 
 void CloudConnector::forceUpdate() {
     lastUpdate = 0;
-}
-
-void CloudConnector::setTimezone(Timezone* tz) {
-    this->tz = tz;
+    lastPriceConfig = 0;
+    lastEac = 0;
 }
 
 void CloudConnector::setConnectionHandler(ConnectionHandler* ch) {
 	this->ch = ch;
+}
+
+void CloudConnector::setPriceConfig(PriceServiceConfig& priceConfig) {
+    this->priceConfig = priceConfig;
+    this->lastPriceConfig = 0;
+}
+
+void CloudConnector::setEnergyAccountingConfig(EnergyAccountingConfig& eac) {
+    this->eac = eac;
+    this->lastEac = 0;
 }
 
 void CloudConnector::debugPrint(byte *buffer, int start, int length) {

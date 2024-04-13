@@ -674,11 +674,19 @@ void loop() {
 					if(cloud == NULL) {
 						cloud = new CloudConnector(&Debug);
 					}
-					if(cloud->setup(cc, meterConfig, sysConfig, &hw, &rdc)) {
+					NtpConfig ntp;
+					config.getNtpConfig(ntp);
+					if(cloud->setup(cc, meterConfig, sysConfig, ntp, &hw, &rdc)) {
 						config.setCloudConfig(cc);
 					}
-					cloud->setTimezone(tz);
 					cloud->setConnectionHandler(ch);
+
+					PriceServiceConfig price;
+					config.getPriceServiceConfig(price);
+					cloud->setPriceConfig(price);
+
+					EnergyAccountingConfig *eac = ea.getConfig();
+					cloud->setEnergyAccountingConfig(*eac);
 				}
 				config.ackCloudConfig();
 			}
@@ -908,6 +916,9 @@ void handleEnergyAccountingChanged() {
 	config.getEnergyAccountingConfig(*eac);
 	ea.setup(&ds, eac);
 	config.ackEnergyAccountingChange();
+	if(cloud != NULL) {
+		cloud->setEnergyAccountingConfig(*eac);
+	}
 }
 
 char ntpServerName[64] = "";
@@ -931,11 +942,6 @@ void handleNtpChange() {
 		ws.setTimezone(tz);
 		ds.setTimezone(tz);
 		ea.setTimezone(tz);
-		#if defined(ESP32)
-		if(cloud != NULL) {
-			cloud->setTimezone(tz);
-		}
-		#endif
 	}
 
 	config.ackNtpChange();
@@ -1049,6 +1055,9 @@ void handlePriceService(unsigned long now) {
 				ps = new PriceService(&Debug);
 				ea.setPriceService(ps);
 				ws.setPriceService(ps);
+				if(cloud != NULL) {
+					cloud->setPriceConfig(price);
+				}
 			}
 			ps->setup(price);
 		} else if(ps != NULL) {

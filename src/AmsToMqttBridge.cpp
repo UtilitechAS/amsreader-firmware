@@ -916,9 +916,11 @@ void handleEnergyAccountingChanged() {
 	config.getEnergyAccountingConfig(*eac);
 	ea.setup(&ds, eac);
 	config.ackEnergyAccountingChange();
+	#if defined(ESP32)
 	if(cloud != NULL) {
 		cloud->setEnergyAccountingConfig(*eac);
 	}
+	#endif
 }
 
 char ntpServerName[64] = "";
@@ -1055,9 +1057,11 @@ void handlePriceService(unsigned long now) {
 				ps = new PriceService(&Debug);
 				ea.setPriceService(ps);
 				ws.setPriceService(ps);
+				#if defined(ESP32)
 				if(cloud != NULL) {
 					cloud->setPriceConfig(price);
 				}
+				#endif
 			}
 			ps->setup(price);
 		} else if(ps != NULL) {

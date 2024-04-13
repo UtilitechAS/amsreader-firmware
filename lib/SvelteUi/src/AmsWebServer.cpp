@@ -1652,7 +1652,11 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 
 	httpUpdate.rebootOnUpdate(false);
 	httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+	#if defined(ESP32)
 	HTTPUpdateResult ret = httpUpdate.update(client, url, currentVersion, std::bind(&AmsWebServer::updaterRequestCallback, this, std::placeholders::_1));
+	#else
+	HTTPUpdateResult ret = httpUpdate.update(client, url, currentVersion);
+	#endif
 	int lastError = httpUpdate.getLastError();
 
 	config->setUpgradeInformation(ret, ret == HTTP_UPDATE_OK ? 0 : lastError, FirmwareVersion::VersionString, nextVersion.c_str());

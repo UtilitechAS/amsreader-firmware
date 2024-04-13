@@ -142,6 +142,8 @@ private:
 	void redirectToMain();
 	void robotstxt();
 	void ssdpSchema();
+
+	void updaterRequestCallback(HTTPClient*);
 };
 
 #endif

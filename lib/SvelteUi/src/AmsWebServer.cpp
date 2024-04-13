@@ -1652,7 +1652,7 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 
 	httpUpdate.rebootOnUpdate(false);
 	httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-	HTTPUpdateResult ret = httpUpdate.update(client, url, currentVersion);
+	HTTPUpdateResult ret = httpUpdate.update(client, url, currentVersion, std::bind(&AmsWebServer::updaterRequestCallback, this, std::placeholders::_1));
 	int lastError = httpUpdate.getLastError();
 
 	config->setUpgradeInformation(ret, ret == HTTP_UPDATE_OK ? 0 : lastError, FirmwareVersion::VersionString, nextVersion.c_str());
@@ -1669,6 +1669,19 @@ void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
 			rdc->cause = 4;
 			ESP.restart();
 			break;
+	}
+}
+
+void AmsWebServer::updaterRequestCallback(HTTPClient* http) {
+	SystemConfig sys;
+	if(config->getSystemConfig(sys)) {
+		http->addHeader(F("x-AMS-board-type"), String(sys.boardType, 10));
+		if(meterState->getMeterType() != AmsTypeAutodetect) {
+			http->addHeader(F("x-AMS-meter-mfg"), String(meterState->getMeterType(), 10));
+		}
+		if(!meterState->getMeterModel().isEmpty()) {
+			http->addHeader(F("x-AMS-meter-model"), meterState->getMeterModel());
+		}
 	}
 }
 

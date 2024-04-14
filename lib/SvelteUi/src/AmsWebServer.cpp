@@ -722,7 +722,11 @@ void AmsWebServer::indexHtml() {
 	config->getWebConfig(webConfig);
 	stripNonAscii((uint8_t*) webConfig.context, 32);
 	if(strlen(webConfig.context) > 0) {
-		context = "/" + String(webConfig.context) + "/";
+		context = String(webConfig.context);
+		context.replace(" ", "");
+		if(!context.isEmpty()) {
+			context = "/" + context + "/";
+		}
 	}
 
 	if(context.isEmpty()) {

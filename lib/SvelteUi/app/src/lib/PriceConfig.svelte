@@ -143,26 +143,26 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap mr-3">
-                        <select name="rsm" class="in-f" bind:value={c.s.m}>
+                        <select name="rsd" class="in-f" bind:value={c.s.d}>
                             <option value={0}>-</option>
                             {#each {length: 31} as _,i}
                                 <option value={i+1}>{i+1}</option>
                             {/each}
                         </select>
-                        <select name="rsd" class="in-m" bind:value={c.s.d}>
+                        <select name="rsm" class="in-m" bind:value={c.s.m}>
                             <option value={0}>-</option>
                             {#each {length: 12} as _,i}
                                 <option value={i+1}>{translations.months?.[i]}</option>
                             {/each}
                         </select>
                         <input class="in-m" disabled value="to" style="width: 20px;color:#888;"/>
-                        <select name="rem" class="in-m" bind:value={c.e.m}>
+                        <select name="red" class="in-m" bind:value={c.e.d}>
                             <option value={0}>-</option>
                             {#each {length: 31} as _,i}
                                 <option value={i+1}>{i+1}</option>
                             {/each}
                         </select>
-                        <select name="red" class="in-l" bind:value={c.e.d}>
+                        <select name="rem" class="in-l" bind:value={c.e.m}>
                             <option value={0}>-</option>
                             {#each {length: 12} as _,i}
                                 <option value={i+1}>{translations.months?.[i]}</option>

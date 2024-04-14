@@ -106,8 +106,8 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
         return ret;
 
     tmElements_t tm;
-    breakTime(tz->toLocal(ts + (hour) * SECS_PER_HOUR), tm);
-    uint8_t day = 0x01 << (tm.Wday - 2);
+    breakTime(tz->toLocal(ts + (hour * SECS_PER_HOUR)), tm);
+    uint8_t day = 0x01 << ((tm.Wday+5)%7);
     uint32_t hrs = 0x01 << tm.Hour;
 
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
@@ -137,8 +137,8 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
 
 float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t hour) {
     tmElements_t tm;
-    breakTime(tz->toLocal(ts + (hour) * SECS_PER_HOUR), tm);
-    uint8_t day = 0x01 << (tm.Wday - 2);
+    breakTime(tz->toLocal(ts + (hour * SECS_PER_HOUR)), tm);
+    uint8_t day = 0x01 << ((tm.Wday+5)%7);
     uint32_t hrs = 0x01 << tm.Hour;
 
     float value = PRICE_NO_VALUE;

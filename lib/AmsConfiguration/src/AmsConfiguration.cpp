@@ -1083,8 +1083,8 @@ bool AmsConfiguration::relocateConfig103() {
 	};
 
 	WebConfig web = {web103.security};
-	strcpy_P(web.username, web103.username);
-	strcpy_P(web.password, web103.password);
+	strcpy(web.username, web103.username);
+	strcpy(web.password, web103.password);
 	memset(web.context, 0, 37);
 
 	strcpy_P(ui.language, PSTR("en"));

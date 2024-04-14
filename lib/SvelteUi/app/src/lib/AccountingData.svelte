@@ -22,7 +22,7 @@
         rih = formatUnit(data?.h?.u*1000, "Wh");
         rid = formatUnit(data?.d?.u*1000, "Wh");
         rim = formatUnit(data?.m?.u*1000, "Wh");
-        ril = formatUnit(sysinfo?.last_month?.c*1000, "Wh");
+        ril = formatUnit(sysinfo?.last_month?.u*1000, "Wh");
 
         reh = formatUnit(data?.h?.p*1000, "Wh");
         red = formatUnit(data?.d?.p*1000, "Wh");

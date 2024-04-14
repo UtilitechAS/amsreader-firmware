@@ -516,6 +516,7 @@ void AmsWebServer::dataJson() {
 	}
 
 	float price = ea->getPriceForHour(PRICE_DIRECTION_IMPORT, 0);
+	float exportPrice = ea->getPriceForHour(PRICE_DIRECTION_EXPORT, 0);
 
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
@@ -569,6 +570,7 @@ void AmsWebServer::dataJson() {
 		mqttStatus,
 		mqttHandler == NULL ? 0 : (int) mqttHandler->lastError(),
 		price == PRICE_NO_VALUE ? "null" : String(price, 2).c_str(),
+		exportPrice == PRICE_NO_VALUE ? "null" : String(exportPrice, 2).c_str(),
 		meterState->getMeterType(),
 		distributionSystem,
 		ea->getMonthMax(),

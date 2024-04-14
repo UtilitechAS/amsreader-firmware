@@ -38,11 +38,14 @@
       translations = update;
     });
 
-    let it,et,threePhase;
+    let it,et,threePhase, l1e, l2e, l3e;
     $: {
         it = formatUnit(data?.ic * 1000, "Wh");
         et = formatUnit(data?.ec * 1000, "Wh");
-        threePhase = data?.l1?.u > 100 && data?.l2?.u > 100 && data?.l3?.u > 100;
+        l1e = data?.l1?.u > 0.0 || data?.l1?.i > 0.0 || data?.l1?.p > 0.0 || data?.l1?.q > 0.0;
+        l2e = data?.l2?.u > 0.0 || data?.l2?.i > 0.0 || data?.l2?.p > 0.0 || data?.l2?.q > 0.0;
+        l3e = data?.l3?.u > 0.0 || data?.l3?.i > 0.0 || data?.l3?.p > 0.0 || data?.l3?.q > 0.0;
+        threePhase = l1e && l2e && l3e;
     }
 </script>
 
@@ -62,7 +65,7 @@
         <div class="cnt">
             <div class="grid grid-cols-2">
                 <div class="col-span-2">
-                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om * 1000 : 10000} unit="W" label={translations.common?.export ?? "Export"} colorFn={exportcol}/>
+                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om * 1000 : 10000} unit="W" label={translations.common?.export ?? "Export"} sub={data.px} subunit={data.pc} colorFn={exportcol}/>
                 </div>
                 <div></div>
                 <div class="text-right">{et[0]} {et[1]}</div>

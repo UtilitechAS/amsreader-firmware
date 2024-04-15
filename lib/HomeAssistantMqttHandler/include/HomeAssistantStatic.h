@@ -80,23 +80,23 @@ const HomeAssistantSensor List4ExportSensors[List4ExportSensorCount] PROGMEM = {
 
 const uint8_t RealtimeSensorCount PROGMEM = 8;
 const HomeAssistantSensor RealtimeSensors[RealtimeSensorCount] PROGMEM = {
-    {"Month max",                  "/realtime","max",                120, "kWh",  "energy",          "total_increasing"},
-    {"Tariff threshold",           "/realtime","threshold",          120, "kWh",  "energy",          "total_increasing"},
-    {"Current hour used",          "/realtime","hour.use",           120, "kWh",  "energy",          "total_increasing"},
+    {"Month max",                  "/realtime","max",                120, "kWh",  "energy",          "measurement"},
+    {"Tariff threshold",           "/realtime","threshold",          120, "kWh",  "energy",          "measurement"},
+    {"Current hour used",          "/realtime","hour.use",           120, "kWh",  "energy",          "measurement"},
     {"Current hour cost",          "/realtime","hour.cost",          120, "",     "monetary",        ""},
-    {"Current day used",           "/realtime","day.use",            120, "kWh",  "energy",          "total_increasing"},
+    {"Current day used",           "/realtime","day.use",            120, "kWh",  "energy",          "measurement"},
     {"Current day cost",           "/realtime","day.cost",           120, "",     "monetary",        ""},
-    {"Current month used",         "/realtime","month.use",          120, "kWh",  "energy",          "total_increasing"},
+    {"Current month used",         "/realtime","month.use",          120, "kWh",  "energy",          "measurement"},
     {"Current month cost",         "/realtime","month.cost",         120, "",     "monetary",        ""}
 };
 
 const uint8_t RealtimeExportSensorCount PROGMEM = 6;
 const HomeAssistantSensor RealtimeExportSensors[RealtimeExportSensorCount] PROGMEM = {
-    {"Current hour produced",      "/realtime","hour.produced",      120, "kWh",  "energy",          "total_increasing"},
+    {"Current hour produced",      "/realtime","hour.produced",      120, "kWh",  "energy",          "measurement"},
     {"Current hour income",        "/realtime","hour.income",        120, "",     "monetary",        ""},
-    {"Current day produced",       "/realtime","day.produced",       120, "kWh",  "energy",          "total_increasing"},
+    {"Current day produced",       "/realtime","day.produced",       120, "kWh",  "energy",          "measurement"},
     {"Current day income",         "/realtime","day.income",         120, "",     "monetary",        ""},
-    {"Current month produced",     "/realtime","month.produced",     120, "kWh",  "energy",          "total_increasing"},
+    {"Current month produced",     "/realtime","month.produced",     120, "kWh",  "energy",          "measurement"},
     {"Current month income",       "/realtime","month.income",       120, "",     "monetary",        ""}
 };
 

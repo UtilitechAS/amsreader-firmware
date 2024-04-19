@@ -469,9 +469,9 @@ void PassiveMeterCommunicator::printHanReadError(int pos) {
 	}
 }
 
-void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal, bool invert) {
+void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal, bool invert, bool passive) {
 	int8_t rxpin = meterConfig.rxPin;
-	int8_t txpin = meterConfig.txPin;
+	int8_t txpin = passive ? -1 : meterConfig.txPin;
 
 	if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(setupHanPort) Setting up HAN on pin %d/%d with baud %d and parity %d\n"), rxpin, txpin, baud, parityOrdinal);
 
@@ -639,6 +639,11 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 	if(!meterConfig.rxPinPullup) {
 		if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("HAN pin pullup disabled\n"));
 		pinMode(meterConfig.rxPin, INPUT);
+	}
+
+	if(meterConfig.txPin != 0xFF && passive) {
+		pinMode(meterConfig.txPin, OUTPUT);
+		digitalWrite(meterConfig.txPin, LOW);
 	}
 
 	hanSerial->setTimeout(250);

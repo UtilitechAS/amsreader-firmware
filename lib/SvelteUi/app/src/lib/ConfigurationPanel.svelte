@@ -447,7 +447,7 @@
         {#if configuration?.w}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.connection?.title ?? "Connection"}</strong>
-            <a href="{wiki('WiFi-configuration')}" target="_blank" class="float-right">&#9432;</a>
+            <a href="{wiki('Network-connection')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="w" value="true"/>
             <div class="my-1">
                 <select name="nc" class="in-s" bind:value={configuration.n.c}>

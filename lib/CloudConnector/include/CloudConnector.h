@@ -59,6 +59,7 @@ public:
     void setEnergyAccountingConfig(EnergyAccountingConfig&);
     void forceUpdate();
     void setConnectionHandler(ConnectionHandler* ch);
+    String generateSeed();
 
 private:
     RemoteDebug* debugger = NULL;
@@ -84,6 +85,8 @@ private:
     unsigned long lastUpdate = 0;
     char mac[18];
     char apmac[18];
+
+    String seed = "";
 
     char clearBuffer[CC_BUF_SIZE];
     unsigned char encryptedBuffer[256];

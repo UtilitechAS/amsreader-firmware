@@ -687,6 +687,11 @@ void loop() {
 
 					EnergyAccountingConfig *eac = ea.getConfig();
 					cloud->setEnergyAccountingConfig(*eac);
+
+					ws.setCloud(cloud);
+				} else if(cloud != NULL) {
+					delete cloud;
+					cloud = NULL;
 				}
 				config.ackCloudConfig();
 			}

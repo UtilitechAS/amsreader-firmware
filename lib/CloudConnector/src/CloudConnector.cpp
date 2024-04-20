@@ -165,8 +165,12 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     int pos = 0;
 
     pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("{\"id\":\"%s\""), uuid.c_str());
+    if(!seed.isEmpty()) {
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"seed\":\"%s\""), seed.c_str());
+    }
 
     if(lastUpdate == 0) {
+        seed.clear();
         if(mainFuse > 0 && distributionSystem > 0) {
             int voltage = distributionSystem == 2 ? 400 : 230;
             if(data.isThreePhase()) {
@@ -432,4 +436,11 @@ void CloudConnector::debugPrint(byte *buffer, int start, int length) {
 		yield(); // Let other get some resources too
 	}
 	debugger->println(F(""));
+}
+
+String CloudConnector::generateSeed() {
+    uint8_t key[16];
+    ESPRandom::uuid4(key);
+    seed = ESPRandom::uuidToString(key);
+    return seed;
 }

@@ -123,6 +123,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/realtime.json"), HTTP_GET, std::bind(&AmsWebServer::realtimeJson, this));
 	server.on(context + F("/priceconfig.json"), HTTP_GET, std::bind(&AmsWebServer::priceConfigJson, this));
 	server.on(context + F("/translations.json"), HTTP_GET, std::bind(&AmsWebServer::translationsJson, this));
+	server.on(context + F("/cloudkey.json"), HTTP_GET, std::bind(&AmsWebServer::cloudkeyJson, this));
 
 	server.on(context + F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 	server.on(context + F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
@@ -159,6 +160,10 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	MqttConfig mqttConfig;
 	config->getMqttConfig(mqttConfig);
 	mqttEnabled = strlen(mqttConfig.host) > 0;
+}
+
+void AmsWebServer::setCloud(CloudConnector* cloud) {
+	this->cloud = cloud;
 }
 
 void AmsWebServer::setTimezone(Timezone* tz) {
@@ -1081,6 +1086,23 @@ void AmsWebServer::translationsJson() {
 		server.sendContent(buf, len);
 	}
 	file.close();
+}
+
+void AmsWebServer::cloudkeyJson() {
+	if(!checkSecurity(1))
+		return;
+	if(cloud == NULL)
+		notFound();
+
+	String seed = cloud->generateSeed();
+	
+	snprintf_P(buf, BufferSize, PSTR("{\"seed\":\"%s\"}"), seed.c_str());
+
+	server.setContentLength(strlen(buf));
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+	server.send(200, MIME_JSON, buf);
 }
 
 void AmsWebServer::handleSave() {

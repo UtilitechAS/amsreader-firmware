@@ -70,10 +70,13 @@
     let loading = true;
     let saving = false;
 
+    let cloudenabled = false;
+
     let configuration;
     let languages = [];
     configurationStore.subscribe(update => {
         if(update.version) {
+            cloudenabled = update?.c?.e;
             configuration = update;
             loading = false;
             languages = [{ code: 'en', name: 'English'}];
@@ -210,6 +213,21 @@
     let gpioMax = 44;
     $: {
         gpioMax = sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39;
+    }
+
+    async function cloudBind() {
+        const response = await fetchWithTimeout("cloudkey.json");
+        if(response.status == 200) {
+            let data = await response.json();
+            window.open("https://www.amsleser.cloud/device/" + data.seed);
+        } else {
+            alert("Not able to bind to cloud");
+        }
+    }
+
+    const _global = (window || global);
+    _global.bindToCloud = function() {
+        console.log("BIND CALLED");
     }
 </script>
 
@@ -641,17 +659,20 @@
                 </div>
             </div>
         {/if}
-        {#if configuration?.c?.es != null}
+        {#if configuration?.c}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.cloud?.title ?? "Cloud connections"}</strong>
                 <a href="{wiki('Cloud')}" target="_blank" class="float-right">&#9432;</a>
                 <input type="hidden" name="c" value="true"/>
                 <div class="my-1">
                     <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> {translations.conf?.cloud?.ams ?? "AMS reader cloud"}</label>
+                    {#if cloudenabled}
+                        <button type="button" on:click={cloudBind} class="text-blue-500 ml-6">Connect to my cloud account</button>
+                    {/if}
                 </div>
                 <div class="my-1">
                     <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> {translations.conf?.cloud?.es ?? "Energy Speedometer"}</label>
-                    {#if configuration.c.es}
+                    {#if configuration?.c?.es}
                         <div class="pl-5">MAC: {sysinfo.mac}</div>
                         <div class="pl-5">Meter ID: {sysinfo.meter.id ? sysinfo.meter.id : "missing, required"}</div>
                         {#if sysinfo.mac && sysinfo.meter.id}

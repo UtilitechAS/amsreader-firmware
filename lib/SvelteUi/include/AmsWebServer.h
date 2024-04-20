@@ -20,6 +20,7 @@
 #include "PriceService.h"
 #include "RealtimePlot.h"
 #include "ConnectionHandler.h"
+#include "CloudConnector.h"
 
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>
@@ -44,7 +45,7 @@ public:
 	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc);
     void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*);
     void loop();
-	void setMqtt(MQTTClient* mqtt);
+	void setCloud(CloudConnector* cloud);
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
 	void setPriceService(PriceService* ps);
@@ -73,6 +74,7 @@ private:
 	RealtimePlot* rtp = NULL;
 	AmsMqttHandler* mqttHandler = NULL;
 	ConnectionHandler* ch = NULL;
+	CloudConnector* cloud = NULL;
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
@@ -113,6 +115,7 @@ private:
 	void realtimeJson();
 	void priceConfigJson();
 	void translationsJson();
+	void cloudkeyJson();
 
 	void configurationJson();
 	void handleSave();

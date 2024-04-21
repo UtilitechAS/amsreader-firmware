@@ -1,6 +1,7 @@
 <script>
     import { getConfiguration, configurationStore } from './ConfigurationStore'
-    import { fetchWithTimeout, sysinfoStore } from './DataStores.js';
+    import { sysinfoStore } from './DataStores.js';
+    import fetchWithTimeout from './fetchWithTimeout';
     import { translationsStore } from './TranslationService';
     import { wiki } from './Helpers.js';
     import UartSelectOptions from './UartSelectOptions.svelte';

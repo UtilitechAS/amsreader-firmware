@@ -1,6 +1,6 @@
 <script>
   import { Router, Route, navigate } from "svelte-navigator";
-  import { getSysinfo, sysinfoStore, dataStore } from './lib/DataStores.js';
+  import { getSysinfo, sysinfoStore, dataStore, pricesStore, dayPlotStore, monthPlotStore, temperaturesStore } from './lib/DataStores.js';
   import { translationsStore, getTranslations } from "./lib/TranslationService.js";
   import Favicon from './assets/favicon.svg'; // Need this for the build
   import Header from './lib/Header.svelte';
@@ -16,6 +16,26 @@
   
   let basepath = document.getElementsByTagName('base')[0].getAttribute("href");
   if(!basepath) basepath = "/";
+
+  let prices;
+  pricesStore.subscribe(update => {
+      prices = update;
+  });
+
+  let dayPlot;
+  dayPlotStore.subscribe(update => {
+      dayPlot = update;
+  });
+
+  let monthPlot;
+  monthPlotStore.subscribe(update => {
+      monthPlot = update;
+  });
+
+  let temperatures;
+  temperaturesStore.subscribe(update => {
+      temperatures = update;
+  });
 
   let translations = {};
   translationsStore.subscribe(update => {
@@ -50,6 +70,7 @@
     }
   });
   getSysinfo();
+
   let data = {};
   dataStore.subscribe(update => {
     data = update;
@@ -61,7 +82,7 @@
   <Router basepath={basepath}>
     <Header data={data} basepath={basepath}/>
     <Route path="/">
-      <Dashboard data={data} sysinfo={sysinfo}/>
+      <Dashboard data={data} sysinfo={sysinfo} prices={prices} dayPlot={dayPlot} monthPlot={monthPlot} temperatures={temperatures} translations={translations}/>
     </Route>
     <Route path="/configuration">
       <ConfigurationPanel sysinfo={sysinfo} basepath={basepath} data={data}/>

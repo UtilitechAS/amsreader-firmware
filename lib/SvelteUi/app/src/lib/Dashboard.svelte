@@ -1,7 +1,5 @@
 <script>
-    import { pricesStore, dayPlotStore, monthPlotStore, temperaturesStore } from './DataStores.js';
     import { ampcol, exportcol, metertype, uiVisibility, formatUnit } from './Helpers.js';
-    import { translationsStore } from './TranslationService.js';
     import PowerGauge from './PowerGauge.svelte';
     import VoltPlot from './VoltPlot.svelte';
     import ReactiveData from './ReactiveData.svelte';
@@ -16,27 +14,11 @@
 
     export let data = {}
     export let sysinfo = {}
-    let prices = {}
-    let dayPlot = {}
-    let monthPlot = {}
-    let temperatures = {};
-    pricesStore.subscribe(update => {
-        prices = update;
-    });
-    dayPlotStore.subscribe(update => {
-        dayPlot = update;
-    });
-    monthPlotStore.subscribe(update => {
-        monthPlot = update;
-    });
-    temperaturesStore.subscribe(update => {
-        temperatures = update;
-    });
-
-    let translations = {};
-    translationsStore.subscribe(update => {
-      translations = update;
-    });
+    export let prices = {}
+    export let dayPlot = {}
+    export let monthPlot = {}
+    export let temperatures = {};
+    export let translations = {};
 
     let it,et,threePhase, l1e, l2e, l3e;
     $: {

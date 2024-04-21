@@ -9,7 +9,7 @@
 #include "hexutils.h"
 #include "Uptime.h"
 
-bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
+bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     if(strlen(mqttConfig.publishTopic) == 0) {
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Unable to publish data, no publish topic\n"));
         return false;
@@ -22,18 +22,29 @@ bool JsonMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccou
     bool ret = false;
     memset(json, 0, BufferSize);
 
-    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Publishing list ID %d!\n"), data->getListType());
-    if(data->getListType() == 1) {
-        ret = publishList1(data, ea);
+    AmsData data;
+    if(mqttConfig.stateUpdate) {
+        uint64_t now = millis64();
+        if(now-lastStateUpdate < mqttConfig.stateUpdateInterval * 1000) return false;
+        data.apply(*previousState);
+        data.apply(*update);
+        lastStateUpdate = now;
+    } else {
+        data = *update;
+    }
+
+    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Publishing list ID %d!\n"), data.getListType());
+    if(data.getListType() == 1) {
+        ret = publishList1(&data, ea);
         mqtt.loop();
-    } else if(data->getListType() == 2) {
-        ret = publishList2(data, ea);
+    } else if(data.getListType() == 2) {
+        ret = publishList2(&data, ea);
         mqtt.loop();
-    } else if(data->getListType() == 3) {
-        ret = publishList3(data, ea);
+    } else if(data.getListType() == 3) {
+        ret = publishList3(&data, ea);
         mqtt.loop();
-    } else if(data->getListType() == 4) {
-        ret = publishList4(data, ea);
+    } else if(data.getListType() == 4) {
+        ret = publishList4(&data, ea);
         mqtt.loop();
     }
     loop();

@@ -8,25 +8,36 @@
 #include "hexutils.h"
 #include "Uptime.h"
 
-bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccounting* ea, PriceService* ps) {
+bool RawMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
-        
-    if(data->getPackageTimestamp() > 0) {
-        mqtt.publish(topic + "/meter/dlms/timestamp", String(data->getPackageTimestamp()));
+
+    AmsData data;
+    if(mqttConfig.stateUpdate) {
+        uint64_t now = millis64();
+        if(now-lastStateUpdate < mqttConfig.stateUpdateInterval * 1000) return false;
+        data.apply(*previousState);
+        data.apply(*update);
+        lastStateUpdate = now;
+    } else {
+        data = *update;
     }
-    switch(data->getListType()) {
+        
+    if(data.getPackageTimestamp() > 0) {
+        mqtt.publish(topic + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
+    }
+    switch(data.getListType()) {
         case 4:
-            publishList4(data, meterState);
+            publishList4(&data, previousState);
             loop();
         case 3:
-            publishList3(data, meterState);
+            publishList3(&data, previousState);
             loop();
         case 2:
-            publishList2(data, meterState);
+            publishList2(&data, previousState);
             loop();
         case 1:
-            publishList1(data, meterState);
+            publishList1(&data, previousState);
             loop();
     }
     if(ea->isInitialized()) {

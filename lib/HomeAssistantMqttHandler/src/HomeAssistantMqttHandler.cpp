@@ -20,31 +20,42 @@
 #include <esp_task_wdt.h>
 #endif
 
-bool HomeAssistantMqttHandler::publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
+bool HomeAssistantMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
 
     if(time(nullptr) < FirmwareVersion::BuildEpoch)
         return false;
 
-    if(data->getListType() >= 3) { // publish energy counts
-        publishList3(data, ea);
+    AmsData data;
+    if(mqttConfig.stateUpdate) {
+        uint64_t now = millis64();
+        if(now-lastStateUpdate < mqttConfig.stateUpdateInterval * 1000) return false;
+        data.apply(*previousState);
+        data.apply(*update);
+        lastStateUpdate = now;
+    } else {
+        data = *update;
+    }
+
+    if(data.getListType() >= 3 && !data.isCounterEstimated()) { // publish energy counts
+        publishList3(&data, ea);
         mqtt.loop();
     }
 
-    if(data->getListType() == 1) { // publish power counts
-        publishList1(data, ea);
+    if(data.getListType() == 1) { // publish power counts
+        publishList1(&data, ea);
         mqtt.loop();
-    } else if(data->getListType() <= 3) { // publish power counts and volts/amps
-        publishList2(data, ea);
+    } else if(data.getListType() <= 3) { // publish power counts and volts/amps
+        publishList2(&data, ea);
         mqtt.loop();
-    } else if(data->getListType() == 4) { // publish power counts and volts/amps/phase power and PF
-        publishList4(data, ea);
+    } else if(data.getListType() == 4) { // publish power counts and volts/amps/phase power and PF
+        publishList4(&data, ea);
         mqtt.loop();
     }
 
     if(ea->isInitialized()) {
-        publishRealtime(data, ea, ps);
+        publishRealtime(&data, ea, ps);
         mqtt.loop();
     }
     loop();

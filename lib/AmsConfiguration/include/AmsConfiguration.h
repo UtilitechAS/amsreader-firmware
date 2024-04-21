@@ -92,7 +92,10 @@ struct MqttConfig {
 	char password[256];
 	uint8_t payloadFormat;
 	bool ssl;
-}; // 676
+	uint8_t magic;
+	bool stateUpdate;
+	uint16_t stateUpdateInterval;
+}; // 680
 
 struct WebConfig {
 	uint8_t security;

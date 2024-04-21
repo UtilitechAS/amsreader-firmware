@@ -147,6 +147,11 @@ bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_MQTT_START, config);
 		EEPROM.end();
+		if(config.magic != 0x7B) {
+			config.stateUpdate = false;
+			config.stateUpdateInterval = 10;
+			config.magic = 0x7B;
+		}
 		return true;
 	} else {
 		clearMqtt(config);
@@ -166,6 +171,8 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 		mqttChanged |= strcmp(config.password, existing.password) != 0;
 		mqttChanged |= config.payloadFormat != existing.payloadFormat;
 		mqttChanged |= config.ssl != existing.ssl;
+		mqttChanged |= config.stateUpdate != existing.stateUpdate;
+		mqttChanged |= config.stateUpdateInterval != existing.stateUpdateInterval;
 	} else {
 		mqttChanged = true;
 	}
@@ -195,6 +202,9 @@ void AmsConfiguration::clearMqtt(MqttConfig& config) {
 	memset(config.password, 0, 256);
 	config.payloadFormat = 0;
 	config.ssl = false;
+	config.magic = 0x7B;
+	config.stateUpdate = false;
+	config.stateUpdateInterval = 10;
 }
 
 void AmsConfiguration::setMqttChanged() {

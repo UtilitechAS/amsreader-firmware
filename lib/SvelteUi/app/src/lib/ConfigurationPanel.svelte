@@ -614,6 +614,17 @@
                 {translations.conf?.mqtt?.publish ?? "Publish topic"}<br/>
                 <input name="qb" bind:value={configuration.q.b} type="text" class="in-s"/>
             </div>
+            <div class="my-1">
+                {translations.conf?.mqtt?.update ?? "Update method"}
+                <span class="float-right">Interval</span>
+                <div class="flex">
+                    <select name="qt" bind:value={configuration.q.t} class="in-f w-1/2">
+                        <option value={0}>Real time</option>
+                        <option value={1}>Interval</option>
+                    </select>
+                    <input name="qd" bind:value={configuration.q.d} type="number" min="1" max="3600" class="in-l tr w-1/2" disabled={configuration?.q?.t != 1}/>
+                </div>
+            </div>
         </div>
         {/if}
         {#if configuration?.q?.m == 3}

@@ -911,7 +911,9 @@ void AmsWebServer::configurationJson() {
 		mqttConfig.ssl ? "true" : "false",
 		qsc ? "true" : "false",
 		qsr ? "true" : "false",
-		qsk ? "true" : "false"
+		qsk ? "true" : "false",
+		mqttConfig.stateUpdate,
+		mqttConfig.stateUpdateInterval
 	);
 	server.sendContent(buf);
 
@@ -1320,6 +1322,9 @@ void AmsWebServer::handleSave() {
 			if(mqtt.port == 0) {
 				mqtt.port = mqtt.ssl ? 8883 : 1883;
 			}
+
+			mqtt.stateUpdate = server.arg(F("qt")).toInt() == 1;
+			mqtt.stateUpdateInterval = server.arg(F("qd")).toInt();
 		} else {
 			config->clearMqtt(mqtt);
 		}

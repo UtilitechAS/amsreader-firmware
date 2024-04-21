@@ -65,6 +65,7 @@ protected:
     WiFiClientSecure *mqttSecureClient = NULL;
     char* json;
     uint16_t BufferSize = 2048;
+    uint64_t lastStateUpdate = 0;
 };
 
 #endif

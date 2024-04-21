@@ -20,7 +20,6 @@
 #include "PriceService.h"
 #include "RealtimePlot.h"
 #include "ConnectionHandler.h"
-#include "CloudConnector.h"
 
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>
@@ -34,6 +33,7 @@
 	#include <HTTPClient.h>
 	#include <HTTPUpdate.h>
 	#include <ESP32SSDP.h>
+	#include "CloudConnector.h"
 #else
 	#warning "Unsupported board type"
 #endif
@@ -45,7 +45,9 @@ public:
 	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc);
     void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*);
     void loop();
+	#if defined(ESP32)
 	void setCloud(CloudConnector* cloud);
+	#endif
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
 	void setPriceService(PriceService* ps);
@@ -74,7 +76,9 @@ private:
 	RealtimePlot* rtp = NULL;
 	AmsMqttHandler* mqttHandler = NULL;
 	ConnectionHandler* ch = NULL;
+	#if defined(ESP32)
 	CloudConnector* cloud = NULL;
+	#endif
 	bool uploading = false;
 	File file;
 	bool performRestart = false;

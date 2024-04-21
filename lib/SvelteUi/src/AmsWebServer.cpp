@@ -162,9 +162,11 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	mqttEnabled = strlen(mqttConfig.host) > 0;
 }
 
+#if defined(ESP32)
 void AmsWebServer::setCloud(CloudConnector* cloud) {
 	this->cloud = cloud;
 }
+#endif
 
 void AmsWebServer::setTimezone(Timezone* tz) {
 	this->tz = tz;
@@ -1093,18 +1095,22 @@ void AmsWebServer::translationsJson() {
 void AmsWebServer::cloudkeyJson() {
 	if(!checkSecurity(1))
 		return;
-	if(cloud == NULL)
+	#if defined(ESP32)
+		if(cloud == NULL)
+			notFound();
+
+		String seed = cloud->generateSeed();
+
+		snprintf_P(buf, BufferSize, PSTR("{\"seed\":\"%s\"}"), seed.c_str());
+
+		server.setContentLength(strlen(buf));
+		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+		server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+		server.send(200, MIME_JSON, buf);
+	#else
 		notFound();
-
-	String seed = cloud->generateSeed();
-	
-	snprintf_P(buf, BufferSize, PSTR("{\"seed\":\"%s\"}"), seed.c_str());
-
-	server.setContentLength(strlen(buf));
-	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
-	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
-	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
-	server.send(200, MIME_JSON, buf);
+	#endif
 }
 
 void AmsWebServer::handleSave() {

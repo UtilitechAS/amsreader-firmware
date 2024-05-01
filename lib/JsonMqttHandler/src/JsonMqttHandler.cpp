@@ -96,7 +96,8 @@ bool JsonMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
     }
     pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"P\":%d"), data->getActiveImportPower());
     pos += appendJsonFooter(ea, pos);
-    json[pos] = '}';
+    json[pos++] = '}';
+    json[pos] = '\0';
     if(mqttConfig.payloadFormat == 5) {
         char topic[192];
         snprintf_P(topic, 192, PSTR("%s/list1"), mqttConfig.publishTopic);
@@ -127,7 +128,8 @@ bool JsonMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
         data->getL3Voltage()
     );
     pos += appendJsonFooter(ea, pos);
-    json[pos] = '}';
+    json[pos++] = '}';
+    json[pos] = '\0';
     if(mqttConfig.payloadFormat == 5) {
         char topic[192];
         snprintf_P(topic, 192, PSTR("%s/list2"), mqttConfig.publishTopic);
@@ -163,7 +165,8 @@ bool JsonMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
         data->getMeterTimestamp()
     );
     pos += appendJsonFooter(ea, pos);
-    json[pos] = '}';
+    json[pos++] = '}';
+    json[pos] = '\0';
     if(mqttConfig.payloadFormat == 5) {
         char topic[192];
         snprintf_P(topic, 192, PSTR("%s/list3"), mqttConfig.publishTopic);
@@ -215,7 +218,8 @@ bool JsonMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
         data->getMeterTimestamp()
     );
     pos += appendJsonFooter(ea, pos);
-    json[pos] = '}';
+    json[pos++] = '}';
+    json[pos] = '\0';
     if(mqttConfig.payloadFormat == 5) {
         char topic[192];
         snprintf_P(topic, 192, PSTR("%s/list4"), mqttConfig.publishTopic);
@@ -256,7 +260,8 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
     bool ret = false;
     json[pos-1] = '}';
     if(mqttConfig.payloadFormat != 6) {
-        json[pos] = '}';
+        json[pos++] = '}';
+        json[pos] = '\0';
     }
     if(mqttConfig.payloadFormat == 5) {
         char topic[192];
@@ -382,7 +387,8 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
         ts6hr
     );
     if(mqttConfig.payloadFormat != 6) {
-        json[pos] = '}';
+        json[pos++] = '}';
+        json[pos] = '\0';
     }
     bool ret = false;
     if(mqttConfig.payloadFormat == 5) {

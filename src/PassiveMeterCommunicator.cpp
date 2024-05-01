@@ -172,26 +172,6 @@ bool PassiveMeterCommunicator::loop() {
     dataAvailable = true;
 	lastError = DATA_PARSE_OK;
 
-	// After one hour, adjust buffer size to match the largest payload
-	if(!maxDetectPayloadDetectDone && now > 3600000) {
-		if(maxDetectedPayloadSize * 1.25 > meterConfig.bufferSize * 64) {
-			int bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.25) / 64));
-			#if defined(ESP8266)
-				if(meterConfig.rxPin != 3 && meterConfig.rxPin != 113) {
-					bufferSize = min(bufferSize, 2);
-				} else {
-					bufferSize = min(bufferSize, 8);
-				}
-			#endif
-			if(bufferSize != meterConfig.bufferSize) {
-				if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Increasing RX buffer to %d bytes\n"), meterConfig.bufferSize * 64);
-				meterConfig.bufferSize = bufferSize;
-            	configChanged = true;
-			}
-		}
-		maxDetectPayloadDetectDone = true;
-	}
-
     return true;
 }
 
@@ -671,7 +651,7 @@ void PassiveMeterCommunicator::rxerr(int err) {
 		case 2:
 			if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Serial buffer overflow\n"));
 			rxBufferErrors++;
-			if(rxBufferErrors > 3 && meterConfig.bufferSize < 64) {
+			if(rxBufferErrors > 1 && meterConfig.bufferSize < 8) {
 				meterConfig.bufferSize += 2;
 				if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Increasing RX buffer to %d bytes\n"), meterConfig.bufferSize * 64);
                 configChanged = true;

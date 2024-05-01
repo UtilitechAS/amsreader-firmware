@@ -1181,6 +1181,7 @@ void AmsWebServer::handleSave() {
 				case 6: // Pow-P1
 					meterConfig.baud = 115200;
 					meterConfig.parity = 3; // 8N1
+					meterConfig.bufferSize = 8;
 					break;
 				case 3: // Pow-K UART0
 				case 5: // Pow-K+
@@ -1200,6 +1201,9 @@ void AmsWebServer::handleSave() {
 					network.sleep = 2; // Light sleep
 					break;
 			}
+			#if defined(ESP8266)
+				meterConfig.bufferSize = 1;
+			#endif
 			config->setNetworkConfig(network);
 			config->setMeterConfig(meterConfig);
 			

@@ -295,6 +295,7 @@
                             <option value="10YLT-1001A0008Q">Lithuania</option>
                             <option value="10YNL----------L">Netherland</option>
                             <option value="10YPL-AREA-----S">Poland</option>
+			    <option value="10YSI-ELES-----O">Slovenia</option>
                             <option value="10YCH-SWISSGRIDZ">Switzerland</option>
                         </select>
                     </div>

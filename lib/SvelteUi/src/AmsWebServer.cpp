@@ -2513,24 +2513,44 @@ void AmsWebServer::ssdpSchema() {
 
 void AmsWebServer::modifyDayPlot() {
 	for(uint8_t i = 0; i < 24; i++) {
-		if(server.hasArg("i"+i)) {
-			ds->setHourImport(i, server.arg("i"+i).toInt());
+		snprintf_P(buf, BufferSize, PSTR("i%02d"), i);
+		if(server.hasArg(buf)) {
+			ds->setHourImport(i, server.arg(buf).toDouble() * 1000);
 		}
-		if(server.hasArg("e"+i)) {
-			ds->setHourExport(i, server.arg("i"+i).toInt());
+		snprintf_P(buf, BufferSize, PSTR("e%02d"), i);
+		if(server.hasArg(buf)) {
+			ds->setHourExport(i, server.arg(buf).toDouble() * 1000);
 		}
 	}
-	ds->save();
+	bool ret = ds->save();
+
+	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+		"true",
+		"",
+		ret ? "true" : "false"
+	);
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
 }
 
 void AmsWebServer::modifyMonthPlot() {
-	for(uint8_t i = 0; i < 24; i++) {
-		if(server.hasArg("i"+i)) {
-			ds->setDayImport(i, server.arg("i"+i).toInt());
+	for(uint8_t i = 1; i <= 31; i++) {
+		snprintf_P(buf, BufferSize, PSTR("i%02d"), i);
+		if(server.hasArg(buf)) {
+			ds->setDayImport(i, server.arg(buf).toDouble() * 1000);
 		}
-		if(server.hasArg("e"+i)) {
-			ds->setDayExport(i, server.arg("i"+i).toInt());
+		snprintf_P(buf, BufferSize, PSTR("e%02d"), i);
+		if(server.hasArg(buf)) {
+			ds->setDayExport(i, server.arg(buf).toDouble() * 1000);
 		}
 	}
-	ds->save();
+	bool ret = ds->save();
+
+	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+		"true",
+		"",
+		ret ? "true" : "false"
+	);
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
 }

@@ -31,6 +31,8 @@ private:
     float getNumber(CosemData*);
     time_t getTimestamp(uint8_t* obis, int matchlength, const char* ptr);
 
+    uint8_t AMS_OBIS_UNKNOWN_1[4]                 = { 25, 9, 0, 255 };
+
     uint8_t AMS_OBIS_VERSION[4]                 = {  0, 2, 129, 255 };
     uint8_t AMS_OBIS_METER_MODEL[4]             = { 96, 1, 1, 255 };
     uint8_t AMS_OBIS_METER_MODEL_2[4]           = { 96, 1, 7, 255 };

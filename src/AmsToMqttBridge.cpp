@@ -701,12 +701,10 @@ void loop() {
 			#endif
 			handleUiLanguage();
 		}
-		/*
 		if(now - lastVoltageCheck > 500) {
 			handleVoltageCheck();
 			lastVoltageCheck = now;
 		}
-		*/
 	} else {
 		if(WiFi.smartConfigDone()) {
 			debugI_P(PSTR("Smart config DONE!"));
@@ -989,23 +987,23 @@ void handleSystem(unsigned long now) {
 		}
 		#endif
 	}
-
-	handleVoltageCheck();
 }
 
 bool handleVoltageCheck() {
-	if(sysConfig.boardType == 7 && maxVcc > 2.8) { // Pow-U
+	if(sysConfig.boardType >= 5 && sysConfig.boardType <= 7 && maxVcc > 2.8) { // Pow-*
 		float vcc = hw.getVcc();
 		if(vcc > 3.4 || vcc < 2.8) {
 			maxVcc = 0;
 		} else if(vcc > maxVcc) {
 			debugD_P(PSTR("Setting new max Vcc to %.2f"), vcc);
 			maxVcc = vcc;
-		} else if(WiFi.getMode() != WIFI_OFF) {
+		} else {
 			float diff = min(maxVcc, (float) 3.3)-vcc;
 			if(diff > 0.4) {
-				debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for 5 seconds to preserve power"), vcc);
-				ch->disconnect(5000);
+				if(WiFi.getMode() == WIFI_STA) {
+					debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for 5 seconds to preserve power"), vcc);
+					ch->disconnect(5000);
+				}
 				return false;
 			}
 		}
@@ -1140,7 +1138,14 @@ void errorBlink() {
 	}
 }
 
+unsigned long lastConnectRetry = 0;
+
 void connectToNetwork() {
+	if(lastConnectRetry > 0 && (millis() - lastConnectRetry) < 10000) {
+		delay(50);
+		return;
+	}
+	lastConnectRetry = millis();
 	if(!handleVoltageCheck()) {
 		debugW_P(PSTR("Voltage is not high enough to reconnect"));
 		return;

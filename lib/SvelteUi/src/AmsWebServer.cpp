@@ -110,6 +110,8 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/mqtt-ca"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(context + F("/mqtt-cert"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(context + F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/edit-day"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/edit-month"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	
 	server.on(context + F("/favicon.svg"), HTTP_GET, std::bind(&AmsWebServer::faviconSvg, this)); 
 	server.on(context + F("/logo.svg"), HTTP_GET, std::bind(&AmsWebServer::logoSvg, this)); 

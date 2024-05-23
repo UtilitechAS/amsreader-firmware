@@ -11,11 +11,9 @@
 
 bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     if(strlen(mqttConfig.publishTopic) == 0) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Unable to publish data, no publish topic\n"));
         return false;
     }
 	if(!mqtt.connected()) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Unable to publish data, not connected\n"));
 		return false;
     }
 
@@ -33,7 +31,6 @@ bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAcc
         data = *update;
     }
 
-    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Publishing list ID %d!\n"), data.getListType());
     if(data.getListType() == 1) {
         ret = publishList1(&data, ea);
         mqtt.loop();

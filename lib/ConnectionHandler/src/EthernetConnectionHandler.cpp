@@ -57,7 +57,6 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
             ethMdc = 23;
             ethMdio = 18;
         } else if(sys.boardType == 244) {
-			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("LilyGO T-ETH-Lite\n"));
             return false; // TODO
         } else {
 			if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Board type %d incompatible with ETH\n"), sys.boardType);

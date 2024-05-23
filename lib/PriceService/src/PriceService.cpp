@@ -356,12 +356,10 @@ float PriceService::getCurrencyMultiplier(const char* from, const char* to, time
         float currencyMultiplier = 0;
         snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), from);
         if(retrieve(buf, &p)) {
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  got exchange rate %.4f\n"), p.getValue());
             currencyMultiplier = p.getValue();
             if(strncmp(to, "NOK", 3) != 0) {
                 snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), to);
                 if(retrieve(buf, &p)) {
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  got exchange rate %.4f\n"), p.getValue());
                     if(p.getValue() > 0.0) {
                         currencyMultiplier /= p.getValue();
                     } else {
@@ -571,7 +569,6 @@ bool PriceService::load() {
         return false;
     }
     if(!LittleFS.exists(FILE_PRICE_CONF)) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService) No price config file\n"));
         return false;
     }
     if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Loading price config\n"));

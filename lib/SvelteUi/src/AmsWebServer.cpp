@@ -1072,15 +1072,12 @@ void AmsWebServer::translationsJson() {
 			lang = String(ui.language);
 		}
 	}
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Sending translation file for language: %s\n"), lang.c_str());
 
 	snprintf_P(buf, BufferSize, PSTR("/translations-%s.json"), lang.c_str());
 	if(!LittleFS.exists(buf)) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Language file %s was not found\n"), buf);
 		notFound();
 		return;
 	}
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Language file %s\n"), buf);
 
 //	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -1120,7 +1117,6 @@ void AmsWebServer::cloudkeyJson() {
 }
 
 void AmsWebServer::handleSave() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Handling save method from http\n"));
 	if(!checkSecurity(1))
 		return;
 
@@ -1759,8 +1755,6 @@ void AmsWebServer::firmwarePost() {
 		if(server.hasArg(F("url"))) {
 			String url = server.arg(F("url"));
 			if(!url.isEmpty() && (url.startsWith(F("http://")) || url.startsWith(F("https://")))) {
-				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Custom firmware URL was provided\n"));
-
 				upgradeFromUrl(url, "");
 				server.send(200, MIME_PLAIN, "OK");
 				return;
@@ -1813,20 +1807,11 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Unable to mount LittleFS!</h1></body></html>"));
 		} else {
 			uploading = true;
-			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf_P(PSTR("handleFileUpload file: %s\n"), path);
-			}
 			if(LittleFS.exists(path)) {
 				LittleFS.remove(path);
 			}
 		    file = LittleFS.open(path, "w");
-			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf_P(PSTR("handleFileUpload Open file and write: %u\n"), upload.currentSize);
-			}
             size_t written = file.write(upload.buf, upload.currentSize);
-			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf_P(PSTR("handleFileUpload Written: %u\n"), written);
-			}
 	    } 
     } else if(upload.status == UPLOAD_FILE_WRITE) {
         if(file) {
@@ -1848,9 +1833,6 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 			}
 		}
     } else if(upload.status == UPLOAD_FILE_END) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) {
-			debugger->printf_P(PSTR("handleFileUpload Ended\n"));
-		}
         if(file) {
 			file.flush();
             file.close();
@@ -1877,13 +1859,9 @@ void AmsWebServer::factoryResetPost() {
 	if(!checkSecurity(1))
 		return;
 
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Performing factory reset\n"));
-
 	bool success = false;
 	if(server.hasArg(F("perform")) && server.arg(F("perform")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Formatting LittleFS\n"));
 		LittleFS.format();
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Clearing configuration\n"));
 		config->clear();
 
 		success = true;

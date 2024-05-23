@@ -108,14 +108,11 @@ bool CloudConnector::init() {
                 memset(clearBuffer, 0, CC_BUF_SIZE);
                 snprintf(clearBuffer, CC_BUF_SIZE, pub.c_str());
 
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Cloud public key:\n%s\n"), clearBuffer);
-
                 mbedtls_pk_context pk;
                 mbedtls_pk_init(&pk);
 
                 int error_code = 0;
                 if((error_code =  mbedtls_pk_parse_public_key(&pk, (unsigned char*) clearBuffer, strlen((const char*) clearBuffer)+1)) == 0){
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("RSA public key OK\n"));
                     rsa = mbedtls_pk_rsa(pk);
                     mbedtls_ctr_drbg_init(&ctr_drbg);
                     mbedtls_entropy_init(&entropy);
@@ -383,7 +380,6 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     memset(encryptedBuffer, 0, rsa->len);
 
     int maxlen = 100 * (rsa->len/128);
-    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("(CloudConnector) Sending %d bytes and maxlen %d\n", pos, maxlen);
     udp.beginPacket(config.hostname,7443);
     for(int i = 0; i < pos; i += maxlen) {
         int size = min(maxlen, pos-i);

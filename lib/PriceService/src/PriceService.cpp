@@ -523,7 +523,7 @@ std::vector<PriceConfig>& PriceService::getPriceConfig() {
 }
 
 void PriceService::setPriceConfig(uint8_t index, PriceConfig &priceConfig) {
-    stripNonAscii((uint8_t*) priceConfig.name, 32);
+    stripNonAscii((uint8_t*) priceConfig.name, 32, true);
 
     if(this->priceConfig.capacity() != index+1)
         this->priceConfig.resize(index+1);

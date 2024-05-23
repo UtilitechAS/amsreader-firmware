@@ -16,33 +16,13 @@
 
 PassiveMeterCommunicator::PassiveMeterCommunicator(RemoteDebug* debugger) {
     this->debugger = debugger;
-    bauds[0] = 2400;
-    parities[0] = 11;
-    inverts[0] = false;
-
-    bauds[1] = 2400;
-    parities[1] = 3;
-    inverts[1] = false;
-
-    bauds[2] = 115200;
-    parities[2] = 3;
-    inverts[2] = false;
-
-    bauds[3] = 2400;
-    parities[3] = 11;
-    inverts[3] = true;
-
-    bauds[4] = 2400;
-    parities[4] = 3;
-    inverts[4] = true;
-
-    bauds[5] = 115200;
-    parities[5] = 3;
-    inverts[5] = true;
 }
 
 void PassiveMeterCommunicator::configure(MeterConfig& meterConfig, Timezone* tz) {
     this->meterConfig = meterConfig;
+	if(meterConfig.baud == 0) {
+		autodetect = true;
+	}
     this->configChanged = false;
     this->tz = tz;
     setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert);
@@ -453,13 +433,12 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 	int8_t rxpin = meterConfig.rxPin;
 	int8_t txpin = passive ? -1 : meterConfig.txPin;
 
+	if(baud == 0) {
+		baud = 2400;
+	}
+
 	if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(setupHanPort) Setting up HAN on pin %d/%d with baud %d and parity %d\n"), rxpin, txpin, baud, parityOrdinal);
 
-	if(baud == 0) {
-		baud = bauds[meterAutoIndex];
-		parityOrdinal = parities[meterAutoIndex];
-		invert = inverts[meterAutoIndex];
-	}
 	if(parityOrdinal == 0) {
 		parityOrdinal = 3; // 8N1
 	}
@@ -666,6 +645,45 @@ void PassiveMeterCommunicator::rxerr(int err) {
 			break;
 		case 5:
 			if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Serial parity error\n"));
+		    unsigned long now = millis();
+			if(now - meterAutodetectLastChange < 120000) {
+				switch(autodetectParity) {
+					case 2: // 7N1
+						autodetectParity = 10;
+						break;
+					case 10: // 7E1
+						autodetectParity = 6;
+						break;
+					case 6: // 7N2
+						autodetectParity = 14;
+						break;
+					case 14: // 7E2
+						autodetectParity = 2;
+						break;
+
+					case 3: // 8N1
+						autodetectParity = 11;
+						break;
+					case 11: // 8E1
+						autodetectParity = 7;
+						break;
+					case 7: // 8N2
+						autodetectParity = 15;
+						break;
+					case 15: // 8E2
+						autodetectParity = 3;
+						break;
+
+					default:
+						autodetectParity = 3;
+						break;
+				}
+				if(validDataReceived) {
+					meterConfig.parity = autodetectParity;
+					configChanged = true;
+					setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert);
+				}
+			}
 			break;
 	}
 	// Do not include serial break
@@ -678,19 +696,58 @@ void PassiveMeterCommunicator::handleAutodetect(unsigned long now) {
 	if(!validDataReceived) {
 		if(now - meterAutodetectLastChange > 20000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
 			autodetect = true;
-			meterAutoIndex++; // Default is to try the first one in setup()
-			if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s\n"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
-			if(meterAutoIndex >= 6) meterAutoIndex = 0;
-			setupHanPort(bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex]);
+			pinMode(meterConfig.rxPin, INPUT);
+			digitalWrite (meterConfig.rxPin, HIGH);
+			autodetectBaud = detectBaudRate(meterConfig.rxPin);
+			if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s\n"), autodetectBaud, autodetectParity, autodetectInvert ? "true" : "false");
+			setupHanPort(autodetectBaud, autodetectParity, autodetectInvert);
 			meterAutodetectLastChange = now;
+			if(autodetectCount++ == 5)  {
+				autodetectInvert = !autodetectInvert;
+				autodetectCount = 0;
+			}
 		}
 	} else if(autodetect) {
-		if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Meter serial autodetected, saving: %d, %d, %s\n"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
+		if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Meter serial autodetected, saving: %d, %d, %s\n"), autodetectBaud, autodetectParity, autodetectInvert ? "true" : "false");
 		autodetect = false;
-		meterConfig.baud = bauds[meterAutoIndex];
-		meterConfig.parity = parities[meterAutoIndex];
-		meterConfig.invert = inverts[meterAutoIndex];
+		meterConfig.baud = autodetectBaud;
+		meterConfig.parity = autodetectParity;
+		meterConfig.invert = autodetectInvert;
 		configChanged = true;
 		setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert);
 	}
+}
+
+uint32_t PassiveMeterCommunicator::detectBaudRate(uint8_t pin) {
+    long x;
+    for (int i = 0; i < 5; i++){
+        while(digitalRead(pin) == 1){} // wait for low bit to start
+        x = pulseIn(pin, LOW);   // measure the next zero bit width
+        rate = x < rate ? x : rate;
+    }
+     if (rate < 12)
+        return 115200;
+     else if (rate < 20)
+        return 57600;
+     else if (rate < 29)
+        return 38400;
+     else if (rate < 40)
+        return 28800;
+     else if (rate < 60)
+        return 19200;
+     else if (rate < 80)
+        return 14400;
+     else if (rate < 150)
+        return 9600;
+     else if (rate < 300)
+        return 4800;
+     else if (rate < 600)
+        return 2400;
+     else if (rate < 1200)
+        return 1200;
+     else if (rate < 2400)
+        return 600;
+     else if (rate < 4800)
+        return 300;
+	return 0;  
 }

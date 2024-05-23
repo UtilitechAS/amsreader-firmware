@@ -1185,8 +1185,6 @@ void AmsWebServer::handleSave() {
 					break;
 				case 3: // Pow-K UART0
 				case 5: // Pow-K+
-					meterConfig.baud = 2400;
-					meterConfig.parity = 3; // 8N1
 				case 2: // spenceme
 				case 8: // dbeinder: HAN mosquito
 				case 50: // Generic ESP32-S2

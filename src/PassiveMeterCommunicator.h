@@ -51,10 +51,11 @@ protected:
 
     bool autodetect = false, validDataReceived = false;
     unsigned long meterAutodetectLastChange = 0;
-    uint8_t meterAutoIndex = 0;
-    uint32_t bauds[6];
-    uint8_t parities[6];
-    bool inverts[6];
+    long rate = 10000;
+    uint32_t autodetectBaud = 0;
+    uint8_t autodetectParity = 11;
+    bool autodetectInvert = false;
+    uint8_t autodetectCount = 0;
 
     bool dataAvailable = false;
     int len = 0;
@@ -78,6 +79,7 @@ protected:
     void debugPrint(byte *buffer, int start, int length);
     void printHanReadError(int pos);
     void handleAutodetect(unsigned long now);
+    uint32_t detectBaudRate(uint8_t pin);
 };
 
 #endif

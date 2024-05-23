@@ -70,7 +70,6 @@
       getTranslations(sysinfo.ui.lang);
     }
   });
-  getSysinfo();
 
   let data = {};
   dataStore.subscribe(update => {

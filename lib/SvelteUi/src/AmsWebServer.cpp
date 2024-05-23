@@ -601,7 +601,7 @@ void AmsWebServer::dataJson() {
 		ea->getCostThisMonth(),
 		ea->getProducedThisMonth(),
 		ea->getIncomeThisMonth(),
-		ps == NULL ? "false" : "true",
+		price == PRICE_NO_VALUE ? "false" : "true",
 		priceRegion.c_str(),
 		priceCurrency.c_str(),
 		meterState->getLastError(),

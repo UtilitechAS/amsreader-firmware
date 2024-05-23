@@ -23,7 +23,11 @@ ADC_MODE(ADC_VCC);
 #include "Update.h"
 #include <esp_task_wdt.h>
 #include <lwip/dns.h>
+#if defined(CONFIG_IDF_TARGET_ESP32C3)
+#warning "Cloud disabled"
+#else
 #include "CloudConnector.h"
+#endif
 #endif
 
 #define WDT_TIMEOUT 120
@@ -159,7 +163,7 @@ bool ntpEnabled = false;
 bool mdnsEnabled = false;
 
 AmsDataStorage ds(&Debug);
-#if defined(ESP32)
+#if defined(_CLOUDCONNECTOR_H)
 CloudConnector *cloud = NULL;
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
 #else
@@ -667,7 +671,7 @@ void loop() {
 				}
 			}
 
-			#if defined(ESP32)
+			#if defined(_CLOUDCONNECTOR_H)
 			if(config.isCloudChanged()) {
 				CloudConfig cc;
 				if(config.getCloudConfig(cc) && cc.enabled) {
@@ -919,7 +923,7 @@ void handleEnergyAccountingChanged() {
 	config.getEnergyAccountingConfig(*eac);
 	ea.setup(&ds, eac);
 	config.ackEnergyAccountingChange();
-	#if defined(ESP32)
+	#if defined(_CLOUDCONNECTOR_H)
 	if(cloud != NULL) {
 		cloud->setEnergyAccountingConfig(*eac);
 	}
@@ -1060,7 +1064,7 @@ void handlePriceService(unsigned long now) {
 				ps = new PriceService(&Debug);
 				ea.setPriceService(ps);
 				ws.setPriceService(ps);
-				#if defined(ESP32)
+				#if defined(_CLOUDCONNECTOR_H)
 				if(cloud != NULL) {
 					cloud->setPriceConfig(price);
 				}
@@ -1179,7 +1183,7 @@ void connectToNetwork() {
 		}
 		ch->connect(network, sysConfig);
 		ws.setConnectionHandler(ch);
-		#if defined(ESP32)
+		#if defined(_CLOUDCONNECTOR_H)
 		if(cloud != NULL)
 			cloud->setConnectionHandler(ch);
 		#endif
@@ -1339,7 +1343,7 @@ void handleDataSuccess(AmsData* data) {
 		if(tm.Minute == 0 && data->getListType() >= 3) {
 			debugV_P(PSTR(" using actual data"));
 			saveData = ds.update(data);
-			#if defined(ESP32)
+			#if defined(_CLOUDCONNECTOR_H)
 			if(saveData && cloud != NULL) cloud->forceUpdate();
 			#endif
 		} else if(tm.Minute == 1) {

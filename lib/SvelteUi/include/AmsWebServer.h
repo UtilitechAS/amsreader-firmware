@@ -33,7 +33,11 @@
 	#include <HTTPClient.h>
 	#include <HTTPUpdate.h>
 	#include <ESP32SSDP.h>
+	#if defined(CONFIG_IDF_TARGET_ESP32C3)
+	#warning "Cloud disabled"
+	#else
 	#include "CloudConnector.h"
+	#endif
 #else
 	#warning "Unsupported board type"
 #endif
@@ -45,7 +49,7 @@ public:
 	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc);
     void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*);
     void loop();
-	#if defined(ESP32)
+	#if defined(_CLOUDCONNECTOR_H)
 	void setCloud(CloudConnector* cloud);
 	#endif
 	void setTimezone(Timezone* tz);
@@ -76,7 +80,7 @@ private:
 	RealtimePlot* rtp = NULL;
 	AmsMqttHandler* mqttHandler = NULL;
 	ConnectionHandler* ch = NULL;
-	#if defined(ESP32)
+	#if defined(_CLOUDCONNECTOR_H)
 	CloudConnector* cloud = NULL;
 	#endif
 	bool uploading = false;

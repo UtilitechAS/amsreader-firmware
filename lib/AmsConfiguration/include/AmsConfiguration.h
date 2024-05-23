@@ -214,11 +214,6 @@ struct EnergyAccountingConfig {
 	uint8_t hours;
 }; // 21
 
-struct EnergyAccountingConfig101 {
-	uint8_t thresholds[10];
-	uint8_t hours;
-}; // 11
-
 struct UiConfig {
 	uint8_t showImport;
 	uint8_t showExport;
@@ -354,8 +349,6 @@ private:
 
 	bool sysChanged = false, networkChanged, mqttChanged, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false;
 
-	bool relocateConfig101(); // 2.2.0 through 2.2.8
-	bool relocateConfig102(); // 2.2.9 through 2.2.11
 	bool relocateConfig103(); // 2.2.12, until, but not including 2.3
 
 	void saveToFs();

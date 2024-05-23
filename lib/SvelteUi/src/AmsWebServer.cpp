@@ -15,11 +15,9 @@
 #include "html/index_js.h"
 #include "html/favicon_svg.h"
 #include "html/data_json.h"
-#include "html/tempsensor_json.h"
 #include "html/response_json.h"
 #include "html/sysinfo_json.h"
 #include "html/tariff_json.h"
-#include "html/peak_json.h"
 #include "html/conf_general_json.h"
 #include "html/conf_meter_json.h"
 #include "html/conf_wifi_json.h"
@@ -168,7 +166,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	mqttEnabled = strlen(mqttConfig.host) > 0;
 }
 
-#if defined(ESP32)
+#if defined(_CLOUDCONNECTOR_H)
 void AmsWebServer::setCloud(CloudConnector* cloud) {
 	this->cloud = cloud;
 }
@@ -705,7 +703,7 @@ void AmsWebServer::temperatureJson() {
 		if(data == NULL) continue;
 
 		char* pos = buf+strlen(buf);
-		snprintf_P(pos, 72, TEMPSENSOR_JSON, 
+		snprintf_P(pos, 72, PSTR("{\"i\":%d,\"a\":\"%s\",\"n\":\"%s\",\"c\":%d,\"v\":%.1f},"), 
 			i,
 			toHex(data->address, 8).c_str(),
 			"",
@@ -1098,7 +1096,7 @@ void AmsWebServer::translationsJson() {
 void AmsWebServer::cloudkeyJson() {
 	if(!checkSecurity(1))
 		return;
-	#if defined(ESP32)
+	#if defined(_CLOUDCONNECTOR_H)
 		if(cloud == NULL)
 			notFound();
 
@@ -2004,7 +2002,7 @@ void AmsWebServer::tariffJson() {
 	String peaks;
     for(uint8_t x = 0;x < min((uint8_t) 5, eac->hours); x++) {
 		EnergyAccountingPeak peak = ea->getPeak(x+1);
-		int len = snprintf_P(buf, BufferSize, PEAK_JSON,
+		int len = snprintf_P(buf, BufferSize, PSTR("{\"d\":%d,\"v\":%.2f}"),
 			peak.day,
 			peak.value / 100.0
 		);

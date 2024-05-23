@@ -948,22 +948,6 @@ bool AmsConfiguration::hasConfig() {
 		}
 	} else {
 		switch(configVersion) {
-			case 101:
-				configVersion = -1; // Prevent loop
-				if(relocateConfig101()) {
-					configVersion = 102;
-				} else {
-					configVersion = 0;
-					return false;
-				}
-			case 102:
-				configVersion = -1; // Prevent loop
-				if(relocateConfig102()) {
-					configVersion = 103;
-				} else {
-					configVersion = 0;
-					return false;
-				}
 			case 103:
 				configVersion = -1; // Prevent loop
 				if(relocateConfig103()) {
@@ -984,48 +968,6 @@ bool AmsConfiguration::hasConfig() {
 
 int AmsConfiguration::getConfigVersion() {
 	return configVersion;
-}
-
-bool AmsConfiguration::relocateConfig101() {
-	EEPROM.begin(EEPROM_SIZE);
-
-	EnergyAccountingConfig config;
-	EnergyAccountingConfig101 config101;
-	EEPROM.get(CONFIG_ENERGYACCOUNTING_START_103, config101);
-	for(uint8_t i = 0; i < 9; i++) {
-		config.thresholds[i] = config101.thresholds[i];
-	}
-	config.thresholds[9] = 0xFFFF;
-	config.hours = config101.hours;
-	EEPROM.put(CONFIG_ENERGYACCOUNTING_START_103, config);
-
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 102);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
-}
-
-bool AmsConfiguration::relocateConfig102() {
-	EEPROM.begin(EEPROM_SIZE);
-
-	GpioConfig103 gpioConfig;
-	EEPROM.get(CONFIG_GPIO_START_103, gpioConfig);
-	gpioConfig.hanPinPullup = true;
-	EEPROM.put(CONFIG_GPIO_START_103, gpioConfig);
-
-	HomeAssistantConfig haconf;
-	clearHomeAssistantConfig(haconf);
-	EEPROM.put(CONFIG_HA_START_103, haconf);
-
-	PriceServiceConfig entsoe;
-	EEPROM.get(CONFIG_ENTSOE_START_103, entsoe);
-	entsoe.unused2 = 0;
-	EEPROM.put(CONFIG_ENTSOE_START_103, entsoe);
-
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 103);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
 }
 
 bool AmsConfiguration::relocateConfig103() {

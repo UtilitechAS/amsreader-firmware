@@ -82,8 +82,8 @@ bool EnergyAccounting::update(AmsData* amsData) {
         init = true;
     }
 
-    float price = getPriceForHour(PRICE_DIRECTION_IMPORT, 0);
-    if(!initPrice && price != PRICE_NO_VALUE) {
+    float importPrice = getPriceForHour(PRICE_DIRECTION_IMPORT, 0);
+    if(!initPrice && importPrice != PRICE_NO_VALUE) {
         calcDayCost();
     }
 
@@ -155,8 +155,8 @@ bool EnergyAccounting::update(AmsData* amsData) {
         float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
         if(kwhi > 0) {
             this->realtimeData->use += kwhi;
-            if(price != PRICE_NO_VALUE) {
-                float cost = price * kwhi;
+            if(importPrice != PRICE_NO_VALUE) {
+                float cost = importPrice * kwhi;
                 this->realtimeData->costHour += cost;
                 this->realtimeData->costDay += cost;
             }
@@ -169,8 +169,9 @@ bool EnergyAccounting::update(AmsData* amsData) {
         float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
         if(kwhe > 0) {
             this->realtimeData->produce += kwhe;
-            if(price != PRICE_NO_VALUE) {
-                float income = price * kwhe;
+            float exportPrice = getPriceForHour(PRICE_DIRECTION_EXPORT, 0);
+            if(exportPrice != PRICE_NO_VALUE) {
+                float income = exportPrice * kwhe;
                 this->realtimeData->incomeHour += income;
                 this->realtimeData->incomeDay += income;
             }

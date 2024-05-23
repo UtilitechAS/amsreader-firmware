@@ -18,6 +18,8 @@
 #include "SoftwareSerial.h"
 #endif
 
+const uint32_t AUTO_BAUD_RATES[] = { 2400, 115200 };
+
 class PassiveMeterCommunicator : public MeterCommunicator  {
 public:
     PassiveMeterCommunicator(RemoteDebug* debugger);
@@ -79,7 +81,6 @@ protected:
     void debugPrint(byte *buffer, int start, int length);
     void printHanReadError(int pos);
     void handleAutodetect(unsigned long now);
-    uint32_t detectBaudRate(uint8_t pin);
 };
 
 #endif

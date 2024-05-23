@@ -35,6 +35,9 @@ void PassiveMeterCommunicator::configure(MeterConfig& meterConfig, Timezone* tz)
 bool PassiveMeterCommunicator::loop() {
 	if(hanBufferSize == 0) return false;
 
+    unsigned long now = millis();
+    if(autodetect) handleAutodetect(now);
+
 	unsigned long start, end;
 	if(!hanSerial->available()) {
 		return false;
@@ -46,9 +49,6 @@ bool PassiveMeterCommunicator::loop() {
 		serialInit = true;
 		return false;
 	}
-
-    unsigned long now = millis();
-    if(autodetect) handleAutodetect(now);
 
 	dataAvailable = false;
 	ctx = {0,0,0,0};
@@ -696,17 +696,15 @@ void PassiveMeterCommunicator::handleAutodetect(unsigned long now) {
 	if(!validDataReceived) {
 		if(now - meterAutodetectLastChange > 20000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
 			autodetect = true;
-			pinMode(meterConfig.rxPin, INPUT);
-			digitalWrite (meterConfig.rxPin, HIGH);
-			autodetectBaud = detectBaudRate(meterConfig.rxPin);
+			if(autodetectCount == 2)  {
+				autodetectInvert = !autodetectInvert;
+				autodetectCount = 0;
+			}
+			autodetectBaud = AUTO_BAUD_RATES[autodetectCount++];
 			if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s\n"), autodetectBaud, autodetectParity, autodetectInvert ? "true" : "false");
 			meterConfig.bufferSize = max((uint32_t) 1, autodetectBaud / 14400);
 			setupHanPort(autodetectBaud, autodetectParity, autodetectInvert);
 			meterAutodetectLastChange = now;
-			if(autodetectCount++ == 5)  {
-				autodetectInvert = !autodetectInvert;
-				autodetectCount = 0;
-			}
 		}
 	} else if(autodetect) {
 		if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Meter serial autodetected, saving: %d, %d, %s\n"), autodetectBaud, autodetectParity, autodetectInvert ? "true" : "false");
@@ -717,38 +715,4 @@ void PassiveMeterCommunicator::handleAutodetect(unsigned long now) {
 		configChanged = true;
 		setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert);
 	}
-}
-
-uint32_t PassiveMeterCommunicator::detectBaudRate(uint8_t pin) {
-    long x;
-    for (int i = 0; i < 5; i++){
-        while(digitalRead(pin) == 1){} // wait for low bit to start
-        x = pulseIn(pin, LOW);   // measure the next zero bit width
-        rate = x < rate ? x : rate;
-    }
-     if (rate < 12)
-        return 115200;
-     else if (rate < 20)
-        return 57600;
-     else if (rate < 29)
-        return 38400;
-     else if (rate < 40)
-        return 28800;
-     else if (rate < 60)
-        return 19200;
-     else if (rate < 80)
-        return 14400;
-     else if (rate < 150)
-        return 9600;
-     else if (rate < 300)
-        return 4800;
-     else if (rate < 600)
-        return 2400;
-     else if (rate < 1200)
-        return 1200;
-     else if (rate < 2400)
-        return 600;
-     else if (rate < 4800)
-        return 300;
-	return 0;  
 }

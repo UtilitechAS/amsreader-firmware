@@ -87,6 +87,24 @@
         arr.splice(rn, 1);
         configuration.o = arr
     };
+
+    let moveUp = function(rn) {
+        if(rn <= 0) return;
+        let arr = configuration.o;
+        var tmp = arr[rn];
+        arr[rn] = arr[rn-1];
+        arr[rn-1] = tmp;
+        configuration.o = arr
+    };
+
+    let moveDown = function(rn) {
+        let arr = configuration.o;
+        if(rn >= arr.length-1) return;
+        var tmp = arr[rn];
+        arr[rn] = arr[rn+1];
+        arr[rn+1] = tmp;
+        configuration.o = arr
+    };
 </script>
 <div class="cnt">
     <strong class="text-sm">{translations.conf?.price?.title ?? "Price"}</strong>
@@ -171,6 +189,8 @@
                     </div>
                     
                     <div class="mt-1.5 ml-3">
+                        <span class={rn > 0 ? "text-green-600" : "text-gray-300"} on:click={() => moveUp(rn)} on:keypress={() => moveUp(rn)}>&#8679;</span>
+                        <span class={rn < configuration.o.length-1 ? "text-green-600" : "text-gray-300"} on:click={() => moveDown(rn)} on:keypress={() => moveDown(rn)}>&#8681;</span>
                         <span class="text-red-500 text-xs" on:click={() => deleteRow(rn)} on:keypress={() => deleteRow(rn)}>&#128465;</span>
                     </div>
                 </div>

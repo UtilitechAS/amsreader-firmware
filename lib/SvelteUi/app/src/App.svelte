@@ -13,6 +13,7 @@
   import FileUploadComponent from "./lib/FileUploadComponent.svelte";
   import ConsentComponent from "./lib/ConsentComponent.svelte";
   import PriceConfig from "./lib/PriceConfig.svelte";
+  import DataEdit from "./lib/DataEdit.svelte";
   
   let basepath = document.getElementsByTagName('base')[0].getAttribute("href");
   if(!basepath) basepath = "/";
@@ -110,6 +111,12 @@
     </Route>
     <Route path="/vendor">
       <VendorPanel sysinfo={sysinfo} basepath={basepath}/>
+    </Route>
+    <Route path="/edit-day">
+      <DataEdit prefix="UTC Hour" data={dayPlot} url="/dayplot" basepath={basepath}/>
+    </Route>
+    <Route path="/edit-month">
+      <DataEdit prefix="Day" data={monthPlot} url="/monthplot" basepath={basepath}/>
     </Route>
   </Router>
 

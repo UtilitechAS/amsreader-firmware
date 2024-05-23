@@ -144,6 +144,10 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/configfile"), HTTP_POST, std::bind(&AmsWebServer::configFilePost, this), std::bind(&AmsWebServer::configFileUpload, this));
 	server.on(context + F("/configfile.cfg"), HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
 
+	server.on(context + F("/dayplot"), HTTP_POST, std::bind(&AmsWebServer::modifyDayPlot, this));
+	server.on(context + F("/monthplot"), HTTP_POST, std::bind(&AmsWebServer::modifyMonthPlot, this));
+
+
 	/* These trigger captive portal. Only problem is that after you have "signed in", the portal is closed and the user has no idea how to reach the device
 	server.on(context + F("/generate_204"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Android captive portal check: http://connectivitycheck.gstatic.com/generate_204
 	server.on(context + F("/ncsi.txt"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check: http://www.msftncsi.com/ncsi.txt 
@@ -2505,4 +2509,28 @@ void AmsWebServer::redirectToMain() {
 
 void AmsWebServer::ssdpSchema() {
 	SSDP.schema(server.client());
+}
+
+void AmsWebServer::modifyDayPlot() {
+	for(uint8_t i = 0; i < 24; i++) {
+		if(server.hasArg("i"+i)) {
+			ds->setHourImport(i, server.arg("i"+i).toInt());
+		}
+		if(server.hasArg("e"+i)) {
+			ds->setHourExport(i, server.arg("i"+i).toInt());
+		}
+	}
+	ds->save();
+}
+
+void AmsWebServer::modifyMonthPlot() {
+	for(uint8_t i = 0; i < 24; i++) {
+		if(server.hasArg("i"+i)) {
+			ds->setDayImport(i, server.arg("i"+i).toInt());
+		}
+		if(server.hasArg("e"+i)) {
+			ds->setDayExport(i, server.arg("i"+i).toInt());
+		}
+	}
+	ds->save();
 }

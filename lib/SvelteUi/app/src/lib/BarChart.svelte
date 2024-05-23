@@ -1,4 +1,6 @@
 <script>
+    import { Link } from "svelte-navigator";
+
     export let config;
 
     let width;
@@ -36,9 +38,22 @@
 </script>
 <div class="chart" bind:clientWidth={width} bind:clientHeight={height}>
     {#if config.x.ticks && config.points && heightAvailable}
-        {#if config.title}
-            <div class="text-sm font-bold" bind:clientHeight={titleHeight}>{config.title}</div>
-        {/if}
+    {#if config.title || config.link}
+        <div class="grid grid-cols-2">
+            {#if config.title}
+                <div class="text-sm font-bold" bind:clientHeight={titleHeight}>{config.title}</div>
+            {/if}
+            {#if config.link}
+                <div class="text-xs text-right">
+                    {#if config.link.route}
+                        <Link to={config.link.url}>{config.link.text}</Link>
+                    {:else}
+                        <a href={config.link.url} target={config.link.target}>{config.link.text}</a>
+                    {/if}
+                </div>
+            {/if}
+        </div>
+    {/if}
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {heightAvailable}">
             <!-- y axis -->
             <g class="axis y-axis">

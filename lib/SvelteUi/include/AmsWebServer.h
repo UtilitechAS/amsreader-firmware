@@ -145,6 +145,9 @@ private:
 	void configFilePost();
 	void factoryResetPost();
 
+	void modifyDayPlot();
+	void modifyMonthPlot();
+
 	void notFound();
 	void redirectToMain();
 	void robotstxt();

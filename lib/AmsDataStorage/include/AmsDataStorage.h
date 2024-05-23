@@ -79,6 +79,11 @@ public:
 
     double getEstimatedImportCounter();
 
+    void setHourImport(uint8_t, uint32_t);
+    void setHourExport(uint8_t, uint32_t);
+    void setDayImport(uint8_t, uint32_t);
+    void setDayExport(uint8_t, uint32_t);
+
 private:
     Timezone* tz;
     DayDataPoints day = {
@@ -96,10 +101,6 @@ private:
         10
     };
     RemoteDebug* debugger;
-    void setHourImport(uint8_t, uint32_t);
-    void setHourExport(uint8_t, uint32_t);
-    void setDayImport(uint8_t, uint32_t);
-    void setDayExport(uint8_t, uint32_t);
 };
 
 #endif

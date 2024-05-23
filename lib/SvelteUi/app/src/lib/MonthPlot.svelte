@@ -110,7 +110,12 @@
             x: {
                 ticks: xTicks
             },
-            points: points
+            points: points,
+            link: {
+                route: true,
+                text: 'Edit data',
+                url: '/edit-month'
+            }
         };
     };
 

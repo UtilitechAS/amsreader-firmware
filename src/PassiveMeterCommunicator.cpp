@@ -700,6 +700,7 @@ void PassiveMeterCommunicator::handleAutodetect(unsigned long now) {
 			digitalWrite (meterConfig.rxPin, HIGH);
 			autodetectBaud = detectBaudRate(meterConfig.rxPin);
 			if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s\n"), autodetectBaud, autodetectParity, autodetectInvert ? "true" : "false");
+			meterConfig.bufferSize = max((uint32_t) 1, autodetectBaud / 14400);
 			setupHanPort(autodetectBaud, autodetectParity, autodetectInvert);
 			meterAutodetectLastChange = now;
 			if(autodetectCount++ == 5)  {

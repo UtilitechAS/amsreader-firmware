@@ -215,7 +215,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             meterType = AmsTypeKaifa;
             activeImportPower = ntohl(data->dlu.data);
             lastUpdateMillis = millis64();
-        } else if(useMeterType == AmsTypeIskra && data->base.type == CosemTypeOctetString && data->base.length == 0x0C) { // Iskra special case
+        } else if(useMeterType == AmsTypeIskra && data->base.type == CosemTypeOctetString) { // Iskra special case
             uint8_t idx = 5;
 
             data = getCosemDataAt(idx++, ((char *) (d)));

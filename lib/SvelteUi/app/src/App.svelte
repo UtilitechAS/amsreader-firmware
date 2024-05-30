@@ -76,13 +76,18 @@
     data = update;
   });
 
+  let tariffData = {};
+  tariffStore.subscribe(update => {
+    tariffData = update;
+  });
+  getTariff();
 </script>
 
 <div class="container mx-auto m-3">
   <Router basepath={basepath}>
     <Header data={data} basepath={basepath}/>
     <Route path="/">
-      <Dashboard data={data} sysinfo={sysinfo} prices={prices} dayPlot={dayPlot} monthPlot={monthPlot} temperatures={temperatures} translations={translations}/>
+      <Dashboard data={data} sysinfo={sysinfo} prices={prices} dayPlot={dayPlot} monthPlot={monthPlot} temperatures={temperatures} translations={translations} tariffData={tariffData}/>
     </Route>
     <Route path="/configuration">
       <ConfigurationPanel sysinfo={sysinfo} basepath={basepath} data={data}/>

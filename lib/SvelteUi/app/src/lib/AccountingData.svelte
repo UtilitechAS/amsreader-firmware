@@ -1,16 +1,11 @@
 <script>
     import { fmtnum, capitalize, formatUnit } from "./Helpers";
-    import { translationsStore } from "./TranslationService";
 
     export let sysinfo;
     export let data;
     export let currency;
     export let hasExport;
-
-    let translations = {};
-    translationsStore.subscribe(update => {
-      translations = update;
-    });
+    export let translations = {};
 
     let rih,rid,rim,ril, reh,red,rem,rel;
     let hasCost = false;

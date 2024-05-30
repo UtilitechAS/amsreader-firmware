@@ -438,6 +438,7 @@ void AmsWebServer::sysinfoJson() {
 
 	stripNonAscii((uint8_t*) buf, size+1);
 
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -608,6 +609,7 @@ void AmsWebServer::dataJson() {
 		checkSecurity(1, false) ? "true" : "false"
 	);
 
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -629,6 +631,7 @@ void AmsWebServer::dayplotJson() {
 		}
 		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
+		server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 		server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -651,6 +654,7 @@ void AmsWebServer::monthplotJson() {
 		}
 		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
+		server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 		server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -683,6 +687,7 @@ void AmsWebServer::energyPriceJson() {
     }
 	snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -715,6 +720,7 @@ void AmsWebServer::temperatureJson() {
 	char* pos = buf+strlen(buf);
 	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("]}"));
 
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -832,6 +838,7 @@ void AmsWebServer::configurationJson() {
 		qsk = LittleFS.exists(FILE_MQTT_KEY);
 	}
 
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -1008,6 +1015,7 @@ void AmsWebServer::priceConfigJson() {
 	if(!checkSecurity(1))
 		return;
 
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -1077,6 +1085,7 @@ void AmsWebServer::translationsJson() {
 		return;
 	}
 
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 //	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -1641,6 +1650,8 @@ void AmsWebServer::upgrade() {
 		"",
 		sys.dataCollectionConsent == 1 ? "true" : "false"
 	);
+
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
@@ -1849,7 +1860,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 }
 
 void AmsWebServer::isAliveCheck() {
-	server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, F("*"));
 	server.send(200);
 }
 
@@ -2027,6 +2038,7 @@ void AmsWebServer::tariffJson() {
 		ea->getMonthMax()
 	);
 
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -2041,6 +2053,7 @@ void AmsWebServer::realtimeJson() {
 		return;
 	}
 
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);

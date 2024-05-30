@@ -19,6 +19,7 @@
     export let monthPlot = {}
     export let temperatures = {};
     export let translations = {};
+    export let tariffData = {};
 
     let it,et,threePhase, l1e, l2e, l3e;
     $: {
@@ -117,17 +118,17 @@
     {/if}
     {#if uiVisibility(sysinfo.ui.r, data.ri > 0 || data.re > 0 || data.ric > 0 || data.rec > 0)}
         <div class="cnt">
-            <ReactiveData importInstant={data.ri} exportInstant={data.re} importTotal={data.ric} exportTotal={data.rec}/>
+            <ReactiveData importInstant={data.ri} exportInstant={data.re} importTotal={data.ric} exportTotal={data.rec} translations={translations}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.c, data.ea)}
         <div class="cnt">
-            <AccountingData sysinfo={sysinfo} data={data.ea} currency={data.pc} hasExport={data.om > 0 || data.e > 0}/>
+            <AccountingData sysinfo={sysinfo} data={data.ea} currency={data.pc} hasExport={data.om > 0 || data.e > 0} translations={translations}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.t, data.pr && (data.pr.startsWith("NO") || data.pr.startsWith("10YNO") || data.pr.startsWith('10Y1001A1001A4')))}
         <div class="cnt h-64">
-            <TariffPeakChart title={translations.dashboard?.tariffpeak ?? "Tariff peaks"}/>
+            <TariffPeakChart title={translations.dashboard?.tariffpeak ?? "Tariff peaks"} tariffData={tariffData} translations={translations}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.l, data.hm == 1)}

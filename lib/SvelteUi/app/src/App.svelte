@@ -1,6 +1,6 @@
 <script>
   import { Router, Route, navigate } from "svelte-navigator";
-  import { getSysinfo, sysinfoStore, dataStore, pricesStore, dayPlotStore, monthPlotStore, temperaturesStore } from './lib/DataStores.js';
+  import { getTariff, tariffStore, sysinfoStore, dataStore, pricesStore, dayPlotStore, monthPlotStore, temperaturesStore } from './lib/DataStores.js';
   import { translationsStore, getTranslations } from "./lib/TranslationService.js";
   import Favicon from './assets/favicon.svg'; // Need this for the build
   import Header from './lib/Header.svelte';

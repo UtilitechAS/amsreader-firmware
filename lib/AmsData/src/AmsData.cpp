@@ -100,88 +100,148 @@ void AmsData::apply(AmsData& other) {
 }
 
 void AmsData::apply(OBIS_code_t obis, double value) {
-    switch(obis.gr) {
-        case 1:
-            switch(obis.sensor) {
-                case 7:
-                    switch(obis.tariff) {
-                        case 0:
-                            activeImportPower = value; 
-                            listType = max(listType, (uint8_t) 1);
-                            break;
-                    }
-                    break;
-                case 8:
-                    switch(obis.tariff) {
-                        case 0:
-                            activeImportCounter = value; 
-                            listType = max(listType, (uint8_t) 3);
-                            break;
-                    }
-                    break;
+    if(obis.gr == 1) {
+        if(obis.sensor == 96) {
+            if(obis.tariff == 0) {
+                meterId = String((long) value, 10);
+            } else if(obis.tariff == 1) {
+                meterModel = String((long) value, 10);
             }
-            break;
-        case 2:
-            switch(obis.sensor) {
-                case 7:
-                    switch(obis.tariff) {
-                        case 0:
-                            activeExportPower = value; 
-                            listType = max(listType, (uint8_t) 2);
-                            break;
-                    }
-                    break;
-                case 8:
-                    switch(obis.tariff) {
-                        case 0:
-                            activeExportCounter = value; 
-                            listType = max(listType, (uint8_t) 3);
-                            break;
-                    }
-                    break;
-            }
-            break;
-        case 3:
-            switch(obis.sensor) {
-                case 7:
-                    switch(obis.tariff) {
-                        case 0:
-                            reactiveImportPower = value; 
-                            listType = max(listType, (uint8_t) 2);
-                            break;
-                    }
-                    break;
-                case 8:
-                    switch(obis.tariff) {
-                        case 0:
-                            reactiveImportCounter = value; 
-                            listType = max(listType, (uint8_t) 3);
-                            break;
-                    }
-                    break;
-            }
-            break;
-        case 4:
-            switch(obis.sensor) {
-                case 7:
-                    switch(obis.tariff) {
-                        case 0:
-                            reactiveExportPower = value; 
-                            listType = max(listType, (uint8_t) 2);
-                            break;
-                    }
-                    break;
-                case 8:
-                    switch(obis.tariff) {
-                        case 0:
-                            reactiveExportCounter = value; 
-                            listType = max(listType, (uint8_t) 3);
-                            break;
-                    }
-                    break;
-            }
-            break;
+        }
     }
+    if(obis.tariff != 0) {
+        Serial.println("Tariff not implemented");
+        return;
+    }
+    if(obis.gr == 7) { // Instant values
+        switch(obis.sensor) {
+            case 1:
+                activeImportPower = value;
+                listType = max(listType, (uint8_t) 2);
+                break;
+            case 2:
+                activeExportPower = value;
+                listType = max(listType, (uint8_t) 2);
+                break;
+            case 3:
+                reactiveImportPower = value;
+                listType = max(listType, (uint8_t) 2);
+                break;
+            case 4:
+                reactiveExportPower = value;
+                listType = max(listType, (uint8_t) 2);
+                break;
+            case 13:
+                powerFactor = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 21:
+                l1activeImportPower = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 22:
+                l1activeExportPower = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 31:
+                l1current = value;
+                listType = max(listType, (uint8_t) 2);
+                break;
+            case 32:
+                l1voltage = value;
+                listType = max(listType, (uint8_t) 2);
+                break;
+            case 33:
+                l1PowerFactor = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 41:
+                l2activeImportPower = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 42:
+                l2activeExportPower = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 51:
+                l2current = value;
+                listType = max(listType, (uint8_t) 2);
+                break;
+            case 52:
+                l2voltage = value;
+                listType = max(listType, (uint8_t) 2);
+                break;
+            case 53:
+                l2PowerFactor = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 61:
+                l3activeImportPower = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 62:
+                l3activeExportPower = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 71:
+                l3current = value;
+                listType = max(listType, (uint8_t) 2);
+                break;
+            case 72:
+                l3voltage = value;
+                listType = max(listType, (uint8_t) 2);
+                break;
+            case 73:
+                l3PowerFactor = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+        }
+    } else if(obis.gr == 8) { // Accumulated values
+        switch(obis.sensor) {
+            case 1:
+                activeImportCounter = value;
+                listType = max(listType, (uint8_t) 3);
+                break;
+            case 2:
+                activeExportCounter = value;
+                listType = max(listType, (uint8_t) 3);
+                break;
+            case 3:
+                reactiveImportCounter = value;
+                listType = max(listType, (uint8_t) 3);
+                break;
+            case 4:
+                reactiveExportCounter = value;
+                listType = max(listType, (uint8_t) 3);
+                break;
+            case 21:
+                l1activeImportCounter = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 22:
+                l1activeExportCounter = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 41:
+                l2activeImportCounter = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 42:
+                l2activeExportCounter = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 61:
+                l3activeImportCounter = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+            case 62:
+                l3activeExportCounter = value;
+                listType = max(listType, (uint8_t) 4);
+                break;
+        }
+    }
+    if(listType > 0)
+        lastUpdateMillis = millis();
 }
 
 uint64_t AmsData::getLastUpdateMillis() {

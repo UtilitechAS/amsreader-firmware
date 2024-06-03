@@ -352,6 +352,7 @@
                 <select name="ma" bind:value={configuration.m.a} class="in-s">
                     <option value={0}>{translations.conf?.meter?.comm?.passive ?? "Passive"}</option>
                     <option value={2}>{translations.conf?.meter?.comm?.pulse ?? "Pulse"}</option>
+                    <option value={9}>KMP</option>
                 </select>
             </div>
             {#if configuration.m.a === 2}

@@ -31,5 +31,7 @@ private:
     bool readPacket();
     int16_t unwrapData(uint8_t *buf, DataParserContext &context);
     uint8_t stuff(uint8_t* buf, uint8_t len);
+    uint8_t unstuff(uint8_t* buf, uint8_t len);
     void send(uint8_t* buf, uint8_t len);
+    double convertvalue(uint32_t val, uint8_t unit, uint8_t siex);
 };

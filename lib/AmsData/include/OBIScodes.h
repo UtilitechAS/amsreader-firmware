@@ -59,6 +59,10 @@ const OBIS_code_t OBIS_POWER_FACTOR PROGMEM =          {  13,   7,   0 };
 
 const OBIS_code_t OBIS_ACTIVE_IMPORT_L1 PROGMEM =      {  21,   7,   0 };
 const OBIS_code_t OBIS_ACTIVE_EXPORT_L1 PROGMEM =      {  22,   7,   0 };
+const OBIS_code_t OBIS_REACTIVE_IMPORT_L1 PROGMEM =    {  23,   7,   0 };
+const OBIS_code_t OBIS_REACTIVE_EXPORT_L1 PROGMEM =    {  24,   7,   0 };
+const OBIS_code_t OBIS_ACTIVE_IMPORT_COUNT_L1 PROGMEM ={  21,   8,   0 };
+const OBIS_code_t OBIS_REACTIVE_IMPORT_COUNT_L1 PROGMEM ={  22,   8,   0 };
 
 const OBIS_code_t OBIS_CURRENT_L1 PROGMEM =            {  31,   7,   0 };
 const OBIS_code_t OBIS_VOLTAGE_L1 PROGMEM =            {  32,   7,   0 };
@@ -66,6 +70,10 @@ const OBIS_code_t OBIS_POWER_FACTOR_L1 PROGMEM =       {  33,   7,   0 };
 
 const OBIS_code_t OBIS_ACTIVE_IMPORT_L2 PROGMEM =      {  41,   7,   0 };
 const OBIS_code_t OBIS_ACTIVE_EXPORT_L2 PROGMEM =      {  42,   7,   0 };
+const OBIS_code_t OBIS_REACTIVE_IMPORT_L2 PROGMEM =    {  43,   7,   0 };
+const OBIS_code_t OBIS_REACTIVE_EXPORT_L2 PROGMEM =    {  44,   7,   0 };
+const OBIS_code_t OBIS_ACTIVE_IMPORT_COUNT_L2 PROGMEM ={  41,   8,   0 };
+const OBIS_code_t OBIS_REACTIVE_IMPORT_COUNT_L2 PROGMEM ={  42,   8,   0 };
 
 const OBIS_code_t OBIS_CURRENT_L2 PROGMEM =            {  51,   7,   0 };
 const OBIS_code_t OBIS_VOLTAGE_L2 PROGMEM =            {  52,   7,   0 };
@@ -73,6 +81,10 @@ const OBIS_code_t OBIS_POWER_FACTOR_L2 PROGMEM =       {  53,   7,   0 };
 
 const OBIS_code_t OBIS_ACTIVE_IMPORT_L3 PROGMEM =      {  61,   7,   0 };
 const OBIS_code_t OBIS_ACTIVE_EXPORT_L3 PROGMEM =      {  62,   7,   0 };
+const OBIS_code_t OBIS_REACTIVE_IMPORT_L3 PROGMEM =    {  63,   7,   0 };
+const OBIS_code_t OBIS_REACTIVE_EXPORT_L3 PROGMEM =    {  64,   7,   0 };
+const OBIS_code_t OBIS_ACTIVE_IMPORT_COUNT_L3 PROGMEM ={  61,   8,   0 };
+const OBIS_code_t OBIS_REACTIVE_IMPORT_COUNT_L3 PROGMEM ={  62,   8,   0 };
 
 const OBIS_code_t OBIS_CURRENT_L3 PROGMEM =            {  71,   7,   0 };
 const OBIS_code_t OBIS_VOLTAGE_L3 PROGMEM =            {  72,   7,   0 };

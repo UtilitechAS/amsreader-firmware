@@ -208,6 +208,57 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
 
                     lastUpdateMillis = millis64();
                 }
+            } else if(useMeterType == AmsTypeIskra && data->base.type == CosemTypeOctetString) { // Iskra special case
+                meterType = AmsTypeIskra;
+                uint8_t idx = 5;
+
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+                }
+    
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+                }
+    
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
+                }
+    
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
+                }
+
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    activeImportPower = ntohl(data->dlu.data);
+                }
+
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    activeExportPower = ntohl(data->dlu.data);
+                }
+
+                uint8_t str_len = 0;
+                str_len = getString(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), ((char *) (d)), str);
+                if(str_len > 0) {
+                    meterId = String(str);
+                }
+
+                listType = 3;
+                lastUpdateMillis = millis64();
+            } else if(useMeterType == AmsTypeUnknown) {
+                uint8_t str_len = 0;
+                str_len = getString(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), ((char *) (d)), str);
+                if(str_len > 0) {
+                    meterType = AmsTypeIskra;
+                    meterId = String(str);
+                    lastUpdateMillis = millis64();
+                    listType = 3;
+                }
             }
         } else if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {
             this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
@@ -215,46 +266,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             meterType = AmsTypeKaifa;
             activeImportPower = ntohl(data->dlu.data);
             lastUpdateMillis = millis64();
-        } else if(useMeterType == AmsTypeIskra && data->base.type == CosemTypeOctetString) { // Iskra special case
-            uint8_t idx = 5;
-
-            data = getCosemDataAt(idx++, ((char *) (d)));
-            if(data != NULL) {
-                activeImportCounter = ntohl(data->dlu.data) / 1000.0;
-            }
-   
-            data = getCosemDataAt(idx++, ((char *) (d)));
-            if(data != NULL) {
-                activeExportCounter = ntohl(data->dlu.data) / 1000.0;
-            }
-   
-            data = getCosemDataAt(idx++, ((char *) (d)));
-            if(data != NULL) {
-                reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
-            }
-   
-            data = getCosemDataAt(idx++, ((char *) (d)));
-            if(data != NULL) {
-                reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
-            }
-
-            data = getCosemDataAt(idx++, ((char *) (d)));
-            if(data != NULL) {
-                activeImportPower = ntohl(data->dlu.data);
-            }
-
-            data = getCosemDataAt(idx++, ((char *) (d)));
-            if(data != NULL) {
-                activeExportPower = ntohl(data->dlu.data);
-            }
-
-            listType = 3;
-            lastUpdateMillis = millis64();
-        } else if(useMeterType == AmsTypeUnknown) {
-            CosemData* isk_tag = findObis(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), d); // Not really correct, but who cares
-            if(isk_tag != NULL) {
-                meterType = AmsTypeIskra;
-            }
         }
     } else {
         listType = 1;

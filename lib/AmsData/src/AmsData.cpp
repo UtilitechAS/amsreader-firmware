@@ -100,12 +100,16 @@ void AmsData::apply(AmsData& other) {
 }
 
 void AmsData::apply(OBIS_code_t obis, double value) {
+    if(obis.sensor == 0 && obis.gr == 0 && obis.tariff == 0) {
+        meterType = value;
+    }
     if(obis.gr == 1) {
         if(obis.sensor == 96) {
             if(obis.tariff == 0) {
                 meterId = String((long) value, 10);
+                return;
             } else if(obis.tariff == 1) {
-                meterModel = String((long) value, 10);
+                return;
             }
         }
     }

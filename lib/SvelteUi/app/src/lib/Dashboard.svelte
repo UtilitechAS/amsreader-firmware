@@ -25,10 +25,14 @@
     $: {
         it = formatUnit(data?.ic * 1000, "Wh");
         et = formatUnit(data?.ec * 1000, "Wh");
-        l1e = data?.l1?.u > 0.0 || data?.l1?.i > 0.0 || data?.l1?.p > 0.0 || data?.l1?.q > 0.0;
-        l2e = data?.l2?.u > 0.0 || data?.l2?.i > 0.0 || data?.l2?.p > 0.0 || data?.l2?.q > 0.0;
-        l3e = data?.l3?.u > 0.0 || data?.l3?.i > 0.0 || data?.l3?.p > 0.0 || data?.l3?.q > 0.0;
-        threePhase = l1e && l2e && l3e;
+        if(data?.l1?.u == 0.0 && data?.l2?.u == 0.0 && data?.l3?.u == 0.0) {
+            l1e = l2e = l3e = threePhase = true;
+        } else {
+            l1e = data?.l1?.u > 0.0 || data?.l1?.i > 0.0 || data?.l1?.p > 0.0 || data?.l1?.q > 0.0;
+            l2e = data?.l2?.u > 0.0 || data?.l2?.i > 0.0 || data?.l2?.p > 0.0 || data?.l2?.q > 0.0;
+            l3e = data?.l3?.u > 0.0 || data?.l3?.i > 0.0 || data?.l3?.p > 0.0 || data?.l3?.q > 0.0;
+            threePhase = l1e && l2e && l3e;
+        }
     }
 </script>
 
@@ -68,9 +72,9 @@
                 <PerPhasePlot title={translations.common?.amperage ?? "Amp"} unit="A" importColorFn={ampcol} exportColorFn={exportcol}
                     maxImport={data.mf}
                     maxExport={data.om ? threePhase ? data.om / 0.4 / Math.sqrt(3) : data.om / 0.23 : 0}
-                    l1={data.l1 && data.l1.u > 100} 
-                    l2={data.l2 && data.l2.u > 100} 
-                    l3={data.l3 && data.l3.u > 100}
+                    l1={l1e} 
+                    l2={l2e} 
+                    l3={l3e}
                     l2x={data.l2.e}
                     l1i={Math.max(data.l1.i,0)}
                     l2i={Math.max(data.l2.i,0)}
@@ -88,9 +92,9 @@
                 <PerPhasePlot title={translations.dashboard?.phase ?? "Phase"} unit="W" importColorFn={ampcol} exportColorFn={exportcol}
                     maxImport={(data.mf ? data.mf : 32) * 230}
                     maxExport={data.om ? threePhase ? (data.om * 1000) / Math.sqrt(3) : data.om * 1000 : 0}
-                    l1={data.l1 && data.l1.u > 100} 
-                    l2={data.l2 && data.l2.u > 100} 
-                    l3={data.l3 && data.l3.u > 100}
+                    l1={l1e} 
+                    l2={l2e} 
+                    l3={l3e}
                     l1i={data.l1.p}
                     l2i={data.l2.p}
                     l3i={data.l3.p}
@@ -106,9 +110,9 @@
             {#if data.l1}
                 <PerPhasePlot title={translations.dashboard?.pf ?? "Pf"} importColorFn={exportcol} exportColorFn={exportcol}
                     maxImport={1.0}
-                    l1={data.l1 && data.l1.u > 100} 
-                    l2={data.l2 && data.l2.u > 100} 
-                    l3={data.l3 && data.l3.u > 100}
+                    l1={l1e} 
+                    l2={l2e} 
+                    l3={l3e}
                     l1i={data.l1.f}
                     l2i={data.l2.f}
                     l3i={data.l3.f}

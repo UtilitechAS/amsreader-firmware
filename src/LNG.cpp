@@ -182,6 +182,33 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
 
             lastUpdateMillis = millis64();
         }
+        lastUpdateMillis = millis64();
+        if(meterConfig->wattageMultiplier > 0) {
+            activeImportPower = activeImportPower > 0 ? activeImportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
+            activeExportPower = activeExportPower > 0 ? activeExportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
+            reactiveImportPower = reactiveImportPower > 0 ? reactiveImportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
+            reactiveExportPower = reactiveExportPower > 0 ? reactiveExportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
+        }
+        if(meterConfig->voltageMultiplier > 0) {
+            l1voltage = l1voltage > 0 ? l1voltage * (meterConfig->voltageMultiplier / 1000.0) : 0;
+            l2voltage = l2voltage > 0 ? l2voltage * (meterConfig->voltageMultiplier / 1000.0) : 0;
+            l3voltage = l3voltage > 0 ? l3voltage * (meterConfig->voltageMultiplier / 1000.0) : 0;
+        }
+        if(meterConfig->amperageMultiplier > 0) {
+            l1current = l1current > 0 ? l1current * (meterConfig->amperageMultiplier / 1000.0) : 0;
+            l2current = l2current > 0 ? l2current * (meterConfig->amperageMultiplier / 1000.0) : 0;
+            l3current = l3current > 0 ? l3current * (meterConfig->amperageMultiplier / 1000.0) : 0;
+        }
+        if(meterConfig->accumulatedMultiplier > 0) {
+            activeImportCounter = activeImportCounter > 0 ? activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+            activeExportCounter = activeExportCounter > 0 ? activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+            reactiveImportCounter = reactiveImportCounter > 0 ? reactiveImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+            reactiveExportCounter = reactiveExportCounter > 0 ? reactiveExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        }
+
+        threePhase = l1voltage > 0 && l2voltage > 0 && l3voltage > 0;
+        if(!threePhase)
+            twoPhase = (l1voltage > 0 && l2voltage > 0) || (l2voltage > 0 && l3voltage > 0) || (l3voltage > 0  && l1voltage > 0);
     }
 }
 

@@ -544,6 +544,7 @@ void AmsWebServer::dataJson() {
 		mainFuse == 0 ? 40 : mainFuse,
 		meterState->getActiveImportPower(),
 		meterState->getActiveExportPower(),
+		((int32_t) meterState->getActiveImportPower()) - meterState->getActiveExportPower(),
 		meterState->getReactiveImportPower(),
 		meterState->getReactiveExportPower(),
 		meterState->getActiveImportCounter(),

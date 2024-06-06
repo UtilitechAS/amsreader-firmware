@@ -35,7 +35,7 @@ public:
 
         char hostname[32];
         #if defined(ESP8266)
-            strcpy(hostname, WiFi.hostname());
+            strcpy(hostname, WiFi.hostname().c_str());
         #elif defined(ESP32)
             strcpy(hostname, WiFi.getHostname());
         #endif

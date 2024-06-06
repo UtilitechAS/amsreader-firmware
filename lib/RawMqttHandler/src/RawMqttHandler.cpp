@@ -199,6 +199,15 @@ bool RawMqttHandler::publishRealtime(EnergyAccounting* ea) {
     mqtt.loop();
     mqtt.publish(topic + "/realtime/export/month", String(ea->getProducedThisMonth(), 1));
     mqtt.loop();
+    uint32_t now = millis();
+    if(lastThresholdPublish == 0 || now-lastThresholdPublish > 3600000) {
+        EnergyAccountingConfig* conf = ea->getConfig();
+        for(uint8_t i = 0; i < 9; i++) {
+            mqtt.publish(topic + "/realtime/import/thresholds/" + String(i+1, 10), String(conf->thresholds[i], 10), true, 0);
+            mqtt.loop();
+        }
+        lastThresholdPublish = now;
+    }
     return true;
 }
 
@@ -326,6 +335,15 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
     }
     if(min6hrIdx != -1) {
         mqtt.publish(topic + "/price/cheapest/6hr", String(ts6hr), true, 0);
+        mqtt.loop();
+    }
+
+    float exportPrice = ps->getEnergyPriceForHour(PRICE_DIRECTION_EXPORT, now, 0);
+    if(exportPrice == PRICE_NO_VALUE) {
+        mqtt.publish(topic + "/exportprice/0", "", true, 0);
+        mqtt.loop();
+    } else {
+        mqtt.publish(topic + "/exportprice/0", String(exportPrice, 4), true, 0);
         mqtt.loop();
     }
     return true;

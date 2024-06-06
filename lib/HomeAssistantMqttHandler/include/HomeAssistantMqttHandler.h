@@ -17,7 +17,7 @@ public:
     HomeAssistantMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
         this->hw = hw;
 
-        l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = false;
+        l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = false;
 
         topic = String(mqttConfig.publishTopic);
 
@@ -90,9 +90,10 @@ private:
     String discoveryTopic;
     String sensorNamePrefix;
 
-    bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit;
+    bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit, rInit;
     bool tInit[32] = {false};
     bool prInit[38] = {false};
+    uint32_t lastThresholdPublish = 0;
 
     HwTools* hw;
 
@@ -116,6 +117,7 @@ private:
     void publishTemperatureSensor(uint8_t index, String id);
     void publishPriceSensors(PriceService* ps);
     void publishSystemSensors();
+    void publishThresholdSensors();
 
     String boardTypeToString(uint8_t b) {
         switch(b) {

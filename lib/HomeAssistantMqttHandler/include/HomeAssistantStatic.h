@@ -101,6 +101,7 @@ const HomeAssistantSensor RealtimeExportSensors[RealtimeExportSensorCount] PROGM
 };
 
 const HomeAssistantSensor RealtimePeakSensor PROGMEM = {"Current month peak %d", "/realtime", "peaks[%d]", 4000, "kWh", "energy", ""};
+const HomeAssistantSensor RealtimeThresholdSensor PROGMEM = {"Tariff threshold %d", "/realtime", "thresholds[%d]", 4000, "kWh", "energy", ""};
 
 const uint8_t PriceSensorCount PROGMEM = 5;
 const HomeAssistantSensor PriceSensors[PriceSensorCount] PROGMEM = {

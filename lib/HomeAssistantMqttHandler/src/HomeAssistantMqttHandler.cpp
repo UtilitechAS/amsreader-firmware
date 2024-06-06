@@ -13,7 +13,6 @@
 #include "json/ha3_json.h"
 #include "json/ha4_json.h"
 #include "json/hadiscover_json.h"
-#include "json/realtime_json.h"
 #include "FirmwareVersion.h"
 
 #if defined(ESP32)
@@ -148,6 +147,7 @@ String HomeAssistantMqttHandler::getMeterModel(AmsData* data) {
 bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* ea, PriceService* ps) {
     publishRealtimeSensors(ea, ps);
     if(ea->getProducedThisHour() > 0.0 || ea->getProducedToday() > 0.0 || ea->getProducedThisMonth() > 0.0) publishRealtimeExportSensors(ea, ps);
+    if(lastThresholdPublish == 0) publishThresholdSensors();
     String peaks = "";
     uint8_t peakCount = ea->getConfig()->hours;
     if(peakCount > 5) peakCount = 5;
@@ -155,7 +155,7 @@ bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* 
         if(!peaks.isEmpty()) peaks += ",";
         peaks += String(ea->getPeak(i).value / 100.0, 2);
     }
-    snprintf_P(json, BufferSize, REALTIME_JSON,
+    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"max\":%.1f,\"peaks\":[%s],\"threshold\":%d,\"hour\":{\"use\":%.2f,\"cost\":%.2f,\"produced\":%.2f,\"income\":%.2f},\"day\":{\"use\":%.2f,\"cost\":%.2f,\"produced\":%.2f,\"income\":%.2f},\"month\":{\"use\":%.2f,\"cost\":%.2f,\"produced\":%.2f,\"income\":%.2f}"),
         ea->getMonthMax(),
         peaks.c_str(),
         ea->getCurrentThreshold(),
@@ -172,9 +172,28 @@ bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* 
         ea->getProducedThisMonth(),
         ea->getIncomeThisMonth()
     );
+    uint32_t now = millis();
+    if(lastThresholdPublish == 0 || now-lastThresholdPublish > 3600000) {
+        EnergyAccountingConfig* conf = ea->getConfig();
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"thresholds\": [%d,%d,%d,%d,%d,%d,%d,%d,%d]"),
+            conf->thresholds[0],
+            conf->thresholds[1],
+            conf->thresholds[2],
+            conf->thresholds[3],
+            conf->thresholds[4],
+            conf->thresholds[5],
+            conf->thresholds[6],
+            conf->thresholds[7],
+            conf->thresholds[8]
+        );
+        lastThresholdPublish = now;
+    }
+    
+    json[pos++] = '}';
+    json[pos] = '\0';
+
     return mqtt.publish(topic + "/realtime", json);
 }
-
 
 bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {
 	int count = hw->getTempSensorCount();
@@ -566,6 +585,27 @@ void HomeAssistantMqttHandler::publishSystemSensors() {
     sInit = true;
 }
 
+void HomeAssistantMqttHandler::publishThresholdSensors() {
+    if(rInit) return;
+    for(uint8_t i = 0; i < 9; i++) {
+        char name[strlen(RealtimeThresholdSensor.name)+1];
+        snprintf(name, strlen(RealtimeThresholdSensor.name)+2, RealtimeThresholdSensor.name, i+1);
+        char path[strlen(RealtimeThresholdSensor.path)+1];
+        snprintf(path, strlen(RealtimeThresholdSensor.path)+1, RealtimeThresholdSensor.path, i);
+        HomeAssistantSensor sensor = {
+            name,
+            RealtimeThresholdSensor.topic,
+            path,
+            RealtimeThresholdSensor.ttl,
+            RealtimeThresholdSensor.uom,
+            RealtimeThresholdSensor.devcl,
+            RealtimeThresholdSensor.stacl
+        };
+        publishSensor(sensor);
+    }
+    rInit = true;
+}
+
 uint8_t HomeAssistantMqttHandler::getFormat() {
     return 4;
 }
@@ -578,7 +618,7 @@ void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
     if(topic.equals(statusTopic)) {
         if(payload.equals("online")) {
  			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Received online status from HA, resetting sensor status\n"));
-            l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = false;
+            l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = false;
             for(uint8_t i = 0; i < 32; i++) tInit[i] = false;
             for(uint8_t i = 0; i < 38; i++) prInit[i] = false;
         }

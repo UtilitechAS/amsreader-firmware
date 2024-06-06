@@ -299,13 +299,23 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
         }
     }
 
-    snprintf_P(json+pos, BufferSize-pos, PSTR("\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}}"),
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}"),
         min == INT16_MAX ? 0.0 : min,
         max == INT16_MIN ? 0.0 : max,
         ts1hr,
         ts3hr,
         ts6hr
     );
+
+    float val = ps->getValueForHour(PRICE_DIRECTION_EXPORT, now, 0);
+    if(val == PRICE_NO_VALUE) {
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"exportprices\":{\"0\":null}"));
+    } else {
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"exportprices\":{\"0\":%.4f}"), val);
+    }
+
+    json[pos++] = '}';
+    json[pos] = '\0';
 
     bool ret = mqtt.publish(topic + "/prices", json, true, 0);
     loop();
@@ -531,6 +541,21 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
         prInit[i] = true;
     }
 
+    float exportPrice = ps->getValueForHour(PRICE_DIRECTION_EXPORT, 0);
+    if(exportPrice != PRICE_NO_VALUE) {
+        char path[20];
+        snprintf(path, 20, "exportprices['%d']", 0);
+        HomeAssistantSensor sensor = {
+            "Export price current hour",
+            PriceSensor.topic,
+            path,
+            PriceSensor.ttl,
+            uom.c_str(),
+            PriceSensor.devcl,
+            "total"
+        };
+        publishSensor(sensor);
+    }
 }
 
 void HomeAssistantMqttHandler::publishSystemSensors() {

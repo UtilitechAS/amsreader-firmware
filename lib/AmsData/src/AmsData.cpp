@@ -69,10 +69,23 @@ void AmsData::apply(AmsData& other) {
             this->l3activeExportCounter = other.getL3ActiveExportCounter();
         case 3:
             this->meterTimestamp = other.getMeterTimestamp();
-            this->activeImportCounter = other.getActiveImportCounter();
-            this->activeExportCounter = other.getActiveExportCounter();
-            this->reactiveImportCounter = other.getReactiveImportCounter();
-            this->reactiveExportCounter = other.getReactiveExportCounter();
+            // Aidon tends to sometime send the same counter as last hour by accident
+            if(meterType == AmsTypeAidon && counterEstimated && lastKnownCounter == other.getActiveImportCounter()-other.getActiveExportCounter()) {
+                double diff = activeImportCounter - activeExportCounter - lastKnownCounter;
+                if(diff < 1.0) { // In case a very low value have been calculated, use the new values
+                    this->activeImportCounter = other.getActiveImportCounter();
+                    this->activeExportCounter = other.getActiveExportCounter();
+                    this->reactiveImportCounter = other.getReactiveImportCounter();
+                    this->reactiveExportCounter = other.getReactiveExportCounter();
+                    this->lastKnownCounter = activeImportCounter - activeExportCounter;
+                }
+            } else {
+                this->activeImportCounter = other.getActiveImportCounter();
+                this->activeExportCounter = other.getActiveExportCounter();
+                this->reactiveImportCounter = other.getReactiveImportCounter();
+                this->reactiveExportCounter = other.getReactiveExportCounter();
+                this->lastKnownCounter = activeImportCounter - activeExportCounter;
+            }
             this->counterEstimated = false;
         case 2:
             this->listId = other.getListId();

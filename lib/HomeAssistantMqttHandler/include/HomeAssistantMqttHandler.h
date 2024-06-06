@@ -10,6 +10,7 @@
 #include "AmsMqttHandler.h"
 #include "HomeAssistantStatic.h"
 #include "AmsConfiguration.h"
+#include "hexutils.h"
 
 class HomeAssistantMqttHandler : public AmsMqttHandler {
 public:
@@ -32,13 +33,15 @@ public:
         deviceModel = boardTypeToString(boardType);
         manufacturer = boardManufacturerToString(boardType);
 
+        char hostname[32];
         #if defined(ESP8266)
-            String hostname = WiFi.hostname();
+            strcpy(hostname, WiFi.hostname());
         #elif defined(ESP32)
-            String hostname = WiFi.getHostname();
+            strcpy(hostname, WiFi.getHostname());
         #endif
 
-        deviceUid = hostname; // Maybe configurable in the future?
+        stripNonAscii((uint8_t*) hostname, 32, false);
+        deviceUid = String(hostname); // Maybe configurable in the future?
 
         if(strlen(config.discoveryHostname) > 0) {
             if(strncmp_P(config.discoveryHostname, PSTR("http"), 4) == 0) {

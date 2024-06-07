@@ -23,7 +23,11 @@
 #include "esp32s3/rom/rtc.h"
 #endif
 
+#if defined(AMS_REMOTE_DEBUG)
 CloudConnector::CloudConnector(RemoteDebug* debugger) {
+#else
+CloudConnector::CloudConnector(Stream* debugger) {
+#endif
     this->debugger = debugger;
 
     http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
@@ -85,7 +89,10 @@ bool CloudConnector::init() {
         strcpy_P(config.hostname, PSTR("cloud.amsleser.no"));
 
         snprintf_P(clearBuffer, CC_BUF_SIZE, PSTR("http://%s/hub/cloud/public.key"), config.hostname);
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(CloudConnector) Downloading public key from %s\n"), clearBuffer);
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("(CloudConnector) Downloading public key from %s\n"), clearBuffer);
         #if defined(ESP8266)
         WiFiClient client;
         client.setTimeout(5000);
@@ -121,18 +128,36 @@ bool CloudConnector::init() {
                                                 &entropy, (const unsigned char *) pers,
                                                 strlen(pers));
                     if(ret != 0) {
-                        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("mbedtls_ctr_drbg_seed return code: %d\n"), ret);
+                        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("mbedtls_ctr_drbg_seed return code: %d\n"), ret);
                     }
                     return ret == 0;
                 } else {
-                    if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("RSA public key read error: ");
+                    #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf("RSA public key read error: ");
                     mbedtls_strerror(error_code, clearBuffer, CC_BUF_SIZE);
-                    if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("%s\n", clearBuffer);
+                    #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf("%s\n", clearBuffer);
                 }
             } else {
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(CloudConnector) Communication error, returned status: %d\n"), status);
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(http.errorToString(status).c_str());
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http.getString().c_str());
+                #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("(CloudConnector) Communication error, returned status: %d\n"), status);
+                #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf(http.errorToString(status).c_str());
+                #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf(http.getString().c_str());
 
                 http.end();
             }
@@ -146,13 +171,19 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     unsigned long now = millis();
     if(now-lastUpdate < config.interval*1000) return;
     if(!ESPRandom::isValidV4Uuid(config.clientId)) {
-        if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("(CloudConnector) Client ID is not valid\n"));
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("(CloudConnector) Client ID is not valid\n"));
         return;
     }
     if(data.getListType() < 2) return;
 
     if(!initialized && !init()) {
-        if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unable to initialize cloud connector\n"));
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Unable to initialize cloud connector\n"));
         return;
     }
     initialized = true;
@@ -372,9 +403,15 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     if(rsa == nullptr) return;
     int ret = mbedtls_rsa_check_pubkey(rsa);
     if(ret != 0) {
-        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("mbedtls_rsa_pkcs1_encrypt return code: %d\n"), ret);
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("mbedtls_rsa_pkcs1_encrypt return code: %d\n"), ret);
         mbedtls_strerror(ret, clearBuffer, CC_BUF_SIZE);
-        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("%s\n"), clearBuffer);
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("%s\n"), clearBuffer);
         return;
     }
     memset(encryptedBuffer, 0, rsa->len);
@@ -388,9 +425,15 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             udp.write(encryptedBuffer, rsa->len);
             delay(1);
         } else {
-            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("mbedtls_rsa_pkcs1_encrypt return code: %d\n"), ret);
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("mbedtls_rsa_pkcs1_encrypt return code: %d\n"), ret);
             mbedtls_strerror(ret, clearBuffer, CC_BUF_SIZE);
-            if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("%s\n"), clearBuffer);
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("%s\n"), clearBuffer);
         }
     }
     udp.endPacket();

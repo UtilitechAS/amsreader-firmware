@@ -80,7 +80,11 @@ struct EnergyAccountingRealtimeData {
 
 class EnergyAccounting {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     EnergyAccounting(RemoteDebug*, EnergyAccountingRealtimeData*);
+    #else
+    EnergyAccounting(Stream*, EnergyAccountingRealtimeData*);
+    #endif
     void setup(AmsDataStorage *ds, EnergyAccountingConfig *config);
     void setPriceService(PriceService *ps);
     void setTimezone(Timezone*);
@@ -123,7 +127,11 @@ public:
     float getPriceForHour(uint8_t d, uint8_t h);
 
 private:
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger = NULL;
+    #else
+    Stream* debugger = NULL;
+    #endif
     bool init = false, initPrice = false;
     AmsDataStorage *ds = NULL;
     PriceService *ps = NULL;

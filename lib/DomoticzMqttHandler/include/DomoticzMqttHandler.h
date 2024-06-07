@@ -12,9 +12,15 @@
 
 class DomoticzMqttHandler : public AmsMqttHandler {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     DomoticzMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, DomoticzConfig config) : AmsMqttHandler(mqttConfig, debugger, buf) {
         this->config = config;
     };
+    #else
+    DomoticzMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, DomoticzConfig config) : AmsMqttHandler(mqttConfig, debugger, buf) {
+        this->config = config;
+    };
+    #endif
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(PriceService*);

@@ -9,7 +9,11 @@
 #include "AmsStorage.h"
 #include "FirmwareVersion.h"
 
+#if defined(AMS_REMOTE_DEBUG)
 EnergyAccounting::EnergyAccounting(RemoteDebug* debugger, EnergyAccountingRealtimeData* rtd) {
+#else
+EnergyAccounting::EnergyAccounting(Stream* Stream, EnergyAccountingRealtimeData* rtd) {
+#endif
     data.version = 1;
     this->debugger = debugger;
     if(rtd->magic != 0x6A) {

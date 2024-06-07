@@ -51,7 +51,11 @@
 #include "esp32s3/rom/rtc.h"
 #endif
 
+#if defined(AMS_REMOTE_DEBUG)
 AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc) {
+#else
+AmsWebServer::AmsWebServer(uint8_t* buf, Stream* Debug, HwTools* hw, ResetDataContainer* rdc) {
+#endif
 	this->debugger = Debug;
 	this->hw = hw;
 	this->buf = (char*) buf;
@@ -83,7 +87,10 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 		if(context.length() == 1) {
 			context = "";
 		} else {
-			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
 		}
 	}
 
@@ -229,7 +236,10 @@ bool AmsWebServer::checkSecurity(byte level, bool send401) {
 
 		access = providedPwd.equals(expectedBase64);
 		if(!access) {
-			if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unsuccessful login: '%s'\n"), providedPwd.c_str());
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Unsuccessful login: '%s'\n"), providedPwd.c_str());
 		}
 	}
 
@@ -242,7 +252,10 @@ bool AmsWebServer::checkSecurity(byte level, bool send401) {
 }
 
 void AmsWebServer::notFound() {
-	if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("URI '%s' was not found\n"), server.uri().c_str());
+	#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("URI '%s' was not found\n"), server.uri().c_str());
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -453,7 +466,10 @@ void AmsWebServer::sysinfoJson() {
 		if(ds != NULL) {
 			ds->save();
 		}
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Rebooting\n"));
 		debugger->flush();
 		delay(1000);
 		rdc->cause = 1;
@@ -1377,11 +1393,15 @@ void AmsWebServer::handleSave() {
 			if(!pass.equals("***")) {
 				strcpy(webConfig.password, pass.c_str());
 			}
+			#if defined(AMS_REMOTE_DEBUG)
 			debugger->setPassword(webConfig.password);
+			#endif
 		} else {
 			memset(webConfig.username, 0, 37);
 			memset(webConfig.password, 0, 37);
+			#if defined(AMS_REMOTE_DEBUG)
 			debugger->setPassword(F(""));
+			#endif
 		}
 		strcpy(webConfig.context, server.arg(F("gc")).c_str());
 		config->setWebConfig(webConfig);
@@ -1444,6 +1464,7 @@ void AmsWebServer::handleSave() {
 		debug.serial = server.hasArg(F("ds")) && server.arg(F("ds")) == F("true");
 		debug.level = server.arg(F("dl")).toInt();
 
+		#if defined(AMS_REMOTE_DEBUG)
 		if(debug.telnet || debug.serial) {
 			if(webConfig.security > 0) {
 				debugger->setPassword(webConfig.password);
@@ -1461,6 +1482,7 @@ void AmsWebServer::handleSave() {
 		} else if(active) {
 			performRestart = true;
 		}
+		#endif
 		config->setDebugConfig(debug);
 	}
 
@@ -1580,14 +1602,23 @@ void AmsWebServer::handleSave() {
 			ps->cropPriceConfig(count);
 			ps->save();
 		} else {
-			if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Price service missing...\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Price service missing...\n"));
 		}
 	}
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Saving configuration now...\n"));
+	#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Saving configuration now...\n"));
 
 	if (config->save()) {
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully saved.\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Successfully saved.\n"));
 		if(config->isNetworkConfigChanged() || performRestart) {
 			performRestart = true;
 		} else {
@@ -1612,7 +1643,10 @@ void AmsWebServer::handleSave() {
 		if(ds != NULL) {
 			ds->save();
 		}
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Rebooting\n"));
 		debugger->flush();
 		delay(1000);
 		rdc->cause = 2;
@@ -1630,7 +1664,10 @@ void AmsWebServer::reboot() {
 	server.handleClient();
 	delay(250);
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+	#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Rebooting\n"));
 	debugger->flush();
 	delay(1000);	rdc->cause = 3;
 
@@ -1784,7 +1821,10 @@ void AmsWebServer::firmwareUpload() {
 	if(upload.status == UPLOAD_FILE_START) {
         String filename = upload.filename;
 		if(filename.isEmpty()) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("No file, falling back to post\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("No file, falling back to post\n"));
 			return;
 		}
         if(!filename.endsWith(F(".bin"))) {
@@ -1810,10 +1850,16 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START) {
 		if(uploading) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Upload already in progress\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("Upload already in progress\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Upload already in progress!</h1></body></html>"));
 		} else if (!LittleFS.begin()) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("An Error has occurred while mounting LittleFS\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("An Error has occurred while mounting LittleFS\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Unable to mount LittleFS!</h1></body></html>"));
 		} else {
 			uploading = true;
@@ -1832,7 +1878,10 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 				file.close();
 				LittleFS.remove(path);
 
-				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("An Error has occurred while writing file\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("An Error has occurred while writing file\n"));
 				snprintf_P(buf, BufferSize, RESPONSE_JSON,
 					"false",
 					"File size does not match",
@@ -1888,7 +1937,10 @@ void AmsWebServer::factoryResetPost() {
 	server.handleClient();
 	delay(250);
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+	#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Rebooting\n"));
 	debugger->flush();
 	delay(1000);
 	rdc->cause = 5;
@@ -2477,7 +2529,10 @@ void AmsWebServer::configFileUpload() {
 			if(ds != NULL) {
 				ds->save();
 			}
-			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Rebooting\n"));
 			debugger->flush();
 			delay(1000);
 			rdc->cause = 6;

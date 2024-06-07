@@ -10,7 +10,11 @@
 #include <lwip/dns.h>
 #endif
 
+#if defined(AMS_REMOTE_DEBUG)
 WiFiClientConnectionHandler::WiFiClientConnectionHandler(RemoteDebug* debugger) {
+#else
+WiFiClientConnectionHandler::WiFiClientConnectionHandler(Stream* debugger) {
+#endif
     this->debugger = debugger;
     this->mode = NETWORK_MODE_WIFI_CLIENT;
 }
@@ -28,14 +32,20 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 		}
 
 		if(WiFi.getMode() != WIFI_OFF) {
-			if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Not connected to WiFi, closing resources\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Not connected to WiFi, closing resources\n"));
 
 			disconnect(RECONNECT_TIMEOUT);
 			return false;
 		}
 		timeout = CONNECTION_TIMEOUT;
 
-		if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Connecting to WiFi network: %s\n"), config.ssid);
+		#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Connecting to WiFi network: %s\n"), config.ssid);
 		switch(sys.boardType) {
 			case 2: // spenceme
 			case 3: // Pow-K UART0
@@ -111,7 +121,10 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 			}
 			yield();
 		} else {
-			if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Unable to start WiFi\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("Unable to start WiFi\n"));
 		}
         return true;
   	}
@@ -208,7 +221,10 @@ void WiFiClientConnectionHandler::wifi_sta_config(wifi_config_t * wifi_config, c
 #endif
 
 void WiFiClientConnectionHandler::disconnect(unsigned long reconnectDelay) {
-	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Disconnecting!\n"));
+	#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("Disconnecting!\n"));
 	#if defined(ESP8266)
 		WiFiClient::stopAll();
 	#endif
@@ -235,7 +251,10 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
 			}
 			break;
 		case ARDUINO_EVENT_WIFI_STA_CONNECTED:
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully connected to WiFi!\n"));
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Successfully connected to WiFi!\n"));
 			if(config.ipv6 && !WiFi.enableIpV6()) {
 				debugger->printf_P(PSTR("Unable to enable IPv6\n"));
 			}
@@ -246,7 +265,10 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
 						wifi_phy_mode_t phyMode;
 						if(esp_wifi_sta_get_negotiated_phymode(&phyMode) == ESP_OK) {
 							if(phyMode > WIFI_PHY_MODE_11B) {
-								if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("WiFi supports better rates than 802.11b, disabling\n"));
+								#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("WiFi supports better rates than 802.11b, disabling\n"));
 								config.use11b = false;
 								configChanged = true;
 								return;
@@ -284,7 +306,10 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
             #endif
 			break;
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
-            if(debugger->isActive(RemoteDebug::INFO)) {
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+{
                 debugger->printf_P(PSTR("IP:  %s\n"), getIP().toString().c_str());
                 debugger->printf_P(PSTR("GW:  %s\n"), getGateway().toString().c_str());
 				for(uint8_t i = 0; i < 3; i++) {
@@ -295,7 +320,10 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
 			break;
         }
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP6: {
-            if(debugger->isActive(RemoteDebug::INFO)) {
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+{
 				IPv6Address ipv6 = getIPv6();
 				if(ipv6 == IPv6Address()) {
 					// No IP
@@ -322,7 +350,10 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
 					break;
 				default:
 					if(strlen(descr) > 0) {
-						if(debugger->isActive(RemoteDebug::WARNING)) {
+						#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+{
 							debugger->printf_P(PSTR("WiFi disconnected, reason %s\n"), descr);
 						}
 						disconnect(RECONNECT_TIMEOUT);

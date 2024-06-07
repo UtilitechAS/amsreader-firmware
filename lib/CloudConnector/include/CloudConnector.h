@@ -7,7 +7,9 @@
 #ifndef _CLOUDCONNECTOR_H
 #define _CLOUDCONNECTOR_H
 
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include "mbedtls/ssl.h"
 #include "mbedtls/platform.h"
 #include "mbedtls/net.h"
@@ -51,7 +53,11 @@ struct CloudData {
 
 class CloudConnector {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     CloudConnector(RemoteDebug*);
+    #else
+    CloudConnector(Stream*);
+    #endif
     bool setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc);
     void setMqttHandler(AmsMqttHandler* mqttHandler);
     void update(AmsData& data, EnergyAccounting& ea);
@@ -62,7 +68,11 @@ public:
     String generateSeed();
 
 private:
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger = NULL;
+    #else
+    Stream* debugger = NULL;
+    #endif
     HwTools* hw = NULL;
     ConnectionHandler* ch = NULL;
     ResetDataContainer* rdc = NULL;

@@ -87,6 +87,7 @@ ADC_MODE(ADC_VCC);
 
 #include "Uptime.h"
 
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
 
 #define debugV_P(x, ...)	if (Debug.isActive(Debug.VERBOSE)) 	{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
@@ -95,6 +96,16 @@ ADC_MODE(ADC_VCC);
 #define debugW_P(x, ...)	if (Debug.isActive(Debug.WARNING)) 	{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
 #define debugE_P(x, ...)	if (Debug.isActive(Debug.ERROR)) 	{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
 #define debugA_P(x, ...)	if (Debug.isActive(Debug.ANY)) 		{Debug.printf_P(x, ##__VA_ARGS__);Debug.println();}
+RemoteDebug Debug;
+#else
+#define debugV_P(x, ...)	{Serial.printf_P(x, ##__VA_ARGS__);Serial.println();}
+#define debugD_P(x, ...)	{Serial.printf_P(x, ##__VA_ARGS__);Serial.println();}
+#define debugI_P(x, ...)	{Serial.printf_P(x, ##__VA_ARGS__);Serial.println();}
+#define debugW_P(x, ...)	{Serial.printf_P(x, ##__VA_ARGS__);Serial.println();}
+#define debugE_P(x, ...)	{Serial.printf_P(x, ##__VA_ARGS__);Serial.println();}
+#define debugA_P(x, ...)	{Serial.printf_P(x, ##__VA_ARGS__);Serial.println();}
+HardwareSerial Debug = Serial;
+#endif
 
 #define BUF_SIZE_COMMON (2048)
 
@@ -107,8 +118,6 @@ HwTools hw;
 DNSServer* dnsServer = NULL;
 
 AmsConfiguration config;
-
-RemoteDebug Debug;
 
 PriceService* ps = NULL;
 
@@ -381,20 +390,20 @@ void setup() {
 		Serial.begin(115200);
 	}
 
+	#if defined(AMS_REMOTE_DEBUG)
 	Debug.setSerialEnabled(true);
 	yield();
+	#endif
 
 	float vcc = hw.getVcc();
 
-	if (Debug.isActive(RemoteDebug::INFO)) {
-		debugI_P(PSTR("AMS bridge started"));
-		debugI_P(PSTR("Voltage: %.2fV"), vcc);
-	}
+	debugI_P(PSTR("AMS bridge started"));
+	debugI_P(PSTR("Voltage: %.2fV"), vcc);
 
 	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
 	if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
 		if (vcc < vccBootLimit) {
-			if(Debug.isActive(RemoteDebug::INFO)) {
+			{
 				Debug.printf_P(PSTR("(setup) Voltage is too low (%.2f < %.2f), sleeping\n"), vcc, vccBootLimit);
 				Serial.flush();
 			}
@@ -436,14 +445,14 @@ void setup() {
 			if (!config.hasConfig()) {
 				debugI_P(PSTR("Device has no config, yet a firmware file exists, deleting file."));
 			} else if (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH) {
-				if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Found firmware"));
+				debugI_P(PSTR("Found firmware"));
 				#if defined(ESP8266)
 					WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
 					WiFi.forceSleepBegin();
 				#endif
 				int i = 0;
 				while(hw.getVcc() > 1.0 && hw.getVcc() < 3.2 && i < 3) {
-					if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR(" vcc not optimal, light sleep 10s"));
+					debugI_P(PSTR(" vcc not optimal, light sleep 10s"));
 					#if defined(ESP8266)
 						delay(10000);
 					#elif defined(ESP32)
@@ -459,10 +468,8 @@ void setup() {
 				uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
 				debugD_P(PSTR(" available: %d"), maxSketchSpace);
 				if (!Update.begin(maxSketchSpace, U_FLASH)) {
-					if(Debug.isActive(RemoteDebug::ERROR)) {
-						debugE_P(PSTR("Unable to start firmware update"));
-						Update.printError(Serial);
-					}
+					debugE_P(PSTR("Unable to start firmware update"));
+					Update.printError(Serial);
 				} else {
 					while (firmwareFile.available()) {
 						uint8_t ibuffer[128];
@@ -478,15 +485,13 @@ void setup() {
 			}
 			LittleFS.remove(FILE_FIRMWARE);
 		} else if(LittleFS.exists(FILE_CFG)) {
-			if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Found config"));
+			debugI_P(PSTR("Found config"));
 			configFileParse();
 			flashed = true;
 		}
 		if(flashed) {
-			if(Debug.isActive(RemoteDebug::INFO)) {
-				debugI_P(PSTR("Firmware update complete, restarting"));
-				Debug.flush();
-			}
+			debugI_P(PSTR("Firmware update complete, restarting"));
+			Debug.flush();
 			delay(250);
 			ESP.restart();
 			return;
@@ -495,14 +500,12 @@ void setup() {
 	yield();
 
 	if(config.hasConfig()) {
-		if(Debug.isActive(RemoteDebug::INFO)) config.print(&Debug);
+		config.print(&Debug);
 		connectToNetwork();
 		handleNtpChange();
 		ds.load();
 	} else {
-		if(Debug.isActive(RemoteDebug::INFO)) {
-			debugI_P(PSTR("No configuration, booting AP"));
-		}
+		debugI_P(PSTR("No configuration, booting AP"));
 		toggleSetupMode();
 	}
 
@@ -554,7 +557,9 @@ int lastError = 0;
 void loop() {
 	unsigned long now = millis();
 	unsigned long start = now;
+	#if defined(AMS_REMOTE_DEBUG)
 	Debug.handle();
+	#endif
 	unsigned long end = millis();
 	if(end - start > 1000) {
 		debugW_P(PSTR("Used %dms to handle debug"), millis()-start);
@@ -570,7 +575,10 @@ void loop() {
 	if (!setupMode) {
 		if (ch != NULL && !ch->isConnected()) {
 			if(networkConnected) {
+				#if defined(AMS_REMOTE_DEBUG)
 				Debug.stop();
+    			#endif
+
 				MDNS.end();
 				if(mqttHandler != NULL) {
 					mqttHandler->disconnect();
@@ -1200,7 +1208,7 @@ void toggleSetupMode() {
 	yield();
 
 	if (!setupMode || !config.hasConfig()) {
-		if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Entering setup mode"));
+		debugI_P(PSTR("Entering setup mode"));
 
 		//wifi_softap_set_dhcps_offer_option(OFFER_ROUTER, 0); // Disable default gw
 
@@ -1238,7 +1246,7 @@ void toggleSetupMode() {
 			digitalWrite(gpioConfig.ledDisablePin, LOW);
 		}
 	} else {
-		if(Debug.isActive(RemoteDebug::INFO)) debugI_P(PSTR("Exiting setup mode"));
+		debugI_P(PSTR("Exiting setup mode"));
 		if(dnsServer != NULL) {
 			delete dnsServer;
 			dnsServer = NULL;
@@ -1364,6 +1372,7 @@ void postConnect() {
 		config.setNetworkConfig(network);
 	}
 	WebConfig web;
+	#if defined(AMS_REMOTE_DEBUG)
 	if(config.getWebConfig(web) && web.security > 0) {
 		Debug.setPassword(web.password);
 	}
@@ -1376,6 +1385,7 @@ void postConnect() {
 	} else {
 		Debug.stop();
 	}
+	#endif
 	mdnsEnabled = false;
 	if(strlen(network.hostname) > 0 && network.mdns) {
 		debugD_P(PSTR("mDNS is enabled, using host: %s"), network.hostname);
@@ -1434,7 +1444,7 @@ void MQTT_connect() {
 
 	MqttConfig mqttConfig;
 	if(!config.getMqttConfig(mqttConfig) || strlen(mqttConfig.host) == 0) {
-		if(Debug.isActive(RemoteDebug::WARNING)) debugW_P(PSTR("No MQTT config"));
+		debugW_P(PSTR("No MQTT config"));
 		ws.setMqttEnabled(false);
 		mqttEnabled = false;
 		return;

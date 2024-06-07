@@ -9,7 +9,7 @@
 #include "ntohll.h"
 #include "Uptime.h"
 
-LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger) {
+LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx) {
     LngHeader* h = (LngHeader*) payload;
     if(h->tag == CosemTypeStructure && h->arrayTag == CosemTypeArray) {
         apply(meterState);

@@ -11,9 +11,15 @@
 
 class PassthroughMqttHandler : public AmsMqttHandler {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     PassthroughMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf) : AmsMqttHandler(mqttConfig, debugger, buf) {
         this->topic = String(mqttConfig.publishTopic);
     };
+    #else
+    PassthroughMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf) : AmsMqttHandler(mqttConfig, debugger, buf) {
+        this->topic = String(mqttConfig.publishTopic);
+    };
+    #endif
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(PriceService*);

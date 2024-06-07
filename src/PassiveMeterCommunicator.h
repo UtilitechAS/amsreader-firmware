@@ -8,7 +8,9 @@
 #define _PASSIVEMETERCOMMUNICATOR_H
 
 #include "MeterCommunicator.h"
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include "AmsConfiguration.h"
 #include "DataParsers.h"
 #include "Timezone.h"
@@ -22,7 +24,11 @@ const uint32_t AUTO_BAUD_RATES[] = { 2400, 115200 };
 
 class PassiveMeterCommunicator : public MeterCommunicator  {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     PassiveMeterCommunicator(RemoteDebug* debugger);
+    #else
+    PassiveMeterCommunicator(Stream* debugger);
+    #endif
     void configure(MeterConfig&, Timezone*);
     bool loop();
     AmsData* getData(AmsData& meterState);
@@ -35,7 +41,11 @@ public:
     void rxerr(int err);
 
 protected:
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger = NULL;
+    #else
+    Stream* debugger = NULL;
+    #endif
     MeterConfig meterConfig;
     bool configChanged = false;
     Timezone* tz;

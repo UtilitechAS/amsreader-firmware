@@ -11,9 +11,15 @@
 
 class JsonMqttHandler : public AmsMqttHandler {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     JsonMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
         this->hw = hw;
     };
+    #else
+    JsonMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
+        this->hw = hw;
+    };
+    #endif
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(PriceService*);

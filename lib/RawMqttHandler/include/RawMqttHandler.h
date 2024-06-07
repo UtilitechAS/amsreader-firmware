@@ -11,10 +11,17 @@
 
 class RawMqttHandler : public AmsMqttHandler {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     RawMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf) : AmsMqttHandler(mqttConfig, debugger, buf) {
         full = mqttConfig.payloadFormat == 2;
         topic = String(mqttConfig.publishTopic);
     };
+    #else
+    RawMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf) : AmsMqttHandler(mqttConfig, debugger, buf) {
+        full = mqttConfig.payloadFormat == 2;
+        topic = String(mqttConfig.publishTopic);
+    };
+    #endif
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(PriceService*);

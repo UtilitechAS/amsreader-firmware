@@ -21,6 +21,7 @@
 
 class AmsMqttHandler {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     AmsMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf) {
         this->mqttConfig = mqttConfig;
     	this->mqttConfigChanged = true;
@@ -28,6 +29,15 @@ public:
         this->json = buf;
         mqtt.dropOverflow(true);
     };
+    #else
+    AmsMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf) {
+        this->mqttConfig = mqttConfig;
+    	this->mqttConfigChanged = true;
+        this->debugger = debugger;
+        this->json = buf;
+        mqtt.dropOverflow(true);
+    };
+    #endif
 
     void setCaVerification(bool);
     void setConfig(MqttConfig& mqttConfig);
@@ -55,7 +65,11 @@ public:
     };
 
 protected:
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
+    #else
+    Stream* debugger;
+    #endif
     MqttConfig mqttConfig;
     bool mqttConfigChanged = true;
     MQTTClient mqtt = MQTTClient(256);

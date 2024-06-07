@@ -1,7 +1,11 @@
 #include "PulseMeterCommunicator.h"
 #include "Uptime.h"
 
+#if defined(AMS_REMOTE_DEBUG)
 PulseMeterCommunicator::PulseMeterCommunicator(RemoteDebug* debugger) {
+#else
+PulseMeterCommunicator::PulseMeterCommunicator(Stream* debugger) {
+#endif
     this->debugger = debugger;
 }
 
@@ -42,7 +46,10 @@ void PulseMeterCommunicator::getCurrentConfig(MeterConfig& meterConfig) {
 }
 
 void PulseMeterCommunicator::setupGpio() {
-    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Setting up Pulse Meter GPIO, rx: %d, tx: %d\n"), meterConfig.rxPin, meterConfig.txPin);
+    #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf_P(PSTR("Setting up Pulse Meter GPIO, rx: %d, tx: %d\n"), meterConfig.rxPin, meterConfig.txPin);
     if(meterConfig.rxPin != NOT_A_PIN) {
         pinMode(meterConfig.rxPin, meterConfig.rxPinPullup ? INPUT_PULLUP : INPUT);
     }

@@ -8,7 +8,9 @@
 #define _METERCOMMUNICATOR_H
 
 #include <Arduino.h>
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include "AmsData.h"
 #include "AmsConfiguration.h"
 

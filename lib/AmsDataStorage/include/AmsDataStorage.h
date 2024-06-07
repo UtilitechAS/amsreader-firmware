@@ -8,7 +8,9 @@
 #define _AMSDATASTORAGE_H
 #include "Arduino.h"
 #include "AmsData.h"
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include "Timezone.h"
 
 struct DayDataPoints5 {
@@ -53,7 +55,11 @@ struct MonthDataPoints {
 
 class AmsDataStorage {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     AmsDataStorage(RemoteDebug*);
+    #else
+    AmsDataStorage(Stream*);
+    #endif
     void setTimezone(Timezone*);
     bool update(AmsData*);
     uint32_t getHourImport(uint8_t);
@@ -100,7 +106,11 @@ private:
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         10
     };
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
+    #else
+    Stream* debugger;
+    #endif
 };
 
 #endif

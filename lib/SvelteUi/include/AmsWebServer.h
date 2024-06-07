@@ -16,7 +16,9 @@
 #include "AmsDataStorage.h"
 #include "EnergyAccounting.h"
 #include "Uptime.h"
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include "PriceService.h"
 #include "RealtimePlot.h"
 #include "ConnectionHandler.h"
@@ -46,7 +48,11 @@
 
 class AmsWebServer {
 public:
+	#if defined(AMS_REMOTE_DEBUG)
 	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc);
+	#else
+	AmsWebServer(uint8_t* buf, Stream* Debug, HwTools* hw, ResetDataContainer* rdc);
+	#endif
     void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*);
     void loop();
 	#if defined(_CLOUDCONNECTOR_H)
@@ -61,7 +67,11 @@ public:
 	void setConnectionHandler(ConnectionHandler* ch);
 
 private:
-	RemoteDebug* debugger;
+    #if defined(AMS_REMOTE_DEBUG)
+    RemoteDebug* debugger;
+    #else
+    Stream* debugger;
+    #endif
 	ResetDataContainer* rdc;
 	bool mqttEnabled = false;
 	int maxPwr = 0;

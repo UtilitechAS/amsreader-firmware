@@ -10,7 +10,11 @@
 #include "AmsStorage.h"
 #include "FirmwareVersion.h"
 
+#if defined(AMS_REMOTE_DEBUG)
 AmsDataStorage::AmsDataStorage(RemoteDebug* debugger) {
+#else
+AmsDataStorage::AmsDataStorage(Stream* debugger) {
+#endif
     day.version = 6;
     day.accuracy = 1;
     month.version = 7;

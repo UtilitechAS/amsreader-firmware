@@ -82,7 +82,9 @@ ADC_MODE(ADC_VCC);
 
 #include "MeterCommunicator.h"
 #include "PassiveMeterCommunicator.h"
+#if defined(AMS_KMP)
 #include "KmpCommunicator.h"
+#endif
 #include "PulseMeterCommunicator.h"
 
 #include "Uptime.h"
@@ -184,7 +186,9 @@ RealtimePlot rtp;
 
 MeterCommunicator* mc = NULL;
 PassiveMeterCommunicator* passiveMc = NULL;
+#if defined(AMS_KMP)
 KmpCommunicator* kmpMc = NULL;
+#endif
 PulseMeterCommunicator* pulseMc = NULL;
 
 bool networkConnected = false;
@@ -273,9 +277,11 @@ void rxerr(int err) {
 	if(passiveMc != NULL) {
 		passiveMc->rxerr(err);
 	}
+	#if defined(AMS_KMP)
 	if(kmpMc != NULL) {
 		kmpMc->rxerr(err);
 	}
+	#endif
 }
 #endif
 
@@ -751,10 +757,12 @@ void loop() {
 						delete pulseMc;
 						pulseMc = NULL;
 					}
+					#if defined(AMS_KMP)
 					if(kmpMc != NULL) {
 						delete(kmpMc);
 						kmpMc = NULL;
 					}
+					#endif
 					if(passiveMc == NULL) {
 						passiveMc = new PassiveMeterCommunicator(&Debug);
 					}
@@ -771,18 +779,22 @@ void loop() {
 						delete(passiveMc);
 						passiveMc = NULL;
 					}
+					#if defined(AMS_KMP)
 					if(kmpMc == NULL) {
 						kmpMc = new KmpCommunicator(&Debug);
 					}
 					kmpMc->configure(meterConfig, tz);
 					hwSerial = kmpMc->getHwSerial();
 					mc = kmpMc;
+					#endif
 					break;
 				case METER_PARSER_PULSE:
+					#if defined(AMS_KMP)
 					if(kmpMc != NULL) {
 						delete(kmpMc);
 						kmpMc = NULL;
 					}
+					#endif
 					if(passiveMc != NULL) {
 						delete(passiveMc);
 						passiveMc = NULL;

@@ -259,6 +259,10 @@ void AmsData::apply(OBIS_code_t obis, double value) {
     }
     if(listType > 0)
         lastUpdateMillis = millis();
+
+    threePhase = l1voltage > 0 && l2voltage > 0 && l3voltage > 0;
+    if(!threePhase)
+        twoPhase = (l1voltage > 0 && l2voltage > 0) || (l2voltage > 0 && l3voltage > 0) || (l3voltage > 0  && l1voltage > 0);
 }
 
 uint64_t AmsData::getLastUpdateMillis() {

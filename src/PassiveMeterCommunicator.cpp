@@ -887,23 +887,19 @@ void PassiveMeterCommunicator::handleAutodetect(unsigned long now) {
 				autodetectCount = 0;
 			}
 			autodetectBaud = AUTO_BAUD_RATES[autodetectCount++];
-			#if defined(ESP_REMOTE_DEBUG)
 			#if defined(AMS_REMOTE_DEBUG)
 if (debugger->isActive(RemoteDebug::INFO))
 #endif
 debugger->printf_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s\n"), autodetectBaud, autodetectParity, autodetectInvert ? "true" : "false");
-			#endif
 			meterConfig.bufferSize = max((uint32_t) 1, autodetectBaud / 14400);
 			setupHanPort(autodetectBaud, autodetectParity, autodetectInvert);
 			meterAutodetectLastChange = now;
 		}
 	} else if(autodetect) {
-		#if defined(ESP_REMOTE_DEBUG)
 		#if defined(AMS_REMOTE_DEBUG)
 if (debugger->isActive(RemoteDebug::INFO))
 #endif
 debugger->printf_P(PSTR("Meter serial autodetected, saving: %d, %d, %s\n"), autodetectBaud, autodetectParity, autodetectInvert ? "true" : "false");
-		#endif
 		autodetect = false;
 		meterConfig.baud = autodetectBaud;
 		meterConfig.parity = autodetectParity;

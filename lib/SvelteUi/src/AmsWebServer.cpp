@@ -179,8 +179,12 @@ debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
 
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
+	#if defined(ESP32)
 	const char * headerkeys[] = {HEADER_AUTHORIZATION, HEADER_ORIGIN, HEADER_REFERER, HEADER_ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK} ;
     server.collectHeaders(headerkeys, 4);
+	#else
+    server.collectHeaders(HEADER_AUTHORIZATION, HEADER_ORIGIN, HEADER_REFERER, HEADER_ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK);
+	#endif
 	server.begin(); // Web server start
 
 	MqttConfig mqttConfig;

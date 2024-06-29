@@ -231,8 +231,6 @@ bool PriceService::loop() {
         return false;
     }
     #endif
-    if(!config->enabled)
-        return false;
     if(strlen(config->area) == 0)
         return false;
     if(strlen(config->currency) == 0)
@@ -254,11 +252,14 @@ bool PriceService::loop() {
         }
         currentDay = tm.Day;
         currentHour = tm.Hour;
-        return today != NULL; // Only trigger MQTT publish if we have todays prices.
+        return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
     } else if(currentHour != tm.Hour) {
         currentHour = tm.Hour;
-        return today != NULL; // Only trigger MQTT publish if we have todays prices.
+        return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
     }
+
+    if(!config->enabled)
+        return false;
 
     bool readyToFetchForTomorrow = tomorrow == NULL && (tm.Hour > 13 || (tm.Hour == 13 && tm.Minute >= tomorrowFetchMinute)) && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > (nextFetchDelayMinutes*60000));
 

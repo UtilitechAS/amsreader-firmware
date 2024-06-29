@@ -31,6 +31,11 @@ ADC_MODE(ADC_VCC);
 #endif
 
 #define WDT_TIMEOUT 120
+#if defined(SLOW_PROC_TRIGGER_MS)
+	#warning "Using predefined slow process trigger"
+#else
+	#define SLOW_PROC_TRIGGER_MS 1000
+#endif
 
 #define METER_SOURCE_NONE 0
 #define METER_SOURCE_GPIO 1
@@ -567,7 +572,7 @@ void loop() {
 	Debug.handle();
 	#endif
 	unsigned long end = millis();
-	if(end - start > 1000) {
+	if(end - start > SLOW_PROC_TRIGGER_MS) {
 		debugW_P(PSTR("Used %dms to handle debug"), millis()-start);
 	}
 
@@ -604,7 +609,7 @@ void loop() {
 				start = millis();
 				MDNS.update();
 				end = millis();
-				if(end - start > 1000) {
+				if(end - start > SLOW_PROC_TRIGGER_MS) {
 					debugW_P(PSTR("Used %dms to update mDNS"), millis()-start);
 				}
 			}
@@ -669,7 +674,7 @@ void loop() {
 			start = millis();
 			ws.loop();
 			end = millis();
-			if(end - start > 1000) {
+			if(end - start > SLOW_PROC_TRIGGER_MS) {
 				debugW_P(PSTR("Used %dms to handle web"), millis()-start);
 			}
 
@@ -678,7 +683,7 @@ void loop() {
 				mqttHandler->loop();
 				delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
 				end = millis();
-				if(end - start > 1000) {
+				if(end - start > SLOW_PROC_TRIGGER_MS) {
 					debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
 				}
 			}
@@ -715,12 +720,24 @@ void loop() {
 				cloud->update(meterState, ea);
 			}
 			#endif
+			start = millis();
 			handleUiLanguage();
+			end = millis();
+			if(end-start > SLOW_PROC_TRIGGER_MS) {
+				debugW_P(PSTR("Used %dms to handle language update"), end-start);
+			}
 		}
-		if(now - lastVoltageCheck > 500) {
+		#if defined(ESP32)
+		if(now - lastVoltageCheck > 1000) {
+			start = millis();
 			handleVoltageCheck();
+			end = millis();
 			lastVoltageCheck = now;
+			if(end-start > SLOW_PROC_TRIGGER_MS) {
+				debugW_P(PSTR("Used %dms to handle language update"), end-start);
+			}
 		}
+		#endif
 	} else {
 		if(WiFi.smartConfigDone()) {
 			debugI_P(PSTR("Smart config DONE!"));
@@ -829,7 +846,7 @@ void loop() {
 		start = millis();
 		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
 			end = millis();
-			if(end - start > 1000) {
+			if(end - start > SLOW_PROC_TRIGGER_MS) {
 				debugW_P(PSTR("Used %dms to read HAN port (true)"), millis()-start);
 			}
 			handleTemperature(now);
@@ -837,7 +854,7 @@ void loop() {
 			hw.setBootSuccessful(true);
 		} else {
 			end = millis();
-			if(end - start > 1000) {
+			if(end - start > SLOW_PROC_TRIGGER_MS) {
 				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
 			}
 		}
@@ -859,11 +876,11 @@ void loop() {
 	yield();
 
 	end = millis();
-	if(end-start > 1000) {
+	if(end-start > SLOW_PROC_TRIGGER_MS) {
 		debugW_P(PSTR("Used %dms to feed WDT"), end-start);
 	}
 
-	if(end-now > 2000) {
+	if(end-now > SLOW_PROC_TRIGGER_MS*2) {
 		debugW_P(PSTR("loop() used %dms"), end-now);
 	}
 }
@@ -921,12 +938,13 @@ void handleUiLanguage() {
 }
 
 void handleClear(unsigned long now) {
+	time_t ts = time(nullptr);
 	tmElements_t tm;
-	breakTime(time(nullptr), tm);
+	breakTime(ts, tm);
 	if(tm.Minute == 0) {
 		AmsData nullData;
 		debugI_P(PSTR("Clearing data that have not been updated"));
-		ds.update(&nullData);
+		ds.update(&nullData, ts);
 	}
 }
 
@@ -989,7 +1007,7 @@ void handleSystem(unsigned long now) {
 		}
 		lastSysupdate = now;
 		end = millis();
-		if(end - start > 1000) {
+		if(end - start > SLOW_PROC_TRIGGER_MS) {
 			debugW_P(PSTR("Used %dms to send system update to MQTT"), millis()-start);
 		}
 
@@ -1039,7 +1057,7 @@ void handleTemperature(unsigned long now) {
 			}
 		}
 		end = millis();
-		if(end - start > 1000) {
+		if(end - start > SLOW_PROC_TRIGGER_MS) {
 			debugW_P(PSTR("Used %dms to update temperature"), millis()-start);
 		}
 	}
@@ -1051,19 +1069,19 @@ void handlePriceService(unsigned long now) {
 		start = millis();
 		if(ps->loop() && mqttHandler != NULL) {
 			end = millis();
-			if(end - start > 1000) {
+			if(end - start > SLOW_PROC_TRIGGER_MS) {
 				debugW_P(PSTR("Used %dms to update prices"), millis()-start);
 			}
 
 			start = millis();
 			mqttHandler->publishPrices(ps);
 			end = millis();
-			if(end - start > 1000) {
+			if(end - start > SLOW_PROC_TRIGGER_MS) {
 				debugW_P(PSTR("Used %dms to publish prices to MQTT"), millis()-start);
 			}
 		} else {
 			end = millis();
-			if(end - start > 1000) {
+			if(end - start > SLOW_PROC_TRIGGER_MS) {
 				debugW_P(PSTR("Used %dms to handle price API"), millis()-start);
 			}
 		}
@@ -1330,10 +1348,11 @@ void handleDataSuccess(AmsData* data) {
 	#endif
 
 	time_t now = time(nullptr);
+	time_t meterTime = data->getMeterTimestamp();
 	if(now < FirmwareVersion::BuildEpoch && data->getListType() >= 3) {
-		if(data->getMeterTimestamp() > FirmwareVersion::BuildEpoch) {
+		if(meterTime > FirmwareVersion::BuildEpoch) {
 			debugI_P(PSTR("Using timestamp from meter"));
-			now = data->getMeterTimestamp();
+			now = meterTime;
 		} else if(data->getPackageTimestamp() > FirmwareVersion::BuildEpoch) {
 			debugI_P(PSTR("Using timestamp from meter (DLMS)"));
 			now = data->getPackageTimestamp();
@@ -1349,29 +1368,38 @@ void handleDataSuccess(AmsData* data) {
 
 	bool saveData = false;
 	if(!ds.isHappy() && now > FirmwareVersion::BuildEpoch) { // Must use "isHappy()" in case day state gets reset and lastTimestamp is "now"
-		debugD_P(PSTR("Its time to update data storage"));
-		tmElements_t tm;
+		tmElements_t tm, mtm;
 		breakTime(now, tm);
-		if(tm.Minute == 0 && data->getListType() >= 3) {
-			debugV_P(PSTR(" using actual data"));
-			saveData = ds.update(data);
+		breakTime(meterTime, mtm);
+		if(data->getListType() >= 3) {
+			if(tm.Minute == 0) {
+				debugD_P(PSTR("Updating data storage, triggered by internal clock %02d:%02d:%02d UTC (Meter clock: %02d:%02d:%02d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second);
+				saveData = ds.update(data, now);
+			} else if(mtm.Minute == 0 && meterTime > FirmwareVersion::BuildEpoch) {
+				debugD_P(PSTR("Updating data storage, triggered by meter clock %02d:%02d:%02d UTC (Internal clock: %02d:%02d:%02d)"), mtm.Hour, mtm.Minute, mtm.Second, tm.Hour, tm.Minute, tm.Second);
+				saveData = ds.update(data, meterTime);
+			}
 			#if defined(_CLOUDCONNECTOR_H)
 			if(saveData && cloud != NULL) cloud->forceUpdate();
 			#endif
 		} else if(tm.Minute == 1) {
-			debugV_P(PSTR(" no data, clear"));
+			debugW_P(PSTR("Did not receive necessary data for previous hour, clearing"));
 			AmsData nullData;
-			saveData = ds.update(&nullData);
+			saveData = ds.update(&nullData, now);
 		}
 		if(saveData) {
 			debugI_P(PSTR("Saving data"));
-			ds.save();
+			if(!ds.save()) {
+				debugW_P(PSTR("Unable to save data storage"));
+			}
 		}
 	}
 
 	if(ea.update(data)) {
 		debugI_P(PSTR("Saving energy accounting"));
-		ea.save();
+		if(!ea.save()) {
+			debugW_P(PSTR("Unable to save energy accounting"));
+		}
 	}
 }
 

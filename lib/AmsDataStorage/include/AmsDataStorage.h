@@ -61,7 +61,7 @@ public:
     AmsDataStorage(Stream*);
     #endif
     void setTimezone(Timezone*);
-    bool update(AmsData*);
+    bool update(AmsData* data, time_t now);
     uint32_t getHourImport(uint8_t);
     uint32_t getHourExport(uint8_t);
     uint32_t getDayImport(uint8_t);

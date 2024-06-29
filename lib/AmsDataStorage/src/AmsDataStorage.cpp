@@ -26,13 +26,20 @@ void AmsDataStorage::setTimezone(Timezone* tz) {
     this->tz = tz;
 }
 
-bool AmsDataStorage::update(AmsData* data) {
+bool AmsDataStorage::update(AmsData* data, time_t now) {
     if(isHappy()) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Happy, not updating\n"));
         return false;
     }
 
-    time_t now = time(nullptr);
     if(tz == NULL) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("No timezone, not updating\n"));
         return false;
     }
     if(now < FirmwareVersion::BuildEpoch) {
@@ -43,6 +50,10 @@ bool AmsDataStorage::update(AmsData* data) {
         }
     }
     if(now < FirmwareVersion::BuildEpoch) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Before build time, not updating\n"));
         return false;
     }
 
@@ -116,6 +127,10 @@ bool AmsDataStorage::update(AmsData* data) {
     }
 
     if(data->getListType() < 3) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Type %d, not updating\n"), data->getListType());
         return false;
     }
 
@@ -123,13 +138,25 @@ bool AmsDataStorage::update(AmsData* data) {
 
     // Update day plot
     if(!isDayHappy()) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Day is not happy\n"));
         if(day.activeImport > importCounter || day.activeExport > exportCounter) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
+                debugger->printf_P(PSTR(" - reset\n"));
             day.activeImport = importCounter;
             day.activeExport = exportCounter;
             day.lastMeterReadTime = now;
             setHourImport(utcYesterday.Hour, 0);
             setHourExport(utcYesterday.Hour, 0);
         } else if(now - day.lastMeterReadTime < 4000) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
+                debugger->printf_P(PSTR(" - normal\n"));
             uint32_t imp = importCounter - day.activeImport;
             uint32_t exp = exportCounter - day.activeExport;
             setHourImport(utcYesterday.Hour, imp);
@@ -139,6 +166,10 @@ bool AmsDataStorage::update(AmsData* data) {
             day.activeExport = exportCounter;
             day.lastMeterReadTime = now;
         } else {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
+                debugger->printf_P(PSTR(" - average\n"));
             float mins = (now - day.lastMeterReadTime) / 60.0;
             uint32_t im = importCounter - day.activeImport;
             uint32_t ex = exportCounter - day.activeExport;
@@ -170,13 +201,25 @@ bool AmsDataStorage::update(AmsData* data) {
 
     // Update month plot
     if(ltz.Hour == 0 && !isMonthHappy()) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Month is not happy\n"));
         if(month.activeImport > importCounter || month.activeExport > exportCounter) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
+                debugger->printf_P(PSTR(" - reset\n"));
             month.activeImport = importCounter;
             month.activeExport = exportCounter;
             month.lastMeterReadTime = now;
             setDayImport(ltzYesterDay.Day, 0);
             setDayExport(ltzYesterDay.Day, 0);
         } else if(now - month.lastMeterReadTime < 90100 && now - month.lastMeterReadTime > 82700) { // DST days are 23h (82800s) and 25h (90000)
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
+                debugger->printf_P(PSTR(" - normal\n"));
             uint32_t imp = importCounter - month.activeImport;
             uint32_t exp = exportCounter - month.activeExport;
 
@@ -186,6 +229,10 @@ bool AmsDataStorage::update(AmsData* data) {
             month.activeExport = exportCounter;
             month.lastMeterReadTime = now;
         } else {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
+                debugger->printf_P(PSTR(" - average\n"));
             // Make sure last month read is at midnight
             tmElements_t last;
             breakTime(tz->toLocal(month.lastMeterReadTime), last);
@@ -550,7 +597,9 @@ bool AmsDataStorage::isDayHappy() {
     if(now < day.lastMeterReadTime) {
         return false;
     }
-    if(now-day.lastMeterReadTime > 3600) {
+    // There are cases where the meter reports before the hour. The update method will then receive the meter timestamp as reference, thus there will not be 3600s between. 
+    // Leaving a 100s buffer for these cases
+    if(now-day.lastMeterReadTime > 3500) {
         return false;
     }
 

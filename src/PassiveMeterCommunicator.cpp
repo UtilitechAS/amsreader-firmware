@@ -741,11 +741,8 @@ debugger->printf_P(PSTR("Software serial\n"));
 if (debugger->isActive(RemoteDebug::DEBUG))
 #endif
 debugger->printf_P(PSTR("Using serial buffer size %d\n"), 64 * bufferSize);
-			swSerial->begin(baud, serialConfig, rxpin, txpin, invert, meterConfig.bufferSize * 64);
+			swSerial->begin(baud, serialConfig, rxpin, txpin, invert, meterConfig.bufferSize * 64, meterConfig.bufferSize * 64);
 			hanSerial = swSerial;
-
-			Serial.end();
-			Serial.begin(115200);
 			hwSerial = NULL;
 		#else
 			#if defined(AMS_REMOTE_DEBUG)
@@ -759,7 +756,7 @@ debugger->printf_P(PSTR("Software serial not available\n"));
 	if(hanBuffer != NULL) {
 		free(hanBuffer);
 	}
-	hanBufferSize = max(64 * meterConfig.bufferSize * 2, 512);
+	hanBufferSize = max(64 * meterConfig.bufferSize * 3, 512);
 	hanBuffer = (uint8_t*) malloc(hanBufferSize);
 
 	// The library automatically sets the pullup in Serial.begin()

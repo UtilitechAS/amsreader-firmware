@@ -154,6 +154,19 @@ debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
 	server.on(context + F("/dayplot"), HTTP_POST, std::bind(&AmsWebServer::modifyDayPlot, this));
 	server.on(context + F("/monthplot"), HTTP_POST, std::bind(&AmsWebServer::modifyMonthPlot, this));
 
+	server.on(context + F("/sysinfo.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/data.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/dayplot.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/monthplot.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/energyprice.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/temperature.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/tariff.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/realtime.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/priceconfig.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/translations.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/cloudkey.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/configuration.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+
 
 	/* These trigger captive portal. Only problem is that after you have "signed in", the portal is closed and the user has no idea how to reach the device
 	server.on(context + F("/generate_204"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Android captive portal check: http://connectivitycheck.gstatic.com/generate_204
@@ -166,6 +179,8 @@ debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
 
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
+	const char * headerkeys[] = {HEADER_AUTHORIZATION, HEADER_ORIGIN, HEADER_REFERER, HEADER_ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK} ;
+    server.collectHeaders(headerkeys, 4);
 	server.begin(); // Web server start
 
 	MqttConfig mqttConfig;
@@ -222,10 +237,10 @@ void AmsWebServer::loop() {
 
 bool AmsWebServer::checkSecurity(byte level, bool send401) {
 	bool access = WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA || webConfig.security < level;
-	if(!access && webConfig.security >= level && server.hasHeader(F("Authorization"))) {
+	if(!access && webConfig.security >= level && server.hasHeader(HEADER_AUTHORIZATION)) {
 		String expectedAuth = String(webConfig.username) + ":" + String(webConfig.password);
 
-		String providedPwd = server.header("Authorization");
+		String providedPwd = server.header(HEADER_AUTHORIZATION);
 		providedPwd.replace(F("Basic "), F(""));
 
 		#if defined(ESP8266)
@@ -451,7 +466,7 @@ void AmsWebServer::sysinfoJson() {
 
 	stripNonAscii((uint8_t*) buf, size+1);
 
-	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -626,7 +641,7 @@ void AmsWebServer::dataJson() {
 		checkSecurity(1, false) ? "true" : "false"
 	);
 
-	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -648,7 +663,7 @@ void AmsWebServer::dayplotJson() {
 		}
 		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
-		server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+		addConditionalCloudHeaders();
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 		server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -671,7 +686,7 @@ void AmsWebServer::monthplotJson() {
 		}
 		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
-		server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+		addConditionalCloudHeaders();
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 		server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -704,7 +719,7 @@ void AmsWebServer::energyPriceJson() {
     }
 	snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
-	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -737,7 +752,7 @@ void AmsWebServer::temperatureJson() {
 	char* pos = buf+strlen(buf);
 	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("]}"));
 
-	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -855,7 +870,7 @@ void AmsWebServer::configurationJson() {
 		qsk = LittleFS.exists(FILE_MQTT_KEY);
 	}
 
-	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -1032,7 +1047,7 @@ void AmsWebServer::priceConfigJson() {
 	if(!checkSecurity(1))
 		return;
 
-	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -1102,7 +1117,7 @@ void AmsWebServer::translationsJson() {
 		return;
 	}
 
-	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+	addConditionalCloudHeaders();
 //	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -1145,10 +1160,10 @@ void AmsWebServer::handleSave() {
 		return;
 
 	bool success = true;
-	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
+	if(server.hasArg(F("v")) && server.arg(F("v")) == FSTR_TRUE) {
 		int boardType = server.arg(F("vb")).toInt();
 		int hanPin = server.arg(F("vh")).toInt();
-		if(server.hasArg(F("vr")) && server.arg(F("vr")) == F("true")) {
+		if(server.hasArg(F("vr")) && server.arg(F("vr")) == FSTR_TRUE) {
 			config->clear();
 		}
 
@@ -1168,7 +1183,7 @@ void AmsWebServer::handleSave() {
 		}
 	}
 
-	if(server.hasArg(F("s")) && server.arg(F("s")) == F("true")) {
+	if(server.hasArg(F("s")) && server.arg(F("s")) == FSTR_TRUE) {
 		SystemConfig sys;
 		config->getSystemConfig(sys);
 		MeterConfig meterConfig;
@@ -1240,25 +1255,25 @@ void AmsWebServer::handleSave() {
 	} else if(server.hasArg(F("sf")) && !server.arg(F("sf")).isEmpty()) {
 		SystemConfig sys;
 		config->getSystemConfig(sys);
-		sys.dataCollectionConsent = server.hasArg(F("sf")) && (server.arg(F("sf")) == F("true") || server.arg(F("sf")) == F("1")) ? 1 : 2;
+		sys.dataCollectionConsent = server.hasArg(F("sf")) && (server.arg(F("sf")) == FSTR_TRUE || server.arg(F("sf")) == F("1")) ? 1 : 2;
 		config->setSystemConfig(sys);
 	}
 
-	if(server.hasArg(F("m")) && server.arg(F("m")) == F("true")) {
+	if(server.hasArg(F("m")) && server.arg(F("m")) == FSTR_TRUE) {
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
 		meterConfig.source = server.arg(F("mo")).toInt();
 		meterConfig.parser = server.arg(F("ma")).toInt();
 		meterConfig.baud = server.arg(F("mb")).toInt();
 		meterConfig.parity = server.arg(F("mp")).toInt();
-		meterConfig.invert = server.hasArg(F("mi")) && server.arg(F("mi")) == F("true");
+		meterConfig.invert = server.hasArg(F("mi")) && server.arg(F("mi")) == FSTR_TRUE;
 		meterConfig.distributionSystem = server.arg(F("md")).toInt();
 		meterConfig.mainFuse = server.arg(F("mf")).toInt();
 		meterConfig.productionCapacity = server.arg(F("mr")).toInt();
 		meterConfig.bufferSize = min((double) 64, ceil((server.arg(F("ms")).toInt()) / 64));
 		maxPwr = 0;
 
-		if(server.hasArg(F("me")) && server.arg(F("me")) == F("true")) {
+		if(server.hasArg(F("me")) && server.arg(F("me")) == FSTR_TRUE) {
 			String encryptionKeyHex = server.arg(F("mek"));
 			if(!encryptionKeyHex.isEmpty()) {
 				encryptionKeyHex.replace(F("0x"), F(""));
@@ -1286,7 +1301,7 @@ void AmsWebServer::handleSave() {
 		config->setMeterConfig(meterConfig);
 	}
 
-	if(server.hasArg(F("w")) && server.arg(F("w")) == F("true")) {
+	if(server.hasArg(F("w")) && server.arg(F("w")) == FSTR_TRUE) {
 		long mode = server.arg(F("nc")).toInt();
 		if(mode > 0 && mode < 3) {
 			NetworkConfig network;
@@ -1299,7 +1314,7 @@ void AmsWebServer::handleSave() {
 			}
 			network.power = server.arg(F("ww")).toFloat() * 10;
 			network.sleep = server.arg(F("wz")).toInt();
-			network.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
+			network.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == FSTR_TRUE;
 
 			if(server.hasArg(F("nm"))) {
 				if(server.arg(F("nm")) == "static") {
@@ -1316,23 +1331,23 @@ void AmsWebServer::handleSave() {
 					strcpy(network.dns2, "");
 				}
 			}
-			network.ipv6 = server.hasArg(F("nx")) && server.arg(F("nx")) == F("true");
-			network.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == F("true");
+			network.ipv6 = server.hasArg(F("nx")) && server.arg(F("nx")) == FSTR_TRUE;
+			network.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == FSTR_TRUE;
 			config->setNetworkConfig(network);
 		} 
 
 	}
 
-	if(server.hasArg(F("ntp")) && server.arg(F("ntp")) == F("true")) {
+	if(server.hasArg(F("ntp")) && server.arg(F("ntp")) == FSTR_TRUE) {
 		NtpConfig ntp;
 		config->getNtpConfig(ntp);
 		ntp.enable = true;
-		ntp.dhcp = server.hasArg(F("ntpd")) && server.arg(F("ntpd")) == F("true");
+		ntp.dhcp = server.hasArg(F("ntpd")) && server.arg(F("ntpd")) == FSTR_TRUE;
 		strcpy(ntp.server, server.arg(F("ntph")).c_str());
 		config->setNtpConfig(ntp);
 	}
 
-	if(server.hasArg(F("q")) && server.arg(F("q")) == F("true")) {
+	if(server.hasArg(F("q")) && server.arg(F("q")) == FSTR_TRUE) {
 		MqttConfig mqtt;
 		config->getMqttConfig(mqtt);
 		if(server.hasArg(F("qh")) && !server.arg(F("qh")).isEmpty()) {
@@ -1349,7 +1364,7 @@ void AmsWebServer::handleSave() {
 			#if defined(ESP8266)
 			mqtt.ssl = false;
 			#else
-			mqtt.ssl = server.arg(F("qs")) == F("true");
+			mqtt.ssl = server.arg(F("qs")) == FSTR_TRUE;
 			#endif
 
 			mqtt.port = server.arg(F("qp")).toInt();
@@ -1365,7 +1380,7 @@ void AmsWebServer::handleSave() {
 		config->setMqttConfig(mqtt);
 	}
 
-	if(server.hasArg(F("o")) && server.arg(F("o")) == F("true")) {
+	if(server.hasArg(F("o")) && server.arg(F("o")) == FSTR_TRUE) {
 		DomoticzConfig domo {
 			static_cast<uint16_t>(server.arg(F("oe")).toInt()),
 			static_cast<uint16_t>(server.arg(F("ou1")).toInt()),
@@ -1376,7 +1391,7 @@ void AmsWebServer::handleSave() {
 		config->setDomoticzConfig(domo);
 	}
 
-	if(server.hasArg(F("h")) && server.arg(F("h")) == F("true")) {
+	if(server.hasArg(F("h")) && server.arg(F("h")) == FSTR_TRUE) {
 		HomeAssistantConfig haconf;
 		config->getHomeAssistantConfig(haconf);
 		strcpy(haconf.discoveryPrefix, server.arg(F("ht")).c_str());
@@ -1385,7 +1400,7 @@ void AmsWebServer::handleSave() {
 		config->setHomeAssistantConfig(haconf);
 	}
 
-	if(server.hasArg(F("g")) && server.arg(F("g")) == F("true")) {
+	if(server.hasArg(F("g")) && server.arg(F("g")) == FSTR_TRUE) {
 		webConfig.security = server.arg(F("gs")).toInt();
 		if(webConfig.security > 0) {
 			strcpy(webConfig.username, server.arg(F("gu")).c_str());
@@ -1419,20 +1434,20 @@ void AmsWebServer::handleSave() {
 		config->setNtpConfig(ntp);
 	}
 
-	if(server.hasArg(F("i")) && server.arg(F("i")) == F("true")) {
+	if(server.hasArg(F("i")) && server.arg(F("i")) == FSTR_TRUE) {
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
 		meterConfig.rxPin = server.hasArg(F("ihp")) && !server.arg(F("ihp")).isEmpty() ? server.arg(F("ihp")).toInt() : 3;
-		meterConfig.rxPinPullup = server.hasArg(F("ihu")) && server.arg(F("ihu")) == F("true");
+		meterConfig.rxPinPullup = server.hasArg(F("ihu")) && server.arg(F("ihu")) == FSTR_TRUE;
 		meterConfig.txPin = server.hasArg(F("iht")) && !server.arg(F("iht")).isEmpty() ? server.arg(F("iht")).toInt() : 1;
 		config->setMeterConfig(meterConfig);
 
 		gpioConfig->ledPin = server.hasArg(F("ilp")) && !server.arg(F("ilp")).isEmpty() ? server.arg(F("ilp")).toInt() : 0xFF;
-		gpioConfig->ledInverted = server.hasArg(F("ili")) && server.arg(F("ili")) == F("true");
+		gpioConfig->ledInverted = server.hasArg(F("ili")) && server.arg(F("ili")) == FSTR_TRUE;
 		gpioConfig->ledPinRed = server.hasArg(F("irr")) && !server.arg(F("irr")).isEmpty() ? server.arg(F("irr")).toInt() : 0xFF;
 		gpioConfig->ledPinGreen = server.hasArg(F("irg")) && !server.arg(F("irg")).isEmpty() ? server.arg(F("irg")).toInt() : 0xFF;
 		gpioConfig->ledPinBlue = server.hasArg(F("irb")) && !server.arg(F("irb")).isEmpty() ? server.arg(F("irb")).toInt() : 0xFF;
-		gpioConfig->ledRgbInverted = server.hasArg(F("iri")) && server.arg(F("iri")) == F("true");
+		gpioConfig->ledRgbInverted = server.hasArg(F("iri")) && server.arg(F("iri")) == FSTR_TRUE;
 		gpioConfig->apPin = server.hasArg(F("ia")) && !server.arg(F("ia")).isEmpty() ? server.arg(F("ia")).toInt() : 0xFF;
 		gpioConfig->tempSensorPin = server.hasArg(F("itd")) && !server.arg(F("itd")).isEmpty() ?server.arg(F("itd")).toInt() : 0xFF;
 		gpioConfig->tempAnalogSensorPin = server.hasArg(F("ita")) && !server.arg(F("ita")).isEmpty() ?server.arg(F("ita")).toInt() : 0xFF;
@@ -1448,20 +1463,20 @@ void AmsWebServer::handleSave() {
 		config->setGpioConfig(*gpioConfig);
 	}
 
-	if(server.hasArg(F("iv")) && server.arg(F("iv")) == F("true")) {
+	if(server.hasArg(F("iv")) && server.arg(F("iv")) == FSTR_TRUE) {
 		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toFloat() * 100 : 0;
 		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toFloat() * 1000 : 1000;
 		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? server.arg(F("ivb")).toFloat() * 10 : 0;
 		config->setGpioConfig(*gpioConfig);
 	}
 
-	if(server.hasArg(F("d")) && server.arg(F("d")) == F("true")) {
+	if(server.hasArg(F("d")) && server.arg(F("d")) == FSTR_TRUE) {
 		DebugConfig debug;
 		config->getDebugConfig(debug);
 		bool active = debug.serial || debug.telnet;
 
-		debug.telnet = server.hasArg(F("dt")) && server.arg(F("dt")) == F("true");
-		debug.serial = server.hasArg(F("ds")) && server.arg(F("ds")) == F("true");
+		debug.telnet = server.hasArg(F("dt")) && server.arg(F("dt")) == FSTR_TRUE;
+		debug.serial = server.hasArg(F("ds")) && server.arg(F("ds")) == FSTR_TRUE;
 		debug.level = server.arg(F("dl")).toInt();
 
 		#if defined(AMS_REMOTE_DEBUG)
@@ -1486,7 +1501,7 @@ void AmsWebServer::handleSave() {
 		config->setDebugConfig(debug);
 	}
 
-	if(server.hasArg(F("u")) && server.arg(F("u")) == F("true")) {
+	if(server.hasArg(F("u")) && server.arg(F("u")) == FSTR_TRUE) {
 		UiConfig ui;
 		config->getUiConfig(ui);
 		ui.showImport = server.arg(F("ui")).toInt();
@@ -1508,18 +1523,18 @@ void AmsWebServer::handleSave() {
 		config->setUiConfig(ui);
 	}
 
-	if(server.hasArg(F("p")) && server.arg(F("p")) == F("true")) {
+	if(server.hasArg(F("p")) && server.arg(F("p")) == FSTR_TRUE) {
 		priceRegion = server.arg(F("pr"));
 
 		PriceServiceConfig price;
-		price.enabled = server.hasArg(F("pe")) && server.arg(F("pe")) == F("true");
+		price.enabled = server.hasArg(F("pe")) && server.arg(F("pe")) == FSTR_TRUE;
 		strcpy(price.entsoeToken, server.arg(F("pt")).c_str());
 		strcpy(price.area, priceRegion.c_str());
 		strcpy(price.currency, server.arg(F("pc")).c_str());
 		config->setPriceServiceConfig(price);
 	}
 
-	if(server.hasArg(F("t")) && server.arg(F("t")) == F("true")) {
+	if(server.hasArg(F("t")) && server.arg(F("t")) == FSTR_TRUE) {
 		EnergyAccountingConfig eac;
 		eac.thresholds[0] = server.arg(F("t0")).toInt();
 		eac.thresholds[1] = server.arg(F("t1")).toInt();
@@ -1534,19 +1549,19 @@ void AmsWebServer::handleSave() {
 		config->setEnergyAccountingConfig(eac);
 	}
 
-	if(server.hasArg(F("c")) && server.arg(F("c")) == F("true")) {
+	if(server.hasArg(F("c")) && server.arg(F("c")) == FSTR_TRUE) {
 		SystemConfig sys;
 		config->getSystemConfig(sys);
-		sys.energyspeedometer = server.hasArg(F("ces")) && server.arg(F("ces")) == F("true") ? 7 : 0;
+		sys.energyspeedometer = server.hasArg(F("ces")) && server.arg(F("ces")) == FSTR_TRUE ? 7 : 0;
 		config->setSystemConfig(sys);
 
 		CloudConfig cloud;
 		config->getCloudConfig(cloud);
-		cloud.enabled = server.hasArg(F("ce")) && server.arg(F("ce")) == F("true");
+		cloud.enabled = server.hasArg(F("ce")) && server.arg(F("ce")) == FSTR_TRUE;
 		config->setCloudConfig(cloud);
 	}
 
-	if(server.hasArg(F("r")) && server.arg(F("r")) == F("true")) {
+	if(server.hasArg(F("r")) && server.arg(F("r")) == FSTR_TRUE) {
 		if(ps != NULL) {
 			uint8_t count = server.arg(F("rc")).toInt();
 			for(uint8_t i = 0; i < count; i++) {
@@ -1689,7 +1704,7 @@ void AmsWebServer::upgrade() {
 		sys.dataCollectionConsent == 1 ? "true" : "false"
 	);
 
-	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+	addConditionalCloudHeaders();
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
@@ -1919,7 +1934,7 @@ void AmsWebServer::factoryResetPost() {
 		return;
 
 	bool success = false;
-	if(server.hasArg(F("perform")) && server.arg(F("perform")) == F("true")) {
+	if(server.hasArg(F("perform")) && server.arg(F("perform")) == FSTR_TRUE) {
 		LittleFS.format();
 		config->clear();
 
@@ -2091,7 +2106,7 @@ void AmsWebServer::tariffJson() {
 		ea->getMonthMax()
 	);
 
-	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -2106,7 +2121,7 @@ void AmsWebServer::realtimeJson() {
 		return;
 	}
 
-	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -2148,15 +2163,15 @@ void AmsWebServer::configFileDownload() {
 	if(!checkSecurity(1))
 		return;
 
-	bool includeSecrets = server.hasArg(F("ic")) && server.arg(F("ic")) == F("true");
-	bool includeWifi = server.hasArg(F("iw")) && server.arg(F("iw")) == F("true");
-	bool includeMqtt = server.hasArg(F("im")) && server.arg(F("im")) == F("true");
-	bool includeWeb = server.hasArg(F("ie")) && server.arg(F("ie")) == F("true");
-	bool includeMeter = server.hasArg(F("it")) && server.arg(F("it")) == F("true");
-	bool includeGpio = server.hasArg(F("ig")) && server.arg(F("ig")) == F("true");
-	bool includeNtp = server.hasArg(F("in")) && server.arg(F("in")) == F("true");
-	bool includePrice = server.hasArg(F("is")) && server.arg(F("is")) == F("true");
-	bool includeThresholds = server.hasArg(F("ih")) && server.arg(F("ih")) == F("true");
+	bool includeSecrets = server.hasArg(F("ic")) && server.arg(F("ic")) == FSTR_TRUE;
+	bool includeWifi = server.hasArg(F("iw")) && server.arg(F("iw")) == FSTR_TRUE;
+	bool includeMqtt = server.hasArg(F("im")) && server.arg(F("im")) == FSTR_TRUE;
+	bool includeWeb = server.hasArg(F("ie")) && server.arg(F("ie")) == FSTR_TRUE;
+	bool includeMeter = server.hasArg(F("it")) && server.arg(F("it")) == FSTR_TRUE;
+	bool includeGpio = server.hasArg(F("ig")) && server.arg(F("ig")) == FSTR_TRUE;
+	bool includeNtp = server.hasArg(F("in")) && server.arg(F("in")) == FSTR_TRUE;
+	bool includePrice = server.hasArg(F("is")) && server.arg(F("is")) == FSTR_TRUE;
+	bool includeThresholds = server.hasArg(F("ih")) && server.arg(F("ih")) == FSTR_TRUE;
 	
 	SystemConfig sys;
 	config->getSystemConfig(sys);
@@ -2530,9 +2545,9 @@ void AmsWebServer::configFileUpload() {
 				ds->save();
 			}
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Rebooting\n"));
+			if (debugger->isActive(RemoteDebug::INFO))
+			#endif
+				debugger->printf_P(PSTR("Rebooting\n"));
 			debugger->flush();
 			delay(1000);
 			rdc->cause = 6;
@@ -2600,4 +2615,53 @@ void AmsWebServer::modifyMonthPlot() {
 	);
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
+}
+
+void AmsWebServer::addConditionalCloudHeaders() {
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+
+	String req = server.header(HEADER_ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK);
+	if(!req.equalsIgnoreCase(FSTR_TRUE)) {
+		return;
+	}
+
+	String ref;
+	if(server.hasHeader(HEADER_ORIGIN)) {
+		ref = server.header(HEADER_ORIGIN);
+		debugger->printf_P(PSTR("Origin: %s\n"), ref.c_str());
+	} else if(server.hasHeader(HEADER_REFERER)) {
+		ref = server.header(HEADER_REFERER);
+		debugger->printf_P(PSTR("Referer: %s\n"), ref.c_str());
+	} else {
+		debugger->printf_P(PSTR("No Origin or Referer\n"));
+	}
+	if(!ref.startsWith(ORIGIN_AMSLESER_CLOUD)) {
+		return;
+	}
+
+	NetworkConfig networkConfig;
+	config->getNetworkConfig(networkConfig);
+
+    char macStr[18] = { 0 };
+    char apMacStr[18] = { 0 };
+
+	uint8_t mac[6];
+
+	#if defined(ESP8266)
+    wifi_get_macaddr(STATION_IF, mac);
+	#elif defined(ESP32)
+    esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_STA, mac);
+	#endif
+
+    sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_PRIVATE_NETWORK, FSTR_TRUE);
+	server.sendHeader(F("Private-Network-Access-Name"), networkConfig.hostname);
+	server.sendHeader(F("Private-Network-Access-ID"), macStr);
+}
+
+void AmsWebServer::optionsGet() {
+	addConditionalCloudHeaders();
+	server.sendHeader(F("Allow"), F("GET"));
+	server.send(200);
 }

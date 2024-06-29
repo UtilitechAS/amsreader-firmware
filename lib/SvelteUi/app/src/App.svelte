@@ -14,6 +14,7 @@
   import ConsentComponent from "./lib/ConsentComponent.svelte";
   import PriceConfig from "./lib/PriceConfig.svelte";
   import DataEdit from "./lib/DataEdit.svelte";
+  import { updateRealtime } from "./lib/RealtimeStore.js";
   
   let basepath = document.getElementsByTagName('base')[0].getAttribute("href");
   if(!basepath) basepath = "/";
@@ -74,6 +75,7 @@
   let data = {};
   dataStore.subscribe(update => {
     data = update;
+    updateRealtime(update);
   });
 
   let tariffData = {};

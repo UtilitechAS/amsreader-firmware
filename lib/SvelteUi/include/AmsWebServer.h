@@ -168,6 +168,8 @@ private:
 	void ssdpSchema();
 
 	void updaterRequestCallback(HTTPClient*);
+	void addConditionalCloudHeaders();
+	void optionsGet();
 };
 
 #endif

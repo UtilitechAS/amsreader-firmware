@@ -1,5 +1,5 @@
 <script>
-    import { ampcol, exportcol, metertype, uiVisibility, formatUnit } from './Helpers.js';
+    import { ampcol, exportcol, metertype, uiVisibility, formatUnit, fmtnum } from './Helpers.js';
     import PowerGauge from './PowerGauge.svelte';
     import VoltPlot from './VoltPlot.svelte';
     import ReactiveData from './ReactiveData.svelte';
@@ -41,7 +41,7 @@
         <div class="cnt">
             <div class="grid grid-cols-2">
                 <div class="col-span-2">
-                    <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label={translations.common?.import ?? "Import"} sub={data.p} subunit={data.pc} colorFn={ampcol}/>
+                    <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label={translations.common?.import ?? "Import"} sub={fmtnum(data.p, 2)} subunit={data.pc} colorFn={ampcol}/>
                 </div>
                 <div>{data.mt ? metertype(data.mt) : '-'}</div>
                 <div class="text-right">{it[0]} {it[1]}</div>
@@ -52,7 +52,7 @@
         <div class="cnt">
             <div class="grid grid-cols-2">
                 <div class="col-span-2">
-                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om * 1000 : 10000} unit="W" label={translations.common?.export ?? "Export"} sub={data.px} subunit={data.pc} colorFn={exportcol}/>
+                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om * 1000 : 10000} unit="W" label={translations.common?.export ?? "Export"} sub={fmtnum(data.px, 2)} subunit={data.pc} colorFn={exportcol}/>
                 </div>
                 <div></div>
                 <div class="text-right">{et[0]} {et[1]}</div>

@@ -27,7 +27,7 @@ void AmsDataStorage::setTimezone(Timezone* tz) {
 }
 
 bool AmsDataStorage::update(AmsData* data, time_t now) {
-    if(isHappy()) {
+    if(isHappy(now)) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::DEBUG))
         #endif
@@ -137,7 +137,7 @@ bool AmsDataStorage::update(AmsData* data, time_t now) {
     bool ret = false;
 
     // Update day plot
-    if(!isDayHappy()) {
+    if(!isDayHappy(now)) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::DEBUG))
         #endif
@@ -200,7 +200,7 @@ bool AmsDataStorage::update(AmsData* data, time_t now) {
     }
 
     // Update month plot
-    if(ltz.Hour == 0 && !isMonthHappy()) {
+    if(ltz.Hour == 0 && !isMonthHappy(now)) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::DEBUG))
         #endif
@@ -582,16 +582,15 @@ void AmsDataStorage::setMonthAccuracy(uint8_t accuracy) {
     month.accuracy = accuracy;
 }
 
-bool AmsDataStorage::isHappy() {
-    return isDayHappy() && isMonthHappy();
+bool AmsDataStorage::isHappy(time_t now) {
+    return isDayHappy(now) && isMonthHappy(now);
 }
 
-bool AmsDataStorage::isDayHappy() {
+bool AmsDataStorage::isDayHappy(time_t now) {
     if(tz == NULL) {
         return false;
     }
 
-    time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return false;
 
     if(now < day.lastMeterReadTime) {
@@ -613,26 +612,26 @@ bool AmsDataStorage::isDayHappy() {
     return true;
 }
 
-bool AmsDataStorage::isMonthHappy() {
+bool AmsDataStorage::isMonthHappy(time_t now) {
     if(tz == NULL) {
         return false;
     }
 
-    time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return false;
-    tmElements_t tm, last;
     
     if(now < month.lastMeterReadTime) {
         return false;
     }
 
-    breakTime(tz->toLocal(now), tm);
-    breakTime(tz->toLocal(month.lastMeterReadTime), last);
-    if(tm.Day != last.Day) {
+    // 25 hours, because of DST
+    if(now-month.lastMeterReadTime > 90000) {
         return false;
     }
 
-    if(now-month.lastMeterReadTime > 90100) {
+    tmElements_t tm, last;
+    breakTime(tz->toLocal(now), tm);
+    breakTime(tz->toLocal(month.lastMeterReadTime), last);
+    if(tm.Day != last.Day) {
         return false;
     }
 

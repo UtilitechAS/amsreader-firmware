@@ -858,7 +858,7 @@ void loop() {
 				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
 			}
 		}
-		if(millis() - meterState.getLastUpdateMillis() > 1800000 && !ds.isHappy()) {
+		if(millis() - meterState.getLastUpdateMillis() > 1800000 && !ds.isHappy(time(nullptr))) {
 			handleClear(now);
 		}
 	} catch(const std::exception& e) {
@@ -1367,7 +1367,7 @@ void handleDataSuccess(AmsData* data) {
 	rtp.update(meterState);
 
 	bool saveData = false;
-	if(!ds.isHappy() && now > FirmwareVersion::BuildEpoch) { // Must use "isHappy()" in case day state gets reset and lastTimestamp is "now"
+	if(!ds.isHappy(now) && now > FirmwareVersion::BuildEpoch) { // Must use "isHappy()" in case day state gets reset and lastTimestamp is "now"
 		tmElements_t tm, mtm;
 		breakTime(now, tm);
 		breakTime(meterTime, mtm);

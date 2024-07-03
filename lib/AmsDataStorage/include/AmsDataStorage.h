@@ -79,9 +79,9 @@ public:
     uint8_t getMonthAccuracy();
     void setMonthAccuracy(uint8_t);
 
-    bool isHappy();
-    bool isDayHappy();
-    bool isMonthHappy();
+    bool isHappy(time_t now);
+    bool isDayHappy(time_t now);
+    bool isMonthHappy(time_t now);
 
     double getEstimatedImportCounter();
 

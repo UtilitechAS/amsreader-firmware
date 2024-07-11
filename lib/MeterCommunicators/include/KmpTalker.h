@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: All rights reserved
+ * 
+ */
+
 #pragma once
 
 #include <Stream.h>

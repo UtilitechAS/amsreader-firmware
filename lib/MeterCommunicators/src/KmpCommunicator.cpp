@@ -1,3 +1,9 @@
+/**
+ * @copyright Utilitech AS 2023
+ * License: Fair Source
+ * 
+ */
+
 #include "KmpCommunicator.h"
 #include "Uptime.h"
 #include "crc.h"

@@ -33,4 +33,3 @@ static const char MIME_CSS[] PROGMEM = "text/css";
 static const char MIME_JS[] PROGMEM = "text/javascript";
 
 static const char ORIGIN_AMSLESER_CLOUD[] PROGMEM = "https://www.amsleser.cloud";
-static const char FSTR_TRUE[] PROGMEM = "true";

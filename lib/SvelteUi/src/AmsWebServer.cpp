@@ -382,6 +382,15 @@ void AmsWebServer::sysinfoJson() {
 		meterId.replace(F("\\"), F("\\\\"));
 
 	time_t now = time(nullptr);
+	String features = "";
+	#if defined(AMS_REMOTE_DEBUG)
+	if(!features.isEmpty()) features += ",";
+	features += "\"rdebug\"";
+	#endif
+	#if defined(AMS_KMP)
+	if(!features.isEmpty()) features += ",";
+	features += "\"kmp\"";
+	#endif
 
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		FirmwareVersion::VersionString,
@@ -465,7 +474,8 @@ void AmsWebServer::sysinfoJson() {
 		ea->getCostLastMonth(),
 		ea->getProducedLastMonth(),
 		ea->getIncomeLastMonth(),
-		tz == NULL ? 0 : (tz->toLocal(now)-now)/3600
+		tz == NULL ? 0 : (tz->toLocal(now)-now)/3600,
+		features.c_str()
 	);
 
 	stripNonAscii((uint8_t*) buf, size+1);

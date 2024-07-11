@@ -353,6 +353,9 @@
                 <select name="ma" bind:value={configuration.m.a} class="in-s">
                     <option value={0}>{translations.conf?.meter?.comm?.passive ?? "Passive"}</option>
                     <option value={2}>{translations.conf?.meter?.comm?.pulse ?? "Pulse"}</option>
+                    {#if sysinfo?.features?.includes('kmp')}
+                    <option value={9}>KMP</option>
+                    {/if}
                 </select>
             </div>
             {#if configuration.m.a === 2}
@@ -851,7 +854,7 @@
             {/if}
         </div>
         {/if}
-        {#if configuration?.d}
+        {#if configuration?.d && sysinfo?.features?.includes('rdebug')}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.debug?.title ?? "Debugging"}</strong>
             <a href="https://amsleser.no/blog/post/24-telnet-debug" target="_blank" class="float-right">&#9432;</a>

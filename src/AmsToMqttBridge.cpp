@@ -196,6 +196,7 @@ KmpCommunicator* kmpMc = NULL;
 #endif
 PulseMeterCommunicator* pulseMc = NULL;
 
+
 bool networkConnected = false;
 bool setupMode = false;
 
@@ -800,7 +801,7 @@ void loop() {
 					if(kmpMc == NULL) {
 						kmpMc = new KmpCommunicator(&Debug);
 					}
-					kmpMc->configure(meterConfig, tz);
+					kmpMc->configure(meterConfig);
 					hwSerial = kmpMc->getHwSerial();
 					mc = kmpMc;
 					#endif

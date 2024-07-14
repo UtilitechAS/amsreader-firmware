@@ -86,7 +86,7 @@ bool CloudConnector::init() {
         //if(config.port == 0) 
         config.port = 7443;
         //if(strlen(config.hostname) == 0) 
-        strcpy_P(config.hostname, PSTR("cloud.amsleser.no"));
+        strcpy_P(config.hostname, PSTR("192.168.230.40"));
 
         snprintf_P(clearBuffer, CC_BUF_SIZE, PSTR("http://%s/hub/cloud/public.key"), config.hostname);
         #if defined(AMS_REMOTE_DEBUG)
@@ -419,7 +419,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     }
     memset(encryptedBuffer, 0, rsa->len);
 
-    int maxlen = 100 * (rsa->len/128);
+    int maxlen = rsa->len - 42;
     udp.beginPacket(config.hostname,7443);
     for(int i = 0; i < pos; i += maxlen) {
         int ret = mbedtls_rsa_pkcs1_encrypt(rsa, mbedtls_ctr_drbg_random, &ctr_drbg, MBEDTLS_RSA_PUBLIC, maxlen, (unsigned char*) (clearBuffer+i), encryptedBuffer);

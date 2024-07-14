@@ -86,7 +86,7 @@ bool CloudConnector::init() {
         //if(config.port == 0) 
         config.port = 7443;
         //if(strlen(config.hostname) == 0) 
-        strcpy_P(config.hostname, PSTR("192.168.230.40"));
+        strcpy_P(config.hostname, PSTR("cloud.amsleser.no"));
 
         snprintf_P(clearBuffer, CC_BUF_SIZE, PSTR("http://%s/hub/cloud/public.key"), config.hostname);
         #if defined(AMS_REMOTE_DEBUG)

@@ -1260,13 +1260,16 @@ void AmsConfiguration::print(Print* debugger)
 	if(getUiConfig(ui)) {
 		debugger->println(F("--UI configuration--"));
 		debugger->printf_P(PSTR("Language:             %s\r\n"), ui.language);
+		debugger->println(F(""));
+		delay(10);
+		debugger->flush();
 	}
 
 	#if defined(ESP32)
 	CloudConfig cc;
 	if(getCloudConfig(cc)) {
 		String uuid = ESPRandom::uuidToString(cc.clientId);;
-		debugger->println(F("--UI configuration--"));
+		debugger->println(F("--Cloud configuration--"));
 		debugger->printf_P(PSTR("Enabled:              %s\r\n"), cc.enabled ? "Yes" : "No");
 		debugger->printf_P(PSTR("Hostname:             %s\r\n"), cc.hostname);
 		debugger->printf_P(PSTR("Client ID:            %s\r\n"), uuid.c_str());

@@ -419,7 +419,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     }
     memset(encryptedBuffer, 0, rsa->len);
 
-    int maxlen = rsa->len - 42;
+    int maxlen = rsa->len - 11; // 11 should be the correct padding size for PKCS1
     udp.beginPacket(config.hostname,7443);
     for(int i = 0; i < pos; i += maxlen) {
         int ret = mbedtls_rsa_pkcs1_encrypt(rsa, mbedtls_ctr_drbg_random, &ctr_drbg, MBEDTLS_RSA_PUBLIC, maxlen, (unsigned char*) (clearBuffer+i), encryptedBuffer);

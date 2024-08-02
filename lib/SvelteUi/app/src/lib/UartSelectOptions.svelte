@@ -12,6 +12,7 @@
     }
 </script>
 
+<option value={-1}>disabled</option>
 {#if chip == 'esp8266'}
 <option value={3}>UART0</option>
 <option value={113}>UART2</option>
@@ -22,3 +23,4 @@
         <option value={i}>GPIO{i}</option>
     {/if}
 {/each}
+

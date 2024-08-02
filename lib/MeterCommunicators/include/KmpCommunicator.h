@@ -30,6 +30,11 @@ public:
     void configure(MeterConfig&);
     bool loop();
     AmsData* getData(AmsData& meterState);
+    int getLastError();
+    bool isConfigChanged() { return false; }
+    void getCurrentConfig(MeterConfig& meterConfig) {
+        meterConfig = this->meterConfig;
+    }
 private:
     KmpTalker* talker = NULL;
 };

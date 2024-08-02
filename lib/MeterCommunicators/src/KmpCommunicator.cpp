@@ -13,15 +13,28 @@ void KmpCommunicator::configure(MeterConfig& meterConfig) {
     this->meterConfig = meterConfig;
     this->configChanged = false;
     setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert, false);
-    talker = new KmpTalker(hanSerial);
+    talker = new KmpTalker(hanSerial, hanBuffer, hanBufferSize);
 }
 
 bool KmpCommunicator::loop() {
 	uint64_t now = millis64();
-    return talker->loop();
+    bool ret = talker->loop();
+    if(ret) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::VERBOSE))
+        #endif
+        debugger->printf_P(PSTR("Successful loop\n"));
+        Serial.flush();
+    }
+    return ret;
+}
+
+int KmpCommunicator::getLastError() {
+    return talker == NULL ? DATA_PARSE_FAIL : talker->getLastError();
 }
 
 AmsData* KmpCommunicator::getData(AmsData& meterState) { 
+    if(talker == NULL) return NULL;
     KmpDataHolder kmpData;
     talker->getData(kmpData);
     AmsData* data = new AmsData();

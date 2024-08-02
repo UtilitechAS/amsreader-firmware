@@ -283,11 +283,6 @@ void rxerr(int err) {
 	if(passiveMc != NULL) {
 		passiveMc->rxerr(err);
 	}
-	#if defined(AMS_KMP)
-	if(kmpMc != NULL) {
-		kmpMc->rxerr(err);
-	}
-	#endif
 }
 #endif
 

@@ -1,6 +1,6 @@
 <script>
   import { Router, Route, navigate } from "svelte-navigator";
-  import { getTariff, tariffStore, sysinfoStore, dataStore, pricesStore, dayPlotStore, monthPlotStore, temperaturesStore } from './lib/DataStores.js';
+  import { getTariff, tariffStore, sysinfoStore, dataStore, pricesStore, dayPlotStore, monthPlotStore, temperaturesStore, getSysinfo } from './lib/DataStores.js';
   import { translationsStore, getTranslations } from "./lib/TranslationService.js";
   import Favicon from './assets/favicon.svg'; // Need this for the build
   import Header from './lib/Header.svelte';
@@ -44,6 +44,8 @@
     translations = update;
   });
 
+  let sito;
+  let data = {};
   let sysinfo = {};
   sysinfoStore.subscribe(update => {
     sysinfo = update;
@@ -70,9 +72,11 @@
     if(sysinfo.ui.lang && sysinfo.ui.lang != translations?.language?.code) {
       getTranslations(sysinfo.ui.lang);
     }
+
+    if(sito) clearTimeout(sito);
+    sito = setTimeout(getSysinfo, !data || !data.u || data.u < 30 || sysinfo?.upgrading ? 10000 : 300000);
   });
 
-  let data = {};
   dataStore.subscribe(update => {
     data = update;
     updateRealtime(update);
@@ -126,9 +130,7 @@
     </Route>
   </Router>
 
-  {#if sysinfo.upgrading}
-  <Mask active=true message="Device is upgrading, please wait"/>
-  {:else if sysinfo.booting}
+  {#if sysinfo.booting}
     {#if sysinfo.trying}
       <Mask active=true message="Device is booting, please wait. Trying to reach it on {sysinfo.trying}"/>
     {:else}

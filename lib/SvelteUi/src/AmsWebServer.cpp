@@ -70,13 +70,14 @@ AmsWebServer::AmsWebServer(uint8_t* buf, Stream* Debug, HwTools* hw, ResetDataCo
 	}
 }
 
-void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea, RealtimePlot* rtp) {
+void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea, RealtimePlot* rtp, AmsFirmwareUpdater* updater) {
     this->config = config;
 	this->gpioConfig = gpioConfig;
 	this->meterState = meterState;
 	this->ds = ds;
 	this->ea = ea;
 	this->rtp = rtp;
+	this->updater = updater;
 
 	String context;
 	config->getWebConfig(webConfig);
@@ -371,7 +372,7 @@ void AmsWebServer::sysinfoJson() {
 	config->getUiConfig(ui);
 
 	UpgradeInformation upinfo;
-	config->getUpgradeInformation(upinfo);
+	updater->getUpgradeInformation(upinfo);
 
 	String meterModel = meterState->getMeterModel();
 	if(!meterModel.isEmpty())
@@ -417,7 +418,7 @@ void AmsWebServer::sysinfoJson() {
 		sys.dataCollectionConsent,
 		hostname.c_str(),
 		performRestart ? "true" : "false",
-		rebootForUpgrade ? "true" : "false",
+		updater->getProgress() > 0.0 ? "true" : "false",
 		#if defined(ESP8266)
 		localIp.isSet() ? localIp.toString().c_str() : "",
 		subnet.isSet() ? subnet.toString().c_str() : "",
@@ -470,6 +471,8 @@ void AmsWebServer::sysinfoJson() {
 		upinfo.errorCode,
 		upinfo.fromVersion,
 		upinfo.toVersion,
+		updater->getNextVersion(),
+		updater->getProgress(),
 		ea->getUseLastMonth(),
 		ea->getCostLastMonth(),
 		ea->getProducedLastMonth(),
@@ -1173,6 +1176,9 @@ void AmsWebServer::handleSave() {
 	if(!checkSecurity(1))
 		return;
 
+	SystemConfig sys;
+	config->getSystemConfig(sys);
+
 	bool success = true;
 	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
 		int boardType = server.arg(F("vb")).toInt();
@@ -1189,8 +1195,6 @@ void AmsWebServer::handleSave() {
 			config->setGpioConfig(*gpioConfig);
 			config->setMeterConfig(meterConfig);
 
-			SystemConfig sys;
-			config->getSystemConfig(sys);
 			sys.boardType = success ? boardType : 0xFF;
 			sys.vendorConfigured = success;
 			config->setSystemConfig(sys);
@@ -1198,8 +1202,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("s")) && server.arg(F("s")) == F("true")) {
-		SystemConfig sys;
-		config->getSystemConfig(sys);
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
 
@@ -1267,8 +1269,6 @@ void AmsWebServer::handleSave() {
 			performRestart = true;
 		}
 	} else if(server.hasArg(F("sf")) && !server.arg(F("sf")).isEmpty()) {
-		SystemConfig sys;
-		config->getSystemConfig(sys);
 		sys.dataCollectionConsent = server.hasArg(F("sf")) && (server.arg(F("sf")) == F("true") || server.arg(F("sf")) == F("1")) ? 1 : 2;
 		config->setSystemConfig(sys);
 	}
@@ -1564,8 +1564,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("c")) && server.arg(F("c")) == F("true")) {
-		SystemConfig sys;
-		config->getSystemConfig(sys);
 		sys.energyspeedometer = server.hasArg(F("ces")) && server.arg(F("ces")) == F("true") ? 7 : 0;
 		config->setSystemConfig(sys);
 
@@ -1651,7 +1649,7 @@ debugger->printf_P(PSTR("Successfully saved.\n"));
 		if(config->isNetworkConfigChanged() || performRestart) {
 			performRestart = true;
 		} else {
-			hw->setup(gpioConfig);
+			hw->setup(&sys, gpioConfig);
 		}
 	} else {
 		success = false;
@@ -1726,85 +1724,8 @@ void AmsWebServer::upgrade() {
 		server.handleClient();
 		delay(250);
 
-		if(server.hasArg(F("url"))) {
-			customFirmwareUrl = server.arg(F("url"));
-		}
-
-		String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith(F("http")) ? F("http://hub.amsleser.no/hub/firmware/update") : customFirmwareUrl;
-
-		if(server.hasArg(F("version"))) {
-			url += "/" + server.arg(F("version"));
-		}
-		upgradeFromUrl(url, server.arg(F("expected_version")));
-	}
-}
-
-void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
-	config->setUpgradeInformation(0xFF, 0xFF, FirmwareVersion::VersionString, nextVersion.c_str());
-
-	WiFiClient client;
-	#if defined(ESP8266)
-		String chipType = F("esp8266");
-	#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-		String chipType = F("esp32s2");
-	#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-		String chipType = F("esp32s3");
-	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-		String chipType = F("esp32c3");
-	#elif defined(ESP32)
-		#if defined(CONFIG_FREERTOS_UNICORE)
-			String chipType = F("esp32solo");
-		#else
-			String chipType = F("esp32");
-		#endif
-	#endif
-
-	#if defined(ESP8266)
-		ESP8266HTTPUpdate httpUpdate = ESP8266HTTPUpdate(60000);
-		String currentVersion = FirmwareVersion::VersionString;
-		ESP.wdtEnable(300000);
-	#elif defined(ESP32)
-		HTTPUpdate httpUpdate = HTTPUpdate(60000);
-		String currentVersion = String(FirmwareVersion::VersionString) + "-" + chipType;
-		esp_task_wdt_init(300, true);
-	#endif
-
-	httpUpdate.rebootOnUpdate(false);
-	httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-	#if defined(ESP32)
-	HTTPUpdateResult ret = httpUpdate.update(client, url, currentVersion, std::bind(&AmsWebServer::updaterRequestCallback, this, std::placeholders::_1));
-	#else
-	HTTPUpdateResult ret = httpUpdate.update(client, url, currentVersion);
-	#endif
-	int lastError = httpUpdate.getLastError();
-
-	config->setUpgradeInformation(ret, ret == HTTP_UPDATE_OK ? 0 : lastError, FirmwareVersion::VersionString, nextVersion.c_str());
-	switch(ret) {
-		case HTTP_UPDATE_FAILED:
-			debugger->printf_P(PSTR("Update failed\n"));
-			break;
-		case HTTP_UPDATE_NO_UPDATES:
-			debugger->printf_P(PSTR("No Update\n"));
-			break;
-		case HTTP_UPDATE_OK:
-			debugger->printf_P(PSTR("Update OK\n"));
-			debugger->flush();
-			rdc->cause = 4;
-			ESP.restart();
-			break;
-	}
-}
-
-void AmsWebServer::updaterRequestCallback(HTTPClient* http) {
-	SystemConfig sys;
-	if(config->getSystemConfig(sys)) {
-		http->addHeader(F("x-AMS-board-type"), String(sys.boardType, 10));
-		if(meterState->getMeterType() != AmsTypeAutodetect) {
-			http->addHeader(F("x-AMS-meter-mfg"), String(meterState->getMeterType(), 10));
-		}
-		if(!meterState->getMeterModel().isEmpty()) {
-			http->addHeader(F("x-AMS-meter-model"), meterState->getMeterModel());
-		}
+		String version = server.arg(F("expected_version"));
+		updater->setTargetVersion(version.c_str());
 	}
 }
 
@@ -1828,14 +1749,6 @@ void AmsWebServer::firmwarePost() {
 		server.send(200);
 	} else {
 		config->setUpgradeInformation(0xFF, 0xFF, FirmwareVersion::VersionString, "");
-		if(server.hasArg(F("url"))) {
-			String url = server.arg(F("url"));
-			if(!url.isEmpty() && (url.startsWith(F("http://")) || url.startsWith(F("https://")))) {
-				upgradeFromUrl(url, "");
-				server.send(200, MIME_PLAIN, "OK");
-				return;
-			}
-		}
 		server.sendHeader(HEADER_LOCATION,F("/firmware"));
 		server.send(303);
 	}

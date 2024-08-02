@@ -1,7 +1,7 @@
 <script>
     import { Link } from "svelte-navigator";
-    import { sysinfoStore, getGitHubReleases, gitHubReleaseStore } from './DataStores.js';
-    import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
+    import { sysinfoStore } from './DataStores.js';
+    import { upgrade, upgradeWarningText } from './UpgradeHelper';
     import { boardtype, isBusPowered, wiki, bcol } from './Helpers.js';
     import { translationsStore } from "./TranslationService.js";
     import FavIco from './../assets/favicon.svg';
@@ -16,34 +16,30 @@
     export let data = {};
     let sysinfo = {};
 
-    let nextVersion = {};
-
     function askUpgrade() {
-        if(confirm((translations.header?.upgrade ?? "Upgrade to {0}?").replace('{0}',nextVersion.tag_name))) {
-          if(!isBusPowered(sysinfo.board) || confirm(upgradeWarningText(boardtype(sysinfo.chip, sysinfo.board)))) {
-                sysinfoStore.update(s => {
-                    s.upgrading = true;
-                    return s;
-                });
-                upgrade(nextVersion.tag_name);
-            }
+        if(confirm((translations.header?.upgrade ?? "Upgrade to {0}?").replace('{0}',sysinfo.upgrade.n))) {
+            upgrade(sysinfo.upgrade.n);
+            sysinfoStore.update(s => {
+              s.upgrade.t = sysinfo.upgrade.n;
+              s.upgrading = true;
+              return s;
+            });
         }
     }
+
+    let progress;
     sysinfoStore.subscribe(update => {
       sysinfo = update;
-      if(update.fwconsent === 1) {
-        getGitHubReleases();
-      }
-    });
-
-    gitHubReleaseStore.subscribe(releases => {
-      nextVersion = getNextVersion(sysinfo.version, releases);
     });
 
     let translations = {};
     translationsStore.subscribe(update => {
       translations = update;
     });
+
+    $: {
+      progress = Math.max(0, sysinfo.upgrade.p);
+    }
 </script>
 
 <nav class="hdr">
@@ -91,12 +87,14 @@
           <div class="flex-none px-1 mt-1" title={translations.header?.doc ?? ""}>
             <a href={wiki('')} target='_blank' rel="noreferrer"><HelpIcon/></a>
           </div>
-          {#if sysinfo.fwconsent === 1 && nextVersion}
-          <div class="flex-none mr-3 text-yellow-500" title={(translations.header?.new_version ?? "New version") + ': ' + nextVersion.tag_name}>
+          {#if sysinfo.upgrading}
+            <div class="flex-none mr-3 mt-1 text-yellow-300">Upgrading to {sysinfo.upgrade.t}, {progress.toFixed(1)}%</div>
+          {:else if sysinfo.fwconsent === 1 && sysinfo.upgrade.n}
+          <div class="flex-none mr-3 text-yellow-500" title={(translations.header?.new_version ?? "New version") + ': ' + sysinfo.upgrade.n}>
             {#if sysinfo.security == 0 || data.a}
-            <button on:click={askUpgrade} class="flex"><span class="mt-1">{translations.header?.new_version ?? "New version"}: {nextVersion.tag_name}</span></button>
+            <button on:click={askUpgrade} class="flex"><span class="mt-1">{translations.header?.new_version ?? "New version"}: {sysinfo.upgrade.n}</span></button>
             {:else}
-            <span>{translations.header?.new_version ?? "New version"}: {nextVersion.tag_name}</span>
+            <span>{translations.header?.new_version ?? "New version"}: {sysinfo.upgrade.n}</span>
             {/if}
           </div>
           {/if}

@@ -1,0 +1,91 @@
+#pragma once
+#include <stdint.h>
+#include <Print.h>
+#include "HwTools.h"
+#include "AmsData.h"
+#include "AmsConfiguration.h"
+
+#if defined(ESP32)
+#include "esp_flash_partitions.h"
+#include "LittleFS.h"
+#include "WiFi.h"
+#include "HTTPClient.h"
+
+#define AMS_PARTITION_TABLE_OFFSET 0x8000
+#define AMS_PARTITION_APP0_OFFSET 0x10000
+#define AMS_PARTITION_APP_SIZE 0x1D0000
+#define AMS_PARTITION_SPIFFS_SIZE 0x40000
+#endif
+
+#define AMS_UPDATE_ERR_OK 0
+#define AMS_UPDATE_ERR_DETAILS 1
+#define AMS_UPDATE_ERR_FETCH 2
+#define AMS_UPDATE_ERR_ERASE 3
+#define AMS_UPDATE_ERR_WRITE 4
+#define AMS_UPDATE_ERR_READ 5
+#define AMS_UPDATE_ERR_MD5 6
+#define AMS_UPDATE_ERR_ACTIVATE 7
+
+#define UPDATE_BUF_SIZE 4096
+
+class AmsFirmwareUpdater {
+public:
+    AmsFirmwareUpdater(Print* debugger, HwTools* hw, AmsData* meterState);
+    bool relocateOrRepartitionIfNecessary();
+    void loop();
+
+    char* getNextVersion();
+    bool setTargetVersion(const char* version);
+    void getUpgradeInformation(UpgradeInformation&);
+    float getProgress();
+
+private:
+    #if defined(ESP8266)
+		char chipType[10] = "esp8266";
+	#elif defined(CONFIG_IDF_TARGET_ESP32S2)
+		char chipType[10] = "esp32s2";
+	#elif defined(CONFIG_IDF_TARGET_ESP32S3)
+		char chipType[10] = "esp32s3";
+	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+		char chipType[10] = "esp32c3";
+	#elif defined(ESP32)
+		#if defined(CONFIG_FREERTOS_UNICORE)
+			char chipType[10] = "esp32solo";
+		#else
+			char chipType[10] = "esp32";
+		#endif
+	#endif
+
+    Print* debugger;
+    HwTools* hw;
+    AmsData* meterState;
+
+    UpgradeInformation updateStatus = {"","",0,0,0,0,0};
+    uint8_t blocksWritten = 0;
+    String md5;
+
+    uint32_t lastVersionCheck = 0;
+    uint8_t firmwareVariant;
+    bool autoUpgrade;
+    char nextVersion[10];
+
+
+    bool fetchNextVersion();
+    bool fetchVersionDetails();
+    bool fetchFirmwareChunk(HTTPClient& http);
+    bool writeBufferToFlash(size_t bytes);
+    bool verifyChecksum();
+    bool activateNewFirmware();
+    bool writeUpdateStatus();
+    uint32_t sketchSize(sketchSize_t response);
+
+    #if defined(ESP32)
+    uint32_t updateHandle = 0;
+    char* buf = NULL;
+
+    bool readPartition(uint8_t num, const esp_partition_info_t* partition);
+    bool writePartition(uint8_t num, const esp_partition_info_t* partition);
+    bool copyData(const esp_partition_info_t* src, esp_partition_info_t* dst);
+    bool copyFile(fs::LittleFSFS* src, fs::LittleFSFS* dst, const char* filename);
+    #endif
+};

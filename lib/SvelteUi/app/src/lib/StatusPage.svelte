@@ -1,7 +1,7 @@
 <script>
     import { metertype, boardtype, isBusPowered, getBaseChip } from './Helpers.js';
-    import { getSysinfo, gitHubReleaseStore, sysinfoStore } from './DataStores.js';
-    import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
+    import { getSysinfo, sysinfoStore } from './DataStores.js';
+    import { upgrade, upgradeWarningText } from './UpgradeHelper';
     import { translationsStore } from './TranslationService.js';
     import { Link } from 'svelte-navigator';
     import Clock from './Clock.svelte';
@@ -41,24 +41,15 @@
     translationsStore.subscribe(update => {
       translations = update;
     });
-
-    let nextVersion = {};
-    gitHubReleaseStore.subscribe(releases => {
-      nextVersion = getNextVersion(sysinfo.version, releases);
-      if(!nextVersion) {
-        nextVersion = releases[0];
-      }
-    });
  
     function askUpgrade() {
-        if(confirm((translations.header?.upgrade ?? "Upgrade to {0}?").replace('{0}',nextVersion.tag_name))) {
-            if((sysinfo.board != 2 && sysinfo.board != 4 && sysinfo.board != 7) || confirm(upgradeWarningText(boardtype(sysinfo.chip, sysinfo.board)))) {
-                sysinfoStore.update(s => {
-                    s.upgrading = true;
-                    return s;
-                });
-                upgrade(nextVersion.tag_name);
-            }
+        if(confirm((translations.header?.upgrade ?? "Upgrade to {0}?").replace('{0}',sysinfo.upgrade.n))) {
+            upgrade(sysinfo.upgrade.n);
+            sysinfoStore.update(s => {
+                s.upgrade.t = sysinfo.upgrade.n;
+                s.upgrading = true;
+                return s;
+            });
         }
     }
 
@@ -156,7 +147,7 @@
         <div class="my-2">
             {translations.status?.device?.last_boot ?? "Last boot"}:
             {#if data.u > 0}
-            <Clock timestamp={new Date(new Date().getTime() - (data.u * 1000))} fullTimeColor="" />
+            <Clock timestamp={new Date(new Date().getTime() - (data.u * 1000))} fullTimeColor="" offset={sysinfo.clock_offset}/>
             {:else}
             -
             {/if}
@@ -228,11 +219,11 @@
             </div>
         </div>
         {/if}
-        {#if nextVersion}
+        {#if sysinfo.upgrade.n}
             <div class="my-2 flex">
                 {translations.status?.firmware?.latest ?? "Latest"}: 
-                <a href={nextVersion.html_url} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{nextVersion.tag_name}</a>
-                {#if (sysinfo.security == 0 || data.a) && sysinfo.fwconsent === 1 && nextVersion && nextVersion.tag_name != sysinfo.version}
+                <a href={"https://github.com/UtilitechAS/amsreader-firmware/releases/tag/" + sysinfo.upgrade.n} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{sysinfo.upgrade.n}</a>
+                {#if (sysinfo.security == 0 || data.a) && sysinfo.fwconsent === 1 && sysinfo.upgrade.n && sysinfo.upgrade.n != sysinfo.version}
                 <div class="flex-none ml-2 text-green-500" title={translations.status?.firmware?.install ?? "Install"}>
                     <button on:click={askUpgrade}>&#8659;</button>
                 </div>

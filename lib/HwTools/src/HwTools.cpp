@@ -144,8 +144,8 @@ bool HwTools::applyBoardConfig(uint8_t boardType, GpioConfig& gpioConfig, MeterC
     return false;
 }
 
-void HwTools::setup(GpioConfig* config) {
-    this->config = config;
+void HwTools::setup(SystemConfig* sys, GpioConfig* config) {
+    this->boardType = sys->boardType;
     this->tempSensorInit = false;
     if(sensorApi != NULL)
         delete sensorApi;
@@ -153,8 +153,9 @@ void HwTools::setup(GpioConfig* config) {
         delete oneWire;
     if(config->tempSensorPin > 0 && config->tempSensorPin < 40) {
         pinMode(config->tempSensorPin, INPUT);
+        tempPin = config->tempSensorPin;
     } else {
-        config->tempSensorPin = 0xFF;
+        tempPin = config->tempSensorPin = 0xFF;
     }
 
     #if defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -196,47 +197,63 @@ void HwTools::setup(GpioConfig* config) {
         #else
             pinMode(config->vccPin, INPUT);
         #endif
+        vccPin = config->vccPin;
+        vccOffset = config->vccOffset / 100.0;
+        vccMultiplier = config->vccMultiplier / 1000.0;
+        vccGnd_r = config->vccResistorGnd;
+        vccVcc_r = config->vccResistorVcc;
     } else {
         voltAdc.unit = 0xFF;
         voltAdc.channel = 0xFF;
-        config->vccPin = 0xFF;
+        vccPin = config->vccPin = 0xFF;
     }
 
     if(config->tempAnalogSensorPin > 0 && config->tempAnalogSensorPin < 40) {
         pinMode(config->tempAnalogSensorPin, INPUT);
+        atempPin = config->tempAnalogSensorPin;
     } else {
-        config->tempAnalogSensorPin = 0xFF;
+        atempPin = config->tempAnalogSensorPin = 0xFF;
     }
 
     if(config->ledPin > 0 && config->ledPin < 40) {
         pinMode(config->ledPin, OUTPUT);
+        ledPin = config->ledPin;
+        ledInvert = config->ledInverted;
         ledOff(LED_INTERNAL);
     } else {
-        config->ledPin = 0xFF;
+        ledPin = config->ledPin = 0xFF;
     }
 
     if(config->ledPinRed > 0 && config->ledPinRed < 40) {
         pinMode(config->ledPinRed, OUTPUT);
+        redPin = config->ledPinRed;
         ledOff(LED_RED);
     } else {
-        config->ledPinRed = 0xFF;
+        redPin = config->ledPinRed = 0xFF;
     }
 
     if(config->ledPinGreen > 0 && config->ledPinGreen < 40) {
         pinMode(config->ledPinGreen, OUTPUT);
+        greenPin = config->ledPinGreen;
         ledOff(LED_GREEN);
     } else {
-        config->ledPinGreen = 0xFF;
+        greenPin = config->ledPinGreen = 0xFF;
     }
 
     if(config->ledPinBlue > 0 && config->ledPinBlue < 40) {
         pinMode(config->ledPinBlue, OUTPUT);
+        bluePin = config->ledPinBlue;
         ledOff(LED_BLUE);
     } else {
-        config->ledPinBlue = 0xFF;
+        bluePin = config->ledPinBlue = 0xFF;
     }
+
+    rgbInvert = config->ledRgbInverted;
+
     if(config->ledDisablePin > 0 && config->ledDisablePin < 40) {
         pinMode(config->ledDisablePin, OUTPUT_OPEN_DRAIN);
+        ledDisablePin = config->ledDisablePin;
+        ledBehaviour = config->ledBehaviour;
         setBootSuccessful(false);
     }
 }
@@ -362,7 +379,7 @@ void HwTools::getAdcChannel(uint8_t pin, AdcConfig& config) {
 
 float HwTools::getVcc() {
     float volts = 0.0;
-    if(config->vccPin != 0xFF) {
+    if(vccPin != 0xFF) {
         #if defined(ESP32)
             if(voltAdc.unit != 0xFF) {
                 uint32_t x = 0;
@@ -385,7 +402,7 @@ float HwTools::getVcc() {
             } else {
                 uint32_t x = 0;
                 for (int i = 0; i < 10; i++) {
-                    x += analogRead(config->vccPin);
+                    x += analogRead(vccPin);
                 }
                 volts = (x * 3.3) / 10.0 / analogRange;
             }
@@ -403,13 +420,10 @@ float HwTools::getVcc() {
     }
     if(volts == 0.0) return 0.0;
 
-    if(config->vccResistorGnd > 0 && config->vccResistorVcc > 0) {
-        volts *= ((float) (config->vccResistorGnd + config->vccResistorVcc) / config->vccResistorGnd);
+    if(vccGnd_r > 0 && vccVcc_r > 0) {
+        volts *= ((float) (vccGnd_r + vccVcc_r) / vccGnd_r);
     }
 
-
-    float vccOffset = config->vccOffset / 100.0;
-    float vccMultiplier = config->vccMultiplier / 1000.0;
     return vccOffset + (volts > 0.0 ? volts * vccMultiplier : 0.0);
 }
 
@@ -425,9 +439,9 @@ TempSensorData* HwTools::getTempSensorData(uint8_t i) {
 }
 
 bool HwTools::updateTemperatures() {
-    if(config->tempSensorPin != 0xFF) {
+    if(tempPin != 0xFF) {
         if(!tempSensorInit) {
-            oneWire = new OneWire(config->tempSensorPin);
+            oneWire = new OneWire(tempPin);
             sensorApi = new DallasTemperature(this->oneWire);
             sensorApi->begin();
             delay(100);
@@ -513,9 +527,9 @@ float HwTools::getTemperature() {
     return c == 0 ? DEVICE_DISCONNECTED_C : ret/c;
 }
 float HwTools::getTemperatureAnalog() {
-    if(config->tempAnalogSensorPin != 0xFF) {
+    if(atempPin != 0xFF) {
         float adcCalibrationFactor = 1.06587;
-        int volts = ((float) analogRead(config->tempAnalogSensorPin) / analogRange) * 3.3;
+        int volts = ((float) analogRead(atempPin) / analogRange) * 3.3;
         return ((volts * adcCalibrationFactor) - 0.4) / 0.0195;
     }
     return DEVICE_DISCONNECTED_C;
@@ -529,42 +543,42 @@ int HwTools::getWifiRssi() {
 void HwTools::setBootSuccessful(bool value) {
     if(bootSuccessful && value) return;
     bootSuccessful = value;
-    if(config->ledDisablePin > 0 && config->ledDisablePin < 40) {
-        switch(config->ledBehaviour) {
+    if(ledDisablePin > 0 && ledDisablePin < 40) {
+        switch(ledBehaviour) {
             case LED_BEHAVIOUR_ERROR_ONLY:
             case LED_BEHAVIOUR_OFF:
-                digitalWrite(config->ledDisablePin, LOW);
+                digitalWrite(ledDisablePin, LOW);
                 break;
             case LED_BEHAVIOUR_BOOT:
                 if(bootSuccessful) {
-                    digitalWrite(config->ledDisablePin, LOW);
+                    digitalWrite(ledDisablePin, LOW);
                 } else {
-                    digitalWrite(config->ledDisablePin, HIGH);
+                    digitalWrite(ledDisablePin, HIGH);
                 }
                 break;
             default:
-                digitalWrite(config->ledDisablePin, HIGH);
+                digitalWrite(ledDisablePin, HIGH);
         }
     }
 }
 
 bool HwTools::ledOn(uint8_t color) {
-    if(config->ledBehaviour == LED_BEHAVIOUR_OFF) return false;
-    if(config->ledBehaviour == LED_BEHAVIOUR_ERROR_ONLY && color != LED_RED) return false;
-    if(config->ledBehaviour == LED_BEHAVIOUR_BOOT && color != LED_RED && bootSuccessful) return false;
+    if(ledBehaviour == LED_BEHAVIOUR_OFF) return false;
+    if(ledBehaviour == LED_BEHAVIOUR_ERROR_ONLY && color != LED_RED) return false;
+    if(ledBehaviour == LED_BEHAVIOUR_BOOT && color != LED_RED && bootSuccessful) return false;
 
     if(color == LED_INTERNAL) {
-        return writeLedPin(color, config->ledInverted ? LOW : HIGH);
+        return writeLedPin(color, ledInvert ? LOW : HIGH);
     } else {
-        return writeLedPin(color, config->ledRgbInverted ? LOW : HIGH);
+        return writeLedPin(color, rgbInvert ? LOW : HIGH);
     }
 }
 
 bool HwTools::ledOff(uint8_t color) {
     if(color == LED_INTERNAL) {
-        return writeLedPin(color, config->ledInverted ? HIGH : LOW);
+        return writeLedPin(color, ledInvert ? HIGH : LOW);
     } else {
-        return writeLedPin(color, config->ledRgbInverted ? HIGH : LOW);
+        return writeLedPin(color, rgbInvert ? HIGH : LOW);
     }
 }
 
@@ -581,8 +595,8 @@ bool HwTools::ledBlink(uint8_t color, uint8_t blink) {
 bool HwTools::writeLedPin(uint8_t color, uint8_t state) {
     switch(color) {
         case LED_INTERNAL: {
-            if(config->ledPin != 0xFF) {
-                digitalWrite(config->ledPin, state);
+            if(ledPin != 0xFF) {
+                digitalWrite(ledPin, state);
                 return true;
             } else {
                 return false;
@@ -590,8 +604,8 @@ bool HwTools::writeLedPin(uint8_t color, uint8_t state) {
             break;
         }
         case LED_RED: {
-            if(config->ledPinRed != 0xFF) {
-                digitalWrite(config->ledPinRed, state);
+            if(redPin != 0xFF) {
+                digitalWrite(redPin, state);
                 return true;
             } else {
                 return false;
@@ -599,8 +613,8 @@ bool HwTools::writeLedPin(uint8_t color, uint8_t state) {
             break;
         }
         case LED_GREEN: {
-            if(config->ledPinGreen != 0xFF) {
-                digitalWrite(config->ledPinGreen, state);
+            if(greenPin != 0xFF) {
+                digitalWrite(greenPin, state);
                 return true;
             } else {
                 return false;
@@ -608,8 +622,8 @@ bool HwTools::writeLedPin(uint8_t color, uint8_t state) {
             break;
         }
         case LED_BLUE: {
-            if(config->ledPinBlue != 0xFF) {
-                digitalWrite(config->ledPinBlue, state);
+            if(bluePin != 0xFF) {
+                digitalWrite(bluePin, state);
                 return true;
             } else {
                 return false;
@@ -617,9 +631,9 @@ bool HwTools::writeLedPin(uint8_t color, uint8_t state) {
             break;
         }
         case LED_YELLOW: {
-            if(config->ledPinRed != 0xFF && config->ledPinGreen != 0xFF) {
-                digitalWrite(config->ledPinRed, state);
-                digitalWrite(config->ledPinGreen, state);
+            if(redPin != 0xFF && greenPin != 0xFF) {
+                digitalWrite(redPin, state);
+                digitalWrite(greenPin, state);
                 return true;
             } else {
                 return false;
@@ -628,4 +642,23 @@ bool HwTools::writeLedPin(uint8_t color, uint8_t state) {
         }
     }
     return false;
+}
+
+bool HwTools::isVoltageOptimal(float range) {
+	if(boardType >= 5 && boardType <= 7 && maxVcc > 2.8) { // Pow-*
+		float vcc = getVcc();
+		if(vcc > 3.4 || vcc < 2.8) {
+			maxVcc = 0; // Voltage is outside the operating range, we have to assume voltage is OK
+		} else if(vcc > maxVcc) {
+			maxVcc = vcc;
+		} else {
+			float diff = min(maxVcc, (float) 3.3) - vcc;
+            return diff < range;
+		}
+	}
+	return true;
+}
+
+uint8_t HwTools::getBoardType() {
+    return boardType;
 }

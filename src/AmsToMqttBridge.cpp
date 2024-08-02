@@ -118,6 +118,8 @@ HardwareSerial Debug = Serial;
 
 #include "Timezones.h"
 
+#include "AmsFirmwareUpdater.h"
+
 uint8_t commonBuffer[BUF_SIZE_COMMON];
 
 HwTools hw;
@@ -177,6 +179,8 @@ AmsData meterState;
 bool ntpEnabled = false;
 
 bool mdnsEnabled = false;
+
+AmsFirmwareUpdater updater(&Debug, &hw, &meterState);
 
 AmsDataStorage ds(&Debug);
 #if defined(_CLOUDCONNECTOR_H)
@@ -317,7 +321,7 @@ void setup() {
 	}
 
 	delay(1);
-	hw.setup(&gpioConfig);
+	hw.setup(&sysConfig, &gpioConfig);
 
 	if(gpioConfig.apPin >= 0) {
 		pinMode(gpioConfig.apPin, INPUT_PULLUP);
@@ -411,6 +415,10 @@ void setup() {
 
 	debugI_P(PSTR("AMS bridge started"));
 	debugI_P(PSTR("Voltage: %.2fV"), vcc);
+	if(updater.relocateOrRepartitionIfNecessary()) {
+		ESP.restart();
+		return;
+	}
 
 	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
 	if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
@@ -530,7 +538,7 @@ void setup() {
 	ea.setup(&ds, eac);
 	ea.load();
 	ea.setPriceService(ps);
-	ws.setup(&config, &gpioConfig, &meterState, &ds, &ea, &rtp);
+	ws.setup(&config, &gpioConfig, &meterState, &ds, &ea, &rtp, &updater);
 
 	UiConfig ui;
 	if(config.getUiConfig(ui)) {
@@ -726,6 +734,12 @@ void loop() {
 			end = millis();
 			if(end-start > SLOW_PROC_TRIGGER_MS) {
 				debugW_P(PSTR("Used %dms to handle language update"), end-start);
+			}
+			start = millis();
+			updater.loop();
+			end = millis();
+			if(end-start > SLOW_PROC_TRIGGER_MS) {
+				debugW_P(PSTR("Used %dms to handle firmware updater"), end-start);
 			}
 		}
 		#if defined(ESP32)
@@ -962,7 +976,6 @@ void handleEnergyAccountingChanged() {
 }
 
 char ntpServerName[64] = "";
-float maxVcc = 2.9;
 
 void handleNtpChange() {
 	NtpConfig ntp;
@@ -1025,23 +1038,12 @@ void handleSystem(unsigned long now) {
 }
 
 bool handleVoltageCheck() {
-	if(sysConfig.boardType >= 5 && sysConfig.boardType <= 7 && maxVcc > 2.8) { // Pow-*
-		float vcc = hw.getVcc();
-		if(vcc > 3.4 || vcc < 2.8) {
-			maxVcc = 0;
-		} else if(vcc > maxVcc) {
-			debugD_P(PSTR("Setting new max Vcc to %.2f"), vcc);
-			maxVcc = vcc;
-		} else {
-			float diff = min(maxVcc, (float) 3.3)-vcc;
-			if(diff > 0.4) {
-				if(WiFi.getMode() == WIFI_STA) {
-					debugW_P(PSTR("Vcc dropped to %.2f, disconnecting WiFi for 5 seconds to preserve power"), vcc);
-					ch->disconnect(5000);
-				}
-				return false;
-			}
+	if(!hw.isVoltageOptimal()) {
+		if(WiFi.getMode() == WIFI_STA) {
+			debugW_P(PSTR("Vcc dropped below limit, disconnecting WiFi for 5 seconds to preserve power"));
+			ch->disconnect(5000);
 		}
+		return false;
 	}
 	return true;
 }

@@ -238,7 +238,10 @@ struct UpgradeInformation {
 	char toVersion[8];
 	int16_t exitCode;
 	int16_t errorCode;
-}; // 20
+    uint32_t size;
+    uint16_t block_position;
+    uint8_t retry_count;
+}; // 27
 
 struct CloudConfig {
 	bool enabled;

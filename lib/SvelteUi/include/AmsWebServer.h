@@ -14,6 +14,7 @@
 #include "AmsData.h"
 #include "AmsStorage.h"
 #include "AmsDataStorage.h"
+#include "AmsFirmwareUpdater.h"
 #include "EnergyAccounting.h"
 #include "Uptime.h"
 #if defined(AMS_REMOTE_DEBUG)
@@ -53,7 +54,7 @@ public:
 	#else
 	AmsWebServer(uint8_t* buf, Stream* Debug, HwTools* hw, ResetDataContainer* rdc);
 	#endif
-    void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*);
+    void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*, AmsFirmwareUpdater*);
     void loop();
 	#if defined(_CLOUDCONNECTOR_H)
 	void setCloud(CloudConnector* cloud);
@@ -88,6 +89,7 @@ private:
 	AmsDataStorage* ds;
     EnergyAccounting* ea = NULL;
 	RealtimePlot* rtp = NULL;
+	AmsFirmwareUpdater* updater = NULL;
 	AmsMqttHandler* mqttHandler = NULL;
 	ConnectionHandler* ch = NULL;
 	#if defined(_CLOUDCONNECTOR_H)
@@ -139,7 +141,6 @@ private:
 	void handleSave();
 	void reboot();
 	void upgrade();
-	void upgradeFromUrl(String url, String nextVersion);
 	void firmwareHtml();
 	void firmwarePost();
 	void firmwareUpload();
@@ -167,7 +168,6 @@ private:
 	void robotstxt();
 	void ssdpSchema();
 
-	void updaterRequestCallback(HTTPClient*);
 	void addConditionalCloudHeaders();
 	void optionsGet();
 };

@@ -33,7 +33,7 @@
                     color: dark ? '#5c2da5' : '#7c3aed'
                 });
                 xTicks.push({
-                    label: peak.d > 0 ? zeropad(peak.d) + "." + translations.months?.[new Date().getMonth()] : "-"
+                    label: peak.d > 0 ? zeropad(peak.d) + "." + (translations.months ? translations.months?.[new Date().getMonth()] : zeropad(new Date().getMonth()+1)) : "-"
                 })
                 max = Math.max(max, peak.v);
             }

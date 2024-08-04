@@ -267,6 +267,16 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             activeImportPower = ntohl(data->dlu.data);
             lastUpdateMillis = millis64();
         }
+
+        if(meterType == AmsTypeUnknown) {
+            if(memcmp(ctx.system_title, "ISK", 3) == 0) {
+                meterType = AmsTypeIskra;
+                meterId = String((const uint8_t*)ctx.system_title, 8);
+                lastUpdateMillis = millis64();
+                listType = 3;
+            }
+        }
+
     } else {
         listType = 1;
         activeImportPower = val;

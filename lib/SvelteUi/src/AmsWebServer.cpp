@@ -2644,11 +2644,20 @@ void AmsWebServer::addConditionalCloudHeaders() {
 	String ref;
 	if(server.hasHeader(HEADER_ORIGIN)) {
 		ref = server.header(HEADER_ORIGIN);
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
 		debugger->printf_P(PSTR("Origin: %s\n"), ref.c_str());
 	} else if(server.hasHeader(HEADER_REFERER)) {
 		ref = server.header(HEADER_REFERER);
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
 		debugger->printf_P(PSTR("Referer: %s\n"), ref.c_str());
 	} else {
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
 		debugger->printf_P(PSTR("No Origin or Referer\n"));
 	}
 	if(!ref.startsWith(ORIGIN_AMSLESER_CLOUD)) {

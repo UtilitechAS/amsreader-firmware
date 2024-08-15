@@ -67,7 +67,7 @@ bool AmsDataStorage::update(AmsData* data, time_t now) {
     uint64_t exportCounter = data->getActiveExportCounter() * 1000;
 
     // Clear hours between last update and now
-    if(day.lastMeterReadTime > now) {
+    if(!isDayHappy(now) && day.lastMeterReadTime > now) {
         day.activeImport = importCounter;
         day.activeExport = exportCounter;
         day.lastMeterReadTime = now;
@@ -97,7 +97,7 @@ bool AmsDataStorage::update(AmsData* data, time_t now) {
     }
 
     // Clear days between last update and now
-    if(month.lastMeterReadTime > now) {
+    if(!isMonthHappy(now) && month.lastMeterReadTime > now) {
         month.activeImport = importCounter;
         month.activeExport = exportCounter;
         month.lastMeterReadTime = now;

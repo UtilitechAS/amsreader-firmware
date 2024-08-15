@@ -246,7 +246,8 @@ struct CloudConfig {
 	char hostname[64];
 	uint16_t port;
 	uint8_t clientId[16];
-}; // 69
+	uint8_t proto;
+}; // 84
 
 class AmsConfiguration {
 public:

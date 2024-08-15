@@ -1047,6 +1047,7 @@ void AmsWebServer::configurationJson() {
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
 		cloud.enabled ? "true" : "false",
+		cloud.proto,
 		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 		sysConfig.energyspeedometer == 7 ? "true" : "false"
 		#else
@@ -1572,6 +1573,7 @@ void AmsWebServer::handleSave() {
 		CloudConfig cloud;
 		config->getCloudConfig(cloud);
 		cloud.enabled = server.hasArg(F("ce")) && server.arg(F("ce")) == F("true");
+		cloud.proto = server.arg(F("cp")).toInt();
 		config->setCloudConfig(cloud);
 	}
 

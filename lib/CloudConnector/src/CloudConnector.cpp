@@ -420,11 +420,54 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     memset(encryptedBuffer, 0, rsa->len);
 
     int maxlen = rsa->len - 11; // 11 should be the correct padding size for PKCS1
-    udp.beginPacket(config.hostname,7443);
+
+    Stream *stream = NULL;
+
+    if(config.proto == 0) {
+        udp.beginPacket(config.hostname,7443);
+        stream = &udp;
+    } else if(config.proto == 1) {
+        if(!tcp.connected()) {
+            int ret = tcp.connect(config.hostname, config.port, 1000);
+            if(ret != 1) {
+                #if defined(AMS_REMOTE_DEBUG)
+                if (debugger->isActive(RemoteDebug::ERROR))
+                #endif
+                debugger->printf_P(PSTR("tcp.connect(%s, %d) return code: %d\n"), config.hostname, config.port, ret);
+                return;
+            }
+            tcp.setTimeout(config.interval * 2);
+        }
+        while(tcp.available()) tcp.read(); // Empty incoming buffer
+        stream = &tcp;
+    } else if(config.proto == 2) {
+        if(!http.connected()) {
+            http.setReuse(true);
+            snprintf_P(clearBuffer, CC_BUF_SIZE, PSTR("http://%s/hub/cloud/data"), config.hostname);
+            if(!http.begin(clearBuffer)) {
+                #if defined(AMS_REMOTE_DEBUG)
+                if (debugger->isActive(RemoteDebug::ERROR))
+                #endif
+                debugger->printf_P(PSTR("(CloudConnector) Unable to start HTTP connector\n"));
+                http.end();
+                return;
+            }
+        }
+        if(httpBuffer == NULL) {
+            httpBuffer = (uint8_t*) malloc(CC_BUF_SIZE);
+        }
+    }
+
+    int sendBytes = 0;
     for(int i = 0; i < pos; i += maxlen) {
         int ret = mbedtls_rsa_pkcs1_encrypt(rsa, mbedtls_ctr_drbg_random, &ctr_drbg, MBEDTLS_RSA_PUBLIC, maxlen, (unsigned char*) (clearBuffer+i), encryptedBuffer);
         if(ret == 0) {
-            udp.write(encryptedBuffer, rsa->len);
+            if(stream != NULL) {
+                stream->write(encryptedBuffer, rsa->len);
+            } else {
+                memcpy(httpBuffer + sendBytes, encryptedBuffer, rsa->len);
+            }
+            sendBytes += rsa->len;
             delay(1);
         } else {
             #if defined(AMS_REMOTE_DEBUG)
@@ -438,9 +481,39 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             debugger->printf_P(PSTR("%s\n"), clearBuffer);
         }
     }
-    udp.endPacket();
 
+    if(config.proto == 0) {
+        udp.endPacket();
+    } else if(config.proto == 1) {
+        tcp.write("\r\n");
+        tcp.flush();
+    } else if(config.proto == 2) {
+        http.addHeader("Content-Type", "application/octet-stream");
+        int status = http.POST(httpBuffer, sendBytes);
+        if(status != 200) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("(CloudConnector) Communication error 2, returned status: %d\n"), status);
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf(http.errorToString(status).c_str());
+            debugger->println();
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
+            debugger->printf(http.getString().c_str());
+
+            http.end();
+        }
+    }
     lastUpdate = now;
+
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::DEBUG))
+    #endif
+    debugger->printf_P(PSTR("%d bytes sent to %s:%d from %s\n"), sendBytes, config.hostname, config.proto == 2 ? 80 : config.port, uuid.c_str());
 }
 
 void CloudConnector::forceUpdate() {

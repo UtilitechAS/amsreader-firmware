@@ -818,6 +818,7 @@ bool AmsConfiguration::getCloudConfig(CloudConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_CLOUD_START, config);
 		EEPROM.end();
+		if(config.proto > 2) config.proto = 0;
 		return true;
 	} else {
 		clearCloudConfig(config);
@@ -831,6 +832,7 @@ bool AmsConfiguration::setCloudConfig(CloudConfig& config) {
 		cloudChanged |= config.enabled != existing.enabled;
 		cloudChanged |= config.interval!= existing.interval;
 		cloudChanged |= config.port!= existing.port;
+		cloudChanged |= config.proto!= existing.proto;
 		cloudChanged |= strcmp(config.hostname, existing.hostname) != 0;
 		cloudChanged |= memcmp(config.clientId, existing.clientId, 16) != 0;
 	} else {
@@ -849,6 +851,7 @@ bool AmsConfiguration::setCloudConfig(CloudConfig& config) {
 void AmsConfiguration::clearCloudConfig(CloudConfig& config) {
 	config.enabled = false;
 	strcpy_P(config.hostname, PSTR("cloud.amsleser.no"));
+	config.proto = 0;
 	config.port = 7443;
 	config.interval = 10;
 	memset(config.clientId, 0, 16);

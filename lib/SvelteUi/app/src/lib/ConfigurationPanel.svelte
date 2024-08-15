@@ -682,10 +682,20 @@
                 <input type="hidden" name="c" value="true"/>
                 <div class="my-1">
                     <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> {translations.conf?.cloud?.ams ?? "AMS reader cloud"}</label>
-                    {#if cloudenabled}
-                        <button type="button" on:click={cloudBind} class="text-blue-500 ml-6">Connect to my cloud account</button>
+                    {#if configuration.c.e}
+                        <div class="ml-6">
+                            <label>Protocol</label>
+                            <select name="cp" bind:value={configuration.c.p} class="in-s">
+                                <option value={0}>UDP</option>
+                                <option value={1}>TCP</option>
+                                <option value={2}>HTTP</option>
+                            </select>
+                        </div>
+                        {#if cloudenabled}
+                            <button type="button" on:click={cloudBind} class="text-blue-500 ml-6">Connect device to my cloud account</button>
+                        {/if}
                     {/if}
-                </div>
+                    </div>
                 <div class="my-1">
                     <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> {translations.conf?.cloud?.es ?? "Energy Speedometer"}</label>
                     {#if configuration?.c?.es}

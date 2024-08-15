@@ -84,6 +84,7 @@ private:
     unsigned long lastEac = 0;
     HTTPClient http;
     WiFiUDP udp;
+    WiFiClient tcp;
 	int maxPwr = 0;
     uint8_t boardType = 0;
     char timezone[32];
@@ -99,6 +100,7 @@ private:
     String seed = "";
 
     char clearBuffer[CC_BUF_SIZE];
+    uint8_t* httpBuffer = NULL;
     unsigned char encryptedBuffer[256];
     mbedtls_rsa_context* rsa = nullptr;
     mbedtls_ctr_drbg_context ctr_drbg;

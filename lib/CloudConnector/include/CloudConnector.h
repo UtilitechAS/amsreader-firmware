@@ -37,7 +37,7 @@
 	#warning "Unsupported board type"
 #endif
 
-#define CC_BUF_SIZE 2048
+#define CC_BUF_SIZE 4096
 
 static const char CC_JSON_POWER[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu}";
 static const char CC_JSON_POWER_LIST3[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu,\"tP\":%.3f,\"tQ\":%.3f}";

@@ -257,7 +257,6 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             dns1.toString().c_str(),
             dns2.toString().c_str()
         );
-        sendData = pos > CC_BUF_SIZE - 768;
     } else if(lastPriceConfig == 0) {
         pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"price\":{\"area\":\"%s\",\"currency\":\"%s\",\"modifiers\":["), priceConfig.area, priceConfig.currency);
         if(ps != NULL) {
@@ -314,7 +313,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
         }
         pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("]}"));
         lastPriceConfig = now;
-        sendData = pos > CC_BUF_SIZE - 768;
+        sendData = false;
     } else if(lastEac == 0) {
         pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"accounting\":{\"hours\":%d,\"thresholds\":[%d,%d,%d,%d,%d,%d,%d,%d,%d]}"), 
             eac.hours,
@@ -329,7 +328,6 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             eac.thresholds[8]
         );
         lastEac = now;
-        sendData = pos > CC_BUF_SIZE - 768;
     }
 
     if(sendData) {

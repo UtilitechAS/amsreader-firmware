@@ -1367,9 +1367,9 @@ void handleDataSuccess(AmsData* data) {
 		tmElements_t tm, mtm;
 		breakTime(now, tm);
 		breakTime(meterTime, mtm);
-		if(data->getListType() == 4) { // Assuming these type of meters report all data all the time
+		if(!meterState.isCounterEstimated()) { // Assuming these type of meters report all data all the time
 			if(tm.Minute == 0) {
-				debugD_P(PSTR("Updating data storage, triggered by list 4 (internal clock %02d:%02d:%02d UTC, neter clock: %02d:%02d:%02d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second);
+				debugD_P(PSTR("Updating data storage (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second);
 				saveData = ds.update(data, now);
 			}
 		} else if(data->getListType() == 3) { // Assuming HAN-NVE style meters which reports list type 3 only once per hour

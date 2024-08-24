@@ -50,7 +50,7 @@ CloudConnector::CloudConnector(Stream* debugger) {
     sprintf_P(this->apmac, PSTR("%02X:%02X:%02X:%02X:%02X:%02X"), apmac[0], apmac[1], apmac[2], apmac[3], apmac[4], apmac[5]);
 }
 
-bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc) {
+bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc, PriceService* ps) {
     bool ret = false;
     #if defined(ESP32)
     if(!ESPRandom::isValidV4Uuid(config.clientId)) {
@@ -63,6 +63,7 @@ bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, SystemConfig
     this->config = config;
     this->hw = hw;
     this->rdc = rdc;
+    this->ps = ps;
 
     this->boardType = system.boardType;
     strcpy(this->timezone, ntp.timezone);
@@ -256,7 +257,46 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             dns2.toString().c_str()
         );
     } else if(lastPriceConfig == 0) {
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"price\":{\"area\":\"%s\",\"currency\":\"%s\"}"), priceConfig.area, priceConfig.currency);
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"price\":{\"area\":\"%s\",\"currency\":\"%s\",\"modifiers\":["), priceConfig.area, priceConfig.currency);
+        if(ps != NULL) {
+            std::vector<PriceConfig> pc = ps->getPriceConfig();
+            if(pc.size() > 0) {
+                for(uint8_t i = 0; i < pc.size(); i++) {
+                    PriceConfig& p = pc.at(i);
+
+                    String days;
+                    for(uint8_t d = 0; d < 7; d++) {
+                        if((p.days >> d) & 0x1 == 0x1) {
+                            days += String(d, 10) + ",";
+                        }
+                    }
+                    days = days.substring(0, days.length()-1);
+
+                    String hours;
+                    for(uint8_t h = 0; h < 24; h++) {
+                        if((p.hours >> h) & 0x1 == 0x1) {
+                            hours += String(h, 10) + ",";
+                        }
+                    }
+                    hours = hours.substring(0, hours.length()-1);
+
+                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("{\"type\":%d,\"name\":\"%s\",\"dir\":%d,\"days\":[%s],\"hours\":[%s],\"value\":%.4f,\"start\":[%d,%d],\"end\":[%d,%d]}%s"),
+                        p.type,
+                        p.name,
+                        p.direction,
+                        days.c_str(),
+                        hours.c_str(),
+                        p.value / 10000.0,
+                        p.start_month,
+                        p.start_dayofmonth,
+                        p.end_month,
+                        p.end_dayofmonth,
+                        i == pc.size()-1 ? "" : ","
+                    );
+                }
+            }
+        }
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("]}"));
         lastPriceConfig = now;
     } else if(lastEac == 0) {
         pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"accounting\":{\"hours\":%d,\"thresholds\":[%d,%d,%d,%d,%d,%d,%d,%d,%d]}"), 
@@ -520,6 +560,10 @@ void CloudConnector::forceUpdate() {
     lastUpdate = 0;
     lastPriceConfig = 0;
     lastEac = 0;
+}
+
+void CloudConnector::forcePriceUpdate() {
+    lastPriceConfig = 0;
 }
 
 void CloudConnector::setConnectionHandler(ConnectionHandler* ch) {

@@ -693,7 +693,7 @@ void loop() {
 					}
 					NtpConfig ntp;
 					config.getNtpConfig(ntp);
-					if(cloud->setup(cc, meterConfig, sysConfig, ntp, &hw, &rdc)) {
+					if(cloud->setup(cc, meterConfig, sysConfig, ntp, &hw, &rdc, ps)) {
 						config.setCloudConfig(cc);
 					}
 					cloud->setConnectionHandler(ch);

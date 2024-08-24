@@ -58,12 +58,13 @@ public:
     #else
     CloudConnector(Stream*);
     #endif
-    bool setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc);
+    bool setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc, PriceService* ps);
     void setMqttHandler(AmsMqttHandler* mqttHandler);
     void update(AmsData& data, EnergyAccounting& ea);
     void setPriceConfig(PriceServiceConfig&);
     void setEnergyAccountingConfig(EnergyAccountingConfig&);
     void forceUpdate();
+    void forcePriceUpdate();
     void setConnectionHandler(ConnectionHandler* ch);
     String generateSeed();
 
@@ -76,6 +77,7 @@ private:
     HwTools* hw = NULL;
     ConnectionHandler* ch = NULL;
     ResetDataContainer* rdc = NULL;
+    PriceService* ps = NULL;
     AmsMqttHandler* mqttHandler = NULL;
     CloudConfig config;
     PriceServiceConfig priceConfig;

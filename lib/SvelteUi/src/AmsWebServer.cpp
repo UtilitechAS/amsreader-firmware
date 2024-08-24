@@ -1632,6 +1632,11 @@ void AmsWebServer::handleSave() {
 			}
 			ps->cropPriceConfig(count);
 			ps->save();
+			#if defined(_CLOUDCONNECTOR_H)
+			if(cloud != NULL) {
+				cloud->forcePriceUpdate();
+			}
+			#endif
 		} else {
 			#if defined(AMS_REMOTE_DEBUG)
 if (debugger->isActive(RemoteDebug::WARNING))

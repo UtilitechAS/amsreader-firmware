@@ -572,6 +572,12 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         activeExportCounter = activeExportCounter > 0 ? activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         reactiveImportCounter = reactiveImportCounter > 0 ? reactiveImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         reactiveExportCounter = reactiveExportCounter > 0 ? reactiveExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l1activeImportCounter = l1activeImportCounter > 0 ? l1activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l2activeImportCounter = l2activeImportCounter > 0 ? l2activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l3activeImportCounter = l3activeImportCounter > 0 ? l3activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l1activeExportCounter = l1activeExportCounter > 0 ? l1activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l2activeExportCounter = l2activeExportCounter > 0 ? l2activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l3activeExportCounter = l3activeExportCounter > 0 ? l3activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
     }
 
     threePhase = l1voltage > 0 && l2voltage > 0 && l3voltage > 0;

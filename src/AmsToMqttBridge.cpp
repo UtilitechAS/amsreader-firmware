@@ -1359,6 +1359,7 @@ void handleDataSuccess(AmsData* data) {
 		}
 	}
 
+	bool wasCounterEstimated = meterState.isCounterEstimated();
 	meterState.apply(*data);
 	rtp.update(meterState);
 
@@ -1367,8 +1368,8 @@ void handleDataSuccess(AmsData* data) {
 		tmElements_t tm, mtm;
 		breakTime(now, tm);
 		breakTime(meterTime, mtm);
-		if(!meterState.isCounterEstimated()) { // Assuming these type of meters report all data all the time
-			if(tm.Minute == 0) {
+		if(!wasCounterEstimated) { // Assuming these type of meters report all data all the time
+			if(tm.Minute == 0 && data->getListType() == 3) {
 				debugD_P(PSTR("Updating data storage (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second);
 				saveData = ds.update(data, now);
 			}
@@ -1380,9 +1381,6 @@ void handleDataSuccess(AmsData* data) {
 				debugD_P(PSTR("Updating data storage, triggered by meter clock %02d:%02d:%02d UTC (Internal clock: %02d:%02d:%02d)"), mtm.Hour, mtm.Minute, mtm.Second, tm.Hour, tm.Minute, tm.Second);
 				saveData = ds.update(data, meterTime);
 			}
-			#if defined(_CLOUDCONNECTOR_H)
-			if(saveData && cloud != NULL) cloud->forceUpdate();
-			#endif
 		} else if(tm.Minute == 1) {
 			debugW_P(PSTR("Did not receive necessary data for previous hour, clearing"));
 			AmsData nullData;
@@ -1395,6 +1393,10 @@ void handleDataSuccess(AmsData* data) {
 			}
 		}
 	}
+
+	#if defined(_CLOUDCONNECTOR_H)
+	if(saveData && cloud != NULL) cloud->forceUpdate();
+	#endif
 
 	if(ea.update(data)) {
 		debugI_P(PSTR("Saving energy accounting"));

@@ -404,10 +404,10 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         if(meterTs != NULL) {
             AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
             time_t ts = decodeCosemDateTime(amst->dt);
-            if(meterType == AmsTypeAidon || meterType == AmsTypeKamstrup) {
-                meterTimestamp = ts - 3600;
-            } else {
-                meterTimestamp = ts;
+            if(amst->dt.deviation == 0x8000) { // Deviation not specified, adjust from localtime to UTC
+                meterTimestamp = tz.toUTC(ts);
+            } else if(meterType == AmsTypeAidon) {
+                meterTimestamp = ts - 3600; // 21.09.24, the clock is now correct
             }
         }
 

@@ -1363,28 +1363,31 @@ void handleDataSuccess(AmsData* data) {
 	meterState.apply(*data);
 	rtp.update(meterState);
 
+	time_t dataUpdateTime = now;
+	if(abs(now - meterTime) < 300) {
+		dataUpdateTime = meterTime;
+	}
+
+	tmElements_t tm, mtm;
+	breakTime(now, tm);
+	breakTime(meterTime, mtm);
+
 	bool saveData = false;
-	if(!ds.isHappy(now) && now > FirmwareVersion::BuildEpoch) { // Must use "isHappy()" in case day state gets reset and lastTimestamp is "now"
-		tmElements_t tm, mtm;
-		breakTime(now, tm);
-		breakTime(meterTime, mtm);
-		if(!wasCounterEstimated) { // Assuming these type of meters report all data all the time
-			if(tm.Minute == 0 && data->getListType() == 3) {
-				debugD_P(PSTR("Updating data storage (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second);
-				saveData = ds.update(data, now);
-			}
-		} else if(data->getListType() == 3) { // Assuming HAN-NVE style meters which reports list type 3 only once per hour
-			if(tm.Minute == 0) {
-				debugD_P(PSTR("Updating data storage, triggered by internal clock %02d:%02d:%02d UTC (Meter clock: %02d:%02d:%02d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second);
-				saveData = ds.update(data, now);
-			} else if(mtm.Minute == 0 && meterTime > FirmwareVersion::BuildEpoch) {
-				debugD_P(PSTR("Updating data storage, triggered by meter clock %02d:%02d:%02d UTC (Internal clock: %02d:%02d:%02d)"), mtm.Hour, mtm.Minute, mtm.Second, tm.Hour, tm.Minute, tm.Second);
-				saveData = ds.update(data, meterTime);
-			}
-		} else if(tm.Minute == 1) {
+	if(!ds.isHappy(dataUpdateTime) && dataUpdateTime > FirmwareVersion::BuildEpoch) { // Must use "isHappy()" in case day state gets reset and lastTimestamp is "now"
+		debugD_P(PSTR("READY to update (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d, list type %d, est: %d, using clock: %d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second, data->getListType(), wasCounterEstimated, dataUpdateTime == now);
+		tmElements_t dtm;
+		breakTime(dataUpdateTime, dtm);
+		if(dtm.Minute == 0 && data->getListType() >= 3) {
+			debugD_P(PSTR("Updating data storage using actual data"));
+			saveData = ds.update(data, dataUpdateTime);
+
+			#if defined(_CLOUDCONNECTOR_H)
+			if(saveData && cloud != NULL) cloud->forceUpdate();
+			#endif
+		} else if(dtm.Minute == 1) {
 			debugW_P(PSTR("Did not receive necessary data for previous hour, clearing"));
 			AmsData nullData;
-			saveData = ds.update(&nullData, now);
+			saveData = ds.update(&nullData, dataUpdateTime);
 		}
 		if(saveData) {
 			debugI_P(PSTR("Saving data"));
@@ -1392,11 +1395,9 @@ void handleDataSuccess(AmsData* data) {
 				debugW_P(PSTR("Unable to save data storage"));
 			}
 		}
+	} else {
+		debugD_P(PSTR("NOT Ready to update (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d, list type %d, est: %d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second, data->getListType(), wasCounterEstimated);
 	}
-
-	#if defined(_CLOUDCONNECTOR_H)
-	if(saveData && cloud != NULL) cloud->forceUpdate();
-	#endif
 
 	if(ea.update(data)) {
 		debugI_P(PSTR("Saving energy accounting"));

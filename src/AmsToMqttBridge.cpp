@@ -1377,14 +1377,14 @@ void handleDataSuccess(AmsData* data) {
 		debugD_P(PSTR("READY to update (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d, list type %d, est: %d, using clock: %d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second, data->getListType(), wasCounterEstimated, dataUpdateTime == now);
 		tmElements_t dtm;
 		breakTime(dataUpdateTime, dtm);
-		if(dtm.Minute == 0 && data->getListType() >= 3) {
+		if(dtm.Minute < 2 && data->getListType() >= 3) {
 			debugD_P(PSTR("Updating data storage using actual data"));
 			saveData = ds.update(data, dataUpdateTime);
 
 			#if defined(_CLOUDCONNECTOR_H)
 			if(saveData && cloud != NULL) cloud->forceUpdate();
 			#endif
-		} else if(dtm.Minute == 1) {
+		} else if(dtm.Minute == 2) {
 			debugW_P(PSTR("Did not receive necessary data for previous hour, clearing"));
 			AmsData nullData;
 			saveData = ds.update(&nullData, dataUpdateTime);

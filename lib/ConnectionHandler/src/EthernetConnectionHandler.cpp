@@ -60,6 +60,14 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
             ethPowerPin = 16;
             ethMdc = 23;
             ethMdio = 18;
+        } else if (sys.boardType == 245) { // wESP32
+            ethType = ETH_PHY_RTL8201;
+            ethEnablePin = -1;
+            ethAddr = 0;
+            ethClkMode = ETH_CLOCK_GPIO0_IN;
+            ethPowerPin = -1;
+            ethMdc = 16;
+            ethMdio = 17;
         } else if(sys.boardType == 244) {
             return false; // TODO
         } else {

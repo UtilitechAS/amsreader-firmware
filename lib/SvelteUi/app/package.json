@@ -9,6 +9,11 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "overrides": {
+  "svelte-navigator": {
+    "svelte": ">=4.x"
+  }
+},
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.1.0",
     "@tailwindcss/forms": "^0.5.3",

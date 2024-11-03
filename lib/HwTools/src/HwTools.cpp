@@ -75,6 +75,9 @@ bool HwTools::applyBoardConfig(uint8_t boardType, GpioConfig& gpioConfig, MeterC
             case 243: // WT32-ETH01
                 meterConfig.rxPin = hanPin > 0 ? hanPin : 39;
                 return true;
+            case 245: // wESP32
+                gpioConfig.apPin = 0;
+                meterConfig.rxPin = hanPin > 0 ? hanPin : 39;    
             case 201: // D32
                 meterConfig.rxPin = hanPin > 0 ? hanPin : 16;
                 gpioConfig.apPin = 4;

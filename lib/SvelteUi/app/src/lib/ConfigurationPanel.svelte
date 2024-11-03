@@ -598,7 +598,7 @@
             <div class="my-1 flex">
                 <div>
                     {translations.conf?.mqtt?.id ?? "Client ID"}<br/>
-                    <input name="qc" bind:value={configuration.q.c} type="text" class="in-f w-full"/>
+                    <input name="qc" bind:value={configuration.q.c} type="text" class="in-f w-full" required={configuration.q.h}/>
                 </div>
                 <div>
                     {translations.conf?.mqtt?.payload ?? "Payload"}<br/>

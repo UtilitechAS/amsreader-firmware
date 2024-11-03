@@ -18,7 +18,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
     TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
     Timezone tz(CEST, CET);
 
-    this->packageTimestamp = ctx.timestamp;
+    this->packageTimestamp = ctx.timestamp == 0 ? time(nullptr) : ctx.timestamp;
 
     val = getNumber(AMS_OBIS_ACTIVE_IMPORT, sizeof(AMS_OBIS_ACTIVE_IMPORT), ((char *) (d)));
     if(val == NOVALUE) {

@@ -289,14 +289,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 }
             } 
         }
-        // Try system title
-        if(meterType == AmsTypeUnknown) {
-            if(memcmp(ctx.system_title, "SAGY", 4) == 0) {
-                meterType = AmsTypeSagemcom;
-            } else if(memcmp(ctx.system_title, "KFM", 3) == 0) {
-                meterType = AmsTypeKaifa;
-            }
-        }
 
         if(this->packageTimestamp > 0) {
             if(meterType == AmsTypeAidon || meterType == AmsTypeKamstrup) {
@@ -549,6 +541,21 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         }
 
         lastUpdateMillis = millis64();
+    }
+
+    // Try system title
+    if(meterType == AmsTypeUnknown) {
+        if(memcmp(ctx.system_title, "SAGY", 4) == 0) {
+            meterType = AmsTypeSagemcom;
+        } else if(memcmp(ctx.system_title, "KFM", 3) == 0) {
+            meterType = AmsTypeKaifa;
+        } else if(memcmp(ctx.system_title, "ISK", 3) == 0) {
+            meterType = AmsTypeIskra;
+        }
+
+        if(meterType != AmsTypeUnknown) {
+            meterId = String((const uint8_t*)ctx.system_title, 8);
+        }
     }
 
     if(meterConfig->wattageMultiplier > 0) {

@@ -99,7 +99,7 @@
         const formData = new FormData();
         formData.append('file', configFiles[0]);
 
-        const upload = fetch('/configfile', {
+        const upload = fetch('configfile', {
             method: 'POST',
             body: formData
         }).then((response) => response.json()).then((res) => {

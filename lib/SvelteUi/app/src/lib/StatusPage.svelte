@@ -206,11 +206,11 @@
         </div>
         {#if sysinfo.net.ipv6}
             <div class="my-2">
-                IPv6: {sysinfo.net.ipv6}
+                IPv6: <span style="font-size: 14px;">{sysinfo.net.ipv6.replace(/\b:?(?:0+:?){2,}/, '::')}</span>
             </div>
             <div class="my-2">
-                {#if sysinfo.net.dns1v6}DNSv6: {sysinfo.net.dns1v6}{/if}
-                {#if sysinfo.net.dns2v6}DNSv6: {sysinfo.net.dns2v6}{/if}
+                {#if sysinfo.net.dns1v6}DNSv6: <span style="font-size: 14px;">{sysinfo.net.dns1v6.replace(/\b:?(?:0+:?){2,}/, '::')}</span>{/if}
+                {#if sysinfo.net.dns2v6}DNSv6: <span style="font-size: 14px;">{sysinfo.net.dns2v6.replace(/\b:?(?:0+:?){2,}/, '::')}</span>{/if}
             </div>
         {/if}
     </div>

@@ -2586,6 +2586,9 @@ void AmsWebServer::redirectToMain() {
 		context = String(webConfig.context);
 	}
 
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 	server.sendHeader(HEADER_LOCATION, "/" + context);
 	server.send(302);
 }

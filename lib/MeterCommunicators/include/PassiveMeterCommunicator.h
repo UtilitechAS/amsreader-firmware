@@ -20,7 +20,7 @@
 #include "SoftwareSerial.h"
 #endif
 
-const uint32_t AUTO_BAUD_RATES[] = { 2400, 115200 };
+const uint32_t AUTO_BAUD_RATES[] = { 2400, 9600, 115200 };
 
 class PassiveMeterCommunicator : public MeterCommunicator  {
 public:

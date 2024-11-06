@@ -12,12 +12,19 @@
 void KmpCommunicator::configure(MeterConfig& meterConfig) {
     this->meterConfig = meterConfig;
     this->configChanged = false;
+    if(meterConfig.baud == 0) {
+        this->configChanged = true;
+        meterConfig.baud = 9600;
+        meterConfig.parity = 7;
+        meterConfig.invert = false;
+    }
     setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert, false);
     talker = new KmpTalker(hanSerial, hanBuffer, hanBufferSize);
 }
 
 bool KmpCommunicator::loop() {
 	uint64_t now = millis64();
+
     bool ret = talker->loop();
     int lastError = getLastError();
     if(ret) {

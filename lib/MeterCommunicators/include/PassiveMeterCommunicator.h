@@ -34,6 +34,7 @@ public:
     AmsData* getData(AmsData& meterState);
     int getLastError();
     bool isConfigChanged();
+    void ackConfigChanged();
     void getCurrentConfig(MeterConfig& meterConfig);
     void setPassthroughMqttHandler(PassthroughMqttHandler*);
 

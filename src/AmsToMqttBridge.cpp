@@ -1307,6 +1307,7 @@ bool readHanPort() {
 	if(mc->isConfigChanged()) {
 		mc->getCurrentConfig(meterConfig);
 		config.setMeterConfig(meterConfig);
+		mc->ackConfigChanged();
 	}
 	meterState.setLastError(mc->getLastError());
 
@@ -1667,6 +1668,7 @@ void configFileParse() {
 			meter.baud = String(buf+10).toInt();
 		} else if(strncmp_P(buf, PSTR("meterParity "), 12) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.parity = 0;
 			if(strncmp_P(buf+12, PSTR("7N1"), 3) == 0) meter.parity = 2;
 			if(strncmp_P(buf+12, PSTR("8N1"), 3) == 0) meter.parity = 3;
 			if(strncmp_P(buf+12, PSTR("8N2"), 3) == 0) meter.parity = 7;

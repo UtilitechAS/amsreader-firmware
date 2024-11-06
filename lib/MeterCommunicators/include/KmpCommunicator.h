@@ -32,6 +32,7 @@ public:
     AmsData* getData(AmsData& meterState);
     int getLastError();
     bool isConfigChanged() { return false; }
+    void ackConfigChanged() {}
     void getCurrentConfig(MeterConfig& meterConfig) {
         meterConfig = this->meterConfig;
     }

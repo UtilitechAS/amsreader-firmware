@@ -22,6 +22,7 @@ public:
     virtual AmsData* getData(AmsData& meterState);
     virtual int getLastError();
     virtual bool isConfigChanged();
+    virtual void ackConfigChanged();
     virtual void getCurrentConfig(MeterConfig& meterConfig);
 };
 

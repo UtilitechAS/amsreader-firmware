@@ -684,9 +684,11 @@
                     <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> {translations.conf?.cloud?.ams ?? "AMS reader cloud"}</label>
                     {#if configuration.c.e}
                         <div class="ml-6">
-                            <label>Protocol</label>
+                            <label for="cp">Protocol</label>
                             <select name="cp" bind:value={configuration.c.p} class="in-s">
-                                <option value={0}>UDP</option>
+                                {#if configuration.c.p == 0}
+                                <option value={0} title="No longer recommended">UDP</option>
+                                {/if}
                                 <option value={1}>TCP</option>
                                 <option value={2}>HTTP</option>
                             </select>

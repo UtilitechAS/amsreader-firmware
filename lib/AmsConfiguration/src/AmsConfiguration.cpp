@@ -851,7 +851,7 @@ bool AmsConfiguration::setCloudConfig(CloudConfig& config) {
 void AmsConfiguration::clearCloudConfig(CloudConfig& config) {
 	config.enabled = false;
 	strcpy_P(config.hostname, PSTR("cloud.amsleser.no"));
-	config.proto = 0;
+	config.proto = 1;
 	config.port = 7443;
 	config.interval = 10;
 	memset(config.clientId, 0, 16);

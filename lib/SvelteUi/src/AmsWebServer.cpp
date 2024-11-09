@@ -972,7 +972,9 @@ void AmsWebServer::configurationJson() {
 		qsr ? "true" : "false",
 		qsk ? "true" : "false",
 		mqttConfig.stateUpdate,
-		mqttConfig.stateUpdateInterval
+		mqttConfig.stateUpdateInterval,
+		mqttConfig.timeout,
+		mqttConfig.keepalive
 	);
 	server.sendContent(buf);
 
@@ -1389,6 +1391,8 @@ void AmsWebServer::handleSave() {
 
 			mqtt.stateUpdate = server.arg(F("qt")).toInt() == 1;
 			mqtt.stateUpdateInterval = server.arg(F("qd")).toInt();
+			mqtt.timeout = server.arg(F("qi")).toInt();
+			mqtt.keepalive = server.arg(F("qk")).toInt();
 		} else {
 			config->clearMqtt(mqtt);
 		}

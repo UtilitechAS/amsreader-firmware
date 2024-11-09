@@ -100,6 +100,7 @@ bool AmsMqttHandler::connect() {
 	}
 
 	mqttConfigChanged = false;
+	mqtt.setTimeout(mqttConfig.timeout);
 	mqtt.begin(mqttConfig.host, mqttConfig.port, *actualClient);
 	String statusTopic = String(mqttConfig.publishTopic) + "/status";
 	mqtt.setWill(statusTopic.c_str(), "offline", true, 0);

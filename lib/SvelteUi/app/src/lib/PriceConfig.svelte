@@ -211,4 +211,4 @@
 </div>
 
 <Mask active={loading} message={translations.conf?.price?.mask_loading ?? "Loading"}/>
-<Mask active={saving} message={translations.conf?.price?.mask_loading ?? "Saving"}/>
+<Mask active={saving} message={translations.conf?.price?.mask_saving ?? "Saving"}/>

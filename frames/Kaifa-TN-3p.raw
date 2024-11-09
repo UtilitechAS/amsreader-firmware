@@ -32,3 +32,182 @@ C9 95 7E // CRC and end tag
 06 00 00 24 34 06 00 00 09 45 06 00 00 09 4F 06 00 00 09 3B 
 09 0C 07 E5 03 17 02 13 00 0A FF 80 00 00 06 01 34 3B 5D 06 00 00 00 00 06 00 00 09 36 06 00 3C 7A 98 DA 15 7E
 7E A0 79 01 02 01 10 80 93 E6 E7 00 0F 40 00 00 00 09 0C 07 E1 09 0E 04 15 1F 14 FF 80 00 00 02 0D 09 07 4B 46 4D 5F 30 30 31 09 10 36 39 37 30 36 33 31 34 30 31 37 35 33 39 38 35 09 08 4D 41 33 30 34 48 33 45 06 00 00 04 0C 06 00 00 00 00 06 00 00 00 00 06 00 00 00 4E 06 00 00 07 C1 06 00 00 0C 9E 06 00 00 0D 7E 06 00 00 09 5F 06 00 00 00 00 06 00 00 09 66 87 96 7E 
+
+
+01.10.24 19:00 ish:
+(D) READY to update (internal clock 16:59:58 UTC, meter clock: 00:00:00, list type 1, est: 1, using clock: 1)
+(V) HDLC frame:
+(V) 7E A0 78 01  02 01 10 C4  98 E6 E7 00  0F 40 00 00 
+(V) 00 09 0C 07  E8 0A 01 02  13 00 00 FF  80 00 00 02 
+(V) 0D 09 07 4B  46 4D 5F 30  30 31 09 10  36 39 37 30 
+(V) 36 33 31 34  30 37 32 36  32 39 38 36  09 07 4D 41 
+(V) 33 30 34 48  34 06 00 00  13 C0 06 00  00 00 00 06 
+(V) 00 00 00 00  06 00 00 01  D5 06 00 00  4C DF 06 00 
+(V) 00 05 0C 06  00 00 03 9B  06 00 00 09  34 06 00 00 
+(V) 09 69 06 00  00 09 59 18  EB 7E 
+(V) LLC frame:
+(V) E6 E7 00 0F  40 00 00 00  09 0C 07 E8  0A 01 02 13 
+(V) 00 00 FF 80  00 00 02 0D  09 07 4B 46  4D 5F 30 30 
+(V) 31 09 10 36  39 37 30 36  33 31 34 30  37 32 36 32 
+(V) 39 38 36 09  07 4D 41 33  30 34 48 34  06 00 00 13 
+(V) C0 06 00 00  00 00 06 00  00 00 00 06  00 00 01 D5 
+(V) 06 00 00 4C  DF 06 00 00  05 0C 06 00  00 03 9B 06 
+(V) 00 00 09 34  06 00 00 09  69 06 00 00  09 59 
+(V) DLMS frame:
+(V) 0F 40 00 00  00 09 0C 07  E8 0A 01 02  13 00 00 FF 
+(V) 80 00 00 02  0D 09 07 4B  46 4D 5F 30  30 31 09 10 
+(V) 36 39 37 30  36 33 31 34  30 37 32 36  32 39 38 36 
+(V) 09 07 4D 41  33 30 34 48  34 06 00 00  13 C0 06 00 
+(V) 00 00 00 06  00 00 00 00  06 00 00 01  D5 06 00 00 
+(V) 4C DF 06 00  00 05 0C 06  00 00 03 9B  06 00 00 09 
+(V) 34 06 00 00  09 69 06 00  00 09 59 
+(D) Received valid DLMS at 31
+(V) Using application data:
+(V) 02 0D 09 07  4B 46 4D 5F  30 30 31 09  10 36 39 37 
+(V) 30 36 33 31  34 30 37 32  36 32 39 38  36 09 07 4D 
+(V) 41 33 30 34  48 34 06 00  00 13 C0 06  00 00 00 00 
+(V) 06 00 00 00  00 06 00 00  01 D5 06 00  00 4C DF 06 
+(V) 00 00 05 0C  06 00 00 03  9B 06 00 00  09 34 06 00 
+(V) 00 09 69 06  00 00 09 59  
+(V) DLMS
+(D) READY to update (internal clock 17:00:01 UTC, meter clock: 00:00:00, list type 2, est: 1, using clock: 1)
+(V) HDLC frame:
+(V) 7E A0 27 01  02 01 10 5A  87 E6 E7 00  0F 40 00 00 
+(V) 00 09 0C 07  E8 0A 01 02  13 00 02 FF  80 00 00 02 
+(V) 01 06 00 00  13 C1 56 F5  7E 
+(V) LLC frame:
+(V) E6 E7 00 0F  40 00 00 00  09 0C 07 E8  0A 01 02 13 
+(V) 00 02 FF 80  00 00 02 01  06 00 00 13  C1 
+(V) DLMS frame:
+(V) 0F 40 00 00  00 09 0C 07  E8 0A 01 02  13 00 02 FF 
+(V) 80 00 00 02  01 06 00 00  13 C1 
+(D) Received valid DLMS at 31
+(V) Using application data:
+(V) 02 01 06 00  00 13 C1 
+(V) DLMS
+(D) READY to update (internal clock 17:00:02 UTC, meter clock: 00:00:00, list type 1, est: 1, using clock: 1)
+(V) HDLC frame:
+(V) 7E A0 27 01  02 01 10 5A  87 E6 E7 00  0F 40 00 00 
+(V) 00 09 0C 07  E8 0A 01 02  13 00 04 FF  80 00 00 02 
+(V) 01 06 00 00  13 BC F9 5A  7E 
+(V) LLC frame:
+(V) E6 E7 00 0F  40 00 00 00  09 0C 07 E8  0A 01 02 13 
+(V) 00 04 FF 80  00 00 02 01  06 00 00 13  BC 
+(V) DLMS frame:
+(V) 0F 40 00 00  00 09 0C 07  E8 0A 01 02  13 00 04 FF 
+(V) 80 00 00 02  01 06 00 00  13 BC 
+(D) Received valid DLMS at 31
+(V) Using application data:
+(V) 02 01 06 00  00 13 BC 
+(V) DLMS
+(D) READY to update (internal clock 17:00:04 UTC, meter clock: 00:00:00, list type 1, est: 1, using clock: 1)
+(V) HDLC frame:
+(V) 7E A0 27 01  02 01 10 5A  87 E6 E7 00  0F 40 00 00 
+(V) 00 09 0C 07  E8 0A 01 02  13 00 06 FF  80 00 00 02 
+(V) 01 06 00 00  13 BC 42 58  7E 
+(V) LLC frame:
+(V) E6 E7 00 0F  40 00 00 00  09 0C 07 E8  0A 01 02 13 
+(V) 00 06 FF 80  00 00 02 01  06 00 00 13  BC 
+(V) DLMS frame:
+(V) 0F 40 00 00  00 09 0C 07  E8 0A 01 02  13 00 06 FF 
+(V) 80 00 00 02  01 06 00 00  13 BC 
+(D) Received valid DLMS at 31
+(V) Using application data:
+(V) 02 01 06 00  00 13 BC 
+(V) DLMS
+(D) READY to update (internal clock 17:00:06 UTC, meter clock: 00:00:00, list type 1, est: 1, using clock: 1)
+(V) HDLC frame:
+(V) 7E A0 27 01  02 01 10 5A  87 E6 E7 00  0F 40 00 00 
+(V) 00 09 0C 07  E8 0A 01 02  13 00 08 FF  80 00 00 02 
+(V) 01 06 00 00  13 BB DC 21  7E 
+(V) LLC frame:
+(V) E6 E7 00 0F  40 00 00 00  09 0C 07 E8  0A 01 02 13 
+(V) 00 08 FF 80  00 00 02 01  06 00 00 13  BB 
+(V) DLMS frame:
+(V) 0F 40 00 00  00 09 0C 07  E8 0A 01 02  13 00 08 FF 
+(V) 80 00 00 02  01 06 00 00  13 BB 
+(D) Received valid DLMS at 31
+(V) Using application data:
+(V) 02 01 06 00  00 13 BB 
+(V) DLMS
+(D) READY to update (internal clock 17:00:08 UTC, meter clock: 00:00:00, list type 1, est: 1, using clock: 1)
+(V) HDLC frame:
+(V) 7E A0 9A 01  02 01 10 AA  A5 E6 E7 00  0F 40 00 00 
+(V) 00 09 0C 07  E8 0A 01 02  13 00 0A FF  80 00 00 02 
+(V) 12 09 07 4B  46 4D 5F 30  30 31 09 10  36 39 37 30 
+(V) 36 33 31 34  30 37 32 36  32 39 38 36  09 07 4D 41 
+(V) 33 30 34 48  34 06 00 00  13 C0 06 00  00 00 00 06 
+(V) 00 00 00 00  06 00 00 01  D5 06 00 00  4C DD 06 00 
+(V) 00 05 0E 06  00 00 03 90  06 00 00 09  34 06 00 00 
+(V) 09 69 06 00  00 09 59 09  0C 07 E8 0A  01 02 13 00 
+(V) 0A FF 80 00  00 06 02 8E  4B 5E 06 00  00 00 00 06 
+(V) 00 97 35 DE  06 00 08 97  2F FA E5 7E  
+(V) LLC frame:
+(V) E6 E7 00 0F  40 00 00 00  09 0C 07 E8  0A 01 02 13 
+(V) 00 0A FF 80  00 00 02 12  09 07 4B 46  4D 5F 30 30 
+(V) 31 09 10 36  39 37 30 36  33 31 34 30  37 32 36 32 
+(V) 39 38 36 09  07 4D 41 33  30 34 48 34  06 00 00 13 
+(V) C0 06 00 00  00 00 06 00  00 00 00 06  00 00 01 D5 
+(V) 06 00 00 4C  DD 06 00 00  05 0E 06 00  00 03 90 06 
+(V) 00 00 09 34  06 00 00 09  69 06 00 00  09 59 09 0C 
+(V) 07 E8 0A 01  02 13 00 0A  FF 80 00 00  06 02 8E 4B 
+(V) 5E 06 00 00  00 00 06 00  97 35 DE 06  00 08 97 2F 
+(V) 
+(V) DLMS frame:
+(V) 0F 40 00 00  00 09 0C 07  E8 0A 01 02  13 00 0A FF 
+(V) 80 00 00 02  12 09 07 4B  46 4D 5F 30  30 31 09 10 
+(V) 36 39 37 30  36 33 31 34  30 37 32 36  32 39 38 36 
+(V) 09 07 4D 41  33 30 34 48  34 06 00 00  13 C0 06 00 
+(V) 00 00 00 06  00 00 00 00  06 00 00 01  D5 06 00 00 
+(V) 4C DD 06 00  00 05 0E 06  00 00 03 90  06 00 00 09 
+(V) 34 06 00 00  09 69 06 00  00 09 59 09  0C 07 E8 0A 
+(V) 01 02 13 00  0A FF 80 00  00 06 02 8E  4B 5E 06 00 
+(V) 00 00 00 06  00 97 35 DE  06 00 08 97  2F 
+(D) Received valid DLMS at 31
+(V) Using application data:
+(V) 02 12 09 07  4B 46 4D 5F  30 30 31 09  10 36 39 37 
+(V) 30 36 33 31  34 30 37 32  36 32 39 38  36 09 07 4D 
+(V) 41 33 30 34  48 34 06 00  00 13 C0 06  00 00 00 00 
+(V) 06 00 00 00  00 06 00 00  01 D5 06 00  00 4C DD 06 
+(V) 00 00 05 0E  06 00 00 03  90 06 00 00  09 34 06 00 
+(V) 00 09 69 06  00 00 09 59  09 0C 07 E8  0A 01 02 13 
+(V) 00 0A FF 80  00 00 06 02  8E 4B 5E 06  00 00 00 00 
+(V) 06 00 97 35  DE 06 00 08  97 2F 
+(V) DLMS
+(D) READY to update (internal clock 17:00:12 UTC, meter clock: 17:00:10, list type 3, est: 1, using clock: 0)
+(D) Updating data storage using actual data
+(D) Clearing hours from 16 to 17
+(D) Clearing days from 1 to 1
+(D) Day is not happy
+(D)  - normal
+(I) Saving data
+(I) Saving energy accounting
+(W) Used 1249ms to read HAN port (true)
+(V) HDLC frame:
+(V) 7E A0 27 01  02 01 10 5A  87 E6 E7 00  0F 40 00 00 
+(V) 00 09 0C 07  E8 0A 01 02  13 00 0C FF  80 00 00 02 
+(V) 01 06 00 00  13 BC 15 50  7E 
+(V) LLC frame:
+(V) E6 E7 00 0F  40 00 00 00  09 0C 07 E8  0A 01 02 13 
+(V) 00 0C FF 80  00 00 02 01  06 00 00 13  BC 
+(V) DLMS frame:
+(V) 0F 40 00 00  00 09 0C 07  E8 0A 01 02  13 00 0C FF 
+(V) 80 00 00 02  01 06 00 00  13 BC 
+(D) Received valid DLMS at 31
+(V) Using application data:
+(V) 02 01 06 00  00 13 BC 
+(V) DLMS
+(D) NOT Ready to update (internal clock 17:00:12 UTC, meter clock: 00:00:00, list type 1, est: 0)
+(V) HDLC frame:
+(V) 7E A0 27 01  02 01 10 5A  87 E6 E7 00  0F 40 00 00 
+(V) 00 09 0C 07  E8 0A 01 02  13 00 0E FF  80 00 00 02 
+(V) 01 06 00 00  13 B7 7D EC  7E 
+(V) LLC frame:
+(V) E6 E7 00 0F  40 00 00 00  09 0C 07 E8  0A 01 02 13 
+(V) 00 0E FF 80  00 00 02 01  06 00 00 13  B7 
+(V) DLMS frame:
+(V) 0F 40 00 00  00 09 0C 07  E8 0A 01 02  13 00 0E FF 
+(V) 80 00 00 02  01 06 00 00  13 B7 
+(D) Received valid DLMS at 31
+(V) Using application data:
+(V) 02 01 06 00  00 13 B7 

@@ -554,7 +554,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         }
 
         if(meterType != AmsTypeUnknown) {
-            meterId = String((const uint8_t*)ctx.system_title, 8);
+            meterId = String((const char*)ctx.system_title);
         }
     }
 

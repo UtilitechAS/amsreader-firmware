@@ -410,7 +410,7 @@ void setup() {
 
 	float vcc = hw.getVcc();
 
-	debugI_P(PSTR("AMS bridge started"));
+	debugI_P(PSTR("AMS reader %s started"), FirmwareVersion::VersionString);
 	debugI_P(PSTR("Voltage: %.2fV"), vcc);
 	if(updater.relocateOrRepartitionIfNecessary()) {
 		ESP.restart();
@@ -435,6 +435,12 @@ void setup() {
 	WiFi.onEvent(WiFiEvent);
 	#endif
 
+	UpgradeInformation upinfo;
+	if(config.getUpgradeInformation(upinfo)) {
+		updater.setUpgradeInformation(upinfo);
+	}
+	yield();
+
 	bool hasFs = false;
 #if defined(ESP32)
 	WiFi.onEvent(WiFiEvent);
@@ -446,6 +452,7 @@ void setup() {
 	hasFs = LittleFS.begin();
 #endif
 	yield();
+
 
 	if(hasFs) {
 		#if defined(ESP8266)
@@ -495,11 +502,6 @@ void setup() {
 	ea.load();
 	ea.setPriceService(ps);
 	ws.setup(&config, &gpioConfig, &meterState, &ds, &ea, &rtp, &updater);
-
-	UpgradeInformation upinfo;
-	if(config.getUpgradeInformation(upinfo)) {
-		updater.setUpgradeInformation(upinfo);
-	}
 
 	UiConfig ui;
 	if(config.getUiConfig(ui)) {
@@ -703,6 +705,14 @@ void loop() {
 				updater.getUpgradeInformation(upinfo);
 				config.setUpgradeInformation(upinfo);
 				updater.ackUpgradeInformationChanged();
+				
+				if(upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_SIGNAL) {
+					debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);
+					upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
+					config.setUpgradeInformation(upinfo);
+					delay(500);
+					ESP.restart();
+				}
 			}
 			end = millis();
 			if(end-start > SLOW_PROC_TRIGGER_MS) {

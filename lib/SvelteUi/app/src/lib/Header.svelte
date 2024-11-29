@@ -21,6 +21,7 @@
             upgrade(sysinfo.upgrade.n);
             sysinfoStore.update(s => {
               s.upgrade.t = sysinfo.upgrade.n;
+              s.upgrade.p = 0;
               s.upgrading = true;
               return s;
             });

@@ -29,7 +29,8 @@
 #define AMS_UPDATE_ERR_MD5 6
 #define AMS_UPDATE_ERR_ACTIVATE 7
 #define AMS_UPDATE_ERR_REBOOT 64
-#define AMS_UPDATE_ERR_SUCCESS 250
+#define AMS_UPDATE_ERR_SUCCESS_SIGNAL 122
+#define AMS_UPDATE_ERR_SUCCESS_CONFIRMED 123
 
 #define UPDATE_BUF_SIZE 4096
 
@@ -47,6 +48,7 @@ public:
     bool setTargetVersion(const char* version);
     void getUpgradeInformation(UpgradeInformation&);
     float getProgress();
+    bool activateDownloadedFirmware();
 
     void setUpgradeInformation(UpgradeInformation&);
     bool isUpgradeInformationChanged();
@@ -91,7 +93,7 @@ private:
     bool fetchNextVersion();
     bool fetchVersionDetails();
     bool fetchFirmwareChunk(HTTPClient& http);
-    bool writeBufferToFlash(size_t bytes);
+    bool writeBufferToFlash();
     bool verifyChecksum();
     bool activateNewFirmware();
     bool writeUpdateStatus();

@@ -73,6 +73,7 @@ void AmsFirmwareUpdater::setUpgradeInformation(UpgradeInformation& upinfo) {
         } else {
             updateStatus.errorCode = AMS_UPDATE_ERR_REBOOT;
         }
+        updateStatusChanged = true;
     }
 }
 
@@ -119,6 +120,7 @@ void AmsFirmwareUpdater::loop() {
             if(!fetchFirmwareChunk(http)) {
                 if(updateStatus.retry_count++ == 3) {
                     updateStatus.errorCode = AMS_UPDATE_ERR_FETCH;
+                    updateStatusChanged = true;
                 }
                 writeUpdateStatus();
                 http.end();
@@ -145,7 +147,8 @@ void AmsFirmwareUpdater::loop() {
             size_t bytes = UPDATE_BUF_SIZE; // To start first loop
             while(bytes > 0 && client->available() > 0) {
                 start = millis();
-                bytes = client->readBytes(buf, UPDATE_BUF_SIZE);
+                memset(buf, 0, UPDATE_BUF_SIZE);
+                bytes = client->readBytes(buf, min((uint32_t) UPDATE_BUF_SIZE, updateStatus.size - (updateStatus.block_position * UPDATE_BUF_SIZE)));
                 end = millis();
                 #if defined(AMS_REMOTE_DEBUG)
                 if (debugger->isActive(RemoteDebug::DEBUG))
@@ -153,7 +156,7 @@ void AmsFirmwareUpdater::loop() {
                 debugger->printf_P(PSTR("read buffer took %lums (%lu bytes, %d left)\n"), end-start, bytes, client->available());
                 if(bytes > 0) {
                     start = millis();
-                    if(!writeBufferToFlash(bytes)) {
+                    if(!writeBufferToFlash()) {
                         http.end();
                         return;
                     }
@@ -181,19 +184,23 @@ void AmsFirmwareUpdater::loop() {
             #endif
             debugger->printf_P(PSTR("http end took %lums\n"), end-start);
         } else if(updateStatus.block_position * UPDATE_BUF_SIZE >= updateStatus.size) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::INFO))
+            #endif
+            debugger->printf_P(PSTR("Firmware download complete\n"));
+
             if(!verifyChecksum()) {
                 updateStatus.errorCode = AMS_UPDATE_ERR_MD5;
-                writeUpdateStatus();
+                updateStatusChanged = true;
                 return;
             }
             if(!activateNewFirmware()) {
                 updateStatus.errorCode = AMS_UPDATE_ERR_ACTIVATE;
-                writeUpdateStatus();
+                updateStatusChanged = true;
                 return;
             }
-            updateStatus.errorCode = AMS_UPDATE_ERR_SUCCESS;
-            memset(updateStatus.toVersion, 0, sizeof(updateStatus.toVersion));
-            writeUpdateStatus();
+            updateStatus.errorCode = AMS_UPDATE_ERR_SUCCESS_SIGNAL;
+            updateStatusChanged = true;
         }
     } else {
         uint32_t seconds = millis() / 1000.0;
@@ -327,7 +334,7 @@ bool AmsFirmwareUpdater::writeUpdateStatus() {
 }
 
 #if defined(ESP32)
-bool AmsFirmwareUpdater::writeBufferToFlash(size_t bytes) {
+bool AmsFirmwareUpdater::writeBufferToFlash() {
     uint32_t offset = updateStatus.block_position * UPDATE_BUF_SIZE;
     const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
     esp_err_t eraseErr = esp_partition_erase_range(partition, offset, UPDATE_BUF_SIZE);
@@ -339,12 +346,12 @@ bool AmsFirmwareUpdater::writeBufferToFlash(size_t bytes) {
         updateStatus.errorCode = AMS_UPDATE_ERR_ERASE;
         return false;
     }
-    esp_err_t writeErr = esp_partition_write(partition, offset, buf, bytes);
+    esp_err_t writeErr = esp_partition_write(partition, offset, buf, UPDATE_BUF_SIZE);
     if(writeErr != ESP_OK) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::ERROR))
         #endif
-        debugger->printf_P(PSTR("esp_partition_write(%s, %lu, buf, %lu) failed with %d\n"), partition->label, offset, bytes, writeErr);
+        debugger->printf_P(PSTR("esp_partition_write(%s, %lu, buf, %lu) failed with %d\n"), partition->label, offset, UPDATE_BUF_SIZE, writeErr);
         updateStatus.errorCode = AMS_UPDATE_ERR_WRITE;
         return false;
     }
@@ -354,10 +361,14 @@ bool AmsFirmwareUpdater::writeBufferToFlash(size_t bytes) {
 
 bool AmsFirmwareUpdater::activateNewFirmware() {
     const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
-    if(esp_ota_set_boot_partition(partition) != ESP_OK) {
+    esp_err_t ret = esp_ota_set_boot_partition(partition);
+    if(ret != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to activate firmware (%d)\n"), ret);
         return false;
     }
-    ESP.restart();
     return true;
 }
 
@@ -601,8 +612,13 @@ bool AmsFirmwareUpdater::copyFile(fs::LittleFSFS* srcFs, fs::LittleFSFS* dstFs, 
 bool AmsFirmwareUpdater::verifyChecksum() {
     const esp_partition_t *partition = esp_ota_get_next_update_partition(NULL);
     if (!partition) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Partition for update not found\n"));
         return false;
     }
+
     MD5Builder md5;
     md5.begin();
     uint32_t offset = 0;
@@ -611,6 +627,10 @@ bool AmsFirmwareUpdater::verifyChecksum() {
         size_t bytes = (lengthLeft < UPDATE_BUF_SIZE) ? lengthLeft : UPDATE_BUF_SIZE;
         if(esp_partition_read(partition, offset, buf, bytes) != ESP_OK) {
             updateStatus.errorCode = AMS_UPDATE_ERR_READ;
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("Unable to read for MD5, offset %lu, bytes %lu\n"), offset, bytes);
             return false;
         }
         md5.add((uint8_t*) buf, bytes);
@@ -620,6 +640,15 @@ bool AmsFirmwareUpdater::verifyChecksum() {
         delay(1);
     }
     md5.calculate();
-    return !this->md5.isEmpty() && this->md5.equals(md5.toString());
+
+    if(md5.toString().equals(this->md5)) {
+        return true;
+    } else {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("MD5 %s does not match expected %s\n"), md5.toString().c_str(), this->md5.c_str());
+        return false;
+    }
 }
 #endif

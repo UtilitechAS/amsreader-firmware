@@ -8,6 +8,16 @@
 
 #include <Stream.h>
 
+#define DATA_PARSE_OK 0
+#define DATA_PARSE_FAIL -1
+#define DATA_PARSE_INCOMPLETE -2
+#define DATA_PARSE_FOOTER_CHECKSUM_ERROR -5
+
+struct KmpParserContext {
+    uint8_t type;
+    uint16_t length;
+};
+
 struct KmpDataHolder {
     uint32_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
     float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;
@@ -22,7 +32,25 @@ struct KmpDataHolder {
 
 class KmpTalker {
 public:
-    KmpTalker(Stream *hanSerial);
+    KmpTalker(Stream *hanSerial, uint8_t* hanBuffer, uint16_t hanBufferSize);
     bool loop();
     void getData(KmpDataHolder& data);
+    int getLastError();
+
+private:
+    Stream *hanSerial;
+    uint8_t *hanBuffer = NULL;
+    uint16_t hanBufferSize = 0;
+
+    bool dataAvailable = false;
+    int len = 0;
+    int pos = DATA_PARSE_INCOMPLETE;
+    int lastError = DATA_PARSE_OK;
+    bool serialInit = false;
+
+    uint64_t lastUpdate = 0;
+    uint8_t batch = 0;
+    KmpParserContext ctx;
+
+    KmpDataHolder state;
 };

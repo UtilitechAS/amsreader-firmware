@@ -20,7 +20,7 @@
 #include "SoftwareSerial.h"
 #endif
 
-const uint32_t AUTO_BAUD_RATES[] = { 2400, 115200 };
+const uint32_t AUTO_BAUD_RATES[] = { 2400, 9600, 115200 };
 
 class PassiveMeterCommunicator : public MeterCommunicator  {
 public:
@@ -34,6 +34,7 @@ public:
     AmsData* getData(AmsData& meterState);
     int getLastError();
     bool isConfigChanged();
+    void ackConfigChanged();
     void getCurrentConfig(MeterConfig& meterConfig);
     void setPassthroughMqttHandler(PassthroughMqttHandler*);
 

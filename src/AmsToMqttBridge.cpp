@@ -287,11 +287,6 @@ void rxerr(int err) {
 	if(passiveMc != NULL) {
 		passiveMc->rxerr(err);
 	}
-	#if defined(AMS_KMP)
-	if(kmpMc != NULL) {
-		kmpMc->rxerr(err);
-	}
-	#endif
 }
 #endif
 
@@ -706,7 +701,7 @@ void loop() {
 					}
 					NtpConfig ntp;
 					config.getNtpConfig(ntp);
-					if(cloud->setup(cc, meterConfig, sysConfig, ntp, &hw, &rdc)) {
+					if(cloud->setup(cc, meterConfig, sysConfig, ntp, &hw, &rdc, ps)) {
 						config.setCloudConfig(cc);
 					}
 					cloud->setConnectionHandler(ch);
@@ -1314,6 +1309,7 @@ bool readHanPort() {
 	if(mc->isConfigChanged()) {
 		mc->getCurrentConfig(meterConfig);
 		config.setMeterConfig(meterConfig);
+		mc->ackConfigChanged();
 	}
 	meterState.setLastError(mc->getLastError());
 
@@ -1366,29 +1362,35 @@ void handleDataSuccess(AmsData* data) {
 		}
 	}
 
+	bool wasCounterEstimated = meterState.isCounterEstimated();
 	meterState.apply(*data);
 	rtp.update(meterState);
 
+	time_t dataUpdateTime = now;
+	if(abs(now - meterTime) < 300) {
+		dataUpdateTime = meterTime;
+	}
+
+	tmElements_t tm, mtm;
+	breakTime(now, tm);
+	breakTime(meterTime, mtm);
+
 	bool saveData = false;
-	if(!ds.isHappy(now) && now > FirmwareVersion::BuildEpoch) { // Must use "isHappy()" in case day state gets reset and lastTimestamp is "now"
-		tmElements_t tm, mtm;
-		breakTime(now, tm);
-		breakTime(meterTime, mtm);
-		if(data->getListType() >= 3) {
-			if(tm.Minute == 0) {
-				debugD_P(PSTR("Updating data storage, triggered by internal clock %02d:%02d:%02d UTC (Meter clock: %02d:%02d:%02d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second);
-				saveData = ds.update(data, now);
-			} else if(mtm.Minute == 0 && meterTime > FirmwareVersion::BuildEpoch) {
-				debugD_P(PSTR("Updating data storage, triggered by meter clock %02d:%02d:%02d UTC (Internal clock: %02d:%02d:%02d)"), mtm.Hour, mtm.Minute, mtm.Second, tm.Hour, tm.Minute, tm.Second);
-				saveData = ds.update(data, meterTime);
-			}
+	if(!ds.isHappy(dataUpdateTime) && dataUpdateTime > FirmwareVersion::BuildEpoch) { // Must use "isHappy()" in case day state gets reset and lastTimestamp is "now"
+		debugD_P(PSTR("READY to update (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d, list type %d, est: %d, using clock: %d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second, data->getListType(), wasCounterEstimated, dataUpdateTime == now);
+		tmElements_t dtm;
+		breakTime(dataUpdateTime, dtm);
+		if(dtm.Minute < 2 && data->getListType() >= 3) {
+			debugD_P(PSTR("Updating data storage using actual data"));
+			saveData = ds.update(data, dataUpdateTime);
+
 			#if defined(_CLOUDCONNECTOR_H)
 			if(saveData && cloud != NULL) cloud->forceUpdate();
 			#endif
-		} else if(tm.Minute == 1) {
+		} else if(dtm.Minute == 2) {
 			debugW_P(PSTR("Did not receive necessary data for previous hour, clearing"));
 			AmsData nullData;
-			saveData = ds.update(&nullData, now);
+			saveData = ds.update(&nullData, dataUpdateTime);
 		}
 		if(saveData) {
 			debugI_P(PSTR("Saving data"));
@@ -1396,6 +1398,8 @@ void handleDataSuccess(AmsData* data) {
 				debugW_P(PSTR("Unable to save data storage"));
 			}
 		}
+	} else {
+		debugD_P(PSTR("NOT Ready to update (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d, list type %d, est: %d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second, data->getListType(), wasCounterEstimated);
 	}
 
 	if(ea.update(data)) {
@@ -1666,6 +1670,7 @@ void configFileParse() {
 			meter.baud = String(buf+10).toInt();
 		} else if(strncmp_P(buf, PSTR("meterParity "), 12) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.parity = 0;
 			if(strncmp_P(buf+12, PSTR("7N1"), 3) == 0) meter.parity = 2;
 			if(strncmp_P(buf+12, PSTR("8N1"), 3) == 0) meter.parity = 3;
 			if(strncmp_P(buf+12, PSTR("8N2"), 3) == 0) meter.parity = 7;

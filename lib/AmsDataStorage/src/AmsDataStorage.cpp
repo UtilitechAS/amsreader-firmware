@@ -67,11 +67,31 @@ bool AmsDataStorage::update(AmsData* data, time_t now) {
     uint64_t exportCounter = data->getActiveExportCounter() * 1000;
 
     // Clear hours between last update and now
-    if(day.lastMeterReadTime > now) {
+    if(!isDayHappy(now) && day.lastMeterReadTime > now) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Day was updated in the future, resetting\n"));
         day.activeImport = importCounter;
         day.activeExport = exportCounter;
         day.lastMeterReadTime = now;
-    } else if((importCounter > 0 && day.activeImport == 0) || now - day.lastMeterReadTime > 86400) {
+    } else if(importCounter > 0 && day.activeImport == 0) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Initializing day data\n"));
+        day.activeImport = importCounter;
+        day.activeExport = exportCounter;
+        day.lastMeterReadTime = now;
+        for(int i = 0; i<24; i++) {
+            setHourImport(i, 0);
+            setHourExport(i, 0);
+        }
+    } else if(now - day.lastMeterReadTime > 86400) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Day was updated to long ago, clearing\n"));
         day.activeImport = importCounter;
         day.activeExport = exportCounter;
         day.lastMeterReadTime = now;
@@ -83,6 +103,10 @@ bool AmsDataStorage::update(AmsData* data, time_t now) {
         tmElements_t last;
         breakTime(day.lastMeterReadTime, last);
         uint8_t endHour = utc.Hour;
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Clearing hours from %d to %d\n"), last.Hour, endHour);
         if(last.Hour > utc.Hour){
             for(int i = 0; i < utc.Hour; i++) {
                 setHourImport(i, 0);
@@ -97,11 +121,31 @@ bool AmsDataStorage::update(AmsData* data, time_t now) {
     }
 
     // Clear days between last update and now
-    if(month.lastMeterReadTime > now) {
+    if(!isMonthHappy(now) && month.lastMeterReadTime > now) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Month was updated in the future, resetting\n"));
         month.activeImport = importCounter;
         month.activeExport = exportCounter;
         month.lastMeterReadTime = now;
-    } else if((importCounter > 0 && month.activeImport == 0) || now - month.lastMeterReadTime > 2682000) {
+    } else if(importCounter > 0 && month.activeImport == 0) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Initializing month data\n"));
+        month.activeImport = importCounter;
+        month.activeExport = exportCounter;
+        month.lastMeterReadTime = now;
+        for(int i = 1; i<=31; i++) {
+            setDayImport(i, 0);
+            setDayExport(i, 0);
+        }
+    } else if(now - month.lastMeterReadTime > 2682000) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Month was updated to long ago, clearing\n"));
         month.activeImport = importCounter;
         month.activeExport = exportCounter;
         month.lastMeterReadTime = now;
@@ -113,6 +157,10 @@ bool AmsDataStorage::update(AmsData* data, time_t now) {
         tmElements_t last;
         breakTime(tz->toLocal(month.lastMeterReadTime), last);
         uint8_t endDay = ltz.Day;
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+            debugger->printf_P(PSTR("Clearing days from %d to %d\n"), last.Day, endDay);
         if(last.Day > ltz.Day) {
             for(int i = 1; i < ltz.Day; i++) {
                 setDayImport(i, 0);

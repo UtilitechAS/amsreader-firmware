@@ -72,7 +72,10 @@ size_t EntsoeA44Parser::write(uint8_t byte) {
     } else if(docPos == DOCPOS_POSITION) {
         if(byte == '<') {
             buf[pos] = '\0';
-            pointNum = String(buf).toInt() - 1;
+            long pn = String(buf).toInt() - 1;
+            if(pn < 25) {
+                pointNum = pn;
+            }
             docPos = DOCPOS_SEEK;
             pos = 0;
         } else {
@@ -81,7 +84,10 @@ size_t EntsoeA44Parser::write(uint8_t byte) {
     } else if(docPos == DOCPOS_AMOUNT) {
         if(byte == '<') {
             buf[pos] = '\0';
-            points[pointNum] = String(buf).toFloat();
+            float val = String(buf).toFloat();
+            for(uint8_t i = pointNum; i < 25; i++) {
+                points[i] = val;
+            }
             docPos = DOCPOS_SEEK;
             pos = 0;
         } else {

@@ -47,6 +47,10 @@ bool PulseMeterCommunicator::isConfigChanged() {
     return this->configChanged;
 }
 
+void PulseMeterCommunicator::ackConfigChanged() {
+    configChanged = false;
+}
+
 void PulseMeterCommunicator::getCurrentConfig(MeterConfig& meterConfig) {
     meterConfig = this->meterConfig;
 }

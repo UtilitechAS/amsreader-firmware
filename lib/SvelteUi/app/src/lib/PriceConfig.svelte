@@ -1,7 +1,7 @@
 <script>
     import { priceConfigStore, getPriceConfig } from './ConfigurationStore'
     import { translationsStore } from './TranslationService';
-    import { wiki } from './Helpers.js';
+    import { wiki, zeropad } from './Helpers.js';
     import Mask from './Mask.svelte'
     import {  navigate } from 'svelte-navigator';
 
@@ -170,7 +170,7 @@
                         <select name="rsm" class="in-m" bind:value={c.s.m}>
                             <option value={0}>-</option>
                             {#each {length: 12} as _,i}
-                                <option value={i+1}>{translations.months?.[i]}</option>
+                                <option value={i+1}>{translations.months ? translations.months?.[i] : zeropad(i+1)}</option>
                             {/each}
                         </select>
                         <input class="in-m" disabled value="to" style="width: 20px;color:#888;"/>
@@ -183,7 +183,7 @@
                         <select name="rem" class="in-l" bind:value={c.e.m}>
                             <option value={0}>-</option>
                             {#each {length: 12} as _,i}
-                                <option value={i+1}>{translations.months?.[i]}</option>
+                                <option value={i+1}>{translations.months ? translations.months?.[i] : zeropad(i+1)}</option>
                             {/each}
                         </select>
                     </div>
@@ -211,4 +211,4 @@
 </div>
 
 <Mask active={loading} message={translations.conf?.price?.mask_loading ?? "Loading"}/>
-<Mask active={saving} message={translations.conf?.price?.mask_loading ?? "Saving"}/>
+<Mask active={saving} message={translations.conf?.price?.mask_saving ?? "Saving"}/>

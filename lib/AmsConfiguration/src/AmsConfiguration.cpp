@@ -147,10 +147,14 @@ bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_MQTT_START, config);
 		EEPROM.end();
-		if(config.magic != 0x7B) {
-			config.stateUpdate = false;
-			config.stateUpdateInterval = 10;
-			config.magic = 0x7B;
+		if(config.magic != 0x9C) {
+			if(config.magic != 0x7B) {
+				config.stateUpdate = false;
+				config.stateUpdateInterval = 10;
+			}
+			config.timeout = 1000;
+			config.keepalive = 60;
+			config.magic = 0x9C;
 		}
 		return true;
 	} else {
@@ -183,6 +187,10 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 	stripNonAscii((uint8_t*) config.subscribeTopic, 64);
 	stripNonAscii((uint8_t*) config.username, 128);
 	stripNonAscii((uint8_t*) config.password, 256);
+	if(config.timeout < 500) config.timeout = 1000;
+	if(config.timeout > 10000) config.timeout = 1000;
+	if(config.keepalive < 5) config.keepalive = 60;
+	if(config.keepalive > 240) config.keepalive = 60;
 
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_MQTT_START, config);
@@ -205,6 +213,8 @@ void AmsConfiguration::clearMqtt(MqttConfig& config) {
 	config.magic = 0x7B;
 	config.stateUpdate = false;
 	config.stateUpdateInterval = 10;
+	config.timeout = 1000;
+	config.keepalive = 60;
 }
 
 void AmsConfiguration::setMqttChanged() {
@@ -818,6 +828,7 @@ bool AmsConfiguration::getCloudConfig(CloudConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_CLOUD_START, config);
 		EEPROM.end();
+		if(config.proto > 2) config.proto = 0;
 		return true;
 	} else {
 		clearCloudConfig(config);
@@ -831,6 +842,7 @@ bool AmsConfiguration::setCloudConfig(CloudConfig& config) {
 		cloudChanged |= config.enabled != existing.enabled;
 		cloudChanged |= config.interval!= existing.interval;
 		cloudChanged |= config.port!= existing.port;
+		cloudChanged |= config.proto!= existing.proto;
 		cloudChanged |= strcmp(config.hostname, existing.hostname) != 0;
 		cloudChanged |= memcmp(config.clientId, existing.clientId, 16) != 0;
 	} else {
@@ -849,6 +861,7 @@ bool AmsConfiguration::setCloudConfig(CloudConfig& config) {
 void AmsConfiguration::clearCloudConfig(CloudConfig& config) {
 	config.enabled = false;
 	strcpy_P(config.hostname, PSTR("cloud.amsleser.no"));
+	config.proto = 1;
 	config.port = 7443;
 	config.interval = 10;
 	memset(config.clientId, 0, 16);

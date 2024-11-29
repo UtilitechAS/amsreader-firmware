@@ -598,15 +598,15 @@
             <div class="my-1 flex">
                 <div>
                     {translations.conf?.mqtt?.id ?? "Client ID"}<br/>
-                    <input name="qc" bind:value={configuration.q.c} type="text" class="in-f w-full"/>
+                    <input name="qc" bind:value={configuration.q.c} type="text" class="in-f w-full" required={configuration.q.h}/>
                 </div>
                 <div>
                     {translations.conf?.mqtt?.payload ?? "Payload"}<br/>
                     <select name="qm" bind:value={configuration.q.m} class="in-l">
                         <option value={1}>Raw (minimal)</option>
                         <option value={2}>Raw (full)</option>
-                        <option value={3}>{translations.conf?.mqtt?.domoticz?.title ?? "Domoticz"}</option>
-                        <option value={4}>{translations.conf?.mqtt?.ha?.title ?? "Home-Assistant"}</option>
+                        <option value={3}>Domoticz</option>
+                        <option value={4}>Home-Assistant</option>
                         <option value={0}>JSON (classic)</option>
                         <option value={5}>JSON (multi topic)</option>
                         <option value={6}>JSON (flat)</option>
@@ -620,13 +620,21 @@
             </div>
             <div class="my-1">
                 {translations.conf?.mqtt?.update ?? "Update method"}
-                <span class="float-right">Interval</span>
+                <span class="float-right">{translations.conf?.mqtt?.interval ?? "Interval"}</span>
                 <div class="flex">
                     <select name="qt" bind:value={configuration.q.t} class="in-f w-1/2">
-                        <option value={0}>Real time</option>
-                        <option value={1}>Interval</option>
+                        <option value={0}>{translations.conf?.mqtt?.realtime ?? "Real time"}</option>
+                        <option value={1}>{translations.conf?.mqtt?.interval ?? "Interval"}</option>
                     </select>
                     <input name="qd" bind:value={configuration.q.d} type="number" min="1" max="3600" class="in-l tr w-1/2" disabled={configuration?.q?.t != 1}/>
+                </div>
+            </div>
+            <div class="my-1">
+                {translations.conf?.mqtt?.timeout ?? "Timeout"}
+                <span class="float-right">{translations.conf?.mqtt?.keepalive ?? "Keep-alive"}</span>
+                <div class="flex">
+                    <input name="qi" bind:value={configuration.q.i} type="number" min="500" max="10000" class="in-f tr w-1/2"/>
+                    <input name="qk" bind:value={configuration.q.k} type="number" min="5" max="180" class="in-l tr w-1/2"/>
                 </div>
             </div>
         </div>
@@ -682,10 +690,22 @@
                 <input type="hidden" name="c" value="true"/>
                 <div class="my-1">
                     <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> {translations.conf?.cloud?.ams ?? "AMS reader cloud"}</label>
-                    {#if cloudenabled}
-                        <button type="button" on:click={cloudBind} class="text-blue-500 ml-6">Connect to my cloud account</button>
+                    {#if configuration.c.e}
+                        <div class="ml-6">
+                            <label for="cp">Protocol</label>
+                            <select name="cp" bind:value={configuration.c.p} class="in-s">
+                                {#if configuration.c.p == 0}
+                                <option value={0} title="No longer recommended">UDP</option>
+                                {/if}
+                                <option value={1}>TCP</option>
+                                <option value={2}>HTTP</option>
+                            </select>
+                        </div>
+                        {#if cloudenabled}
+                            <button type="button" on:click={cloudBind} class="text-blue-500 ml-6">Connect device to my cloud account</button>
+                        {/if}
                     {/if}
-                </div>
+                    </div>
                 <div class="my-1">
                     <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> {translations.conf?.cloud?.es ?? "Energy Speedometer"}</label>
                     {#if configuration?.c?.es}

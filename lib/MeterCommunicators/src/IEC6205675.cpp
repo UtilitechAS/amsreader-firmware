@@ -18,7 +18,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
     TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
     Timezone tz(CEST, CET);
 
-    this->packageTimestamp = ctx.timestamp;
+    this->packageTimestamp = ctx.timestamp == 0 ? time(nullptr) : ctx.timestamp;
 
     val = getNumber(AMS_OBIS_ACTIVE_IMPORT, sizeof(AMS_OBIS_ACTIVE_IMPORT), ((char *) (d)));
     if(val == NOVALUE) {
@@ -289,14 +289,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 }
             } 
         }
-        // Try system title
-        if(meterType == AmsTypeUnknown) {
-            if(memcmp(ctx.system_title, "SAGY", 4) == 0) {
-                meterType = AmsTypeSagemcom;
-            } else if(memcmp(ctx.system_title, "KFM", 3) == 0) {
-                meterType = AmsTypeKaifa;
-            }
-        }
 
         if(this->packageTimestamp > 0) {
             if(meterType == AmsTypeAidon || meterType == AmsTypeKamstrup) {
@@ -404,10 +396,10 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         if(meterTs != NULL) {
             AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
             time_t ts = decodeCosemDateTime(amst->dt);
-            if(meterType == AmsTypeAidon || meterType == AmsTypeKamstrup) {
-                meterTimestamp = ts - 3600;
-            } else {
-                meterTimestamp = ts;
+            if(amst->dt.deviation == 0x8000) { // Deviation not specified, adjust from localtime to UTC
+                meterTimestamp = tz.toUTC(ts);
+            } else if(meterType == AmsTypeAidon) {
+                meterTimestamp = ts - 3600; // 21.09.24, the clock is now correct
             }
         }
 
@@ -551,6 +543,21 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         lastUpdateMillis = millis64();
     }
 
+    // Try system title
+    if(meterType == AmsTypeUnknown) {
+        if(memcmp(ctx.system_title, "SAGY", 4) == 0) {
+            meterType = AmsTypeSagemcom;
+        } else if(memcmp(ctx.system_title, "KFM", 3) == 0) {
+            meterType = AmsTypeKaifa;
+        } else if(memcmp(ctx.system_title, "ISK", 3) == 0) {
+            meterType = AmsTypeIskra;
+        }
+
+        if(meterType != AmsTypeUnknown) {
+            meterId = String((const char*)ctx.system_title);
+        }
+    }
+
     if(meterConfig->wattageMultiplier > 0) {
         activeImportPower = activeImportPower > 0 ? activeImportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
         activeExportPower = activeExportPower > 0 ? activeExportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
@@ -572,6 +579,12 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         activeExportCounter = activeExportCounter > 0 ? activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         reactiveImportCounter = reactiveImportCounter > 0 ? reactiveImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         reactiveExportCounter = reactiveExportCounter > 0 ? reactiveExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l1activeImportCounter = l1activeImportCounter > 0 ? l1activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l2activeImportCounter = l2activeImportCounter > 0 ? l2activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l3activeImportCounter = l3activeImportCounter > 0 ? l3activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l1activeExportCounter = l1activeExportCounter > 0 ? l1activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l2activeExportCounter = l2activeExportCounter > 0 ? l2activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        l3activeExportCounter = l3activeExportCounter > 0 ? l3activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
     }
 
     threePhase = l1voltage > 0 && l2voltage > 0 && l3voltage > 0;

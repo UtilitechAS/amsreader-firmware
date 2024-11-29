@@ -50,7 +50,7 @@ CloudConnector::CloudConnector(Stream* debugger) {
     sprintf_P(this->apmac, PSTR("%02X:%02X:%02X:%02X:%02X:%02X"), apmac[0], apmac[1], apmac[2], apmac[3], apmac[4], apmac[5]);
 }
 
-bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc) {
+bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc, PriceService* ps) {
     bool ret = false;
     #if defined(ESP32)
     if(!ESPRandom::isValidV4Uuid(config.clientId)) {
@@ -63,6 +63,7 @@ bool CloudConnector::setup(CloudConfig& config, MeterConfig& meter, SystemConfig
     this->config = config;
     this->hw = hw;
     this->rdc = rdc;
+    this->ps = ps;
 
     this->boardType = system.boardType;
     strcpy(this->timezone, ntp.timezone);
@@ -200,6 +201,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
         pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"seed\":\"%s\""), seed.c_str());
     }
 
+    bool sendData = true;
     if(lastUpdate == 0) {
         seed.clear();
         if(mainFuse > 0 && distributionSystem > 0) {
@@ -256,8 +258,62 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             dns2.toString().c_str()
         );
     } else if(lastPriceConfig == 0) {
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"price\":{\"area\":\"%s\",\"currency\":\"%s\"}"), priceConfig.area, priceConfig.currency);
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"price\":{\"area\":\"%s\",\"currency\":\"%s\",\"modifiers\":["), priceConfig.area, priceConfig.currency);
+        if(ps != NULL) {
+            std::vector<PriceConfig> pc = ps->getPriceConfig();
+            if(pc.size() > 0) {
+                for(uint8_t i = 0; i < pc.size(); i++) {
+                    PriceConfig& p = pc.at(i);
+
+                    String days;
+                    for(uint8_t d = 0; d < 7; d++) {
+                        if((p.days >> d) & 0x1 == 0x1) {
+                            days += String(d, 10) + ",";
+                        }
+                    }
+                    days = days.substring(0, days.length()-1);
+
+                    String hours;
+                    for(uint8_t h = 0; h < 24; h++) {
+                        if((p.hours >> h) & 0x1 == 0x1) {
+                            hours += String(h, 10) + ",";
+                        }
+                    }
+                    hours = hours.substring(0, hours.length()-1);
+
+                    char start[8];
+                    memset(start, 0, 8);
+                    if(p.start_dayofmonth > 0 && p.start_month > 0) {
+                        snprintf_P(start, 8, PSTR("[%d,%d]"), p.start_month, p.start_dayofmonth);
+                    } else {
+                        strcpy_P(start, PSTR("null"));
+                    }
+
+                    char end[8];
+                    memset(end, 0, 8);
+                    if(p.end_dayofmonth > 0 && p.end_month > 0) {
+                        snprintf_P(end, 8, PSTR("[%d,%d]"), p.end_month, p.end_dayofmonth);
+                    } else {
+                        strcpy_P(end, PSTR("null"));
+                    }
+
+                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("{\"type\":%d,\"name\":\"%s\",\"dir\":%d,\"days\":[%s],\"hours\":[%s],\"value\":%.4f,\"start\":%s,\"end\":%s}%s"),
+                        p.type,
+                        p.name,
+                        p.direction,
+                        days.c_str(),
+                        hours.c_str(),
+                        p.value / 10000.0,
+                        start,
+                        end,
+                        i == pc.size()-1 ? "" : ","
+                    );
+                }
+            }
+        }
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("]}"));
         lastPriceConfig = now;
+        sendData = false;
     } else if(lastEac == 0) {
         pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"accounting\":{\"hours\":%d,\"thresholds\":[%d,%d,%d,%d,%d,%d,%d,%d,%d]}"), 
             eac.hours,
@@ -274,132 +330,133 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
         lastEac = now;
     }
 
-    float vcc = 0.0;
-    int rssi = 0;
-    float temperature = -127;
-    if(hw != NULL) {
-        vcc = hw->getVcc();
-        rssi = hw->getWifiRssi();
-        temperature = hw->getTemperature();
-    }
-
-    uint8_t espStatus;
-    #if defined(ESP8266)
-    if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
-        espStatus = 1;
-    } else if(vcc > 2.8 && vcc < 3.5) {
-        espStatus = 1;
-    } else if(vcc > 2.7 && vcc < 3.6) {
-        espStatus = 2;
-    } else {
-        espStatus = 3;
-    }
-    #elif defined(ESP32)
-    if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
-        espStatus = 1;
-    } else if(vcc > 3.1 && vcc < 3.5) {
-        espStatus = 1;
-    } else if(vcc > 3.0 && vcc < 3.6) {
-        espStatus = 2;
-    } else {
-        espStatus = 3;
-    }
-    #endif
-
-    uint8_t hanStatus;
-    if(data.getLastError() != 0) {
-        hanStatus = 3;
-    } else if(data.getLastUpdateMillis() == 0 && now < 30000) {
-        hanStatus = 0;
-    } else if(now - data.getLastUpdateMillis() < 15000) {
-        hanStatus = 1;
-    } else if(now - data.getLastUpdateMillis() < 30000) {
-        hanStatus = 2;
-    } else {
-        hanStatus = 3;
-    }
-
-    uint8_t wifiStatus;
-    if(rssi > -75) {
-        wifiStatus = 1;
-    } else if(rssi > -95) {
-        wifiStatus = 2;
-    } else {
-        wifiStatus = 3;
-    }
-
-    uint8_t mqttStatus;
-    if(mqttHandler == NULL) {
-        mqttStatus = 0;
-    } else if(mqttHandler->connected()) {
-        mqttStatus = 1;
-    } else if(mqttHandler->lastError() == 0) {
-        mqttStatus = 2;
-    } else {
-        mqttStatus = 3;
-    }
-
-    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"data\":{\"clock\":%lu,\"up\":%lu,\"lastUpdate\":%lu,\"est\":%s"), 
-        (uint32_t) time(nullptr),
-        (uint32_t) (millis64()/1000),
-        (uint32_t) (data.getLastUpdateMillis()/1000),
-        data.isCounterEstimated() ? "true" : "false"
-    );
-    if(data.getListType() > 2) {
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER_LIST3, "import", data.getActiveImportPower(), data.getReactiveImportPower(), data.getActiveImportCounter(), data.getReactiveImportCounter());
-    } else {
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER, "import", data.getActiveImportPower(), data.getReactiveImportPower());
-    }
-    if(data.getListType() > 2) {
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER_LIST3, "export", data.getActiveExportPower(), data.getReactiveExportPower(), data.getActiveExportCounter(), data.getReactiveExportCounter());
-    } else {
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER, "export", data.getActiveExportPower(), data.getReactiveExportPower());
-    }
-    
-    if(data.getListType() > 1) {
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"phases\":{"));
-        bool first = true;
-        if(data.getL1Voltage() > 0.0) {
-            if(data.getListType() > 3) {
-                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 1, data.getL1Voltage(), String(data.getL1Current(), 2).c_str(), data.getL1ActiveImportPower(), data.getL1ActiveExportPower(), data.getL1PowerFactor());
-            } else {
-                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 1, data.getL1Voltage(), String(data.getL1Current(), 2).c_str());
-            }
-            first = false;
+    if(sendData) {
+        float vcc = 0.0;
+        int rssi = 0;
+        float temperature = -127;
+        if(hw != NULL) {
+            vcc = hw->getVcc();
+            rssi = hw->getWifiRssi();
+            temperature = hw->getTemperature();
         }
-        if(data.getL2Voltage() > 0.0) {
-            if(data.getListType() > 3) {
-                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 2, data.getL2Voltage(), String(data.getL2Current(), 2).c_str(), data.getL2ActiveImportPower(), data.getL2ActiveExportPower(), data.getL2PowerFactor());
-            } else {
-                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 2, data.getL2Voltage(), data.isL2currentMissing() ? "null" : String(data.getL2Current(), 2).c_str());
-            }
-            first = false;
+
+        uint8_t espStatus;
+        #if defined(ESP8266)
+        if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
+            espStatus = 1;
+        } else if(vcc > 2.8 && vcc < 3.5) {
+            espStatus = 1;
+        } else if(vcc > 2.7 && vcc < 3.6) {
+            espStatus = 2;
+        } else {
+            espStatus = 3;
         }
-        if(data.getL3Voltage() > 0.0) {
-            if(data.getListType() > 3) {
-                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 3, data.getL3Voltage(), String(data.getL3Current(), 2).c_str(), data.getL3ActiveImportPower(), data.getL3ActiveExportPower(), data.getL3PowerFactor());
-            } else {
-                pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 3, data.getL3Voltage(), String(data.getL3Current(), 2).c_str());
-            }
-            first = false;
+        #elif defined(ESP32)
+        if(vcc < 2.0) { // Voltage not correct, ESP would not run on this voltage
+            espStatus = 1;
+        } else if(vcc > 3.1 && vcc < 3.5) {
+            espStatus = 1;
+        } else if(vcc > 3.0 && vcc < 3.6) {
+            espStatus = 2;
+        } else {
+            espStatus = 3;
         }
+        #endif
+
+        uint8_t hanStatus;
+        if(data.getLastError() != 0) {
+            hanStatus = 3;
+        } else if(data.getLastUpdateMillis() == 0 && now < 30000) {
+            hanStatus = 0;
+        } else if(now - data.getLastUpdateMillis() < 15000) {
+            hanStatus = 1;
+        } else if(now - data.getLastUpdateMillis() < 30000) {
+            hanStatus = 2;
+        } else {
+            hanStatus = 3;
+        }
+
+        uint8_t wifiStatus;
+        if(rssi > -75) {
+            wifiStatus = 1;
+        } else if(rssi > -95) {
+            wifiStatus = 2;
+        } else {
+            wifiStatus = 3;
+        }
+
+        uint8_t mqttStatus;
+        if(mqttHandler == NULL) {
+            mqttStatus = 0;
+        } else if(mqttHandler->connected()) {
+            mqttStatus = 1;
+        } else if(mqttHandler->lastError() == 0) {
+            mqttStatus = 2;
+        } else {
+            mqttStatus = 3;
+        }
+
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"data\":{\"clock\":%lu,\"up\":%lu,\"lastUpdate\":%lu,\"est\":%s"), 
+            (uint32_t) time(nullptr),
+            (uint32_t) (millis64()/1000),
+            (uint32_t) (data.getLastUpdateMillis()/1000),
+            data.isCounterEstimated() ? "true" : "false"
+        );
+        if(data.getListType() > 2) {
+            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER_LIST3, "import", data.getActiveImportPower(), data.getReactiveImportPower(), data.getActiveImportCounter(), data.getReactiveImportCounter());
+        } else {
+            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER, "import", data.getActiveImportPower(), data.getReactiveImportPower());
+        }
+        if(data.getListType() > 2) {
+            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER_LIST3, "export", data.getActiveExportPower(), data.getReactiveExportPower(), data.getActiveExportCounter(), data.getReactiveExportCounter());
+        } else {
+            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_POWER, "export", data.getActiveExportPower(), data.getReactiveExportPower());
+        }
+        
+        if(data.getListType() > 1) {
+            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"phases\":{"));
+            bool first = true;
+            if(data.getL1Voltage() > 0.0) {
+                if(data.getListType() > 3) {
+                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 1, data.getL1Voltage(), String(data.getL1Current(), 2).c_str(), data.getL1ActiveImportPower(), data.getL1ActiveExportPower(), data.getL1PowerFactor());
+                } else {
+                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 1, data.getL1Voltage(), String(data.getL1Current(), 2).c_str());
+                }
+                first = false;
+            }
+            if(data.getL2Voltage() > 0.0) {
+                if(data.getListType() > 3) {
+                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 2, data.getL2Voltage(), String(data.getL2Current(), 2).c_str(), data.getL2ActiveImportPower(), data.getL2ActiveExportPower(), data.getL2PowerFactor());
+                } else {
+                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 2, data.getL2Voltage(), data.isL2currentMissing() ? "null" : String(data.getL2Current(), 2).c_str());
+                }
+                first = false;
+            }
+            if(data.getL3Voltage() > 0.0) {
+                if(data.getListType() > 3) {
+                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE_LIST4, first ? "" : ",", 3, data.getL3Voltage(), String(data.getL3Current(), 2).c_str(), data.getL3ActiveImportPower(), data.getL3ActiveExportPower(), data.getL3PowerFactor());
+                } else {
+                    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_PHASE, first ? "" : ",", 3, data.getL3Voltage(), String(data.getL3Current(), 2).c_str());
+                }
+                first = false;
+            }
+            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("}"));
+        }
+        if(data.getListType() > 3) {
+            pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"pf\":%.2f"), data.getPowerFactor());
+        }
+
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"realtime\":{\"import\":%.3f,\"export\":%.3f}"), ea.getUseThisHour(), ea.getProducedThisHour());
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"vcc\":%.2f,\"temp\":%.2f,\"rssi\":%d,\"free\":%d"), vcc, temperature, rssi, ESP.getFreeHeap());
+        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_STATUS, 
+            espStatus, 0,
+            hanStatus, data.getLastError(),
+            wifiStatus, 0,
+            mqttStatus, mqttHandler == NULL ? 0 : mqttHandler->lastError()
+        );
+
         pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("}"));
     }
-    if(data.getListType() > 3) {
-        pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"pf\":%.2f"), data.getPowerFactor());
-    }
-
-    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"realtime\":{\"import\":%.3f,\"export\":%.3f}"), ea.getUseThisHour(), ea.getProducedThisHour());
-    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"vcc\":%.2f,\"temp\":%.2f,\"rssi\":%d,\"free\":%d"), vcc, temperature, rssi, ESP.getFreeHeap());
-    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, CC_JSON_STATUS, 
-        espStatus, 0,
-        hanStatus, data.getLastError(),
-        wifiStatus, 0,
-        mqttStatus, mqttHandler == NULL ? 0 : mqttHandler->lastError()
-    );
-
-    pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR("}"));
-
     uint16_t crc = crc16((uint8_t*) clearBuffer, pos);
     pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"crc\":\"%04X\"}"), crc);
 
@@ -420,11 +477,54 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     memset(encryptedBuffer, 0, rsa->len);
 
     int maxlen = rsa->len - 11; // 11 should be the correct padding size for PKCS1
-    udp.beginPacket(config.hostname,7443);
+
+    Stream *stream = NULL;
+
+    if(config.proto == 0) {
+        udp.beginPacket(config.hostname,7443);
+        stream = &udp;
+    } else if(config.proto == 1) {
+        if(!tcp.connected()) {
+            int ret = tcp.connect(config.hostname, config.port, 1000);
+            if(ret != 1) {
+                #if defined(AMS_REMOTE_DEBUG)
+                if (debugger->isActive(RemoteDebug::ERROR))
+                #endif
+                debugger->printf_P(PSTR("tcp.connect(%s, %d) return code: %d\n"), config.hostname, config.port, ret);
+                return;
+            }
+            tcp.setTimeout(config.interval * 2);
+        }
+        while(tcp.available()) tcp.read(); // Empty incoming buffer
+        stream = &tcp;
+    } else if(config.proto == 2) {
+        if(!http.connected()) {
+            http.setReuse(true);
+            snprintf_P(clearBuffer, CC_BUF_SIZE, PSTR("http://%s/hub/cloud/data"), config.hostname);
+            if(!http.begin(clearBuffer)) {
+                #if defined(AMS_REMOTE_DEBUG)
+                if (debugger->isActive(RemoteDebug::ERROR))
+                #endif
+                debugger->printf_P(PSTR("(CloudConnector) Unable to start HTTP connector\n"));
+                http.end();
+                return;
+            }
+        }
+        if(httpBuffer == NULL) {
+            httpBuffer = (uint8_t*) malloc(CC_BUF_SIZE);
+        }
+    }
+
+    int sendBytes = 0;
     for(int i = 0; i < pos; i += maxlen) {
         int ret = mbedtls_rsa_pkcs1_encrypt(rsa, mbedtls_ctr_drbg_random, &ctr_drbg, MBEDTLS_RSA_PUBLIC, maxlen, (unsigned char*) (clearBuffer+i), encryptedBuffer);
         if(ret == 0) {
-            udp.write(encryptedBuffer, rsa->len);
+            if(stream != NULL) {
+                stream->write(encryptedBuffer, rsa->len);
+            } else {
+                memcpy(httpBuffer + sendBytes, encryptedBuffer, rsa->len);
+            }
+            sendBytes += rsa->len;
             delay(1);
         } else {
             #if defined(AMS_REMOTE_DEBUG)
@@ -438,15 +538,49 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             debugger->printf_P(PSTR("%s\n"), clearBuffer);
         }
     }
-    udp.endPacket();
 
+    if(config.proto == 0) {
+        udp.endPacket();
+    } else if(config.proto == 1) {
+        tcp.write("\r\n");
+        tcp.flush();
+    } else if(config.proto == 2) {
+        http.addHeader("Content-Type", "application/octet-stream");
+        int status = http.POST(httpBuffer, sendBytes);
+        if(status != 200) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("(CloudConnector) Communication error 2, returned status: %d\n"), status);
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf(http.errorToString(status).c_str());
+            debugger->println();
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
+            debugger->printf(http.getString().c_str());
+
+            http.end();
+        }
+    }
     lastUpdate = now;
+
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::DEBUG))
+    #endif
+    debugger->printf_P(PSTR("%d bytes sent to %s:%d from %s\n"), sendBytes, config.hostname, config.proto == 2 ? 80 : config.port, uuid.c_str());
 }
 
 void CloudConnector::forceUpdate() {
     lastUpdate = 0;
     lastPriceConfig = 0;
     lastEac = 0;
+}
+
+void CloudConnector::forcePriceUpdate() {
+    lastPriceConfig = 0;
 }
 
 void CloudConnector::setConnectionHandler(ConnectionHandler* ch) {

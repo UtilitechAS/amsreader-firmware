@@ -975,7 +975,9 @@ void AmsWebServer::configurationJson() {
 		qsr ? "true" : "false",
 		qsk ? "true" : "false",
 		mqttConfig.stateUpdate,
-		mqttConfig.stateUpdateInterval
+		mqttConfig.stateUpdateInterval,
+		mqttConfig.timeout,
+		mqttConfig.keepalive
 	);
 	server.sendContent(buf);
 
@@ -1050,6 +1052,7 @@ void AmsWebServer::configurationJson() {
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
 		cloud.enabled ? "true" : "false",
+		cloud.proto,
 		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 		sysConfig.energyspeedometer == 7 ? "true" : "false"
 		#else
@@ -1388,6 +1391,8 @@ void AmsWebServer::handleSave() {
 
 			mqtt.stateUpdate = server.arg(F("qt")).toInt() == 1;
 			mqtt.stateUpdateInterval = server.arg(F("qd")).toInt();
+			mqtt.timeout = server.arg(F("qi")).toInt();
+			mqtt.keepalive = server.arg(F("qk")).toInt();
 		} else {
 			config->clearMqtt(mqtt);
 		}
@@ -1570,6 +1575,7 @@ void AmsWebServer::handleSave() {
 		CloudConfig cloud;
 		config->getCloudConfig(cloud);
 		cloud.enabled = server.hasArg(F("ce")) && server.arg(F("ce")) == F("true");
+		cloud.proto = server.arg(F("cp")).toInt();
 		config->setCloudConfig(cloud);
 	}
 
@@ -1628,6 +1634,11 @@ void AmsWebServer::handleSave() {
 			}
 			ps->cropPriceConfig(count);
 			ps->save();
+			#if defined(_CLOUDCONNECTOR_H)
+			if(cloud != NULL) {
+				cloud->forcePriceUpdate();
+			}
+			#endif
 		} else {
 			#if defined(AMS_REMOTE_DEBUG)
 if (debugger->isActive(RemoteDebug::WARNING))
@@ -2492,6 +2503,9 @@ void AmsWebServer::redirectToMain() {
 		context = String(webConfig.context);
 	}
 
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 	server.sendHeader(HEADER_LOCATION, "/" + context);
 	server.send(302);
 }
@@ -2555,11 +2569,20 @@ void AmsWebServer::addConditionalCloudHeaders() {
 	String ref;
 	if(server.hasHeader(HEADER_ORIGIN)) {
 		ref = server.header(HEADER_ORIGIN);
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
 		debugger->printf_P(PSTR("Origin: %s\n"), ref.c_str());
 	} else if(server.hasHeader(HEADER_REFERER)) {
 		ref = server.header(HEADER_REFERER);
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
 		debugger->printf_P(PSTR("Referer: %s\n"), ref.c_str());
 	} else {
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
 		debugger->printf_P(PSTR("No Origin or Referer\n"));
 	}
 	if(!ref.startsWith(ORIGIN_AMSLESER_CLOUD)) {

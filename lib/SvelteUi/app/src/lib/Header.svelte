@@ -55,10 +55,10 @@
           <div class="flex-none my-auto">{translations.header?.mem ?? "Free"}: {data.m ? (data.m/1000).toFixed(1) : '-'}kb</div>
         </div>
         <div class="flex-auto flex-wrap my-auto justify-center p-2">
-          <Badge title={translations.header?.esp ?? "ESP"} text={sysinfo.booting ? (translations.header?.booting ?? "Booting") : data.v > 2.0 ? data.v.toFixed(2)+"V" : (translations.header?.esp ?? "ESP")} color={bcol(sysinfo.booting ? 2 : data.em)}/>
-          <Badge title={translations.header?.han ?? "HAN"}  text={translations.header?.han ?? "HAN"}  color={bcol(sysinfo.booting ? 9 : data.hm)}/>
-          <Badge title={translations.header?.wifi ?? "WiFi"} text={data.r ? data.r.toFixed(0)+"dBm" : (translations.header?.wifi ?? "WiFi")} color={bcol(sysinfo.booting ? 9 : data.wm)}/>
-          <Badge title={translations.header?.mqtt ?? "MQTT"} text={translations.header?.mqtt ?? "MQTT"} color={bcol(sysinfo.booting ? 9 : data.mm)}/>
+          <Badge title="ESP" text={sysinfo.booting ? (translations.header?.booting ?? "Booting") : data.v > 2.0 ? data.v.toFixed(2)+"V" : "ESP"} color={bcol(sysinfo.booting ? 2 : data.em)}/>
+          <Badge title="HAN"  text="HAN"  color={bcol(sysinfo.booting ? 9 : data.hm)}/>
+          <Badge title="WiFi" text={data.r ? data.r.toFixed(0)+"dBm" : "WiFi"} color={bcol(sysinfo.booting ? 9 : data.wm)}/>
+          <Badge title="MQTT" text="MQTT" color={bcol(sysinfo.booting ? 9 : data.mm)}/>
         </div>
         {#if data.he < 0 || data.he > 0}
         <div class="bd-red">{ (translations.header?.han ?? "HAN") + ': ' + (translations.errors?.han?.[data.he] ?? data.he) }</div>

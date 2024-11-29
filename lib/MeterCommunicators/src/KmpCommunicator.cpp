@@ -12,16 +12,49 @@
 void KmpCommunicator::configure(MeterConfig& meterConfig) {
     this->meterConfig = meterConfig;
     this->configChanged = false;
+    if(meterConfig.baud == 0) {
+        this->configChanged = true;
+        meterConfig.baud = 9600;
+        meterConfig.parity = 7;
+        meterConfig.invert = false;
+    }
     setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert, false);
-    talker = new KmpTalker(hanSerial);
+    talker = new KmpTalker(hanSerial, hanBuffer, hanBufferSize);
 }
 
 bool KmpCommunicator::loop() {
 	uint64_t now = millis64();
-    return talker->loop();
+
+    bool ret = talker->loop();
+    int lastError = getLastError();
+    if(ret) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::VERBOSE))
+        #endif
+        debugger->printf_P(PSTR("Successful loop\n"));
+        Serial.flush();
+    } else if(lastError < 0 && lastError != DATA_PARSE_INCOMPLETE) {
+		#if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+        debugger->printf_P(PSTR("Error code: %d\n"), getLastError());
+		#if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::VERBOSE))
+        #endif
+        {
+            debugger->printf_P(PSTR("  payload:\n"));
+            debugPrint(hanBuffer, 0, hanBufferSize);
+        }
+    }
+    return ret;
+}
+
+int KmpCommunicator::getLastError() {
+    return talker == NULL ? DATA_PARSE_FAIL : talker->getLastError();
 }
 
 AmsData* KmpCommunicator::getData(AmsData& meterState) { 
+    if(talker == NULL) return NULL;
     KmpDataHolder kmpData;
     talker->getData(kmpData);
     AmsData* data = new AmsData();

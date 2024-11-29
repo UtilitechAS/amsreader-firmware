@@ -37,7 +37,7 @@
 	#warning "Unsupported board type"
 #endif
 
-#define CC_BUF_SIZE 2048
+#define CC_BUF_SIZE 4096
 
 static const char CC_JSON_POWER[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu}";
 static const char CC_JSON_POWER_LIST3[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu,\"tP\":%.3f,\"tQ\":%.3f}";
@@ -58,12 +58,13 @@ public:
     #else
     CloudConnector(Stream*);
     #endif
-    bool setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc);
+    bool setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc, PriceService* ps);
     void setMqttHandler(AmsMqttHandler* mqttHandler);
     void update(AmsData& data, EnergyAccounting& ea);
     void setPriceConfig(PriceServiceConfig&);
     void setEnergyAccountingConfig(EnergyAccountingConfig&);
     void forceUpdate();
+    void forcePriceUpdate();
     void setConnectionHandler(ConnectionHandler* ch);
     String generateSeed();
 
@@ -76,6 +77,7 @@ private:
     HwTools* hw = NULL;
     ConnectionHandler* ch = NULL;
     ResetDataContainer* rdc = NULL;
+    PriceService* ps = NULL;
     AmsMqttHandler* mqttHandler = NULL;
     CloudConfig config;
     PriceServiceConfig priceConfig;
@@ -84,6 +86,7 @@ private:
     unsigned long lastEac = 0;
     HTTPClient http;
     WiFiUDP udp;
+    WiFiClient tcp;
 	int maxPwr = 0;
     uint8_t boardType = 0;
     char timezone[32];
@@ -99,6 +102,7 @@ private:
     String seed = "";
 
     char clearBuffer[CC_BUF_SIZE];
+    uint8_t* httpBuffer = NULL;
     unsigned char encryptedBuffer[256];
     mbedtls_rsa_context* rsa = nullptr;
     mbedtls_ctr_drbg_context ctr_drbg;

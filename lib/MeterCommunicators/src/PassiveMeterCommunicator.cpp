@@ -306,10 +306,13 @@ bool PassiveMeterCommunicator::isConfigChanged() {
     return configChanged;
 }
 
+void PassiveMeterCommunicator::ackConfigChanged() {
+	configChanged = false;
+}
+
 void PassiveMeterCommunicator::getCurrentConfig(MeterConfig& meterConfig) {
     meterConfig = this->meterConfig;
 }
-
 
 int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &context) {
 	int16_t ret = 0;
@@ -578,7 +581,7 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 	int8_t txpin = passive ? -1 : meterConfig.txPin;
 
 	if(baud == 0) {
-		baud = 2400;
+		autodetectBaud = baud = 2400;
 	}
 
 	#if defined(AMS_REMOTE_DEBUG)

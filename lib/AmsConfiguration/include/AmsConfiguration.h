@@ -16,7 +16,6 @@
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
 #define CONFIG_SYSTEM_START 8
-#define CONFIG_UPGRADE_INFO_START 16
 #define CONFIG_NETWORK_START 40
 #define CONFIG_METER_START 296
 #define CONFIG_GPIO_START 368
@@ -30,6 +29,7 @@
 #define CONFIG_HA_START 1552
 #define CONFIG_UI_START 1720
 #define CONFIG_CLOUD_START 1742
+#define CONFIG_UPGRADE_INFO_START 1934
 
 #define CONFIG_METER_START_103 32
 #define CONFIG_UPGRADE_INFO_START_103 216
@@ -63,7 +63,7 @@ struct SystemConfig {
 	uint8_t dataCollectionConsent; // 0 = unknown, 1 = accepted, 2 = declined
 	char country[3];
 	uint8_t energyspeedometer;
-}; // 9
+}; // 8
 
 struct NetworkConfig {
 	char ssid[32];
@@ -238,12 +238,12 @@ struct UiConfig {
 struct UpgradeInformation {
 	char fromVersion[8];
 	char toVersion[8];
-	int16_t exitCode;
-	int16_t errorCode;
     uint32_t size;
     uint16_t block_position;
     uint8_t retry_count;
-}; // 27
+    uint8_t reboot_count;
+	int8_t errorCode;
+}; // 25
 
 struct CloudConfig {
 	bool enabled;
@@ -252,7 +252,7 @@ struct CloudConfig {
 	uint16_t port;
 	uint8_t clientId[16];
 	uint8_t proto;
-}; // 84
+}; // 88
 
 class AmsConfiguration {
 public:
@@ -337,7 +337,7 @@ public:
 	void ackUiLanguageChange();
 
 	bool getUpgradeInformation(UpgradeInformation&);
-	bool setUpgradeInformation(int16_t exitCode, int16_t errorCode, const char* currentVersion, const char* nextVersion);
+	bool setUpgradeInformation(UpgradeInformation&);
 	void clearUpgradeInformation(UpgradeInformation&);
 
 	bool getCloudConfig(CloudConfig&);

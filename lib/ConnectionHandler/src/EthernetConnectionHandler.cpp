@@ -72,9 +72,9 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
             return false; // TODO
         } else {
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::ERROR))
-#endif
-debugger->printf_P(PSTR("Board type %d incompatible with ETH\n"), sys.boardType);
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("Board type %d incompatible with ETH\n"), sys.boardType);
             return false;
         }
 
@@ -84,9 +84,9 @@ debugger->printf_P(PSTR("Board type %d incompatible with ETH\n"), sys.boardType)
         }
 
         #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Connecting to Ethernet\n"));
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("Connecting to Ethernet\n"));
 
         if(ETH.begin(ethAddr, ethPowerPin, ethMdc, ethMdio, ethType, ethClkMode)) {
             #if defined(ESP32)
@@ -116,9 +116,9 @@ debugger->printf_P(PSTR("Connecting to Ethernet\n"));
             }
         } else {
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::ERROR))
-#endif
-debugger->printf_P(PSTR("Unable to start Ethernet\n"));
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("Unable to start Ethernet\n"));
         }
     }
     #endif
@@ -127,9 +127,9 @@ debugger->printf_P(PSTR("Unable to start Ethernet\n"));
 
 void EthernetConnectionHandler::disconnect(unsigned long reconnectDelay) {
 	#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::ERROR))
-#endif
-debugger->printf_P(PSTR("Disconnecting!\n"));
+    if (debugger->isActive(RemoteDebug::ERROR))
+    #endif
+    debugger->printf_P(PSTR("Disconnecting!\n"));
 }
 
 bool EthernetConnectionHandler::isConnected() {
@@ -142,30 +142,34 @@ void EthernetConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_t 
         case ARDUINO_EVENT_ETH_CONNECTED:
             connected = true;
             #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-{
+            if (debugger->isActive(RemoteDebug::INFO))
+            #endif
+            {
                 debugger->printf_P(PSTR("Successfully connected to Ethernet!\n"));
             }
             break;
         case ARDUINO_EVENT_ETH_GOT_IP:
             #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-{
+            if (debugger->isActive(RemoteDebug::INFO))
+            #endif
+            {
                 debugger->printf_P(PSTR("IP:  %s\n"), getIP().toString().c_str());
                 debugger->printf_P(PSTR("GW:  %s\n"), getGateway().toString().c_str());
 				for(uint8_t i = 0; i < 3; i++) {
 					IPAddress dns4 = getDns(i);
-					if(!dns4.isAny()) debugger->printf_P(PSTR("DNS: %s\n"), dns4.toString().c_str());
+					if(dns4 == IPAddress()) {
+						// No IP
+					} else {
+						debugger->printf_P(PSTR("DNS: %s\n"), dns4.toString().c_str());
+					}
 				}
             }
 			break;
 		case ARDUINO_EVENT_ETH_GOT_IP6: {
             #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-{
+            if (debugger->isActive(RemoteDebug::INFO))
+            #endif
+            {
 				IPv6Address ipv6 = getIPv6();
 				if(ipv6 == IPv6Address()) {
 					// No IP
@@ -187,9 +191,9 @@ if (debugger->isActive(RemoteDebug::INFO))
         case ARDUINO_EVENT_ETH_DISCONNECTED:
             connected = false;
             #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::WARNING))
-#endif
-{
+            if (debugger->isActive(RemoteDebug::WARNING))
+            #endif
+            {
                 debugger->printf_P(PSTR("Ethernet was disconnected!\n"));
             }
             break;

@@ -10,6 +10,9 @@
 #include "LittleFS.h"
 #include "WiFi.h"
 #include "HTTPClient.h"
+#if defined(AMS_REMOTE_DEBUG)
+#include "RemoteDebug.h"
+#endif
 
 #define AMS_PARTITION_TABLE_OFFSET 0x8000
 #define AMS_PARTITION_APP0_OFFSET 0x10000
@@ -25,12 +28,18 @@
 #define AMS_UPDATE_ERR_READ 5
 #define AMS_UPDATE_ERR_MD5 6
 #define AMS_UPDATE_ERR_ACTIVATE 7
+#define AMS_UPDATE_ERR_REBOOT 64
+#define AMS_UPDATE_ERR_SUCCESS 250
 
 #define UPDATE_BUF_SIZE 4096
 
 class AmsFirmwareUpdater {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
+    AmsFirmwareUpdater(RemoteDebug* debugger, HwTools* hw, AmsData* meterState);
+    #else
     AmsFirmwareUpdater(Print* debugger, HwTools* hw, AmsData* meterState);
+    #endif
     bool relocateOrRepartitionIfNecessary();
     void loop();
 
@@ -38,6 +47,10 @@ public:
     bool setTargetVersion(const char* version);
     void getUpgradeInformation(UpgradeInformation&);
     float getProgress();
+
+    void setUpgradeInformation(UpgradeInformation&);
+    bool isUpgradeInformationChanged();
+    void ackUpgradeInformationChanged();
 
 private:
     #if defined(ESP8266)
@@ -56,12 +69,17 @@ private:
 		#endif
 	#endif
 
-    Print* debugger;
+    #if defined(AMS_REMOTE_DEBUG)
+    RemoteDebug* debugger;
+    #else
+    Stream* debugger;
+    #endif
     HwTools* hw;
     AmsData* meterState;
 
+    bool updateStatusChanged = false;
     UpgradeInformation updateStatus = {"","",0,0,0,0,0};
-    uint8_t blocksWritten = 0;
+    uint16_t lastSaveBlocksWritten = 0;
     String md5;
 
     uint32_t lastVersionCheck = 0;

@@ -47,6 +47,7 @@
             upgrade(sysinfo.upgrade.n);
             sysinfoStore.update(s => {
                 s.upgrade.t = sysinfo.upgrade.n;
+                s.upgrade.p = 0;
                 s.upgrading = true;
                 return s;
             });
@@ -211,11 +212,11 @@
         <div class="my-2">
             {translations.status?.firmware?.installed ?? "Installed"}: {sysinfo.version}
         </div>
-        {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version}
+        {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version && sysinfo.upgrade.e != 0}
         <div class="my-2">
             <div class="bd-yellow">
                 {(translations.status?.firmware?.failed ?? "Upgrade from {0} to {1} failed").replace('{0}', sysinfo.upgrade.f).replace('{1}', sysinfo.upgrade.t)}
-                {(translations.errors?.http?.[sysinfo.upgrade.e] ?? sysinfo.upgrade.e)}
+                {(translations.errors?.upgrade?.[sysinfo.upgrade.e] ?? sysinfo.upgrade.e)}
             </div>
         </div>
         {/if}

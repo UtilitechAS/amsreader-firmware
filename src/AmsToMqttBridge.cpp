@@ -237,8 +237,10 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			if(ch != NULL) {
 				NetworkConfig conf;
 				ch->getCurrentConfig(conf);
-				dnsState = conf.ipv6 ? 2 : 0; // Never reset if IPv6 is enabled
-				debugI_P(PSTR("IPv6 enabled, not monitoring DNS poisoning"));
+				if(conf.ipv6) {
+					dnsState = 2; // Never reset if IPv6 is enabled
+					debugI_P(PSTR("IPv6 enabled, not monitoring DNS poisoning"));
+				}
 			}
 			break;
 		}
@@ -252,7 +254,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 				if(ret == 0) {
 					dnsState = 2;
 					debugI_P(PSTR("No DNS, probably a closed network"));
-				} else {
+				} else if(dnsState == 0) {
 					debugI_P(PSTR("DNS is present and working, monitoring DNS poisoning"));
 					dnsState = 1;
 				}
@@ -456,49 +458,8 @@ void setup() {
 			}
 		#endif
 		bool flashed = false;
-		if(LittleFS.exists(FILE_FIRMWARE)) {
-			if (!config.hasConfig()) {
-				debugI_P(PSTR("Device has no config, yet a firmware file exists, deleting file."));
-			} else if (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH) {
-				debugI_P(PSTR("Found firmware"));
-				#if defined(ESP8266)
-					WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
-					WiFi.forceSleepBegin();
-				#endif
-				int i = 0;
-				while(hw.getVcc() > 1.0 && hw.getVcc() < 3.2 && i < 3) {
-					debugI_P(PSTR(" vcc not optimal, light sleep 10s"));
-					#if defined(ESP8266)
-						delay(10000);
-					#elif defined(ESP32)
-						esp_sleep_enable_timer_wakeup(10000000);
-						esp_light_sleep_start();
-					#endif
-					i++;
-				}
-
-				debugI_P(PSTR(" flashing"));
-				File firmwareFile = LittleFS.open(FILE_FIRMWARE, (char*) "r");
-				debugD_P(PSTR(" firmware size: %d"), firmwareFile.size());
-				uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-				debugD_P(PSTR(" available: %d"), maxSketchSpace);
-				if (!Update.begin(maxSketchSpace, U_FLASH)) {
-					debugE_P(PSTR("Unable to start firmware update"));
-					Update.printError(Serial);
-				} else {
-					while (firmwareFile.available()) {
-						uint8_t ibuffer[128];
-						firmwareFile.read((uint8_t *)ibuffer, 128);
-						Update.write(ibuffer, sizeof(ibuffer));
-					}
-					flashed = Update.end(true);
-				}
-				config.setUpgradeInformation(flashed ? 2 : 0, 0xFF, FirmwareVersion::VersionString, "");
-				firmwareFile.close();
-			} else {
-				debugW_P(PSTR("AP button pressed, skipping firmware update and deleting firmware file."));
-			}
-			LittleFS.remove(FILE_FIRMWARE);
+		if(LittleFS.exists(FILE_FIRMWARE_DELETE)) {
+			LittleFS.remove(FILE_FIRMWARE_DELETE);
 		} else if(LittleFS.exists(FILE_CFG)) {
 			debugI_P(PSTR("Found config"));
 			configFileParse();
@@ -534,6 +495,11 @@ void setup() {
 	ea.load();
 	ea.setPriceService(ps);
 	ws.setup(&config, &gpioConfig, &meterState, &ds, &ea, &rtp, &updater);
+
+	UpgradeInformation upinfo;
+	if(config.getUpgradeInformation(upinfo)) {
+		updater.setUpgradeInformation(upinfo);
+	}
 
 	UiConfig ui;
 	if(config.getUiConfig(ui)) {
@@ -732,6 +698,12 @@ void loop() {
 			}
 			start = millis();
 			updater.loop();
+			if(updater.isUpgradeInformationChanged()) {
+				UpgradeInformation upinfo;
+				updater.getUpgradeInformation(upinfo);
+				config.setUpgradeInformation(upinfo);
+				updater.ackUpgradeInformationChanged();
+			}
 			end = millis();
 			if(end-start > SLOW_PROC_TRIGGER_MS) {
 				debugW_P(PSTR("Used %dms to handle firmware updater"), end-start);

@@ -418,7 +418,7 @@ void AmsWebServer::sysinfoJson() {
 		sys.dataCollectionConsent,
 		hostname.c_str(),
 		performRestart ? "true" : "false",
-		updater->getProgress() > 0.0 ? "true" : "false",
+		updater->getProgress() > 0.0 && upinfo.errorCode == 0 ? "true" : "false",
 		#if defined(ESP8266)
 		localIp.isSet() ? localIp.toString().c_str() : "",
 		subnet.isSet() ? subnet.toString().c_str() : "",
@@ -467,7 +467,6 @@ void AmsWebServer::sysinfoJson() {
 		ESP.getResetInfoPtr()->reason,
 		ESP.getResetInfoPtr()->exccause,
 		#endif
-		upinfo.exitCode,
 		upinfo.errorCode,
 		upinfo.fromVersion,
 		upinfo.toVersion,
@@ -1759,7 +1758,6 @@ void AmsWebServer::firmwarePost() {
 	if(rebootForUpgrade) {
 		server.send(200);
 	} else {
-		config->setUpgradeInformation(0xFF, 0xFF, FirmwareVersion::VersionString, "");
 		server.sendHeader(HEADER_LOCATION,F("/firmware"));
 		server.send(303);
 	}
@@ -1791,7 +1789,7 @@ debugger->printf_P(PSTR("No file, falling back to post\n"));
 			#endif
 		}
 	}
-	uploadFile(FILE_FIRMWARE);
+	// TODO: uploadFile(FILE_FIRMWARE);
 	if(upload.status == UPLOAD_FILE_END) {
 		rebootForUpgrade = true;
 		server.sendHeader(HEADER_LOCATION,F("/"));

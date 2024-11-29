@@ -420,6 +420,7 @@ bool AmsConfiguration::getHomeAssistantConfig(HomeAssistantConfig& config) {
 		EEPROM.end();
 		if(stripNonAscii((uint8_t*) config.discoveryPrefix, 64) || stripNonAscii((uint8_t*) config.discoveryHostname, 64) || stripNonAscii((uint8_t*) config.discoveryNameTag, 16)) {
 			clearHomeAssistantConfig(config);
+			return false;
 		}
 		return true;
 	} else {
@@ -622,6 +623,7 @@ bool AmsConfiguration::getPriceServiceConfig(PriceServiceConfig& config) {
 		EEPROM.end();
 		if(strlen(config.entsoeToken) != 0 && strlen(config.entsoeToken) != 36) {
 			clearPriceServiceConfig(config);
+			return false;
 		}
 		return true;
 	} else {
@@ -677,6 +679,7 @@ bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config)
 		EEPROM.end();
 		if(config.thresholds[9] != 0xFFFF) {
 			clearEnergyAccountingConfig(config);
+			return false;
 		}
 		if(config.hours > 5) config.hours = 5;
 		return true;
@@ -784,13 +787,7 @@ void AmsConfiguration::ackUiLanguageChange() {
 	uiLanguageChanged = false;
 }
 
-bool AmsConfiguration::setUpgradeInformation(int16_t exitCode, int16_t errorCode, const char* currentVersion, const char* nextVersion) {
-	UpgradeInformation upinfo;
-	upinfo.exitCode = exitCode;
-	upinfo.errorCode = errorCode;
-	strcpy(upinfo.fromVersion, currentVersion);
-	strcpy(upinfo.toVersion, nextVersion);
-
+bool AmsConfiguration::setUpgradeInformation(UpgradeInformation& upinfo) {
 	stripNonAscii((uint8_t*) upinfo.fromVersion, 8);
 	stripNonAscii((uint8_t*) upinfo.toVersion, 8);
 
@@ -808,6 +805,7 @@ bool AmsConfiguration::getUpgradeInformation(UpgradeInformation& upinfo) {
 		EEPROM.end();
 		if(stripNonAscii((uint8_t*) upinfo.fromVersion, 8) || stripNonAscii((uint8_t*) upinfo.toVersion, 8)) {
 			clearUpgradeInformation(upinfo);
+			return false;
 		}
 		return true;
 	} else {
@@ -817,10 +815,13 @@ bool AmsConfiguration::getUpgradeInformation(UpgradeInformation& upinfo) {
 }
 
 void AmsConfiguration::clearUpgradeInformation(UpgradeInformation& upinfo) {
-	upinfo.exitCode = -1;
-	upinfo.errorCode = 0;
 	memset(upinfo.fromVersion, 0, 8);
 	memset(upinfo.toVersion, 0, 8);
+	upinfo.errorCode = 0;
+	upinfo.size = 0;
+	upinfo.block_position = 0;
+	upinfo.retry_count = 0;
+	upinfo.reboot_count = 0;
 }
 
 bool AmsConfiguration::getCloudConfig(CloudConfig& config) {

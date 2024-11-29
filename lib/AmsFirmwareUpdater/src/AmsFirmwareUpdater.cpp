@@ -11,8 +11,12 @@
 #include ""
 #endif
 
+#if defined(AMS_REMOTE_DEBUG)
+AmsFirmwareUpdater::AmsFirmwareUpdater(RemoteDebug* debugger, HwTools* hw, AmsData* meterState) {
+#else
 AmsFirmwareUpdater::AmsFirmwareUpdater(Print* debugger, HwTools* hw, AmsData* meterState) {
-    this->debugger = debugger;
+#endif
+this->debugger = debugger;
     this->hw = hw;
     this->meterState = meterState;
     memset(nextVersion, 0, sizeof(nextVersion));
@@ -29,7 +33,7 @@ bool AmsFirmwareUpdater::setTargetVersion(const char* version) {
         memset(updateStatus.toVersion, 0, sizeof(updateStatus.toVersion));
         return false;
     }
-    if(strcmp(version, updateStatus.toVersion) == 0) {
+    if(strcmp(version, updateStatus.toVersion) == 0 && updateStatus.errorCode == AMS_UPDATE_ERR_OK) {
         return true;
     }
     strcpy(updateStatus.fromVersion, FirmwareVersion::VersionString);
@@ -38,11 +42,46 @@ bool AmsFirmwareUpdater::setTargetVersion(const char* version) {
     updateStatus.retry_count = 0;
     updateStatus.block_position = 0;
     updateStatus.errorCode = AMS_UPDATE_ERR_OK;
+    updateStatus.reboot_count = 0;
+
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Preparing uprade to %s\n"), updateStatus.toVersion);
+
     return true;
 }
 
 void AmsFirmwareUpdater::getUpgradeInformation(UpgradeInformation& upinfo) {
     memcpy(&upinfo, &updateStatus, sizeof(upinfo));
+}
+
+void AmsFirmwareUpdater::setUpgradeInformation(UpgradeInformation& upinfo) {
+    memcpy(&updateStatus, &upinfo, sizeof(updateStatus));
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Upgrade status information updated\n"));
+    if(strlen(updateStatus.toVersion) > 0 && updateStatus.size > 0 && updateStatus.block_position * UPDATE_BUF_SIZE < updateStatus.size) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("Resuming uprade to %s\n"), updateStatus.toVersion);
+
+        if(updateStatus.reboot_count++ < 8) {
+            updateStatus.errorCode = AMS_UPDATE_ERR_OK;
+        } else {
+            updateStatus.errorCode = AMS_UPDATE_ERR_REBOOT;
+        }
+    }
+}
+
+bool AmsFirmwareUpdater::isUpgradeInformationChanged() {
+    return updateStatusChanged;
+}
+
+void AmsFirmwareUpdater::ackUpgradeInformationChanged() {
+    updateStatusChanged = false;
 }
 
 float AmsFirmwareUpdater::getProgress() {
@@ -51,9 +90,7 @@ float AmsFirmwareUpdater::getProgress() {
 }
 
 void AmsFirmwareUpdater::loop() {
-    if(strlen(updateStatus.toVersion) > 0) {
-        if(updateStatus.errorCode > 0) return;
-
+    if(strlen(updateStatus.toVersion) > 0 && updateStatus.errorCode == AMS_UPDATE_ERR_OK) {
         if(!hw->isVoltageOptimal(0.1)) {
             writeUpdateStatus();
             return;
@@ -69,6 +106,9 @@ void AmsFirmwareUpdater::loop() {
                 return;
             }
             end = millis();
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
             debugger->printf_P(PSTR("fetch details took %lums\n"), end-start);
             updateStatus.retry_count = 0;
             updateStatus.block_position = 0;
@@ -85,6 +125,9 @@ void AmsFirmwareUpdater::loop() {
                 return;
             }
             end = millis();
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
             debugger->printf_P(PSTR("fetch chunk took %lums\n"), end-start);
 
             start = millis();
@@ -95,12 +138,18 @@ void AmsFirmwareUpdater::loop() {
                 return;
             }
             end = millis();
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
             debugger->printf_P(PSTR("get ptr took %lums (%d) \n"), end-start, client->available());
             size_t bytes = UPDATE_BUF_SIZE; // To start first loop
             while(bytes > 0 && client->available() > 0) {
                 start = millis();
                 bytes = client->readBytes(buf, UPDATE_BUF_SIZE);
                 end = millis();
+                #if defined(AMS_REMOTE_DEBUG)
+                if (debugger->isActive(RemoteDebug::DEBUG))
+                #endif
                 debugger->printf_P(PSTR("read buffer took %lums (%lu bytes, %d left)\n"), end-start, bytes, client->available());
                 if(bytes > 0) {
                     start = millis();
@@ -109,6 +158,9 @@ void AmsFirmwareUpdater::loop() {
                         return;
                     }
                     end = millis();
+                    #if defined(AMS_REMOTE_DEBUG)
+                    if (debugger->isActive(RemoteDebug::DEBUG))
+                    #endif
                     debugger->printf_P(PSTR("write buffer took %lums\n"), end-start);
                 }
                 start = millis();
@@ -116,20 +168,32 @@ void AmsFirmwareUpdater::loop() {
                     writeUpdateStatus();
                 }
                 end = millis();
+                #if defined(AMS_REMOTE_DEBUG)
+                if (debugger->isActive(RemoteDebug::DEBUG))
+                #endif
                 debugger->printf_P(PSTR("check voltage took %lums\n"), end-start);
             }
             start = millis();
             http.end();
             end = millis();
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
             debugger->printf_P(PSTR("http end took %lums\n"), end-start);
         } else if(updateStatus.block_position * UPDATE_BUF_SIZE >= updateStatus.size) {
             if(!verifyChecksum()) {
                 updateStatus.errorCode = AMS_UPDATE_ERR_MD5;
+                writeUpdateStatus();
                 return;
             }
             if(!activateNewFirmware()) {
+                updateStatus.errorCode = AMS_UPDATE_ERR_ACTIVATE;
+                writeUpdateStatus();
                 return;
             }
+            updateStatus.errorCode = AMS_UPDATE_ERR_SUCCESS;
+            memset(updateStatus.toVersion, 0, sizeof(updateStatus.toVersion));
+            writeUpdateStatus();
         }
     } else {
         uint32_t seconds = millis() / 1000.0;
@@ -250,7 +314,16 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
 }
 
 bool AmsFirmwareUpdater::writeUpdateStatus() {
-    return false; // TODO
+    if(updateStatus.block_position - lastSaveBlocksWritten > 32) {
+        updateStatusChanged = true;
+        lastSaveBlocksWritten = updateStatus.block_position;
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("Writing update status to EEPROM at block %d\n"), updateStatus.block_position);
+        return true;
+    }
+    return false;
 }
 
 #if defined(ESP32)
@@ -259,12 +332,18 @@ bool AmsFirmwareUpdater::writeBufferToFlash(size_t bytes) {
     const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
     esp_err_t eraseErr = esp_partition_erase_range(partition, offset, UPDATE_BUF_SIZE);
     if(eraseErr != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("esp_partition_erase_range(%s, %lu, %lu) failed with %d\n"), partition->label, offset, UPDATE_BUF_SIZE, eraseErr);
         updateStatus.errorCode = AMS_UPDATE_ERR_ERASE;
         return false;
     }
     esp_err_t writeErr = esp_partition_write(partition, offset, buf, bytes);
     if(writeErr != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("esp_partition_write(%s, %lu, buf, %lu) failed with %d\n"), partition->label, offset, bytes, writeErr);
         updateStatus.errorCode = AMS_UPDATE_ERR_WRITE;
         return false;
@@ -276,7 +355,6 @@ bool AmsFirmwareUpdater::writeBufferToFlash(size_t bytes) {
 bool AmsFirmwareUpdater::activateNewFirmware() {
     const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
     if(esp_ota_set_boot_partition(partition) != ESP_OK) {
-        updateStatus.errorCode = AMS_UPDATE_ERR_ACTIVATE;
         return false;
     }
     ESP.restart();
@@ -285,12 +363,21 @@ bool AmsFirmwareUpdater::activateNewFirmware() {
 
 bool AmsFirmwareUpdater::relocateOrRepartitionIfNecessary() {
     const esp_partition_t* active = esp_ota_get_running_partition();
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
     debugger->printf_P(PSTR("Firmware currently running from %s\n"), active->label);
     if(active->type != ESP_PARTITION_TYPE_APP) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("Not running on APP partition?\n"));
         return false;
     }
     if(active->size >= AMS_PARTITION_APP_SIZE) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
         debugger->printf_P(PSTR("Partition is large enough, no change\n"));
         return false;
     }
@@ -306,19 +393,31 @@ bool AmsFirmwareUpdater::relocateOrRepartitionIfNecessary() {
 
     const esp_partition_t* app0 = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_MIN, NULL);
     if(active->subtype != ESP_PARTITION_SUBTYPE_APP_OTA_MIN) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
         debugger->printf_P(PSTR("Relocating %s to %s\n"), active->label, p_app0.label);
         if(!copyData(&p_app1, &p_app0)) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
             debugger->printf_P(PSTR("Unable to copy app0 to app1\n"));
             return false;
         }
 
         if(esp_ota_set_boot_partition(app0) != ESP_OK) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
             debugger->printf_P(PSTR("Unable to set app0 active\n"));
             return false;
         }
         return true;
     }
 
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::DEBUG))
+    #endif
     debugger->printf_P(PSTR("Small partition, repartitioning\n"));
 
     p_app0.pos.offset = AMS_PARTITION_APP0_OFFSET;
@@ -330,6 +429,9 @@ bool AmsFirmwareUpdater::relocateOrRepartitionIfNecessary() {
 
     esp_err_t p_erase_err = esp_flash_erase_region(NULL, AMS_PARTITION_TABLE_OFFSET, 4096);
     if(p_erase_err != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("Unable to erase partition table (%d)\n"), p_erase_err);
         return false;
     }
@@ -347,6 +449,9 @@ bool AmsFirmwareUpdater::relocateOrRepartitionIfNecessary() {
         uint32_t pos = i * size;
         readPartition(i, &part);
         if(part.magic == ESP_PARTITION_MAGIC) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
             debugger->printf_P(PSTR("Partition %d, magic: %04X, offset: %X, size: %d, type: %d:%d, label: %s, flags: %04X\n"), i, part.magic, part.pos.offset, part.pos.size, part.type, part.subtype, part.label, part.flags);
         } else {
             md5pos = pos;
@@ -365,19 +470,31 @@ bool AmsFirmwareUpdater::relocateOrRepartitionIfNecessary() {
     md5.add((uint8_t*) &p_coredump, sizeof(p_coredump));
     md5.calculate();
     md5.getChars(buf);
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::DEBUG))
+    #endif
     debugger->printf_P(PSTR("Writing MD5 %s to position %d\n"), buf, md5pos);
 
     part.magic = ESP_PARTITION_MAGIC_MD5;
     if(esp_flash_write(NULL, (uint8_t*) &part, AMS_PARTITION_TABLE_OFFSET + md5pos, 2) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("Unable to write md5 header\n"));
         return false;
     }
     md5.getBytes((uint8_t*) buf);
     if(esp_flash_write(NULL, buf, AMS_PARTITION_TABLE_OFFSET + md5pos + ESP_PARTITION_MD5_OFFSET, ESP_ROM_MD5_DIGEST_LEN) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("Unable to write md5\n"));
         return false;
     }
     if(esp_flash_erase_region(NULL, p_app1.pos.offset, p_app1.pos.size) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("Unable to erase app1\n"));
     }
 
@@ -393,18 +510,30 @@ bool AmsFirmwareUpdater::relocateOrRepartitionIfNecessary() {
             copyFile(&LittleFS, &newFs, FILE_ENERGYACCOUNTING);
             copyFile(&LittleFS, &newFs, FILE_PRICE_CONF);
         } else {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
             debugger->printf_P(PSTR("Unable to start spiffs on new location\n"));
         }
     } else {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("Unable to erase fs\n"));
     }
 
     esp_image_header_t h_app0;
     if(esp_flash_read(NULL, buf, p_app0.pos.offset, sizeof(&h_app0)) == ESP_OK) {
         if(esp_flash_write(NULL, buf, p_app1.pos.offset, sizeof(&h_app0)) != ESP_OK) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
             debugger->printf_P(PSTR("Unable to write header to app1\n"));
         }
     } else {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("Unable to read header from app0\n"));
     }
 
@@ -414,6 +543,9 @@ bool AmsFirmwareUpdater::relocateOrRepartitionIfNecessary() {
 bool AmsFirmwareUpdater::readPartition(uint8_t num, const esp_partition_info_t* partition) {
     uint32_t pos = num * sizeof(*partition);
     if(esp_flash_read(NULL, (uint8_t*) partition, AMS_PARTITION_TABLE_OFFSET + pos, sizeof(*partition)) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("Unable to read partition %d\n"), num);
         return false;
     }
@@ -423,6 +555,9 @@ bool AmsFirmwareUpdater::readPartition(uint8_t num, const esp_partition_info_t* 
 bool AmsFirmwareUpdater::writePartition(uint8_t num, const esp_partition_info_t* partition) {
     uint32_t pos = num * sizeof(*partition);
     if(esp_flash_write(NULL, (uint8_t*) partition, AMS_PARTITION_TABLE_OFFSET + pos, sizeof(*partition)) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
         debugger->printf_P(PSTR("Unable to write partition %d\n"), num);
         return false;
     }

@@ -4,6 +4,7 @@
 
 #if defined(ESP32)
 #include "esp_ota_ops.h"
+#include "esp_littlefs.h"
 #include "driver/spi_common.h"
 #include "esp_flash_spi_init.h"
 #include "MD5Builder.h"
@@ -382,48 +383,8 @@ bool AmsFirmwareUpdater::relocateOrRepartitionIfNecessary() {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::ERROR))
         #endif
-        debugger->printf_P(PSTR("Not running on APP partition?\n"));
+        debugger->printf_P(PSTR("Not running on APP partition?!\n"));
         return false;
-    }
-    if(active->size >= AMS_PARTITION_APP_SIZE) {
-        #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::DEBUG))
-        #endif
-        debugger->printf_P(PSTR("Partition is large enough, no change\n"));
-        return false;
-    }
-
-    if(buf == NULL) buf = (char*) malloc(UPDATE_BUF_SIZE);
-    esp_partition_info_t p_nvs, p_ota, p_app0, p_app1, p_spiffs, p_coredump;
-    readPartition(0, &p_nvs);
-    readPartition(1, &p_ota);
-    readPartition(2, &p_app0);
-    readPartition(3, &p_app1);
-    readPartition(4, &p_spiffs);
-    readPartition(5, &p_coredump);
-
-    const esp_partition_t* app0 = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_MIN, NULL);
-    if(active->subtype != ESP_PARTITION_SUBTYPE_APP_OTA_MIN) {
-        #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::INFO))
-        #endif
-        debugger->printf_P(PSTR("Relocating %s to %s\n"), active->label, p_app0.label);
-        if(!copyData(&p_app1, &p_app0)) {
-            #if defined(AMS_REMOTE_DEBUG)
-            if (debugger->isActive(RemoteDebug::ERROR))
-            #endif
-            debugger->printf_P(PSTR("Unable to copy app0 to app1\n"));
-            return false;
-        }
-
-        if(esp_ota_set_boot_partition(app0) != ESP_OK) {
-            #if defined(AMS_REMOTE_DEBUG)
-            if (debugger->isActive(RemoteDebug::ERROR))
-            #endif
-            debugger->printf_P(PSTR("Unable to set app0 active\n"));
-            return false;
-        }
-        return true;
     }
 
     #if defined(AMS_REMOTE_DEBUG)
@@ -431,123 +392,78 @@ bool AmsFirmwareUpdater::relocateOrRepartitionIfNecessary() {
     #endif
     debugger->printf_P(PSTR("Small partition, repartitioning\n"));
 
-    p_app0.pos.offset = AMS_PARTITION_APP0_OFFSET;
-    p_app0.pos.size = AMS_PARTITION_APP_SIZE;
-    p_app1.pos.offset = p_app0.pos.offset + p_app0.pos.size;
-    p_app1.pos.size = AMS_PARTITION_APP_SIZE;
-    p_spiffs.pos.offset = p_app1.pos.offset + p_app1.pos.size;
-    p_spiffs.pos.size = AMS_PARTITION_SPIFFS_SIZE;
+    if(buf == NULL) buf = (char*) malloc(UPDATE_BUF_SIZE);
 
-    esp_err_t p_erase_err = esp_flash_erase_region(NULL, AMS_PARTITION_TABLE_OFFSET, 4096);
-    if(p_erase_err != ESP_OK) {
-        #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::ERROR))
-        #endif
-        debugger->printf_P(PSTR("Unable to erase partition table (%d)\n"), p_erase_err);
-        return false;
-    }
-    writePartition(0, &p_nvs);
-    writePartition(1, &p_ota);
-    writePartition(2, &p_app0);
-    writePartition(3, &p_app1);
-    writePartition(4, &p_spiffs);
-    writePartition(5, &p_coredump);
-
-    uint32_t md5pos = 0;
-    esp_partition_info_t part;
-    for(uint8_t i = 0; i < 10; i++) {
-        uint16_t size = sizeof(part);
-        uint32_t pos = i * size;
-        readPartition(i, &part);
-        if(part.magic == ESP_PARTITION_MAGIC) {
-            #if defined(AMS_REMOTE_DEBUG)
-            if (debugger->isActive(RemoteDebug::DEBUG))
-            #endif
-            debugger->printf_P(PSTR("Partition %d, magic: %04X, offset: %X, size: %d, type: %d:%d, label: %s, flags: %04X\n"), i, part.magic, part.pos.offset, part.pos.size, part.type, part.subtype, part.label, part.flags);
+    if(hasTwoSpiffs()) {
+        if(spiffsOnCorrectLocation()) {
+            moveLittleFsFromApp1ToNew();
+            return writePartitionTableFinal();
         } else {
-            md5pos = pos;
-            break;
+            moveLittleFsFromOldToApp1();
+            return writePartitionTableWithSpiffsAtApp1AndNew();
         }
-    }
 
-    memset(buf, 0, UPDATE_BUF_SIZE);
-    MD5Builder md5;
-    md5.begin();
-    md5.add((uint8_t*) &p_nvs, sizeof(p_nvs));
-    md5.add((uint8_t*) &p_ota, sizeof(p_ota));
-    md5.add((uint8_t*) &p_app0, sizeof(p_app0));
-    md5.add((uint8_t*) &p_app1, sizeof(p_app1));
-    md5.add((uint8_t*) &p_spiffs, sizeof(p_spiffs));
-    md5.add((uint8_t*) &p_coredump, sizeof(p_coredump));
-    md5.calculate();
-    md5.getChars(buf);
+    } else if(hasLargeEnoughAppPartitions()) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+        debugger->printf_P(PSTR("Partition is large enough, no change\n"));
+        return false;
+    } else if(!canMigratePartitionTable()) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::WARNING))
+        #endif
+        debugger->printf_P(PSTR("Not able to migrate partition table\n"));
+        return false;
+    } else if(active->subtype != ESP_PARTITION_SUBTYPE_APP_OTA_MIN) {
+        // Before we repartition, we need to make sure the firmware is running fra first app partition
+        return relocateAppToFirst(active);
+    } else if(hasFiles()) {
+        return writePartitionTableWithSpiffsAtOldAndApp1();
+    } else {
+        return writePartitionTableFinal();
+    }
+}
+
+bool AmsFirmwareUpdater::relocateAppToFirst(const esp_partition_t* active) {
+    const esp_partition_t* app0 = esp_partition_find_first(ESP_PARTITION_TYPE_APP, ESP_PARTITION_SUBTYPE_APP_OTA_MIN, NULL);
+
     #if defined(AMS_REMOTE_DEBUG)
-    if (debugger->isActive(RemoteDebug::DEBUG))
+    if (debugger->isActive(RemoteDebug::INFO))
     #endif
-    debugger->printf_P(PSTR("Writing MD5 %s to position %d\n"), buf, md5pos);
+    debugger->printf_P(PSTR("Relocating %s to %s\n"), active->label, app0->label);
 
-    part.magic = ESP_PARTITION_MAGIC_MD5;
-    if(esp_flash_write(NULL, (uint8_t*) &part, AMS_PARTITION_TABLE_OFFSET + md5pos, 2) != ESP_OK) {
+    esp_partition_info_t p_active, p_app0;
+    if(!findPartition(active->label, &p_active)) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::ERROR))
         #endif
-        debugger->printf_P(PSTR("Unable to write md5 header\n"));
+        debugger->printf_P(PSTR("Unable to find partition info for active partition\n"));
         return false;
     }
-    md5.getBytes((uint8_t*) buf);
-    if(esp_flash_write(NULL, buf, AMS_PARTITION_TABLE_OFFSET + md5pos + ESP_PARTITION_MD5_OFFSET, ESP_ROM_MD5_DIGEST_LEN) != ESP_OK) {
+    if(!findPartition(app0->label, &p_app0)) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::ERROR))
         #endif
-        debugger->printf_P(PSTR("Unable to write md5\n"));
+        debugger->printf_P(PSTR("Unable to find partition info for active partition\n"));
         return false;
     }
-    if(esp_flash_erase_region(NULL, p_app1.pos.offset, p_app1.pos.size) != ESP_OK) {
+
+    if(!copyData(&p_active, &p_app0)) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::ERROR))
         #endif
-        debugger->printf_P(PSTR("Unable to erase app1\n"));
+        debugger->printf_P(PSTR("Unable to copy app0 to app1\n"));
+        return false;
     }
 
-    uint32_t eraseForFsStart = p_spiffs.pos.offset + p_spiffs.pos.size - UPDATE_BUF_SIZE;
-    if(esp_flash_erase_region(NULL, eraseForFsStart, UPDATE_BUF_SIZE) == ESP_OK) {
-        fs::LittleFSFS newFs;
-        if(newFs.begin(true, "/newfs", 10, (char*) p_spiffs.label)) {
-            copyFile(&LittleFS, &newFs, FILE_MQTT_CA);
-            copyFile(&LittleFS, &newFs, FILE_MQTT_CERT);
-            copyFile(&LittleFS, &newFs, FILE_MQTT_KEY);
-            copyFile(&LittleFS, &newFs, FILE_DAYPLOT);
-            copyFile(&LittleFS, &newFs, FILE_MONTHPLOT);
-            copyFile(&LittleFS, &newFs, FILE_ENERGYACCOUNTING);
-            copyFile(&LittleFS, &newFs, FILE_PRICE_CONF);
-        } else {
-            #if defined(AMS_REMOTE_DEBUG)
-            if (debugger->isActive(RemoteDebug::ERROR))
-            #endif
-            debugger->printf_P(PSTR("Unable to start spiffs on new location\n"));
-        }
-    } else {
+    if(esp_ota_set_boot_partition(app0) != ESP_OK) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::ERROR))
         #endif
-        debugger->printf_P(PSTR("Unable to erase fs\n"));
+        debugger->printf_P(PSTR("Unable to set app0 active\n"));
+        return false;
     }
-
-    esp_image_header_t h_app0;
-    if(esp_flash_read(NULL, buf, p_app0.pos.offset, sizeof(&h_app0)) == ESP_OK) {
-        if(esp_flash_write(NULL, buf, p_app1.pos.offset, sizeof(&h_app0)) != ESP_OK) {
-            #if defined(AMS_REMOTE_DEBUG)
-            if (debugger->isActive(RemoteDebug::ERROR))
-            #endif
-            debugger->printf_P(PSTR("Unable to write header to app1\n"));
-        }
-    } else {
-        #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::ERROR))
-        #endif
-        debugger->printf_P(PSTR("Unable to read header from app0\n"));
-    }
-
     return true;
 }
 
@@ -575,12 +491,12 @@ bool AmsFirmwareUpdater::writePartition(uint8_t num, const esp_partition_info_t*
     return true;
 }
 
-bool AmsFirmwareUpdater::copyData(const esp_partition_info_t* src, esp_partition_info_t* dst) {
-    if(esp_flash_erase_region(NULL, dst->pos.offset, dst->pos.size) != ESP_OK) {
+bool AmsFirmwareUpdater::copyData(const esp_partition_info_t* src, esp_partition_info_t* dst, bool eraseFirst) {
+    if(eraseFirst && esp_flash_erase_region(NULL, dst->pos.offset, dst->pos.size) != ESP_OK) {
         return false;
     }
     uint32_t pos = 0;
-    while(pos < dst->pos.size) {
+    while(pos < min(src->pos.size, dst->pos.size)) {
         if(esp_flash_read(NULL, buf, src->pos.offset + pos, UPDATE_BUF_SIZE) != ESP_OK) {
             return false;
         }
@@ -594,6 +510,10 @@ bool AmsFirmwareUpdater::copyData(const esp_partition_info_t* src, esp_partition
 
 bool AmsFirmwareUpdater::copyFile(fs::LittleFSFS* srcFs, fs::LittleFSFS* dstFs, const char* filename) {
     if(srcFs->exists(filename)) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("Copying file %s\n"), filename);
         File src = srcFs->open(filename, "r");
         File dst = dstFs->open(filename, "w");
 
@@ -601,7 +521,7 @@ bool AmsFirmwareUpdater::copyFile(fs::LittleFSFS* srcFs, fs::LittleFSFS* dstFs, 
         while((size = src.readBytes(buf, UPDATE_BUF_SIZE)) > 0) {
             dst.write((uint8_t*) buf, size);
         }
-
+        dst.flush();
         dst.close();
         src.close();
         return true;
@@ -650,5 +570,449 @@ bool AmsFirmwareUpdater::verifyChecksum() {
         debugger->printf_P(PSTR("MD5 %s does not match expected %s\n"), md5.toString().c_str(), this->md5.c_str());
         return false;
     }
+}
+
+bool AmsFirmwareUpdater::findPartition(const char* label, const esp_partition_info_t* info) {
+    for(uint8_t i = 0; i < 10; i++) {
+        uint16_t size = sizeof(*info);
+        uint32_t pos = i * size;
+        readPartition(i, info);
+        if(info->magic == ESP_PARTITION_MAGIC) {
+            if(strcmp((const char*) info->label, label) == 0) {
+                return true;
+            }
+        } else {
+            return false;
+        }
+    }
+
+}
+
+bool AmsFirmwareUpdater::hasLargeEnoughAppPartitions() {
+    esp_partition_info_t part;
+    readPartition(2, &part);
+    if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_APP, part.subtype != ESP_PARTITION_SUBTYPE_APP_OTA_0 || part.pos.size < AMS_PARTITION_APP_SIZE)
+        return false;
+
+    readPartition(3, &part);
+    if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_APP, part.subtype != ESP_PARTITION_SUBTYPE_APP_OTA_1 || part.pos.size < AMS_PARTITION_APP_SIZE)
+        return false;
+
+    return true;
+}
+
+bool AmsFirmwareUpdater::canMigratePartitionTable() {
+    esp_partition_info_t part;
+    readPartition(0, &part);
+    if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_DATA, part.subtype != ESP_PARTITION_SUBTYPE_DATA_NVS)
+        return false;
+
+    readPartition(1, &part);
+    if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_DATA, part.subtype != ESP_PARTITION_SUBTYPE_DATA_OTA)
+        return false;
+
+    readPartition(2, &part);
+    if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_APP, part.subtype != ESP_PARTITION_SUBTYPE_APP_OTA_0)
+        return false;
+
+    readPartition(3, &part);
+    if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_APP, part.subtype != ESP_PARTITION_SUBTYPE_APP_OTA_1)
+        return false;
+
+    readPartition(4, &part);
+    if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_DATA, part.subtype != ESP_PARTITION_SUBTYPE_DATA_SPIFFS)
+        return false;
+
+    readPartition(5, &part);
+    if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_DATA, part.subtype != ESP_PARTITION_SUBTYPE_DATA_COREDUMP)
+        return false;
+
+    return true;
+
+}
+
+bool AmsFirmwareUpdater::hasTwoSpiffs() {
+    uint8_t count = 0;
+    esp_partition_info_t part;
+    for(uint8_t i = 0; i < 10; i++) {
+        uint16_t size = sizeof(part);
+        uint32_t pos = i * size;
+        readPartition(i, &part);
+        if(part.magic == ESP_PARTITION_MAGIC) {
+            if(part.type == ESP_PARTITION_TYPE_DATA && part.subtype == ESP_PARTITION_SUBTYPE_DATA_SPIFFS) {
+                count++;
+            }
+        } else {
+            break;
+        }
+    }
+    return count == 2;
+}
+
+bool AmsFirmwareUpdater::spiffsOnCorrectLocation() {
+    esp_partition_info_t p_app0;
+    readPartition(2, &p_app0);
+
+    uint32_t expectedOffset = p_app0.pos.offset + AMS_PARTITION_APP_SIZE + AMS_PARTITION_APP_SIZE;
+
+    esp_partition_info_t part;
+    for(uint8_t i = 0; i < 10; i++) {
+        uint16_t size = sizeof(part);
+        uint32_t pos = i * size;
+        readPartition(i, &part);
+        if(part.magic == ESP_PARTITION_MAGIC) {
+            if(part.type == ESP_PARTITION_TYPE_DATA && part.subtype == ESP_PARTITION_SUBTYPE_DATA_SPIFFS && part.pos.offset == expectedOffset) {
+                return true;
+            }
+        } else {
+            break;
+        }
+    }
+
+    return false;
+}
+
+bool AmsFirmwareUpdater::hasFiles() {
+    if(!LittleFS.begin()) return false;
+    if(LittleFS.exists(FILE_MQTT_CA)) return true;
+    if(LittleFS.exists(FILE_MQTT_CERT)) return true;
+    if(LittleFS.exists(FILE_MQTT_KEY)) return true;
+    if(LittleFS.exists(FILE_DAYPLOT)) return true;
+    if(LittleFS.exists(FILE_MONTHPLOT)) return true;
+    if(LittleFS.exists(FILE_ENERGYACCOUNTING)) return true;
+    if(LittleFS.exists(FILE_PRICE_CONF)) return true;
+    return false;
+}
+
+bool AmsFirmwareUpdater::clearPartitionTable() {
+    esp_err_t p_erase_err = esp_flash_erase_region(NULL, AMS_PARTITION_TABLE_OFFSET, 4096);
+    if(p_erase_err != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to erase partition table (%d)\n"), p_erase_err);
+        return false;
+    }
+    return true;
+}
+
+bool AmsFirmwareUpdater::writeNewPartitionChecksum(uint8_t num) {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Creating MD5 for partition table\n"));
+
+    memset(buf, 0, UPDATE_BUF_SIZE);
+    MD5Builder md5;
+    md5.begin();
+
+    esp_partition_info_t part, p_null;
+    memset(&p_null, 0, sizeof(p_null));
+    uint32_t md5pos = num * sizeof(part);
+    for(uint8_t i = 0; i < num; i++) {
+        uint16_t size = sizeof(part);
+        uint32_t pos = i * size;
+        readPartition(i, &part);
+        if(part.magic == ESP_PARTITION_MAGIC) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::INFO))
+            #endif
+            debugger->printf_P(PSTR("Partition %d, magic: %04X, offset: %X, size: %d, type: %d:%d, label: %s, flags: %04X\n"), i, part.magic, part.pos.offset, part.pos.size, part.type, part.subtype, part.label, part.flags);            
+            md5.add((uint8_t*) &part, sizeof(part));
+        } else {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::WARNING))
+            #endif
+            debugger->printf_P(PSTR("Overwriting invalid partition at %d\n"), i);
+            writePartition(i, &p_null);
+        }
+    }
+
+    md5.calculate();
+    md5.getChars(buf);
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::DEBUG))
+    #endif
+    debugger->printf_P(PSTR("Writing MD5 %s to position %d\n"), buf, md5pos);
+
+    // Writing MD5 header and MD5 sum
+    part.magic = ESP_PARTITION_MAGIC_MD5;
+    if(esp_flash_write(NULL, (uint8_t*) &part, AMS_PARTITION_TABLE_OFFSET + md5pos, 2) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to write md5 header\n"));
+        return false;
+    }
+    md5.getBytes((uint8_t*) buf);
+    if(esp_flash_write(NULL, buf, AMS_PARTITION_TABLE_OFFSET + md5pos + ESP_PARTITION_MD5_OFFSET, ESP_ROM_MD5_DIGEST_LEN) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to write md5\n"));
+        return false;
+    }
+    return true;
+}
+
+bool AmsFirmwareUpdater::writePartitionTableWithSpiffsAtOldAndApp1() {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Writing partition table with LittleFS at old location and app1\n"));
+
+    esp_partition_info_t p_nvs, p_ota, p_app0, p_app1, p_spiffs, p_coredump;
+    readPartition(0, &p_nvs);
+    readPartition(1, &p_ota);
+    readPartition(2, &p_app0);
+    readPartition(3, &p_app1);
+    readPartition(4, &p_spiffs);
+    readPartition(5, &p_coredump);
+
+    memset(p_app1.label, 0, 16);
+	memcpy_P(p_app1.label, PSTR("tmpfs"), 5);
+    p_app1.type = ESP_PARTITION_TYPE_DATA;
+    p_app1.subtype = ESP_PARTITION_SUBTYPE_DATA_SPIFFS;
+
+    memset(p_spiffs.label, 0, 16);
+	memcpy_P(p_spiffs.label, PSTR("oldfs"), 5);
+
+
+    clearPartitionTable();
+    if(!writePartition(0, &p_nvs)) return false;
+    if(!writePartition(1, &p_ota)) return false;
+    if(!writePartition(2, &p_app0)) return false;
+    if(!writePartition(3, &p_app1)) return false;
+    if(!writePartition(4, &p_spiffs)) return false;
+    if(!writePartition(5, &p_coredump)) return false;
+    bool ret = writeNewPartitionChecksum(6);
+
+    // Clearing app1 partition
+    if(esp_flash_erase_region(NULL, p_app1.pos.offset, p_app1.pos.size) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to erase app1\n"));
+    }
+
+    return ret;
+}
+
+bool AmsFirmwareUpdater::writePartitionTableWithSpiffsAtApp1AndNew() {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Writing partition table with LittleFS at app1 and new location\n"));
+
+    esp_partition_info_t p_nvs, p_ota, p_app0, p_app1, p_dummy, p_spiffs, p_coredump;
+    readPartition(0, &p_nvs);
+    readPartition(1, &p_ota);
+    readPartition(2, &p_app0);
+    readPartition(3, &p_app1);
+    readPartition(4, &p_spiffs);
+    readPartition(5, &p_coredump);
+
+    memset(p_spiffs.label, 0, 16);
+	memcpy_P(p_spiffs.label, PSTR("newfs"), 5);
+    p_spiffs.pos.offset = p_app0.pos.offset + AMS_PARTITION_APP_SIZE + AMS_PARTITION_APP_SIZE;
+    p_spiffs.pos.size = p_coredump.pos.offset - p_spiffs.pos.offset;
+
+    p_dummy.magic = ESP_PARTITION_MAGIC;
+    p_dummy.type = ESP_PARTITION_TYPE_DATA;
+    p_dummy.subtype = ESP_PARTITION_SUBTYPE_DATA_FAT;
+    p_dummy.pos.offset = p_app1.pos.offset + p_app1.pos.size;
+    p_dummy.pos.size = p_spiffs.pos.offset - p_dummy.pos.offset;
+    p_dummy.flags = p_app0.flags;
+    memset(p_dummy.label, 0, 16);
+    memcpy_P(p_dummy.label, PSTR("dummy"), 5);
+
+    clearPartitionTable();
+    if(!writePartition(0, &p_nvs)) return false;
+    if(!writePartition(1, &p_ota)) return false;
+    if(!writePartition(2, &p_app0)) return false;
+    if(!writePartition(3, &p_app1)) return false;
+    if(!writePartition(4, &p_dummy)) return false;
+    if(!writePartition(5, &p_spiffs)) return false;
+    if(!writePartition(6, &p_coredump)) return false;
+    bool ret = writeNewPartitionChecksum(7);
+
+    // Clearing dummy partition
+    if(esp_flash_erase_region(NULL, p_dummy.pos.offset, p_dummy.pos.size) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to erase dummy partition\n"));
+    }
+
+    // Clearing spiffs partition
+    if(esp_flash_erase_region(NULL, p_spiffs.pos.offset, p_spiffs.pos.size) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to erase spiffs partition\n"));
+    }
+
+    return ret;
+}
+
+bool AmsFirmwareUpdater::writePartitionTableFinal() {
+    esp_partition_info_t p_nvs, p_ota, p_app0, p_app1, p_spiffs, p_coredump;
+    readPartition(0, &p_nvs);
+    readPartition(1, &p_ota);
+    readPartition(2, &p_app0);
+    readPartition(3, &p_app1);
+    readPartition(4, &p_spiffs);
+    if(p_spiffs.subtype != ESP_PARTITION_SUBTYPE_DATA_SPIFFS) {
+        readPartition(5, &p_spiffs);
+        readPartition(6, &p_coredump);
+    } else {
+        readPartition(5, &p_coredump);
+    }
+
+    p_app0.magic = ESP_PARTITION_MAGIC;
+    p_app0.type = ESP_PARTITION_TYPE_APP;
+    p_app0.subtype = ESP_PARTITION_SUBTYPE_APP_OTA_0;
+    p_app0.pos.offset = p_ota.pos.offset + p_ota.pos.size;
+    p_app0.pos.size = AMS_PARTITION_APP_SIZE;
+
+    p_app1.magic = ESP_PARTITION_MAGIC;
+    p_app1.type = ESP_PARTITION_TYPE_APP;
+    p_app1.subtype = ESP_PARTITION_SUBTYPE_APP_OTA_1;
+    p_app1.pos.offset = p_app0.pos.offset + p_app0.pos.size;
+    p_app1.pos.size = AMS_PARTITION_APP_SIZE;
+    p_app1.flags = p_app0.flags;
+
+    p_spiffs.magic = ESP_PARTITION_MAGIC;
+    p_spiffs.type = ESP_PARTITION_TYPE_DATA;
+    p_spiffs.subtype = ESP_PARTITION_SUBTYPE_DATA_SPIFFS;
+    p_spiffs.pos.offset = p_app1.pos.offset + p_app1.pos.size;
+    p_spiffs.pos.size = p_coredump.pos.offset - p_spiffs.pos.offset;
+    p_spiffs.flags = p_app0.flags;
+
+    memset(p_app0.label, 0, 16);
+    memset(p_app1.label, 0, 16);
+    memset(p_spiffs.label, 0, 16);
+
+    memcpy_P(p_app0.label, PSTR("app0"), 4);
+    memcpy_P(p_app1.label, PSTR("app1"), 4);
+    memcpy_P(p_spiffs.label, PSTR("spiffs"), 6);
+
+    clearPartitionTable();
+    if(!writePartition(0, &p_nvs)) return false;
+    if(!writePartition(1, &p_ota)) return false;
+    if(!writePartition(2, &p_app0)) return false;
+    if(!writePartition(3, &p_app1)) return false;
+    if(!writePartition(4, &p_spiffs)) return false;
+    if(!writePartition(5, &p_coredump)) return false;
+    bool ret = writeNewPartitionChecksum(6);
+
+    // Clearing app1 partition
+    if(esp_flash_erase_region(NULL, p_app1.pos.offset, p_app1.pos.size) != ESP_OK) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to erase app1 partition\n"));
+    }
+
+    // Recreating image header on app1, just by copying from app0
+    esp_image_header_t h_app0;
+    if(esp_flash_read(NULL, buf, p_app0.pos.offset, sizeof(&h_app0)) == ESP_OK) {
+        if(esp_flash_write(NULL, buf, p_app1.pos.offset, sizeof(&h_app0)) != ESP_OK) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("Unable to write header to app1\n"));
+        }
+    } else {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to read header from app0\n"));
+    }
+
+    return ret;
+}
+
+bool AmsFirmwareUpdater::moveLittleFsFromOldToApp1() {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Moving LittleFS from old to temporary\n"));
+
+    fs::LittleFSFS oldFs, tmpFs;
+    if(oldFs.begin(false, "/oldfs", 10, "oldfs")) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Successfully found LittleFS at old location\n"));
+    } else {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to start existing filesystem\n"));
+        return false;
+    }
+
+    if(tmpFs.begin(true, "/tmpfs", 10, "tmpfs")) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Successfully created LittleFS at temporary location\n"));
+    } else {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to start temporary filesystem\n"));
+        return false;
+    }
+    copyFile(&oldFs, &tmpFs, FILE_MQTT_CA);
+    copyFile(&oldFs, &tmpFs, FILE_MQTT_CERT);
+    copyFile(&oldFs, &tmpFs, FILE_MQTT_KEY);
+    copyFile(&oldFs, &tmpFs, FILE_DAYPLOT);
+    copyFile(&oldFs, &tmpFs, FILE_MONTHPLOT);
+    copyFile(&oldFs, &tmpFs, FILE_ENERGYACCOUNTING);
+    copyFile(&oldFs, &tmpFs, FILE_PRICE_CONF);
+    return true;
+}
+
+bool AmsFirmwareUpdater::moveLittleFsFromApp1ToNew() {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Moving LittleFS from temporary to new\n"));
+
+    fs::LittleFSFS newFs, tmpFs;
+    if(tmpFs.begin(false, "/tmpfs", 10, "tmpfs")) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Successfully found LittleFS at temporary location\n"));
+    } else {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to start temporary filesystem\n"));
+        return false;
+    }
+    if(newFs.begin(true, "/newfs", 10, "newfs")) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Successfully created LittleFS at new location\n"));
+    } else {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to start new filesystem\n"));
+        return false;
+    }
+    copyFile(&tmpFs, &newFs, FILE_MQTT_CA);
+    copyFile(&tmpFs, &newFs, FILE_MQTT_CERT);
+    copyFile(&tmpFs, &newFs, FILE_MQTT_KEY);
+    copyFile(&tmpFs, &newFs, FILE_DAYPLOT);
+    copyFile(&tmpFs, &newFs, FILE_MONTHPLOT);
+    copyFile(&tmpFs, &newFs, FILE_ENERGYACCOUNTING);
+    copyFile(&tmpFs, &newFs, FILE_PRICE_CONF);
+    return true;
 }
 #endif

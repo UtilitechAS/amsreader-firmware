@@ -103,9 +103,30 @@ private:
     uint32_t updateHandle = 0;
     char* buf = NULL;
 
-    bool readPartition(uint8_t num, const esp_partition_info_t* partition);
-    bool writePartition(uint8_t num, const esp_partition_info_t* partition);
-    bool copyData(const esp_partition_info_t* src, esp_partition_info_t* dst);
+    bool readPartition(uint8_t num, const esp_partition_info_t* info);
+    bool writePartition(uint8_t num, const esp_partition_info_t* info);
+    bool copyData(const esp_partition_info_t* src, esp_partition_info_t* dst, bool eraseFirst=true);
     bool copyFile(fs::LittleFSFS* src, fs::LittleFSFS* dst, const char* filename);
+    uint8_t* extractFileData(const char* filename, size_t& size);
+    void saveFileData(const char* filename, uint8_t* data, size_t size);
+
+    bool relocateAppToFirst(const esp_partition_t* active);
+    bool findPartition(const char* label, const esp_partition_info_t* info);
+
+    bool hasLargeEnoughAppPartitions();
+    bool canMigratePartitionTable();
+    bool hasTwoSpiffs();
+    bool spiffsOnCorrectLocation();
+    bool hasFiles();
+
+    bool clearPartitionTable();
+    bool writeNewPartitionChecksum(uint8_t num);
+    bool writePartitionTableWithSpiffsAtOldAndApp1();
+    bool writePartitionTableWithSpiffsAtApp1AndNew();
+    bool writePartitionTableFinal();
+
+    bool moveLittleFsFromOldToApp1();
+    bool moveLittleFsFromApp1ToNew();
+
     #endif
 };

@@ -412,10 +412,6 @@ void setup() {
 
 	debugI_P(PSTR("AMS reader %s started"), FirmwareVersion::VersionString);
 	debugI_P(PSTR("Voltage: %.2fV"), vcc);
-	if(updater.relocateOrRepartitionIfNecessary()) {
-		ESP.restart();
-		return;
-	}
 
 	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
 	if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
@@ -426,6 +422,11 @@ void setup() {
 			}
 			ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
 		}  
+	}
+
+	if(updater.relocateOrRepartitionIfNecessary()) {
+		ESP.restart();
+		return;
 	}
 
 	WiFi.disconnect(true);
@@ -445,8 +446,12 @@ void setup() {
 #if defined(ESP32)
 	WiFi.onEvent(WiFiEvent);
 	debugD_P(PSTR("ESP32 LittleFS"));
-	hasFs = LittleFS.begin(true);
-	debugD_P(PSTR(" size: %d, used: %d"), LittleFS.totalBytes(), LittleFS.usedBytes());
+	hasFs = LittleFS.begin();
+	if(!hasFs) {
+		debugD_P(PSTR(" formatting"));
+		hasFs = LittleFS.begin(true);
+	}
+	debugD_P(PSTR(" size: %lu, used: %lu"), LittleFS.totalBytes(), LittleFS.usedBytes());
 #else
 	debugD_P(PSTR("ESP8266 LittleFS"));
 	hasFs = LittleFS.begin();
@@ -464,16 +469,13 @@ void setup() {
 				}
 			}
 		#endif
-		bool flashed = false;
+
 		if(LittleFS.exists(FILE_FIRMWARE_DELETE)) {
 			LittleFS.remove(FILE_FIRMWARE_DELETE);
 		} else if(LittleFS.exists(FILE_CFG)) {
 			debugI_P(PSTR("Found config"));
 			configFileParse();
-			flashed = true;
-		}
-		if(flashed) {
-			debugI_P(PSTR("Firmware update complete, restarting"));
+			debugI_P(PSTR("Config update complete, restarting"));
 			Debug.flush();
 			delay(250);
 			ESP.restart();

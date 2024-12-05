@@ -197,20 +197,125 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     apply(state);
                     
                     listType = 3;
+
+                    // 42.0.0 COSEM logical device name
+                    idx++;
+
+                    // 96.1.3 Device ID 4
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    memcpy(str, data->oct.data, data->oct.length);
+                    str[data->oct.length] = 0x00;
+                    meterId = String(str);
+
+                    // 96.3.10 Disconnect control
+                    // 96.14.0 Currently acrive energy tariff
                     idx += 4;
 
+                    // 1.8.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                    // 1.8.1
+                    // 1.8.2
                     idx += 2;
                     
+                    // 2.8.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                    // 2.8.1
+                    // 2.8.2
                     idx += 2;
 
+                    // 3.8.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                    // 4.8.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                    lastUpdateMillis = millis64();
+                } else if(data->base.length ==  0x0A) {
+                    apply(state);
+                    
+                    listType = 2;
+
+                    // 42.0.0 COSEM logical device name
+                    idx++;
+                    
+                    // 96.1.2 Device ID 3
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    memcpy(str, data->oct.data, data->oct.length);
+                    str[data->oct.length] = 0x00;
+                    meterId = String(str);
+
+                    // 1.7.0
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeImportPower = ntohl(data->dlu.data);
+
+                    // 2.7.0
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeExportPower = ntohl(data->dlu.data);
+
+                    // 3.7.0
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveImportPower = ntohl(data->dlu.data);
+
+                    // 4.7.0
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveExportPower = ntohl(data->dlu.data);
+
+                    // 32.7.0
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1voltage = ntohs(data->lu.data) / 10.0;
+
+                    // Current?
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1current = ntohs(data->lu.data) / 100.0;
+
+                    // 2.8.1
+                    // 2.8.2
+                    idx += 2;
+
+                    lastUpdateMillis = millis64();
+                } else if(data->base.length == 0x09) {
+                    apply(state);
+                    
+                    listType = 2;
+
+                    // 42.0.0 COSEM logical device name
+                    idx++;
+                    
+                    // 96.1.2 Device ID 3
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    memcpy(str, data->oct.data, data->oct.length);
+                    str[data->oct.length] = 0x00;
+                    meterId = String(str);
+
+                    // 1.7.0
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeImportPower = ntohl(data->dlu.data);
+
+                    // 2.7.0
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeExportPower = ntohl(data->dlu.data);
+
+                    // 3.7.0
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveImportPower = ntohl(data->dlu.data);
+
+                    // 4.7.0
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    reactiveExportPower = ntohl(data->dlu.data);
+
+                    // 32.7.0
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    l1voltage = ntohs(data->lu.data) / 10.0;
+
+                    // 2.8.1
+                    // 2.8.2
+                    idx += 2;
 
                     lastUpdateMillis = millis64();
                 }

@@ -98,8 +98,6 @@ private:
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
-	bool performUpgrade = false;
-	bool rebootForUpgrade = false;
 	String priceRegion = "";
 	String priceCurrency = "";
 	#if defined(AMS2MQTT_FIRMWARE_URL)

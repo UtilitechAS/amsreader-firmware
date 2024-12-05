@@ -490,7 +490,7 @@ void AmsWebServer::sysinfoJson() {
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
-	if(performRestart || rebootForUpgrade) {
+	if(performRestart) {
 		server.handleClient();
 		delay(250);
 
@@ -498,9 +498,9 @@ void AmsWebServer::sysinfoJson() {
 			ds->save();
 		}
 		#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Rebooting\n"));
+		if (debugger->isActive(RemoteDebug::INFO))
+		#endif
+		debugger->printf_P(PSTR("Rebooting\n"));
 		debugger->flush();
 		delay(1000);
 		rdc->cause = 1;
@@ -1673,7 +1673,7 @@ void AmsWebServer::handleSave() {
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
-	if(performRestart || rebootForUpgrade) {
+	if(performRestart) {
 		server.handleClient();
 		delay(250);
 
@@ -1755,7 +1755,7 @@ void AmsWebServer::firmwarePost() {
 	if(!checkSecurity(1))
 		return;
 	
-	if(rebootForUpgrade) {
+	if(performRestart) {
 		server.send(200);
 	} else {
 		server.sendHeader(HEADER_LOCATION,F("/firmware"));
@@ -1842,7 +1842,7 @@ void AmsWebServer::firmwareUpload() {
 		debugger->printf_P(PSTR("Upload complete\n"));
 
 		if(updater->completeFirmwareUpload()) {
-			rebootForUpgrade = true;
+			performRestart = true;
 			server.sendHeader(HEADER_LOCATION,F("/"));
 			server.send(302);
 		} else {
@@ -1954,9 +1954,9 @@ void AmsWebServer::factoryResetPost() {
 	delay(250);
 
 	#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Rebooting\n"));
+	if (debugger->isActive(RemoteDebug::INFO))
+	#endif
+	debugger->printf_P(PSTR("Rebooting\n"));
 	debugger->flush();
 	delay(1000);
 	rdc->cause = 5;
@@ -2589,24 +2589,6 @@ void AmsWebServer::configFileUpload() {
 		);
 		server.setContentLength(strlen(buf));
 		server.send(200, MIME_JSON, buf);
-
-		if(performRestart || rebootForUpgrade) {
-			server.handleClient();
-			delay(250);
-
-			if(ds != NULL) {
-				ds->save();
-			}
-			#if defined(AMS_REMOTE_DEBUG)
-			if (debugger->isActive(RemoteDebug::INFO))
-			#endif
-				debugger->printf_P(PSTR("Rebooting\n"));
-			debugger->flush();
-			delay(1000);
-			rdc->cause = 6;
-			performRestart = false;
-			ESP.restart();
-		}
 	}
 }
 

@@ -47,6 +47,7 @@
   let sito;
   let data = {};
   let sysinfo = {};
+  let currentVersion;
   sysinfoStore.subscribe(update => {
     sysinfo = update;
     if(sysinfo.vndcfg === false) {
@@ -72,6 +73,12 @@
     if(sysinfo.ui.lang && sysinfo.ui.lang != translations?.language?.code) {
       getTranslations(sysinfo.ui.lang);
     }
+
+    if(sysinfo.version && currentVersion && sysinfo.version != currentVersion) {
+      window.location.reload();
+    }
+
+    currentVersion = sysinfo.version;
 
     if(sito) clearTimeout(sito);
     sito = setTimeout(getSysinfo, !data || !data.u || data.u < 30 || sysinfo?.upgrading ? 10000 : 300000);

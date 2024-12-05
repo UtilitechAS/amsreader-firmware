@@ -212,7 +212,7 @@
         <div class="my-2">
             {translations.status?.firmware?.installed ?? "Installed"}: {sysinfo.version}
         </div>
-        {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version && sysinfo.upgrade.e != 0}
+        {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version && sysinfo.upgrade.e != 0 && sysinfo.upgrade.e != 123}
         <div class="my-2">
             <div class="bd-yellow">
                 {(translations.status?.firmware?.failed ?? "Upgrade from {0} to {1} failed").replace('{0}', sysinfo.upgrade.f).replace('{1}', sysinfo.upgrade.t)}

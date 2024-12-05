@@ -1057,7 +1057,17 @@ bool AmsFirmwareUpdater::completeFirmwareUpload() {
         writeBufferToFlash();
         bufPos = 0;
     }
-    if(!md5.equals(F("unknown")) && !verifyChecksum()) {
+    if(md5.equals(F("unknown"))) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("No MD5, skipping verification\n"));
+    } else if(verifyChecksum()) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("MD5 verified!\n"));
+    } else {
         updateStatus.errorCode = AMS_UPDATE_ERR_MD5;
         updateStatusChanged = true;
         return false;

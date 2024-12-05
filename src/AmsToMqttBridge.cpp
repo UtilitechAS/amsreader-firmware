@@ -717,7 +717,7 @@ void loop() {
 					debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);
 					upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
 					config.setUpgradeInformation(upinfo);
-					delay(500);
+					delay(1000);
 					ESP.restart();
 				}
 			}
@@ -756,6 +756,7 @@ void loop() {
 			config.setSystemConfig(sys);
 			config.save();
 
+			delay(1000);
 			ESP.restart();
 		}
 		if(dnsServer != NULL) {

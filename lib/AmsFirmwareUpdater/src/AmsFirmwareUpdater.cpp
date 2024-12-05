@@ -51,7 +51,7 @@ bool AmsFirmwareUpdater::setTargetVersion(const char* version) {
     #if defined(AMS_REMOTE_DEBUG)
     if (debugger->isActive(RemoteDebug::INFO))
     #endif
-    debugger->printf_P(PSTR("Preparing uprade to %s\n"), updateStatus.toVersion);
+    debugger->printf_P(PSTR("Preparing upgrade to %s\n"), updateStatus.toVersion);
 
     return true;
 }
@@ -1025,6 +1025,7 @@ bool AmsFirmwareUpdater::startFirmwareUpload(uint32_t size, const char* version)
         return false;
     }
     updateStatus.size = size;
+    md5 = F("unknown");
     return true;
 }
 
@@ -1040,7 +1041,7 @@ bool AmsFirmwareUpdater::addFirmwareUploadChunk(uint8_t* buf, size_t length) {
                 return false;
             }
             bufPos = 0;
-            memset(buf, 0, UPDATE_BUF_SIZE);
+            memset(this->buf, 0, UPDATE_BUF_SIZE);
         }
     }
     return true;
@@ -1056,7 +1057,7 @@ bool AmsFirmwareUpdater::completeFirmwareUpload() {
         writeBufferToFlash();
         bufPos = 0;
     }
-    if(!verifyChecksum()) {
+    if(!md5.equals(F("unknown")) && !verifyChecksum()) {
         updateStatus.errorCode = AMS_UPDATE_ERR_MD5;
         updateStatusChanged = true;
         return false;

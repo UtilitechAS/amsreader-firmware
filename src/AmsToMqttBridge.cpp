@@ -424,10 +424,15 @@ void setup() {
 		}  
 	}
 
+	if(!hw.ledOn(LED_GREEN)) {
+		hw.ledOn(LED_INTERNAL);
+	}
 	if(updater.relocateOrRepartitionIfNecessary()) {
 		ESP.restart();
 		return;
 	}
+	hw.ledOff(LED_GREEN);
+	hw.ledOff(LED_INTERNAL);
 
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);

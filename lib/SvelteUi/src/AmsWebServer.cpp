@@ -1640,22 +1640,22 @@ void AmsWebServer::handleSave() {
 			#endif
 		} else {
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::WARNING))
-#endif
-debugger->printf_P(PSTR("Price service missing...\n"));
+			if (debugger->isActive(RemoteDebug::WARNING))
+			#endif
+			debugger->printf_P(PSTR("Price service missing...\n"));
 		}
 	}
 
 	#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Saving configuration now...\n"));
+	if (debugger->isActive(RemoteDebug::INFO))
+	#endif
+	debugger->printf_P(PSTR("Saving configuration now...\n"));
 
 	if (config->save()) {
 		#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Successfully saved.\n"));
+		if (debugger->isActive(RemoteDebug::INFO))
+		#endif
+		debugger->printf_P(PSTR("Successfully saved.\n"));
 		if(config->isNetworkConfigChanged() || performRestart) {
 			performRestart = true;
 		} else {
@@ -1681,9 +1681,9 @@ debugger->printf_P(PSTR("Successfully saved.\n"));
 			ds->save();
 		}
 		#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Rebooting\n"));
+		if (debugger->isActive(RemoteDebug::INFO))
+		#endif
+		debugger->printf_P(PSTR("Rebooting\n"));
 		debugger->flush();
 		delay(1000);
 		rdc->cause = 2;
@@ -1792,7 +1792,7 @@ void AmsWebServer::firmwareUpload() {
 			server.send(500, MIME_JSON, buf);
 			return;
 		}
-		if(!updater->startFirmwareUpload(upload.totalSize, "upload")) {
+		if(!updater->startFirmwareUpload(upload.totalSize, "new")) {
 			#if defined(AMS_REMOTE_DEBUG)
 			if (debugger->isActive(RemoteDebug::ERROR))
 			#endif
@@ -1814,7 +1814,11 @@ void AmsWebServer::firmwareUpload() {
 		#endif
     }
 	
-	if(upload.status == UPLOAD_FILE_START || upload.status == UPLOAD_FILE_WRITE) {
+	if(upload.currentSize > 0) {
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
+		debugger->printf_P(PSTR("Writing chunk: %lu bytes\n"), upload.currentSize);
 		if(!updater->addFirmwareUploadChunk(upload.buf, upload.currentSize)) {
 			#if defined(AMS_REMOTE_DEBUG)
 			if (debugger->isActive(RemoteDebug::ERROR))
@@ -1829,7 +1833,14 @@ void AmsWebServer::firmwareUpload() {
 			server.send(500, MIME_JSON, buf);
 			return;
 		}
-    } else if(upload.status == UPLOAD_FILE_END) {
+    }
+	
+	if(upload.status == UPLOAD_FILE_END) {
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
+		debugger->printf_P(PSTR("Upload complete\n"));
+
 		if(updater->completeFirmwareUpload()) {
 			rebootForUpgrade = true;
 			server.sendHeader(HEADER_LOCATION,F("/"));

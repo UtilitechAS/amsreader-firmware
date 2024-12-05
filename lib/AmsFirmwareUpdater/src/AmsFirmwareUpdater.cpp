@@ -45,6 +45,9 @@ bool AmsFirmwareUpdater::setTargetVersion(const char* version) {
     updateStatus.errorCode = AMS_UPDATE_ERR_OK;
     updateStatus.reboot_count = 0;
 
+    bufPos = 0;
+    memset(buf, 0, UPDATE_BUF_SIZE);
+
     #if defined(AMS_REMOTE_DEBUG)
     if (debugger->isActive(RemoteDebug::INFO))
     #endif
@@ -185,21 +188,7 @@ void AmsFirmwareUpdater::loop() {
             #endif
             debugger->printf_P(PSTR("http end took %lums\n"), end-start);
         } else if(updateStatus.block_position * UPDATE_BUF_SIZE >= updateStatus.size) {
-            #if defined(AMS_REMOTE_DEBUG)
-            if (debugger->isActive(RemoteDebug::INFO))
-            #endif
-            debugger->printf_P(PSTR("Firmware download complete\n"));
-
-            if(!verifyChecksum()) {
-                updateStatus.errorCode = AMS_UPDATE_ERR_MD5;
-                updateStatusChanged = true;
-                return;
-            }
-            if(!activateNewFirmware()) {
-                updateStatus.errorCode = AMS_UPDATE_ERR_ACTIVATE;
-                updateStatusChanged = true;
-                return;
-            }
+            if(!completeFirmwareUpload()) return;
             updateStatus.errorCode = AMS_UPDATE_ERR_SUCCESS_SIGNAL;
             updateStatusChanged = true;
         }
@@ -602,6 +591,7 @@ bool AmsFirmwareUpdater::hasLargeEnoughAppPartitions() {
 }
 
 bool AmsFirmwareUpdater::canMigratePartitionTable() {
+    size_t appAndSpiffs = 0;
     esp_partition_info_t part;
     readPartition(0, &part);
     if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_DATA, part.subtype != ESP_PARTITION_SUBTYPE_DATA_NVS)
@@ -614,17 +604,23 @@ bool AmsFirmwareUpdater::canMigratePartitionTable() {
     readPartition(2, &part);
     if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_APP, part.subtype != ESP_PARTITION_SUBTYPE_APP_OTA_0)
         return false;
+    appAndSpiffs += part.pos.size;
 
     readPartition(3, &part);
     if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_APP, part.subtype != ESP_PARTITION_SUBTYPE_APP_OTA_1)
         return false;
+    appAndSpiffs += part.pos.size;
 
     readPartition(4, &part);
     if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_DATA, part.subtype != ESP_PARTITION_SUBTYPE_DATA_SPIFFS)
         return false;
+    appAndSpiffs += part.pos.size;
 
     readPartition(5, &part);
     if(part.magic != ESP_PARTITION_MAGIC || part.type != ESP_PARTITION_TYPE_DATA, part.subtype != ESP_PARTITION_SUBTYPE_DATA_COREDUMP)
+        return false;
+
+    if(appAndSpiffs < (AMS_PARTITION_APP_SIZE * 2) + AMS_PARTITION_MIN_SPIFFS_SIZE)
         return false;
 
     return true;
@@ -785,7 +781,7 @@ bool AmsFirmwareUpdater::writePartitionTableWithSpiffsAtOldAndApp1() {
     if(!writePartition(3, &p_app1)) return false;
     if(!writePartition(4, &p_spiffs)) return false;
     if(!writePartition(5, &p_coredump)) return false;
-    bool ret = writeNewPartitionChecksum(6);
+    if(!writeNewPartitionChecksum(6)) return false;
 
     // Clearing app1 partition
     if(esp_flash_erase_region(NULL, p_app1.pos.offset, p_app1.pos.size) != ESP_OK) {
@@ -795,7 +791,7 @@ bool AmsFirmwareUpdater::writePartitionTableWithSpiffsAtOldAndApp1() {
         debugger->printf_P(PSTR("Unable to erase app1\n"));
     }
 
-    return ret;
+    return true;
 }
 
 bool AmsFirmwareUpdater::writePartitionTableWithSpiffsAtApp1AndNew() {
@@ -834,7 +830,7 @@ bool AmsFirmwareUpdater::writePartitionTableWithSpiffsAtApp1AndNew() {
     if(!writePartition(4, &p_dummy)) return false;
     if(!writePartition(5, &p_spiffs)) return false;
     if(!writePartition(6, &p_coredump)) return false;
-    bool ret = writeNewPartitionChecksum(7);
+    if(!writeNewPartitionChecksum(7)) return false;
 
     // Clearing dummy partition
     if(esp_flash_erase_region(NULL, p_dummy.pos.offset, p_dummy.pos.size) != ESP_OK) {
@@ -852,7 +848,7 @@ bool AmsFirmwareUpdater::writePartitionTableWithSpiffsAtApp1AndNew() {
         debugger->printf_P(PSTR("Unable to erase spiffs partition\n"));
     }
 
-    return ret;
+    return true;
 }
 
 bool AmsFirmwareUpdater::writePartitionTableFinal() {
@@ -904,7 +900,7 @@ bool AmsFirmwareUpdater::writePartitionTableFinal() {
     if(!writePartition(3, &p_app1)) return false;
     if(!writePartition(4, &p_spiffs)) return false;
     if(!writePartition(5, &p_coredump)) return false;
-    bool ret = writeNewPartitionChecksum(6);
+    if(!writeNewPartitionChecksum(6)) return false;
 
     // Clearing app1 partition
     if(esp_flash_erase_region(NULL, p_app1.pos.offset, p_app1.pos.size) != ESP_OK) {
@@ -930,7 +926,7 @@ bool AmsFirmwareUpdater::writePartitionTableFinal() {
         debugger->printf_P(PSTR("Unable to read header from app0\n"));
     }
 
-    return ret;
+    return true;
 }
 
 bool AmsFirmwareUpdater::moveLittleFsFromOldToApp1() {
@@ -1013,6 +1009,65 @@ bool AmsFirmwareUpdater::moveLittleFsFromApp1ToNew() {
     copyFile(&tmpFs, &newFs, FILE_MONTHPLOT);
     copyFile(&tmpFs, &newFs, FILE_ENERGYACCOUNTING);
     copyFile(&tmpFs, &newFs, FILE_PRICE_CONF);
+    return true;
+}
+bool AmsFirmwareUpdater::startFirmwareUpload(uint32_t size, const char* version) {
+    const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
+    if(partition == NULL) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("No eligable partition was found for upgrade\n"));
+        return false;
+    }
+
+    if(!setTargetVersion(version)) {
+        return false;
+    }
+    updateStatus.size = size;
+    return true;
+}
+
+bool AmsFirmwareUpdater::addFirmwareUploadChunk(uint8_t* buf, size_t length) {
+    for(size_t i = 0; i < length; i++) {
+        this->buf[bufPos++] = buf[i];
+        if(bufPos == UPDATE_BUF_SIZE) {
+            if(!writeBufferToFlash()) {
+                #if defined(AMS_REMOTE_DEBUG)
+                if (debugger->isActive(RemoteDebug::ERROR))
+                #endif
+                debugger->printf_P(PSTR("Unable to write to flash\n"));
+                return false;
+            }
+            bufPos = 0;
+            memset(buf, 0, UPDATE_BUF_SIZE);
+        }
+    }
+    return true;
+}
+
+bool AmsFirmwareUpdater::completeFirmwareUpload() {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Firmware write complete\n"));
+
+    if(bufPos > 0) {
+        writeBufferToFlash();
+        bufPos = 0;
+    }
+    if(!verifyChecksum()) {
+        updateStatus.errorCode = AMS_UPDATE_ERR_MD5;
+        updateStatusChanged = true;
+        return false;
+    }
+    if(!activateNewFirmware()) {
+        updateStatus.errorCode = AMS_UPDATE_ERR_ACTIVATE;
+        updateStatusChanged = true;
+        return false;
+    }
+    updateStatus.errorCode = AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
+    updateStatusChanged = true;
     return true;
 }
 #endif

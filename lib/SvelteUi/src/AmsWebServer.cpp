@@ -1773,28 +1773,82 @@ void AmsWebServer::firmwareUpload() {
         String filename = upload.filename;
 		if(filename.isEmpty()) {
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::ERROR))
-#endif
-debugger->printf_P(PSTR("No file, falling back to post\n"));
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("No file, falling back to post\n"));
 			return;
 		}
         if(!filename.endsWith(F(".bin"))) {
-            server.send_P(500, MIME_PLAIN, PSTR("500: couldn't create file"));
-		} else {
-			#if defined(ESP32)
-				esp_task_wdt_delete(NULL);
-				esp_task_wdt_deinit();
-			#elif defined(ESP8266)
-				ESP.wdtDisable();
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
 			#endif
+			debugger->printf_P(PSTR("Invalid file extension\n"));
+			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+				"false",
+				"Invalid file extension",
+				"false"
+			);
+			server.setContentLength(strlen(buf));
+			server.send(500, MIME_JSON, buf);
+			return;
 		}
-	}
-	// TODO: uploadFile(FILE_FIRMWARE);
-	if(upload.status == UPLOAD_FILE_END) {
-		rebootForUpgrade = true;
-		server.sendHeader(HEADER_LOCATION,F("/"));
-		server.send(302);
-	}
+		if(!updater->startFirmwareUpload(upload.totalSize, "upload")) {
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("An error has occurred while starting firmware upload\n"));
+			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+				"false",
+				"Unable to start firmware upgrade",
+				"false"
+			);
+			server.setContentLength(strlen(buf));
+			server.send(500, MIME_JSON, buf);
+			return;
+		}
+		#if defined(ESP32)
+			esp_task_wdt_delete(NULL);
+			esp_task_wdt_deinit();
+		#elif defined(ESP8266)
+			ESP.wdtDisable();
+		#endif
+    }
+	
+	if(upload.status == UPLOAD_FILE_START || upload.status == UPLOAD_FILE_WRITE) {
+		if(!updater->addFirmwareUploadChunk(upload.buf, upload.currentSize)) {
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("An error has occurred while writing firmware to flash\n"));
+			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+				"false",
+				"Unable to write to flash",
+				"false"
+			);
+			server.setContentLength(strlen(buf));
+			server.send(500, MIME_JSON, buf);
+			return;
+		}
+    } else if(upload.status == UPLOAD_FILE_END) {
+		if(updater->completeFirmwareUpload()) {
+			rebootForUpgrade = true;
+			server.sendHeader(HEADER_LOCATION,F("/"));
+			server.send(302);
+		} else {
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("An error has occurred while activating new firmware\n"));
+			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+				"false",
+				"Unable to activate new firmware",
+				"false"
+			);
+			server.setContentLength(strlen(buf));
+			server.send(500, MIME_JSON, buf);
+			return;
+		}
+    }
 }
 
 HTTPUpload& AmsWebServer::uploadFile(const char* path) {
@@ -1802,15 +1856,15 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
     if(upload.status == UPLOAD_FILE_START) {
 		if(uploading) {
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::ERROR))
-#endif
-debugger->printf_P(PSTR("Upload already in progress\n"));
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("Upload already in progress\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Upload already in progress!</h1></body></html>"));
 		} else if (!LittleFS.begin()) {
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::ERROR))
-#endif
-debugger->printf_P(PSTR("An Error has occurred while mounting LittleFS\n"));
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("An Error has occurred while mounting LittleFS\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Unable to mount LittleFS!</h1></body></html>"));
 		} else {
 			uploading = true;
@@ -1830,9 +1884,9 @@ debugger->printf_P(PSTR("An Error has occurred while mounting LittleFS\n"));
 				LittleFS.remove(path);
 
 				#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::ERROR))
-#endif
-debugger->printf_P(PSTR("An Error has occurred while writing file\n"));
+				if (debugger->isActive(RemoteDebug::ERROR))
+				#endif
+				debugger->printf_P(PSTR("An Error has occurred while writing file\n"));
 				snprintf_P(buf, BufferSize, RESPONSE_JSON,
 					"false",
 					"File size does not match",
@@ -2254,6 +2308,58 @@ void AmsWebServer::configFileDownload() {
 		if(strlen(price.entsoeToken) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEntsoeToken %s\n"), price.entsoeToken));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceArea %s\n"), price.area));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceCurrency %s\n"), price.currency));
+		if(ps != NULL) {
+			uint8_t i = 0;
+			std::vector<PriceConfig> pc = ps->getPriceConfig();
+			if(pc.size() > 0) {
+				for(uint8_t i = 0; i < pc.size(); i++) {
+					PriceConfig& p = pc.at(i);
+					char direction[6] = "";
+					switch(p.direction) {
+						case PRICE_DIRECTION_IMPORT:
+							strcpy_P(direction, PSTR("import"));
+							break;
+						case PRICE_DIRECTION_EXPORT:
+							strcpy_P(direction, PSTR("export"));
+							break;
+						case PRICE_DIRECTION_BOTH:
+							strcpy_P(direction, PSTR("both"));
+							break;
+					}
+					char type[9] = "";
+					switch(p.type) {
+						case PRICE_TYPE_FIXED:
+							strcpy_P(type, PSTR("fixed"));
+							break;
+						case PRICE_TYPE_ADD:
+							strcpy_P(type, PSTR("add"));
+							break;
+						case PRICE_TYPE_PCT:
+							strcpy_P(type, PSTR("percent"));
+							break;
+						case PRICE_TYPE_SUBTRACT:
+							strcpy_P(type, PSTR("subtract"));
+							break;
+					}
+					char days[12] = "";
+					char hours[12] = "";
+
+					server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceModifier %i %s %s %s %.4f %s %s %02d-%02d %02d-%02d\n"), 
+						i, 
+						p.name, 
+						direction,
+						type,
+						p.value / 10000.0,
+						days,
+						hours,
+						p.start_dayofmonth,
+						p.start_month,
+						p.end_dayofmonth,
+						p.end_month
+					));
+				}
+			}
+		}
 	}
 
 	if(includeThresholds) {

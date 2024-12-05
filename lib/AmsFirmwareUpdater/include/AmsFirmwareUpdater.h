@@ -17,7 +17,7 @@
 #define AMS_PARTITION_TABLE_OFFSET 0x8000
 #define AMS_PARTITION_APP0_OFFSET 0x10000
 #define AMS_PARTITION_APP_SIZE 0x1D0000
-#define AMS_PARTITION_SPIFFS_SIZE 0x40000
+#define AMS_PARTITION_MIN_SPIFFS_SIZE 0x20000
 #endif
 
 #define AMS_UPDATE_ERR_OK 0
@@ -53,6 +53,10 @@ public:
     void setUpgradeInformation(UpgradeInformation&);
     bool isUpgradeInformationChanged();
     void ackUpgradeInformationChanged();
+
+    bool startFirmwareUpload(uint32_t size, const char* version);
+    bool addFirmwareUploadChunk(uint8_t* buf, size_t length);
+    bool completeFirmwareUpload();
 
 private:
     #if defined(ESP8266)
@@ -100,8 +104,8 @@ private:
     uint32_t sketchSize(sketchSize_t response);
 
     #if defined(ESP32)
-    uint32_t updateHandle = 0;
     char* buf = NULL;
+    uint16_t bufPos = 0;
 
     bool readPartition(uint8_t num, const esp_partition_info_t* info);
     bool writePartition(uint8_t num, const esp_partition_info_t* info);

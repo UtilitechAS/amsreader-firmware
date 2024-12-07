@@ -1841,7 +1841,7 @@ void AmsWebServer::firmwareUpload() {
 		#endif
 		debugger->printf_P(PSTR("Upload complete\n"));
 
-		if(updater->completeFirmwareUpload()) {
+		if(updater->completeFirmwareUpload(upload.totalSize)) {
 			performRestart = true;
 			server.sendHeader(HEADER_LOCATION,F("/"));
 			server.send(302);

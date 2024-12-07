@@ -31,6 +31,11 @@ char* AmsFirmwareUpdater::getNextVersion() {
 }
 
 bool AmsFirmwareUpdater::setTargetVersion(const char* version) {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Preparing upgrade to %s\n"), version);
+
     if(strcmp(version, FirmwareVersion::VersionString) == 0) {
         memset(updateStatus.toVersion, 0, sizeof(updateStatus.toVersion));
         return false;
@@ -46,13 +51,9 @@ bool AmsFirmwareUpdater::setTargetVersion(const char* version) {
     updateStatus.errorCode = AMS_UPDATE_ERR_OK;
     updateStatus.reboot_count = 0;
 
-    bufPos = 0;
+    if(buf == NULL) buf = (uint8_t*) malloc(UPDATE_BUF_SIZE);
     memset(buf, 0, UPDATE_BUF_SIZE);
-
-    #if defined(AMS_REMOTE_DEBUG)
-    if (debugger->isActive(RemoteDebug::INFO))
-    #endif
-    debugger->printf_P(PSTR("Preparing upgrade to %s\n"), updateStatus.toVersion);
+    bufPos = 0;
 
     return true;
 }
@@ -189,7 +190,7 @@ void AmsFirmwareUpdater::loop() {
             #endif
             debugger->printf_P(PSTR("http end took %lums\n"), end-start);
         } else if(updateStatus.block_position * UPDATE_BUF_SIZE >= updateStatus.size) {
-            if(!completeFirmwareUpload()) return;
+            if(!completeFirmwareUpload(updateStatus.size)) return;
             updateStatus.errorCode = AMS_UPDATE_ERR_SUCCESS_SIGNAL;
             updateStatusChanged = true;
         }
@@ -377,7 +378,7 @@ bool AmsFirmwareUpdater::addFirmwareUploadChunk(uint8_t* buf, size_t length) {
     return true;
 }
 
-bool AmsFirmwareUpdater::completeFirmwareUpload() {
+bool AmsFirmwareUpdater::completeFirmwareUpload(uint32_t size) {
     #if defined(AMS_REMOTE_DEBUG)
     if (debugger->isActive(RemoteDebug::INFO))
     #endif
@@ -402,6 +403,16 @@ bool AmsFirmwareUpdater::completeFirmwareUpload() {
         updateStatusChanged = true;
         return false;
     }
+
+    if(updateStatus.size == 0) {
+        updateStatus.size = size;
+    } else if(size > 0 && updateStatus.size != size) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("Expected size %lu is different from actual size %ly!\n"), updateStatus.size, size);
+    }
+
     if(!activateNewFirmware()) {
         updateStatus.errorCode = AMS_UPDATE_ERR_ACTIVATE;
         updateStatusChanged = true;
@@ -1121,7 +1132,16 @@ uintptr_t AmsFirmwareUpdater::getFirmwareUpdateStart() {
 }
 
 bool AmsFirmwareUpdater::isFlashReadyForNextUpdateVersion(uint32_t size) {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Checking if we can upgrade\n"));
+
     if(!ESP.checkFlashConfig(false)) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("checkFlashConfig failed\n"));
         return false;
     }
 
@@ -1138,12 +1158,25 @@ bool AmsFirmwareUpdater::isFlashReadyForNextUpdateVersion(uint32_t size) {
 
     //make sure that the size of both sketches is less than the total space (updateEndAddress)
     if(updateStartAddress < currentSketchSize) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("New firmware does not fit flash\n"));
       return false;
     }
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Ready for next update version\n"));
     return true;
 }
 
 bool AmsFirmwareUpdater::writeBufferToFlash() {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Writing buffer to flash\n"));
+    yield();
     uint32_t offset = updateStatus.block_position * UPDATE_BUF_SIZE;
     uintptr_t currentAddress = getFirmwareUpdateStart() + offset;
     uint32_t sector = currentAddress/FLASH_SECTOR_SIZE;
@@ -1203,6 +1236,11 @@ bool AmsFirmwareUpdater::verifyChecksum() {
 }
 
 bool AmsFirmwareUpdater::activateNewFirmware() {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Activating new firmware, start at %lu, size is %lu\n"), getFirmwareUpdateStart(), updateStatus.size);
+
     eboot_command ebcmd;
     ebcmd.action = ACTION_COPY_RAW;
     ebcmd.args[0] = getFirmwareUpdateStart();

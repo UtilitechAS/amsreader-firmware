@@ -59,7 +59,7 @@ public:
 
     bool startFirmwareUpload(uint32_t size, const char* version);
     bool addFirmwareUploadChunk(uint8_t* buf, size_t length);
-    bool completeFirmwareUpload();
+    bool completeFirmwareUpload(uint32_t size);
 
 private:
     #if defined(ESP8266)

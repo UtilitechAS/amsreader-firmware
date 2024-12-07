@@ -20,7 +20,6 @@ ADC_MODE(ADC_VCC);
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <ESP32SSDP.h>
-#include "Update.h"
 #include <esp_task_wdt.h>
 #include <lwip/dns.h>
 #if defined(CONFIG_IDF_TARGET_ESP32C3)
@@ -427,10 +426,12 @@ void setup() {
 	if(!hw.ledOn(LED_GREEN)) {
 		hw.ledOn(LED_INTERNAL);
 	}
+	#if defined(ESP32)
 	if(updater.relocateOrRepartitionIfNecessary()) {
 		ESP.restart();
 		return;
 	}
+	#endif
 	hw.ledOff(LED_GREEN);
 	hw.ledOff(LED_INTERNAL);
 

@@ -6,18 +6,21 @@
 #include "AmsConfiguration.h"
 
 #if defined(ESP32)
-#include "esp_flash_partitions.h"
-#include "LittleFS.h"
-#include "WiFi.h"
-#include "HTTPClient.h"
-#if defined(AMS_REMOTE_DEBUG)
-#include "RemoteDebug.h"
+    #include "esp_flash_partitions.h"
+    #include "LittleFS.h"
+    #include "WiFi.h"
+    #include "HTTPClient.h"
+
+    #define AMS_PARTITION_TABLE_OFFSET 0x8000
+    #define AMS_PARTITION_APP0_OFFSET 0x10000
+    #define AMS_PARTITION_APP_SIZE 0x1D0000
+    #define AMS_PARTITION_MIN_SPIFFS_SIZE 0x20000
+#elif defined(ESP8266)
+	#include <ESP8266HTTPClient.h>
 #endif
 
-#define AMS_PARTITION_TABLE_OFFSET 0x8000
-#define AMS_PARTITION_APP0_OFFSET 0x10000
-#define AMS_PARTITION_APP_SIZE 0x1D0000
-#define AMS_PARTITION_MIN_SPIFFS_SIZE 0x20000
+#if defined(AMS_REMOTE_DEBUG)
+#include "RemoteDebug.h"
 #endif
 
 #define AMS_UPDATE_ERR_OK 0
@@ -78,7 +81,7 @@ private:
     #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
     #else
-    Stream* debugger;
+    Print* debugger;
     #endif
     HwTools* hw;
     AmsData* meterState;
@@ -101,12 +104,12 @@ private:
     bool verifyChecksum();
     bool activateNewFirmware();
     bool writeUpdateStatus();
-    uint32_t sketchSize(sketchSize_t response);
+    bool isFlashReadyForNextUpdateVersion(uint32_t size);
 
-    #if defined(ESP32)
-    char* buf = NULL;
+    uint8_t* buf = NULL;
     uint16_t bufPos = 0;
 
+    #if defined(ESP32)
     bool readPartition(uint8_t num, const esp_partition_info_t* info);
     bool writePartition(uint8_t num, const esp_partition_info_t* info);
     bool copyData(const esp_partition_info_t* src, esp_partition_info_t* dst, bool eraseFirst=true);
@@ -131,6 +134,7 @@ private:
 
     bool moveLittleFsFromOldToApp1();
     bool moveLittleFsFromApp1ToNew();
-
+    #elif defined(ESP8266)
+    uintptr_t getFirmwareUpdateStart();
     #endif
 };

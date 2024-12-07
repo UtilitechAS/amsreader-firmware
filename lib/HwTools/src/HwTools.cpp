@@ -412,7 +412,7 @@ float HwTools::getVcc() {
         #else
             uint32_t x = 0;
             for (int i = 0; i < 10; i++) {
-                x += analogRead(config->vccPin);
+                x += analogRead(vccPin);
             }
             volts = (x * 3.3) / 10.0 / analogRange;
         #endif

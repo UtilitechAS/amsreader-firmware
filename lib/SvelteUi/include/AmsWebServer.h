@@ -34,7 +34,6 @@
 	#include <WiFi.h>
 	#include <WebServer.h>
 	#include <HTTPClient.h>
-	#include <HTTPUpdate.h>
 	#include <ESP32SSDP.h>
 	#if defined(CONFIG_IDF_TARGET_ESP32C3)
 	#warning "Cloud disabled"

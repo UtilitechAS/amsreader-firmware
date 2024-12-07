@@ -9,7 +9,8 @@
 #include "esp_flash_spi_init.h"
 #include "MD5Builder.h"
 #elif defined(ESP8266)
-#include ""
+#include "flash_hal.h"
+#include "eboot_command.h"
 #endif
 
 #if defined(AMS_REMOTE_DEBUG)
@@ -103,7 +104,7 @@ void AmsFirmwareUpdater::loop() {
 
         unsigned long start = 0, end = 0;
 
-        if(buf == NULL) buf = (char*) malloc(UPDATE_BUF_SIZE);
+        if(buf == NULL) buf = (uint8_t*) malloc(UPDATE_BUF_SIZE);
         if(updateStatus.size == 0) {
             start = millis();
             if(!fetchVersionDetails()) {
@@ -210,7 +211,13 @@ bool AmsFirmwareUpdater::fetchNextVersion() {
 
     char url[128];
     snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/next"), chipType, firmwareVariant);
+    #if defined(ESP8266)
+    WiFiClient client;
+    client.setTimeout(5000);
+    if(http.begin(client, url)) {
+    #elif defined(ESP32)
     if(http.begin(url)) {
+    #endif
         http.useHTTP10(true);
         http.setTimeout(30000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
@@ -244,7 +251,13 @@ bool AmsFirmwareUpdater::fetchVersionDetails() {
 
     char url[128];
     snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/%s/details"), chipType, firmwareVariant, updateStatus.toVersion);
+    #if defined(ESP8266)
+    WiFiClient client;
+    client.setTimeout(5000);
+    if(http.begin(client, url)) {
+    #elif defined(ESP32)
     if(http.begin(url)) {
+    #endif
         http.useHTTP10(true);
         http.setTimeout(30000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
@@ -294,7 +307,13 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
 
     char url[128];
     snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/%s/chunk"), chipType, firmwareVariant, updateStatus.toVersion);
+    #if defined(ESP8266)
+    WiFiClient client;
+    client.setTimeout(5000);
+    if(http.begin(client, url)) {
+    #elif defined(ESP32)
     if(http.begin(url)) {
+    #endif
         http.useHTTP10(true);
         http.setTimeout(30000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
@@ -323,7 +342,92 @@ bool AmsFirmwareUpdater::writeUpdateStatus() {
     return false;
 }
 
+bool AmsFirmwareUpdater::startFirmwareUpload(uint32_t size, const char* version) {
+    if(!isFlashReadyForNextUpdateVersion(size)) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("No eligable partition was found for upgrade\n"));
+        return false;
+    }
+
+    if(!setTargetVersion(version)) {
+        return false;
+    }
+    updateStatus.size = size;
+    md5 = F("unknown");
+    return true;
+}
+
+bool AmsFirmwareUpdater::addFirmwareUploadChunk(uint8_t* buf, size_t length) {
+    for(size_t i = 0; i < length; i++) {
+        this->buf[bufPos++] = buf[i];
+        if(bufPos == UPDATE_BUF_SIZE) {
+            if(!writeBufferToFlash()) {
+                #if defined(AMS_REMOTE_DEBUG)
+                if (debugger->isActive(RemoteDebug::ERROR))
+                #endif
+                debugger->printf_P(PSTR("Unable to write to flash\n"));
+                return false;
+            }
+            bufPos = 0;
+            memset(this->buf, 0, UPDATE_BUF_SIZE);
+        }
+    }
+    return true;
+}
+
+bool AmsFirmwareUpdater::completeFirmwareUpload() {
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Firmware write complete\n"));
+
+    if(bufPos > 0) {
+        writeBufferToFlash();
+        bufPos = 0;
+    }
+    if(md5.equals(F("unknown"))) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("No MD5, skipping verification\n"));
+    } else if(verifyChecksum()) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("MD5 verified!\n"));
+    } else {
+        updateStatus.errorCode = AMS_UPDATE_ERR_MD5;
+        updateStatusChanged = true;
+        return false;
+    }
+    if(!activateNewFirmware()) {
+        updateStatus.errorCode = AMS_UPDATE_ERR_ACTIVATE;
+        updateStatusChanged = true;
+        return false;
+    }
+    updateStatus.errorCode = AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
+    updateStatusChanged = true;
+    return true;
+}
+
 #if defined(ESP32)
+bool AmsFirmwareUpdater::isFlashReadyForNextUpdateVersion(uint32_t size) {
+    const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
+    if(partition == NULL) return false;
+    esp_partition_info_t p_info;
+    if(!findPartition(partition->label, &p_info)) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("Unable to find partition info for next update partition\n"));
+        return false;
+    }
+    if(p_info.pos.size < size) return false;
+    return true;
+}
+
 bool AmsFirmwareUpdater::writeBufferToFlash() {
     uint32_t offset = updateStatus.block_position * UPDATE_BUF_SIZE;
     const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
@@ -381,7 +485,7 @@ bool AmsFirmwareUpdater::relocateOrRepartitionIfNecessary() {
     #endif
     debugger->printf_P(PSTR("Small partition, repartitioning\n"));
 
-    if(buf == NULL) buf = (char*) malloc(UPDATE_BUF_SIZE);
+    if(buf == NULL) buf = (uint8_t*) malloc(UPDATE_BUF_SIZE);
 
     if(hasTwoSpiffs()) {
         if(spiffsOnCorrectLocation()) {
@@ -507,7 +611,7 @@ bool AmsFirmwareUpdater::copyFile(fs::LittleFSFS* srcFs, fs::LittleFSFS* dstFs, 
         File dst = dstFs->open(filename, "w");
 
         size_t size;
-        while((size = src.readBytes(buf, UPDATE_BUF_SIZE)) > 0) {
+        while((size = src.readBytes((char*) buf, UPDATE_BUF_SIZE)) > 0) {
             dst.write((uint8_t*) buf, size);
         }
         dst.flush();
@@ -725,7 +829,7 @@ bool AmsFirmwareUpdater::writeNewPartitionChecksum(uint8_t num) {
     }
 
     md5.calculate();
-    md5.getChars(buf);
+    md5.getChars((char*) buf);
     #if defined(AMS_REMOTE_DEBUG)
     if (debugger->isActive(RemoteDebug::DEBUG))
     #endif
@@ -1011,74 +1115,100 @@ bool AmsFirmwareUpdater::moveLittleFsFromApp1ToNew() {
     copyFile(&tmpFs, &newFs, FILE_PRICE_CONF);
     return true;
 }
-bool AmsFirmwareUpdater::startFirmwareUpload(uint32_t size, const char* version) {
-    const esp_partition_t* partition = esp_ota_get_next_update_partition(NULL);
-    if(partition == NULL) {
+#elif defined(ESP8266)
+uintptr_t AmsFirmwareUpdater::getFirmwareUpdateStart() {
+    return FS_start - 0x40200000;
+}
+
+bool AmsFirmwareUpdater::isFlashReadyForNextUpdateVersion(uint32_t size) {
+    if(!ESP.checkFlashConfig(false)) {
+        return false;
+    }
+
+    //size of current sketch rounded to a sector
+    size_t currentSketchSize = (ESP.getSketchSize() + FLASH_SECTOR_SIZE - 1) & (~(FLASH_SECTOR_SIZE - 1));
+
+    //size of the update rounded to a sector
+    size_t roundedSize = (size + FLASH_SECTOR_SIZE - 1) & (~(FLASH_SECTOR_SIZE - 1));
+
+    //address of the end of the space available for sketch and update
+    uintptr_t updateEndAddress = FS_start - 0x40200000;
+
+    uintptr_t updateStartAddress = (updateEndAddress > roundedSize) ? (updateEndAddress - roundedSize) : 0;
+
+    //make sure that the size of both sketches is less than the total space (updateEndAddress)
+    if(updateStartAddress < currentSketchSize) {
+      return false;
+    }
+    return true;
+}
+
+bool AmsFirmwareUpdater::writeBufferToFlash() {
+    uint32_t offset = updateStatus.block_position * UPDATE_BUF_SIZE;
+    uintptr_t currentAddress = getFirmwareUpdateStart() + offset;
+    uint32_t sector = currentAddress/FLASH_SECTOR_SIZE;
+    if(!ESP.flashEraseSector(sector)) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::ERROR))
         #endif
-        debugger->printf_P(PSTR("No eligable partition was found for upgrade\n"));
+        debugger->printf_P(PSTR("flashEraseSector(%lu) failed\n"), sector);
+        updateStatus.errorCode = AMS_UPDATE_ERR_ERASE;
         return false;
     }
-
-    if(!setTargetVersion(version)) {
+    if(!ESP.flashWrite(currentAddress, buf, UPDATE_BUF_SIZE)) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("flashWrite(%lu, buf, %lu) failed\n"), currentAddress, UPDATE_BUF_SIZE);
+        updateStatus.errorCode = AMS_UPDATE_ERR_WRITE;
         return false;
     }
-    updateStatus.size = size;
-    md5 = F("unknown");
+    updateStatus.block_position++;
     return true;
 }
 
-bool AmsFirmwareUpdater::addFirmwareUploadChunk(uint8_t* buf, size_t length) {
-    for(size_t i = 0; i < length; i++) {
-        this->buf[bufPos++] = buf[i];
-        if(bufPos == UPDATE_BUF_SIZE) {
-            if(!writeBufferToFlash()) {
-                #if defined(AMS_REMOTE_DEBUG)
-                if (debugger->isActive(RemoteDebug::ERROR))
-                #endif
-                debugger->printf_P(PSTR("Unable to write to flash\n"));
-                return false;
-            }
-            bufPos = 0;
-            memset(this->buf, 0, UPDATE_BUF_SIZE);
+bool AmsFirmwareUpdater::verifyChecksum() {
+    MD5Builder md5;
+    md5.begin();
+    uint32_t offset = 0;
+    uint32_t lengthLeft = updateStatus.size;
+    while( lengthLeft > 0) {
+        size_t bytes = (lengthLeft < UPDATE_BUF_SIZE) ? lengthLeft : UPDATE_BUF_SIZE;
+        uintptr_t currentAddress = getFirmwareUpdateStart() + offset;
+        if(!ESP.flashRead(currentAddress, buf, bytes)) {
+            updateStatus.errorCode = AMS_UPDATE_ERR_READ;
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("Unable to read for MD5, offset %lu, bytes %lu\n"), offset, bytes);
+            return false;
         }
+        md5.add((uint8_t*) buf, bytes);
+        lengthLeft -= bytes;
+        offset += bytes;
+
+        delay(1);
     }
-    return true;
+    md5.calculate();
+
+    if(md5.toString().equals(this->md5)) {
+        return true;
+    } else {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("MD5 %s does not match expected %s\n"), md5.toString().c_str(), this->md5.c_str());
+        return false;
+    }
 }
 
-bool AmsFirmwareUpdater::completeFirmwareUpload() {
-    #if defined(AMS_REMOTE_DEBUG)
-    if (debugger->isActive(RemoteDebug::INFO))
-    #endif
-    debugger->printf_P(PSTR("Firmware write complete\n"));
-
-    if(bufPos > 0) {
-        writeBufferToFlash();
-        bufPos = 0;
-    }
-    if(md5.equals(F("unknown"))) {
-        #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::INFO))
-        #endif
-        debugger->printf_P(PSTR("No MD5, skipping verification\n"));
-    } else if(verifyChecksum()) {
-        #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::INFO))
-        #endif
-        debugger->printf_P(PSTR("MD5 verified!\n"));
-    } else {
-        updateStatus.errorCode = AMS_UPDATE_ERR_MD5;
-        updateStatusChanged = true;
-        return false;
-    }
-    if(!activateNewFirmware()) {
-        updateStatus.errorCode = AMS_UPDATE_ERR_ACTIVATE;
-        updateStatusChanged = true;
-        return false;
-    }
-    updateStatus.errorCode = AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
-    updateStatusChanged = true;
+bool AmsFirmwareUpdater::activateNewFirmware() {
+    eboot_command ebcmd;
+    ebcmd.action = ACTION_COPY_RAW;
+    ebcmd.args[0] = getFirmwareUpdateStart();
+    ebcmd.args[1] = 0x00000;
+    ebcmd.args[2] = updateStatus.size;
+    eboot_command_write(&ebcmd);
     return true;
 }
 #endif

@@ -146,57 +146,86 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 int idx = 0;
                 data = getCosemDataAt(idx++, ((char *) (d)));
                 if(data->base.length == 0x12) {
-                    listType = 2;
+                    apply(state);
+                    listType = state.getListType() > 2 ? state.getListType() : 2;
 
+                    // 42.0.0 COSEM logical device name
                     idx++;
+
+                    // 96.1.3 Device ID 4
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     memcpy(str, data->oct.data, data->oct.length);
                     str[data->oct.length] = 0x00;
                     meterId = String(str);
 
+                    // 1.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeImportPower = ntohl(data->dlu.data);
+
+                    // 2.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeExportPower = ntohl(data->dlu.data);
 
+                    // 3.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     reactiveImportPower = ntohl(data->dlu.data);
+
+                    // 4.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     reactiveExportPower = ntohl(data->dlu.data);
 
+                    // 32.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l1voltage = ntohs(data->lu.data) / 10.0;
+
+                    // 52.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l2voltage = ntohs(data->lu.data) / 10.0;
+
+                    // 72.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l3voltage = ntohs(data->lu.data) / 10.0;
 
+                    // 31.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l1current = ntohs(data->lu.data) / 100.0;
+
+                    // 51.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l2current = ntohs(data->lu.data) / 100.0;
+
+                    // 71.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l3current = ntohs(data->lu.data) / 100.0;
 
+                    // 21.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l1activeImportPower = ntohl(data->dlu.data);
+
+                    // 41.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l2activeImportPower = ntohl(data->dlu.data);
+
+                    // 61.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l3activeImportPower = ntohl(data->dlu.data);
 
+                    // 22.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l1activeExportPower = ntohl(data->dlu.data);
+
+                    // 42.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l2activeExportPower = ntohl(data->dlu.data);
+
+                    // 62.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l3activeExportPower = ntohl(data->dlu.data);
                     
                     lastUpdateMillis = millis64();
                 } else if(data->base.length == 0x0C) {
                     apply(state);
-                    
-                    listType = 3;
+                    listType = state.getListType() > 3 ? state.getListType() : 3;
 
                     // 42.0.0 COSEM logical device name
                     idx++;
@@ -209,7 +238,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
 
                     // 96.3.10 Disconnect control
                     // 96.14.0 Currently acrive energy tariff
-                    idx += 4;
+                    idx += 2;
 
                     // 1.8.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
@@ -238,8 +267,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     lastUpdateMillis = millis64();
                 } else if(data->base.length ==  0x0A) {
                     apply(state);
-                    
-                    listType = 2;
+                    listType = state.getListType() > 3 ? state.getListType() : 3;
 
                     // 42.0.0 COSEM logical device name
                     idx++;
@@ -275,14 +303,19 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     l1current = ntohs(data->lu.data) / 100.0;
 
                     // 2.8.1
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    double obis281 = ntohl(data->dlu.data) / 1000.0;
+
                     // 2.8.2
-                    idx += 2;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    double obis282 = ntohl(data->dlu.data) / 1000.0;
+
+                    activeExportCounter = obis281 + obis282;
 
                     lastUpdateMillis = millis64();
                 } else if(data->base.length == 0x09) {
                     apply(state);
-                    
-                    listType = 2;
+                    listType = state.getListType() > 3 ? state.getListType() : 3;
 
                     // 42.0.0 COSEM logical device name
                     idx++;
@@ -314,8 +347,14 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     l1voltage = ntohs(data->lu.data) / 10.0;
 
                     // 2.8.1
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    double obis281 = ntohl(data->dlu.data) / 1000.0;
+
                     // 2.8.2
-                    idx += 2;
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    double obis282 = ntohl(data->dlu.data) / 1000.0;
+
+                    activeExportCounter = obis281 + obis282;
 
                     lastUpdateMillis = millis64();
                 }

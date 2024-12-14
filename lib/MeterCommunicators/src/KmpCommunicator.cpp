@@ -8,6 +8,7 @@
 #include "Uptime.h"
 #include "crc.h"
 #include "OBIScodes.h"
+#include "hexutils.h"
 
 void KmpCommunicator::configure(MeterConfig& meterConfig) {
     this->meterConfig = meterConfig;
@@ -43,7 +44,7 @@ bool KmpCommunicator::loop() {
         #endif
         {
             debugger->printf_P(PSTR("  payload:\n"));
-            debugPrint(hanBuffer, 0, hanBufferSize);
+            debugPrint(hanBuffer, 0, hanBufferSize, debugger);
         }
     }
     return ret;

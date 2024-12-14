@@ -9,6 +9,7 @@
 #include "IEC6205621.h"
 #include "LNG.h"
 #include "LNG2.h"
+#include "hexutils.h"
 
 #if defined(ESP32)
 #include <driver/uart.h>
@@ -32,10 +33,23 @@ void PassiveMeterCommunicator::configure(MeterConfig& meterConfig, Timezone* tz)
     this->configChanged = false;
     this->tz = tz;
     setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert);
+	if(dsmrParser != NULL) {
+		delete dsmrParser;
+		dsmrParser = NULL;
+	}
     if(gcmParser != NULL) {
         delete gcmParser;
         gcmParser = NULL;
     }
+	bool encen = false;
+	for(uint8_t i = 0; i < 16; i++) {
+		if(meterConfig.encryptionKey[i] > 0) {
+			encen = true;
+		}
+	}
+	if(encen) {
+		gcmParser = new GCMParser(meterConfig.encryptionKey, meterConfig.authenticationKey);
+	}
 }
 
 bool PassiveMeterCommunicator::loop() {
@@ -68,9 +82,9 @@ bool PassiveMeterCommunicator::loop() {
 			hanSerial->readBytes(hanBuffer, hanBufferSize);
 			len = 0;
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Buffer overflow, resetting\n"));
+			if (debugger->isActive(RemoteDebug::INFO))
+			#endif
+			debugger->printf_P(PSTR("Buffer overflow, resetting\n"));
 			return false;
 		}
 		hanBuffer[len++] = hanSerial->read();
@@ -80,46 +94,46 @@ debugger->printf_P(PSTR("Buffer overflow, resetting\n"));
 			switch(ctx.type) {
 				case DATA_TAG_DLMS:
 					#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::DEBUG))
-#endif
-debugger->printf_P(PSTR("Received valid DLMS at %d\n"), pos);
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid DLMS at %d +%d\n"), pos, ctx.length);
 					break;
 				case DATA_TAG_DSMR:
 					#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::DEBUG))
-#endif
-debugger->printf_P(PSTR("Received valid DSMR at %d\n"), pos);
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid DSMR at %d +%d\n"), pos, ctx.length);
 					break;
 				case DATA_TAG_SNRM:
 					#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::DEBUG))
-#endif
-debugger->printf_P(PSTR("Received valid SNMR at %d\n"), pos);
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid SNMR at %d +%d\n"), pos, ctx.length);
 					break;
 				case DATA_TAG_AARE:
 					#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::DEBUG))
-#endif
-debugger->printf_P(PSTR("Received valid AARE at %d\n"), pos);
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid AARE at %d +%d\n"), pos, ctx.length);
 					break;
 				case DATA_TAG_RES:
 					#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::DEBUG))
-#endif
-debugger->printf_P(PSTR("Received valid Get Response at %d\n"), pos);
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid Get Response at %d +%d\n"), pos, ctx.length);
 					break;
 				case DATA_TAG_HDLC:
 					#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::DEBUG))
-#endif
-debugger->printf_P(PSTR("Received valid HDLC at %d\n"), pos);
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid HDLC at %d +%d\n"), pos, ctx.length);
 					break;
 				default:
 					// TODO: Move this so that payload is sent to MQTT
 					#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::ERROR))
-#endif
-debugger->printf_P(PSTR("Unknown tag %02X at pos %d\n"), ctx.type, pos);
+					if (debugger->isActive(RemoteDebug::ERROR))
+					#endif
+					debugger->printf_P(PSTR("Unknown tag %02X at pos %d\n"), ctx.type, pos);
 					len = 0;
 					return false;
 			}
@@ -129,26 +143,26 @@ debugger->printf_P(PSTR("Unknown tag %02X at pos %d\n"), ctx.type, pos);
 	end = millis();
 	if(end-start > 1000) {
 		#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::WARNING))
-#endif
-debugger->printf_P(PSTR("Used %dms to unwrap HAN data\n"), end-start);
+		if (debugger->isActive(RemoteDebug::WARNING))
+		#endif
+		debugger->printf_P(PSTR("Used %dms to unwrap HAN data\n"), end-start);
 	}
 
 	if(pos == DATA_PARSE_INCOMPLETE) {
 		return false;
 	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
 		#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::WARNING))
-#endif
-debugger->printf_P(PSTR("Unknown data received\n"));
+		if (debugger->isActive(RemoteDebug::WARNING))
+		#endif
+		debugger->printf_P(PSTR("Unknown data received\n"));
         lastError = pos;
 		len = len + hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
 		#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-{
+		if (debugger->isActive(RemoteDebug::VERBOSE))
+		#endif
+		{
 			debugger->printf_P(PSTR("  payload:\n"));
-			debugPrint(hanBuffer, 0, len);
+			debugPrint(hanBuffer, 0, len, debugger);
 		}
 		len = 0;
 		return false;
@@ -164,11 +178,11 @@ if (debugger->isActive(RemoteDebug::VERBOSE))
             pt->publishBytes(hanBuffer, len);
         }
 		#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-{
+		if (debugger->isActive(RemoteDebug::VERBOSE))
+		#endif
+		{
 			debugger->printf_P(PSTR("  payload:\n"));
-			debugPrint(hanBuffer, 0, len);
+			debugPrint(hanBuffer, 0, len, debugger);
 		}
 		while(hanSerial->available()) hanSerial->read(); // Make sure it is all empty, in case we overflowed buffer above
 		len = 0;
@@ -177,17 +191,17 @@ if (debugger->isActive(RemoteDebug::VERBOSE))
 
 	if(ctx.type == 0) {
 		#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::WARNING))
-#endif
-debugger->printf_P(PSTR("Ended up with context type %d, return code %d and length: %lu/%lu\n"), ctx.type, pos, ctx.length, len);
+		if (debugger->isActive(RemoteDebug::WARNING))
+		#endif
+		debugger->printf_P(PSTR("Ended up with context type %d, return code %d and length: %lu/%lu\n"), ctx.type, pos, ctx.length, len);
         lastError = pos;
 		len = len + hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
 		#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-{
+		if (debugger->isActive(RemoteDebug::VERBOSE))
+		#endif
+		{
 			debugger->printf_P(PSTR("  payload:\n"));
-			debugPrint(hanBuffer, 0, len);
+			debugPrint(hanBuffer, 0, len, debugger);
 		}
 		len = 0;
 		return false;
@@ -226,7 +240,7 @@ debugger->printf_P(PSTR("Using application data:\n"));
 		#if defined(AMS_REMOTE_DEBUG)
 if (debugger->isActive(RemoteDebug::VERBOSE))
 #endif
-debugPrint((byte*) payload, 0, ctx.length);
+debugPrint((byte*) payload, 0, ctx.length, debugger);
 
 		// Rudimentary detector for L&G proprietary format, this is terrible code... Fix later
 		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
@@ -351,8 +365,8 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				if(res >= 0) doRet = true;
 				break;
 			case DATA_TAG_DSMR:
-				if(dsmrParser == NULL) dsmrParser = new DSMRParser();
-				res = dsmrParser->parse(buf, context, lastTag != DATA_TAG_NONE);
+				if(dsmrParser == NULL) dsmrParser = new DSMRParser(gcmParser);
+				res = dsmrParser->parse(buf, context, lastTag != DATA_TAG_NONE, debugger->isActive(RemoteDebug::VERBOSE) ? debugger : NULL);
 				if(res >= 0) doRet = true;
 				break;
 			case DATA_TAG_SNRM:
@@ -363,9 +377,9 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				break;
 			default:
 				#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::ERROR))
-#endif
-debugger->printf_P(PSTR("Ended up in default case while unwrapping...(tag %02X)\n"), tag);
+				if (debugger->isActive(RemoteDebug::ERROR))
+				#endif
+				debugger->printf_P(PSTR("Ended up in default case while unwrapping...(tag %02X)\n"), tag);
 				return DATA_PARSE_UNKNOWN_DATA;
 		}
 		lastTag = tag;
@@ -374,9 +388,9 @@ debugger->printf_P(PSTR("Ended up in default case while unwrapping...(tag %02X)\
 		}
 		if(context.length > end) {
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("Context length %lu > %lu:\n"), context.length, end);
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("Context length %lu > %lu:\n"), context.length, end);
 			context.type = 0;
 			context.length = 0;
 			return false;
@@ -384,78 +398,78 @@ debugger->printf_P(PSTR("Context length %lu > %lu:\n"), context.length, end);
         switch(tag) {
             case DATA_TAG_HDLC:
                 #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("HDLC frame:\n"));
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("HDLC frame:\n"));
                 if(pt != NULL) {
                     pt->publishBytes(buf, curLen);
                 }
                 break;
             case DATA_TAG_MBUS:
                 #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("MBUS frame:\n"));
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("MBUS frame:\n"));
                 if(pt != NULL) {
                     pt->publishBytes(buf, curLen);
                 }
                 break;
             case DATA_TAG_GBT:
                 #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("GBT frame:\n"));
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("GBT frame:\n"));
                 break;
             case DATA_TAG_GCM:
                 #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("GCM frame:\n"));
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("GCM frame:\n"));
                 break;
             case DATA_TAG_LLC:
                 #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("LLC frame:\n"));
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("LLC frame:\n"));
                 break;
             case DATA_TAG_DLMS:
                 #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("DLMS frame:\n"));
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("DLMS frame:\n"));
                 break;
             case DATA_TAG_DSMR:
                 #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("DSMR frame:\n"));
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("DSMR frame:\n"));
                 if(pt != NULL) {
                     pt->publishString((char*) buf);
                 }
                 break;
 			case DATA_TAG_SNRM:
                 #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("SNMR frame:\n"));
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("SNMR frame:\n"));
                 break;
 			case DATA_TAG_AARE:
                 #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("AARE frame:\n"));
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("AARE frame:\n"));
                 break;
 			case DATA_TAG_RES:
                 #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugger->printf_P(PSTR("RES frame:\n"));
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("RES frame:\n"));
                 break;
         }
         #if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::VERBOSE))
-#endif
-debugPrint(buf, 0, curLen);
+		if (debugger->isActive(RemoteDebug::VERBOSE))
+		#endif
+		debugPrint(buf, 0, curLen, debugger);
 		if(res == DATA_PARSE_FINAL_SEGMENT) {
 			if(tag == DATA_TAG_MBUS) {
 				res = mbusParser->write(buf, context);
@@ -479,26 +493,10 @@ debugPrint(buf, 0, curLen);
 		tag = (*buf);
 	}
 	#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::ERROR))
-#endif
-debugger->printf_P(PSTR("Got to end of unwrap method...\n"));
+	if (debugger->isActive(RemoteDebug::ERROR))
+	#endif
+	debugger->printf_P(PSTR("Got to end of unwrap method...\n"));
 	return DATA_PARSE_UNKNOWN_DATA;
-}
-
-void PassiveMeterCommunicator::debugPrint(byte *buffer, int start, int length) {
-	for (int i = start; i < start + length; i++) {
-		if (buffer[i] < 0x10)
-			debugger->print(F("0"));
-		debugger->print(buffer[i], HEX);
-		debugger->print(F(" "));
-		if ((i - start + 1) % 16 == 0)
-			debugger->println(F(""));
-		else if ((i - start + 1) % 4 == 0)
-			debugger->print(F(" "));
-
-		yield(); // Let other get some resources too
-	}
-	debugger->println(F(""));
 }
 
 void PassiveMeterCommunicator::printHanReadError(int pos) {

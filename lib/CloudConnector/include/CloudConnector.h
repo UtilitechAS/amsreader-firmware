@@ -110,7 +110,6 @@ private:
     char* pers = "amsreader";
 
     bool init();
-    void debugPrint(byte *buffer, int start, int length);
 
     String meterManufacturer(uint8_t type) {
         switch(type) {

@@ -540,22 +540,6 @@ debugger->printf(http->getString().c_str());
     return NULL;
 }
 
-void PriceService::debugPrint(byte *buffer, int start, int length) {
-	for (int i = start; i < start + length; i++) {
-		if (buffer[i] < 0x10)
-			debugger->print(F("0"));
-		debugger->print(buffer[i], HEX);
-		debugger->print(F(" "));
-		if ((i - start + 1) % 16 == 0)
-			debugger->println(F(""));
-		else if ((i - start + 1) % 4 == 0)
-			debugger->print(F(" "));
-
-		yield(); // Let other get some resources too
-	}
-	debugger->println(F(""));
-}
-
 int16_t PriceService::getLastError() {
     return lastError;
 }

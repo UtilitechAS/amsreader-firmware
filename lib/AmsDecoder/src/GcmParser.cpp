@@ -17,25 +17,34 @@ GCMParser::GCMParser(uint8_t *encryption_key, uint8_t *authentication_key) {
     memcpy(this->authentication_key, authentication_key, 16);
 }
 
-int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx) {
+int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
     if(ctx.length < 12) return DATA_PARSE_INCOMPLETE;
 
+    uint32_t headersize = 0;
     uint8_t* ptr = (uint8_t*) d;
-    if(*ptr != GCM_TAG) return DATA_PARSE_BOUNDRY_FLAG_MISSING;
-    ptr++;
+    if(hastag) {
+        if(*ptr != GCM_TAG) return DATA_PARSE_BOUNDRY_FLAG_MISSING;
+        ptr++;
+        headersize++;
+    }
     // Encrypted APDU
     // http://www.weigu.lu/tutorials/sensors2bus/04_encryption/index.html
 
     uint8_t systemTitleLength = *ptr;
     ptr++;
+    headersize++;
 
     uint8_t initialization_vector[12];
-    memcpy(ctx.system_title, ptr, systemTitleLength);
-    memcpy(initialization_vector, ctx.system_title, systemTitleLength);
+    memset(ctx.system_title, 0, 8);
+    memset(initialization_vector, 0, 12);
+    if(systemTitleLength > 0) {
+        memcpy(ctx.system_title, ptr, systemTitleLength);
+        memcpy(initialization_vector, ctx.system_title, systemTitleLength);
+        ptr += systemTitleLength;
+        headersize += systemTitleLength;
+    }
 
     uint32_t len = 0;
-    uint32_t headersize = 2 + systemTitleLength;
-    ptr += systemTitleLength;
     if(((*ptr) & 0xFF) == 0x81) {
         // 1-byte payload length
         ptr++;

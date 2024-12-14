@@ -89,7 +89,6 @@ protected:
 
     void setupHanPort(uint32_t baud, uint8_t parityOrdinal, bool invert, bool passive = true);
     int16_t unwrapData(uint8_t *buf, DataParserContext &context);
-    void debugPrint(byte *buffer, int start, int length);
     void printHanReadError(int pos);
     void handleAutodetect(unsigned long now);
 };

@@ -9,15 +9,19 @@
 
 #include "Arduino.h"
 #include "DataParser.h"
+#include "GcmParser.h"
 
 class DSMRParser {
 public:
-    int8_t parse(uint8_t *buf, DataParserContext &ctx, bool verified);
+    DSMRParser(GCMParser* gcmParser) { this->gcmParser = gcmParser; };
+    int8_t parse(uint8_t *buf, DataParserContext &ctx, bool verified, Print* debugger);
     uint16_t getCrc();
     uint16_t getCrcCalc();
 private:
     uint16_t crc;
     uint16_t crc_calc;
+
+    GCMParser* gcmParser;
 };
 
 #endif

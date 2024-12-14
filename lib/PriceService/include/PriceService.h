@@ -129,7 +129,5 @@ private:
     PricesContainer* fetchPrices(time_t);
     bool retrieve(const char* url, Stream* doc);
     float getCurrencyMultiplier(const char* from, const char* to, time_t t);
-
-    void debugPrint(byte *buffer, int start, int length);
 };
 #endif

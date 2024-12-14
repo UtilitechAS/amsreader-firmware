@@ -597,22 +597,6 @@ void CloudConnector::setEnergyAccountingConfig(EnergyAccountingConfig& eac) {
     this->lastEac = 0;
 }
 
-void CloudConnector::debugPrint(byte *buffer, int start, int length) {
-	for (int i = start; i < start + length; i++) {
-		if (buffer[i] < 0x10)
-			debugger->print(F("0"));
-		debugger->print(buffer[i], HEX);
-		debugger->print(F(" "));
-		if ((i - start + 1) % 16 == 0)
-			debugger->println(F(""));
-		else if ((i - start + 1) % 4 == 0)
-			debugger->print(F(" "));
-
-		yield(); // Let other get some resources too
-	}
-	debugger->println(F(""));
-}
-
 String CloudConnector::generateSeed() {
     uint8_t key[16];
     ESPRandom::uuid4(key);

@@ -224,108 +224,304 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     
                     lastUpdateMillis = millis64();
                 } else if(data->base.length == 0x0C) {
-                    apply(state);
-                    listType = state.getListType() > 3 ? state.getListType() : 3;
+                    CosemData* no3 = getCosemDataAt(3, ((char *) (d)));
+                    if(no3->base.type == CosemTypeBoolean) {
+                        apply(state);
+                        listType = state.getListType() > 3 ? state.getListType() : 3;
 
-                    // 42.0.0 COSEM logical device name
-                    idx++;
+                        // 42.0.0 COSEM logical device name
+                        idx++;
 
-                    // 96.1.3 Device ID 4
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    memcpy(str, data->oct.data, data->oct.length);
-                    str[data->oct.length] = 0x00;
-                    meterId = String(str);
+                        // 96.1.3 Device ID 4
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        memcpy(str, data->oct.data, data->oct.length);
+                        str[data->oct.length] = 0x00;
+                        meterId = String(str);
 
-                    // 96.3.10 Disconnect control
-                    // 96.14.0 Currently acrive energy tariff
-                    idx += 2;
+                        // 96.3.10 Disconnect control
+                        // 96.14.0 Currently acrive energy tariff
+                        idx += 2;
 
-                    // 1.8.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+                        // 1.8.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeImportCounter = ntohl(data->dlu.data) / 1000.0;
 
-                    // 1.8.1
-                    // 1.8.2
-                    idx += 2;
-                    
-                    // 2.8.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+                        // 1.8.1
+                        // 1.8.2
+                        idx += 2;
+                        
+                        // 2.8.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeExportCounter = ntohl(data->dlu.data) / 1000.0;
 
-                    // 2.8.1
-                    // 2.8.2
-                    idx += 2;
+                        // 2.8.1
+                        // 2.8.2
+                        idx += 2;
 
-                    // 3.8.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
+                        // 3.8.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
 
-                    // 4.8.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
+                        // 4.8.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
 
-                    lastUpdateMillis = millis64();
+                        lastUpdateMillis = millis64();
+                    } else if(no3->base.type == CosemTypeLongUnsigned) {
+                        apply(state);
+                        listType = state.getListType() > 2 ? state.getListType() : 2;
+
+                        // 42.0.0 COSEM logical device name
+                        idx++;
+
+                        // 96.1.2 Device ID 3
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        memcpy(str, data->oct.data, data->oct.length);
+                        str[data->oct.length] = 0x00;
+                        meterId = String(str);
+
+                        // 32.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l1voltage = ntohs(data->lu.data) / 10.0;
+
+                        // 52.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l2voltage = ntohs(data->lu.data) / 10.0;
+
+                        // 72.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l3voltage = ntohs(data->lu.data) / 10.0;
+
+                        // 31.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l1current = ntohs(data->lu.data) / 100.0;
+
+                        // 51.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l2current = ntohs(data->lu.data) / 100.0;
+
+                        // 71.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l3current = ntohs(data->lu.data) / 100.0;
+
+                        // 1.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeImportPower = ntohl(data->dlu.data);
+
+                        // 2.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeExportPower = ntohl(data->dlu.data);
+
+                        // 3.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        reactiveImportPower = ntohl(data->dlu.data);
+
+                        // 4.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        reactiveExportPower = ntohl(data->dlu.data);
+
+                        lastUpdateMillis = millis64();
+                    }
                 } else if(data->base.length ==  0x0A) {
-                    apply(state);
-                    listType = state.getListType() > 3 ? state.getListType() : 3;
+                    CosemData* no7 = getCosemDataAt(7, ((char *) (d)));
+                    if(no7->base.type == CosemTypeLongUnsigned) {
+                        apply(state);
+                        listType = state.getListType() > 2 ? state.getListType() : 2;
 
+                        // 42.0.0 COSEM logical device name
+                        idx++;
+                        
+                        // 96.1.2 Device ID 3
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        memcpy(str, data->oct.data, data->oct.length);
+                        str[data->oct.length] = 0x00;
+                        meterId = String(str);
+
+                        // 1.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeImportPower = ntohl(data->dlu.data);
+
+                        // 2.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeExportPower = ntohl(data->dlu.data);
+
+                        // 3.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        reactiveImportPower = ntohl(data->dlu.data);
+
+                        // 4.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        reactiveExportPower = ntohl(data->dlu.data);
+
+                        // 32.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l1voltage = ntohs(data->lu.data) / 10.0;
+
+                        // 31.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l1current = ntohs(data->lu.data) / 100.0;
+
+                        // 21.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l1activeImportPower = ntohl(data->dlu.data);
+
+                        // 22.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l1activeExportPower = ntohl(data->dlu.data);
+
+                        lastUpdateMillis = millis64();
+                    } else if(no7->base.type == CosemTypeDLongUnsigned) {
+                        apply(state);
+                        listType = state.getListType() > 3 ? state.getListType() : 3;
+
+                        // 42.0.0 COSEM logical device name
+                        idx++;
+                        
+                        // 96.1.3 Device ID 4
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        memcpy(str, data->oct.data, data->oct.length);
+                        str[data->oct.length] = 0x00;
+                        meterId = String(str);
+
+                        // 1.8.1
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        double obis181 = ntohl(data->dlu.data) / 1000.0;
+
+                        // 1.8.2
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        double obis182 = ntohl(data->dlu.data) / 1000.0;
+
+                        activeImportCounter = obis181 + obis182;
+
+                        // 2.8.1
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        double obis281 = ntohl(data->dlu.data) / 1000.0;
+
+                        // 2.8.2
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        double obis282 = ntohl(data->dlu.data) / 1000.0;
+
+                        activeExportCounter = obis281 + obis282;
+
+                        // 3.8.1
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        double obis381 = ntohl(data->dlu.data) / 1000.0;
+
+                        // 3.8.2
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        double obis382 = ntohl(data->dlu.data) / 1000.0;
+
+                        reactiveImportCounter = obis381 + obis382;
+
+                        // 4.8.1
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        double obis481 = ntohl(data->dlu.data) / 1000.0;
+
+                        // 4.8.2
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        double obis482 = ntohl(data->dlu.data) / 1000.0;
+
+                        reactiveExportCounter = obis481 + obis482;
+
+                        lastUpdateMillis = millis64();
+                    }
+                } else if(data->base.length == 0x09) {
+                    CosemData* no7 = getCosemDataAt(7, ((char *) (d)));
+                    if(no7->base.type == CosemTypeLongUnsigned) {
+                        apply(state);
+                        listType = state.getListType() > 3 ? state.getListType() : 3;
+
+                        // 42.0.0 COSEM logical device name
+                        idx++;
+                        
+                        // 96.1.2 Device ID 3
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        memcpy(str, data->oct.data, data->oct.length);
+                        str[data->oct.length] = 0x00;
+                        meterId = String(str);
+
+                        // 1.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeImportPower = ntohl(data->dlu.data);
+
+                        // 2.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeExportPower = ntohl(data->dlu.data);
+
+                        // 3.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        reactiveImportPower = ntohl(data->dlu.data);
+
+                        // 4.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        reactiveExportPower = ntohl(data->dlu.data);
+
+                        // 32.7.0
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        l1voltage = ntohs(data->lu.data) / 10.0;
+
+                        // 2.8.1
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        double obis281 = ntohl(data->dlu.data) / 1000.0;
+
+                        // 2.8.2
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        double obis282 = ntohl(data->dlu.data) / 1000.0;
+
+                        activeExportCounter = obis281 + obis282;
+
+                        lastUpdateMillis = millis64();
+                    } else if(no7->base.type == CosemTypeDLongUnsigned) {
+                        apply(state);
+                        listType = state.getListType() > 3 ? state.getListType() : 3;
+
+                        // 42.0.0 COSEM logical device name?
+                        idx++;
+
+                        // 1.7.0?
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeImportPower = ntohl(data->dlu.data);
+
+                        // 2.7.0?
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeExportPower = ntohl(data->dlu.data);
+
+                        // 1.8.0?
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                        // 1.8.1?
+                        // 1.8.2?
+                        idx += 2;
+                        
+                        // 2.8.0?
+                        data = getCosemDataAt(idx++, ((char *) (d)));
+                        activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                        // 2.8.1?
+                        // 2.8.2?
+                        idx += 2;
+
+                        lastUpdateMillis = millis64();
+                    }
+                } else if(data->base.length == 0x08) {
                     // 42.0.0 COSEM logical device name
                     idx++;
-                    
+
                     // 96.1.2 Device ID 3
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     memcpy(str, data->oct.data, data->oct.length);
                     str[data->oct.length] = 0x00;
                     meterId = String(str);
 
-                    // 1.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    activeImportPower = ntohl(data->dlu.data);
-
-                    // 2.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    activeExportPower = ntohl(data->dlu.data);
-
-                    // 3.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    reactiveImportPower = ntohl(data->dlu.data);
-
-                    // 4.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    reactiveExportPower = ntohl(data->dlu.data);
-
                     // 32.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l1voltage = ntohs(data->lu.data) / 10.0;
 
-                    // Current?
+                    // 31.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l1current = ntohs(data->lu.data) / 100.0;
 
-                    // 2.8.1
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    double obis281 = ntohl(data->dlu.data) / 1000.0;
-
-                    // 2.8.2
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    double obis282 = ntohl(data->dlu.data) / 1000.0;
-
-                    activeExportCounter = obis281 + obis282;
-
-                    lastUpdateMillis = millis64();
-                } else if(data->base.length == 0x09) {
-                    apply(state);
-                    listType = state.getListType() > 3 ? state.getListType() : 3;
-
-                    // 42.0.0 COSEM logical device name
-                    idx++;
-                    
-                    // 96.1.2 Device ID 3
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    memcpy(str, data->oct.data, data->oct.length);
-                    str[data->oct.length] = 0x00;
-                    meterId = String(str);
-
                     // 1.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeImportPower = ntohl(data->dlu.data);
@@ -342,21 +538,21 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     reactiveExportPower = ntohl(data->dlu.data);
 
-                    // 32.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l1voltage = ntohs(data->lu.data) / 10.0;
-
-                    // 2.8.1
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    double obis281 = ntohl(data->dlu.data) / 1000.0;
-
-                    // 2.8.2
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    double obis282 = ntohl(data->dlu.data) / 1000.0;
-
-                    activeExportCounter = obis281 + obis282;
-
                     lastUpdateMillis = millis64();
+                } else if(data->base.length == 0x04) {
+                    // ?
+                    idx++;
+
+                    // ?
+                    idx++;
+
+                    // 1.8.0?
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                    // 2.8.0?
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeExportCounter = ntohl(data->dlu.data) / 1000.0;
                 }
             } else if(useMeterType == AmsTypeIskra && data->base.type == CosemTypeOctetString) { // Iskra special case
                 meterType = AmsTypeIskra;

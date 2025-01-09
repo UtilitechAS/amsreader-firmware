@@ -19,6 +19,7 @@ enum CosemType {
     CosemTypeString = 0x0A,
     CosemTypeDLongSigned = 0x05,
     CosemTypeDLongUnsigned = 0x06,
+    CosemTypeSigned = 0x0F,
     CosemTypeLongSigned = 0x10,
     CosemTypeUnsigned = 0x11,
     CosemTypeLongUnsigned = 0x12,

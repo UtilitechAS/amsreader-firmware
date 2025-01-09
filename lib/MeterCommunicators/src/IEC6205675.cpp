@@ -740,6 +740,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 meterTimestamp = tz.toUTC(ts);
             } else if(meterType == AmsTypeAidon) {
                 meterTimestamp = ts - 3600; // 21.09.24, the clock is now correct
+            } else {
+                meterTimestamp = ts;
             }
         }
 

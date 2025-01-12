@@ -366,7 +366,11 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				break;
 			case DATA_TAG_DSMR:
 				if(dsmrParser == NULL) dsmrParser = new DSMRParser(gcmParser);
+				#if defined(AMS_REMOTE_DEBUG)
 				res = dsmrParser->parse(buf, context, lastTag != DATA_TAG_NONE, debugger->isActive(RemoteDebug::VERBOSE) ? debugger : NULL);
+				#else
+				res = dsmrParser->parse(buf, context, lastTag != DATA_TAG_NONE, debugger);
+				#endif
 				if(res >= 0) doRet = true;
 				break;
 			case DATA_TAG_SNRM:

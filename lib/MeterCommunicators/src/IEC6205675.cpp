@@ -635,7 +635,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         }
 
         if(this->packageTimestamp > 0) {
-            if(meterType == AmsTypeAidon || meterType == AmsTypeKamstrup) {
+            if(meterType == AmsTypeKamstrup) {
                 this->packageTimestamp = this->packageTimestamp - 3600;
             }
         }

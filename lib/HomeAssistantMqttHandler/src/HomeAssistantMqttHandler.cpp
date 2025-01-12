@@ -63,13 +63,31 @@ bool HomeAssistantMqttHandler::publish(AmsData* update, AmsData* previousState, 
 
 bool HomeAssistantMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
     publishList1Sensors();
-    snprintf_P(json, BufferSize, HA1_JSON, data->getActiveImportPower());
+
+	char pt[24];
+    memset(pt, 0, 24);
+    if(data->getPackageTimestamp() > 0) {
+        tmElements_t tm;
+        breakTime(data->getPackageTimestamp(), tm);
+        sprintf_P(pt, PSTR("%04d-%02d-%02dT%02d:%02d:%02dZ"), tm.Year+1970, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second);
+    }
+
+    snprintf_P(json, BufferSize, HA1_JSON, data->getActiveImportPower(), pt);
     return mqtt.publish(topic + "/power", json);
 }
 
 bool HomeAssistantMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
     publishList2Sensors();
     if(data->getActiveExportPower() > 0) publishList2ExportSensors();
+
+	char pt[24];
+    memset(pt, 0, 24);
+    if(data->getPackageTimestamp() > 0) {
+        tmElements_t tm;
+        breakTime(data->getPackageTimestamp(), tm);
+        sprintf_P(pt, PSTR("%04d-%02d-%02dT%02d:%02d:%02dZ"), tm.Year+1970, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second);
+    }
+
     snprintf_P(json, BufferSize, HA3_JSON,
         data->getListId().c_str(),
         data->getMeterId().c_str(),
@@ -83,7 +101,8 @@ bool HomeAssistantMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea)
         data->getL3Current(),
         data->getL1Voltage(),
         data->getL2Voltage(),
-        data->getL3Voltage()
+        data->getL3Voltage(),
+        pt
     );
     return mqtt.publish(topic + "/power", json);
 }
@@ -91,12 +110,30 @@ bool HomeAssistantMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea)
 bool HomeAssistantMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
     publishList3Sensors();
     if(data->getActiveExportCounter() > 0.0) publishList3ExportSensors();
+
+	char mt[24];
+    memset(mt, 0, 24);
+    if(data->getMeterTimestamp() > 0) {
+        tmElements_t tm;
+        breakTime(data->getMeterTimestamp(), tm);
+        sprintf_P(mt, PSTR("%04d-%02d-%02dT%02d:%02d:%02dZ"), tm.Year+1970, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second);
+    }
+
+	char pt[24];
+    memset(pt, 0, 24);
+    if(data->getPackageTimestamp() > 0) {
+        tmElements_t tm;
+        breakTime(data->getPackageTimestamp(), tm);
+        sprintf_P(pt, PSTR("%04d-%02d-%02dT%02d:%02d:%02dZ"), tm.Year+1970, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second);
+    }
+
     snprintf_P(json, BufferSize, HA2_JSON,
         data->getActiveImportCounter(),
         data->getActiveExportCounter(),
         data->getReactiveImportCounter(),
         data->getReactiveExportCounter(),
-        data->getMeterTimestamp()
+        mt,
+        pt
     );
     return mqtt.publish(topic + "/energy", json);
 }
@@ -104,6 +141,15 @@ bool HomeAssistantMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea)
 bool HomeAssistantMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
     publishList4Sensors();
     if(data->getL1ActiveExportPower() > 0 || data->getL2ActiveExportPower() > 0 || data->getL3ActiveExportPower() > 0) publishList4ExportSensors();
+
+	char pt[24];
+    memset(pt, 0, 24);
+    if(data->getPackageTimestamp() > 0) {
+        tmElements_t tm;
+        breakTime(data->getPackageTimestamp(), tm);
+        sprintf_P(pt, PSTR("%04d-%02d-%02dT%02d:%02d:%02dZ"), tm.Year+1970, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second);
+    }
+
     snprintf_P(json, BufferSize, HA4_JSON,
         data->getListId().c_str(),
         data->getMeterId().c_str(),
@@ -133,7 +179,8 @@ bool HomeAssistantMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea)
         data->getL3ActiveImportCounter(),
         data->getL1ActiveExportCounter(),
         data->getL2ActiveExportCounter(),
-        data->getL3ActiveExportCounter()
+        data->getL3ActiveExportCounter(),
+        pt
     );
     return mqtt.publish(topic + "/power", json);
 }
@@ -172,8 +219,8 @@ bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* 
         ea->getProducedThisMonth(),
         ea->getIncomeThisMonth()
     );
-    uint32_t now = millis();
-    if(lastThresholdPublish == 0 || now-lastThresholdPublish > 3600000) {
+    uint32_t ms = millis();
+    if(lastThresholdPublish == 0 || ms-lastThresholdPublish > 3600000) {
         EnergyAccountingConfig* conf = ea->getConfig();
         pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"thresholds\": [%d,%d,%d,%d,%d,%d,%d,%d,%d]"),
             conf->thresholds[0],
@@ -186,8 +233,18 @@ bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* 
             conf->thresholds[7],
             conf->thresholds[8]
         );
-        lastThresholdPublish = now;
+        lastThresholdPublish = ms;
     }
+
+    time_t now = time(nullptr);
+	char pt[24];
+    memset(pt, 0, 24);
+    if(now > 0) {
+        tmElements_t tm;
+        breakTime(now, tm);
+        sprintf_P(pt, PSTR("%04d-%02d-%02dT%02d:%02d:%02dZ"), tm.Year+1970, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second);
+    }
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"t\":\"%s\""), pt);
     
     json[pos++] = '}';
     json[pos] = '\0';
@@ -199,17 +256,13 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 	int count = hw->getTempSensorCount();
     if(count < 2) return false;
 
-	int size = 32 + (count * 26);
-
-	char buf[size];
-	snprintf_P(buf, 24, PSTR("{\"temperatures\":{"));
+	uint16_t pos = snprintf_P(json, 24, PSTR("{\"temperatures\":{"));
 
 	for(int i = 0; i < count; i++) {
 		TempSensorData* data = hw->getTempSensorData(i);
         if(data != NULL) {
-            char* pos = buf+strlen(buf);
             String id = toHex(data->address, 8);
-            snprintf_P(pos, 26, PSTR("\"%s\":%.2f,"), 
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s\":%.2f,"), 
                 id.c_str(),
                 data->lastRead
             );
@@ -217,9 +270,20 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
             publishTemperatureSensor(i+1, id);
         }
 	}
-	char* pos = buf+strlen(buf);
-	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("}}"));
-    bool ret = mqtt.publish(topic + "/temperatures", buf);
+	pos += snprintf_P(json+pos, BufferSize-pos, PSTR("}"));
+
+    time_t now = time(nullptr);
+	char pt[24];
+    memset(pt, 0, 24);
+    if(now > 0) {
+        tmElements_t tm;
+        breakTime(now, tm);
+        sprintf_P(pt, PSTR("%04d-%02d-%02dT%02d:%02d:%02dZ"), tm.Year+1970, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second);
+    }
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"t\":\"%s\""), pt);
+	pos += snprintf_P(json+pos, BufferSize-pos, PSTR("}"));
+
+    bool ret = mqtt.publish(topic + "/temperatures", json);
     loop();
     return ret;
 }
@@ -333,6 +397,15 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
         pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"exportprices\":{\"0\":%.4f}"), val);
     }
 
+	char pt[24];
+    memset(pt, 0, 24);
+    if(now > 0) {
+        tmElements_t tm;
+        breakTime(now, tm);
+        sprintf_P(pt, PSTR("%04d-%02d-%02dT%02d:%02d:%02dZ"), tm.Year+1970, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second);
+    }
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"t\":\"%s\""), pt);
+
     json[pos++] = '}';
     json[pos] = '\0';
 
@@ -348,14 +421,24 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, Ener
     publishSystemSensors();
     if(hw->getTemperature() > -50) publishTemperatureSensor(0, "");
 
-    snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\"}"),
+	time_t now = time(nullptr);
+	char pt[24];
+    memset(pt, 0, 24);
+    if(now > 0) {
+        tmElements_t tm;
+        breakTime(now, tm);
+        sprintf_P(pt, PSTR("%04d-%02d-%02dT%02d:%02d:%02dZ"), tm.Year+1970, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second);
+    }
+
+    snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\",\"t\":\"%s\"}"),
         WiFi.macAddress().c_str(),
         mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
         hw->getVcc(),
         hw->getWifiRssi(),
         hw->getTemperature(),
-        FirmwareVersion::VersionString
+        FirmwareVersion::VersionString,
+        pt
     );
     bool ret = mqtt.publish(topic + "/state", json);
     loop();
@@ -618,9 +701,9 @@ void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
     if(topic.equals(statusTopic)) {
         if(payload.equals("online")) {
  			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Received online status from HA, resetting sensor status\n"));
+            if (debugger->isActive(RemoteDebug::INFO))
+            #endif
+            debugger->printf_P(PSTR("Received online status from HA, resetting sensor status\n"));
             l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = false;
             for(uint8_t i = 0; i < 32; i++) tInit[i] = false;
             for(uint8_t i = 0; i < 38; i++) prInit[i] = false;

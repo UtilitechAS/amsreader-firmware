@@ -20,9 +20,10 @@ struct HomeAssistantSensor {
 };
 
 
-const uint8_t List1SensorCount PROGMEM = 1;
+const uint8_t List1SensorCount PROGMEM = 2;
 const HomeAssistantSensor List1Sensors[List1SensorCount] PROGMEM = {
-    {"Active import",              "/power",   "P",                   30, "W",    "power",           "measurement"}
+    {"Active import",              "/power",   "P",                   30, "W",    "power",           "measurement"},
+    {"Data timestamp",            "/power",   "t",                   30, "",     "timestamp",       ""}
 };
 
 const uint8_t List2SensorCount PROGMEM = 8;
@@ -42,11 +43,12 @@ const HomeAssistantSensor List2ExportSensors[List2ExportSensorCount] PROGMEM = {
     {"Active export",              "/power",   "PO",                  30, "W",    "power",           "measurement"}
 };
 
-const uint8_t List3SensorCount PROGMEM = 3;
+const uint8_t List3SensorCount PROGMEM = 4;
 const HomeAssistantSensor List3Sensors[List3SensorCount] PROGMEM = {
     {"Accumulated active import",  "/energy",  "tPI",               4000, "kWh",  "energy",          "total_increasing"},
     {"Accumulated reactive import","/energy",  "tQI",               4000, "kvarh","",                "total_increasing"},
-    {"Accumulated reactive export","/energy",  "tQO",               4000, "kvarh","",                "total_increasing"}
+    {"Accumulated reactive export","/energy",  "tQO",               4000, "kvarh","",                "total_increasing"},
+    {"Meter timestamp",            "/energy",  "rtc",               4000, "",     "timestamp",       ""}
 };
 
 const uint8_t List3ExportSensorCount PROGMEM = 1;

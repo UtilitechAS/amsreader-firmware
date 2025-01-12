@@ -391,7 +391,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         double obis182 = ntohl(data->dlu.data) / 1000.0;
 
-                        activeImportCounter = obis181 + obis182;
+                        if(activeImportCounter < obis181 + obis182)
+                            activeImportCounter = obis181 + obis182;
 
                         // 2.8.1
                         data = getCosemDataAt(idx++, ((char *) (d)));
@@ -401,7 +402,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         double obis282 = ntohl(data->dlu.data) / 1000.0;
 
-                        activeExportCounter = obis281 + obis282;
+                        if(activeExportCounter < obis281 + obis282)
+                            activeExportCounter = obis281 + obis282;
 
                         // 3.8.1
                         data = getCosemDataAt(idx++, ((char *) (d)));
@@ -411,7 +413,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         double obis382 = ntohl(data->dlu.data) / 1000.0;
 
-                        reactiveImportCounter = obis381 + obis382;
+                        if(reactiveImportCounter < obis381 + obis382)
+                            reactiveImportCounter = obis381 + obis382;
 
                         // 4.8.1
                         data = getCosemDataAt(idx++, ((char *) (d)));
@@ -421,7 +424,8 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         double obis482 = ntohl(data->dlu.data) / 1000.0;
 
-                        reactiveExportCounter = obis481 + obis482;
+                        if(reactiveExportCounter < obis481 + obis482)
+                            reactiveExportCounter = obis481 + obis482;
 
                         lastUpdateMillis = millis64();
                     }

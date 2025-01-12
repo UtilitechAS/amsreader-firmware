@@ -91,7 +91,7 @@ bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 	}
 	
 	stripNonAscii((uint8_t*) config.ssid, 32, true);
-	stripNonAscii((uint8_t*) config.psk, 64);
+	stripNonAscii((uint8_t*) config.psk, 64, true);
 	stripNonAscii((uint8_t*) config.ip, 16);
 	stripNonAscii((uint8_t*) config.gateway, 16);
 	stripNonAscii((uint8_t*) config.subnet, 16);
@@ -185,8 +185,8 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 	stripNonAscii((uint8_t*) config.clientId, 32);
 	stripNonAscii((uint8_t*) config.publishTopic, 64);
 	stripNonAscii((uint8_t*) config.subscribeTopic, 64);
-	stripNonAscii((uint8_t*) config.username, 128);
-	stripNonAscii((uint8_t*) config.password, 256);
+	stripNonAscii((uint8_t*) config.username, 128, true);
+	stripNonAscii((uint8_t*) config.password, 256, true);
 	if(config.timeout < 500) config.timeout = 1000;
 	if(config.timeout > 10000) config.timeout = 1000;
 	if(config.keepalive < 5) config.keepalive = 60;

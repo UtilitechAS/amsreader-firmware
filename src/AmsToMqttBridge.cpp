@@ -541,7 +541,7 @@ bool longPressActive = false;
 
 unsigned long lastTemperatureRead = 0;
 unsigned long lastSysupdate = 0;
-unsigned long lastErrorBlink = 0; 
+uint64_t lastErrorBlink = 0; 
 unsigned long lastVoltageCheck = 0;
 int lastError = 0;
 

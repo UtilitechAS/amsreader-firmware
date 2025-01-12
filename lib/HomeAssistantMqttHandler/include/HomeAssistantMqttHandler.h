@@ -19,57 +19,9 @@ public:
     #else
     HomeAssistantMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
     #endif
+        this->boardType = boardType;
         this->hw = hw;
-
-        l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = false;
-
-        topic = String(mqttConfig.publishTopic);
-
-        if(strlen(config.discoveryNameTag) > 0) {
-            snprintf_P(buf, 128, PSTR("AMS reader (%s)"), config.discoveryNameTag);
-            deviceName = String(buf);
-            snprintf_P(buf, 128, PSTR("[%s] "), config.discoveryNameTag);
-            sensorNamePrefix = String(buf);
-        } else {
-            deviceName = F("AMS reader");
-            sensorNamePrefix = "";
-        }
-        deviceModel = boardTypeToString(boardType);
-        manufacturer = boardManufacturerToString(boardType);
-
-        char hostname[32];
-        #if defined(ESP8266)
-            strcpy(hostname, WiFi.hostname().c_str());
-        #elif defined(ESP32)
-            strcpy(hostname, WiFi.getHostname());
-        #endif
-
-        stripNonAscii((uint8_t*) hostname, 32, false);
-        deviceUid = String(hostname); // Maybe configurable in the future?
-
-        if(strlen(config.discoveryHostname) > 0) {
-            if(strncmp_P(config.discoveryHostname, PSTR("http"), 4) == 0) {
-                deviceUrl = String(config.discoveryHostname);
-            } else {
-                snprintf_P(buf, 128, PSTR("http://%s/"), config.discoveryHostname);
-                deviceUrl = String(buf);
-            }
-        } else {
-            snprintf_P(buf, 128, PSTR("http://%s.local/"), hostname);
-            deviceUrl = String(buf);
-        }
-
-        if(strlen(config.discoveryPrefix) > 0) {
-            snprintf_P(json, 128, PSTR("%s/status"), config.discoveryPrefix);
-            statusTopic = String(buf);
-
-            snprintf_P(buf, 128, PSTR("%s/sensor/"), config.discoveryPrefix);
-            discoveryTopic = String(buf);
-        } else {
-            statusTopic = F("homeassistant/status");
-            discoveryTopic = F("homeassistant/sensor/");
-        }
-        strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
+        setHomeAssistantConfig(config);
     };
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
@@ -81,7 +33,10 @@ public:
 
     uint8_t getFormat();
 
+    void setHomeAssistantConfig(HomeAssistantConfig config);
 private:
+    uint8_t boardType;
+
     String topic;
 
     String deviceName;

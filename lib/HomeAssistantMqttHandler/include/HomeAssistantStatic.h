@@ -23,7 +23,7 @@ struct HomeAssistantSensor {
 const uint8_t List1SensorCount PROGMEM = 2;
 const HomeAssistantSensor List1Sensors[List1SensorCount] PROGMEM = {
     {"Active import",              "/power",   "P",                   30, "W",    "power",           "measurement"},
-    {"Data timestamp",            "/power",   "t",                   30, "",     "timestamp",       ""}
+    {"Data timestamp",             "/power",   "t",                   30, "",     "timestamp",       ""}
 };
 
 const uint8_t List2SensorCount PROGMEM = 8;

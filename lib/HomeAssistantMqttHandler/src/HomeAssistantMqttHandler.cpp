@@ -19,6 +19,58 @@
 #include <esp_task_wdt.h>
 #endif
 
+void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config) {
+    l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = false;
+
+    topic = String(mqttConfig.publishTopic);
+
+    if(strlen(config.discoveryNameTag) > 0) {
+        snprintf_P(json, 128, PSTR("AMS reader (%s)"), config.discoveryNameTag);
+        deviceName = String(json);
+        snprintf_P(json, 128, PSTR("[%s] "), config.discoveryNameTag);
+        sensorNamePrefix = String(json);
+    } else {
+        deviceName = F("AMS reader");
+        sensorNamePrefix = "";
+    }
+    deviceModel = boardTypeToString(boardType);
+    manufacturer = boardManufacturerToString(boardType);
+
+    char hostname[32];
+    #if defined(ESP8266)
+        strcpy(hostname, WiFi.hostname().c_str());
+    #elif defined(ESP32)
+        strcpy(hostname, WiFi.getHostname());
+    #endif
+
+    stripNonAscii((uint8_t*) hostname, 32, false);
+    deviceUid = String(hostname); // Maybe configurable in the future?
+
+    if(strlen(config.discoveryHostname) > 0) {
+        if(strncmp_P(config.discoveryHostname, PSTR("http"), 4) == 0) {
+            deviceUrl = String(config.discoveryHostname);
+        } else {
+            snprintf_P(json, 128, PSTR("http://%s/"), config.discoveryHostname);
+            deviceUrl = String(json);
+        }
+    } else {
+        snprintf_P(json, 128, PSTR("http://%s.local/"), hostname);
+        deviceUrl = String(json);
+    }
+
+    if(strlen(config.discoveryPrefix) > 0) {
+        snprintf_P(json, 128, PSTR("%s/status"), config.discoveryPrefix);
+        statusTopic = String(json);
+
+        snprintf_P(json, 128, PSTR("%s/sensor/"), config.discoveryPrefix);
+        discoveryTopic = String(json);
+    } else {
+        statusTopic = F("homeassistant/status");
+        discoveryTopic = F("homeassistant/sensor/");
+    }
+    strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
+}
+
 bool HomeAssistantMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;

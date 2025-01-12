@@ -31,6 +31,10 @@ public:
 
     uint8_t getFormat();
 
+    void setDomoticzConfig(DomoticzConfig config) {
+        this->config = config;
+    }
+
 private:
     DomoticzConfig config;
     double energy = 0.0;

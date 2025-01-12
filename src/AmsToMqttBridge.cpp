@@ -598,14 +598,10 @@ void loop() {
 			if (mqttEnabled || config.isMqttChanged()) {
 				if(mqttHandler == NULL || !mqttHandler->connected() || config.isMqttChanged()) {
 					if(mqttHandler != NULL && config.isMqttChanged()) {
-						MqttConfig mqttConfig;
-						if(config.getMqttConfig(mqttConfig)) {
-							mqttHandler->disconnect();
-							mqttHandler->setConfig(mqttConfig);
-							config.ackMqttChange();
-						}
+						mqttHandler->disconnect();
 					}
 					MQTT_connect();
+					config.ackMqttChange();
 				}
 			} else if(mqttHandler != NULL) {
 				mqttHandler->disconnect();
@@ -1497,6 +1493,22 @@ void MQTT_connect() {
 			mqttHandler = NULL;
 		} else if(config.isMqttChanged()) {
 			mqttHandler->setConfig(mqttConfig);
+			switch(mqttConfig.payloadFormat) {
+				case 3: {
+					DomoticzConfig domo;
+					config.getDomoticzConfig(domo);
+					DomoticzMqttHandler* dmh = (DomoticzMqttHandler*) &mqttHandler;
+					dmh->setDomoticzConfig(domo);
+					break;
+				}
+				case 4: {
+					HomeAssistantConfig haconf;
+					config.getHomeAssistantConfig(haconf);
+					HomeAssistantMqttHandler* hamh = (HomeAssistantMqttHandler*) &mqttHandler;
+					hamh->setHomeAssistantConfig(haconf);
+					break;
+				}
+			}
 		}
 	}
 

@@ -2325,7 +2325,7 @@ void AmsWebServer::configFileDownload() {
 			if(pc.size() > 0) {
 				for(uint8_t i = 0; i < pc.size(); i++) {
 					PriceConfig& p = pc.at(i);
-					char direction[6] = "";
+					char direction[7] = "";
 					switch(p.direction) {
 						case PRICE_DIRECTION_IMPORT:
 							strcpy_P(direction, PSTR("import"));

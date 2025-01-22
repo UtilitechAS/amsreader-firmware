@@ -22,11 +22,9 @@ ADC_MODE(ADC_VCC);
 #include <ESP32SSDP.h>
 #include <esp_task_wdt.h>
 #include <lwip/dns.h>
-#if defined(CONFIG_IDF_TARGET_ESP32C3)
-#warning "Cloud disabled"
-#else
-#include "CloudConnector.h"
 #endif
+#if defined(AMS_CLOUD)
+#include "CloudConnector.h"
 #endif
 
 #define WDT_TIMEOUT 120

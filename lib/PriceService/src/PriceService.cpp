@@ -179,16 +179,16 @@ float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t h
         breakTime(tz->toLocal(ts), tm);
         hoursToday++;
     }
-    if(pos > 49)
-        return PRICE_NO_VALUE;
 
     float multiplier = 1.0;
     if(pos >= hoursToday) {
+        pos = pos - hoursToday;
+        if(pos > 24) return PRICE_NO_VALUE; // We have 25 points, index 24 would be the end
         if(tomorrow == NULL)
             return PRICE_NO_VALUE;
-        if(tomorrow->points[pos-hoursToday] == PRICE_NO_VALUE)
+        if(tomorrow->points[pos] == PRICE_NO_VALUE)
             return PRICE_NO_VALUE;
-        value = tomorrow->points[pos-hoursToday] / 10000.0;
+        value = tomorrow->points[pos] / 10000.0;
         if(strcmp(tomorrow->measurementUnit, "KWH") == 0) {
             // Multiplier is 1
         } else if(strcmp(tomorrow->measurementUnit, "MWH") == 0) {
@@ -216,7 +216,7 @@ float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t h
         if(mult == 0) return PRICE_NO_VALUE;
         multiplier *= mult;
     }
-    return value * multiplier;
+    return value == PRICE_NO_VALUE ? PRICE_NO_VALUE : value * multiplier;
 }
 
 bool PriceService::loop() {

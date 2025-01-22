@@ -392,6 +392,10 @@ void AmsWebServer::sysinfoJson() {
 	if(!features.isEmpty()) features += ",";
 	features += "\"kmp\"";
 	#endif
+	#if defined(AMS_CLOUD)
+	if(!features.isEmpty()) features += ",";
+	features += "\"cloud\"";
+	#endif
 
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		FirmwareVersion::VersionString,

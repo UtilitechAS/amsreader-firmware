@@ -688,6 +688,7 @@
                 <strong class="text-sm">{translations.conf?.cloud?.title ?? "Cloud connections"}</strong>
                 <a href="{wiki('Cloud')}" target="_blank" class="float-right">&#9432;</a>
                 <input type="hidden" name="c" value="true"/>
+                {#if sysinfo?.features?.includes('cloud')}
                 <div class="my-1">
                     <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> {translations.conf?.cloud?.ams ?? "AMS reader cloud"}</label>
                     {#if configuration.c.e}
@@ -705,7 +706,8 @@
                             <button type="button" on:click={cloudBind} class="text-blue-500 ml-6">Connect device to my cloud account</button>
                         {/if}
                     {/if}
-                    </div>
+                </div>
+                {/if}
                 <div class="my-1">
                     <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> {translations.conf?.cloud?.es ?? "Energy Speedometer"}</label>
                     {#if configuration?.c?.es}

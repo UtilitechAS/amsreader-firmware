@@ -35,13 +35,12 @@
 	#include <WebServer.h>
 	#include <HTTPClient.h>
 	#include <ESP32SSDP.h>
-	#if defined(CONFIG_IDF_TARGET_ESP32C3)
-	#warning "Cloud disabled"
-	#else
-	#include "CloudConnector.h"
-	#endif
 #else
 	#warning "Unsupported board type"
+#endif
+
+#if defined(AMS_CLOUD)
+#include "CloudConnector.h"
 #endif
 
 #include "LittleFS.h"

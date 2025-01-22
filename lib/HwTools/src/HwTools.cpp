@@ -201,15 +201,15 @@ void HwTools::setup(SystemConfig* sys, GpioConfig* config) {
             pinMode(config->vccPin, INPUT);
         #endif
         vccPin = config->vccPin;
-        vccOffset = config->vccOffset / 100.0;
-        vccMultiplier = config->vccMultiplier / 1000.0;
-        vccGnd_r = config->vccResistorGnd;
-        vccVcc_r = config->vccResistorVcc;
     } else {
         voltAdc.unit = 0xFF;
         voltAdc.channel = 0xFF;
         vccPin = config->vccPin = 0xFF;
     }
+    vccOffset = config->vccOffset / 100.0;
+    vccMultiplier = config->vccMultiplier / 1000.0;
+    vccGnd_r = config->vccResistorGnd;
+    vccVcc_r = config->vccResistorVcc;
 
     if(config->tempAnalogSensorPin > 0 && config->tempAnalogSensorPin < 40) {
         pinMode(config->tempAnalogSensorPin, INPUT);
@@ -417,17 +417,23 @@ float HwTools::getVcc() {
             volts = (x * 3.3) / 10.0 / analogRange;
         #endif
     } else {
+    }
+    if(volts == 0.0) {
         #if defined(ESP8266)
             volts = ESP.getVcc() / 1024.0;
+        #else
+            return 0.0;
         #endif
     }
-    if(volts == 0.0) return 0.0;
 
-    if(vccGnd_r > 0 && vccVcc_r > 0) {
+    if(vccGnd_r > 0 && vccVcc_r > 0)
         volts *= ((float) (vccGnd_r + vccVcc_r) / vccGnd_r);
-    }
-
-    return vccOffset + (volts > 0.0 ? volts * vccMultiplier : 0.0);
+    if(vccOffset != 0.0)
+        volts += vccOffset;
+    if(vccMultiplier != 0.0)
+        volts *= vccMultiplier;
+    
+    return volts;
 }
 
 uint8_t HwTools::getTempSensorCount() {

@@ -9,6 +9,7 @@
 #include "Timezone.h"
 #include "ntohll.h"
 #include "Uptime.h"
+#include "hexutils.h"
 
 IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state) {
     float val;
@@ -900,6 +901,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         }
 
         if(meterType != AmsTypeUnknown) {
+        	stripNonAscii((uint8_t*) ctx.system_title, 8, true);
             meterId = String((const char*)ctx.system_title);
         }
     }

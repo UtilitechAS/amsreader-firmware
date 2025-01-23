@@ -3,7 +3,7 @@
     import { sysinfoStore } from './DataStores.js';
     import fetchWithTimeout from './fetchWithTimeout';
     import { translationsStore } from './TranslationService';
-    import { wiki } from './Helpers.js';
+    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern } from './Helpers.js';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
     import Badge from './Badge.svelte';
@@ -243,7 +243,7 @@
                 <div class="flex">
                     <div>
                         {translations.conf?.general?.hostname ?? "Hostname"}<br/>
-                        <input name="gh" bind:value={configuration.g.h} type="text" class="in-f w-full" pattern="[A-Za-z0-9-]+"/>
+                        <input name="gh" bind:value={configuration.g.h} type="text" class="in-f w-full" pattern={charAndNumPattern}/>
                     </div>
                     <div>
                         {translations.conf?.general?.timezone ?? "Time zone"}<br/>
@@ -315,7 +315,7 @@
             <div class="my-1">
                 <label><input type="checkbox" name="pe" value="true" bind:checked={configuration.p.e} class="rounded mb-1"/> {translations.conf?.price?.enabled ?? "Enabled"}</label>
                 {#if configuration.p.e && sysinfo.chip != 'esp8266'}
-                <br/><input name="pt" bind:value={configuration.p.t} type="text" class="in-s" placeholder={translations.conf?.price?.api_key_placeholder ?? ""}/>
+                <br/><input name="pt" bind:value={configuration.p.t} type="text" class="in-s" placeholder={translations.conf?.price?.api_key_placeholder ?? ""} pattern={charAndNumPattern}/>
                 {/if}
             </div>
             <div class="my-1">
@@ -329,16 +329,16 @@
             {#if configuration.g.s > 0}
             <div class="my-1">
                 {translations.conf?.general?.security?.username ?? "Username"}<br/>
-                <input name="gu" bind:value={configuration.g.u} type="text" class="in-s" maxlength="36"/>
+                <input name="gu" bind:value={configuration.g.u} type="text" class="in-s" maxlength="36" pattern={asciiPattern}/>
             </div>
             <div class="my-1">
                 {translations.conf?.general?.security?.password ?? "Password"}<br/>
-                <input name="gp" bind:value={configuration.g.p} type="password" class="in-s" maxlength="36"/>
+                <input name="gp" bind:value={configuration.g.p} type="password" class="in-s" maxlength="36" pattern={asciiPattern}/>
             </div>
             {/if}
             <div class="my-1">
                 {translations.conf?.general?.context ?? "Context"}<br/>
-                <input name="gc" bind:value={configuration.g.c} type="text" pattern="[A-Za-z0-9]+" placeholder={translations.conf?.general?.context_placeholder ?? "/"} class="in-s" maxlength="36"/>
+                <input name="gc" bind:value={configuration.g.c} type="text" pattern={charAndNumPattern} placeholder={translations.conf?.general?.context_placeholder ?? "/"} class="in-s" maxlength="36"/>
             </div>
         </div>
         {/if}
@@ -416,13 +416,13 @@
             <div class="my-1">
                 <label><input type="checkbox" name="me" value="true" bind:checked={configuration.m.e.e} class="rounded mb-1"/> {translations.conf?.meter?.encrypted ?? "Encrypted"}</label>
                 {#if configuration.m.e.e}
-                <br/><input name="mek" bind:value={configuration.m.e.k} type="text" class="in-s"/>
+                <br/><input name="mek" bind:value={configuration.m.e.k} type="text" class="in-s" pattern={hexPattern}/>
                 {/if}
             </div>
             {#if configuration.m.e.e}
             <div class="my-1">
                 {translations.conf?.meter?.authkey ?? "Authentication key"}<br/>
-                <input name="mea" bind:value={configuration.m.e.a} type="text" class="in-s"/>
+                <input name="mea" bind:value={configuration.m.e.a} type="text" class="in-s" pattern={hexPattern}/>
             </div>
             {/if}
 
@@ -466,11 +466,11 @@
             {#if configuration.n.c == 1 || configuration.n.c == 2}
                 <div class="my-1">
                     {translations.conf?.connection?.ssid ?? "SSID"}<br/>
-                    <input name="ws" bind:value={configuration.w.s} type="text" class="in-s"/>
+                    <input name="ws" bind:value={configuration.w.s} type="text" class="in-s" pattern={asciiPatternExt}/>
                 </div>
                 <div class="my-1">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>
-                    <input name="wp" bind:value={configuration.w.p} type="password" class="in-s"/>
+                    <input name="wp" bind:value={configuration.w.p} type="password" class="in-s" pattern={asciiPatternExt}/>
                 </div>
                 <div class="my-1 flex">
                     <div class="w-1/2">
@@ -507,7 +507,7 @@
                         <option value="dhcp">{translations.conf?.network?.dhcp ?? "DHCP"}</option>
                         <option value="static">{translations.conf?.network?.static ?? "Static"}</option>
                     </select>
-                    <input name="ni" bind:value={configuration.n.i} type="text" class="in-m w-full" disabled={configuration.n.m == 'dhcp'} required={configuration.n.m == 'static'}/>
+                    <input name="ni" bind:value={configuration.n.i} type="text" class="in-m w-full" disabled={configuration.n.m == 'dhcp'} required={configuration.n.m == 'static'} pattern={ipPattern}/>
                     <select name="ns" bind:value={configuration.n.s} class="in-l" disabled={configuration.n.m == 'dhcp'} required={configuration.n.m == 'static'}>
                         <SubnetOptions/>
                     </select>
@@ -516,13 +516,13 @@
             {#if configuration.n.m == 'static'}
             <div class="my-1">
                 {translations.conf?.network?.gw ?? "Gateway"}<br/>
-                <input name="ng" bind:value={configuration.n.g} type="text" class="in-s"/>
+                <input name="ng" bind:value={configuration.n.g} type="text" class="in-s" pattern={ipPattern}/>
             </div>
             <div class="my-1">
                 {translations.conf?.network?.dns ?? "DNS"}<br/>
                 <div class="flex">
-                    <input name="nd1" bind:value={configuration.n.d1} type="text" class="in-f w-full"/>
-                    <input name="nd2" bind:value={configuration.n.d2} type="text" class="in-l w-full"/>
+                    <input name="nd1" bind:value={configuration.n.d1} type="text" class="in-f w-full" pattern={ipPattern}/>
+                    <input name="nd2" bind:value={configuration.n.d2} type="text" class="in-l w-full" pattern={ipPattern}/>
                 </div>
             </div>
             {/if}
@@ -536,7 +536,7 @@
             <div class="my-1">
                 {translations.conf?.network?.ntp ?? "NTP"} <label class="ml-4"><input name="ntpd" value="true" bind:checked={configuration.n.h} type="checkbox" class="rounded mb-1"/> {translations.conf?.network?.tick_ntp_dhcp ?? "from DHCP"}</label><br/>
                 <div class="flex">
-                    <input name="ntph" bind:value={configuration.n.n1} type="text" class="in-s"/>
+                    <input name="ntph" bind:value={configuration.n.n1} type="text" class="in-s" pattern={asciiPattern}/>
                 </div>
             </div>
         </div>
@@ -553,7 +553,7 @@
                 {/if}
                 <br/>
                 <div class="flex">
-                    <input name="qh" bind:value={configuration.q.h} type="text" class="in-f w-2/3"/>
+                    <input name="qh" bind:value={configuration.q.h} type="text" class="in-f w-2/3" pattern={asciiPattern}/>
                     <input name="qp" bind:value={configuration.q.p} type="number" min="1024" max="65535" class="in-l tr w-1/3"/>
                 </div>
             </div>
@@ -589,16 +589,16 @@
             {/if}
             <div class="my-1">
                 {translations.conf?.mqtt?.user ?? "Username"}<br/>
-                <input name="qu" bind:value={configuration.q.u} type="text" class="in-s"/>
+                <input name="qu" bind:value={configuration.q.u} type="text" class="in-s" pattern={asciiPatternExt}/>
             </div>
             <div class="my-1">
                 {translations.conf?.mqtt?.pass ?? "Password"}<br/>
-                <input name="qa" bind:value={configuration.q.a} type="password" class="in-s"/>
+                <input name="qa" bind:value={configuration.q.a} type="password" class="in-s" pattern={asciiPatternExt}/>
             </div>
             <div class="my-1 flex">
                 <div>
                     {translations.conf?.mqtt?.id ?? "Client ID"}<br/>
-                    <input name="qc" bind:value={configuration.q.c} type="text" class="in-f w-full" required={configuration.q.h}/>
+                    <input name="qc" bind:value={configuration.q.c} type="text" class="in-f w-full" required={configuration.q.h} pattern={charAndNumPattern}/>
                 </div>
                 <div>
                     {translations.conf?.mqtt?.payload ?? "Payload"}<br/>
@@ -616,7 +616,7 @@
             </div>
             <div class="my-1">
                 {translations.conf?.mqtt?.publish ?? "Publish topic"}<br/>
-                <input name="qb" bind:value={configuration.q.b} type="text" class="in-s"/>
+                <input name="qb" bind:value={configuration.q.b} type="text" class="in-s" pattern={asciiPattern}/>
             </div>
             <div class="my-1">
                 {translations.conf?.mqtt?.update ?? "Update method"}
@@ -647,19 +647,19 @@
                 <div class="my-1 flex">
                     <div class="w-1/2">
                         {translations.conf?.mqtt?.domoticz?.eidx ?? "Electricity IDX"}<br/>
-                        <input name="oe" bind:value={configuration.o.e} type="text" class="in-f tr w-full"/>
+                        <input name="oe" bind:value={configuration.o.e} type="text" class="in-f tr w-full" pattern={numPattern}/>
                     </div>
                     <div class="w-1/2">
                         {translations.conf?.mqtt?.domoticz?.cidx ?? "Current IDX"}<br/>
-                        <input name="oc" bind:value={configuration.o.c} type="text" class="in-l tr w-full"/>
+                        <input name="oc" bind:value={configuration.o.c} type="text" class="in-l tr w-full" pattern={numPattern}/>
                     </div>
                 </div>
                 <div class="my-1">
                     {translations.conf?.mqtt?.domoticz?.vidx ?? "Voltage IDX"}: L1, L2 & L3
                     <div class="flex">
-                        <input name="ou1" bind:value={configuration.o.u1} type="text" class="in-f tr w-1/3"/>
-                        <input name="ou2" bind:value={configuration.o.u2} type="text" class="in-m tr w-1/3"/>
-                        <input name="ou3" bind:value={configuration.o.u3} type="text" class="in-l tr w-1/3"/>
+                        <input name="ou1" bind:value={configuration.o.u1} type="text" class="in-f tr w-1/3" pattern={numPattern}/>
+                        <input name="ou2" bind:value={configuration.o.u2} type="text" class="in-m tr w-1/3" pattern={numPattern}/>
+                        <input name="ou3" bind:value={configuration.o.u3} type="text" class="in-l tr w-1/3" pattern={numPattern}/>
                     </div>
                 </div>
             </div>
@@ -671,15 +671,15 @@
                 <input type="hidden" name="h" value="true"/>
                 <div class="my-1">
                     {translations.conf?.mqtt?.ha?.discovery ?? "Discovery topic prefix"}<br/>
-                    <input name="ht" bind:value={configuration.h.t} type="text" class="in-s" placeholder="homeassistant"/>
+                    <input name="ht" bind:value={configuration.h.t} type="text" class="in-s" placeholder="homeassistant" pattern={asciiPattern}/>
                 </div>
                 <div class="my-1">
                     {translations.conf?.mqtt?.ha?.hostname ?? "Hostname for URL"}<br/>
-                    <input name="hh" bind:value={configuration.h.h} type="text" class="in-s" placeholder="{configuration.g.h}.local"/>
+                    <input name="hh" bind:value={configuration.h.h} type="text" class="in-s" placeholder="{configuration.g.h}.local" pattern={asciiPattern}/>
                 </div>
                 <div class="my-1">
                     {translations.conf?.mqtt?.ha?.tag ?? "Name tag"}<br/>
-                    <input name="hn" bind:value={configuration.h.n} type="text" class="in-s"/>
+                    <input name="hn" bind:value={configuration.h.n} type="text" class="in-s" pattern={asciiPattern}/>
                 </div>
             </div>
         {/if}

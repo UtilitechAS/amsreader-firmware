@@ -2735,20 +2735,32 @@ void AmsWebServer::wifiScan() {
 		String ssid = WiFi.SSID(i);
 		int32_t rssi = WiFi.RSSI(i);
 		int32_t chan = WiFi.channel(i);
-		wifi_auth_mode_t enc = WiFi.encryptionType(i);
-		String encStr;
-		switch (enc) {
-			case WIFI_AUTH_OPEN:            encStr = "open"; break;
-			case WIFI_AUTH_WEP:             encStr = "WEP"; break;
-			case WIFI_AUTH_WPA_PSK:         encStr = "WPA"; break;
-			case WIFI_AUTH_WPA2_PSK:        encStr = "WPA2"; break;
-			case WIFI_AUTH_WPA_WPA2_PSK:    encStr = "WPA+WPA2"; break;
-			case WIFI_AUTH_WPA2_ENTERPRISE: encStr = "WPA2-EAP"; break;
-			case WIFI_AUTH_WPA3_PSK:        encStr = "WPA3"; break;
-			case WIFI_AUTH_WPA2_WPA3_PSK:   encStr = "WPA2+WPA3"; break;
-			case WIFI_AUTH_WAPI_PSK:        encStr = "WAPI"; break;
-			default:                        encStr = "unknown";
-		}
+		#if defined(ESP32)
+			wifi_auth_mode_t enc = WiFi.encryptionType(i);
+			String encStr;
+			switch (enc) {
+				case WIFI_AUTH_OPEN:            encStr = "open"; break;
+				case WIFI_AUTH_WEP:             encStr = "WEP"; break;
+				case WIFI_AUTH_WPA_PSK:         encStr = "WPA"; break;
+				case WIFI_AUTH_WPA2_PSK:        encStr = "WPA2"; break;
+				case WIFI_AUTH_WPA_WPA2_PSK:    encStr = "WPA+WPA2"; break;
+				case WIFI_AUTH_WPA2_ENTERPRISE: encStr = "WPA2-EAP"; break;
+				case WIFI_AUTH_WPA3_PSK:        encStr = "WPA3"; break;
+				case WIFI_AUTH_WPA2_WPA3_PSK:   encStr = "WPA2+WPA3"; break;
+				case WIFI_AUTH_WAPI_PSK:        encStr = "WAPI"; break;
+				default:                        encStr = "unknown";
+			}
+		#else
+			uint8_t enc = WiFi.encryptionType(i);
+			String encStr;
+			switch (enc) {
+				case ENC_TYPE_WEP:  encStr = "WEP"; break;
+				case ENC_TYPE_TKIP: encStr = "WPA"; break;
+				case ENC_TYPE_CCMP: encStr = "WPA2"; break;
+				case ENC_TYPE_NONE: encStr = "open"; break;
+				default:            encStr = "unknown";
+			}
+		#endif
 
 	    char bssidStr[18] = { 0 };
 	    sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X", bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);

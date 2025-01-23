@@ -133,6 +133,8 @@ private:
 	void translationsJson();
 	void cloudkeyJson();
 
+	void wifiScan();
+
 	void configurationJson();
 	void handleSave();
 	void reboot();

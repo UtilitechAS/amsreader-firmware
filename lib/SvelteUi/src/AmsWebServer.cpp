@@ -133,6 +133,8 @@ debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
 	server.on(context + F("/translations.json"), HTTP_GET, std::bind(&AmsWebServer::translationsJson, this));
 	server.on(context + F("/cloudkey.json"), HTTP_GET, std::bind(&AmsWebServer::cloudkeyJson, this));
 
+	server.on(context + F("/wifiscan.json"), HTTP_GET, std::bind(&AmsWebServer::wifiScan, this));
+
 	server.on(context + F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 	server.on(context + F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
 	server.on(context + F("/reboot"), HTTP_POST, std::bind(&AmsWebServer::reboot, this));
@@ -167,7 +169,6 @@ debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
 	server.on(context + F("/translations.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
 	server.on(context + F("/cloudkey.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
 	server.on(context + F("/configuration.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
-
 
 	/* These trigger captive portal. Only problem is that after you have "signed in", the portal is closed and the user has no idea how to reach the device
 	server.on(context + F("/generate_204"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Android captive portal check: http://connectivitycheck.gstatic.com/generate_204
@@ -2616,6 +2617,9 @@ void AmsWebServer::ssdpSchema() {
 }
 
 void AmsWebServer::modifyDayPlot() {
+	if(!checkSecurity(1))
+		return;
+
 	for(uint8_t i = 0; i < 24; i++) {
 		snprintf_P(buf, BufferSize, PSTR("i%02d"), i);
 		if(server.hasArg(buf)) {
@@ -2638,6 +2642,9 @@ void AmsWebServer::modifyDayPlot() {
 }
 
 void AmsWebServer::modifyMonthPlot() {
+	if(!checkSecurity(1))
+		return;
+
 	for(uint8_t i = 1; i <= 31; i++) {
 		snprintf_P(buf, BufferSize, PSTR("i%02d"), i);
 		if(server.hasArg(buf)) {
@@ -2715,4 +2722,45 @@ void AmsWebServer::optionsGet() {
 	addConditionalCloudHeaders();
 	server.sendHeader(F("Allow"), F("GET"));
 	server.send(200);
+}
+
+void AmsWebServer::wifiScan() {
+	if(!checkSecurity(1))
+		return;
+
+	int16_t count = WiFi.scanNetworks();
+	int pos = snprintf_P(buf, BufferSize, PSTR("{\"c\":%d,\"n\":["), count);
+	for (int16_t i = 0; i < count; i++) {
+		uint8_t* bssid = WiFi.BSSID(i);
+		String ssid = WiFi.SSID(i);
+		int32_t rssi = WiFi.RSSI(i);
+		int32_t chan = WiFi.channel(i);
+		wifi_auth_mode_t enc = WiFi.encryptionType(i);
+		String encStr;
+		switch (enc) {
+			case WIFI_AUTH_OPEN:            encStr = "open"; break;
+			case WIFI_AUTH_WEP:             encStr = "WEP"; break;
+			case WIFI_AUTH_WPA_PSK:         encStr = "WPA"; break;
+			case WIFI_AUTH_WPA2_PSK:        encStr = "WPA2"; break;
+			case WIFI_AUTH_WPA_WPA2_PSK:    encStr = "WPA+WPA2"; break;
+			case WIFI_AUTH_WPA2_ENTERPRISE: encStr = "WPA2-EAP"; break;
+			case WIFI_AUTH_WPA3_PSK:        encStr = "WPA3"; break;
+			case WIFI_AUTH_WPA2_WPA3_PSK:   encStr = "WPA2+WPA3"; break;
+			case WIFI_AUTH_WAPI_PSK:        encStr = "WAPI"; break;
+			default:                        encStr = "unknown";
+		}
+
+	    char bssidStr[18] = { 0 };
+	    sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X", bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+		pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("{\"b\":\"%s\",\"s\":\"%s\",\"r\":%d,\"c\":%d,\"e\":\"%s\"}%s"), bssidStr, ssid.c_str(), rssi, chan, encStr, i == count-1 ? "" : ",");
+	}
+	pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("]}"));
+	WiFi.scanDelete();
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
 }

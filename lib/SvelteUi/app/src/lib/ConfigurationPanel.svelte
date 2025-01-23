@@ -1,6 +1,6 @@
 <script>
     import { getConfiguration, configurationStore } from './ConfigurationStore'
-    import { sysinfoStore } from './DataStores.js';
+    import { sysinfoStore, networksStore } from './DataStores.js';
     import fetchWithTimeout from './fetchWithTimeout';
     import { translationsStore } from './TranslationService';
     import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern } from './Helpers.js';
@@ -88,6 +88,20 @@
         }
     });
     getConfiguration();
+
+    let manual = true;
+    let networks = {};
+    networksStore.subscribe(update => {
+        manual = true;
+        for (let i = 0; i < update.n.length; i++) {
+            let net = update.n[i];
+            if(net.s == configuration.w.s) {
+                manual = false;
+                break;
+            }
+        }
+        networks = update;
+    });
 
     let isFactoryReset = false;
     let isFactoryResetComplete = false;
@@ -466,7 +480,20 @@
             {#if configuration.n.c == 1 || configuration.n.c == 2}
                 <div class="my-1">
                     {translations.conf?.connection?.ssid ?? "SSID"}<br/>
-                    <input name="ws" bind:value={configuration.w.s} type="text" class="in-s" pattern={asciiPatternExt}/>
+                    {#if manual}
+                        <input name="ws" bind:value={configuration.w.s} type="text" class="in-s" pattern={asciiPatternExt} required={configuration.n.c == 1 || configuration.n.c == 2}/>
+                    {:else}
+                        <select name="ws" bind:value={configuration.w.s} class="in-s" required={configuration.n.c == 1 || configuration.n.c == 2}>
+                            {#if networks?.c == -1}
+                                <option value="" selected disabled>Scanning...</option>
+                            {/if}
+                            {#if networks?.n}
+                                {#each networks?.n as network}
+                                    <option value={network.s}>{network.s} ({network.e}, RSSI: {network.r})</option>
+                                {/each}
+                            {/if}
+                        </select>
+                    {/if}
                 </div>
                 <div class="my-1">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>

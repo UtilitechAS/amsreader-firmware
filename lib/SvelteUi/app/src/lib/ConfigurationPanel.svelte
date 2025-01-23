@@ -95,7 +95,7 @@
         manual = true;
         for (let i = 0; i < update.n.length; i++) {
             let net = update.n[i];
-            if(net.s == configuration.w.s) {
+            if(net.s == configuration?.w?.s) {
                 manual = false;
                 break;
             }

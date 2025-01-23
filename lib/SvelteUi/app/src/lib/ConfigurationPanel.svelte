@@ -479,7 +479,9 @@
             </div>
             {#if configuration.n.c == 1 || configuration.n.c == 2}
                 <div class="my-1">
-                    {translations.conf?.connection?.ssid ?? "SSID"}<br/>
+                    {translations.conf?.connection?.ssid ?? "SSID"}
+                    <label class="float-right mr-3"><input type="checkbox" name="qs" value="true" bind:checked={manual} class="rounded mb-1"/> manual</label>
+                    <br/>
                     {#if manual}
                         <input name="ws" bind:value={configuration.w.s} type="text" class="in-s" pattern={asciiPatternExt} required={configuration.n.c == 1 || configuration.n.c == 2}/>
                     {:else}

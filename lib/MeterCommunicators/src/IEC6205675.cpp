@@ -900,7 +900,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             meterType = AmsTypeIskra;
         }
 
-        if(meterType != AmsTypeUnknown) {
+        if(meterId.isEmpty() && meterType != AmsTypeUnknown) {
         	stripNonAscii((uint8_t*) ctx.system_title, 8);
             meterId = String((const char*)ctx.system_title);
         }

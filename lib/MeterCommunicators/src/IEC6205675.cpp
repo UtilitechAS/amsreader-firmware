@@ -901,7 +901,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         }
 
         if(meterType != AmsTypeUnknown) {
-        	stripNonAscii((uint8_t*) ctx.system_title, 8, true);
+        	stripNonAscii((uint8_t*) ctx.system_title, 8);
             meterId = String((const char*)ctx.system_title);
         }
     }
@@ -946,6 +946,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             threePhase = true;
         }
     }
+    meterId.trim();
 }
 
 CosemData* IEC6205675::getCosemDataAt(uint8_t index, const char* ptr) {

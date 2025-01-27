@@ -179,11 +179,18 @@ float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t h
         breakTime(tz->toLocal(ts), tm);
         hoursToday++;
     }
+    uint8_t hoursTomorrow = 0;
+    uint8_t tomorrowDate = tm.Day;
+    while(tm.Day == tomorrowDate) {
+        ts += 3600;
+        breakTime(tz->toLocal(ts), tm);
+        hoursTomorrow++;
+    }
 
     float multiplier = 1.0;
     if(pos >= hoursToday) {
         pos = pos - hoursToday;
-        if(pos > 24) return PRICE_NO_VALUE; // We have 25 points, index 24 would be the end
+        if(pos >= hoursTomorrow) return PRICE_NO_VALUE;
         if(tomorrow == NULL)
             return PRICE_NO_VALUE;
         if(tomorrow->points[pos] == PRICE_NO_VALUE)

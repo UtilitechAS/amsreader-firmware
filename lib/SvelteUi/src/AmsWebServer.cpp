@@ -973,6 +973,7 @@ void AmsWebServer::configurationJson() {
 		strlen(mqttConfig.password) > 0 ? "***" : "",
 		mqttConfig.clientId,
 		mqttConfig.publishTopic,
+		mqttConfig.subscribeTopic,
 		mqttConfig.payloadFormat,
 		mqttConfig.ssl ? "true" : "false",
 		qsc ? "true" : "false",
@@ -2218,6 +2219,7 @@ void AmsWebServer::configFileDownload() {
 			if(mqtt.port > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPort %d\n"), mqtt.port));
 			if(strlen(mqtt.clientId) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttClientId %s\n"), mqtt.clientId));
 			if(strlen(mqtt.publishTopic) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPublishTopic %s\n"), mqtt.publishTopic));
+			if(strlen(mqtt.subscribeTopic) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttSubscribeTopic %s\n"), mqtt.subscribeTopic));
 			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttUsername %s\n"), mqtt.username));
 			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPassword %s\n"), mqtt.password));
 			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPayloadFormat %d\n"), mqtt.payloadFormat));

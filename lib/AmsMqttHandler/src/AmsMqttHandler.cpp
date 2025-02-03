@@ -135,6 +135,7 @@ bool AmsMqttHandler::connect() {
 		}
 		mqtt.publish(statusTopic, "online", true, 0);
         mqtt.loop();
+		postConnect();
         return true;
 	} else {
 		#if defined(AMS_REMOTE_DEBUG)

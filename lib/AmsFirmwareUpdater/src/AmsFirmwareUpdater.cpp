@@ -92,7 +92,7 @@ void AmsFirmwareUpdater::ackUpgradeInformationChanged() {
 }
 
 float AmsFirmwareUpdater::getProgress() {
-    if(strlen(updateStatus.toVersion) == 0 || updateStatus.size == 0) return -1.0;
+    if(strlen(updateStatus.toVersion) == 0 || updateStatus.size == 0 || updateStatus.errorCode >= AMS_UPDATE_ERR_SUCCESS_SIGNAL) return -1.0;
     return min((float) 100.0, ((((float) updateStatus.block_position) * UPDATE_BUF_SIZE) / updateStatus.size) * 100);
 }
 

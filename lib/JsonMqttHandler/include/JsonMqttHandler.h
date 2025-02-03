@@ -12,7 +12,7 @@
 class JsonMqttHandler : public AmsMqttHandler {
 public:
     #if defined(AMS_REMOTE_DEBUG)
-    JsonMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
+    JsonMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, HwTools* hw, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
         this->hw = hw;
     };
     #else

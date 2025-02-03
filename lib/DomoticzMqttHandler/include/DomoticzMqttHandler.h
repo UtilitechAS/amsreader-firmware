@@ -13,7 +13,7 @@
 class DomoticzMqttHandler : public AmsMqttHandler {
 public:
     #if defined(AMS_REMOTE_DEBUG)
-    DomoticzMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, DomoticzConfig config) : AmsMqttHandler(mqttConfig, debugger, buf) {
+    DomoticzMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, DomoticzConfig config, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
         this->config = config;
     };
     #else

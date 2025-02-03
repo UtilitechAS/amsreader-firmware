@@ -648,6 +648,10 @@
                 <input name="qb" bind:value={configuration.q.b} type="text" class="in-s" pattern={asciiPattern}/>
             </div>
             <div class="my-1">
+                {translations.conf?.mqtt?.subscribe ?? "Subscribe topic"}<br/>
+                <input name="qr" bind:value={configuration.q.r} type="text" class="in-s" pattern={asciiPattern} placeholder="{configuration.q.b}/command"/>
+            </div>
+            <div class="my-1">
                 {translations.conf?.mqtt?.update ?? "Update method"}
                 <span class="float-right">{translations.conf?.mqtt?.interval ?? "Interval"}</span>
                 <div class="flex">

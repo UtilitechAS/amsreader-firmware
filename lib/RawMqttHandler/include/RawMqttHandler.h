@@ -12,7 +12,7 @@
 class RawMqttHandler : public AmsMqttHandler {
 public:
     #if defined(AMS_REMOTE_DEBUG)
-    RawMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf) : AmsMqttHandler(mqttConfig, debugger, buf) {
+    RawMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
         full = mqttConfig.payloadFormat == 2;
         topic = String(mqttConfig.publishTopic);
     };

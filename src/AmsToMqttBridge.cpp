@@ -616,7 +616,7 @@ void loop() {
 							chipId = ESP.getChipId();
 						#endif
 						strcpy(energySpeedometerConfig.clientId, (String("ams") + String(chipId, HEX)).c_str());
-						energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw);
+						energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw, &updater);
 						energySpeedometer->setCaVerification(false);
 					}
 					if(!energySpeedometer->connected()) {
@@ -707,6 +707,7 @@ void loop() {
 				updater.getUpgradeInformation(upinfo);
 				config.setUpgradeInformation(upinfo);
 				updater.ackUpgradeInformationChanged();
+				mqttHandler->publishFirmware();
 				
 				if(upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_SIGNAL) {
 					debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);
@@ -992,6 +993,7 @@ void handleSystem(unsigned long now) {
 		if(WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED) {
 			if(mqttHandler != NULL) {
 				mqttHandler->publishSystem(&hw, ps, &ea);
+				mqttHandler->publishFirmware();
 			}
 			#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 			if(energySpeedometer != NULL) {
@@ -1515,24 +1517,24 @@ void MQTT_connect() {
 			case 0:
 			case 5:
 			case 6:
-				mqttHandler = new JsonMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &hw);
+				mqttHandler = new JsonMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &hw, &updater);
 				break;
 			case 1:
 			case 2:
-				mqttHandler = new RawMqttHandler(mqttConfig, &Debug, (char*) commonBuffer);
+				mqttHandler = new RawMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &updater);
 				break;
 			case 3:
 				DomoticzConfig domo;
 				config.getDomoticzConfig(domo);
-				mqttHandler = new DomoticzMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, domo);
+				mqttHandler = new DomoticzMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, domo, &updater);
 				break;
 			case 4:
 				HomeAssistantConfig haconf;
 				config.getHomeAssistantConfig(haconf);
-				mqttHandler = new HomeAssistantMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, sysConfig.boardType, haconf, &hw);
+				mqttHandler = new HomeAssistantMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, sysConfig.boardType, haconf, &hw, &updater);
 				break;
 			case 255:
-				mqttHandler = new PassthroughMqttHandler(mqttConfig, &Debug, (char*) commonBuffer);
+				mqttHandler = new PassthroughMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &updater);
 				break;
 		}
 	}
@@ -1645,6 +1647,9 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("mqttPublishTopic "), 17) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			strcpy(mqtt.publishTopic, buf+17);
+		} else if(strncmp_P(buf, PSTR("mqttSubscribeTopic "), 19) == 0) {
+			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
+			strcpy(mqtt.subscribeTopic, buf+19);
 		} else if(strncmp_P(buf, PSTR("mqttUsername "), 13) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			strcpy(mqtt.username, buf+13);

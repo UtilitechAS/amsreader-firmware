@@ -1,0 +1,31 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/ubuntu
+{
+	"name": "amsreader-devcontainer",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+	"image": "mcr.microsoft.com/devcontainers/base:jammy",
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "16",
+			"pnpmVersion": "none",
+			"nvmVersion": "latest"
+		},
+		"ghcr.io/devcontainers/features/python:1": {
+			"version": "3.9"
+		}
+	},
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": ".devcontainer/postCreateCommand.sh",
+
+	// Configure tool-specific properties.
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"platformio.platformio-ide",
+				"ms-vscode.cpptools",
+				"svelte.svelte-vscode"
+			]
+		}
+	}
+}

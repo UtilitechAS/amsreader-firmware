@@ -8,7 +8,9 @@
 #define _METERCOMMUNICATOR_H
 
 #include <Arduino.h>
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include "AmsData.h"
 #include "AmsConfiguration.h"
 
@@ -20,6 +22,7 @@ public:
     virtual AmsData* getData(AmsData& meterState);
     virtual int getLastError();
     virtual bool isConfigChanged();
+    virtual void ackConfigChanged();
     virtual void getCurrentConfig(MeterConfig& meterConfig);
 };
 

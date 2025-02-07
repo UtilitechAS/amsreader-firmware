@@ -91,7 +91,7 @@ bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 	}
 	
 	stripNonAscii((uint8_t*) config.ssid, 32, true);
-	stripNonAscii((uint8_t*) config.psk, 64);
+	stripNonAscii((uint8_t*) config.psk, 64, true);
 	stripNonAscii((uint8_t*) config.ip, 16);
 	stripNonAscii((uint8_t*) config.gateway, 16);
 	stripNonAscii((uint8_t*) config.subnet, 16);
@@ -147,6 +147,15 @@ bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_MQTT_START, config);
 		EEPROM.end();
+		if(config.magic != 0x9C) {
+			if(config.magic != 0x7B) {
+				config.stateUpdate = false;
+				config.stateUpdateInterval = 10;
+			}
+			config.timeout = 1000;
+			config.keepalive = 60;
+			config.magic = 0x9C;
+		}
 		return true;
 	} else {
 		clearMqtt(config);
@@ -166,6 +175,8 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 		mqttChanged |= strcmp(config.password, existing.password) != 0;
 		mqttChanged |= config.payloadFormat != existing.payloadFormat;
 		mqttChanged |= config.ssl != existing.ssl;
+		mqttChanged |= config.stateUpdate != existing.stateUpdate;
+		mqttChanged |= config.stateUpdateInterval != existing.stateUpdateInterval;
 	} else {
 		mqttChanged = true;
 	}
@@ -174,8 +185,12 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 	stripNonAscii((uint8_t*) config.clientId, 32);
 	stripNonAscii((uint8_t*) config.publishTopic, 64);
 	stripNonAscii((uint8_t*) config.subscribeTopic, 64);
-	stripNonAscii((uint8_t*) config.username, 128);
-	stripNonAscii((uint8_t*) config.password, 256);
+	stripNonAscii((uint8_t*) config.username, 128, true);
+	stripNonAscii((uint8_t*) config.password, 256, true);
+	if(config.timeout < 500) config.timeout = 1000;
+	if(config.timeout > 10000) config.timeout = 1000;
+	if(config.keepalive < 5) config.keepalive = 60;
+	if(config.keepalive > 240) config.keepalive = 60;
 
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_MQTT_START, config);
@@ -195,6 +210,11 @@ void AmsConfiguration::clearMqtt(MqttConfig& config) {
 	memset(config.password, 0, 256);
 	config.payloadFormat = 0;
 	config.ssl = false;
+	config.magic = 0x7B;
+	config.stateUpdate = false;
+	config.stateUpdateInterval = 10;
+	config.timeout = 1000;
+	config.keepalive = 60;
 }
 
 void AmsConfiguration::setMqttChanged() {
@@ -400,6 +420,7 @@ bool AmsConfiguration::getHomeAssistantConfig(HomeAssistantConfig& config) {
 		EEPROM.end();
 		if(stripNonAscii((uint8_t*) config.discoveryPrefix, 64) || stripNonAscii((uint8_t*) config.discoveryHostname, 64) || stripNonAscii((uint8_t*) config.discoveryNameTag, 16)) {
 			clearHomeAssistantConfig(config);
+			return false;
 		}
 		return true;
 	} else {
@@ -518,7 +539,7 @@ bool AmsConfiguration::setGpioConfig(GpioConfig& config) {
 	return ret;
 }
 
-void AmsConfiguration::clearGpio(GpioConfig& config) {
+void AmsConfiguration::clearGpio(GpioConfig& config, bool all) {
 	config.apPin = 0xFF;
 	config.ledPin = 0xFF;
 	config.ledInverted = true;
@@ -529,13 +550,16 @@ void AmsConfiguration::clearGpio(GpioConfig& config) {
 	config.tempSensorPin = 0xFF;
 	config.tempAnalogSensorPin = 0xFF;
 	config.vccPin = 0xFF;
-	config.vccOffset = 0;
-	config.vccMultiplier = 1000;
-	config.vccBootLimit = 0;
-	config.vccResistorGnd = 0;
-	config.vccResistorVcc = 0;
 	config.ledDisablePin = 0xFF;
-	config.ledBehaviour = LED_BEHAVIOUR_DEFAULT;
+
+	if(all) {
+		config.vccOffset = 0;
+		config.vccMultiplier = 1000;
+		config.vccBootLimit = 0;
+		config.vccResistorGnd = 0;
+		config.vccResistorVcc = 0;
+		config.ledBehaviour = LED_BEHAVIOUR_DEFAULT;
+	}
 }
 
 bool AmsConfiguration::getNtpConfig(NtpConfig& config) {
@@ -599,6 +623,7 @@ bool AmsConfiguration::getPriceServiceConfig(PriceServiceConfig& config) {
 		EEPROM.end();
 		if(strlen(config.entsoeToken) != 0 && strlen(config.entsoeToken) != 36) {
 			clearPriceServiceConfig(config);
+			return false;
 		}
 		return true;
 	} else {
@@ -654,6 +679,7 @@ bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config)
 		EEPROM.end();
 		if(config.thresholds[9] != 0xFFFF) {
 			clearEnergyAccountingConfig(config);
+			return false;
 		}
 		if(config.hours > 5) config.hours = 5;
 		return true;
@@ -761,13 +787,7 @@ void AmsConfiguration::ackUiLanguageChange() {
 	uiLanguageChanged = false;
 }
 
-bool AmsConfiguration::setUpgradeInformation(int16_t exitCode, int16_t errorCode, const char* currentVersion, const char* nextVersion) {
-	UpgradeInformation upinfo;
-	upinfo.exitCode = exitCode;
-	upinfo.errorCode = errorCode;
-	strcpy(upinfo.fromVersion, currentVersion);
-	strcpy(upinfo.toVersion, nextVersion);
-
+bool AmsConfiguration::setUpgradeInformation(UpgradeInformation& upinfo) {
 	stripNonAscii((uint8_t*) upinfo.fromVersion, 8);
 	stripNonAscii((uint8_t*) upinfo.toVersion, 8);
 
@@ -785,6 +805,7 @@ bool AmsConfiguration::getUpgradeInformation(UpgradeInformation& upinfo) {
 		EEPROM.end();
 		if(stripNonAscii((uint8_t*) upinfo.fromVersion, 8) || stripNonAscii((uint8_t*) upinfo.toVersion, 8)) {
 			clearUpgradeInformation(upinfo);
+			return false;
 		}
 		return true;
 	} else {
@@ -794,10 +815,13 @@ bool AmsConfiguration::getUpgradeInformation(UpgradeInformation& upinfo) {
 }
 
 void AmsConfiguration::clearUpgradeInformation(UpgradeInformation& upinfo) {
-	upinfo.exitCode = -1;
-	upinfo.errorCode = 0;
 	memset(upinfo.fromVersion, 0, 8);
 	memset(upinfo.toVersion, 0, 8);
+	upinfo.errorCode = 0;
+	upinfo.size = 0;
+	upinfo.block_position = 0;
+	upinfo.retry_count = 0;
+	upinfo.reboot_count = 0;
 }
 
 bool AmsConfiguration::getCloudConfig(CloudConfig& config) {
@@ -805,6 +829,7 @@ bool AmsConfiguration::getCloudConfig(CloudConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_CLOUD_START, config);
 		EEPROM.end();
+		if(config.proto > 2) config.proto = 0;
 		return true;
 	} else {
 		clearCloudConfig(config);
@@ -818,6 +843,7 @@ bool AmsConfiguration::setCloudConfig(CloudConfig& config) {
 		cloudChanged |= config.enabled != existing.enabled;
 		cloudChanged |= config.interval!= existing.interval;
 		cloudChanged |= config.port!= existing.port;
+		cloudChanged |= config.proto!= existing.proto;
 		cloudChanged |= strcmp(config.hostname, existing.hostname) != 0;
 		cloudChanged |= memcmp(config.clientId, existing.clientId, 16) != 0;
 	} else {
@@ -836,6 +862,7 @@ bool AmsConfiguration::setCloudConfig(CloudConfig& config) {
 void AmsConfiguration::clearCloudConfig(CloudConfig& config) {
 	config.enabled = false;
 	strcpy_P(config.hostname, PSTR("cloud.amsleser.no"));
+	config.proto = 1;
 	config.port = 7443;
 	config.interval = 10;
 	memset(config.clientId, 0, 16);
@@ -978,22 +1005,6 @@ bool AmsConfiguration::hasConfig() {
 		}
 	} else {
 		switch(configVersion) {
-			case 101:
-				configVersion = -1; // Prevent loop
-				if(relocateConfig101()) {
-					configVersion = 102;
-				} else {
-					configVersion = 0;
-					return false;
-				}
-			case 102:
-				configVersion = -1; // Prevent loop
-				if(relocateConfig102()) {
-					configVersion = 103;
-				} else {
-					configVersion = 0;
-					return false;
-				}
 			case 103:
 				configVersion = -1; // Prevent loop
 				if(relocateConfig103()) {
@@ -1014,48 +1025,6 @@ bool AmsConfiguration::hasConfig() {
 
 int AmsConfiguration::getConfigVersion() {
 	return configVersion;
-}
-
-bool AmsConfiguration::relocateConfig101() {
-	EEPROM.begin(EEPROM_SIZE);
-
-	EnergyAccountingConfig config;
-	EnergyAccountingConfig101 config101;
-	EEPROM.get(CONFIG_ENERGYACCOUNTING_START_103, config101);
-	for(uint8_t i = 0; i < 9; i++) {
-		config.thresholds[i] = config101.thresholds[i];
-	}
-	config.thresholds[9] = 0xFFFF;
-	config.hours = config101.hours;
-	EEPROM.put(CONFIG_ENERGYACCOUNTING_START_103, config);
-
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 102);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
-}
-
-bool AmsConfiguration::relocateConfig102() {
-	EEPROM.begin(EEPROM_SIZE);
-
-	GpioConfig103 gpioConfig;
-	EEPROM.get(CONFIG_GPIO_START_103, gpioConfig);
-	gpioConfig.hanPinPullup = true;
-	EEPROM.put(CONFIG_GPIO_START_103, gpioConfig);
-
-	HomeAssistantConfig haconf;
-	clearHomeAssistantConfig(haconf);
-	EEPROM.put(CONFIG_HA_START_103, haconf);
-
-	PriceServiceConfig entsoe;
-	EEPROM.get(CONFIG_ENTSOE_START_103, entsoe);
-	entsoe.unused2 = 0;
-	EEPROM.put(CONFIG_ENTSOE_START_103, entsoe);
-
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, 103);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
 }
 
 bool AmsConfiguration::relocateConfig103() {
@@ -1123,8 +1092,8 @@ bool AmsConfiguration::relocateConfig103() {
 	};
 
 	WebConfig web = {web103.security};
-	strcpy_P(web.username, web103.username);
-	strcpy_P(web.password, web103.password);
+	strcpy(web.username, web103.username);
+	strcpy(web.password, web103.password);
 	memset(web.context, 0, 37);
 
 	strcpy_P(ui.language, PSTR("en"));
@@ -1352,13 +1321,16 @@ void AmsConfiguration::print(Print* debugger)
 	if(getUiConfig(ui)) {
 		debugger->println(F("--UI configuration--"));
 		debugger->printf_P(PSTR("Language:             %s\r\n"), ui.language);
+		debugger->println(F(""));
+		delay(10);
+		debugger->flush();
 	}
 
 	#if defined(ESP32)
 	CloudConfig cc;
 	if(getCloudConfig(cc)) {
 		String uuid = ESPRandom::uuidToString(cc.clientId);;
-		debugger->println(F("--UI configuration--"));
+		debugger->println(F("--Cloud configuration--"));
 		debugger->printf_P(PSTR("Enabled:              %s\r\n"), cc.enabled ? "Yes" : "No");
 		debugger->printf_P(PSTR("Hostname:             %s\r\n"), cc.hostname);
 		debugger->printf_P(PSTR("Client ID:            %s\r\n"), uuid.c_str());

@@ -18,9 +18,13 @@
         let xTicks = [];
         let points = [];
         min = max = 0;
-        let cur = addHours(new Date(), -24);
-        let currentHour = new Date().getUTCHours();
-        addHours(cur, sysinfo.clock_offset - ((24 + cur.getHours() - cur.getUTCHours())%24));
+        let cur = new Date();
+        let lm = new Date();
+        lm.setDate(0);
+        lm.setHours(12);
+        let clock_adjust = ((lm.getHours() - lm.getUTCHours())%24) - sysinfo.clock_offset;
+        let currentHour = cur.getUTCHours();
+        addHours(cur, -clock_adjust-24);
         for(i = currentHour; i<24; i++) {
             let imp = json["i"+zeropad(i)];
             let exp = json["e"+zeropad(i)];
@@ -109,7 +113,12 @@
             x: {
                 ticks: xTicks
             },
-            points: points
+            points: points,
+            link: {
+                route: true,
+                text: 'Edit data',
+                url: '/edit-day'
+            }
         };
     };
 

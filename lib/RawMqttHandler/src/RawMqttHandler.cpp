@@ -8,25 +8,36 @@
 #include "hexutils.h"
 #include "Uptime.h"
 
-bool RawMqttHandler::publish(AmsData* data, AmsData* meterState, EnergyAccounting* ea, PriceService* ps) {
+bool RawMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
 		return false;
-        
-    if(data->getPackageTimestamp() > 0) {
-        mqtt.publish(topic + "/meter/dlms/timestamp", String(data->getPackageTimestamp()));
+
+    AmsData data;
+    if(mqttConfig.stateUpdate) {
+        uint64_t now = millis64();
+        if(now-lastStateUpdate < mqttConfig.stateUpdateInterval * 1000) return false;
+        data.apply(*previousState);
+        data.apply(*update);
+        lastStateUpdate = now;
+    } else {
+        data = *update;
     }
-    switch(data->getListType()) {
+        
+    if(data.getPackageTimestamp() > 0) {
+        mqtt.publish(topic + "/meter/dlms/timestamp", String(data.getPackageTimestamp()));
+    }
+    switch(data.getListType()) {
         case 4:
-            publishList4(data, meterState);
+            publishList4(&data, previousState);
             loop();
         case 3:
-            publishList3(data, meterState);
+            publishList3(&data, previousState);
             loop();
         case 2:
-            publishList2(data, meterState);
+            publishList2(&data, previousState);
             loop();
         case 1:
-            publishList1(data, meterState);
+            publishList1(&data, previousState);
             loop();
     }
     if(ea->isInitialized()) {
@@ -188,6 +199,15 @@ bool RawMqttHandler::publishRealtime(EnergyAccounting* ea) {
     mqtt.loop();
     mqtt.publish(topic + "/realtime/export/month", String(ea->getProducedThisMonth(), 1));
     mqtt.loop();
+    uint32_t now = millis();
+    if(lastThresholdPublish == 0 || now-lastThresholdPublish > 3600000) {
+        EnergyAccountingConfig* conf = ea->getConfig();
+        for(uint8_t i = 0; i < 9; i++) {
+            mqtt.publish(topic + "/realtime/import/thresholds/" + String(i+1, 10), String(conf->thresholds[i], 10), true, 0);
+            mqtt.loop();
+        }
+        lastThresholdPublish = now;
+    }
     return true;
 }
 
@@ -315,6 +335,15 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
     }
     if(min6hrIdx != -1) {
         mqtt.publish(topic + "/price/cheapest/6hr", String(ts6hr), true, 0);
+        mqtt.loop();
+    }
+
+    float exportPrice = ps->getEnergyPriceForHour(PRICE_DIRECTION_EXPORT, now, 0);
+    if(exportPrice == PRICE_NO_VALUE) {
+        mqtt.publish(topic + "/exportprice/0", "", true, 0);
+        mqtt.loop();
+    } else {
+        mqtt.publish(topic + "/exportprice/0", String(exportPrice, 4), true, 0);
         mqtt.loop();
     }
     return true;

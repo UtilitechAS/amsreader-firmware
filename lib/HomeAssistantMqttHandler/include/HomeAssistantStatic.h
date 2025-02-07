@@ -20,9 +20,10 @@ struct HomeAssistantSensor {
 };
 
 
-const uint8_t List1SensorCount PROGMEM = 1;
+const uint8_t List1SensorCount PROGMEM = 2;
 const HomeAssistantSensor List1Sensors[List1SensorCount] PROGMEM = {
-    {"Active import",              "/power",   "P",                   30, "W",    "power",           "measurement"}
+    {"Active import",              "/power",   "P",                   30, "W",    "power",           "measurement"},
+    {"Data timestamp",             "/power",   "t",                   30, "",     "timestamp",       ""}
 };
 
 const uint8_t List2SensorCount PROGMEM = 8;
@@ -42,11 +43,12 @@ const HomeAssistantSensor List2ExportSensors[List2ExportSensorCount] PROGMEM = {
     {"Active export",              "/power",   "PO",                  30, "W",    "power",           "measurement"}
 };
 
-const uint8_t List3SensorCount PROGMEM = 3;
+const uint8_t List3SensorCount PROGMEM = 4;
 const HomeAssistantSensor List3Sensors[List3SensorCount] PROGMEM = {
     {"Accumulated active import",  "/energy",  "tPI",               4000, "kWh",  "energy",          "total_increasing"},
     {"Accumulated reactive import","/energy",  "tQI",               4000, "kvarh","",                "total_increasing"},
-    {"Accumulated reactive export","/energy",  "tQO",               4000, "kvarh","",                "total_increasing"}
+    {"Accumulated reactive export","/energy",  "tQO",               4000, "kvarh","",                "total_increasing"},
+    {"Meter timestamp",            "/energy",  "rtc",               4000, "",     "timestamp",       ""}
 };
 
 const uint8_t List3ExportSensorCount PROGMEM = 1;
@@ -80,8 +82,8 @@ const HomeAssistantSensor List4ExportSensors[List4ExportSensorCount] PROGMEM = {
 
 const uint8_t RealtimeSensorCount PROGMEM = 8;
 const HomeAssistantSensor RealtimeSensors[RealtimeSensorCount] PROGMEM = {
-    {"Month max",                  "/realtime","max",                120, "kWh",  "energy",          "total_increasing"},
-    {"Tariff threshold",           "/realtime","threshold",          120, "kWh",  "energy",          "total_increasing"},
+    {"Month max",                  "/realtime","max",                120, "kWh",  "energy",          ""},
+    {"Tariff threshold",           "/realtime","threshold",          120, "kWh",  "energy",          ""},
     {"Current hour used",          "/realtime","hour.use",           120, "kWh",  "energy",          "total_increasing"},
     {"Current hour cost",          "/realtime","hour.cost",          120, "",     "monetary",        ""},
     {"Current day used",           "/realtime","day.use",            120, "kWh",  "energy",          "total_increasing"},
@@ -101,6 +103,7 @@ const HomeAssistantSensor RealtimeExportSensors[RealtimeExportSensorCount] PROGM
 };
 
 const HomeAssistantSensor RealtimePeakSensor PROGMEM = {"Current month peak %d", "/realtime", "peaks[%d]", 4000, "kWh", "energy", ""};
+const HomeAssistantSensor RealtimeThresholdSensor PROGMEM = {"Tariff threshold %d", "/realtime", "thresholds[%d]", 4000, "kWh", "energy", ""};
 
 const uint8_t PriceSensorCount PROGMEM = 5;
 const HomeAssistantSensor PriceSensors[PriceSensorCount] PROGMEM = {

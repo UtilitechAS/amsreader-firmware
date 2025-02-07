@@ -9,13 +9,19 @@
 
 #include "ConnectionHandler.h"
 #include <Arduino.h>
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 
 #define CONNECTION_TIMEOUT 30000
 
 class EthernetConnectionHandler : public ConnectionHandler {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     EthernetConnectionHandler(RemoteDebug* debugger);
+    #else
+    EthernetConnectionHandler(Stream* debugger);
+    #endif
 
     bool connect(NetworkConfig config, SystemConfig sys);
     void disconnect(unsigned long reconnectDelay);
@@ -33,7 +39,11 @@ public:
     #endif
 
 private:
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
+    #else
+    Stream* debugger;
+    #endif
     NetworkConfig config;
 
     bool connected = false;

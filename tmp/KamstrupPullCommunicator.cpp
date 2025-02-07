@@ -7,6 +7,7 @@
 #include "KamstrupPullCommunicator.h"
 #include "Uptime.h"
 #include "Cosem.h"
+#include "hexutils.h"
 
 #if defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32C3)
 #include <driver/uart.h>
@@ -259,7 +260,7 @@ AmsData* KamstrupPullCommunicator::getData(AmsData& meterState) {
 	byte* payload = ((byte *) (hanBuffer)) + pos;
     if(debugger->isActive(RemoteDebug::INFO)) {
         debugger->printf_P(PSTR("Received data from Kamstrup meter:\n"));
-        debugPrint(payload, 0, min(ctx.length, (uint16_t) BUF_SIZE_HAN));
+        debugPrint(payload, 0, min(ctx.length, (uint16_t) BUF_SIZE_HAN), debugger);
     }
 
 	if(hanBuffer[11] == DATA_TAG_RES) {
@@ -332,7 +333,7 @@ void KamstrupPullCommunicator::sendConnectMessage() {
 
     if(debugger->isActive(RemoteDebug::INFO)) {
         debugger->printf_P(PSTR("Sending data to Kamstrup meter:\n"));
-        debugPrint(hanBuffer, 0, i);
+        debugPrint(hanBuffer, 0, i, debugger);
     }
 	state = STATE_CONNECTING;
 	len = 0;
@@ -350,7 +351,7 @@ bool KamstrupPullCommunicator::checkForConnectConfirmed() {
 	byte* payload = ((byte *) (hanBuffer)) + pos;
     if(debugger->isActive(RemoteDebug::INFO)) {
         debugger->printf_P(PSTR("Received data from Kamstrup meter:\n"));
-        debugPrint(payload, 0, min(ctx.length, (uint16_t) BUF_SIZE_HAN));
+        debugPrint(payload, 0, min(ctx.length, (uint16_t) BUF_SIZE_HAN), debugger);
     }
 
 	len = 0;
@@ -531,7 +532,7 @@ void KamstrupPullCommunicator::sendAssociateMessage() {
 
     if(debugger->isActive(RemoteDebug::INFO)) {
         debugger->printf_P(PSTR("Sending data to Kamstrup meter:\n"));
-        debugPrint(hanBuffer, 0, i);
+        debugPrint(hanBuffer, 0, i, debugger);
     }
 	state = STATE_CONNECTED_ASSOCIATING;
 	len = 0;
@@ -549,7 +550,7 @@ bool KamstrupPullCommunicator::checkForAssociationConfirmed() {
 	byte* payload = ((byte *) (hanBuffer)) + pos;
     if(debugger->isActive(RemoteDebug::INFO)) {
         debugger->printf_P(PSTR("Received data from Kamstrup meter:\n"));
-        debugPrint(payload, 0, ctx.length);
+        debugPrint(payload, 0, ctx.length, debugger);
     }
 	len = 0;
 	dataAvailable = false;
@@ -642,7 +643,7 @@ bool KamstrupPullCommunicator::requestData() {
 
     if(debugger->isActive(RemoteDebug::INFO)) {
         debugger->printf_P(PSTR("Sending data to Kamstrup meter:\n"));
-        debugPrint(hanBuffer, 0, i);
+        debugPrint(hanBuffer, 0, i, debugger);
     }
 
 	len = 0;
@@ -674,7 +675,7 @@ void KamstrupPullCommunicator::sendDisconnectMessage() {
 
     if(debugger->isActive(RemoteDebug::INFO)) {
         debugger->printf_P(PSTR("Sending data to Kamstrup meter:\n"));
-        debugPrint(hanBuffer, 0, i);
+        debugPrint(hanBuffer, 0, i, debugger);
     }
 	state = STATE_DISCONNECTING;
 	len = 0;
@@ -692,7 +693,7 @@ bool KamstrupPullCommunicator::checkForDisconnectMessage() {
 
     if(debugger->isActive(RemoteDebug::INFO)) {
         debugger->printf_P(PSTR("Received data from Kamstrup meter:\n"));
-        debugPrint(hanBuffer, 0, ctx.length);
+        debugPrint(hanBuffer, 0, ctx.length, debugger);
     }
 	for(int i = 0; i<BUF_SIZE_HAN; i++) {
 		hanBuffer[i] = 0x00;
@@ -768,20 +769,4 @@ void KamstrupPullCommunicator::rxerr(int err) {
 	}
 	// Do not include serial break
 	if(err > 1) lastError = 90+err;
-}
-
-void KamstrupPullCommunicator::debugPrint(byte *buffer, int start, int length) {
-	for (int i = start; i < start + length; i++) {
-		if (buffer[i] < 0x10)
-			debugger->print(F("0"));
-		debugger->print(buffer[i], HEX);
-		debugger->print(F(" "));
-		if ((i - start + 1) % 16 == 0)
-			debugger->println(F(""));
-		else if ((i - start + 1) % 4 == 0)
-			debugger->print(F(" "));
-
-		yield(); // Let other get some resources too
-	}
-	debugger->println(F(""));
 }

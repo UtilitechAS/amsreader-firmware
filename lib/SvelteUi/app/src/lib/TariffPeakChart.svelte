@@ -1,15 +1,9 @@
 <script>
     import { zeropad } from './Helpers.js';
     import BarChart from './BarChart.svelte';
-    import { tariffStore, getTariff } from './DataStores';
-    import { translationsStore } from './TranslationService.js';
-  
-    let translations = {};
-    translationsStore.subscribe(update => {
-      translations = update;
-    });
 
     export let title;
+    export let translations = {};
 
     let dark = document.documentElement.classList.contains('dark');
 
@@ -17,11 +11,7 @@
     let max = 0;
     let min = 0;
 
-    let tariffData;
-    tariffStore.subscribe(update => {
-        tariffData = update;
-    });
-    getTariff();
+    export let tariffData;
 
     $: {
         let i = 0;
@@ -43,7 +33,7 @@
                     color: dark ? '#5c2da5' : '#7c3aed'
                 });
                 xTicks.push({
-                    label: peak.d > 0 ? zeropad(peak.d) + "." + translations.months?.[new Date().getMonth()] : "-"
+                    label: peak.d > 0 ? zeropad(peak.d) + "." + (translations.months ? translations.months?.[new Date().getMonth()] : zeropad(new Date().getMonth()+1)) : "-"
                 })
                 max = Math.max(max, peak.v);
             }

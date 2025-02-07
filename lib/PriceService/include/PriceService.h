@@ -11,7 +11,9 @@
 
 #include "TimeLib.h"
 #include "Timezone.h"
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include "AmsConfiguration.h"
 #include "EntsoeA44Parser.h"
 
@@ -63,7 +65,11 @@ struct PricePart {
 
 class PriceService {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     PriceService(RemoteDebug*);
+    #else
+    PriceService(Stream*);
+    #endif
     void setup(PriceServiceConfig&);
     bool loop();
 
@@ -88,7 +94,11 @@ public:
     bool save();
 
 private:
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
+    #else
+    Stream* debugger;
+    #endif
     PriceServiceConfig* config = NULL;
     HTTPClient* http = NULL;
 
@@ -119,7 +129,5 @@ private:
     PricesContainer* fetchPrices(time_t);
     bool retrieve(const char* url, Stream* doc);
     float getCurrencyMultiplier(const char* from, const char* to, time_t t);
-
-    void debugPrint(byte *buffer, int start, int length);
 };
 #endif

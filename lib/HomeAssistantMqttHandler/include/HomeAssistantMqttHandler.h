@@ -10,72 +10,39 @@
 #include "AmsMqttHandler.h"
 #include "HomeAssistantStatic.h"
 #include "AmsConfiguration.h"
+#include "hexutils.h"
 
 class HomeAssistantMqttHandler : public AmsMqttHandler {
 public:
-    HomeAssistantMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
+    #if defined(AMS_REMOTE_DEBUG)
+    HomeAssistantMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
+    #else
+    HomeAssistantMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
+    #endif
+        this->boardType = boardType;
         this->hw = hw;
-
-        l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = false;
-
-        topic = String(mqttConfig.publishTopic);
-
-        if(strlen(config.discoveryNameTag) > 0) {
-            snprintf_P(buf, 128, PSTR("AMS reader (%s)"), config.discoveryNameTag);
-            deviceName = String(buf);
-            snprintf_P(buf, 128, PSTR("[%s] "), config.discoveryNameTag);
-            sensorNamePrefix = String(buf);
-        } else {
-            deviceName = F("AMS reader");
-            sensorNamePrefix = "";
-        }
-        deviceModel = boardTypeToString(boardType);
-        manufacturer = boardManufacturerToString(boardType);
-
-        #if defined(ESP8266)
-            String hostname = WiFi.hostname();
-        #elif defined(ESP32)
-            String hostname = WiFi.getHostname();
-        #endif
-
-        deviceUid = hostname; // Maybe configurable in the future?
-
-        if(strlen(config.discoveryHostname) > 0) {
-            if(strncmp_P(config.discoveryHostname, PSTR("http"), 4) == 0) {
-                deviceUrl = String(config.discoveryHostname);
-            } else {
-                snprintf_P(buf, 128, PSTR("http://%s/"), config.discoveryHostname);
-                deviceUrl = String(buf);
-            }
-        } else {
-            snprintf_P(buf, 128, PSTR("http://%s.local/"), hostname);
-            deviceUrl = String(buf);
-        }
-
-        if(strlen(config.discoveryPrefix) > 0) {
-            snprintf_P(json, 128, PSTR("%s/status"), config.discoveryPrefix);
-            statusTopic = String(buf);
-
-            snprintf_P(buf, 128, PSTR("%s/sensor/"), config.discoveryPrefix);
-            discoveryTopic = String(buf);
-        } else {
-            statusTopic = F("homeassistant/status");
-            discoveryTopic = F("homeassistant/sensor/");
-        }
-        strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
+        setHomeAssistantConfig(config);
     };
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(PriceService*);
     bool publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea);
     bool publishRaw(String data);
+    bool publishFirmware();
+
+    bool postConnect();
 
     void onMessage(String &topic, String &payload);
 
     uint8_t getFormat();
 
+    void setHomeAssistantConfig(HomeAssistantConfig config);
 private:
-    String topic;
+    uint8_t boardType;
+
+    String pubTopic;
+    String subTopic;
+
 
     String deviceName;
     String deviceModel;
@@ -84,12 +51,14 @@ private:
     String deviceUrl;
 
     String statusTopic;
-    String discoveryTopic;
+    String sensorTopic;
+    String updateTopic;
     String sensorNamePrefix;
 
-    bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit;
+    bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit, rInit, fInit;
     bool tInit[32] = {false};
     bool prInit[38] = {false};
+    uint32_t lastThresholdPublish = 0;
 
     HwTools* hw;
 
@@ -113,6 +82,7 @@ private:
     void publishTemperatureSensor(uint8_t index, String id);
     void publishPriceSensors(PriceService* ps);
     void publishSystemSensors();
+    void publishThresholdSensors();
 
     String boardTypeToString(uint8_t b) {
         switch(b) {

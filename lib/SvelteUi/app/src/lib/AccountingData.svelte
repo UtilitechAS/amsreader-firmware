@@ -1,16 +1,11 @@
 <script>
     import { fmtnum, capitalize, formatUnit } from "./Helpers";
-    import { translationsStore } from "./TranslationService";
 
     export let sysinfo;
     export let data;
     export let currency;
     export let hasExport;
-
-    let translations = {};
-    translationsStore.subscribe(update => {
-      translations = update;
-    });
+    export let translations = {};
 
     let rih,rid,rim,ril, reh,red,rem,rel;
     let hasCost = false;
@@ -22,7 +17,7 @@
         rih = formatUnit(data?.h?.u*1000, "Wh");
         rid = formatUnit(data?.d?.u*1000, "Wh");
         rim = formatUnit(data?.m?.u*1000, "Wh");
-        ril = formatUnit(sysinfo?.last_month?.c*1000, "Wh");
+        ril = formatUnit(sysinfo?.last_month?.u*1000, "Wh");
 
         reh = formatUnit(data?.h?.p*1000, "Wh");
         red = formatUnit(data?.d?.p*1000, "Wh");
@@ -50,7 +45,7 @@
                 {#if hasCost}<div class="text-right">{fmtnum(data.m.c)} {currency}</div>{/if}
                 <div>{translations.realtime?.last_mo ?? "Last mo."}</div>
                 <div class="text-right">{ril[0]} {ril[1]}</div>
-                {#if hasCost}<div class="text-right">{fmtnum(sysinfo.last_month.c)} {currency}</div>{/if}
+                {#if hasCost}<div class="text-right">{fmtnum(sysinfo.last_month?.c)} {currency}</div>{/if}
             </div>
             <strong>{translations.common?.export ?? "Export"}</strong>
             <div class="grid grid-cols-{cols}">
@@ -65,7 +60,7 @@
                 {#if hasCost}<div class="text-right">{fmtnum(data.m.i)} {currency}</div>{/if}
                 <div>{translations.realtime?.last_mo ?? "Last mo."}</div>
                 <div class="text-right">{rel[0]} {rel[1]}</div>
-                {#if hasCost}<div class="text-right">{fmtnum(sysinfo.last_month.i)} {currency}</div>{/if}
+                {#if hasCost}<div class="text-right">{fmtnum(sysinfo.last_month?.i)} {currency}</div>{/if}
             </div>
         {:else}
             <strong>{translations.realtime?.consumption ?? "Consumption"}</strong>
@@ -89,7 +84,7 @@
                     <div>{capitalize(translations.common?.month ?? "Month")}</div>
                     <div class="text-right">{fmtnum(data.m.c)} {currency}</div>
                     <div>{translations.realtime?.last_month ?? "Last month"}</div>
-                    <div class="text-right">{fmtnum(sysinfo.last_month.c)} {currency}</div>
+                    <div class="text-right">{fmtnum(sysinfo.last_month?.c)} {currency}</div>
                 </div>
             {/if}
         {/if}

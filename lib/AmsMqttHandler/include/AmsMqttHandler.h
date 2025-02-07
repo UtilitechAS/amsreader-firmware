@@ -14,6 +14,7 @@
 #include "EnergyAccounting.h"
 #include "HwTools.h"
 #include "PriceService.h"
+#include "AmsFirmwareUpdater.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
@@ -21,13 +22,24 @@
 
 class AmsMqttHandler {
 public:
-    AmsMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf) {
+    #if defined(AMS_REMOTE_DEBUG)
+    AmsMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, AmsFirmwareUpdater* updater) {
+        this->mqttConfig = mqttConfig;
+    	this->mqttConfigChanged = true;
+        this->debugger = debugger;
+        this->json = buf;
+        this->updater = updater;
+        mqtt.dropOverflow(true);
+    };
+    #else
+    AmsMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf) {
         this->mqttConfig = mqttConfig;
     	this->mqttConfigChanged = true;
         this->debugger = debugger;
         this->json = buf;
         mqtt.dropOverflow(true);
     };
+    #endif
 
     void setCaVerification(bool);
     void setConfig(MqttConfig& mqttConfig);
@@ -40,11 +52,13 @@ public:
 
     virtual uint8_t getFormat() { return 0; };
 
+    virtual bool postConnect() { return false; };
     virtual bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) { return false; };
     virtual bool publishTemperatures(AmsConfiguration*, HwTools*) { return false; };
     virtual bool publishPrices(PriceService* ps) { return false; };
     virtual bool publishSystem(HwTools*, PriceService*, EnergyAccounting*) { return false; };
     virtual bool publishRaw(String data) { return false; };
+    virtual bool publishFirmware() { return false; };
     virtual void onMessage(String &topic, String &payload) {};
 
     virtual ~AmsMqttHandler() {
@@ -55,7 +69,11 @@ public:
     };
 
 protected:
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
+    #else
+    Stream* debugger;
+    #endif
     MqttConfig mqttConfig;
     bool mqttConfigChanged = true;
     MQTTClient mqtt = MQTTClient(256);
@@ -65,6 +83,9 @@ protected:
     WiFiClientSecure *mqttSecureClient = NULL;
     char* json;
     uint16_t BufferSize = 2048;
+    uint64_t lastStateUpdate = 0;
+
+    AmsFirmwareUpdater* updater = NULL;
 };
 
 #endif

@@ -11,10 +11,17 @@
 
 class RawMqttHandler : public AmsMqttHandler {
 public:
-    RawMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf) : AmsMqttHandler(mqttConfig, debugger, buf) {
+    #if defined(AMS_REMOTE_DEBUG)
+    RawMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
         full = mqttConfig.payloadFormat == 2;
         topic = String(mqttConfig.publishTopic);
     };
+    #else
+    RawMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf) : AmsMqttHandler(mqttConfig, debugger, buf) {
+        full = mqttConfig.payloadFormat == 2;
+        topic = String(mqttConfig.publishTopic);
+    };
+    #endif
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(PriceService*);
@@ -28,6 +35,7 @@ public:
 private:
     bool full;
     String topic;
+    uint32_t lastThresholdPublish = 0;
 
     bool publishList1(AmsData* data, AmsData* meterState);
     bool publishList2(AmsData* data, AmsData* meterState);

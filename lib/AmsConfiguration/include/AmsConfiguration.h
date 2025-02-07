@@ -16,7 +16,6 @@
 #define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
 #define CONFIG_SYSTEM_START 8
-#define CONFIG_UPGRADE_INFO_START 16
 #define CONFIG_NETWORK_START 40
 #define CONFIG_METER_START 296
 #define CONFIG_GPIO_START 368
@@ -31,6 +30,7 @@
 #define CONFIG_UI_START 1720
 #define CONFIG_CLOUD_START 1742
 #define CONFIG_ZC_START 1870
+#define CONFIG_UPGRADE_INFO_START 1934
 
 #define CONFIG_METER_START_103 32
 #define CONFIG_UPGRADE_INFO_START_103 216
@@ -64,7 +64,7 @@ struct SystemConfig {
 	uint8_t dataCollectionConsent; // 0 = unknown, 1 = accepted, 2 = declined
 	char country[3];
 	uint8_t energyspeedometer;
-}; // 9
+}; // 8
 
 struct NetworkConfig {
 	char ssid[32];
@@ -93,7 +93,12 @@ struct MqttConfig {
 	char password[256];
 	uint8_t payloadFormat;
 	bool ssl;
-}; // 676
+	uint8_t magic;
+	bool stateUpdate;
+	uint16_t stateUpdateInterval;
+	uint16_t timeout;
+	uint8_t keepalive;
+}; // 685
 
 struct WebConfig {
 	uint8_t security;
@@ -212,11 +217,6 @@ struct EnergyAccountingConfig {
 	uint8_t hours;
 }; // 21
 
-struct EnergyAccountingConfig101 {
-	uint8_t thresholds[10];
-	uint8_t hours;
-}; // 11
-
 struct UiConfig {
 	uint8_t showImport;
 	uint8_t showExport;
@@ -239,9 +239,12 @@ struct UiConfig {
 struct UpgradeInformation {
 	char fromVersion[8];
 	char toVersion[8];
-	int16_t exitCode;
-	int16_t errorCode;
-}; // 20
+    uint32_t size;
+    uint16_t block_position;
+    uint8_t retry_count;
+    uint8_t reboot_count;
+	int8_t errorCode;
+}; // 25
 
 struct CloudConfig {
 	bool enabled;
@@ -249,14 +252,13 @@ struct CloudConfig {
 	char hostname[64];
 	uint16_t port;
 	uint8_t clientId[16];
-}; // 84
+	uint8_t proto;
+}; // 88
 
 struct ZmartChargeConfig {
 	bool enabled;
 	char token[21];
 }; // 22
-
-
 
 class AmsConfiguration {
 public:
@@ -303,7 +305,7 @@ public:
 
 	bool getGpioConfig(GpioConfig&);
 	bool setGpioConfig(GpioConfig&);
-	void clearGpio(GpioConfig&);
+	void clearGpio(GpioConfig& config, bool all=true);
 
 	void print(Print* debugger);
 
@@ -341,7 +343,7 @@ public:
 	void ackUiLanguageChange();
 
 	bool getUpgradeInformation(UpgradeInformation&);
-	bool setUpgradeInformation(int16_t exitCode, int16_t errorCode, const char* currentVersion, const char* nextVersion);
+	bool setUpgradeInformation(UpgradeInformation&);
 	void clearUpgradeInformation(UpgradeInformation&);
 
 	bool getCloudConfig(CloudConfig&);
@@ -366,8 +368,6 @@ private:
 
 	bool sysChanged = false, networkChanged, mqttChanged, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false, zcChanged = true;
 
-	bool relocateConfig101(); // 2.2.0 through 2.2.8
-	bool relocateConfig102(); // 2.2.9 through 2.2.11
 	bool relocateConfig103(); // 2.2.12, until, but not including 2.3
 
 	void saveToFs();

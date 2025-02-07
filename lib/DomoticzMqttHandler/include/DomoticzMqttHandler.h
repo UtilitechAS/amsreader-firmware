@@ -12,9 +12,15 @@
 
 class DomoticzMqttHandler : public AmsMqttHandler {
 public:
-    DomoticzMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, DomoticzConfig config) : AmsMqttHandler(mqttConfig, debugger, buf) {
+    #if defined(AMS_REMOTE_DEBUG)
+    DomoticzMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, DomoticzConfig config, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
         this->config = config;
     };
+    #else
+    DomoticzMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, DomoticzConfig config) : AmsMqttHandler(mqttConfig, debugger, buf) {
+        this->config = config;
+    };
+    #endif
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(PriceService*);
@@ -24,6 +30,10 @@ public:
     void onMessage(String &topic, String &payload);
 
     uint8_t getFormat();
+
+    void setDomoticzConfig(DomoticzConfig config) {
+        this->config = config;
+    }
 
 private:
     DomoticzConfig config;

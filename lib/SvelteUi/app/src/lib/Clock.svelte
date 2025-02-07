@@ -20,7 +20,7 @@
 </script>
 
 {#if clockOk }
-{`${zeropad(timestamp.getDate())}. ${translations.months ? translations.months?.[timestamp.getMonth()] : zeropad(timestamp.getMonth())} ${zeropad(timestamp.getHours())}:${zeropad(timestamp.getMinutes())}`}
+{`${zeropad(timestamp.getDate())}. ${translations.months ? translations.months?.[timestamp.getMonth()] : zeropad(timestamp.getMonth()+1)} ${zeropad(timestamp.getHours())}:${zeropad(timestamp.getMinutes())}`}
 {:else}
 <span class="{fullTimeColor}">{`${zeropad(timestamp.getDate())}.${zeropad(timestamp.getMonth()+1)}.${timestamp.getFullYear()} ${zeropad(timestamp.getHours())}:${zeropad(timestamp.getMinutes())}`}</span>
 {/if}

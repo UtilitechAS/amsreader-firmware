@@ -14,9 +14,12 @@
 #include "AmsData.h"
 #include "AmsStorage.h"
 #include "AmsDataStorage.h"
+#include "AmsFirmwareUpdater.h"
 #include "EnergyAccounting.h"
 #include "Uptime.h"
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include "PriceService.h"
 #include "RealtimePlot.h"
 #include "ConnectionHandler.h"
@@ -31,20 +34,29 @@
 	#include <WiFi.h>
 	#include <WebServer.h>
 	#include <HTTPClient.h>
-	#include <HTTPUpdate.h>
 	#include <ESP32SSDP.h>
 #else
 	#warning "Unsupported board type"
+#endif
+
+#if defined(AMS_CLOUD)
+#include "CloudConnector.h"
 #endif
 
 #include "LittleFS.h"
 
 class AmsWebServer {
 public:
+	#if defined(AMS_REMOTE_DEBUG)
 	AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc);
-    void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*);
+	#else
+	AmsWebServer(uint8_t* buf, Stream* Debug, HwTools* hw, ResetDataContainer* rdc);
+	#endif
+    void setup(AmsConfiguration*, GpioConfig*, AmsData*, AmsDataStorage*, EnergyAccounting*, RealtimePlot*, AmsFirmwareUpdater*);
     void loop();
-	void setMqtt(MQTTClient* mqtt);
+	#if defined(_CLOUDCONNECTOR_H)
+	void setCloud(CloudConnector* cloud);
+	#endif
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
 	void setPriceService(PriceService* ps);
@@ -54,7 +66,11 @@ public:
 	void setConnectionHandler(ConnectionHandler* ch);
 
 private:
-	RemoteDebug* debugger;
+    #if defined(AMS_REMOTE_DEBUG)
+    RemoteDebug* debugger;
+    #else
+    Stream* debugger;
+    #endif
 	ResetDataContainer* rdc;
 	bool mqttEnabled = false;
 	int maxPwr = 0;
@@ -71,13 +87,15 @@ private:
 	AmsDataStorage* ds;
     EnergyAccounting* ea = NULL;
 	RealtimePlot* rtp = NULL;
+	AmsFirmwareUpdater* updater = NULL;
 	AmsMqttHandler* mqttHandler = NULL;
 	ConnectionHandler* ch = NULL;
+	#if defined(_CLOUDCONNECTOR_H)
+	CloudConnector* cloud = NULL;
+	#endif
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
-	bool performUpgrade = false;
-	bool rebootForUpgrade = false;
 	String priceRegion = "";
 	String priceCurrency = "";
 	#if defined(AMS2MQTT_FIRMWARE_URL)
@@ -113,12 +131,14 @@ private:
 	void realtimeJson();
 	void priceConfigJson();
 	void translationsJson();
+	void cloudkeyJson();
+
+	void wifiScan();
 
 	void configurationJson();
 	void handleSave();
 	void reboot();
 	void upgrade();
-	void upgradeFromUrl(String url, String nextVersion);
 	void firmwareHtml();
 	void firmwarePost();
 	void firmwareUpload();
@@ -138,10 +158,16 @@ private:
 	void configFilePost();
 	void factoryResetPost();
 
+	void modifyDayPlot();
+	void modifyMonthPlot();
+
 	void notFound();
 	void redirectToMain();
 	void robotstxt();
 	void ssdpSchema();
+
+	void addConditionalCloudHeaders();
+	void optionsGet();
 };
 
 #endif

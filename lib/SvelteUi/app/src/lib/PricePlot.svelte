@@ -125,11 +125,15 @@
             x: {
                 ticks: xTicks
             },
-            points: points
+            points: points,
+            link: {
+                text: "Provided by: " + getPriceSourceName(json.source),
+                url: getPriceSourceUrl(json.source),
+                target: '_blank'
+            }
         };
     };
 
 </script>
 
-<a href="{getPriceSourceUrl(json.source)}" target="_blank" class="text-xs float-right z-40">Provided by: {getPriceSourceName(json.source)}</a>
 <BarChart config={config} />

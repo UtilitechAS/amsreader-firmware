@@ -24,7 +24,7 @@ time_t decodeCosemDateTime(CosemDateTime timestamp) {
     time_t time = makeTime(tm);
     int16_t deviation = ntohs(timestamp.deviation);
     if(deviation >= -720 && deviation <= 720) {
-        time -= deviation * 60;
+        time += deviation * 60;
     }
     return time;
 }

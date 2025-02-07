@@ -105,6 +105,7 @@ protected:
     double l1activeExportCounter = 0, l2activeExportCounter = 0, l3activeExportCounter = 0;
     float powerFactor = 0, l1PowerFactor = 0, l2PowerFactor = 0, l3PowerFactor = 0;
     double activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
+    double lastKnownCounter = 0;
     bool threePhase = false, twoPhase = false, counterEstimated = false, l2currentMissing = false;;
 
     int8_t lastError = 0x00;

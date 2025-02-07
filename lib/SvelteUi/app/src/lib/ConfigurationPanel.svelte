@@ -1,8 +1,9 @@
 <script>
     import { getConfiguration, configurationStore } from './ConfigurationStore'
-    import { fetchWithTimeout, sysinfoStore } from './DataStores.js';
+    import { sysinfoStore, networksStore } from './DataStores.js';
+    import fetchWithTimeout from './fetchWithTimeout';
     import { translationsStore } from './TranslationService';
-    import { wiki } from './Helpers.js';
+    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern } from './Helpers.js';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
     import Badge from './Badge.svelte';
@@ -13,6 +14,7 @@
 
     export let basepath = "/";
     export let sysinfo = {};
+    export let data;
   
     let translations = {};
     translationsStore.subscribe(update => {
@@ -69,71 +71,37 @@
     let loading = true;
     let saving = false;
 
-    let configuration = {
-        g: {
-            t: '', h: '', s: 0, u: '', p: ''
-        },
-        m: {
-            b: 2400, p: 11, i: false, d: 0, f: 0, r: 0,
-            e: { e: false, k: '', a: '' },
-            m: { e: false, w: false, v: false, a: false, c: false }
-        },
-        w: { s: '', p: '', w: 0.0, z: 255, a: true, b: true },
-        n: {
-            m: '', i: '', s: '', g: '', d1: '', d2: '', d: false, n1: '', n2: '', h: false, x: false
-        },
-        q: {
-            h: '', p: 1883, u: '', a: '', b: '',
-            s: { e: false, c: false, r: true, k: false }
-        },
-        o: {
-            e: '',
-            c: '',
-            u1: '',
-            u2: '',
-            u3: ''
-        },
-        t: {
-            t: [0,0,0,0,0,0,0,0,0,0], h: 1
-        },
-        p: {
-            e: false, t: '', r: '', c: '', m: 1.0, f: null
-        },
-        d: {
-            s: false, t: false, l: 5
-        },
-        u: {
-            i: 0, e: 0, v: 0, a: 0, r: 0, c: 0, t: 0, p: 0, d: 0, m: 0, s: 0, lang: 'en'
-        },
-        i: {
-            h: { p: null, u: true },
-            a: null,
-            l: { p: null, i: false },
-            r: { r: null, g: null, b: null, i: false },
-            d: { d: null, b: 0 },
-            t: { d: null, a: null },
-            v: { p: null, d: { v: null, g: null }, o: null, m: null, b: null }
-        },
-        h: {
-            t: '', h: '', n: ''
-        },
-        c: {
-            e: false, i: null, es: null
-        }
-    };
+    let cloudenabled = false;
+
+    let configuration;
     let languages = [];
     configurationStore.subscribe(update => {
         if(update.version) {
+            cloudenabled = update?.c?.e;
             configuration = update;
             loading = false;
             languages = [{ code: 'en', name: 'English'}];
-            if(configuration.u.lang && configuration.u.lang != 'en') {
+            if(configuration?.u?.lang && configuration.u.lang != 'en') {
                 languages.push({ code: configuration.u.lang, name: translations.language?.name ?? "Unknown"})
             }
             languages.push({ code: 'hub', name: 'Load from server'})
         }
     });
     getConfiguration();
+
+    let manual = true;
+    let networks = {};
+    networksStore.subscribe(update => {
+        manual = true;
+        for (let i = 0; i < update.n.length; i++) {
+            let net = update.n[i];
+            if(net.s == configuration?.w?.s) {
+                manual = false;
+                break;
+            }
+        }
+        networks = update;
+    });
 
     let isFactoryReset = false;
     let isFactoryResetComplete = false;
@@ -261,10 +229,26 @@
     $: {
         gpioMax = sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39;
     }
+
+    async function cloudBind() {
+        const response = await fetchWithTimeout("cloudkey.json");
+        if(response.status == 200) {
+            let data = await response.json();
+            window.open("https://www.amsleser.cloud/device/" + data.seed);
+        } else {
+            alert("Not able to bind to cloud");
+        }
+    }
+
+    const _global = (window || global);
+    _global.bindToCloud = function() {
+        console.log("BIND CALLED");
+    }
 </script>
 
 <form on:submit|preventDefault={handleSubmit} autocomplete="off">
     <div class="grid xl:grid-cols-4 lg:grid-cols-2 md:grid-cols-2">
+        {#if configuration?.g}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.general?.title ?? "General"}</strong>
             <a href="{wiki('General-configuration')}" target="_blank" class="float-right">&#9432;</a>
@@ -273,7 +257,7 @@
                 <div class="flex">
                     <div>
                         {translations.conf?.general?.hostname ?? "Hostname"}<br/>
-                        <input name="gh" bind:value={configuration.g.h} type="text" class="in-f w-full" pattern="[A-Za-z0-9-]+"/>
+                        <input name="gh" bind:value={configuration.g.h} type="text" class="in-f w-full" pattern={charAndNumPattern}/>
                     </div>
                     <div>
                         {translations.conf?.general?.timezone ?? "Time zone"}<br/>
@@ -286,65 +270,66 @@
             <input type="hidden" name="p" value="true"/>
             <div class="my-1">
                 <div class="flex">
-                <div class="w-full">
-                    {translations.conf?.price?.region ?? "Price region"}<br/>
-                    <select name="pr" bind:value={configuration.p.r} class="in-f w-full">
-                        <optgroup label="Norway">
-                            {#if !configuration.p.t}
-                                <option value="NO1S">NO1 with support</option>
-                                <option value="NO2S">NO2 with support</option>
-                                <option value="NO3S">NO3 with support</option>
-                                <option value="NO4S">NO4 with support</option>
-                                <option value="NO5S">NO5 with support</option>
-                            {/if}
-                            <option value="10YNO-1--------2">NO1</option>
-                            <option value="10YNO-2--------T">NO2</option>
-                            <option value="10YNO-3--------J">NO3</option>
-                            <option value="10YNO-4--------9">NO4</option>
-                            <option value="10Y1001A1001A48H">NO5</option>
-                        </optgroup>
-                        <optgroup label="Sweden">
-                            <option value="10Y1001A1001A44P">SE1</option>
-                            <option value="10Y1001A1001A45N">SE2</option>
-                            <option value="10Y1001A1001A46L">SE3</option>
-                            <option value="10Y1001A1001A47J">SE4</option>
+                    <div class="w-full">
+                        {translations.conf?.price?.region ?? "Price region"}<br/>
+                        <select name="pr" bind:value={configuration.p.r} class="in-f w-full">
+                            <optgroup label="Norway">
+                                {#if !configuration.p.t}
+                                    <option value="NO1S">NO1 with support</option>
+                                    <option value="NO2S">NO2 with support</option>
+                                    <option value="NO3S">NO3 with support</option>
+                                    <option value="NO4S">NO4 with support</option>
+                                    <option value="NO5S">NO5 with support</option>
+                                {/if}
+                                <option value="10YNO-1--------2">NO1</option>
+                                <option value="10YNO-2--------T">NO2</option>
+                                <option value="10YNO-3--------J">NO3</option>
+                                <option value="10YNO-4--------9">NO4</option>
+                                <option value="10Y1001A1001A48H">NO5</option>
                             </optgroup>
-                        <optgroup label="Denmark">
-                            <option value="10YDK-1--------W">DK1</option>
-                            <option value="10YDK-2--------M">DK2</option>
-                        </optgroup>
-                        <option value="10YAT-APG------L">Austria</option>
-                        <option value="10YBE----------2">Belgium</option>
-                        <option value="10YCZ-CEPS-----N">Czech Republic</option>
-                        <option value="10Y1001A1001A39I">Estonia</option>
-                        <option value="10YFI-1--------U">Finland</option>
-                        <option value="10YFR-RTE------C">France</option>
-                        <option value="10Y1001A1001A83F">Germany</option>
-                        <option value="10YGB----------A">Great Britain</option>
-                        <option value="10YLV-1001A00074">Latvia</option>
-                        <option value="10YLT-1001A0008Q">Lithuania</option>
-                        <option value="10YNL----------L">Netherland</option>
-                        <option value="10YPL-AREA-----S">Poland</option>
-                        <option value="10YCH-SWISSGRIDZ">Switzerland</option>
-                    </select>
-                </div>
-                <div>
-                    {translations.conf?.price?.currency ?? "Currency"}<br/>
-                    <select name="pc" bind:value={configuration.p.c} class="in-l">
-                        {#each ["NOK","SEK","DKK","EUR","CHF"] as c}
-                        <option value={c}>{c}</option>
-                        {/each}
-                    </select>
+                            <optgroup label="Sweden">
+                                <option value="10Y1001A1001A44P">SE1</option>
+                                <option value="10Y1001A1001A45N">SE2</option>
+                                <option value="10Y1001A1001A46L">SE3</option>
+                                <option value="10Y1001A1001A47J">SE4</option>
+                                </optgroup>
+                            <optgroup label="Denmark">
+                                <option value="10YDK-1--------W">DK1</option>
+                                <option value="10YDK-2--------M">DK2</option>
+                            </optgroup>
+                            <option value="10YAT-APG------L">Austria</option>
+                            <option value="10YBE----------2">Belgium</option>
+                            <option value="10YCZ-CEPS-----N">Czech Republic</option>
+                            <option value="10Y1001A1001A39I">Estonia</option>
+                            <option value="10YFI-1--------U">Finland</option>
+                            <option value="10YFR-RTE------C">France</option>
+                            <option value="10Y1001A1001A83F">Germany</option>
+                            <option value="10YGB----------A">Great Britain</option>
+                            <option value="10YLV-1001A00074">Latvia</option>
+                            <option value="10YLT-1001A0008Q">Lithuania</option>
+                            <option value="10YNL----------L">Netherland</option>
+                            <option value="10YPL-AREA-----S">Poland</option>
+			                <option value="10YSI-ELES-----O">Slovenia</option>
+                            <option value="10YCH-SWISSGRIDZ">Switzerland</option>
+                        </select>
+                    </div>
+                    <div>
+                        {translations.conf?.price?.currency ?? "Currency"}<br/>
+                        <select name="pc" bind:value={configuration.p.c} class="in-l">
+                            {#each ["NOK","SEK","DKK","EUR","CHF"] as c}
+                            <option value={c}>{c}</option>
+                            {/each}
+                        </select>
+                    </div>
                 </div>
             </div>
-        </div>
             <div class="my-1">
                 <Link to="/priceconfig" class="text-blue-600 hover:text-blue-800">{translations.conf?.price?.conf ?? "Configure"}</Link>
             </div>
             <div class="my-1">
                 <label><input type="checkbox" name="pe" value="true" bind:checked={configuration.p.e} class="rounded mb-1"/> {translations.conf?.price?.enabled ?? "Enabled"}</label>
                 {#if configuration.p.e && sysinfo.chip != 'esp8266'}
-                <br/><input name="pt" bind:value={configuration.p.t} type="text" class="in-s" placeholder={translations.conf?.price?.api_key_placeholder ?? ""}/>
+                <br/><input name="pt" bind:value={configuration.p.t} type="text" class="in-s" placeholder={translations.conf?.price?.api_key_placeholder ?? ""} pattern={charAndNumPattern}/>
                 {/if}
             </div>
             <div class="my-1">
@@ -358,18 +343,20 @@
             {#if configuration.g.s > 0}
             <div class="my-1">
                 {translations.conf?.general?.security?.username ?? "Username"}<br/>
-                <input name="gu" bind:value={configuration.g.u} type="text" class="in-s" maxlength="36"/>
+                <input name="gu" bind:value={configuration.g.u} type="text" class="in-s" maxlength="36" pattern={asciiPattern}/>
             </div>
             <div class="my-1">
                 {translations.conf?.general?.security?.password ?? "Password"}<br/>
-                <input name="gp" bind:value={configuration.g.p} type="password" class="in-s" maxlength="36"/>
+                <input name="gp" bind:value={configuration.g.p} type="password" class="in-s" maxlength="36" pattern={asciiPattern}/>
             </div>
             {/if}
             <div class="my-1">
                 {translations.conf?.general?.context ?? "Context"}<br/>
-                <input name="gc" bind:value={configuration.g.c} type="text" pattern="[A-Za-z0-9]+" placeholder={translations.conf?.general?.context_placeholder ?? "/"} class="in-s" maxlength="36"/>
+                <input name="gc" bind:value={configuration.g.c} type="text" pattern={charAndNumPattern} placeholder={translations.conf?.general?.context_placeholder ?? "/"} class="in-s" maxlength="36"/>
             </div>
         </div>
+        {/if}
+        {#if configuration?.m}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.meter?.title ?? "Meter"}</strong>
             <a href="{wiki('Meter-configuration')}" target="_blank" class="float-right">&#9432;</a>
@@ -380,6 +367,9 @@
                 <select name="ma" bind:value={configuration.m.a} class="in-s">
                     <option value={0}>{translations.conf?.meter?.comm?.passive ?? "Passive"}</option>
                     <option value={2}>{translations.conf?.meter?.comm?.pulse ?? "Pulse"}</option>
+                    {#if sysinfo?.features?.includes('kmp')}
+                    <option value={9}>KMP</option>
+                    {/if}
                 </select>
             </div>
             {#if configuration.m.a === 2}
@@ -440,13 +430,13 @@
             <div class="my-1">
                 <label><input type="checkbox" name="me" value="true" bind:checked={configuration.m.e.e} class="rounded mb-1"/> {translations.conf?.meter?.encrypted ?? "Encrypted"}</label>
                 {#if configuration.m.e.e}
-                <br/><input name="mek" bind:value={configuration.m.e.k} type="text" class="in-s"/>
+                <br/><input name="mek" bind:value={configuration.m.e.k} type="text" class="in-s" pattern={hexPattern}/>
                 {/if}
             </div>
             {#if configuration.m.e.e}
             <div class="my-1">
                 {translations.conf?.meter?.authkey ?? "Authentication key"}<br/>
-                <input name="mea" bind:value={configuration.m.e.a} type="text" class="in-s"/>
+                <input name="mea" bind:value={configuration.m.e.a} type="text" class="in-s" pattern={hexPattern}/>
             </div>
             {/if}
 
@@ -472,9 +462,11 @@
             </div>
             {/if}
         </div>
+        {/if}
+        {#if configuration?.w}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.connection?.title ?? "Connection"}</strong>
-            <a href="{wiki('WiFi-configuration')}" target="_blank" class="float-right">&#9432;</a>
+            <a href="{wiki('Network-connection')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="w" value="true"/>
             <div class="my-1">
                 <select name="nc" class="in-s" bind:value={configuration.n.c}>
@@ -487,12 +479,27 @@
             </div>
             {#if configuration.n.c == 1 || configuration.n.c == 2}
                 <div class="my-1">
-                    {translations.conf?.connection?.ssid ?? "SSID"}<br/>
-                    <input name="ws" bind:value={configuration.w.s} type="text" class="in-s"/>
+                    {translations.conf?.connection?.ssid ?? "SSID"}
+                    <label class="float-right mr-3"><input type="checkbox" name="qs" value="true" bind:checked={manual} class="rounded mb-1"/> manual</label>
+                    <br/>
+                    {#if manual}
+                        <input name="ws" bind:value={configuration.w.s} type="text" class="in-s" pattern={asciiPatternExt} required={configuration.n.c == 1 || configuration.n.c == 2}/>
+                    {:else}
+                        <select name="ws" bind:value={configuration.w.s} class="in-s" required={configuration.n.c == 1 || configuration.n.c == 2}>
+                            {#if networks?.c == -1}
+                                <option value="" selected disabled>Scanning...</option>
+                            {/if}
+                            {#if networks?.n}
+                                {#each networks?.n as network}
+                                    <option value={network.s}>{network.s} ({network.e}, RSSI: {network.r})</option>
+                                {/each}
+                            {/if}
+                        </select>
+                    {/if}
                 </div>
                 <div class="my-1">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>
-                    <input name="wp" bind:value={configuration.w.p} type="password" class="in-s"/>
+                    <input name="wp" bind:value={configuration.w.p} type="password" class="in-s" pattern={asciiPatternExt}/>
                 </div>
                 <div class="my-1 flex">
                     <div class="w-1/2">
@@ -517,6 +524,8 @@
                 </div>
             {/if}
         </div>
+        {/if}
+        {#if configuration?.n}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.network?.title ?? "Network"}</strong>
             <a href="{wiki('Network-configuration')}" target="_blank" class="float-right">&#9432;</a>
@@ -527,7 +536,7 @@
                         <option value="dhcp">{translations.conf?.network?.dhcp ?? "DHCP"}</option>
                         <option value="static">{translations.conf?.network?.static ?? "Static"}</option>
                     </select>
-                    <input name="ni" bind:value={configuration.n.i} type="text" class="in-m w-full" disabled={configuration.n.m == 'dhcp'} required={configuration.n.m == 'static'}/>
+                    <input name="ni" bind:value={configuration.n.i} type="text" class="in-m w-full" disabled={configuration.n.m == 'dhcp'} required={configuration.n.m == 'static'} pattern={ipPattern}/>
                     <select name="ns" bind:value={configuration.n.s} class="in-l" disabled={configuration.n.m == 'dhcp'} required={configuration.n.m == 'static'}>
                         <SubnetOptions/>
                     </select>
@@ -536,13 +545,13 @@
             {#if configuration.n.m == 'static'}
             <div class="my-1">
                 {translations.conf?.network?.gw ?? "Gateway"}<br/>
-                <input name="ng" bind:value={configuration.n.g} type="text" class="in-s"/>
+                <input name="ng" bind:value={configuration.n.g} type="text" class="in-s" pattern={ipPattern}/>
             </div>
             <div class="my-1">
                 {translations.conf?.network?.dns ?? "DNS"}<br/>
                 <div class="flex">
-                    <input name="nd1" bind:value={configuration.n.d1} type="text" class="in-f w-full"/>
-                    <input name="nd2" bind:value={configuration.n.d2} type="text" class="in-l w-full"/>
+                    <input name="nd1" bind:value={configuration.n.d1} type="text" class="in-f w-full" pattern={ipPattern}/>
+                    <input name="nd2" bind:value={configuration.n.d2} type="text" class="in-l w-full" pattern={ipPattern}/>
                 </div>
             </div>
             {/if}
@@ -556,10 +565,12 @@
             <div class="my-1">
                 {translations.conf?.network?.ntp ?? "NTP"} <label class="ml-4"><input name="ntpd" value="true" bind:checked={configuration.n.h} type="checkbox" class="rounded mb-1"/> {translations.conf?.network?.tick_ntp_dhcp ?? "from DHCP"}</label><br/>
                 <div class="flex">
-                    <input name="ntph" bind:value={configuration.n.n1} type="text" class="in-s"/>
+                    <input name="ntph" bind:value={configuration.n.n1} type="text" class="in-s" pattern={asciiPattern}/>
                 </div>
             </div>
         </div>
+        {/if}
+        {#if configuration?.q}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.mqtt?.title ?? "MQTT"}</strong>
             <a href="{wiki('MQTT-configuration')}" target="_blank" class="float-right">&#9432;</a>
@@ -571,7 +582,7 @@
                 {/if}
                 <br/>
                 <div class="flex">
-                    <input name="qh" bind:value={configuration.q.h} type="text" class="in-f w-2/3"/>
+                    <input name="qh" bind:value={configuration.q.h} type="text" class="in-f w-2/3" pattern={asciiPattern}/>
                     <input name="qp" bind:value={configuration.q.p} type="number" min="1024" max="65535" class="in-l tr w-1/3"/>
                 </div>
             </div>
@@ -607,24 +618,24 @@
             {/if}
             <div class="my-1">
                 {translations.conf?.mqtt?.user ?? "Username"}<br/>
-                <input name="qu" bind:value={configuration.q.u} type="text" class="in-s"/>
+                <input name="qu" bind:value={configuration.q.u} type="text" class="in-s" pattern={asciiPatternExt}/>
             </div>
             <div class="my-1">
                 {translations.conf?.mqtt?.pass ?? "Password"}<br/>
-                <input name="qa" bind:value={configuration.q.a} type="password" class="in-s"/>
+                <input name="qa" bind:value={configuration.q.a} type="password" class="in-s" pattern={asciiPatternExt}/>
             </div>
             <div class="my-1 flex">
                 <div>
                     {translations.conf?.mqtt?.id ?? "Client ID"}<br/>
-                    <input name="qc" bind:value={configuration.q.c} type="text" class="in-f w-full"/>
+                    <input name="qc" bind:value={configuration.q.c} type="text" class="in-f w-full" required={configuration.q.h} pattern={charAndNumPattern}/>
                 </div>
                 <div>
                     {translations.conf?.mqtt?.payload ?? "Payload"}<br/>
                     <select name="qm" bind:value={configuration.q.m} class="in-l">
                         <option value={1}>Raw (minimal)</option>
                         <option value={2}>Raw (full)</option>
-                        <option value={3}>{translations.conf?.mqtt?.domoticz?.title ?? "Domoticz"}</option>
-                        <option value={4}>{translations.conf?.mqtt?.ha?.title ?? "Home-Assistant"}</option>
+                        <option value={3}>Domoticz</option>
+                        <option value={4}>Home-Assistant</option>
                         <option value={0}>JSON (classic)</option>
                         <option value={5}>JSON (multi topic)</option>
                         <option value={6}>JSON (flat)</option>
@@ -634,10 +645,34 @@
             </div>
             <div class="my-1">
                 {translations.conf?.mqtt?.publish ?? "Publish topic"}<br/>
-                <input name="qb" bind:value={configuration.q.b} type="text" class="in-s"/>
+                <input name="qb" bind:value={configuration.q.b} type="text" class="in-s" pattern={asciiPattern}/>
+            </div>
+            <div class="my-1">
+                {translations.conf?.mqtt?.subscribe ?? "Subscribe topic"}<br/>
+                <input name="qr" bind:value={configuration.q.r} type="text" class="in-s" pattern={asciiPattern} placeholder="{configuration.q.b}/command"/>
+            </div>
+            <div class="my-1">
+                {translations.conf?.mqtt?.update ?? "Update method"}
+                <span class="float-right">{translations.conf?.mqtt?.interval ?? "Interval"}</span>
+                <div class="flex">
+                    <select name="qt" bind:value={configuration.q.t} class="in-f w-1/2">
+                        <option value={0}>{translations.conf?.mqtt?.realtime ?? "Real time"}</option>
+                        <option value={1}>{translations.conf?.mqtt?.interval ?? "Interval"}</option>
+                    </select>
+                    <input name="qd" bind:value={configuration.q.d} type="number" min="1" max="3600" class="in-l tr w-1/2" disabled={configuration?.q?.t != 1}/>
+                </div>
+            </div>
+            <div class="my-1">
+                {translations.conf?.mqtt?.timeout ?? "Timeout"}
+                <span class="float-right">{translations.conf?.mqtt?.keepalive ?? "Keep-alive"}</span>
+                <div class="flex">
+                    <input name="qi" bind:value={configuration.q.i} type="number" min="500" max="10000" class="in-f tr w-1/2"/>
+                    <input name="qk" bind:value={configuration.q.k} type="number" min="5" max="180" class="in-l tr w-1/2"/>
+                </div>
             </div>
         </div>
-        {#if configuration.q.m == 3}
+        {/if}
+        {#if configuration?.q?.m == 3}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.mqtt?.domoticz?.title ?? "Domoticz"}</strong>
                 <a href="{wiki('MQTT-configuration#domoticz')}" target="_blank" class="float-right">&#9432;</a>
@@ -645,53 +680,70 @@
                 <div class="my-1 flex">
                     <div class="w-1/2">
                         {translations.conf?.mqtt?.domoticz?.eidx ?? "Electricity IDX"}<br/>
-                        <input name="oe" bind:value={configuration.o.e} type="text" class="in-f tr w-full"/>
+                        <input name="oe" bind:value={configuration.o.e} type="text" class="in-f tr w-full" pattern={numPattern}/>
                     </div>
                     <div class="w-1/2">
                         {translations.conf?.mqtt?.domoticz?.cidx ?? "Current IDX"}<br/>
-                        <input name="oc" bind:value={configuration.o.c} type="text" class="in-l tr w-full"/>
+                        <input name="oc" bind:value={configuration.o.c} type="text" class="in-l tr w-full" pattern={numPattern}/>
                     </div>
                 </div>
                 <div class="my-1">
                     {translations.conf?.mqtt?.domoticz?.vidx ?? "Voltage IDX"}: L1, L2 & L3
                     <div class="flex">
-                        <input name="ou1" bind:value={configuration.o.u1} type="text" class="in-f tr w-1/3"/>
-                        <input name="ou2" bind:value={configuration.o.u2} type="text" class="in-m tr w-1/3"/>
-                        <input name="ou3" bind:value={configuration.o.u3} type="text" class="in-l tr w-1/3"/>
+                        <input name="ou1" bind:value={configuration.o.u1} type="text" class="in-f tr w-1/3" pattern={numPattern}/>
+                        <input name="ou2" bind:value={configuration.o.u2} type="text" class="in-m tr w-1/3" pattern={numPattern}/>
+                        <input name="ou3" bind:value={configuration.o.u3} type="text" class="in-l tr w-1/3" pattern={numPattern}/>
                     </div>
                 </div>
             </div>
         {/if}
-        {#if configuration.q.m == 4}
+        {#if configuration?.q?.m == 4}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.mqtt?.ha?.title ?? "Home-Assistant"}</strong>
                 <a href="{wiki('MQTT-configuration#home-assistant')}" target="_blank" class="float-right">&#9432;</a>
                 <input type="hidden" name="h" value="true"/>
                 <div class="my-1">
                     {translations.conf?.mqtt?.ha?.discovery ?? "Discovery topic prefix"}<br/>
-                    <input name="ht" bind:value={configuration.h.t} type="text" class="in-s" placeholder="homeassistant"/>
+                    <input name="ht" bind:value={configuration.h.t} type="text" class="in-s" placeholder="homeassistant" pattern={asciiPattern}/>
                 </div>
                 <div class="my-1">
                     {translations.conf?.mqtt?.ha?.hostname ?? "Hostname for URL"}<br/>
-                    <input name="hh" bind:value={configuration.h.h} type="text" class="in-s" placeholder="{configuration.g.h}.local"/>
+                    <input name="hh" bind:value={configuration.h.h} type="text" class="in-s" placeholder="{configuration.g.h}.local" pattern={asciiPattern}/>
                 </div>
                 <div class="my-1">
                     {translations.conf?.mqtt?.ha?.tag ?? "Name tag"}<br/>
-                    <input name="hn" bind:value={configuration.h.n} type="text" class="in-s"/>
+                    <input name="hn" bind:value={configuration.h.n} type="text" class="in-s" pattern={asciiPattern}/>
                 </div>
             </div>
         {/if}
-        {#if configuration.c.es != null}
+        {#if configuration?.c}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.cloud?.title ?? "Cloud connections"}</strong>
                 <a href="{wiki('Cloud')}" target="_blank" class="float-right">&#9432;</a>
                 <input type="hidden" name="c" value="true"/>
+                {#if sysinfo?.features?.includes('cloud')}
                 <div class="my-1">
                     <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> {translations.conf?.cloud?.ams ?? "AMS reader cloud"}</label>
+                    {#if configuration.c.e}
+                        <div class="ml-6">
+                            <label for="cp">Protocol</label>
+                            <select name="cp" bind:value={configuration.c.p} class="in-s">
+                                {#if configuration.c.p == 0}
+                                <option value={0} title="No longer recommended">UDP</option>
+                                {/if}
+                                <option value={1}>TCP</option>
+                                <option value={2}>HTTP</option>
+                            </select>
+                        </div>
+                        {#if cloudenabled}
+                            <button type="button" on:click={cloudBind} class="text-blue-500 ml-6">Connect device to my cloud account</button>
+                        {/if}
+                    {/if}
                 </div>
+                {/if}
                 <div class="my-1">
                     <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> {translations.conf?.cloud?.es ?? "Energy Speedometer"}</label>
-                    {#if configuration.c.es}
+                    {#if configuration?.c?.es}
                         <div class="pl-5">MAC: {sysinfo.mac}</div>
                         <div class="pl-5">Meter ID: {sysinfo.meter.id ? sysinfo.meter.id : "missing, required"}</div>
                         {#if sysinfo.mac && sysinfo.meter.id}
@@ -711,7 +763,7 @@
                 {/if}
             </div>
         {/if}
-        {#if configuration.p.r.startsWith("NO") || configuration.p.r.startsWith("10YNO") || configuration.p.r.startsWith('10Y1001A1001A4')}
+        {#if configuration?.p?.r?.startsWith("NO") || configuration?.p?.r?.startsWith("10YNO") || configuration?.p?.r?.startsWith('10Y1001A1001A4')}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.thresholds?.title ?? "Thresholds"}</strong>
                 <a href="{wiki('Threshold-configuration')}" target="_blank" class="float-right">&#9432;</a>
@@ -732,6 +784,7 @@
                 </label>
             </div>
         {/if}
+        {#if configuration?.u}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.ui?.title ?? "User interface"}</strong>
             <a href="{wiki('User-interface')}" target="_blank" class="float-right">&#9432;</a>
@@ -757,7 +810,8 @@
                 </div>
             </div>
         </div>
-        {#if sysinfo.board > 20 || sysinfo.chip == 'esp8266' || configuration.i.d.d > 0}
+        {/if}
+        {#if configuration?.i?.h && (sysinfo?.board > 20 || sysinfo?.chip == 'esp8266' || configuration?.i?.d?.d > 0)}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.hw?.title ?? "Hardware"}</strong>
             <a href="{wiki('GPIO-configuration')}" target="_blank" class="float-right">&#9432;</a>
@@ -822,7 +876,7 @@
                     <input name="ivp" bind:value={configuration.i.v.p} type="number" min="0" max={gpioMax} class="in-s tr w-full"/>
                 </div>
                 {/if}
-                {#if configuration.i.v.p > 0}
+                {#if configuration?.i?.v?.p > 0}
                 <div class="my-1">
                     {translations.conf?.hw?.vcc?.divider ?? "Voltage divider"}<br/>
                     <div class="flex">
@@ -833,7 +887,7 @@
                 {/if}
             </div> 
             {/if}
-            {#if configuration.i.d.d > 0}
+            {#if configuration?.i?.d?.d > 0}
             <div class="my-1 w-full">
                 {translations.conf?.hw?.led?.behaviour?.title ?? "LED behaviour"}
                 <select name="idb" bind:value={configuration.i.d.b} class="in-s">
@@ -863,6 +917,7 @@
             {/if}
         </div>
         {/if}
+        {#if configuration?.d && sysinfo?.features?.includes('rdebug')}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.debug?.title ?? "Debugging"}</strong>
             <a href="https://amsleser.no/blog/post/24-telnet-debug" target="_blank" class="float-right">&#9432;</a>
@@ -870,7 +925,7 @@
             <div class="mt-3">
                 <label><input type="checkbox" name="ds" value="true" bind:checked={configuration.d.s} class="rounded mb-1"/> {translations.conf?.debug?.enable ?? "Enable debugging"}</label>
             </div>
-            {#if configuration.d.s}
+            {#if configuration?.d?.s}
             <div class="bd-red">{translations.conf?.debug?.danger ?? "Disable when done"}</div>
             <div class="my-1">
                 <label><input type="checkbox" name="dt" value="true" bind:checked={configuration.d.t} class="rounded mb-1"/> {translations.conf?.debug?.telnet ?? "Enable telnet"}</label>
@@ -888,17 +943,22 @@
             </div>
             {/if}
         </div>
+        {/if}
     </div>
     <div class="grid grid-cols-3 mt-3">
+        {#if data?.a}
         <div>
             <button type="button" on:click={factoryReset} class="btn-red">{translations.conf?.btn_reset ?? "Factory reset"}</button>
         </div>
         <div class="text-center">
             <button type="button" on:click={askReboot} class="btn-yellow">{translations.btn?.reboot ?? "Reboot"}</button>
         </div>
+        {/if}
+        {#if configuration}
         <div class="text-right">
             <button type="submit" class="btn-pri">{translations.btn?.save ?? "Save"}</button>
         </div>
+        {/if}
     </div>
 </form>
 

@@ -11,7 +11,6 @@
 #include "AmsConfiguration.h"
 #include "DataParser.h"
 #include "Cosem.h"
-#include "RemoteDebug.h"
 
 struct Lng2Data_3p {
     CosemBasic header;
@@ -33,7 +32,7 @@ struct Lng2Data_3p {
 
 class LNG2 : public AmsData {
 public:
-    LNG2(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, RemoteDebug* debugger);
+    LNG2(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx);
 
 private:
     uint8_t getString(CosemData* item, char* target);

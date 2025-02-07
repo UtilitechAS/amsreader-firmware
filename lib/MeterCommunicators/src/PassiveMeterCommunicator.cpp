@@ -9,51 +9,54 @@
 #include "IEC6205621.h"
 #include "LNG.h"
 #include "LNG2.h"
+#include "hexutils.h"
 
 #if defined(ESP32)
 #include <driver/uart.h>
 #endif
 
+#if defined(AMS_REMOTE_DEBUG)
 PassiveMeterCommunicator::PassiveMeterCommunicator(RemoteDebug* debugger) {
     this->debugger = debugger;
-    bauds[0] = 2400;
-    parities[0] = 11;
-    inverts[0] = false;
-
-    bauds[1] = 2400;
-    parities[1] = 3;
-    inverts[1] = false;
-
-    bauds[2] = 115200;
-    parities[2] = 3;
-    inverts[2] = false;
-
-    bauds[3] = 2400;
-    parities[3] = 11;
-    inverts[3] = true;
-
-    bauds[4] = 2400;
-    parities[4] = 3;
-    inverts[4] = true;
-
-    bauds[5] = 115200;
-    parities[5] = 3;
-    inverts[5] = true;
 }
+#else
+PassiveMeterCommunicator::PassiveMeterCommunicator(Stream* debugger) {
+    this->debugger = debugger;
+}
+#endif
 
 void PassiveMeterCommunicator::configure(MeterConfig& meterConfig, Timezone* tz) {
     this->meterConfig = meterConfig;
+	if(meterConfig.baud == 0) {
+		autodetect = true;
+	}
     this->configChanged = false;
     this->tz = tz;
     setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert);
+	if(dsmrParser != NULL) {
+		delete dsmrParser;
+		dsmrParser = NULL;
+	}
     if(gcmParser != NULL) {
         delete gcmParser;
         gcmParser = NULL;
     }
+	bool encen = false;
+	for(uint8_t i = 0; i < 16; i++) {
+		if(meterConfig.encryptionKey[i] > 0) {
+			encen = true;
+		}
+	}
+	if(encen) {
+		gcmParser = new GCMParser(meterConfig.encryptionKey, meterConfig.authenticationKey);
+	}
 }
 
 bool PassiveMeterCommunicator::loop() {
 	if(hanBufferSize == 0) return false;
+
+    unsigned long now = millis();
+    if(autodetect) handleAutodetect(now);
 
 	unsigned long start, end;
 	if(!hanSerial->available()) {
@@ -67,9 +70,6 @@ bool PassiveMeterCommunicator::loop() {
 		return false;
 	}
 
-    unsigned long now = millis();
-    if(autodetect) handleAutodetect(now);
-
 	dataAvailable = false;
 	ctx = {0,0,0,0};
 	memset(ctx.system_title, 0, 8);
@@ -81,7 +81,10 @@ bool PassiveMeterCommunicator::loop() {
 		if(len >= hanBufferSize) {
 			hanSerial->readBytes(hanBuffer, hanBufferSize);
 			len = 0;
-			if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Buffer overflow, resetting\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::INFO))
+			#endif
+			debugger->printf_P(PSTR("Buffer overflow, resetting\n"));
 			return false;
 		}
 		hanBuffer[len++] = hanSerial->read();
@@ -90,26 +93,47 @@ bool PassiveMeterCommunicator::loop() {
 		if(ctx.type > 0 && pos >= 0) {
 			switch(ctx.type) {
 				case DATA_TAG_DLMS:
-					if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received valid DLMS at %d\n"), pos);
+					#if defined(AMS_REMOTE_DEBUG)
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid DLMS at %d +%d\n"), pos, ctx.length);
 					break;
 				case DATA_TAG_DSMR:
-					if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received valid DSMR at %d\n"), pos);
+					#if defined(AMS_REMOTE_DEBUG)
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid DSMR at %d +%d\n"), pos, ctx.length);
 					break;
 				case DATA_TAG_SNRM:
-					if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received valid SNMR at %d\n"), pos);
+					#if defined(AMS_REMOTE_DEBUG)
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid SNMR at %d +%d\n"), pos, ctx.length);
 					break;
 				case DATA_TAG_AARE:
-					if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received valid AARE at %d\n"), pos);
+					#if defined(AMS_REMOTE_DEBUG)
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid AARE at %d +%d\n"), pos, ctx.length);
 					break;
 				case DATA_TAG_RES:
-					if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received valid Get Response at %d\n"), pos);
+					#if defined(AMS_REMOTE_DEBUG)
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid Get Response at %d +%d\n"), pos, ctx.length);
 					break;
 				case DATA_TAG_HDLC:
-					if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Received valid HDLC at %d\n"), pos);
+					#if defined(AMS_REMOTE_DEBUG)
+					if (debugger->isActive(RemoteDebug::DEBUG))
+					#endif
+					debugger->printf_P(PSTR("Received valid HDLC at %d +%d\n"), pos, ctx.length);
 					break;
 				default:
 					// TODO: Move this so that payload is sent to MQTT
-					if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Unknown tag %02X at pos %d\n"), ctx.type, pos);
+					#if defined(AMS_REMOTE_DEBUG)
+					if (debugger->isActive(RemoteDebug::ERROR))
+					#endif
+					debugger->printf_P(PSTR("Unknown tag %02X at pos %d\n"), ctx.type, pos);
 					len = 0;
 					return false;
 			}
@@ -118,18 +142,27 @@ bool PassiveMeterCommunicator::loop() {
 	}
 	end = millis();
 	if(end-start > 1000) {
-		if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Used %dms to unwrap HAN data\n"), end-start);
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::WARNING))
+		#endif
+		debugger->printf_P(PSTR("Used %dms to unwrap HAN data\n"), end-start);
 	}
 
 	if(pos == DATA_PARSE_INCOMPLETE) {
 		return false;
 	} else if(pos == DATA_PARSE_UNKNOWN_DATA) {
-		if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unknown data received\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::WARNING))
+		#endif
+		debugger->printf_P(PSTR("Unknown data received\n"));
         lastError = pos;
 		len = len + hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
-		if(debugger->isActive(RemoteDebug::VERBOSE)) {
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::VERBOSE))
+		#endif
+		{
 			debugger->printf_P(PSTR("  payload:\n"));
-			debugPrint(hanBuffer, 0, len);
+			debugPrint(hanBuffer, 0, len, debugger);
 		}
 		len = 0;
 		return false;
@@ -144,9 +177,12 @@ bool PassiveMeterCommunicator::loop() {
         if(pt != NULL) {
             pt->publishBytes(hanBuffer, len);
         }
-		if(debugger->isActive(RemoteDebug::VERBOSE)) {
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::VERBOSE))
+		#endif
+		{
 			debugger->printf_P(PSTR("  payload:\n"));
-			debugPrint(hanBuffer, 0, len);
+			debugPrint(hanBuffer, 0, len, debugger);
 		}
 		while(hanSerial->available()) hanSerial->read(); // Make sure it is all empty, in case we overflowed buffer above
 		len = 0;
@@ -154,12 +190,18 @@ bool PassiveMeterCommunicator::loop() {
 	}
 
 	if(ctx.type == 0) {
-		if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Ended up with context type %d, return code %d and length: %lu/%lu\n"), ctx.type, pos, ctx.length, len);
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::WARNING))
+		#endif
+		debugger->printf_P(PSTR("Ended up with context type %d, return code %d and length: %lu/%lu\n"), ctx.type, pos, ctx.length, len);
         lastError = pos;
 		len = len + hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
-		if(debugger->isActive(RemoteDebug::VERBOSE)) {
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::VERBOSE))
+		#endif
+		{
 			debugger->printf_P(PSTR("  payload:\n"));
-			debugPrint(hanBuffer, 0, len);
+			debugPrint(hanBuffer, 0, len, debugger);
 		}
 		len = 0;
 		return false;
@@ -171,26 +213,6 @@ bool PassiveMeterCommunicator::loop() {
 	}
     dataAvailable = true;
 	lastError = DATA_PARSE_OK;
-
-	// After one hour, adjust buffer size to match the largest payload
-	if(!maxDetectPayloadDetectDone && now > 3600000) {
-		if(maxDetectedPayloadSize * 1.25 > meterConfig.bufferSize * 64) {
-			int bufferSize = min((double) 64, ceil((maxDetectedPayloadSize * 1.25) / 64));
-			#if defined(ESP8266)
-				if(meterConfig.rxPin != 3 && meterConfig.rxPin != 113) {
-					bufferSize = min(bufferSize, 2);
-				} else {
-					bufferSize = min(bufferSize, 8);
-				}
-			#endif
-			if(bufferSize != meterConfig.bufferSize) {
-				if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Increasing RX buffer to %d bytes\n"), meterConfig.bufferSize * 64);
-				meterConfig.bufferSize = bufferSize;
-            	configChanged = true;
-			}
-		}
-		maxDetectPayloadDetectDone = true;
-	}
 
     return true;
 }
@@ -211,13 +233,22 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
             pt->publishBytes((uint8_t*) payload, ctx.length);
         }
 
-		if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("Using application data:\n"));
-		if(debugger->isActive(RemoteDebug::VERBOSE)) debugPrint((byte*) payload, 0, ctx.length);
+		#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::VERBOSE))
+#endif
+debugger->printf_P(PSTR("Using application data:\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::VERBOSE))
+#endif
+debugPrint((byte*) payload, 0, ctx.length, debugger);
 
 		// Rudimentary detector for L&G proprietary format, this is terrible code... Fix later
 		if(payload[0] == CosemTypeStructure && payload[2] == CosemTypeArray && payload[1] == payload[3]) {
-			if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("LNG\n"));
-			LNG lngData = LNG(meterState, payload, meterState.getMeterType(), &meterConfig, ctx, debugger);
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::VERBOSE))
+#endif
+debugger->printf_P(PSTR("LNG\n"));
+			LNG lngData = LNG(meterState, payload, meterState.getMeterType(), &meterConfig, ctx);
 			if(lngData.getListType() >= 1) {
 				data = new AmsData();
 				data->apply(meterState);
@@ -231,15 +262,21 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
 			payload[14] == CosemTypeLongUnsigned && 
 			payload[17] == CosemTypeLongUnsigned
 		) {
-			if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("LNG2\n"));
-			LNG2 lngData = LNG2(meterState, payload, meterState.getMeterType(), &meterConfig, ctx, debugger);
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::VERBOSE))
+#endif
+debugger->printf_P(PSTR("LNG2\n"));
+			LNG2 lngData = LNG2(meterState, payload, meterState.getMeterType(), &meterConfig, ctx);
 			if(lngData.getListType() >= 1) {
 				data = new AmsData();
 				data->apply(meterState);
 				data->apply(lngData);
 			}
 		} else {
-			if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("DLMS\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::VERBOSE))
+#endif
+debugger->printf_P(PSTR("DLMS\n"));
 			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
 			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx, meterState);
 		}
@@ -261,7 +298,10 @@ int PassiveMeterCommunicator::getLastError() {
 	#if defined ESP8266
 	if(hwSerial != NULL) {
 		if(hwSerial->hasRxError()) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Serial RX error\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("Serial RX error\n"));
 			lastError = 96;
 		}
 		if(hwSerial->hasOverrun()) {
@@ -280,10 +320,13 @@ bool PassiveMeterCommunicator::isConfigChanged() {
     return configChanged;
 }
 
+void PassiveMeterCommunicator::ackConfigChanged() {
+	configChanged = false;
+}
+
 void PassiveMeterCommunicator::getCurrentConfig(MeterConfig& meterConfig) {
     meterConfig = this->meterConfig;
 }
-
 
 int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &context) {
 	int16_t ret = 0;
@@ -322,8 +365,12 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				if(res >= 0) doRet = true;
 				break;
 			case DATA_TAG_DSMR:
-				if(dsmrParser == NULL) dsmrParser = new DSMRParser();
-				res = dsmrParser->parse(buf, context, lastTag != DATA_TAG_NONE);
+				if(dsmrParser == NULL) dsmrParser = new DSMRParser(gcmParser);
+				#if defined(AMS_REMOTE_DEBUG)
+				res = dsmrParser->parse(buf, context, lastTag != DATA_TAG_NONE, debugger->isActive(RemoteDebug::VERBOSE) ? debugger : NULL);
+				#else
+				res = dsmrParser->parse(buf, context, lastTag != DATA_TAG_NONE, debugger);
+				#endif
 				if(res >= 0) doRet = true;
 				break;
 			case DATA_TAG_SNRM:
@@ -333,7 +380,10 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				doRet = true;
 				break;
 			default:
-				if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Ended up in default case while unwrapping...(tag %02X)\n"), tag);
+				#if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::ERROR))
+				#endif
+				debugger->printf_P(PSTR("Ended up in default case while unwrapping...(tag %02X)\n"), tag);
 				return DATA_PARSE_UNKNOWN_DATA;
 		}
 		lastTag = tag;
@@ -341,53 +391,89 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 			return res;
 		}
 		if(context.length > end) {
-			if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("Context length %lu > %lu:\n"), context.length, end);
+			#if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("Context length %lu > %lu:\n"), context.length, end);
 			context.type = 0;
 			context.length = 0;
 			return false;
 		}
         switch(tag) {
             case DATA_TAG_HDLC:
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("HDLC frame:\n"));
+                #if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("HDLC frame:\n"));
                 if(pt != NULL) {
                     pt->publishBytes(buf, curLen);
                 }
                 break;
             case DATA_TAG_MBUS:
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("MBUS frame:\n"));
+                #if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("MBUS frame:\n"));
                 if(pt != NULL) {
                     pt->publishBytes(buf, curLen);
                 }
                 break;
             case DATA_TAG_GBT:
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("GBT frame:\n"));
+                #if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("GBT frame:\n"));
                 break;
             case DATA_TAG_GCM:
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("GCM frame:\n"));
+                #if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("GCM frame:\n"));
                 break;
             case DATA_TAG_LLC:
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("LLC frame:\n"));
+                #if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("LLC frame:\n"));
                 break;
             case DATA_TAG_DLMS:
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("DLMS frame:\n"));
+                #if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("DLMS frame:\n"));
                 break;
             case DATA_TAG_DSMR:
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("DSMR frame:\n"));
+                #if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("DSMR frame:\n"));
                 if(pt != NULL) {
                     pt->publishString((char*) buf);
                 }
                 break;
 			case DATA_TAG_SNRM:
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("SNMR frame:\n"));
+                #if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("SNMR frame:\n"));
                 break;
 			case DATA_TAG_AARE:
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("AARE frame:\n"));
+                #if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("AARE frame:\n"));
                 break;
 			case DATA_TAG_RES:
-                if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("RES frame:\n"));
+                #if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::VERBOSE))
+				#endif
+				debugger->printf_P(PSTR("RES frame:\n"));
                 break;
         }
-        if(debugger->isActive(RemoteDebug::VERBOSE)) debugPrint(buf, 0, curLen);
+        #if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::VERBOSE))
+		#endif
+		debugPrint(buf, 0, curLen, debugger);
 		if(res == DATA_PARSE_FINAL_SEGMENT) {
 			if(tag == DATA_TAG_MBUS) {
 				res = mbusParser->write(buf, context);
@@ -410,76 +496,101 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 		// Use start byte of new buffer position as tag for next round in loop
 		tag = (*buf);
 	}
-	if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Got to end of unwrap method...\n"));
+	#if defined(AMS_REMOTE_DEBUG)
+	if (debugger->isActive(RemoteDebug::ERROR))
+	#endif
+	debugger->printf_P(PSTR("Got to end of unwrap method...\n"));
 	return DATA_PARSE_UNKNOWN_DATA;
 }
 
-void PassiveMeterCommunicator::debugPrint(byte *buffer, int start, int length) {
-	for (int i = start; i < start + length; i++) {
-		if (buffer[i] < 0x10)
-			debugger->print(F("0"));
-		debugger->print(buffer[i], HEX);
-		debugger->print(F(" "));
-		if ((i - start + 1) % 16 == 0)
-			debugger->println(F(""));
-		else if ((i - start + 1) % 4 == 0)
-			debugger->print(F(" "));
-
-		yield(); // Let other get some resources too
-	}
-	debugger->println(F(""));
-}
-
 void PassiveMeterCommunicator::printHanReadError(int pos) {
-	if(debugger->isActive(RemoteDebug::WARNING)) {
+	#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+{
 		switch(pos) {
 			case DATA_PARSE_BOUNDRY_FLAG_MISSING:
-				if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Boundry flag missing\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Boundry flag missing\n"));
 				break;
 			case DATA_PARSE_HEADER_CHECKSUM_ERROR:
-				if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Header checksum error\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Header checksum error\n"));
 				break;
 			case DATA_PARSE_FOOTER_CHECKSUM_ERROR:
-				if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Frame checksum error\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Frame checksum error\n"));
 				break;
 			case DATA_PARSE_INCOMPLETE:
-				if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Received frame is incomplete\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Received frame is incomplete\n"));
 				break;
 			case GCM_AUTH_FAILED:
-				if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Decrypt authentication failed\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Decrypt authentication failed\n"));
 				break;
 			case GCM_ENCRYPTION_KEY_FAILED:
-				if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Setting decryption key failed\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Setting decryption key failed\n"));
 				break;
 			case GCM_DECRYPT_FAILED:
-				if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Decryption failed\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Decryption failed\n"));
 				break;
 			case MBUS_FRAME_LENGTH_NOT_EQUAL:
-				if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Frame length mismatch\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Frame length mismatch\n"));
 				break;
 			case DATA_PARSE_INTERMEDIATE_SEGMENT:
-				if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Intermediate segment received\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Intermediate segment received\n"));
 				break;
 			case DATA_PARSE_UNKNOWN_DATA:
-				if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unknown data format %02X\n"), hanBuffer[0]);
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Unknown data format %02X\n"), hanBuffer[0]);
 				break;
 			default:
-				if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unspecified error while reading data: %d\n"), pos);
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Unspecified error while reading data: %d\n"), pos);
 		}
 	}
 }
 
-void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal, bool invert) {
+void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal, bool invert, bool passive) {
 	int8_t rxpin = meterConfig.rxPin;
-	int8_t txpin = meterConfig.txPin;
-
-	if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(setupHanPort) Setting up HAN on pin %d/%d with baud %d and parity %d\n"), rxpin, txpin, baud, parityOrdinal);
+	int8_t txpin = passive ? -1 : meterConfig.txPin;
 
 	if(baud == 0) {
-		baud = bauds[meterAutoIndex];
-		parityOrdinal = parities[meterAutoIndex];
-		invert = inverts[meterAutoIndex];
+		autodetectBaud = baud = 2400;
 	}
+
+	#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("(setupHanPort) Setting up HAN on pin %d/%d with baud %d and parity %d\n"), rxpin, txpin, baud, parityOrdinal);
+
 	if(parityOrdinal == 0) {
 		parityOrdinal = 3; // 8N1
 	}
@@ -505,7 +616,10 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 	#endif
 
 	if(rxpin == 0) {
-		if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Invalid GPIO configured for HAN\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("Invalid GPIO configured for HAN\n"));
 		return;
 	}
 
@@ -513,7 +627,10 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 	if(meterConfig.bufferSize > 64) meterConfig.bufferSize = 64;
 
 	if(hwSerial != NULL) {
-		if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Hardware serial\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf_P(PSTR("Hardware serial\n"));
 		Serial.flush();
 		#if defined(ESP8266)
 			SerialConfig serialConfig;
@@ -549,10 +666,16 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		
 		#if defined(ESP8266)
 			if(rxpin == 3) {
-				if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Switching UART0 to pin 1 & 3\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Switching UART0 to pin 1 & 3\n"));
 				Serial.pins(1,3);
 			} else if(rxpin == 113) {
-				if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Switching UART0 to pin 15 & 13\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Switching UART0 to pin 15 & 13\n"));
 				Serial.pins(15,13);
 			}
 		#endif
@@ -584,7 +707,10 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		#endif
 	} else {
 		#if defined(ESP8266)
-			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Software serial\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf_P(PSTR("Software serial\n"));
 			Serial.flush();
 			
 			if(swSerial == NULL) {
@@ -616,15 +742,18 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 			#if defined(ESP8266)
 			if(bufferSize > 2) bufferSize = 2;
 			#endif
-			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Using serial buffer size %d\n"), 64 * bufferSize);
-			swSerial->begin(baud, serialConfig, rxpin, txpin, invert, meterConfig.bufferSize * 64);
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf_P(PSTR("Using serial buffer size %d\n"), 64 * bufferSize);
+			swSerial->begin(baud, serialConfig, rxpin, txpin, invert, meterConfig.bufferSize * 64, meterConfig.bufferSize * 64);
 			hanSerial = swSerial;
-
-			Serial.end();
-			Serial.begin(115200);
 			hwSerial = NULL;
 		#else
-			if (debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Software serial not available\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf_P(PSTR("Software serial not available\n"));
 			return;
 		#endif
 	}
@@ -632,13 +761,21 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 	if(hanBuffer != NULL) {
 		free(hanBuffer);
 	}
-	hanBufferSize = max(64 * meterConfig.bufferSize * 2, 512);
+	hanBufferSize = max(64 * meterConfig.bufferSize * 3, 512);
 	hanBuffer = (uint8_t*) malloc(hanBufferSize);
 
 	// The library automatically sets the pullup in Serial.begin()
 	if(!meterConfig.rxPinPullup) {
-		if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("HAN pin pullup disabled\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("HAN pin pullup disabled\n"));
 		pinMode(meterConfig.rxPin, INPUT);
+	}
+
+	if(meterConfig.txPin != 0xFF && passive) {
+		pinMode(meterConfig.txPin, OUTPUT);
+		digitalWrite(meterConfig.txPin, LOW);
 	}
 
 	hanSerial->setTimeout(250);
@@ -664,23 +801,77 @@ void PassiveMeterCommunicator::rxerr(int err) {
 	if(err == 0) return;
 	switch(err) {
 		case 2:
-			if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Serial buffer overflow\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("Serial buffer overflow\n"));
 			rxBufferErrors++;
-			if(rxBufferErrors > 3 && meterConfig.bufferSize < 64) {
+			if(rxBufferErrors > 1 && meterConfig.bufferSize < 8) {
 				meterConfig.bufferSize += 2;
-				if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Increasing RX buffer to %d bytes\n"), meterConfig.bufferSize * 64);
+				#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Increasing RX buffer to %d bytes\n"), meterConfig.bufferSize * 64);
                 configChanged = true;
 				rxBufferErrors = 0;
 			}
 			break;
 		case 3:
-			if (debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Serial FIFO overflow\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("Serial FIFO overflow\n"));
 			break;
 		case 4:
-			if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Serial frame error\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Serial frame error\n"));
 			break;
 		case 5:
-			if (debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Serial parity error\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Serial parity error\n"));
+		    unsigned long now = millis();
+			if(now - meterAutodetectLastChange < 120000) {
+				switch(autodetectParity) {
+					case 2: // 7N1
+						autodetectParity = 10;
+						break;
+					case 10: // 7E1
+						autodetectParity = 6;
+						break;
+					case 6: // 7N2
+						autodetectParity = 14;
+						break;
+					case 14: // 7E2
+						autodetectParity = 2;
+						break;
+
+					case 3: // 8N1
+						autodetectParity = 11;
+						break;
+					case 11: // 8E1
+						autodetectParity = 7;
+						break;
+					case 7: // 8N2
+						autodetectParity = 15;
+						break;
+					case 15: // 8E2
+						autodetectParity = 3;
+						break;
+
+					default:
+						autodetectParity = 3;
+						break;
+				}
+				if(validDataReceived) {
+					meterConfig.parity = autodetectParity;
+					configChanged = true;
+					setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert);
+				}
+			}
 			break;
 	}
 	// Do not include serial break
@@ -693,18 +884,28 @@ void PassiveMeterCommunicator::handleAutodetect(unsigned long now) {
 	if(!validDataReceived) {
 		if(now - meterAutodetectLastChange > 20000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
 			autodetect = true;
-			meterAutoIndex++; // Default is to try the first one in setup()
-			if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s\n"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
-			if(meterAutoIndex >= 6) meterAutoIndex = 0;
-			setupHanPort(bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex]);
+			if(autodetectCount == 2)  {
+				autodetectInvert = !autodetectInvert;
+				autodetectCount = 0;
+			}
+			autodetectBaud = AUTO_BAUD_RATES[autodetectCount++];
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Meter serial autodetect, swapping to: %d, %d, %s\n"), autodetectBaud, autodetectParity, autodetectInvert ? "true" : "false");
+			meterConfig.bufferSize = max((uint32_t) 1, autodetectBaud / 14400);
+			setupHanPort(autodetectBaud, autodetectParity, autodetectInvert);
 			meterAutodetectLastChange = now;
 		}
 	} else if(autodetect) {
-		if (debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Meter serial autodetected, saving: %d, %d, %s\n"), bauds[meterAutoIndex], parities[meterAutoIndex], inverts[meterAutoIndex] ? "true" : "false");
+		#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Meter serial autodetected, saving: %d, %d, %s\n"), autodetectBaud, autodetectParity, autodetectInvert ? "true" : "false");
 		autodetect = false;
-		meterConfig.baud = bauds[meterAutoIndex];
-		meterConfig.parity = parities[meterAutoIndex];
-		meterConfig.invert = inverts[meterAutoIndex];
+		meterConfig.baud = autodetectBaud;
+		meterConfig.parity = autodetectParity;
+		meterConfig.invert = autodetectInvert;
 		configChanged = true;
 		setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert);
 	}

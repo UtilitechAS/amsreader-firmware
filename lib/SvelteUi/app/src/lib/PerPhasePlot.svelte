@@ -64,17 +64,25 @@
 
         let ticks = [];
         if(maxExport) {
+            let num = maxExport > maxImport ? 4 : (maxExport*4)/maxImport;
             ticks.push({ value: -maxExport, label: '-100%' });
-            ticks.push({ value: (-maxExport/4)*3, label: '-75%' });
-            ticks.push({ value: -maxExport/2, label: '-50%' });
-            ticks.push({ value: -maxExport/4, label: '-25%' });
+            if(num >= 4)
+                ticks.push({ value: (-maxExport/4)*3, label: '-75%' });
+            if(num >= 2)
+                ticks.push({ value: -maxExport/2, label: '-50%' });
+            if(num >= 4)
+                ticks.push({ value: -maxExport/4, label: '-25%' });
         }
         ticks.push({ value: 0, label: '0%' });
         if(maxImport) {
+            let num = maxImport > maxExport ? 4 : (maxImport*4)/maxExport;
             ticks.push({ value: maxImport/4, label: '25%' });
-            ticks.push({ value: maxImport/2, label: '50%' });
-            ticks.push({ value: (maxImport/4)*3, label: '75%' });
-            ticks.push({ value: maxImport, label: '100%' });
+            if(num >= 4)
+                ticks.push({ value: maxImport/2, label: '50%' });
+            if(num >= 2)
+                ticks.push({ value: (maxImport/4)*3, label: '75%' });
+            if(num >= 4)
+                ticks.push({ value: maxImport, label: '100%' });
         }
 
         config = {

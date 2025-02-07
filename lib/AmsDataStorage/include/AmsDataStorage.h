@@ -8,7 +8,9 @@
 #define _AMSDATASTORAGE_H
 #include "Arduino.h"
 #include "AmsData.h"
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include "Timezone.h"
 
 struct DayDataPoints5 {
@@ -53,9 +55,13 @@ struct MonthDataPoints {
 
 class AmsDataStorage {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     AmsDataStorage(RemoteDebug*);
+    #else
+    AmsDataStorage(Stream*);
+    #endif
     void setTimezone(Timezone*);
-    bool update(AmsData*);
+    bool update(AmsData* data, time_t now);
     uint32_t getHourImport(uint8_t);
     uint32_t getHourExport(uint8_t);
     uint32_t getDayImport(uint8_t);
@@ -73,11 +79,16 @@ public:
     uint8_t getMonthAccuracy();
     void setMonthAccuracy(uint8_t);
 
-    bool isHappy();
-    bool isDayHappy();
-    bool isMonthHappy();
+    bool isHappy(time_t now);
+    bool isDayHappy(time_t now);
+    bool isMonthHappy(time_t now);
 
     double getEstimatedImportCounter();
+
+    void setHourImport(uint8_t, uint32_t);
+    void setHourExport(uint8_t, uint32_t);
+    void setDayImport(uint8_t, uint32_t);
+    void setDayExport(uint8_t, uint32_t);
 
 private:
     Timezone* tz;
@@ -95,11 +106,11 @@ private:
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         10
     };
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
-    void setHourImport(uint8_t, uint32_t);
-    void setHourExport(uint8_t, uint32_t);
-    void setDayImport(uint8_t, uint32_t);
-    void setDayExport(uint8_t, uint32_t);
+    #else
+    Stream* debugger;
+    #endif
 };
 
 #endif

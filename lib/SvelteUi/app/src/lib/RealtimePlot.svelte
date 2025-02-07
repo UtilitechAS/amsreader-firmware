@@ -1,49 +1,16 @@
 <script>
-    import { dataStore, realtimeStore, getRealtime, isRealtimeFullyLoaded } from './DataStores.js';
+    import { realtimeStore, getRealtime, isRealtimeFullyLoaded } from './RealtimeStore.js';
 
     export let title;
 
     let dark = document.documentElement.classList.contains('dark');
 
-    let lastUp = 0;
-    let lastValue = 0;
-    let lastUpdate = 0;
-    let updateCount = 0;
-
-    let realtimeRequested = false;
     let realtime = null;
     realtimeStore.subscribe(update => {
         realtime = update;
     });
 
     let visible = false;
-
-    function addValue() {
-        if(updateCount == 60 || lastUpdate > lastUp || lastUpdate - lastUp > 300) {
-            getRealtime();
-            updateCount = 0;
-        } else {
-            while(lastUp > lastUpdate) {
-                realtime.data.unshift(lastValue);
-                realtime.data = realtime.data.slice(0,realtime.size);
-                lastUpdate += 10;
-                updateCount++;
-            }
-        }
-    }
-
-    dataStore.subscribe(update => {
-        lastValue = update.i-update.e;
-        lastUp = update.u;
-        if(!realtimeRequested) {
-            getRealtime();
-            realtimeRequested = true;
-            lastUpdate = lastUp;
-            return;
-        }
-        if(!isRealtimeFullyLoaded()) return;
-        addValue();
-    });
 
     let max;
     let min;

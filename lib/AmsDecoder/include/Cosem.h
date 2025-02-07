@@ -14,14 +14,18 @@ enum CosemType {
     CosemTypeNull = 0x00,
     CosemTypeArray = 0x01,
     CosemTypeStructure = 0x02,
+    CosemTypeBoolean = 0x03,
     CosemTypeOctetString = 0x09,
     CosemTypeString = 0x0A,
     CosemTypeDLongSigned = 0x05,
     CosemTypeDLongUnsigned = 0x06,
+    CosemTypeSigned = 0x0F,
     CosemTypeLongSigned = 0x10,
+    CosemTypeUnsigned = 0x11,
     CosemTypeLongUnsigned = 0x12,
     CosemTypeLong64Signed = 0x14,
     CosemTypeLong64Unsigned = 0x15,
+    CosemTypeEnum = 0x16,
     CosemTypeDateTime = 0x19
 };
 

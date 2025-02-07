@@ -100,6 +100,8 @@ bool AmsMqttHandler::connect() {
 	}
 
 	mqttConfigChanged = false;
+	mqtt.setTimeout(mqttConfig.timeout);
+	mqtt.setKeepAlive(mqttConfig.keepalive);
 	mqtt.begin(mqttConfig.host, mqttConfig.port, *actualClient);
 	String statusTopic = String(mqttConfig.publishTopic) + "/status";
 	mqtt.setWill(statusTopic.c_str(), "offline", true, 0);
@@ -114,19 +116,32 @@ bool AmsMqttHandler::connect() {
 	// Connect to a unsecure or secure MQTT server
 	if ((strlen(mqttConfig.username) == 0 && mqtt.connect(mqttConfig.clientId)) ||
 		(strlen(mqttConfig.username) > 0 && mqtt.connect(mqttConfig.clientId, mqttConfig.username, mqttConfig.password))) {
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully connected to MQTT\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::INFO))
+		#endif
+		debugger->printf_P(PSTR("Successfully connected to MQTT\n"));
 		mqtt.onMessage(std::bind(&AmsMqttHandler::onMessage, this, std::placeholders::_1, std::placeholders::_2));
 		if(strlen(mqttConfig.subscribeTopic) > 0) {
-			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("  Subscribing to [%s]\n"), mqttConfig.subscribeTopic);
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::INFO))
+			#endif
+			debugger->printf_P(PSTR("  Subscribing to [%s]\n"), mqttConfig.subscribeTopic);
 			if(!mqtt.subscribe(mqttConfig.subscribeTopic)) {
-				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("  Unable to subscribe to to [%s]\n"), mqttConfig.subscribeTopic);
+				#if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::ERROR))
+				#endif
+				debugger->printf_P(PSTR("  Unable to subscribe to to [%s]\n"), mqttConfig.subscribeTopic);
 			}
 		}
 		mqtt.publish(statusTopic, "online", true, 0);
         mqtt.loop();
+		postConnect();
         return true;
 	} else {
-		if (debugger->isActive(RemoteDebug::ERROR)) {
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::ERROR))
+		#endif
+		{
 			debugger->printf_P(PSTR("Failed to connect to MQTT: %d\n"), mqtt.lastError());
 			#if defined(ESP8266)
 				if(mqttSecureClient) {
@@ -142,6 +157,10 @@ bool AmsMqttHandler::connect() {
 void AmsMqttHandler::disconnect() {
     mqtt.disconnect();
     mqtt.loop();
+	if(mqttSecureClient != NULL) {
+		delete mqttSecureClient;
+		mqttSecureClient = NULL;
+	}
     delay(10);
     yield();
 }

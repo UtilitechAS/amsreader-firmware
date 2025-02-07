@@ -20,7 +20,11 @@
 #include <esp_task_wdt.h>
 #endif
 
+#if defined(AMS_REMOTE_DEBUG)
 PriceService::PriceService(RemoteDebug* Debug) : priceConfig(std::vector<PriceConfig>()) {
+#else
+PriceService::PriceService(Stream* Debug) : priceConfig(std::vector<PriceConfig>()) {
+#endif
     this->buf = (char*) malloc(BufferSize);
 
     debugger = Debug;
@@ -106,8 +110,8 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
         return ret;
 
     tmElements_t tm;
-    breakTime(tz->toLocal(ts + (hour) * SECS_PER_HOUR), tm);
-    uint8_t day = 0x01 << (tm.Wday - 2);
+    breakTime(tz->toLocal(ts + (hour * SECS_PER_HOUR)), tm);
+    uint8_t day = 0x01 << ((tm.Wday+5)%7);
     uint32_t hrs = 0x01 << tm.Hour;
 
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
@@ -137,8 +141,8 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
 
 float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t hour) {
     tmElements_t tm;
-    breakTime(tz->toLocal(ts + (hour) * SECS_PER_HOUR), tm);
-    uint8_t day = 0x01 << (tm.Wday - 2);
+    breakTime(tz->toLocal(ts + (hour * SECS_PER_HOUR)), tm);
+    uint8_t day = 0x01 << ((tm.Wday+5)%7);
     uint32_t hrs = 0x01 << tm.Hour;
 
     float value = PRICE_NO_VALUE;
@@ -175,16 +179,23 @@ float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t h
         breakTime(tz->toLocal(ts), tm);
         hoursToday++;
     }
-    if(pos > 49)
-        return PRICE_NO_VALUE;
+    uint8_t hoursTomorrow = 0;
+    uint8_t tomorrowDate = tm.Day;
+    while(tm.Day == tomorrowDate) {
+        ts += 3600;
+        breakTime(tz->toLocal(ts), tm);
+        hoursTomorrow++;
+    }
 
     float multiplier = 1.0;
     if(pos >= hoursToday) {
+        pos = pos - hoursToday;
+        if(pos >= hoursTomorrow) return PRICE_NO_VALUE;
         if(tomorrow == NULL)
             return PRICE_NO_VALUE;
-        if(tomorrow->points[pos-hoursToday] == PRICE_NO_VALUE)
+        if(tomorrow->points[pos] == PRICE_NO_VALUE)
             return PRICE_NO_VALUE;
-        value = tomorrow->points[pos-hoursToday] / 10000.0;
+        value = tomorrow->points[pos] / 10000.0;
         if(strcmp(tomorrow->measurementUnit, "KWH") == 0) {
             // Multiplier is 1
         } else if(strcmp(tomorrow->measurementUnit, "MWH") == 0) {
@@ -212,7 +223,7 @@ float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t h
         if(mult == 0) return PRICE_NO_VALUE;
         multiplier *= mult;
     }
-    return value * multiplier;
+    return value == PRICE_NO_VALUE ? PRICE_NO_VALUE : value * multiplier;
 }
 
 bool PriceService::loop() {
@@ -227,8 +238,6 @@ bool PriceService::loop() {
         return false;
     }
     #endif
-    if(!config->enabled)
-        return false;
     if(strlen(config->area) == 0)
         return false;
     if(strlen(config->currency) == 0)
@@ -250,11 +259,14 @@ bool PriceService::loop() {
         }
         currentDay = tm.Day;
         currentHour = tm.Hour;
-        return today != NULL; // Only trigger MQTT publish if we have todays prices.
+        return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
     } else if(currentHour != tm.Hour) {
         currentHour = tm.Hour;
-        return today != NULL; // Only trigger MQTT publish if we have todays prices.
+        return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
     }
+
+    if(!config->enabled)
+        return false;
 
     bool readyToFetchForTomorrow = tomorrow == NULL && (tm.Hour > 13 || (tm.Hour == 13 && tm.Minute >= tomorrowFetchMinute)) && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > (nextFetchDelayMinutes*60000));
 
@@ -323,9 +335,18 @@ bool PriceService::retrieve(const char* url, Stream* doc) {
                 } else {
                     nextFetchDelayMinutes = 2;
                 }
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Communication error, returned status: %d\n"), status);
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(http->errorToString(status).c_str());
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http->getString().c_str());
+                #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("(PriceService) Communication error, returned status: %d\n"), status);
+                #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf(http->errorToString(status).c_str());
+                #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf(http->getString().c_str());
 
                 http->end();
                 return false;
@@ -356,12 +377,10 @@ float PriceService::getCurrencyMultiplier(const char* from, const char* to, time
         float currencyMultiplier = 0;
         snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), from);
         if(retrieve(buf, &p)) {
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  got exchange rate %.4f\n"), p.getValue());
             currencyMultiplier = p.getValue();
             if(strncmp(to, "NOK", 3) != 0) {
                 snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), to);
                 if(retrieve(buf, &p)) {
-                    if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  got exchange rate %.4f\n"), p.getValue());
                     if(p.getValue() > 0.0) {
                         currencyMultiplier /= p.getValue();
                     } else {
@@ -373,13 +392,19 @@ float PriceService::getCurrencyMultiplier(const char* from, const char* to, time
             }
         }
         if(currencyMultiplier != 0) {
-            if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService) Resulting currency multiplier: %.4f\n"), currencyMultiplier);
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf_P(PSTR("(PriceService) Resulting currency multiplier: %.4f\n"), currencyMultiplier);
             tmElements_t tm;
             breakTime(t, tm);
             lastCurrencyFetch = now + (SECS_PER_DAY * 1000) - (((((tm.Hour * 60) + tm.Minute) * 60) + tm.Second) * 1000) + (3600000 * 6) + (tomorrowFetchMinute * 60);
             this->currencyMultiplier = currencyMultiplier;
         } else {
-            if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("(PriceService) Multiplier ended in success, but without value\n"));
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("(PriceService) Multiplier ended in success, but without value\n"));
             lastCurrencyFetch = now + (SECS_PER_HOUR * 1000);
             if(this->currencyMultiplier == 1) return 0;
         }
@@ -409,8 +434,14 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
             ESP.wdtFeed();
         #endif
 
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Fetching prices for %02d.%02d.%04d\n"), tm.Day, tm.Month, tm.Year+1970);
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("(PriceService) Fetching prices for %02d.%02d.%04d\n"), tm.Day, tm.Month, tm.Year+1970);
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
         EntsoeA44Parser a44;
         if(retrieve(buf, &a44) && a44.getPoint(0) != PRICE_NO_VALUE) {
             PricesContainer* ret = new PricesContainer();
@@ -431,8 +462,14 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
             tm.Day,
             config->currency
         );
-        if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Fetching prices for %02d.%02d.%04d\n"), tm.Day, tm.Month, tm.Year+1970);
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("(PriceService) Fetching prices for %02d.%02d.%04d\n"), tm.Day, tm.Month, tm.Year+1970);
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
         #if defined(ESP8266)
         WiFiClient client;
         client.setTimeout(5000);
@@ -473,7 +510,10 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
                 } else {
                     lastError = gcmRet;
                     nextFetchDelayMinutes = 60;
-                    if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Error code while decrypting prices: %d\n"), gcmRet);
+                    #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("(PriceService) Error code while decrypting prices: %d\n"), gcmRet);
                 }
             } else {
                 lastError = status;
@@ -484,34 +524,27 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
                 } else {
                     nextFetchDelayMinutes = 5;
                 }
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Communication error, returned status: %d\n"), status);
-                if(debugger->isActive(RemoteDebug::ERROR)) {
+                #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("(PriceService) Communication error, returned status: %d\n"), status);
+                #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+{
                     debugger->printf(http->errorToString(status).c_str());
                     debugger->println();
                 }
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http->getString().c_str());
+                #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::DEBUG))
+#endif
+debugger->printf(http->getString().c_str());
 
                 http->end();
             }
         }
     }
     return NULL;
-}
-
-void PriceService::debugPrint(byte *buffer, int start, int length) {
-	for (int i = start; i < start + length; i++) {
-		if (buffer[i] < 0x10)
-			debugger->print(F("0"));
-		debugger->print(buffer[i], HEX);
-		debugger->print(F(" "));
-		if ((i - start + 1) % 16 == 0)
-			debugger->println(F(""));
-		else if ((i - start + 1) % 4 == 0)
-			debugger->print(F(" "));
-
-		yield(); // Let other get some resources too
-	}
-	debugger->println(F(""));
 }
 
 int16_t PriceService::getLastError() {
@@ -523,7 +556,7 @@ std::vector<PriceConfig>& PriceService::getPriceConfig() {
 }
 
 void PriceService::setPriceConfig(uint8_t index, PriceConfig &priceConfig) {
-    stripNonAscii((uint8_t*) priceConfig.name, 32);
+    stripNonAscii((uint8_t*) priceConfig.name, 32, true);
 
     if(this->priceConfig.capacity() != index+1)
         this->priceConfig.resize(index+1);
@@ -541,11 +574,17 @@ void PriceService::cropPriceConfig(uint8_t size) {
 
 bool PriceService::save() {
     if(!LittleFS.begin()) {
-        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Unable to load LittleFS\n"));
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("(PriceService) Unable to load LittleFS\n"));
         return false;
     }
 
-    if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Saving price config\n"));
+    #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("(PriceService) Saving price config\n"));
 
     PriceConfig pc;
     File file = LittleFS.open(FILE_PRICE_CONF, "w");
@@ -567,14 +606,19 @@ bool PriceService::save() {
 
 bool PriceService::load() {
     if(!LittleFS.begin()) {
-        if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(PriceService) Unable to load LittleFS\n"));
+        #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+debugger->printf_P(PSTR("(PriceService) Unable to load LittleFS\n"));
         return false;
     }
     if(!LittleFS.exists(FILE_PRICE_CONF)) {
-        if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(PriceService) No price config file\n"));
         return false;
     }
-    if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(PriceService) Loading price config\n"));
+    #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("(PriceService) Loading price config\n"));
 
     this->priceConfig.clear();
 

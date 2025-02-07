@@ -18,7 +18,7 @@
 class GCMParser {
 public:
     GCMParser(uint8_t *encryption_key, uint8_t *authentication_key);
-    int8_t parse(uint8_t *buf, DataParserContext &ctx);
+    int8_t parse(uint8_t *buf, DataParserContext &ctx, bool hastag = true);
 private:
     uint8_t encryption_key[16];
     uint8_t authentication_key[16];

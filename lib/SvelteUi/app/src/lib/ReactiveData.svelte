@@ -1,16 +1,11 @@
 <script>
-    import { translationsStore } from "./TranslationService";
     import { formatUnit } from "./Helpers";
 
     export let importInstant;
     export let exportInstant;
     export let importTotal;
     export let exportTotal;
-
-    let translations = {};
-    translationsStore.subscribe(update => {
-      translations = update;
-    });
+    export let translations = {};
 
     let ii,ei,it,et;
     $: {

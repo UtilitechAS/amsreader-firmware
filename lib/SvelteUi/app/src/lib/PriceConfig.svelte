@@ -1,7 +1,7 @@
 <script>
     import { priceConfigStore, getPriceConfig } from './ConfigurationStore'
     import { translationsStore } from './TranslationService';
-    import { wiki } from './Helpers.js';
+    import { wiki, zeropad } from './Helpers.js';
     import Mask from './Mask.svelte'
     import {  navigate } from 'svelte-navigator';
 
@@ -87,6 +87,24 @@
         arr.splice(rn, 1);
         configuration.o = arr
     };
+
+    let moveUp = function(rn) {
+        if(rn <= 0) return;
+        let arr = configuration.o;
+        var tmp = arr[rn];
+        arr[rn] = arr[rn-1];
+        arr[rn-1] = tmp;
+        configuration.o = arr
+    };
+
+    let moveDown = function(rn) {
+        let arr = configuration.o;
+        if(rn >= arr.length-1) return;
+        var tmp = arr[rn];
+        arr[rn] = arr[rn+1];
+        arr[rn+1] = tmp;
+        configuration.o = arr
+    };
 </script>
 <div class="cnt">
     <strong class="text-sm">{translations.conf?.price?.title ?? "Price"}</strong>
@@ -143,34 +161,36 @@
                         </div>
                     </div>
                     <div class="flex flex-wrap mr-3">
-                        <select name="rsm" class="in-f" bind:value={c.s.m}>
+                        <select name="rsd" class="in-f" bind:value={c.s.d}>
                             <option value={0}>-</option>
                             {#each {length: 31} as _,i}
                                 <option value={i+1}>{i+1}</option>
                             {/each}
                         </select>
-                        <select name="rsd" class="in-m" bind:value={c.s.d}>
+                        <select name="rsm" class="in-m" bind:value={c.s.m}>
                             <option value={0}>-</option>
                             {#each {length: 12} as _,i}
-                                <option value={i+1}>{translations.months?.[i]}</option>
+                                <option value={i+1}>{translations.months ? translations.months?.[i] : zeropad(i+1)}</option>
                             {/each}
                         </select>
                         <input class="in-m" disabled value="to" style="width: 20px;color:#888;"/>
-                        <select name="rem" class="in-m" bind:value={c.e.m}>
+                        <select name="red" class="in-m" bind:value={c.e.d}>
                             <option value={0}>-</option>
                             {#each {length: 31} as _,i}
                                 <option value={i+1}>{i+1}</option>
                             {/each}
                         </select>
-                        <select name="red" class="in-l" bind:value={c.e.d}>
+                        <select name="rem" class="in-l" bind:value={c.e.m}>
                             <option value={0}>-</option>
                             {#each {length: 12} as _,i}
-                                <option value={i+1}>{translations.months?.[i]}</option>
+                                <option value={i+1}>{translations.months ? translations.months?.[i] : zeropad(i+1)}</option>
                             {/each}
                         </select>
                     </div>
                     
                     <div class="mt-1.5 ml-3">
+                        <span class={rn > 0 ? "text-green-600" : "text-gray-300"} on:click={() => moveUp(rn)} on:keypress={() => moveUp(rn)}>&#8679;</span>
+                        <span class={rn < configuration.o.length-1 ? "text-green-600" : "text-gray-300"} on:click={() => moveDown(rn)} on:keypress={() => moveDown(rn)}>&#8681;</span>
                         <span class="text-red-500 text-xs" on:click={() => deleteRow(rn)} on:keypress={() => deleteRow(rn)}>&#128465;</span>
                     </div>
                 </div>
@@ -191,4 +211,4 @@
 </div>
 
 <Mask active={loading} message={translations.conf?.price?.mask_loading ?? "Loading"}/>
-<Mask active={saving} message={translations.conf?.price?.mask_loading ?? "Saving"}/>
+<Mask active={saving} message={translations.conf?.price?.mask_saving ?? "Saving"}/>

@@ -7,7 +7,9 @@
 #ifndef _CLOUDCONNECTOR_H
 #define _CLOUDCONNECTOR_H
 
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include "mbedtls/ssl.h"
 #include "mbedtls/platform.h"
 #include "mbedtls/net.h"
@@ -35,14 +37,14 @@
 	#warning "Unsupported board type"
 #endif
 
-#define CC_BUF_SIZE 2048
+#define CC_BUF_SIZE 4096
 
 static const char CC_JSON_POWER[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu}";
 static const char CC_JSON_POWER_LIST3[] PROGMEM = ",\"%s\":{\"P\":%lu,\"Q\":%lu,\"tP\":%.3f,\"tQ\":%.3f}";
 static const char CC_JSON_PHASE[] PROGMEM = "%s\"%d\":{\"u\":%.2f,\"i\":%s}";
 static const char CC_JSON_PHASE_LIST4[] PROGMEM = "%s\"%d\":{\"u\":%.2f,\"i\":%s,\"Pim\":%lu,\"Pex\":%lu,\"pf\":%.2f}";
 static const char CC_JSON_STATUS[] PROGMEM = ",\"status\":{\"esp\":{\"state\":%d,\"error\":%d},\"han\":{\"state\":%d,\"error\":%d},\"wifi\":{\"state\":%d,\"error\":%d},\"mqtt\":{\"state\":%d,\"error\":%d}}";
-static const char CC_JSON_INIT[] PROGMEM = ",\"init\":{\"mac\":\"%s\",\"apmac\":\"%s\",\"version\":\"%s\",\"boardType\":%d,\"bootReason\":%d,\"bootCause\":%d,\"utcOffset\":%d},\"meter\":{\"manufacturerId\":%d,\"manufacturer\":\"%s\",\"model\":\"%s\",\"id\":\"%s\",\"system\":\"%s\",\"fuse\":%d,\"import\":%d,\"export\":%d},\"network\":{\"ip\":\"%s\",\"mask\":\"%s\",\"gw\":\"%s\",\"dns1\":\"%s\",\"dns2\":\"%s\"}";
+static const char CC_JSON_INIT[] PROGMEM = ",\"init\":{\"mac\":\"%s\",\"apmac\":\"%s\",\"version\":\"%s\",\"boardType\":%d,\"bootReason\":%d,\"bootCause\":%d,\"tz\":\"%s\"},\"meter\":{\"manufacturerId\":%d,\"manufacturer\":\"%s\",\"model\":\"%s\",\"id\":\"%s\",\"system\":\"%s\",\"fuse\":%d,\"import\":%d,\"export\":%d},\"network\":{\"ip\":\"%s\",\"mask\":\"%s\",\"gw\":\"%s\",\"dns1\":\"%s\",\"dns2\":\"%s\"}";
 
 struct CloudData {
     uint8_t type;
@@ -51,26 +53,43 @@ struct CloudData {
 
 class CloudConnector {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     CloudConnector(RemoteDebug*);
-    bool setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, HwTools* hw, ResetDataContainer* rdc);
+    #else
+    CloudConnector(Stream*);
+    #endif
+    bool setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc, PriceService* ps);
     void setMqttHandler(AmsMqttHandler* mqttHandler);
     void update(AmsData& data, EnergyAccounting& ea);
+    void setPriceConfig(PriceServiceConfig&);
+    void setEnergyAccountingConfig(EnergyAccountingConfig&);
     void forceUpdate();
-    void setTimezone(Timezone* tz);
+    void forcePriceUpdate();
     void setConnectionHandler(ConnectionHandler* ch);
+    String generateSeed();
 
 private:
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger = NULL;
+    #else
+    Stream* debugger = NULL;
+    #endif
     HwTools* hw = NULL;
     ConnectionHandler* ch = NULL;
     ResetDataContainer* rdc = NULL;
-    Timezone* tz = NULL;
+    PriceService* ps = NULL;
     AmsMqttHandler* mqttHandler = NULL;
     CloudConfig config;
+    PriceServiceConfig priceConfig;
+    unsigned long lastPriceConfig = 0;
+    EnergyAccountingConfig eac;
+    unsigned long lastEac = 0;
     HTTPClient http;
     WiFiUDP udp;
+    WiFiClient tcp;
 	int maxPwr = 0;
     uint8_t boardType = 0;
+    char timezone[32];
 	uint8_t distributionSystem = 0;
 	uint16_t mainFuse = 0, productionCapacity = 0;
 
@@ -80,7 +99,10 @@ private:
     char mac[18];
     char apmac[18];
 
+    String seed = "";
+
     char clearBuffer[CC_BUF_SIZE];
+    uint8_t* httpBuffer = NULL;
     unsigned char encryptedBuffer[256];
     mbedtls_rsa_context* rsa = nullptr;
     mbedtls_ctr_drbg_context ctr_drbg;
@@ -88,7 +110,6 @@ private:
     char* pers = "amsreader";
 
     bool init();
-    void debugPrint(byte *buffer, int start, int length);
 
     String meterManufacturer(uint8_t type) {
         switch(type) {

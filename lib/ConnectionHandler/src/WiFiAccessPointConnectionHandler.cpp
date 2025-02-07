@@ -6,7 +6,11 @@
 
 #include "WiFiAccessPointConnectionHandler.h"
 
+#if defined(AMS_REMOTE_DEBUG)
 WiFiAccessPointConnectionHandler::WiFiAccessPointConnectionHandler(RemoteDebug* debugger) {
+#else
+WiFiAccessPointConnectionHandler::WiFiAccessPointConnectionHandler(Stream* debugger) {
+#endif
     this->debugger = debugger;
     this->mode = NETWORK_MODE_WIFI_AP;
 }
@@ -42,22 +46,37 @@ void WiFiAccessPointConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEvent
     IPAddress stationIP;
     switch(event) {
         case ARDUINO_EVENT_WIFI_AP_START:
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("WiFi access point started with SSID %s\n"), config.ssid);
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("WiFi access point started with SSID %s\n"), config.ssid);
             break;
 	    case ARDUINO_EVENT_WIFI_AP_STOP:
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("WiFi access point stopped!\n"));
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("WiFi access point stopped!\n"));
             break;
 	    case ARDUINO_EVENT_WIFI_AP_STACONNECTED:
             memcpy(mac, info.wifi_ap_staconnected.mac, 6);
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Client connected to AP, client MAC: %02x:%02x:%02x:%02x:%02x:%02x\n"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Client connected to AP, client MAC: %02x:%02x:%02x:%02x:%02x:%02x\n"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
             break;
 	    case ARDUINO_EVENT_WIFI_AP_STADISCONNECTED:
             memcpy(mac, info.wifi_ap_staconnected.mac, 6);
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Client disconnected from AP, client MAC: %02x:%02x:%02x:%02x:%02x:%02x\n"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Client disconnected from AP, client MAC: %02x:%02x:%02x:%02x:%02x:%02x\n"), mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
             break;
 	    case ARDUINO_EVENT_WIFI_AP_STAIPASSIGNED:
             stationIP = info.wifi_ap_staipassigned.ip.addr;
-            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Client was assigned IP %s\n"), stationIP.toString().c_str());
+            #if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Client was assigned IP %s\n"), stationIP.toString().c_str());
             break;
     }
 }

@@ -1,7 +1,7 @@
 <script>
     import { metertype, boardtype, isBusPowered, getBaseChip } from './Helpers.js';
-    import { getSysinfo, gitHubReleaseStore, sysinfoStore } from './DataStores.js';
-    import { upgrade, getNextVersion, upgradeWarningText } from './UpgradeHelper';
+    import { getSysinfo, sysinfoStore } from './DataStores.js';
+    import { upgrade, upgradeWarningText } from './UpgradeHelper';
     import { translationsStore } from './TranslationService.js';
     import { Link } from 'svelte-navigator';
     import Clock from './Clock.svelte';
@@ -41,24 +41,16 @@
     translationsStore.subscribe(update => {
       translations = update;
     });
-
-    let nextVersion = {};
-    gitHubReleaseStore.subscribe(releases => {
-      nextVersion = getNextVersion(sysinfo.version, releases);
-      if(!nextVersion) {
-        nextVersion = releases[0];
-      }
-    });
  
     function askUpgrade() {
-        if(confirm((translations.header?.upgrade ?? "Upgrade to {0}?").replace('{0}',nextVersion.tag_name))) {
-            if((sysinfo.board != 2 && sysinfo.board != 4 && sysinfo.board != 7) || confirm(upgradeWarningText(boardtype(sysinfo.chip, sysinfo.board)))) {
-                sysinfoStore.update(s => {
-                    s.upgrading = true;
-                    return s;
-                });
-                upgrade(nextVersion.tag_name);
-            }
+        if(confirm((translations.header?.upgrade ?? "Upgrade to {0}?").replace('{0}',sysinfo.upgrade.n))) {
+            upgrade(sysinfo.upgrade.n);
+            sysinfoStore.update(s => {
+                s.upgrade.t = sysinfo.upgrade.n;
+                s.upgrade.p = 0;
+                s.upgrading = true;
+                return s;
+            });
         }
     }
 
@@ -99,7 +91,7 @@
         const formData = new FormData();
         formData.append('file', configFiles[0]);
 
-        const upload = fetch('/configfile', {
+        const upload = fetch('configfile', {
             method: 'POST',
             body: formData
         }).then((response) => response.json()).then((res) => {
@@ -156,7 +148,7 @@
         <div class="my-2">
             {translations.status?.device?.last_boot ?? "Last boot"}:
             {#if data.u > 0}
-            <Clock timestamp={new Date(new Date().getTime() - (data.u * 1000))} fullTimeColor="" />
+            <Clock timestamp={new Date(new Date().getTime() - (data.u * 1000))} fullTimeColor="" offset={sysinfo.clock_offset}/>
             {:else}
             -
             {/if}
@@ -165,12 +157,14 @@
             {translations.status?.device?.reason ?? "Reason"}: {(translations[getBaseChip(sysinfo.chip)]?.reason?.[sysinfo.boot_reason] ?? sysinfo.boot_reason)} ({sysinfo.boot_reason}/{sysinfo.ex_cause})
         </div>
         {/if}
+        {#if data?.a}
         <div class="my-2">
             <Link to="/consent">
                 <span class="btn-pri-sm">{translations.status?.device?.btn_consents ?? "Consents"}</span>
             </Link>
             <button on:click={askReboot} class="btn-yellow-sm float-right">{translations.btn?.reboot ?? "Reboot"}</button>
         </div>
+        {/if}
      </div>
     {#if sysinfo.meter}
     <div class="cnt">
@@ -204,11 +198,11 @@
         </div>
         {#if sysinfo.net.ipv6}
             <div class="my-2">
-                IPv6: {sysinfo.net.ipv6}
+                IPv6: <span style="font-size: 14px;">{sysinfo.net.ipv6.replace(/\b:?(?:0+:?){2,}/, '::')}</span>
             </div>
             <div class="my-2">
-                {#if sysinfo.net.dns1v6}DNSv6: {sysinfo.net.dns1v6}{/if}
-                {#if sysinfo.net.dns2v6}DNSv6: {sysinfo.net.dns2v6}{/if}
+                {#if sysinfo.net.dns1v6}DNSv6: <span style="font-size: 14px;">{sysinfo.net.dns1v6.replace(/\b:?(?:0+:?){2,}/, '::')}</span>{/if}
+                {#if sysinfo.net.dns2v6}DNSv6: <span style="font-size: 14px;">{sysinfo.net.dns2v6.replace(/\b:?(?:0+:?){2,}/, '::')}</span>{/if}
             </div>
         {/if}
     </div>
@@ -218,19 +212,19 @@
         <div class="my-2">
             {translations.status?.firmware?.installed ?? "Installed"}: {sysinfo.version}
         </div>
-        {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version}
+        {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version && sysinfo.upgrade.e != 0 && sysinfo.upgrade.e != 123}
         <div class="my-2">
             <div class="bd-yellow">
                 {(translations.status?.firmware?.failed ?? "Upgrade from {0} to {1} failed").replace('{0}', sysinfo.upgrade.f).replace('{1}', sysinfo.upgrade.t)}
-                {(translations.errors?.http?.[sysinfo.upgrade.e] ?? sysinfo.upgrade.e)}
+                {(translations.errors?.upgrade?.[sysinfo.upgrade.e] ?? sysinfo.upgrade.e)}
             </div>
         </div>
         {/if}
-        {#if nextVersion}
+        {#if sysinfo.upgrade.n}
             <div class="my-2 flex">
                 {translations.status?.firmware?.latest ?? "Latest"}: 
-                <a href={nextVersion.html_url} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{nextVersion.tag_name}</a>
-                {#if (sysinfo.security == 0 || data.a) && sysinfo.fwconsent === 1 && nextVersion && nextVersion.tag_name != sysinfo.version}
+                <a href={"https://github.com/UtilitechAS/amsreader-firmware/releases/tag/" + sysinfo.upgrade.n} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{sysinfo.upgrade.n}</a>
+                {#if (sysinfo.security == 0 || data.a) && sysinfo.fwconsent === 1 && sysinfo.upgrade.n && sysinfo.upgrade.n != sysinfo.version}
                 <div class="flex-none ml-2 text-green-500" title={translations.status?.firmware?.install ?? "Install"}>
                     <button on:click={askUpgrade}>&#8659;</button>
                 </div>

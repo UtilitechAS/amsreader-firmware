@@ -9,12 +9,18 @@
 
 #include "ConnectionHandler.h"
 #include <Arduino.h>
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 #include <DNSServer.h>
 
 class WiFiAccessPointConnectionHandler : public ConnectionHandler {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     WiFiAccessPointConnectionHandler(RemoteDebug* debugger);
+    #else
+    WiFiAccessPointConnectionHandler(Stream* debugger);
+    #endif
 
     bool connect(NetworkConfig config, SystemConfig sys);
     void disconnect(unsigned long reconnectDelay);
@@ -32,7 +38,11 @@ public:
     #endif
 
 private:
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
+    #else
+    Stream* debugger;
+    #endif
     NetworkConfig config;
 
     DNSServer dnsServer;

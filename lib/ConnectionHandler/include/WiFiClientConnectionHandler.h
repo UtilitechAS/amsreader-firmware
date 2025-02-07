@@ -9,7 +9,9 @@
 
 #include "ConnectionHandler.h"
 #include <Arduino.h>
+#if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
+#endif
 
 #define CONNECTION_TIMEOUT 30000
 #define RECONNECT_TIMEOUT 5000
@@ -20,7 +22,11 @@ esp_err_t set_esp_interface_ip(esp_interface_t interface, IPAddress local_ip=INA
 
 class WiFiClientConnectionHandler : public ConnectionHandler {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
     WiFiClientConnectionHandler(RemoteDebug* debugger);
+    #else
+    WiFiClientConnectionHandler(Stream* debugger);
+    #endif
 
     bool connect(NetworkConfig config, SystemConfig sys);
     void disconnect(unsigned long reconnectDelay);
@@ -38,7 +44,11 @@ public:
     #endif
 
 private:
+    #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
+    #else
+    Stream* debugger;
+    #endif
     NetworkConfig config;
     bool busPowered = false;
     bool firstConnect = true;

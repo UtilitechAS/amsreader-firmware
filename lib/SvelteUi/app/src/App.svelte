@@ -1,6 +1,6 @@
 <script>
   import { Router, Route, navigate } from "svelte-navigator";
-  import { getSysinfo, sysinfoStore, dataStore } from './lib/DataStores.js';
+  import { getTariff, tariffStore, sysinfoStore, dataStore, pricesStore, dayPlotStore, monthPlotStore, temperaturesStore, getSysinfo } from './lib/DataStores.js';
   import { translationsStore, getTranslations } from "./lib/TranslationService.js";
   import Favicon from './assets/favicon.svg'; // Need this for the build
   import Header from './lib/Header.svelte';
@@ -13,16 +13,41 @@
   import FileUploadComponent from "./lib/FileUploadComponent.svelte";
   import ConsentComponent from "./lib/ConsentComponent.svelte";
   import PriceConfig from "./lib/PriceConfig.svelte";
+  import DataEdit from "./lib/DataEdit.svelte";
+  import { updateRealtime } from "./lib/RealtimeStore.js";
   
   let basepath = document.getElementsByTagName('base')[0].getAttribute("href");
   if(!basepath) basepath = "/";
+
+  let prices;
+  pricesStore.subscribe(update => {
+      prices = update;
+  });
+
+  let dayPlot;
+  dayPlotStore.subscribe(update => {
+      dayPlot = update;
+  });
+
+  let monthPlot;
+  monthPlotStore.subscribe(update => {
+      monthPlot = update;
+  });
+
+  let temperatures;
+  temperaturesStore.subscribe(update => {
+      temperatures = update;
+  });
 
   let translations = {};
   translationsStore.subscribe(update => {
     translations = update;
   });
 
+  let sito;
+  let data = {};
   let sysinfo = {};
+  let currentVersion;
   sysinfoStore.subscribe(update => {
     sysinfo = update;
     if(sysinfo.vndcfg === false) {
@@ -48,23 +73,37 @@
     if(sysinfo.ui.lang && sysinfo.ui.lang != translations?.language?.code) {
       getTranslations(sysinfo.ui.lang);
     }
-  });
-  getSysinfo();
-  let data = {};
-  dataStore.subscribe(update => {
-    data = update;
+
+    if(sysinfo.version && currentVersion && sysinfo.version != currentVersion) {
+      window.location.reload();
+    }
+
+    currentVersion = sysinfo.version;
+
+    if(sito) clearTimeout(sito);
+    sito = setTimeout(getSysinfo, !data || !data.u || data.u < 30 || sysinfo?.upgrading ? 10000 : 300000);
   });
 
+  dataStore.subscribe(update => {
+    data = update;
+    updateRealtime(update);
+  });
+
+  let tariffData = {};
+  tariffStore.subscribe(update => {
+    tariffData = update;
+  });
+  getTariff();
 </script>
 
 <div class="container mx-auto m-3">
   <Router basepath={basepath}>
     <Header data={data} basepath={basepath}/>
     <Route path="/">
-      <Dashboard data={data} sysinfo={sysinfo}/>
+      <Dashboard data={data} sysinfo={sysinfo} prices={prices} dayPlot={dayPlot} monthPlot={monthPlot} temperatures={temperatures} translations={translations} tariffData={tariffData}/>
     </Route>
     <Route path="/configuration">
-      <ConfigurationPanel sysinfo={sysinfo} basepath={basepath}/>
+      <ConfigurationPanel sysinfo={sysinfo} basepath={basepath} data={data}/>
     </Route>
     <Route path="/priceconfig">
       <PriceConfig basepath={basepath}/>
@@ -90,11 +129,15 @@
     <Route path="/vendor">
       <VendorPanel sysinfo={sysinfo} basepath={basepath}/>
     </Route>
+    <Route path="/edit-day">
+      <DataEdit prefix="UTC Hour" data={dayPlot} url="/dayplot" basepath={basepath}/>
+    </Route>
+    <Route path="/edit-month">
+      <DataEdit prefix="Day" data={monthPlot} url="/monthplot" basepath={basepath}/>
+    </Route>
   </Router>
 
-  {#if sysinfo.upgrading}
-  <Mask active=true message="Device is upgrading, please wait"/>
-  {:else if sysinfo.booting}
+  {#if sysinfo.booting}
     {#if sysinfo.trying}
       <Mask active=true message="Device is booting, please wait. Trying to reach it on {sysinfo.trying}"/>
     {:else}

@@ -1,7 +1,5 @@
 <script>
-    import { pricesStore, dayPlotStore, monthPlotStore, temperaturesStore } from './DataStores.js';
-    import { ampcol, exportcol, metertype, uiVisibility, formatUnit } from './Helpers.js';
-    import { translationsStore } from './TranslationService.js';
+    import { ampcol, exportcol, metertype, uiVisibility, formatUnit, fmtnum } from './Helpers.js';
     import PowerGauge from './PowerGauge.svelte';
     import VoltPlot from './VoltPlot.svelte';
     import ReactiveData from './ReactiveData.svelte';
@@ -16,33 +14,25 @@
 
     export let data = {}
     export let sysinfo = {}
-    let prices = {}
-    let dayPlot = {}
-    let monthPlot = {}
-    let temperatures = {};
-    pricesStore.subscribe(update => {
-        prices = update;
-    });
-    dayPlotStore.subscribe(update => {
-        dayPlot = update;
-    });
-    monthPlotStore.subscribe(update => {
-        monthPlot = update;
-    });
-    temperaturesStore.subscribe(update => {
-        temperatures = update;
-    });
+    export let prices = {}
+    export let dayPlot = {}
+    export let monthPlot = {}
+    export let temperatures = {};
+    export let translations = {};
+    export let tariffData = {};
 
-    let translations = {};
-    translationsStore.subscribe(update => {
-      translations = update;
-    });
-
-    let it,et,threePhase;
+    let it,et,threePhase, l1e, l2e, l3e;
     $: {
         it = formatUnit(data?.ic * 1000, "Wh");
         et = formatUnit(data?.ec * 1000, "Wh");
-        threePhase = data?.l1?.u > 100 && data?.l2?.u > 100 && data?.l3?.u > 100;
+        if(data?.l1?.u == 0.0 && data?.l2?.u == 0.0 && data?.l3?.u == 0.0) {
+            l1e = l2e = l3e = threePhase = true;
+        } else {
+            l1e = data?.l1?.u > 0.0 || data?.l1?.i > 0.0 || data?.l1?.p > 0.0 || data?.l1?.q > 0.0;
+            l2e = data?.l2?.u > 0.0 || data?.l2?.i > 0.0 || data?.l2?.p > 0.0 || data?.l2?.q > 0.0;
+            l3e = data?.l3?.u > 0.0 || data?.l3?.i > 0.0 || data?.l3?.p > 0.0 || data?.l3?.q > 0.0;
+            threePhase = l1e && l2e && l3e;
+        }
     }
 </script>
 
@@ -51,7 +41,7 @@
         <div class="cnt">
             <div class="grid grid-cols-2">
                 <div class="col-span-2">
-                    <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label={translations.common?.import ?? "Import"} sub={data.p} subunit={data.pc} colorFn={ampcol}/>
+                    <PowerGauge val={data.i ? data.i : 0} max={data.im ? data.im : 15000} unit="W" label={translations.common?.import ?? "Import"} sub={fmtnum(data.p, 2)} subunit={data.pc} colorFn={ampcol}/>
                 </div>
                 <div>{data.mt ? metertype(data.mt) : '-'}</div>
                 <div class="text-right">{it[0]} {it[1]}</div>
@@ -62,7 +52,7 @@
         <div class="cnt">
             <div class="grid grid-cols-2">
                 <div class="col-span-2">
-                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om * 1000 : 10000} unit="W" label={translations.common?.export ?? "Export"} colorFn={exportcol}/>
+                    <PowerGauge val={data.e ? data.e : 0} max={data.om ? data.om * 1000 : 10000} unit="W" label={translations.common?.export ?? "Export"} sub={fmtnum(data.px, 2)} subunit={data.pc} colorFn={exportcol}/>
                 </div>
                 <div></div>
                 <div class="text-right">{et[0]} {et[1]}</div>
@@ -82,9 +72,9 @@
                 <PerPhasePlot title={translations.common?.amperage ?? "Amp"} unit="A" importColorFn={ampcol} exportColorFn={exportcol}
                     maxImport={data.mf}
                     maxExport={data.om ? threePhase ? data.om / 0.4 / Math.sqrt(3) : data.om / 0.23 : 0}
-                    l1={data.l1 && data.l1.u > 100} 
-                    l2={data.l2 && data.l2.u > 100} 
-                    l3={data.l3 && data.l3.u > 100}
+                    l1={l1e} 
+                    l2={l2e} 
+                    l3={l3e}
                     l2x={data.l2.e}
                     l1i={Math.max(data.l1.i,0)}
                     l2i={Math.max(data.l2.i,0)}
@@ -102,9 +92,9 @@
                 <PerPhasePlot title={translations.dashboard?.phase ?? "Phase"} unit="W" importColorFn={ampcol} exportColorFn={exportcol}
                     maxImport={(data.mf ? data.mf : 32) * 230}
                     maxExport={data.om ? threePhase ? (data.om * 1000) / Math.sqrt(3) : data.om * 1000 : 0}
-                    l1={data.l1 && data.l1.u > 100} 
-                    l2={data.l2 && data.l2.u > 100} 
-                    l3={data.l3 && data.l3.u > 100}
+                    l1={l1e} 
+                    l2={l2e} 
+                    l3={l3e}
                     l1i={data.l1.p}
                     l2i={data.l2.p}
                     l3i={data.l3.p}
@@ -120,9 +110,9 @@
             {#if data.l1}
                 <PerPhasePlot title={translations.dashboard?.pf ?? "Pf"} importColorFn={exportcol} exportColorFn={exportcol}
                     maxImport={1.0}
-                    l1={data.l1 && data.l1.u > 100} 
-                    l2={data.l2 && data.l2.u > 100} 
-                    l3={data.l3 && data.l3.u > 100}
+                    l1={l1e} 
+                    l2={l2e} 
+                    l3={l3e}
                     l1i={data.l1.f}
                     l2i={data.l2.f}
                     l3i={data.l3.f}
@@ -132,17 +122,17 @@
     {/if}
     {#if uiVisibility(sysinfo.ui.r, data.ri > 0 || data.re > 0 || data.ric > 0 || data.rec > 0)}
         <div class="cnt">
-            <ReactiveData importInstant={data.ri} exportInstant={data.re} importTotal={data.ric} exportTotal={data.rec}/>
+            <ReactiveData importInstant={data.ri} exportInstant={data.re} importTotal={data.ric} exportTotal={data.rec} translations={translations}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.c, data.ea)}
         <div class="cnt">
-            <AccountingData sysinfo={sysinfo} data={data.ea} currency={data.pc} hasExport={data.om > 0 || data.e > 0}/>
+            <AccountingData sysinfo={sysinfo} data={data.ea} currency={data.pc} hasExport={data.om > 0 || data.e > 0} translations={translations}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.t, data.pr && (data.pr.startsWith("NO") || data.pr.startsWith("10YNO") || data.pr.startsWith('10Y1001A1001A4')))}
         <div class="cnt h-64">
-            <TariffPeakChart title={translations.dashboard?.tariffpeak ?? "Tariff peaks"}/>
+            <TariffPeakChart title={translations.dashboard?.tariffpeak ?? "Tariff peaks"} tariffData={tariffData} translations={translations}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.l, data.hm == 1)}

@@ -15,11 +15,9 @@
 #include "html/index_js.h"
 #include "html/favicon_svg.h"
 #include "html/data_json.h"
-#include "html/tempsensor_json.h"
 #include "html/response_json.h"
 #include "html/sysinfo_json.h"
 #include "html/tariff_json.h"
-#include "html/peak_json.h"
 #include "html/conf_general_json.h"
 #include "html/conf_meter_json.h"
 #include "html/conf_wifi_json.h"
@@ -53,7 +51,11 @@
 #include "esp32s3/rom/rtc.h"
 #endif
 
+#if defined(AMS_REMOTE_DEBUG)
 AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc) {
+#else
+AmsWebServer::AmsWebServer(uint8_t* buf, Stream* Debug, HwTools* hw, ResetDataContainer* rdc) {
+#endif
 	this->debugger = Debug;
 	this->hw = hw;
 	this->buf = (char*) buf;
@@ -68,13 +70,14 @@ AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetD
 	}
 }
 
-void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea, RealtimePlot* rtp) {
+void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea, RealtimePlot* rtp, AmsFirmwareUpdater* updater) {
     this->config = config;
 	this->gpioConfig = gpioConfig;
 	this->meterState = meterState;
 	this->ds = ds;
 	this->ea = ea;
 	this->rtp = rtp;
+	this->updater = updater;
 
 	String context;
 	config->getWebConfig(webConfig);
@@ -85,7 +88,10 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 		if(context.length() == 1) {
 			context = "";
 		} else {
-			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
 		}
 	}
 
@@ -110,6 +116,8 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/mqtt-ca"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(context + F("/mqtt-cert"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(context + F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/edit-day"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/edit-month"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	
 	server.on(context + F("/favicon.svg"), HTTP_GET, std::bind(&AmsWebServer::faviconSvg, this)); 
 	server.on(context + F("/logo.svg"), HTTP_GET, std::bind(&AmsWebServer::logoSvg, this)); 
@@ -123,6 +131,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/realtime.json"), HTTP_GET, std::bind(&AmsWebServer::realtimeJson, this));
 	server.on(context + F("/priceconfig.json"), HTTP_GET, std::bind(&AmsWebServer::priceConfigJson, this));
 	server.on(context + F("/translations.json"), HTTP_GET, std::bind(&AmsWebServer::translationsJson, this));
+	server.on(context + F("/cloudkey.json"), HTTP_GET, std::bind(&AmsWebServer::cloudkeyJson, this));
+
+	server.on(context + F("/wifiscan.json"), HTTP_GET, std::bind(&AmsWebServer::wifiScan, this));
 
 	server.on(context + F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 	server.on(context + F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
@@ -143,6 +154,22 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/configfile"), HTTP_POST, std::bind(&AmsWebServer::configFilePost, this), std::bind(&AmsWebServer::configFileUpload, this));
 	server.on(context + F("/configfile.cfg"), HTTP_GET, std::bind(&AmsWebServer::configFileDownload, this));
 
+	server.on(context + F("/dayplot"), HTTP_POST, std::bind(&AmsWebServer::modifyDayPlot, this));
+	server.on(context + F("/monthplot"), HTTP_POST, std::bind(&AmsWebServer::modifyMonthPlot, this));
+
+	server.on(context + F("/sysinfo.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/data.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/dayplot.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/monthplot.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/energyprice.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/temperature.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/tariff.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/realtime.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/priceconfig.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/translations.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/cloudkey.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+	server.on(context + F("/configuration.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
+
 	/* These trigger captive portal. Only problem is that after you have "signed in", the portal is closed and the user has no idea how to reach the device
 	server.on(context + F("/generate_204"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Android captive portal check: http://connectivitycheck.gstatic.com/generate_204
 	server.on(context + F("/ncsi.txt"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check: http://www.msftncsi.com/ncsi.txt 
@@ -154,12 +181,24 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
 	
+	#if defined(ESP32)
+	const char * headerkeys[] = {HEADER_AUTHORIZATION, HEADER_ORIGIN, HEADER_REFERER, HEADER_ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK} ;
+    server.collectHeaders(headerkeys, 4);
+	#else
+    server.collectHeaders(HEADER_AUTHORIZATION, HEADER_ORIGIN, HEADER_REFERER, HEADER_ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK);
+	#endif
 	server.begin(); // Web server start
 
 	MqttConfig mqttConfig;
 	config->getMqttConfig(mqttConfig);
 	mqttEnabled = strlen(mqttConfig.host) > 0;
 }
+
+#if defined(_CLOUDCONNECTOR_H)
+void AmsWebServer::setCloud(CloudConnector* cloud) {
+	this->cloud = cloud;
+}
+#endif
 
 void AmsWebServer::setTimezone(Timezone* tz) {
 	this->tz = tz;
@@ -204,10 +243,10 @@ void AmsWebServer::loop() {
 
 bool AmsWebServer::checkSecurity(byte level, bool send401) {
 	bool access = WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA || webConfig.security < level;
-	if(!access && webConfig.security >= level && server.hasHeader(F("Authorization"))) {
+	if(!access && webConfig.security >= level && server.hasHeader(HEADER_AUTHORIZATION)) {
 		String expectedAuth = String(webConfig.username) + ":" + String(webConfig.password);
 
-		String providedPwd = server.header("Authorization");
+		String providedPwd = server.header(HEADER_AUTHORIZATION);
 		providedPwd.replace(F("Basic "), F(""));
 
 		#if defined(ESP8266)
@@ -218,7 +257,10 @@ bool AmsWebServer::checkSecurity(byte level, bool send401) {
 
 		access = providedPwd.equals(expectedBase64);
 		if(!access) {
-			if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Unsuccessful login: '%s'\n"), providedPwd.c_str());
+			#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("Unsuccessful login: '%s'\n"), providedPwd.c_str());
 		}
 	}
 
@@ -231,7 +273,10 @@ bool AmsWebServer::checkSecurity(byte level, bool send401) {
 }
 
 void AmsWebServer::notFound() {
-	if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("URI '%s' was not found\n"), server.uri().c_str());
+	#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+debugger->printf_P(PSTR("URI '%s' was not found\n"), server.uri().c_str());
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -328,7 +373,7 @@ void AmsWebServer::sysinfoJson() {
 	config->getUiConfig(ui);
 
 	UpgradeInformation upinfo;
-	config->getUpgradeInformation(upinfo);
+	updater->getUpgradeInformation(upinfo);
 
 	String meterModel = meterState->getMeterModel();
 	if(!meterModel.isEmpty())
@@ -339,6 +384,19 @@ void AmsWebServer::sysinfoJson() {
 		meterId.replace(F("\\"), F("\\\\"));
 
 	time_t now = time(nullptr);
+	String features = "";
+	#if defined(AMS_REMOTE_DEBUG)
+	if(!features.isEmpty()) features += ",";
+	features += "\"rdebug\"";
+	#endif
+	#if defined(AMS_KMP)
+	if(!features.isEmpty()) features += ",";
+	features += "\"kmp\"";
+	#endif
+	#if defined(AMS_CLOUD)
+	if(!features.isEmpty()) features += ",";
+	features += "\"cloud\"";
+	#endif
 
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		FirmwareVersion::VersionString,
@@ -365,7 +423,7 @@ void AmsWebServer::sysinfoJson() {
 		sys.dataCollectionConsent,
 		hostname.c_str(),
 		performRestart ? "true" : "false",
-		rebootForUpgrade ? "true" : "false",
+		updater->getProgress() > 0.0 && upinfo.errorCode == 0 ? "true" : "false",
 		#if defined(ESP8266)
 		localIp.isSet() ? localIp.toString().c_str() : "",
 		subnet.isSet() ? subnet.toString().c_str() : "",
@@ -414,19 +472,22 @@ void AmsWebServer::sysinfoJson() {
 		ESP.getResetInfoPtr()->reason,
 		ESP.getResetInfoPtr()->exccause,
 		#endif
-		upinfo.exitCode,
 		upinfo.errorCode,
 		upinfo.fromVersion,
 		upinfo.toVersion,
+		updater->getNextVersion(),
+		updater->getProgress(),
 		ea->getUseLastMonth(),
 		ea->getCostLastMonth(),
 		ea->getProducedLastMonth(),
 		ea->getIncomeLastMonth(),
-		tz == NULL ? 0 : (tz->toLocal(now)-now)/3600
+		(uint16_t) (tz == NULL ? 0 : (tz->toLocal(now)-now)/3600),
+		features.c_str()
 	);
 
 	stripNonAscii((uint8_t*) buf, size+1);
 
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -434,14 +495,17 @@ void AmsWebServer::sysinfoJson() {
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
-	if(performRestart || rebootForUpgrade) {
+	if(performRestart) {
 		server.handleClient();
 		delay(250);
 
 		if(ds != NULL) {
 			ds->save();
 		}
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::INFO))
+		#endif
+		debugger->printf_P(PSTR("Rebooting\n"));
 		debugger->flush();
 		delay(1000);
 		rdc->cause = 1;
@@ -516,6 +580,7 @@ void AmsWebServer::dataJson() {
 	}
 
 	float price = ea->getPriceForHour(PRICE_DIRECTION_IMPORT, 0);
+	float exportPrice = ea->getPriceForHour(PRICE_DIRECTION_EXPORT, 0);
 
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
@@ -531,6 +596,7 @@ void AmsWebServer::dataJson() {
 		mainFuse == 0 ? 40 : mainFuse,
 		meterState->getActiveImportPower(),
 		meterState->getActiveExportPower(),
+		((int32_t) meterState->getActiveImportPower()) - meterState->getActiveExportPower(),
 		meterState->getReactiveImportPower(),
 		meterState->getReactiveExportPower(),
 		meterState->getActiveImportCounter(),
@@ -569,6 +635,7 @@ void AmsWebServer::dataJson() {
 		mqttStatus,
 		mqttHandler == NULL ? 0 : (int) mqttHandler->lastError(),
 		price == PRICE_NO_VALUE ? "null" : String(price, 2).c_str(),
+		exportPrice == PRICE_NO_VALUE ? "null" : String(exportPrice, 2).c_str(),
 		meterState->getMeterType(),
 		distributionSystem,
 		ea->getMonthMax(),
@@ -586,7 +653,7 @@ void AmsWebServer::dataJson() {
 		ea->getCostThisMonth(),
 		ea->getProducedThisMonth(),
 		ea->getIncomeThisMonth(),
-		ps == NULL ? "false" : "true",
+		price == PRICE_NO_VALUE ? "false" : "true",
 		priceRegion.c_str(),
 		priceCurrency.c_str(),
 		meterState->getLastError(),
@@ -595,6 +662,7 @@ void AmsWebServer::dataJson() {
 		checkSecurity(1, false) ? "true" : "false"
 	);
 
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -616,6 +684,7 @@ void AmsWebServer::dayplotJson() {
 		}
 		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
+		addConditionalCloudHeaders();
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 		server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -638,6 +707,7 @@ void AmsWebServer::monthplotJson() {
 		}
 		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
+		addConditionalCloudHeaders();
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 		server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -670,6 +740,7 @@ void AmsWebServer::energyPriceJson() {
     }
 	snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -690,7 +761,7 @@ void AmsWebServer::temperatureJson() {
 		if(data == NULL) continue;
 
 		char* pos = buf+strlen(buf);
-		snprintf_P(pos, 72, TEMPSENSOR_JSON, 
+		snprintf_P(pos, 72, PSTR("{\"i\":%d,\"a\":\"%s\",\"n\":\"%s\",\"c\":%d,\"v\":%.1f},"), 
 			i,
 			toHex(data->address, 8).c_str(),
 			"",
@@ -702,6 +773,7 @@ void AmsWebServer::temperatureJson() {
 	char* pos = buf+strlen(buf);
 	snprintf_P(count == 0 ? pos : pos-1, 8, PSTR("]}"));
 
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -722,7 +794,11 @@ void AmsWebServer::indexHtml() {
 	config->getWebConfig(webConfig);
 	stripNonAscii((uint8_t*) webConfig.context, 32);
 	if(strlen(webConfig.context) > 0) {
-		context = "/" + String(webConfig.context) + "/";
+		context = String(webConfig.context);
+		context.replace(" ", "");
+		if(!context.isEmpty()) {
+			context = "/" + context + "/";
+		}
 	}
 
 	if(context.isEmpty()) {
@@ -818,6 +894,7 @@ void AmsWebServer::configurationJson() {
 		qsk = LittleFS.exists(FILE_MQTT_KEY);
 	}
 
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -899,11 +976,16 @@ void AmsWebServer::configurationJson() {
 		strlen(mqttConfig.password) > 0 ? "***" : "",
 		mqttConfig.clientId,
 		mqttConfig.publishTopic,
+		mqttConfig.subscribeTopic,
 		mqttConfig.payloadFormat,
 		mqttConfig.ssl ? "true" : "false",
 		qsc ? "true" : "false",
 		qsr ? "true" : "false",
-		qsk ? "true" : "false"
+		qsk ? "true" : "false",
+		mqttConfig.stateUpdate,
+		mqttConfig.stateUpdateInterval,
+		mqttConfig.timeout,
+		mqttConfig.keepalive
 	);
 	server.sendContent(buf);
 
@@ -978,6 +1060,7 @@ void AmsWebServer::configurationJson() {
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
 		cloud.enabled ? "true" : "false",
+		cloud.proto,
 		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 		sysConfig.energyspeedometer == 7 ? "true" : "false",
 		#else
@@ -994,6 +1077,7 @@ void AmsWebServer::priceConfigJson() {
 	if(!checkSecurity(1))
 		return;
 
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -1056,16 +1140,14 @@ void AmsWebServer::translationsJson() {
 			lang = String(ui.language);
 		}
 	}
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Sending translation file for language: %s\n"), lang.c_str());
 
 	snprintf_P(buf, BufferSize, PSTR("/translations-%s.json"), lang.c_str());
 	if(!LittleFS.exists(buf)) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Language file %s was not found\n"), buf);
 		notFound();
 		return;
 	}
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Language file %s\n"), buf);
 
+	addConditionalCloudHeaders();
 //	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -1082,10 +1164,33 @@ void AmsWebServer::translationsJson() {
 	file.close();
 }
 
-void AmsWebServer::handleSave() {
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Handling save method from http\n"));
+void AmsWebServer::cloudkeyJson() {
 	if(!checkSecurity(1))
 		return;
+	#if defined(_CLOUDCONNECTOR_H)
+		if(cloud == NULL)
+			notFound();
+
+		String seed = cloud->generateSeed();
+
+		snprintf_P(buf, BufferSize, PSTR("{\"seed\":\"%s\"}"), seed.c_str());
+
+		server.setContentLength(strlen(buf));
+		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+		server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+		server.send(200, MIME_JSON, buf);
+	#else
+		notFound();
+	#endif
+}
+
+void AmsWebServer::handleSave() {
+	if(!checkSecurity(1))
+		return;
+
+	SystemConfig sys;
+	config->getSystemConfig(sys);
 
 	bool success = true;
 	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
@@ -1103,8 +1208,6 @@ void AmsWebServer::handleSave() {
 			config->setGpioConfig(*gpioConfig);
 			config->setMeterConfig(meterConfig);
 
-			SystemConfig sys;
-			config->getSystemConfig(sys);
 			sys.boardType = success ? boardType : 0xFF;
 			sys.vendorConfigured = success;
 			config->setSystemConfig(sys);
@@ -1112,8 +1215,6 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("s")) && server.arg(F("s")) == F("true")) {
-		SystemConfig sys;
-		config->getSystemConfig(sys);
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
 
@@ -1150,11 +1251,10 @@ void AmsWebServer::handleSave() {
 				case 6: // Pow-P1
 					meterConfig.baud = 115200;
 					meterConfig.parity = 3; // 8N1
+					meterConfig.bufferSize = 8;
 					break;
 				case 3: // Pow-K UART0
 				case 5: // Pow-K+
-					meterConfig.baud = 2400;
-					meterConfig.parity = 3; // 8N1
 				case 2: // spenceme
 				case 8: // dbeinder: HAN mosquito
 				case 50: // Generic ESP32-S2
@@ -1169,6 +1269,9 @@ void AmsWebServer::handleSave() {
 					network.sleep = 2; // Light sleep
 					break;
 			}
+			#if defined(ESP8266)
+				meterConfig.bufferSize = 1;
+			#endif
 			config->setNetworkConfig(network);
 			config->setMeterConfig(meterConfig);
 			
@@ -1179,8 +1282,6 @@ void AmsWebServer::handleSave() {
 			performRestart = true;
 		}
 	} else if(server.hasArg(F("sf")) && !server.arg(F("sf")).isEmpty()) {
-		SystemConfig sys;
-		config->getSystemConfig(sys);
 		sys.dataCollectionConsent = server.hasArg(F("sf")) && (server.arg(F("sf")) == F("true") || server.arg(F("sf")) == F("1")) ? 1 : 2;
 		config->setSystemConfig(sys);
 	}
@@ -1297,6 +1398,11 @@ void AmsWebServer::handleSave() {
 			if(mqtt.port == 0) {
 				mqtt.port = mqtt.ssl ? 8883 : 1883;
 			}
+
+			mqtt.stateUpdate = server.arg(F("qt")).toInt() == 1;
+			mqtt.stateUpdateInterval = server.arg(F("qd")).toInt();
+			mqtt.timeout = server.arg(F("qi")).toInt();
+			mqtt.keepalive = server.arg(F("qk")).toInt();
 		} else {
 			config->clearMqtt(mqtt);
 		}
@@ -1331,11 +1437,15 @@ void AmsWebServer::handleSave() {
 			if(!pass.equals("***")) {
 				strcpy(webConfig.password, pass.c_str());
 			}
+			#if defined(AMS_REMOTE_DEBUG)
 			debugger->setPassword(webConfig.password);
+			#endif
 		} else {
 			memset(webConfig.username, 0, 37);
 			memset(webConfig.password, 0, 37);
+			#if defined(AMS_REMOTE_DEBUG)
 			debugger->setPassword(F(""));
+			#endif
 		}
 		strcpy(webConfig.context, server.arg(F("gc")).c_str());
 		config->setWebConfig(webConfig);
@@ -1398,6 +1508,7 @@ void AmsWebServer::handleSave() {
 		debug.serial = server.hasArg(F("ds")) && server.arg(F("ds")) == F("true");
 		debug.level = server.arg(F("dl")).toInt();
 
+		#if defined(AMS_REMOTE_DEBUG)
 		if(debug.telnet || debug.serial) {
 			if(webConfig.security > 0) {
 				debugger->setPassword(webConfig.password);
@@ -1415,6 +1526,7 @@ void AmsWebServer::handleSave() {
 		} else if(active) {
 			performRestart = true;
 		}
+		#endif
 		config->setDebugConfig(debug);
 	}
 
@@ -1467,14 +1579,13 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("c")) && server.arg(F("c")) == F("true")) {
-		SystemConfig sys;
-		config->getSystemConfig(sys);
 		sys.energyspeedometer = server.hasArg(F("ces")) && server.arg(F("ces")) == F("true") ? 7 : 0;
 		config->setSystemConfig(sys);
 
 		CloudConfig cloud;
 		config->getCloudConfig(cloud);
 		cloud.enabled = server.hasArg(F("ce")) && server.arg(F("ce")) == F("true");
+		cloud.proto = server.arg(F("cp")).toInt();
 		config->setCloudConfig(cloud);
 
 		ZmartChargeConfig zcc;
@@ -1540,19 +1651,33 @@ void AmsWebServer::handleSave() {
 			}
 			ps->cropPriceConfig(count);
 			ps->save();
+			#if defined(_CLOUDCONNECTOR_H)
+			if(cloud != NULL) {
+				cloud->forcePriceUpdate();
+			}
+			#endif
 		} else {
-			if(debugger->isActive(RemoteDebug::WARNING)) debugger->printf_P(PSTR("Price service missing...\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::WARNING))
+			#endif
+			debugger->printf_P(PSTR("Price service missing...\n"));
 		}
 	}
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Saving configuration now...\n"));
+	#if defined(AMS_REMOTE_DEBUG)
+	if (debugger->isActive(RemoteDebug::INFO))
+	#endif
+	debugger->printf_P(PSTR("Saving configuration now...\n"));
 
 	if (config->save()) {
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Successfully saved.\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::INFO))
+		#endif
+		debugger->printf_P(PSTR("Successfully saved.\n"));
 		if(config->isNetworkConfigChanged() || performRestart) {
 			performRestart = true;
 		} else {
-			hw->setup(gpioConfig);
+			hw->setup(&sys, gpioConfig);
 		}
 	} else {
 		success = false;
@@ -1566,14 +1691,17 @@ void AmsWebServer::handleSave() {
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
-	if(performRestart || rebootForUpgrade) {
+	if(performRestart) {
 		server.handleClient();
 		delay(250);
 
 		if(ds != NULL) {
 			ds->save();
 		}
-		if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::INFO))
+		#endif
+		debugger->printf_P(PSTR("Rebooting\n"));
 		debugger->flush();
 		delay(1000);
 		rdc->cause = 2;
@@ -1591,7 +1719,10 @@ void AmsWebServer::reboot() {
 	server.handleClient();
 	delay(250);
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+	#if defined(AMS_REMOTE_DEBUG)
+if (debugger->isActive(RemoteDebug::INFO))
+#endif
+debugger->printf_P(PSTR("Rebooting\n"));
 	debugger->flush();
 	delay(1000);	rdc->cause = 3;
 
@@ -1612,6 +1743,8 @@ void AmsWebServer::upgrade() {
 		"",
 		sys.dataCollectionConsent == 1 ? "true" : "false"
 	);
+
+	addConditionalCloudHeaders();
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
 
@@ -1619,68 +1752,8 @@ void AmsWebServer::upgrade() {
 		server.handleClient();
 		delay(250);
 
-		if(server.hasArg(F("url"))) {
-			customFirmwareUrl = server.arg(F("url"));
-		}
-
-		String url = customFirmwareUrl.isEmpty() || !customFirmwareUrl.startsWith(F("http")) ? F("http://hub.amsleser.no/hub/firmware/update") : customFirmwareUrl;
-
-		if(server.hasArg(F("version"))) {
-			url += "/" + server.arg(F("version"));
-		}
-		upgradeFromUrl(url, server.arg(F("expected_version")));
-	}
-}
-
-void AmsWebServer::upgradeFromUrl(String url, String nextVersion) {
-	config->setUpgradeInformation(0xFF, 0xFF, FirmwareVersion::VersionString, nextVersion.c_str());
-
-	WiFiClient client;
-	#if defined(ESP8266)
-		String chipType = F("esp8266");
-	#elif defined(CONFIG_IDF_TARGET_ESP32S2)
-		String chipType = F("esp32s2");
-	#elif defined(CONFIG_IDF_TARGET_ESP32S3)
-		String chipType = F("esp32s3");
-	#elif defined(CONFIG_IDF_TARGET_ESP32C3)
-		String chipType = F("esp32c3");
-	#elif defined(ESP32)
-		#if defined(CONFIG_FREERTOS_UNICORE)
-			String chipType = F("esp32solo");
-		#else
-			String chipType = F("esp32");
-		#endif
-	#endif
-
-	#if defined(ESP8266)
-		ESP8266HTTPUpdate httpUpdate = ESP8266HTTPUpdate(60000);
-		String currentVersion = FirmwareVersion::VersionString;
-		ESP.wdtEnable(300000);
-	#elif defined(ESP32)
-		HTTPUpdate httpUpdate = HTTPUpdate(60000);
-		String currentVersion = String(FirmwareVersion::VersionString) + "-" + chipType;
-		esp_task_wdt_init(300, true);
-	#endif
-
-	httpUpdate.rebootOnUpdate(false);
-	httpUpdate.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-	HTTPUpdateResult ret = httpUpdate.update(client, url, currentVersion);
-	int lastError = httpUpdate.getLastError();
-
-	config->setUpgradeInformation(ret, ret == HTTP_UPDATE_OK ? 0 : lastError, FirmwareVersion::VersionString, nextVersion.c_str());
-	switch(ret) {
-		case HTTP_UPDATE_FAILED:
-			debugger->printf_P(PSTR("Update failed\n"));
-			break;
-		case HTTP_UPDATE_NO_UPDATES:
-			debugger->printf_P(PSTR("No Update\n"));
-			break;
-		case HTTP_UPDATE_OK:
-			debugger->printf_P(PSTR("Update OK\n"));
-			debugger->flush();
-			rdc->cause = 4;
-			ESP.restart();
-			break;
+		String version = server.arg(F("expected_version"));
+		updater->setTargetVersion(version.c_str());
 	}
 }
 
@@ -1700,20 +1773,9 @@ void AmsWebServer::firmwarePost() {
 	if(!checkSecurity(1))
 		return;
 	
-	if(rebootForUpgrade) {
+	if(performRestart) {
 		server.send(200);
 	} else {
-		config->setUpgradeInformation(0xFF, 0xFF, FirmwareVersion::VersionString, "");
-		if(server.hasArg(F("url"))) {
-			String url = server.arg(F("url"));
-			if(!url.isEmpty() && (url.startsWith(F("http://")) || url.startsWith(F("https://")))) {
-				if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Custom firmware URL was provided\n"));
-
-				upgradeFromUrl(url, "");
-				server.send(200, MIME_PLAIN, "OK");
-				return;
-			}
-		}
 		server.sendHeader(HEADER_LOCATION,F("/firmware"));
 		server.send(303);
 	}
@@ -1728,53 +1790,118 @@ void AmsWebServer::firmwareUpload() {
 	if(upload.status == UPLOAD_FILE_START) {
         String filename = upload.filename;
 		if(filename.isEmpty()) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("No file, falling back to post\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("No file, falling back to post\n"));
 			return;
 		}
         if(!filename.endsWith(F(".bin"))) {
-            server.send_P(500, MIME_PLAIN, PSTR("500: couldn't create file"));
-		} else {
-			#if defined(ESP32)
-				esp_task_wdt_delete(NULL);
-				esp_task_wdt_deinit();
-			#elif defined(ESP8266)
-				ESP.wdtDisable();
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
 			#endif
+			debugger->printf_P(PSTR("Invalid file extension\n"));
+			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+				"false",
+				"Invalid file extension",
+				"false"
+			);
+			server.setContentLength(strlen(buf));
+			server.send(500, MIME_JSON, buf);
+			return;
 		}
-	}
-	uploadFile(FILE_FIRMWARE);
+		if(!updater->startFirmwareUpload(upload.totalSize, "new")) {
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("An error has occurred while starting firmware upload\n"));
+			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+				"false",
+				"Unable to start firmware upgrade",
+				"false"
+			);
+			server.setContentLength(strlen(buf));
+			server.send(500, MIME_JSON, buf);
+			return;
+		}
+		#if defined(ESP32)
+			esp_task_wdt_delete(NULL);
+			esp_task_wdt_deinit();
+		#elif defined(ESP8266)
+			ESP.wdtDisable();
+		#endif
+    }
+	
+	if(upload.currentSize > 0) {
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
+		debugger->printf_P(PSTR("Writing chunk: %lu bytes\n"), upload.currentSize);
+		if(!updater->addFirmwareUploadChunk(upload.buf, upload.currentSize)) {
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("An error has occurred while writing firmware to flash\n"));
+			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+				"false",
+				"Unable to write to flash",
+				"false"
+			);
+			server.setContentLength(strlen(buf));
+			server.send(500, MIME_JSON, buf);
+			return;
+		}
+    }
+	
 	if(upload.status == UPLOAD_FILE_END) {
-		rebootForUpgrade = true;
-		server.sendHeader(HEADER_LOCATION,F("/"));
-		server.send(302);
-	}
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
+		debugger->printf_P(PSTR("Upload complete\n"));
+
+		if(updater->completeFirmwareUpload(upload.totalSize)) {
+			performRestart = true;
+			server.sendHeader(HEADER_LOCATION,F("/"));
+			server.send(302);
+		} else {
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("An error has occurred while activating new firmware\n"));
+			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+				"false",
+				"Unable to activate new firmware",
+				"false"
+			);
+			server.setContentLength(strlen(buf));
+			server.send(500, MIME_JSON, buf);
+			return;
+		}
+    }
 }
 
 HTTPUpload& AmsWebServer::uploadFile(const char* path) {
     HTTPUpload& upload = server.upload();
     if(upload.status == UPLOAD_FILE_START) {
 		if(uploading) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("Upload already in progress\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("Upload already in progress\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Upload already in progress!</h1></body></html>"));
 		} else if (!LittleFS.begin()) {
-			if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("An Error has occurred while mounting LittleFS\n"));
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::ERROR))
+			#endif
+			debugger->printf_P(PSTR("An Error has occurred while mounting LittleFS\n"));
 			server.send_P(500, MIME_HTML, PSTR("<html><body><h1>Unable to mount LittleFS!</h1></body></html>"));
 		} else {
 			uploading = true;
-			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf_P(PSTR("handleFileUpload file: %s\n"), path);
-			}
 			if(LittleFS.exists(path)) {
 				LittleFS.remove(path);
 			}
 		    file = LittleFS.open(path, "w");
-			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf_P(PSTR("handleFileUpload Open file and write: %u\n"), upload.currentSize);
-			}
             size_t written = file.write(upload.buf, upload.currentSize);
-			if(debugger->isActive(RemoteDebug::DEBUG)) {
-				debugger->printf_P(PSTR("handleFileUpload Written: %u\n"), written);
-			}
 	    } 
     } else if(upload.status == UPLOAD_FILE_WRITE) {
         if(file) {
@@ -1785,7 +1912,10 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 				file.close();
 				LittleFS.remove(path);
 
-				if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("An Error has occurred while writing file\n"));
+				#if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::ERROR))
+				#endif
+				debugger->printf_P(PSTR("An Error has occurred while writing file\n"));
 				snprintf_P(buf, BufferSize, RESPONSE_JSON,
 					"false",
 					"File size does not match",
@@ -1796,9 +1926,6 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 			}
 		}
     } else if(upload.status == UPLOAD_FILE_END) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) {
-			debugger->printf_P(PSTR("handleFileUpload Ended\n"));
-		}
         if(file) {
 			file.flush();
             file.close();
@@ -1817,7 +1944,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 }
 
 void AmsWebServer::isAliveCheck() {
-	server.sendHeader(F("Access-Control-Allow-Origin"), F("*"));
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, F("*"));
 	server.send(200);
 }
 
@@ -1825,13 +1952,9 @@ void AmsWebServer::factoryResetPost() {
 	if(!checkSecurity(1))
 		return;
 
-	if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Performing factory reset\n"));
-
 	bool success = false;
 	if(server.hasArg(F("perform")) && server.arg(F("perform")) == F("true")) {
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Formatting LittleFS\n"));
 		LittleFS.format();
-		if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("Clearing configuration\n"));
 		config->clear();
 
 		success = true;
@@ -1848,7 +1971,10 @@ void AmsWebServer::factoryResetPost() {
 	server.handleClient();
 	delay(250);
 
-	if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
+	#if defined(AMS_REMOTE_DEBUG)
+	if (debugger->isActive(RemoteDebug::INFO))
+	#endif
+	debugger->printf_P(PSTR("Rebooting\n"));
 	debugger->flush();
 	delay(1000);
 	rdc->cause = 5;
@@ -1974,7 +2100,7 @@ void AmsWebServer::tariffJson() {
 	String peaks;
     for(uint8_t x = 0;x < min((uint8_t) 5, eac->hours); x++) {
 		EnergyAccountingPeak peak = ea->getPeak(x+1);
-		int len = snprintf_P(buf, BufferSize, PEAK_JSON,
+		int len = snprintf_P(buf, BufferSize, PSTR("{\"d\":%d,\"v\":%.2f}"),
 			peak.day,
 			peak.value / 100.0
 		);
@@ -1999,6 +2125,7 @@ void AmsWebServer::tariffJson() {
 		ea->getMonthMax()
 	);
 
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -2013,6 +2140,7 @@ void AmsWebServer::realtimeJson() {
 		return;
 	}
 
+	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
@@ -2063,7 +2191,7 @@ void AmsWebServer::configFileDownload() {
 	bool includeNtp = server.hasArg(F("in")) && server.arg(F("in")) == F("true");
 	bool includePrice = server.hasArg(F("is")) && server.arg(F("is")) == F("true");
 	bool includeThresholds = server.hasArg(F("ih")) && server.arg(F("ih")) == F("true");
-	
+
 	SystemConfig sys;
 	config->getSystemConfig(sys);
 
@@ -2103,6 +2231,7 @@ void AmsWebServer::configFileDownload() {
 			if(mqtt.port > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPort %d\n"), mqtt.port));
 			if(strlen(mqtt.clientId) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttClientId %s\n"), mqtt.clientId));
 			if(strlen(mqtt.publishTopic) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPublishTopic %s\n"), mqtt.publishTopic));
+			if(strlen(mqtt.subscribeTopic) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttSubscribeTopic %s\n"), mqtt.subscribeTopic));
 			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttUsername %s\n"), mqtt.username));
 			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPassword %s\n"), mqtt.password));
 			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPayloadFormat %d\n"), mqtt.payloadFormat));
@@ -2125,7 +2254,7 @@ void AmsWebServer::configFileDownload() {
 			}
 		}
 	}
-
+	
 	if(includeWeb && includeSecrets) {
 		WebConfig web;
 		config->getWebConfig(web);
@@ -2135,7 +2264,7 @@ void AmsWebServer::configFileDownload() {
 			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("webPassword %s\n"), web.password));
 		}
 	}
-
+	
 	if(includeMeter) {
 		MeterConfig meter;
 		config->getMeterConfig(meter);
@@ -2168,7 +2297,7 @@ void AmsWebServer::configFileDownload() {
 			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAuthenticationKey %s\n"), toHex(meter.authenticationKey, 16).c_str()));
 		}
 	}
-
+	
 	if(includeGpio) {
 		MeterConfig meter;
 		config->getMeterConfig(meter);
@@ -2209,6 +2338,58 @@ void AmsWebServer::configFileDownload() {
 		if(strlen(price.entsoeToken) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEntsoeToken %s\n"), price.entsoeToken));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceArea %s\n"), price.area));
 		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceCurrency %s\n"), price.currency));
+		if(ps != NULL) {
+			uint8_t i = 0;
+			std::vector<PriceConfig> pc = ps->getPriceConfig();
+			if(pc.size() > 0) {
+				for(uint8_t i = 0; i < pc.size(); i++) {
+					PriceConfig& p = pc.at(i);
+					char direction[7] = "";
+					switch(p.direction) {
+						case PRICE_DIRECTION_IMPORT:
+							strcpy_P(direction, PSTR("import"));
+							break;
+						case PRICE_DIRECTION_EXPORT:
+							strcpy_P(direction, PSTR("export"));
+							break;
+						case PRICE_DIRECTION_BOTH:
+							strcpy_P(direction, PSTR("both"));
+							break;
+					}
+					char type[9] = "";
+					switch(p.type) {
+						case PRICE_TYPE_FIXED:
+							strcpy_P(type, PSTR("fixed"));
+							break;
+						case PRICE_TYPE_ADD:
+							strcpy_P(type, PSTR("add"));
+							break;
+						case PRICE_TYPE_PCT:
+							strcpy_P(type, PSTR("percent"));
+							break;
+						case PRICE_TYPE_SUBTRACT:
+							strcpy_P(type, PSTR("subtract"));
+							break;
+					}
+					char days[12] = "";
+					char hours[12] = "";
+
+					server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceModifier %i %s %s %s %.4f %s %s %02d-%02d %02d-%02d\n"), 
+						i, 
+						p.name, 
+						direction,
+						type,
+						p.value / 10000.0,
+						days,
+						hours,
+						p.start_dayofmonth,
+						p.start_month,
+						p.end_dayofmonth,
+						p.end_month
+					));
+				}
+			}
+		}
 	}
 
 	if(includeThresholds) {
@@ -2427,21 +2608,6 @@ void AmsWebServer::configFileUpload() {
 		);
 		server.setContentLength(strlen(buf));
 		server.send(200, MIME_JSON, buf);
-
-		if(performRestart || rebootForUpgrade) {
-			server.handleClient();
-			delay(250);
-
-			if(ds != NULL) {
-				ds->save();
-			}
-			if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("Rebooting\n"));
-			debugger->flush();
-			delay(1000);
-			rdc->cause = 6;
-			performRestart = false;
-			ESP.restart();
-		}
 	}
 }
 
@@ -2453,10 +2619,174 @@ void AmsWebServer::redirectToMain() {
 		context = String(webConfig.context);
 	}
 
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 	server.sendHeader(HEADER_LOCATION, "/" + context);
 	server.send(302);
 }
 
 void AmsWebServer::ssdpSchema() {
 	SSDP.schema(server.client());
+}
+
+void AmsWebServer::modifyDayPlot() {
+	if(!checkSecurity(1))
+		return;
+
+	for(uint8_t i = 0; i < 24; i++) {
+		snprintf_P(buf, BufferSize, PSTR("i%02d"), i);
+		if(server.hasArg(buf)) {
+			ds->setHourImport(i, server.arg(buf).toDouble() * 1000);
+		}
+		snprintf_P(buf, BufferSize, PSTR("e%02d"), i);
+		if(server.hasArg(buf)) {
+			ds->setHourExport(i, server.arg(buf).toDouble() * 1000);
+		}
+	}
+	bool ret = ds->save();
+
+	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+		"true",
+		"",
+		ret ? "true" : "false"
+	);
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
+}
+
+void AmsWebServer::modifyMonthPlot() {
+	if(!checkSecurity(1))
+		return;
+
+	for(uint8_t i = 1; i <= 31; i++) {
+		snprintf_P(buf, BufferSize, PSTR("i%02d"), i);
+		if(server.hasArg(buf)) {
+			ds->setDayImport(i, server.arg(buf).toDouble() * 1000);
+		}
+		snprintf_P(buf, BufferSize, PSTR("e%02d"), i);
+		if(server.hasArg(buf)) {
+			ds->setDayExport(i, server.arg(buf).toDouble() * 1000);
+		}
+	}
+	bool ret = ds->save();
+
+	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+		"true",
+		"",
+		ret ? "true" : "false"
+	);
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
+}
+
+void AmsWebServer::addConditionalCloudHeaders() {
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, ORIGIN_AMSLESER_CLOUD);
+
+	String req = server.header(HEADER_ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK);
+	if(!req.equalsIgnoreCase(F("true"))) {
+		return;
+	}
+
+	String ref;
+	if(server.hasHeader(HEADER_ORIGIN)) {
+		ref = server.header(HEADER_ORIGIN);
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
+		debugger->printf_P(PSTR("Origin: %s\n"), ref.c_str());
+	} else if(server.hasHeader(HEADER_REFERER)) {
+		ref = server.header(HEADER_REFERER);
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
+		debugger->printf_P(PSTR("Referer: %s\n"), ref.c_str());
+	} else {
+		#if defined(AMS_REMOTE_DEBUG)
+		if (debugger->isActive(RemoteDebug::DEBUG))
+		#endif
+		debugger->printf_P(PSTR("No Origin or Referer\n"));
+	}
+	if(!ref.startsWith(ORIGIN_AMSLESER_CLOUD)) {
+		return;
+	}
+
+	NetworkConfig networkConfig;
+	config->getNetworkConfig(networkConfig);
+
+    char macStr[18] = { 0 };
+    char apMacStr[18] = { 0 };
+
+	uint8_t mac[6];
+
+	#if defined(ESP8266)
+    wifi_get_macaddr(STATION_IF, mac);
+	#elif defined(ESP32)
+    esp_wifi_get_mac((wifi_interface_t)ESP_IF_WIFI_STA, mac);
+	#endif
+
+    sprintf(macStr, "%02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_PRIVATE_NETWORK, F("true"));
+	server.sendHeader(F("Private-Network-Access-Name"), networkConfig.hostname);
+	server.sendHeader(F("Private-Network-Access-ID"), macStr);
+}
+
+void AmsWebServer::optionsGet() {
+	addConditionalCloudHeaders();
+	server.sendHeader(F("Allow"), F("GET"));
+	server.send(200);
+}
+
+void AmsWebServer::wifiScan() {
+	if(!checkSecurity(1))
+		return;
+
+	int16_t count = WiFi.scanNetworks();
+	int pos = snprintf_P(buf, BufferSize, PSTR("{\"c\":%d,\"n\":["), count);
+	for (int16_t i = 0; i < count; i++) {
+		uint8_t* bssid = WiFi.BSSID(i);
+		String ssid = WiFi.SSID(i);
+		int32_t rssi = WiFi.RSSI(i);
+		int32_t chan = WiFi.channel(i);
+		#if defined(ESP32)
+			wifi_auth_mode_t enc = WiFi.encryptionType(i);
+			String encStr;
+			switch (enc) {
+				case WIFI_AUTH_OPEN:            encStr = "open"; break;
+				case WIFI_AUTH_WEP:             encStr = "WEP"; break;
+				case WIFI_AUTH_WPA_PSK:         encStr = "WPA"; break;
+				case WIFI_AUTH_WPA2_PSK:        encStr = "WPA2"; break;
+				case WIFI_AUTH_WPA_WPA2_PSK:    encStr = "WPA+WPA2"; break;
+				case WIFI_AUTH_WPA2_ENTERPRISE: encStr = "WPA2-EAP"; break;
+				case WIFI_AUTH_WPA3_PSK:        encStr = "WPA3"; break;
+				case WIFI_AUTH_WPA2_WPA3_PSK:   encStr = "WPA2+WPA3"; break;
+				case WIFI_AUTH_WAPI_PSK:        encStr = "WAPI"; break;
+				default:                        encStr = "unknown";
+			}
+		#else
+			uint8_t enc = WiFi.encryptionType(i);
+			String encStr;
+			switch (enc) {
+				case ENC_TYPE_WEP:  encStr = "WEP"; break;
+				case ENC_TYPE_TKIP: encStr = "WPA"; break;
+				case ENC_TYPE_CCMP: encStr = "WPA2"; break;
+				case ENC_TYPE_NONE: encStr = "open"; break;
+				default:            encStr = "unknown";
+			}
+		#endif
+
+	    char bssidStr[18] = { 0 };
+	    sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X", bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+		pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("{\"b\":\"%s\",\"s\":\"%s\",\"r\":%d,\"c\":%d,\"e\":\"%s\"}%s"), bssidStr, ssid.c_str(), rssi, chan, encStr, i == count-1 ? "" : ",");
+	}
+	pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("]}"));
+	WiFi.scanDelete();
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
 }

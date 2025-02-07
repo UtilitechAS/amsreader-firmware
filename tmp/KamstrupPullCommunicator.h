@@ -72,8 +72,6 @@ private:
     bool requestData();
     void sendDisconnectMessage();
     bool checkForDisconnectMessage();
-
-    void debugPrint(byte *buffer, int start, int length);
 };
 
 #endif

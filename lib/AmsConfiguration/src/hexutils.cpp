@@ -35,7 +35,7 @@ bool stripNonAscii(uint8_t* in, uint16_t size, bool extended) {
 			memset(in+i, 0, size-i);
 			break;
 		}
-		if(extended && (in[i] < 32 || in[i] == 127 || in[i] == 129 || in[i] == 141 || in[i] == 143 || in[i] == 144 || in[i] == 157)) {
+		if(extended && (in[i] < 32 || in[i] == 127 || in[i] == 129 || in[i] == 141 || in[i] == 143 || in[i] == 144 || in[i] == 157 || in[i] == 160)) {
 			memset(in+i, ' ', 1);
 			ret = true;
 		} else if(!extended && (in[i] < 32 || in[i] > 126)) {
@@ -45,4 +45,20 @@ bool stripNonAscii(uint8_t* in, uint16_t size, bool extended) {
 	}
 	memset(in+size-1, 0, 1); // Make sure the last character is null-terminator
 	return ret;
+}
+
+void debugPrint(uint8_t *buffer, uint16_t start, uint16_t length, Print* debugger) {
+	for (uint16_t i = start; i < start + length; i++) {
+		if (buffer[i] < 0x10)
+			debugger->print(F("0"));
+		debugger->print(buffer[i], HEX);
+		debugger->print(F(" "));
+		if ((i - start + 1) % 16 == 0)
+			debugger->println(F(""));
+		else if ((i - start + 1) % 4 == 0)
+			debugger->print(F(" "));
+
+		yield(); // Let other get some resources too
+	}
+	debugger->println(F(""));
 }

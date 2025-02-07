@@ -53,10 +53,11 @@
     "boot_reason": %d,
     "ex_cause": %d,
     "upgrade": {
-        "x": %d,
         "e": %d,
         "f": "%s",
-        "t": "%s"
+        "t": "%s",
+        "n": "%s",
+        "p": %.1f
     },
     "last_month": {
         "u" : %.2f,
@@ -64,5 +65,6 @@
         "p" : %.2f,
         "i" : %.2f
     },
-    "clock_offset": %d
+    "clock_offset": %d,
+    "features": [%s]
 }

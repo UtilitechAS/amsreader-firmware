@@ -634,8 +634,8 @@ void AmsWebServer::dataJson() {
 		wifiStatus,
 		mqttStatus,
 		mqttHandler == NULL ? 0 : (int) mqttHandler->lastError(),
-		price == PRICE_NO_VALUE ? "null" : String(price, 2).c_str(),
-		exportPrice == PRICE_NO_VALUE ? "null" : String(exportPrice, 2).c_str(),
+		price == PRICE_NO_VALUE ? "null" : String(price, abs(price) > 1.0 ? 2 : 4).c_str(),
+		exportPrice == PRICE_NO_VALUE ? "null" : String(exportPrice, abs(exportPrice) > 1.0 ? 2 : 4).c_str(),
 		meterState->getMeterType(),
 		distributionSystem,
 		ea->getMonthMax(),
@@ -2732,6 +2732,7 @@ void AmsWebServer::wifiScan() {
 
 	int16_t count = WiFi.scanNetworks();
 	int pos = snprintf_P(buf, BufferSize, PSTR("{\"c\":%d,\"n\":["), count);
+	count = min(count, (int16_t) 25); // Max 25 so that we don't overflow the buffer size
 	for (int16_t i = 0; i < count; i++) {
 		uint8_t* bssid = WiFi.BSSID(i);
 		String ssid = WiFi.SSID(i);

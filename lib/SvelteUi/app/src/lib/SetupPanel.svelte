@@ -80,7 +80,7 @@
             {#if connectionMode == 1 || connectionMode == 2}
                 <div class="my-3">
                     {translations.conf?.connection?.ssid ?? "SSID"}
-                    <label class="float-right mr-3"><input type="checkbox" name="qs" value="true" bind:checked={manual} class="rounded mb-1"/> manual</label>
+                    <label class="float-right mr-3"><input type="checkbox" value="true" bind:checked={manual} class="rounded mb-1"/> manual</label>
                     <br/>
                     {#if manual}
                         <input name="ss" type="text" pattern={asciiPatternExt} class="in-s" required={connectionMode == 1 || connectionMode == 2}/>

@@ -25,14 +25,22 @@ public:
         http->setTimeout(10000);
         http->setUserAgent("ams2mqtt/" + String(FirmwareVersion::VersionString));
     };
-    void setToken(const char* token);
+    void setup(const char* baseUrl, const char* token);
     void update(AmsData& data);
+
+    bool isConfigChanged();
+    void ackConfigChanged();
+
+    const char* getBaseUrl();
 
 private:
     RemoteDebug* debugger;
+    char baseUrl[64];
     char token[21];
     uint16_t BufferSize = 2048;
     char* json;
+
+    bool configChanged = false;
 
     bool lastFailed = false;
     uint64_t lastUpdate = 0;

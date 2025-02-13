@@ -397,6 +397,10 @@ void AmsWebServer::sysinfoJson() {
 	if(!features.isEmpty()) features += ",";
 	features += "\"cloud\"";
 	#endif
+	#if defined(ZMART_CHARGE)
+	if(!features.isEmpty()) features += ",";
+	features += "\"zc\"";
+	#endif
 
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		FirmwareVersion::VersionString,
@@ -1593,6 +1597,9 @@ void AmsWebServer::handleSave() {
 		zcc.enabled = server.hasArg(F("cze")) && server.arg(F("cze")) == F("true");
 		String token = server.arg(F("czt"));
 		strcpy(zcc.token, token.c_str());
+		if(server.hasArg(F("czu")) && server.arg(F("czu")).startsWith(F("https"))) {
+			strcpy(zcc.baseUrl, server.arg(F("czu")).c_str());
+		}
 		config->setZmartChargeConfig(zcc);
 	}
 

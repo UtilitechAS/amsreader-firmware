@@ -2,9 +2,25 @@
 #include "Uptime.h"
 #include "ArduinoJson.h"
 
-void ZmartChargeCloudConnector::setToken(const char* token) {
+void ZmartChargeCloudConnector::setup(const char* baseUrl, const char* token) {
+    memset(this->baseUrl, 0, 64);
+    memset(this->token, 0, 21);
+    strcpy(this->baseUrl, baseUrl);
     strcpy(this->token, token);
 }
+
+bool ZmartChargeCloudConnector::isConfigChanged() {
+    return configChanged;
+}
+
+void ZmartChargeCloudConnector::ackConfigChanged() {
+    configChanged = false;
+}
+
+const char* ZmartChargeCloudConnector::getBaseUrl() {
+    return baseUrl;
+}
+
 
 void ZmartChargeCloudConnector::update(AmsData& data) {
     if(strlen(token) == 0) return;
@@ -34,7 +50,11 @@ void ZmartChargeCloudConnector::update(AmsData& data) {
             data.getActiveImportPower()
         );
         lastFailed = true;
-        if(http->begin(F("https://central.zmartcharge.com/api/loadbalancer"))) {
+        char url[128];
+        memset(url, 0, 128);
+        snprintf_P(url, 128, PSTR("%s/loadbalancer"), baseUrl);
+        if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(ZmartCharge) Connecting to: %s\n"), baseUrl);
+        if(http->begin(url)) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(ZmartCharge) Sending data: %s\n"), json);
             int status = http->POST(json);
             if(status == 200) {
@@ -52,6 +72,16 @@ void ZmartChargeCloudConnector::update(AmsData& data) {
                     }
                     if(doc["Settings"].containsKey("HeartBeatTimeFastThreshold")) {
                         heartbeatFastThreshold = doc["Settings"]["HeartBeatTimeFastThreshold"].as<long>();
+                    }
+                    if(doc["Settings"].containsKey("ZmartChargeUrl")) {
+                        String newBaseUrl = doc["Settings"]["ZmartChargeUrl"].as<String>();
+                        if(newBaseUrl.startsWith("https:") && strncmp(newBaseUrl.c_str(), baseUrl, strlen(baseUrl)) != 0) {
+                            newBaseUrl.replace("\\/", "/");
+                            if(debugger->isActive(RemoteDebug::INFO)) debugger->printf_P(PSTR("(ZmartCharge) Received new URL: %s\n"), newBaseUrl.c_str());
+                            memset(baseUrl, 0, 64);
+                            memcpy(baseUrl, newBaseUrl.c_str(), strlen(newBaseUrl.c_str()));
+                            configChanged = true;
+                        }
                     }
                 }
                 http->end();

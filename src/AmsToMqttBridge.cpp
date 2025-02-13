@@ -25,6 +25,8 @@ ADC_MODE(ADC_VCC);
 #endif
 #if defined(AMS_CLOUD)
 #include "CloudConnector.h"
+#endif
+#if defined(ZMART_CHARGE)
 #include "ZmartChargeCloudConnector.h"
 #endif
 
@@ -183,7 +185,11 @@ AmsFirmwareUpdater updater(&Debug, &hw, &meterState);
 AmsDataStorage ds(&Debug);
 #if defined(_CLOUDCONNECTOR_H)
 CloudConnector *cloud = NULL;
+#endif
+#if defined(ZMART_CHARGE)
 ZmartChargeCloudConnector *zcloud = NULL;
+#endif
+#if defined(ESP32)
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
 #else
 EnergyAccountingRealtimeData rtd;
@@ -695,14 +701,16 @@ void loop() {
 			if(cloud != NULL) {
 				cloud->update(meterState, ea);
 			}
+			#endif
 
+			#if defined(ZMART_CHARGE)
 			if(config.isZmartChargeConfigChanged()) {
 				ZmartChargeConfig zcc;
 				if(config.getZmartChargeConfig(zcc) && zcc.enabled) {
 					if(zcloud == NULL) {
 						zcloud = new ZmartChargeCloudConnector(&Debug, (char*) commonBuffer);
 					}
-					zcloud->setToken(zcc.token);
+					zcloud->setup(zcc.baseUrl, zcc.token);
 				} else if(zcloud != NULL) {
 					delete zcloud;
 					zcloud = NULL;
@@ -711,6 +719,17 @@ void loop() {
 			}
 			if(zcloud != NULL) {
 				zcloud->update(meterState);
+				if(zcloud->isConfigChanged()) {
+					ZmartChargeConfig zcc;
+					if(config.getZmartChargeConfig(zcc)) {
+						const char* newBaseUrl = zcloud->getBaseUrl();
+						memset(zcc.baseUrl, 0, 64);
+						memcpy(zcc.baseUrl, newBaseUrl, strlen(newBaseUrl));
+						config.setZmartChargeConfig(zcc);
+						config.ackZmartChargeConfig();
+					}
+					zcloud->ackConfigChanged();
+				}
 			}
 			#endif
 			start = millis();

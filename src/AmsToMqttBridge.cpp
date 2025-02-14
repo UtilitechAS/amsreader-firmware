@@ -707,7 +707,8 @@ void loop() {
 				updater.getUpgradeInformation(upinfo);
 				config.setUpgradeInformation(upinfo);
 				updater.ackUpgradeInformationChanged();
-				mqttHandler->publishFirmware();
+				if(mqttHandler != NULL)
+					mqttHandler->publishFirmware();
 				
 				if(upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_SIGNAL) {
 					debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);

@@ -170,7 +170,7 @@ bool CloudConnector::init() {
 
 void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     unsigned long now = millis();
-    if(now-lastUpdate < config.interval*1000) {
+    if(now-lastUpdate < ((unsigned long)config.interval)*1000) {
         return;
     };
     bool sendFirst = lastUpdate == 0;
@@ -546,6 +546,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
         if(ret == 0) {
             if(stream != NULL) {
                 stream->write(encryptedBuffer, rsa->len);
+                stream->flush();
             } else {
                 memcpy(httpBuffer + sendBytes, encryptedBuffer, rsa->len);
             }

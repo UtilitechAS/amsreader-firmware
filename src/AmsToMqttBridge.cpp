@@ -10,7 +10,6 @@
  */
 
 #include <Arduino.h>
-#include <regex>
 
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>

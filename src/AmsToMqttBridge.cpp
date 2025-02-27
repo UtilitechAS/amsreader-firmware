@@ -10,6 +10,7 @@
  */
 
 #include <Arduino.h>
+#include <regex>
 
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
@@ -1550,6 +1551,22 @@ void MQTT_connect() {
 	}
 }
 
+String getSplit(String input, int index) {
+	char separator = ' ';
+	String ret = input;
+	ret.trim();
+	for(int i = 0; i < index; i++) {
+		int pos = ret.indexOf(separator);
+		if(pos == -1) {
+			return "";
+		}
+		ret = ret.substring(pos+1);
+	}
+	ret = ret.substring(0, ret.indexOf(separator));
+	ret.trim();
+	return ret;
+}
+
 void configFileParse() {
 	debugD_P(PSTR("Parsing config file"));
 
@@ -1587,6 +1604,7 @@ void configFileParse() {
 	NtpConfig ntp;
 	PriceServiceConfig price;
 	EnergyAccountingConfig eac;
+	uint8_t priceModifierCount = 0;
 
 	size_t size;
 	char* buf = (char*) commonBuffer;
@@ -1821,6 +1839,92 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("priceFixedPrice "), 16) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			price.unused2 = String(buf+16).toFloat() * 1000;
+		} else if(strncmp_P(buf, PSTR("priceModifier "), 14) == 0) {
+			PriceConfig pc;
+			memset(&pc, 0, sizeof(PriceConfig));
+
+			String line = String(buf+14);
+
+			uint8_t priceIndex = line.substring(0, line.indexOf(" ")).toInt();
+
+			int nameStart = line.indexOf("\"");
+			if(nameStart < 0) {
+				debugW_P(PSTR("Price modifier without name start"));
+				continue;
+			}
+			int nameEnd = line.indexOf("\"", nameStart+1);
+			if(nameEnd < nameStart) {
+				debugW_P(PSTR("Price modifier without name end"));
+				continue;
+			}
+			String name = line.substring(nameStart+1, nameEnd);
+			strcpy(pc.name, name.c_str());
+			String rest = line.substring(nameEnd+1);
+
+			String direction = getSplit(rest, 0);
+			if(direction.equals("import")) {
+				pc.direction = PRICE_DIRECTION_IMPORT;
+			} else if(direction.equals("export")) {
+				pc.direction = PRICE_DIRECTION_EXPORT;
+			} else if(direction.equals("both")) {
+				pc.direction = PRICE_DIRECTION_BOTH;
+			} else {
+				debugW_P(PSTR("Price modifier with unknown direction \"%s\""), direction.c_str());
+				continue;
+			}
+
+			String type = getSplit(rest, 1);
+			if(type.equals("fixed")) {
+				pc.type = PRICE_TYPE_FIXED;
+			} else if(type.equals("add")) {
+				pc.type = PRICE_TYPE_ADD;
+			} else if(type.equals("percent")) {
+				pc.type = PRICE_TYPE_PCT;
+			} else if(type.equals("subtract")) {
+				pc.type = PRICE_TYPE_SUBTRACT;
+			} else {
+				debugW_P(PSTR("Price modifier unknown type"));
+				continue;
+			}
+
+			pc.value = getSplit(rest, 2).toFloat() * 10000;
+
+			String days = getSplit(rest, 3);
+			if(days.equals("all")) {
+				pc.days = 0x7F;
+			} else {
+				pc.days = 0;
+				if(days.indexOf("mo") >= 0) pc.days |= 1 << 0;
+				if(days.indexOf("tu") >= 0) pc.days |= 1 << 1;
+				if(days.indexOf("we") >= 0) pc.days |= 1 << 2;
+				if(days.indexOf("th") >= 0) pc.days |= 1 << 3;
+				if(days.indexOf("fr") >= 0) pc.days |= 1 << 4;
+				if(days.indexOf("sa") >= 0) pc.days |= 1 << 5;
+				if(days.indexOf("su") >= 0) pc.days |= 1 << 6;
+			}
+
+			String hours = getSplit(rest, 4);
+			if(hours.equals("all")) {
+				pc.hours = 0xFFFFFF;
+			} else {
+				pc.hours = 0;
+				for(uint8_t i = 0; i < 24; i++) {
+					char h[4];
+					snprintf_P(h, 4, PSTR("%02d"), i);
+					if(hours.indexOf(String(h)) >= 0) pc.hours |= 1 << i;
+				}
+			}
+
+			String start = getSplit(rest, 5);
+			pc.start_dayofmonth = start.substring(0, start.indexOf("-")).toInt();
+			pc.start_month = start.substring(start.indexOf("-")+1).toInt();
+
+			String end = getSplit(rest, 6);
+			pc.end_dayofmonth = end.substring(0, end.indexOf("-")).toInt();
+			pc.end_month = end.substring(end.indexOf("-")+1).toInt();
+
+			ps->setPriceConfig(priceIndex, pc);
+			priceModifierCount = priceIndex+1;
 		} else if(strncmp_P(buf, PSTR("thresholds "), 11) == 0) {
 			if(!lEac) { config.getEnergyAccountingConfig(eac); lEac = true; };
 			int i = 0;
@@ -2057,6 +2161,7 @@ void configFileParse() {
 	if(lEac) config.setEnergyAccountingConfig(eac);
 	if(sDs) ds.save();
 	if(sEa) ea.save();
+	if(priceModifierCount > 0) ps->save();
 	config.save();
 	LittleFS.end();
 }

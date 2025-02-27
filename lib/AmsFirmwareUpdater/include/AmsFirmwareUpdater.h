@@ -17,6 +17,9 @@
     #define AMS_PARTITION_MIN_SPIFFS_SIZE 0x20000
 #elif defined(ESP8266)
 	#include <ESP8266HTTPClient.h>
+
+    #define AMS_FLASH_SKETCH_SIZE 0xFEFF0
+    #define AMS_FLASH_OTA_START AMS_FLASH_OTA_SIZE
 #endif
 
 #if defined(AMS_REMOTE_DEBUG)

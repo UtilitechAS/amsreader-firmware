@@ -1128,7 +1128,7 @@ bool AmsFirmwareUpdater::moveLittleFsFromApp1ToNew() {
 }
 #elif defined(ESP8266)
 uintptr_t AmsFirmwareUpdater::getFirmwareUpdateStart() {
-    return FS_start - 0x40200000;
+    return (AMS_FLASH_SKETCH_SIZE + FLASH_SECTOR_SIZE - 1) & (~(FLASH_SECTOR_SIZE - 1));
 }
 
 bool AmsFirmwareUpdater::isFlashReadyForNextUpdateVersion(uint32_t size) {
@@ -1136,6 +1136,14 @@ bool AmsFirmwareUpdater::isFlashReadyForNextUpdateVersion(uint32_t size) {
     if (debugger->isActive(RemoteDebug::INFO))
     #endif
     debugger->printf_P(PSTR("Checking if we can upgrade\n"));
+
+    if(FS_PHYS_ADDR < (getFirmwareUpdateStart() + AMS_FLASH_SKETCH_SIZE)) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("No room for OTA update\n"));
+        return false;
+    }
 
     if(!ESP.checkFlashConfig(false)) {
         #if defined(AMS_REMOTE_DEBUG)
@@ -1145,24 +1153,12 @@ bool AmsFirmwareUpdater::isFlashReadyForNextUpdateVersion(uint32_t size) {
         return false;
     }
 
-    //size of current sketch rounded to a sector
-    size_t currentSketchSize = (ESP.getSketchSize() + FLASH_SECTOR_SIZE - 1) & (~(FLASH_SECTOR_SIZE - 1));
-
-    //size of the update rounded to a sector
-    size_t roundedSize = (size + FLASH_SECTOR_SIZE - 1) & (~(FLASH_SECTOR_SIZE - 1));
-
-    //address of the end of the space available for sketch and update
-    uintptr_t updateEndAddress = FS_start - 0x40200000;
-
-    uintptr_t updateStartAddress = (updateEndAddress > roundedSize) ? (updateEndAddress - roundedSize) : 0;
-
-    //make sure that the size of both sketches is less than the total space (updateEndAddress)
-    if(updateStartAddress < currentSketchSize) {
+    if(size > AMS_FLASH_SKETCH_SIZE) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::ERROR))
         #endif
         debugger->printf_P(PSTR("New firmware does not fit flash\n"));
-      return false;
+        return false;
     }
     #if defined(AMS_REMOTE_DEBUG)
     if (debugger->isActive(RemoteDebug::INFO))
@@ -1180,14 +1176,28 @@ bool AmsFirmwareUpdater::writeBufferToFlash() {
     uint32_t offset = updateStatus.block_position * UPDATE_BUF_SIZE;
     uintptr_t currentAddress = getFirmwareUpdateStart() + offset;
     uint32_t sector = currentAddress/FLASH_SECTOR_SIZE;
-    if(!ESP.flashEraseSector(sector)) {
+
+    if (currentAddress % FLASH_SECTOR_SIZE == 0) {
         #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::ERROR))
+        if (debugger->isActive(RemoteDebug::DEBUG))
         #endif
-        debugger->printf_P(PSTR("flashEraseSector(%lu) failed\n"), sector);
-        updateStatus.errorCode = AMS_UPDATE_ERR_ERASE;
-        return false;
+        debugger->printf_P(PSTR("flashEraseSector(%lu)\n"), sector);
+        yield();
+        if(!ESP.flashEraseSector(sector)) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("flashEraseSector(%lu) failed\n"), sector);
+            updateStatus.errorCode = AMS_UPDATE_ERR_ERASE;
+            return false;
+        }
     }
+
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::DEBUG))
+    #endif
+    debugger->printf_P(PSTR("flashWrite(%lu)\n"), sector);
+    yield();
     if(!ESP.flashWrite(currentAddress, buf, UPDATE_BUF_SIZE)) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::ERROR))

@@ -89,9 +89,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 			context = "";
 		} else {
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
+			if (debugger->isActive(RemoteDebug::INFO))
+			#endif
+			debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
 		}
 	}
 
@@ -814,7 +814,6 @@ void AmsWebServer::indexHtml() {
 }
 
 void AmsWebServer::indexCss() {
-
 	if(!checkSecurity(2))
 		return;
 

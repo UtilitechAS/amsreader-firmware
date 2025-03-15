@@ -1662,7 +1662,7 @@ void AmsWebServer::handleSave() {
 		if (debugger->isActive(RemoteDebug::INFO))
 		#endif
 		debugger->printf_P(PSTR("Successfully saved.\n"));
-		if(config->isNetworkConfigChanged() || performRestart) {
+		if(config->isNetworkConfigChanged() || config->isWebChanged() || performRestart) {
 			performRestart = true;
 		} else {
 			hw->setup(&sys, gpioConfig);

@@ -242,6 +242,14 @@ bool AmsConfiguration::getWebConfig(WebConfig& config) {
 }
 
 bool AmsConfiguration::setWebConfig(WebConfig& config) {
+	WebConfig existing;
+	if(getWebConfig(existing)) {
+		webChanged |= strcmp(config.username, existing.username) != 0;
+		webChanged |= strcmp(config.password, existing.password) != 0;
+		webChanged |= strcmp(config.context, existing.context) != 0;
+	} else {
+		webChanged = true;
+	}
 
 	stripNonAscii((uint8_t*) config.username, 37);
 	stripNonAscii((uint8_t*) config.password, 37);
@@ -259,6 +267,14 @@ void AmsConfiguration::clearWebConfig(WebConfig& config) {
 	memset(config.username, 0, 37);
 	memset(config.password, 0, 37);
 	memset(config.context, 0, 37);
+}
+
+bool AmsConfiguration::isWebChanged() {
+	return webChanged;
+}
+
+void AmsConfiguration::ackWebChange() {
+	webChanged = false;
 }
 
 bool AmsConfiguration::getMeterConfig(MeterConfig& config) {

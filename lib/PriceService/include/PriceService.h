@@ -57,10 +57,12 @@ struct PriceConfig {
     uint8_t end_dayofmonth;
 };
 
-struct PricePart {
-    char name[32];
-    char description[32];
-    uint32_t value;
+struct AmsPriceV2Header {
+    char source[4];
+    char currency[4];
+    uint8_t resolutionInMinutes;
+    uint8_t hours;
+    uint8_t numberOfPoints;
 };
 
 class PriceService {
@@ -85,8 +87,6 @@ public:
     std::vector<PriceConfig>& getPriceConfig();
     void setPriceConfig(uint8_t index, PriceConfig &priceConfig);
     void cropPriceConfig(uint8_t size);
-
-    PricePart getPricePart(uint8_t index);
 
     int16_t getLastError();
 

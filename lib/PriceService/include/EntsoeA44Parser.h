@@ -15,28 +15,23 @@
 #define DOCPOS_MEASUREMENTUNIT 2
 #define DOCPOS_POSITION 3
 #define DOCPOS_AMOUNT 4
+#define DOCPOS_RESOLUTION 5
 
 class EntsoeA44Parser: public Stream {
 public:
-    EntsoeA44Parser();
+    EntsoeA44Parser(PricesContainer *container);
     virtual ~EntsoeA44Parser();
 
-    char* getCurrency();
-    char* getMeasurementUnit();
-    float getPoint(uint8_t position);
-    
     int available();
     int read();
     int peek();
     void flush();
     size_t write(const uint8_t *buffer, size_t size);
     size_t write(uint8_t);
-    void get(PricesContainer*);
 
 private:
-    char currency[4];
-    char measurementUnit[4];
-    float points[25];
+    PricesContainer *container;
+    float multiplier = 1.0;
 
     char buf[64];
     uint8_t pos = 0;

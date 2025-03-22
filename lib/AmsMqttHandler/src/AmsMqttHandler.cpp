@@ -175,7 +175,7 @@ bool AmsMqttHandler::connected() {
 
 bool AmsMqttHandler::loop() {
     bool ret = mqtt.loop();
-    delay(10);
+	delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
     yield();
 	#if defined(ESP32)
 		esp_task_wdt_reset();

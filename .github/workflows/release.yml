@@ -67,16 +67,15 @@ jobs:
     - name: PlatformIO lib install
       run: pio lib install
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
+    - name: Create release with release notes
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
+        tag: ${{ github.ref_name }}
+      run: |
+        gh release create "$tag" \
+            --repo="$GITHUB_REPOSITORY" \
+            --title="${tag#v}" \
+            --generate-notes
 
     - name: Build esp8266 firmware
       run: pio run -e esp8266

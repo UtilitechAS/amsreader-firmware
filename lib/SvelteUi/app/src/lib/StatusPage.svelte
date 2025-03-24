@@ -243,7 +243,7 @@
         {/if}
         {#if sysinfo.security == 0 || data.a}
         <div class="my-2 flex">
-            <form action="/firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true} autocomplete="off">
+            <form action="firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true} autocomplete="off">
                 <input style="display:none" name="file" type="file" accept=".bin" bind:this={firmwareFileInput} bind:files={firmwareFiles}>
                 {#if firmwareFiles.length == 0}
                 <button type="button" on:click={()=>{firmwareFileInput.click();}} class="btn-pri-sm float-right">{translations.status?.firmware?.btn_select_file ?? "Select file"}</button>
@@ -258,7 +258,7 @@
     {#if sysinfo.security == 0 || data.a}
     <div class="cnt">
         <strong class="text-sm">{translations.status?.backup?.title ?? "Backup"}</strong>
-        <form method="get" action="/configfile.cfg" autocomplete="off">
+        <form method="get" action="configfile.cfg" autocomplete="off">
             <div class="grid grid-cols-2">
                 {#each cfgItems as el}
                     <label class="my-1 mx-3"><input type="checkbox" class="rounded" name="{el.key}" value="true" checked/> {translations.status?.backup?.[el.key] ?? el.name}</label>

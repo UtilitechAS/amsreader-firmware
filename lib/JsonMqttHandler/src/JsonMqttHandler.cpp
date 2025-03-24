@@ -432,5 +432,26 @@ bool JsonMqttHandler::publishRaw(String data) {
     return false;
 }
 
+bool JsonMqttHandler::publishFirmware() {
+    snprintf_P(json, BufferSize, PSTR("{\"installed_version\":\"%s\",\"latest_version\":\"%s\",\"title\":\"amsreader firmware\",\"release_url\":\"https://github.com/UtilitechAS/amsreader-firmware/releases\",\"release_summary\":\"New version %s is available\",\"update_percentage\":%s}"),
+        FirmwareVersion::VersionString,
+        strlen(updater->getNextVersion()) == 0 ? FirmwareVersion::VersionString : updater->getNextVersion(),
+        strlen(updater->getNextVersion()) == 0 ? FirmwareVersion::VersionString : updater->getNextVersion(),
+        updater->getProgress() < 0 ? "null" : String(updater->getProgress(), 0)
+    );
+    char topic[192];
+    snprintf_P(topic, 192, PSTR("%s/firmware"), mqttConfig.publishTopic);
+    bool ret = mqtt.publish(topic, json);
+    loop();
+    return ret;
+}
+
 void JsonMqttHandler::onMessage(String &topic, String &payload) {
+    if(strncmp(topic.c_str(), mqttConfig.subscribeTopic, 12) == 0) {
+        if(payload.equals("fwupgrade")) {
+            if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
+                updater->setTargetVersion(updater->getNextVersion());
+            }
+        }
+    }
 }

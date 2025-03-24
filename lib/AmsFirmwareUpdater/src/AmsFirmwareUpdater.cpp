@@ -97,6 +97,11 @@ float AmsFirmwareUpdater::getProgress() {
 }
 
 void AmsFirmwareUpdater::loop() {
+    if(millis() < 30000) {
+        // Wait 30 seconds before starting upgrade. This allows the device to deal with other tasks first
+        // It will also allow BUS powered devices to reach a stable voltage so that hw->isVoltageOptimal will behave properly
+        return; 
+    }
     if(strlen(updateStatus.toVersion) > 0 && updateStatus.errorCode == AMS_UPDATE_ERR_OK) {
         if(!hw->isVoltageOptimal(0.1)) {
             writeUpdateStatus();

@@ -2342,6 +2342,8 @@ void AmsWebServer::configFileDownload() {
 						case PRICE_DIRECTION_BOTH:
 							strcpy_P(direction, PSTR("both"));
 							break;
+						default:
+							strcpy_P(direction, PSTR("--"));
 					}
 					char type[9] = "";
 					switch(p.type) {
@@ -2357,11 +2359,38 @@ void AmsWebServer::configFileDownload() {
 						case PRICE_TYPE_SUBTRACT:
 							strcpy_P(type, PSTR("subtract"));
 							break;
+						default:
+							strcpy_P(direction, PSTR("--"));
 					}
-					char days[12] = "";
-					char hours[12] = "";
+					char days[3*7] = "";
+					if(p.days == 0x7F) {
+						strcpy_P(days, PSTR("all"));
+					} else {
+						if((p.days >> 0) & 0x01) strcat_P(days, PSTR("mo,"));
+						if((p.days >> 1) & 0x01) strcat_P(days, PSTR("tu,"));
+						if((p.days >> 2) & 0x01) strcat_P(days, PSTR("we,"));
+						if((p.days >> 3) & 0x01) strcat_P(days, PSTR("th,"));
+						if((p.days >> 4) & 0x01) strcat_P(days, PSTR("fr,"));
+						if((p.days >> 5) & 0x01) strcat_P(days, PSTR("sa,"));
+						if((p.days >> 6) & 0x01) strcat_P(days, PSTR("su,"));
+						if(strlen(days) > 0) days[strlen(days)-1] = '\0';
+					}
 
-					server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceModifier %i %s %s %s %.4f %s %s %02d-%02d %02d-%02d\n"), 
+					char hours[3*24] = "";
+					if(p.hours == 0xFFFFFF) {
+						strcpy_P(hours, PSTR("all"));
+					} else {
+						for(uint8_t i = 0; i < 24; i++) {
+							if((p.hours >> i) & 0x01) {
+								char h[4];
+								snprintf_P(h, 4, PSTR("%02d,"), i);
+								strcat(hours, h);
+							}
+						}
+						if(strlen(hours) > 0) hours[strlen(hours)-1] = '\0';
+					}
+
+					server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceModifier %i \"%s\" %s %s %.4f %s %s %02d-%02d %02d-%02d\n"), 
 						i, 
 						p.name, 
 						direction,

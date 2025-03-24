@@ -68,14 +68,11 @@ jobs:
       run: pio lib install
 
     - name: Create release with release notes
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        tag: ${{ github.ref_name }}
-      run: |
-        gh release create "$tag" \
-            --repo="$GITHUB_REPOSITORY" \
-            --title="${tag#v}" \
-            --generate-notes
+      id: create_release
+      uses: ncipollo/release-action@v1
+      with:
+        name: Release ${{ github.ref }}
+        generateReleaseNotes: true
 
     - name: Build esp8266 firmware
       run: pio run -e esp8266

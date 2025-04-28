@@ -634,7 +634,7 @@ void loop() {
 
 			#if defined(ESP32)
 			// At this point, if the voltage is not optimal, disconnect from WiFi to preserve power
-			if(!hw.isVoltageOptimal(0.4)) {
+			if(!hw.isVoltageOptimal(0.35)) {
 				if(WiFi.getMode() == WIFI_STA) {
 					debugW_P(PSTR("Vcc dropped below limit, disconnecting WiFi for 5 seconds to preserve power"));
 					ch->disconnect(5000);

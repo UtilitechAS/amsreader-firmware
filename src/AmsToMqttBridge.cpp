@@ -751,9 +751,9 @@ void handleNtp() {
 #if defined(ESP8266)
 void handleMdns() {
 	if(mdnsEnabled) {
-		start = millis();
+		unsigned long start = millis();
 		MDNS.update();
-		end = millis();
+		unsigned long end = millis();
 		if(end - start > SLOW_PROC_TRIGGER_MS) {
 			debugW_P(PSTR("Used %dms to update mDNS"), millis()-start);
 		}

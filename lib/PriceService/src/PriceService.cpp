@@ -118,9 +118,18 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
         PriceConfig pc = priceConfig.at(i);
         if(pc.type == PRICE_TYPE_FIXED) continue;
         uint8_t start_month = pc.start_month == 0 || pc.start_month > 12 ? 1 : pc.start_month;
-        uint8_t start_dayofmonth = pc.start_dayofmonth == 0 || pc.start_dayofmonth > 31 ? 1 : pc.start_dayofmonth;
+        uint8_t start_dayofmonth = pc.start_month != tm.Month ? 1 : pc.start_dayofmonth;
         uint8_t end_month = pc.end_month == 0 || pc.end_month > 12 ? 12 : pc.end_month;
-        uint8_t end_dayofmonth = pc.end_dayofmonth == 0 || pc.end_dayofmonth > 31 ? 31 : pc.end_dayofmonth;
+        uint8_t end_dayofmonth = pc.end_month != tm.Month ? 31 : pc.end_dayofmonth;
+        if(pc.end_month < pc.start_month) {
+            if(tm.Month > pc.end_month) {
+                end_month = 12;
+                end_dayofmonth = 31;
+            } else {
+                start_month = 1;
+                start_dayofmonth = 1;
+            }
+        }
 
         if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs && tm.Month >= start_month && tm.Day >= start_dayofmonth && tm.Month <= end_month && tm.Day <= end_dayofmonth) {
             switch(pc.type) {

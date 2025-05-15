@@ -680,7 +680,7 @@ void AmsWebServer::dayplotJson() {
 	} else {
 		uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"unit\":\"kwh\""));
 		for(uint8_t i = 0; i < 24; i++) {
-			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.2f,\"e%02d\":%.2f"), i, ds->getHourImport(i) / 1000.0, i, ds->getHourExport(i) / 1000.0);
+			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.3f,\"e%02d\":%.3f"), i, ds->getHourImport(i) / 1000.0, i, ds->getHourExport(i) / 1000.0);
 		}
 		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
@@ -703,7 +703,7 @@ void AmsWebServer::monthplotJson() {
 	} else {
 		uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"unit\":\"kwh\""));
 		for(uint8_t i = 1; i < 32; i++) {
-			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.2f,\"e%02d\":%.2f"), i, ds->getDayImport(i) / 1000.0, i, ds->getDayExport(i) / 1000.0);
+			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.3f,\"e%02d\":%.3f"), i, ds->getDayImport(i) / 1000.0, i, ds->getDayExport(i) / 1000.0);
 		}
 		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 

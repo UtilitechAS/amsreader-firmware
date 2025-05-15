@@ -32,7 +32,8 @@ PriceService::PriceService(Stream* Debug) : priceConfig(std::vector<PriceConfig>
     // Entso-E uses CET/CEST
     TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
 	TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
-	tz = new Timezone(CEST, CET);
+	entsoeTz = new Timezone(CEST, CET);
+    tz = entsoeTz;
 
     tomorrowFetchMinute = 15 + random(45); // Random between 13:15 and 14:00
 }
@@ -70,6 +71,10 @@ void PriceService::setup(PriceServiceConfig& config) {
     #endif
 
     load();
+}
+
+void PriceService::setTimezone(Timezone* tz) {
+    this->tz = tz;
 }
 
 char* PriceService::getToken() {
@@ -415,7 +420,7 @@ float PriceService::getCurrencyMultiplier(const char* from, const char* to, time
 PricesContainer* PriceService::fetchPrices(time_t t) {
     if(strlen(getToken()) > 0) {
         tmElements_t tm;
-        breakTime(tz->toLocal(t), tm);
+        breakTime(entsoeTz->toLocal(t), tm);
         time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // Local midnight
         time_t e2 = e1 + SECS_PER_DAY;
         tmElements_t d1, d2;

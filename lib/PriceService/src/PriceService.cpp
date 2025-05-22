@@ -111,8 +111,6 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
 
     tmElements_t tm;
     breakTime(tz->toLocal(ts + (hour * SECS_PER_HOUR)), tm);
-    uint8_t day = 0x01 << ((tm.Wday+5)%7);
-    uint32_t hrs = 0x01 << tm.Hour;
 
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
         PriceConfig pc = priceConfig.at(i);
@@ -137,8 +135,6 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
 float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t hour) {
     tmElements_t tm;
     breakTime(tz->toLocal(ts + (hour * SECS_PER_HOUR)), tm);
-    uint8_t day = 0x01 << ((tm.Wday+5)%7);
-    uint32_t hrs = 0x01 << tm.Hour;
 
     float value = PRICE_NO_VALUE;
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
@@ -627,8 +623,8 @@ bool PriceService::load() {
 
 
 bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
-    int day = 0x01 << ((tm.Wday+5)%7);
-    int hrs = 0x01 << tm.Hour;
+    uint8_t day = 0x01 << ((tm.Wday+5)%7);
+    uint32_t hrs = 0x01 << tm.Hour;
 
     if((pc.days & day) != day) return false;
     if((pc.hours & hrs) != hrs) return false;
@@ -637,7 +633,7 @@ bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
     tms.Year = tm.Year;
     tms.Month = pc.start_month;
     tms.Day = pc.start_dayofmonth;
-    tms.Hour = (pc.hours & hrs) == hrs ? tm.Hour : 0;
+    tms.Hour = 0;
     tms.Minute = 0;
     tms.Second = 0;
 
@@ -645,9 +641,9 @@ bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
     tme.Year = tm.Year;
     tme.Month = pc.end_month;
     tme.Day = pc.end_dayofmonth;
-    tme.Hour = (pc.hours & hrs) == hrs ? tm.Hour : 0;
-    tme.Minute = 0;
-    tme.Second = 0;
+    tme.Hour = 23;
+    tme.Minute = 59;
+    tme.Second = 59;
     if(makeTime(tms) > makeTime(tme)) {
         if(makeTime(tm) <= makeTime(tme)) {
             tms.Year--;

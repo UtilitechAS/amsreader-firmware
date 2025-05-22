@@ -117,32 +117,18 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
         PriceConfig pc = priceConfig.at(i);
         if(pc.type == PRICE_TYPE_FIXED) continue;
-        uint8_t start_month = pc.start_month == 0 || pc.start_month > 12 ? 1 : pc.start_month;
-        uint8_t start_dayofmonth = pc.start_month != tm.Month ? 1 : pc.start_dayofmonth;
-        uint8_t end_month = pc.end_month == 0 || pc.end_month > 12 ? 12 : pc.end_month;
-        uint8_t end_dayofmonth = pc.end_month != tm.Month ? 31 : pc.end_dayofmonth;
-        if(pc.end_month < pc.start_month) {
-            if(tm.Month > pc.end_month) {
-                end_month = 12;
-                end_dayofmonth = 31;
-            } else {
-                start_month = 1;
-                start_dayofmonth = 1;
-            }
-        }
-
-        if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs && tm.Month >= start_month && tm.Day >= start_dayofmonth && tm.Month <= end_month && tm.Day <= end_dayofmonth) {
-            switch(pc.type) {
-                case PRICE_TYPE_ADD:
-                    ret += pc.value / 10000.0;
-                    break;
-                case PRICE_TYPE_SUBTRACT:
-                    ret -= pc.value / 10000.0;
-                    break;
-                case PRICE_TYPE_PCT:
-                    ret += ((pc.value / 10000.0) * ret) / 100.0;
-                    break;
-            }
+        if((pc.direction & direction) != direction) continue;
+        if(!timeIsInPeriod(tm, pc)) continue;
+        switch(pc.type) {
+            case PRICE_TYPE_ADD:
+                ret += pc.value / 10000.0;
+                break;
+            case PRICE_TYPE_SUBTRACT:
+                ret -= pc.value / 10000.0;
+                break;
+            case PRICE_TYPE_PCT:
+                ret += ((pc.value / 10000.0) * ret) / 100.0;
+                break;
         }
     }
     return ret;
@@ -158,17 +144,13 @@ float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t h
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
         PriceConfig pc = priceConfig.at(i);
         if(pc.type != PRICE_TYPE_FIXED) continue;
-        uint8_t start_month = pc.start_month == 0 || pc.start_month > 12 ? 1 : pc.start_month;
-        uint8_t start_dayofmonth = pc.start_dayofmonth == 0 || pc.start_dayofmonth > 31 ? 1 : pc.start_dayofmonth;
-        uint8_t end_month = pc.end_month == 0 || pc.end_month > 12 ? 12 : pc.end_month;
-        uint8_t end_dayofmonth = pc.end_dayofmonth == 0 || pc.end_dayofmonth > 31 ? 31 : pc.end_dayofmonth;
+        if((pc.direction & direction) != direction) continue;
+        if(!timeIsInPeriod(tm, pc)) continue;
 
-        if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs && tm.Month >= start_month && tm.Day >= start_dayofmonth && tm.Month <= end_month && tm.Day <= end_dayofmonth) {
-            if(value == PRICE_NO_VALUE) {
-                value = pc.value / 10000.0;
-            } else {
-                value += pc.value / 10000.0;
-            }
+        if(value == PRICE_NO_VALUE) {
+            value = pc.value / 10000.0;
+        } else {
+            value += pc.value / 10000.0;
         }
     }
     if(value != PRICE_NO_VALUE) return value;
@@ -641,4 +623,38 @@ bool PriceService::load() {
     file.close();
 
     return true;
+}
+
+
+bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
+    int day = 0x01 << ((tm.Wday+5)%7);
+    int hrs = 0x01 << tm.Hour;
+
+    if((pc.days & day) != day) return false;
+    if((pc.hours & hrs) != hrs) return false;
+
+    tmElements_t tms;
+    tms.Year = tm.Year;
+    tms.Month = pc.start_month;
+    tms.Day = pc.start_dayofmonth;
+    tms.Hour = (pc.hours & hrs) == hrs ? tm.Hour : 0;
+    tms.Minute = 0;
+    tms.Second = 0;
+
+    tmElements_t tme;
+    tme.Year = tm.Year;
+    tme.Month = pc.end_month;
+    tme.Day = pc.end_dayofmonth;
+    tme.Hour = (pc.hours & hrs) == hrs ? tm.Hour : 0;
+    tme.Minute = 0;
+    tme.Second = 0;
+    if(makeTime(tms) > makeTime(tme)) {
+        if(makeTime(tm) <= makeTime(tme)) {
+            tms.Year--;
+        } else {
+            tme.Year++;
+        }
+    }
+
+    return makeTime(tms) <= makeTime(tm) && makeTime(tme) >= makeTime(tm);
 }

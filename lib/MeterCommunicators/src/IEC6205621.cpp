@@ -11,6 +11,8 @@ IEC6205621::IEC6205621(const char* p, Timezone* tz, MeterConfig* meterConfig) {
 	if(strlen(p) < 16)
 		return;
 
+	this->packageTimestamp = time(nullptr);
+
 	String payload(p+1);
 
 	lastUpdateMillis = millis64();

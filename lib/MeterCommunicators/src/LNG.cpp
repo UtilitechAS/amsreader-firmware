@@ -52,6 +52,15 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
                         case 4:
                             reactiveExportPower = getNumber(item);
                             break;
+                        case 21:
+                            l1activeImportPower = getNumber(item);
+                            break;
+                        case 41:
+                            l2activeImportPower = getNumber(item);
+                            break;
+                        case 61:
+                            l3activeImportPower = getNumber(item);
+                            break;
                         case 31:
                             l1current = getNumber(item) / 100.0;
                             break;

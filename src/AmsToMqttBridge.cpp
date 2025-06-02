@@ -1718,6 +1718,18 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("meterAuthenticationKey "), 23) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			fromHex(meter.authenticationKey, String(buf+23), 16);
+		} else if(strncmp_P(buf, PSTR("meterWattageMultiplier "), 23) == 0) {
+			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.wattageMultiplier = String(buf+23).toDouble() * 1000;
+		} else if(strncmp_P(buf, PSTR("meterVoltageMultiplier "), 23) == 0) {
+			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.voltageMultiplier = String(buf+23).toDouble() * 1000;
+		} else if(strncmp_P(buf, PSTR("meterAmperageMultiplier "), 24) == 0) {
+			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.amperageMultiplier = String(buf+24).toDouble() * 1000;
+		} else if(strncmp_P(buf, PSTR("meterAccumulatedMultiplier "), 27) == 0) {
+			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.accumulatedMultiplier = String(buf+27).toDouble() * 1000;
 		} else if(strncmp_P(buf, PSTR("gpioHanPin "), 11) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.rxPin = String(buf+11).toInt();

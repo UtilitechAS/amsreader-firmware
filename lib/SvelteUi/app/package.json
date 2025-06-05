@@ -26,7 +26,7 @@
     "svelte-preprocess": "^5.0.3",
     "svelte-qrcode": "^1.0.0",
     "tailwindcss": "^3.3.1",
-    "vite": "^4.5.9"
+    "vite": "^4.5.14"
   },
   "dependencies": {
     "cssnano": "^5.1.15",

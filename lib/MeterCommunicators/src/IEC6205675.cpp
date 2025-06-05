@@ -148,7 +148,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                 data = getCosemDataAt(idx++, ((char *) (d)));
                 if(data->base.length == 0x12) {
                     apply(state);
-                    listType = state.getListType() > 2 ? state.getListType() : 2;
+                    listType = state.getListType() > 4 ? state.getListType() : 4;
 
                     // 42.0.0 COSEM logical device name
                     idx++;
@@ -327,7 +327,7 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
                     CosemData* no7 = getCosemDataAt(7, ((char *) (d)));
                     if(no7->base.type == CosemTypeLongUnsigned) {
                         apply(state);
-                        listType = state.getListType() > 2 ? state.getListType() : 2;
+                        listType = state.getListType() > 4 ? state.getListType() : 4;
 
                         // 42.0.0 COSEM logical device name
                         idx++;

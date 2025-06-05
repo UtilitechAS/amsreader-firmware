@@ -185,18 +185,18 @@ float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t h
         if(pos >= hoursTomorrow) return PRICE_NO_VALUE;
         if(tomorrow == NULL)
             return PRICE_NO_VALUE;
-        if(!tomorrow->hasPrice(pos))
+        if(!tomorrow->hasPrice(pos, direction))
             return PRICE_NO_VALUE;
-        value = tomorrow->getPrice(pos);
+        value = tomorrow->getPrice(pos, direction);
         float mult = getCurrencyMultiplier(tomorrow->getCurrency(), config->currency, time(nullptr));
         if(mult == 0) return PRICE_NO_VALUE;
         multiplier *= mult;
     } else if(pos >= 0) {
         if(today == NULL)
             return PRICE_NO_VALUE;
-        if(!today->hasPrice(pos))
+        if(!today->hasPrice(pos, direction))
             return PRICE_NO_VALUE;
-        value = today->getPrice(pos);
+        value = today->getPrice(pos, direction);
         float mult = getCurrencyMultiplier(today->getCurrency(), config->currency, time(nullptr));
         if(mult == 0) return PRICE_NO_VALUE;
         multiplier *= mult;
@@ -422,7 +422,7 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
         debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
         PricesContainer* ret = new PricesContainer("EOE");
         EntsoeA44Parser a44(ret);
-        if(retrieve(buf, &a44) && ret->hasPrice(0)) {
+        if(retrieve(buf, &a44) && ret->hasPrice(0, PRICE_DIRECTION_IMPORT)) {
             return ret;
         } else {
             delete ret;
@@ -477,12 +477,17 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
                     AmsPriceV2Header* header = (AmsPriceV2Header*) (content-gcmRet);
 
                     PricesContainer* ret = new PricesContainer(header->source);
-                    ret->setup(header->resolutionInMinutes, header->hours);
+                    ret->setup(header->resolutionInMinutes, header->numberOfPoints, header->differentExportPrices);
                     ret->setCurrency(header->currency);
                     int32_t* points = (int32_t*) &header[1];
 
                     for(uint8_t i = 0; i < header->numberOfPoints; i++) {
-                        ret->setPrice(i, points[i]);
+                        ret->setPrice(i, points[i], PRICE_DIRECTION_IMPORT);
+                    }
+                    if(header->differentExportPrices) {
+                        for(uint8_t i = 0; i < header->numberOfPoints; i++) {
+                            ret->setPrice(i, points[i], PRICE_DIRECTION_EXPORT);
+                        }
                     }
                     lastError = 0;
                     nextFetchDelayMinutes = 1;

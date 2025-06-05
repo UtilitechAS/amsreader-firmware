@@ -1545,7 +1545,7 @@ void MQTT_connect() {
 	if(mqttHandler != NULL) {
 		mqttHandler->connect();
 		mqttHandler->publishSystem(&hw, ps, &ea);
-		if(ps != NULL && ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) != PRICE_NO_VALUE) {
+		if(ps != NULL && ps->hasPrice()) {
 			mqttHandler->publishPrices(ps);
 		}
 	}

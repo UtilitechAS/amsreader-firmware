@@ -27,10 +27,6 @@
 
 #define SSL_BUF_SIZE 512
 
-#define PRICE_DIRECTION_IMPORT 0x01
-#define PRICE_DIRECTION_EXPORT 0x02
-#define PRICE_DIRECTION_BOTH 0x03
-
 #define PRICE_DAY_MO 0x01
 #define PRICE_DAY_TU 0x02
 #define PRICE_DAY_WE 0x04
@@ -58,10 +54,11 @@ struct PriceConfig {
 };
 
 struct AmsPriceV2Header {
-    char source[4];
     char currency[4];
+    char measurementUnit[4];
+    char source[4];
     uint8_t resolutionInMinutes;
-    uint8_t hours;
+    bool differentExportPrices;
     uint8_t numberOfPoints;
 };
 
@@ -80,6 +77,22 @@ public:
     char* getCurrency();
     char* getArea();
     char* getSource();
+
+    uint8_t getResolutionInMinutes();
+    uint8_t getNumberOfPointsAvailable();
+
+    bool isExportPricesDifferentFromImport() {
+        return today->isExportPricesDifferentFromImport();
+    }
+
+    bool hasPrice() { return hasPrice(PRICE_DIRECTION_IMPORT); }
+    bool hasPrice(uint8_t direction);
+    bool hasPricePoint(uint8_t direction, int8_t point);
+    
+    float getPrice(uint8_t direction);
+    float getPricePoint(uint8_t direction, int8_t point);
+    float getPriceForHour(uint8_t direction, int8_t hour); // If not 60min interval, average
+
     float getValueForHour(uint8_t direction, int8_t hour);
     float getValueForHour(uint8_t direction, time_t ts, int8_t hour);
 

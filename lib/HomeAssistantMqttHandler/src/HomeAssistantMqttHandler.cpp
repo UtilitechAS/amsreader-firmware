@@ -360,7 +360,7 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 	if(pubTopic.isEmpty() || !mqtt.connected())
 		return false;
-	if(ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) == PRICE_NO_VALUE)
+	if(!ps->hasPrice())
 		return false;
 
     publishPriceSensors(ps);
@@ -712,7 +712,7 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
         prInit[i] = true;
     }
 
-    float exportPrice = ps->getValueForHour(PRICE_DIRECTION_EXPORT, 0);
+    float exportPrice = ps->getPrice(PRICE_DIRECTION_EXPORT);
     if(exportPrice != PRICE_NO_VALUE) {
         char path[20];
         snprintf(path, 20, "exportprices['%d']", 0);

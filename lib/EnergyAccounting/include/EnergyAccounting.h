@@ -20,6 +20,24 @@ struct EnergyAccountingPeak {
 struct EnergyAccountingData {
     uint8_t version;
     uint8_t month;
+    int32_t costToday;
+    int32_t costYesterday;
+    int32_t costThisMonth;
+    int32_t costLastMonth;
+    int32_t incomeToday;
+    int32_t incomeYesterday;
+    int32_t incomeThisMonth;
+    int32_t incomeLastMonth;
+    uint32_t lastMonthImport;
+    uint32_t lastMonthExport;
+    uint8_t lastMonthAccuracy;
+    EnergyAccountingPeak peaks[5];
+    time_t lastUpdated;
+};
+
+struct EnergyAccountingData6 {
+    uint8_t version;
+    uint8_t month;
     int32_t costYesterday;
     int32_t costThisMonth;
     int32_t costLastMonth;
@@ -42,24 +60,6 @@ struct EnergyAccountingData5 {
     uint16_t incomeThisMonth;
     uint16_t incomeLastMonth;
     EnergyAccountingPeak peaks[5];
-};
-
-struct EnergyAccountingData4 {
-    uint8_t version;
-    uint8_t month;
-    uint16_t costYesterday;
-    uint16_t costThisMonth;
-    uint16_t costLastMonth;
-    EnergyAccountingPeak peaks[5];
-};
-
-struct EnergyAccountingData2 {
-    uint8_t version;
-    uint8_t month;
-    uint16_t maxHour;
-    uint16_t costYesterday;
-    uint16_t costThisMonth;
-    uint16_t costLastMonth;
 };
 
 struct EnergyAccountingRealtimeData {
@@ -124,7 +124,6 @@ public:
     void setData(EnergyAccountingData&);
 
     void setCurrency(String currency);
-    float getPriceForHour(uint8_t d, uint8_t h);
 
 private:
     #if defined(AMS_REMOTE_DEBUG)
@@ -137,7 +136,7 @@ private:
     PriceService *ps = NULL;
     EnergyAccountingConfig *config = NULL;
     Timezone *tz = NULL;
-    EnergyAccountingData data = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    EnergyAccountingData data = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     EnergyAccountingRealtimeData* realtimeData = NULL;
     String currency = "";
 

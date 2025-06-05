@@ -274,7 +274,7 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
 bool JsonMqttHandler::publishPrices(PriceService* ps) {
 	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
 		return false;
-	if(ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) == PRICE_NO_VALUE)
+	if(!ps->hasPrice())
 		return false;
 
 	time_t now = time(nullptr);

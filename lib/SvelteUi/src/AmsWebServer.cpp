@@ -126,6 +126,8 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
 	server.on(context + F("/monthplot.json"), HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
 	server.on(context + F("/energyprice.json"), HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
+	server.on(context + F("/importprice.json"), HTTP_GET, std::bind(&AmsWebServer::importPriceJson, this));
+	server.on(context + F("/exportprice.json"), HTTP_GET, std::bind(&AmsWebServer::exportPriceJson, this));
 	server.on(context + F("/temperature.json"), HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
 	server.on(context + F("/tariff.json"), HTTP_GET, std::bind(&AmsWebServer::tariffJson, this));
 	server.on(context + F("/realtime.json"), HTTP_GET, std::bind(&AmsWebServer::realtimeJson, this));
@@ -579,8 +581,8 @@ void AmsWebServer::dataJson() {
 		mqttStatus = 3;
 	}
 
-	float price = ea->getPriceForHour(PRICE_DIRECTION_IMPORT, 0);
-	float exportPrice = ea->getPriceForHour(PRICE_DIRECTION_EXPORT, 0);
+	float price = ps == NULL ? PRICE_NO_VALUE : ps->getPrice(PRICE_DIRECTION_IMPORT);
+	float exportPrice = ps == NULL ? PRICE_NO_VALUE : ps->getPrice(PRICE_DIRECTION_EXPORT);
 
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
@@ -721,17 +723,72 @@ void AmsWebServer::energyPriceJson() {
 	if(!checkSecurity(2))
 		return;
 
+	if(ps == NULL || !ps->hasPrice()) {
+		notFound();
+		return;
+	}
+
 	float prices[36];
 	for(int i = 0; i < 36; i++) {
-		prices[i] = ps == NULL ? PRICE_NO_VALUE : ps->getValueForHour(PRICE_DIRECTION_IMPORT, i);
+		prices[i] = ps->getValueForHour(PRICE_DIRECTION_IMPORT, i);
 	}
 
 	uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\""),
-		ps == NULL ? "" : ps->getCurrency(),
-		ps == NULL ? "" : ps->getSource()
+		ps->getCurrency(),
+		ps->getSource()
 	);
 
     for(uint8_t i = 0;i < 36; i++) {
+        if(prices[i] == PRICE_NO_VALUE) {
+            pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"%02d\":null"), i);
+        } else {
+            pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"%02d\":%.4f"), i, prices[i]);
+        }
+    }
+	snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
+
+	addConditionalCloudHeaders();
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
+}
+
+void AmsWebServer::importPriceJson() {
+	priceJson(PRICE_DIRECTION_IMPORT);
+}
+
+void AmsWebServer::exportPriceJson() {
+	priceJson(PRICE_DIRECTION_EXPORT);
+}
+
+void AmsWebServer::priceJson(uint8_t direction) {
+	if(!checkSecurity(2))
+		return;
+
+	if(ps == NULL || !ps->hasPrice()) {
+		notFound();
+		return;
+	}
+
+	uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
+
+	float prices[numberOfPoints];
+	for(int i = 0; i < numberOfPoints; i++) {
+		prices[i] = ps->getPricePoint(direction, i);
+	}
+
+	uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\",\"\"resolution\":%d,\"direction\":\"%s\",\"importExportPriceDifferent\":%s"),
+		ps->getCurrency(),
+		ps->getSource(),
+		ps->getResolutionInMinutes(),
+		direction == PRICE_DIRECTION_IMPORT ? "import" : direction == PRICE_DIRECTION_EXPORT ? "export" : "both",
+		ps->isExportPricesDifferentFromImport() ? "true" : "false"
+	);
+
+    for(uint8_t i = 0;i < numberOfPoints; i++) {
         if(prices[i] == PRICE_NO_VALUE) {
             pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"%02d\":null"), i);
         } else {

@@ -73,7 +73,7 @@ size_t EntsoeA44Parser::write(uint8_t byte) {
             buf[pos] = '\0';
             float val = String(buf).toFloat();
             for(uint8_t i = pointNum; i < container->getNumberOfPoints(); i++) {
-                container->setPrice(i, val * multiplier);
+                container->setPrice(i, val * multiplier, PRICE_DIRECTION_IMPORT);
             }
             docPos = DOCPOS_SEEK;
             pos = 0;
@@ -85,12 +85,12 @@ size_t EntsoeA44Parser::write(uint8_t byte) {
             buf[pos] = '\0';
 
             // This happens if there are two time series in the XML. We are only interrested in the first one, so we ignore the rest of the document
-            if(container->hasPrice(0)) return 1;
+            if(container->hasPrice(0, PRICE_DIRECTION_IMPORT)) return 1;
 
             if(strcmp_P(buf, PSTR("PT15M"))) {
-                container->setup(15, 24);
+                container->setup(15, 100, false);
             } else if(strcmp_P(buf, PSTR("PT60M"))) {
-                container->setup(60, 24);
+                container->setup(60, 25, false);
             }
             docPos = DOCPOS_SEEK;
             pos = 0;

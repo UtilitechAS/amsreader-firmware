@@ -2283,6 +2283,14 @@ void AmsWebServer::configFileDownload() {
 			if(meter.encryptionKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterEncryptionKey %s\n"), toHex(meter.encryptionKey, 16).c_str()));
 			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAuthenticationKey %s\n"), toHex(meter.authenticationKey, 16).c_str()));
 		}
+		if(meter.wattageMultiplier != 1.0 && meter.wattageMultiplier != 0.0)
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterWattageMultiplier %.3f\n"), meter.wattageMultiplier / 1000.0));
+		if(meter.voltageMultiplier != 1.0 && meter.voltageMultiplier != 0.0)
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterVoltageMultiplier %.3f\n"), meter.voltageMultiplier / 1000.0));
+		if(meter.amperageMultiplier != 1.0 && meter.amperageMultiplier != 0.0)
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAmperageMultiplier %.3f\n"), meter.amperageMultiplier / 1000.0));
+		if(meter.accumulatedMultiplier != 1.0 && meter.accumulatedMultiplier != 0.0)
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAccumulatedMultiplier %.3f\n"), meter.accumulatedMultiplier / 1000.0));
 	}
 	
 	if(includeGpio) {

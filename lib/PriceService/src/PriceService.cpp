@@ -32,7 +32,8 @@ PriceService::PriceService(Stream* Debug) : priceConfig(std::vector<PriceConfig>
     // Entso-E uses CET/CEST
     TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
 	TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
-	tz = new Timezone(CEST, CET);
+	entsoeTz = new Timezone(CEST, CET);
+    tz = entsoeTz;
 
     tomorrowFetchMinute = 15 + random(45); // Random between 13:15 and 14:00
 }
@@ -70,6 +71,10 @@ void PriceService::setup(PriceServiceConfig& config) {
     #endif
 
     load();
+}
+
+void PriceService::setTimezone(Timezone* tz) {
+    this->tz = tz;
 }
 
 char* PriceService::getToken() {
@@ -153,24 +158,24 @@ float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t h
 
     int8_t pos = hour;
 
-    breakTime(tz->toLocal(ts), tm);
+    breakTime(entsoeTz->toLocal(ts), tm);
     while(tm.Hour > 0) {
         ts -= 3600;
-        breakTime(tz->toLocal(ts), tm);
+        breakTime(entsoeTz->toLocal(ts), tm);
         pos++;
     }
     uint8_t hoursToday = 0;
     uint8_t todayDate = tm.Day;
     while(tm.Day == todayDate) {
         ts += 3600;
-        breakTime(tz->toLocal(ts), tm);
+        breakTime(entsoeTz->toLocal(ts), tm);
         hoursToday++;
     }
     uint8_t hoursTomorrow = 0;
     uint8_t tomorrowDate = tm.Day;
     while(tm.Day == tomorrowDate) {
         ts += 3600;
-        breakTime(tz->toLocal(ts), tm);
+        breakTime(entsoeTz->toLocal(ts), tm);
         hoursTomorrow++;
     }
 
@@ -231,7 +236,7 @@ bool PriceService::loop() {
         return false;
 
     tmElements_t tm;
-    breakTime(tz->toLocal(t), tm);
+    breakTime(entsoeTz->toLocal(t), tm);
 
     if(currentDay == 0) {
         currentDay = tm.Day;
@@ -402,7 +407,7 @@ float PriceService::getCurrencyMultiplier(const char* from, const char* to, time
 PricesContainer* PriceService::fetchPrices(time_t t) {
     if(strlen(getToken()) > 0) {
         tmElements_t tm;
-        breakTime(tz->toLocal(t), tm);
+        breakTime(entsoeTz->toLocal(t), tm);
         time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // Local midnight
         time_t e2 = e1 + SECS_PER_DAY;
         tmElements_t d1, d2;
@@ -439,7 +444,7 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
         }
     } else if(hub) {
         tmElements_t tm;
-        breakTime(tz->toLocal(t), tm);
+        breakTime(entsoeTz->toLocal(t), tm);
 
         String data;
         snprintf_P(buf, BufferSize, PSTR("http://hub.amsleser.no/hub/price/%s/%d/%d/%d?currency=%s"),

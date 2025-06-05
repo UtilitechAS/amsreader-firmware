@@ -71,6 +71,7 @@ public:
     PriceService(Stream*);
     #endif
     void setup(PriceServiceConfig&);
+    void setTimezone(Timezone* tz);
     bool loop();
 
     char* getToken();
@@ -114,6 +115,7 @@ private:
     std::vector<PriceConfig> priceConfig;
 
     Timezone* tz = NULL;
+    Timezone* entsoeTz = NULL;
 
     static const uint16_t BufferSize = 256;
     char* buf;

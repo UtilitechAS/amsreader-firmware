@@ -977,6 +977,7 @@ void handleNtpChange() {
 		ws.setTimezone(tz);
 		ds.setTimezone(tz);
 		ea.setTimezone(tz);
+		ps->setTimezone(tz);
 	}
 
 	config.ackNtpChange();

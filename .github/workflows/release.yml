@@ -71,7 +71,7 @@ jobs:
       id: create_release
       uses: ncipollo/release-action@v1
       with:
-        name: Release ${{ github.ref }}
+        name: Release ${{ github.ref#refs/tags/ }}
         generateReleaseNotes: true
 
     - name: Build esp8266 firmware

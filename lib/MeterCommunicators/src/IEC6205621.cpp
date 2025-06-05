@@ -11,6 +11,8 @@ IEC6205621::IEC6205621(const char* p, Timezone* tz, MeterConfig* meterConfig) {
 	if(strlen(p) < 16)
 		return;
 
+	this->packageTimestamp = time(nullptr);
+
 	String payload(p+1);
 
 	lastUpdateMillis = millis64();
@@ -59,15 +61,44 @@ IEC6205621::IEC6205621(const char* p, Timezone* tz, MeterConfig* meterConfig) {
 		}
 	}
 
+	tmElements_t tm { 0, 0, 0, 0, 0, 0, 0 };
 	String timestamp = extract(payload, F("1.0.0"));
-	if(timestamp.length() > 10) {
-		tmElements_t tm;
-		tm.Year = (timestamp.substring(0,2).toInt() + 2000) - 1970;
-		tm.Month = timestamp.substring(4,6).toInt();
-		tm.Day = timestamp.substring(2,4).toInt();
-		tm.Hour = timestamp.substring(6,8).toInt();
-		tm.Minute = timestamp.substring(8,10).toInt();
-		tm.Second = timestamp.substring(10,12).toInt();
+	if(timestamp.length() == 13) { // yyMMddHHmmssX
+		char x = timestamp.charAt(12);
+		if(x == 'S' || x == 'W') {
+			tm.Year = (timestamp.substring(0,2).toInt() + 2000) - 1970;
+			tm.Month = timestamp.substring(2,4).toInt();
+			tm.Day = timestamp.substring(4,6).toInt();
+			tm.Hour = timestamp.substring(6,8).toInt();
+			tm.Minute = timestamp.substring(8,10).toInt();
+			tm.Second = timestamp.substring(10,12).toInt();
+		}
+	} else if(timestamp.length() == 17) { // yyyyMMdd HH:mm:ss
+		char x = timestamp.charAt(11);
+		char y = timestamp.charAt(14);
+		if(x == ':' && y == ':') {
+			tm.Year = (timestamp.substring(0,4).toInt()) - 1970;
+			tm.Month = timestamp.substring(4,6).toInt();
+			tm.Day = timestamp.substring(6,8).toInt();
+			tm.Hour = timestamp.substring(9,11).toInt();
+			tm.Minute = timestamp.substring(12,14).toInt();
+			tm.Second = timestamp.substring(15,17).toInt();
+		}
+	} else if(timestamp.length() == 19) { // yyyy-MM-dd HH:mm:ss
+		char x = timestamp.charAt(4);
+		char y = timestamp.charAt(13);
+		if(x == '-' && y == ':') {
+			tm.Year = (timestamp.substring(0,4).toInt()) - 1970;
+			tm.Month = timestamp.substring(5,7).toInt();
+			tm.Day = timestamp.substring(8,10).toInt();
+			tm.Hour = timestamp.substring(11,13).toInt();
+			tm.Minute = timestamp.substring(14,16).toInt();
+			tm.Second = timestamp.substring(17,19).toInt();
+		}
+	} else {
+		meterTimestamp = 0;
+	}
+	if(tm.Year > 0) {
 		meterTimestamp = makeTime(tm);
 		if(tz != NULL) meterTimestamp = tz->toUTC(meterTimestamp);
 	}

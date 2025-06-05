@@ -64,6 +64,18 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
                                 reactiveExportPower = reactiveExportPower > 0 ? reactiveExportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
                             }
                             break;
+                        case 21:
+                            l1activeImportPower = getNumber(item);
+                            listType = listType >= 4 ? listType : 4;
+                            break;
+                        case 41:
+                            l2activeImportPower = getNumber(item);
+                            listType = listType >= 4 ? listType : 4;
+                            break;
+                        case 61:
+                            l3activeImportPower = getNumber(item);
+                            listType = listType >= 4 ? listType : 4;
+                            break;
                         case 31:
                             l1current = getNumber(item) / 100.0;
                             if(meterConfig->amperageMultiplier > 0) {

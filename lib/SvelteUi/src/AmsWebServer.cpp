@@ -89,9 +89,9 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 			context = "";
 		} else {
 			#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
+			if (debugger->isActive(RemoteDebug::INFO))
+			#endif
+			debugger->printf_P(PSTR("Using context path: '%s'\n"), context.c_str());
 		}
 	}
 
@@ -680,7 +680,7 @@ void AmsWebServer::dayplotJson() {
 	} else {
 		uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"unit\":\"kwh\""));
 		for(uint8_t i = 0; i < 24; i++) {
-			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.2f,\"e%02d\":%.2f"), i, ds->getHourImport(i) / 1000.0, i, ds->getHourExport(i) / 1000.0);
+			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.3f,\"e%02d\":%.3f"), i, ds->getHourImport(i) / 1000.0, i, ds->getHourExport(i) / 1000.0);
 		}
 		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
@@ -703,7 +703,7 @@ void AmsWebServer::monthplotJson() {
 	} else {
 		uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"unit\":\"kwh\""));
 		for(uint8_t i = 1; i < 32; i++) {
-			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.2f,\"e%02d\":%.2f"), i, ds->getDayImport(i) / 1000.0, i, ds->getDayExport(i) / 1000.0);
+			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.3f,\"e%02d\":%.3f"), i, ds->getDayImport(i) / 1000.0, i, ds->getDayExport(i) / 1000.0);
 		}
 		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
 
@@ -814,7 +814,6 @@ void AmsWebServer::indexHtml() {
 }
 
 void AmsWebServer::indexCss() {
-
 	if(!checkSecurity(2))
 		return;
 
@@ -1662,7 +1661,7 @@ void AmsWebServer::handleSave() {
 		if (debugger->isActive(RemoteDebug::INFO))
 		#endif
 		debugger->printf_P(PSTR("Successfully saved.\n"));
-		if(config->isNetworkConfigChanged() || performRestart) {
+		if(config->isNetworkConfigChanged() || config->isWebChanged() || performRestart) {
 			performRestart = true;
 		} else {
 			hw->setup(&sys, gpioConfig);
@@ -2284,6 +2283,14 @@ void AmsWebServer::configFileDownload() {
 			if(meter.encryptionKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterEncryptionKey %s\n"), toHex(meter.encryptionKey, 16).c_str()));
 			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAuthenticationKey %s\n"), toHex(meter.authenticationKey, 16).c_str()));
 		}
+		if(meter.wattageMultiplier != 1.0 && meter.wattageMultiplier != 0.0)
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterWattageMultiplier %.3f\n"), meter.wattageMultiplier / 1000.0));
+		if(meter.voltageMultiplier != 1.0 && meter.voltageMultiplier != 0.0)
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterVoltageMultiplier %.3f\n"), meter.voltageMultiplier / 1000.0));
+		if(meter.amperageMultiplier != 1.0 && meter.amperageMultiplier != 0.0)
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAmperageMultiplier %.3f\n"), meter.amperageMultiplier / 1000.0));
+		if(meter.accumulatedMultiplier != 1.0 && meter.accumulatedMultiplier != 0.0)
+			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAccumulatedMultiplier %.3f\n"), meter.accumulatedMultiplier / 1000.0));
 	}
 	
 	if(includeGpio) {
@@ -2343,6 +2350,8 @@ void AmsWebServer::configFileDownload() {
 						case PRICE_DIRECTION_BOTH:
 							strcpy_P(direction, PSTR("both"));
 							break;
+						default:
+							strcpy_P(direction, PSTR("--"));
 					}
 					char type[9] = "";
 					switch(p.type) {
@@ -2358,11 +2367,38 @@ void AmsWebServer::configFileDownload() {
 						case PRICE_TYPE_SUBTRACT:
 							strcpy_P(type, PSTR("subtract"));
 							break;
+						default:
+							strcpy_P(direction, PSTR("--"));
 					}
-					char days[12] = "";
-					char hours[12] = "";
+					char days[3*7] = "";
+					if(p.days == 0x7F) {
+						strcpy_P(days, PSTR("all"));
+					} else {
+						if((p.days >> 0) & 0x01) strcat_P(days, PSTR("mo,"));
+						if((p.days >> 1) & 0x01) strcat_P(days, PSTR("tu,"));
+						if((p.days >> 2) & 0x01) strcat_P(days, PSTR("we,"));
+						if((p.days >> 3) & 0x01) strcat_P(days, PSTR("th,"));
+						if((p.days >> 4) & 0x01) strcat_P(days, PSTR("fr,"));
+						if((p.days >> 5) & 0x01) strcat_P(days, PSTR("sa,"));
+						if((p.days >> 6) & 0x01) strcat_P(days, PSTR("su,"));
+						if(strlen(days) > 0) days[strlen(days)-1] = '\0';
+					}
 
-					server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceModifier %i %s %s %s %.4f %s %s %02d-%02d %02d-%02d\n"), 
+					char hours[3*24] = "";
+					if(p.hours == 0xFFFFFF) {
+						strcpy_P(hours, PSTR("all"));
+					} else {
+						for(uint8_t i = 0; i < 24; i++) {
+							if((p.hours >> i) & 0x01) {
+								char h[4];
+								snprintf_P(h, 4, PSTR("%02d,"), i);
+								strcat(hours, h);
+							}
+						}
+						if(strlen(hours) > 0) hours[strlen(hours)-1] = '\0';
+					}
+
+					server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceModifier %i \"%s\" %s %s %.4f %s %s %02d-%02d %02d-%02d\n"), 
 						i, 
 						p.name, 
 						direction,

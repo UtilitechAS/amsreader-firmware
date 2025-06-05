@@ -283,6 +283,8 @@ public:
 	bool getWebConfig(WebConfig&);
 	bool setWebConfig(WebConfig&);
 	void clearWebConfig(WebConfig&);
+	bool isWebChanged();
+	void ackWebChange();
 
 	bool getMeterConfig(MeterConfig&);
 	bool setMeterConfig(MeterConfig&);
@@ -353,7 +355,7 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool sysChanged = false, networkChanged, mqttChanged, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false;
+	bool sysChanged = false, networkChanged = false, mqttChanged = false, webChanged = false, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false;
 
 	bool relocateConfig103(); // 2.2.12, until, but not including 2.3
 

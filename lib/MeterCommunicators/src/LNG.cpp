@@ -42,33 +42,75 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
                     switch(descriptor->obis[2]) {
                         case 1:
                             o170 = getNumber(item);
+                            if(meterConfig->wattageMultiplier > 0) {
+                                o170 = o170 > 0 ? o170 * (meterConfig->wattageMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 2:
                             o270 = getNumber(item);
+                            if(meterConfig->wattageMultiplier > 0) {
+                                o270 = o270 > 0 ? o270 * (meterConfig->wattageMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 3:
                             reactiveImportPower = getNumber(item);
+                            if(meterConfig->wattageMultiplier > 0) {
+                                reactiveImportPower = reactiveImportPower > 0 ? reactiveImportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 4:
                             reactiveExportPower = getNumber(item);
+                            if(meterConfig->wattageMultiplier > 0) {
+                                reactiveExportPower = reactiveExportPower > 0 ? reactiveExportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
+                            }
+                            break;
+                        case 21:
+                            l1activeImportPower = getNumber(item);
+                            listType = listType >= 4 ? listType : 4;
+                            break;
+                        case 41:
+                            l2activeImportPower = getNumber(item);
+                            listType = listType >= 4 ? listType : 4;
+                            break;
+                        case 61:
+                            l3activeImportPower = getNumber(item);
+                            listType = listType >= 4 ? listType : 4;
                             break;
                         case 31:
                             l1current = getNumber(item) / 100.0;
+                            if(meterConfig->amperageMultiplier > 0) {
+                                l1current = l1current > 0 ? l1current * (meterConfig->amperageMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 51:
                             l2current = getNumber(item) / 100.0;
+                            if(meterConfig->amperageMultiplier > 0) {
+                                l2current = l2current > 0 ? l2current * (meterConfig->amperageMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 71:
                             l3current = getNumber(item) / 100.0;
+                            if(meterConfig->amperageMultiplier > 0) {
+                                l3current = l3current > 0 ? l3current * (meterConfig->amperageMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 32:
                             l1voltage = getNumber(item) / 10.0;
+                            if(meterConfig->voltageMultiplier > 0) {
+                                l1voltage = l1voltage > 0 ? l1voltage * (meterConfig->voltageMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 52:
                             l2voltage = getNumber(item) / 10.0;
+                            if(meterConfig->voltageMultiplier > 0) {
+                                l2voltage = l2voltage > 0 ? l2voltage * (meterConfig->voltageMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 72:
                             l3voltage = getNumber(item) / 10.0;
+                            if(meterConfig->voltageMultiplier > 0) {
+                                l3voltage = l3voltage > 0 ? l3voltage * (meterConfig->voltageMultiplier / 1000.0) : 0;
+                            }
                             break;
                     }
                 }
@@ -79,30 +121,54 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
                         case 1:
                             o180 = getNumber(item);
                             activeImportCounter = o180 / 1000.0;
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                activeImportCounter = activeImportCounter > 0 ? activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 2:
                             o280 = getNumber(item);
                             activeExportCounter = o280 / 1000.0;
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                activeExportCounter = activeExportCounter > 0 ? activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 3:
                             o380 = getNumber(item);
                             reactiveImportCounter = o380 / 1000.0;
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                reactiveImportCounter = reactiveImportCounter > 0 ? reactiveImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 4:
                             o480 = getNumber(item);
                             reactiveExportCounter = o480 / 1000.0;
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                reactiveExportCounter = reactiveExportCounter > 0 ? reactiveExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 5:
                             o580 = getNumber(item);
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                o580 = o580 > 0 ? o580 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 6:
                             o680 = getNumber(item);
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                o680 = o680 > 0 ? o680 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 7:
                             o780 = getNumber(item);
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                o780 = o780 > 0 ? o780 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 8:
                             o880 = getNumber(item);
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                o880 = o880 > 0 ? o880 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                     }
                 } else if(descriptor->obis[4] == 1) {
@@ -110,9 +176,15 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
                     switch(descriptor->obis[2]) {
                         case 1:
                             o181 = getNumber(item);
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                o181 = o181 > 0 ? o181 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 2:
                             o281 = getNumber(item);
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                o281 = o281 > 0 ? o281 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                     }
                 } else if(descriptor->obis[4] == 2) {
@@ -120,9 +192,15 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
                     switch(descriptor->obis[2]) {
                         case 1:
                             o182 = getNumber(item);
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                o182 = o182 > 0 ? o182 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                         case 2:
                             o282 = getNumber(item);
+                            if(meterConfig->accumulatedMultiplier > 0) {
+                                o282 = o282 > 0 ? o282 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+                            }
                             break;
                     }
                 }
@@ -183,28 +261,6 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
             lastUpdateMillis = millis64();
         }
         lastUpdateMillis = millis64();
-        if(meterConfig->wattageMultiplier > 0) {
-            activeImportPower = activeImportPower > 0 ? activeImportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
-            activeExportPower = activeExportPower > 0 ? activeExportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
-            reactiveImportPower = reactiveImportPower > 0 ? reactiveImportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
-            reactiveExportPower = reactiveExportPower > 0 ? reactiveExportPower * (meterConfig->wattageMultiplier / 1000.0) : 0;
-        }
-        if(meterConfig->voltageMultiplier > 0) {
-            l1voltage = l1voltage > 0 ? l1voltage * (meterConfig->voltageMultiplier / 1000.0) : 0;
-            l2voltage = l2voltage > 0 ? l2voltage * (meterConfig->voltageMultiplier / 1000.0) : 0;
-            l3voltage = l3voltage > 0 ? l3voltage * (meterConfig->voltageMultiplier / 1000.0) : 0;
-        }
-        if(meterConfig->amperageMultiplier > 0) {
-            l1current = l1current > 0 ? l1current * (meterConfig->amperageMultiplier / 1000.0) : 0;
-            l2current = l2current > 0 ? l2current * (meterConfig->amperageMultiplier / 1000.0) : 0;
-            l3current = l3current > 0 ? l3current * (meterConfig->amperageMultiplier / 1000.0) : 0;
-        }
-        if(meterConfig->accumulatedMultiplier > 0) {
-            activeImportCounter = activeImportCounter > 0 ? activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
-            activeExportCounter = activeExportCounter > 0 ? activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
-            reactiveImportCounter = reactiveImportCounter > 0 ? reactiveImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
-            reactiveExportCounter = reactiveExportCounter > 0 ? reactiveExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
-        }
 
         threePhase = l1voltage > 0 && l2voltage > 0 && l3voltage > 0;
         if(!threePhase)

@@ -25,6 +25,7 @@ public:
     bool publishPrices(PriceService*);
     bool publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea);
     bool publishRaw(String data);
+    bool publishFirmware();
 
     void onMessage(String &topic, String &payload);
 

@@ -66,7 +66,7 @@ protected:
     unsigned long meterAutodetectLastChange = 0;
     long rate = 10000;
     uint32_t autodetectBaud = 0;
-    uint8_t autodetectParity = 11;
+    uint8_t autodetectParity = 11; // 8E1
     bool autodetectInvert = false;
     uint8_t autodetectCount = 0;
 
@@ -91,6 +91,7 @@ protected:
     int16_t unwrapData(uint8_t *buf, DataParserContext &context);
     void printHanReadError(int pos);
     void handleAutodetect(unsigned long now);
+    uint8_t getNextParity(uint8_t parityOrdinal);
 };
 
 #endif

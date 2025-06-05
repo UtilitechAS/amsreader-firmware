@@ -636,16 +636,16 @@ bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
 
     tmElements_t tms;
     tms.Year = tm.Year;
-    tms.Month = pc.start_month;
-    tms.Day = pc.start_dayofmonth;
+    tms.Month = pc.start_month == 0 || pc.start_month > 12 ? 1 : pc.start_month;
+    tms.Day = pc.start_dayofmonth == 0 || pc.start_dayofmonth > 31 ? 1 : pc.start_dayofmonth;
     tms.Hour = 0;
     tms.Minute = 0;
     tms.Second = 0;
 
     tmElements_t tme;
     tme.Year = tm.Year;
-    tme.Month = pc.end_month;
-    tme.Day = pc.end_dayofmonth;
+    tme.Month = pc.end_month == 0 || pc.end_month > 12 ? 12 : pc.end_month;
+    tme.Day = pc.end_dayofmonth == 0 || pc.end_dayofmonth > 31 ? 31 : pc.end_dayofmonth;
     tme.Hour = 23;
     tme.Minute = 59;
     tme.Second = 59;

@@ -41,6 +41,15 @@ bool RawMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAcco
             publishList1(&data, previousState);
             loop();
     }
+
+    if(data.getListType() >= 2 && data.getActiveExportPower() > 0.0) {
+        hasExport = true;
+    }
+
+    if(data.getListType() >= 3 && data.getActiveExportCounter() > 0.0) {
+        hasExport = true;
+    }
+
     if(ea->isInitialized()) {
         publishRealtime(ea);
         loop();
@@ -241,7 +250,7 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
 	float values[34];
     for(int i = 0;i < 34; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 34; i++) {
-		float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, now, i);
+		float val = ps->getPriceForHour(PRICE_DIRECTION_IMPORT, i);
 		values[i] = val;
 
         if(i > 23) continue;
@@ -308,14 +317,26 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
 		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
-    for(int i = 0; i < 34; i++) {
-        float val = values[i];
-        if(val == PRICE_NO_VALUE) {
-            mqtt.publish(topic + "/price/" + String(i), "", true, 0);
+	uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
+	for(int i = 0; i < numberOfPoints; i++) {
+		float importVal = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
+        if(importVal == PRICE_NO_VALUE) {
+            mqtt.publish(topic + "/price/import/" + String(i), "", true, 0);
             mqtt.loop();
         } else {
-            mqtt.publish(topic + "/price/" + String(i), String(val, 4), true, 0);
+            mqtt.publish(topic + "/price/import/" + String(i), String(importVal, 4), true, 0);
             mqtt.loop();
+        }
+
+        if(hasExport && ps->isExportPricesDifferentFromImport()) {
+            float exportVal = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
+            if(exportVal == PRICE_NO_VALUE) {
+                mqtt.publish(topic + "/price/export/" + String(i), "", true, 0);
+                mqtt.loop();
+            } else {
+                mqtt.publish(topic + "/price/export/" + String(i), String(exportVal, 4), true, 0);
+                mqtt.loop();
+            }
         }
     }
     if(min != INT16_MAX) {
@@ -336,15 +357,6 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
     }
     if(min6hrIdx != -1) {
         mqtt.publish(topic + "/price/cheapest/6hr", String(ts6hr), true, 0);
-        mqtt.loop();
-    }
-
-    float exportPrice = ps->getEnergyPriceForHour(PRICE_DIRECTION_EXPORT, now, 0);
-    if(exportPrice == PRICE_NO_VALUE) {
-        mqtt.publish(topic + "/exportprice/0", "", true, 0);
-        mqtt.loop();
-    } else {
-        mqtt.publish(topic + "/exportprice/0", String(exportPrice, 4), true, 0);
         mqtt.loop();
     }
     return true;

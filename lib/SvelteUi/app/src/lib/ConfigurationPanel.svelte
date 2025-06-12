@@ -275,11 +275,11 @@
                         <select name="pr" bind:value={configuration.p.r} class="in-f w-full">
                             <optgroup label="Norway">
                                 {#if !configuration.p.t}
-                                    <option value="NO1S">NO1 with support</option>
-                                    <option value="NO2S">NO2 with support</option>
-                                    <option value="NO3S">NO3 with support</option>
-                                    <option value="NO4S">NO4 with support</option>
-                                    <option value="NO5S">NO5 with support</option>
+                                    <option value="NO1S">NO1 w/support</option>
+                                    <option value="NO2S">NO2 w/support</option>
+                                    <option value="NO3S">NO3 w/support</option>
+                                    <option value="NO4S">NO4 w/support</option>
+                                    <option value="NO5S">NO5 w/support</option>
                                 {/if}
                                 <option value="10YNO-1--------2">NO1</option>
                                 <option value="10YNO-2--------T">NO2</option>
@@ -311,6 +311,14 @@
                             <option value="10YPL-AREA-----S">Poland</option>
 			                <option value="10YSI-ELES-----O">Slovenia</option>
                             <option value="10YCH-SWISSGRIDZ">Switzerland</option>
+                        </select>
+                    </div>
+                    <div>
+                        {translations.conf?.price?.resolution ?? "Resolution"}<br/>
+                        <select name="pm" bind:value={configuration.p.m} class="in-m">
+                            {#each [15,60] as m}
+                            <option value={m}>{m}M</option>
+                            {/each}
                         </select>
                     </div>
                     <div>

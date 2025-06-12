@@ -33,6 +33,7 @@ public:
 
 private:
     HwTools* hw;
+    bool hasExport = false;
     uint16_t appendJsonHeader(AmsData* data);
     uint16_t appendJsonFooter(EnergyAccounting* ea, uint16_t pos);
     bool publishList1(AmsData* data, EnergyAccounting* ea);

@@ -1827,12 +1827,6 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("entsoeCurrency "), 15) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			strcpy(price.currency, buf+15);
-		} else if(strncmp_P(buf, PSTR("entsoeMultiplier "), 17) == 0) {
-			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.unused1 = String(buf+17).toFloat() * 1000;
-		} else if(strncmp_P(buf, PSTR("entsoeFixedPrice "), 17) == 0) {
-			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.unused2 = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("priceEnabled "), 13) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			price.enabled = String(buf+13).toInt() == 1;
@@ -1845,12 +1839,6 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("priceCurrency "), 14) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			strcpy(price.currency, buf+14);
-		} else if(strncmp_P(buf, PSTR("priceMultiplier "), 16) == 0) {
-			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.unused1 = String(buf+16).toFloat() * 1000;
-		} else if(strncmp_P(buf, PSTR("priceFixedPrice "), 16) == 0) {
-			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.unused2 = String(buf+16).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("priceModifier "), 14) == 0) {
 			PriceConfig pc;
 			memset(&pc, 0, sizeof(PriceConfig));

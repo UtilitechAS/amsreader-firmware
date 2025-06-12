@@ -114,7 +114,7 @@ const HomeAssistantSensor PriceSensors[PriceSensorCount] PROGMEM = {
     {"Cheapest 6hr period ahead",  "/prices",  "prices.cheapest6hr",4000, "",     "timestamp",       ""}
 };
 
-const HomeAssistantSensor PriceSensor PROGMEM = {"Price in %02d %s", "/prices", "prices['%d']", 4000, "", "monetary", ""};
+const HomeAssistantSensor PriceSensor PROGMEM = {"Current %s price", "/prices", "prices.%s[%d]", 4000, "", "monetary", "total"};
 
 const uint8_t SystemSensorCount PROGMEM = 3;
 const HomeAssistantSensor SystemSensors[SystemSensorCount] PROGMEM = {

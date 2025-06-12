@@ -719,6 +719,7 @@ void AmsWebServer::monthplotJson() {
 	}
 }
 
+// Deprecated
 void AmsWebServer::energyPriceJson() {
 	if(!checkSecurity(2))
 		return;
@@ -730,7 +731,7 @@ void AmsWebServer::energyPriceJson() {
 
 	float prices[36];
 	for(int i = 0; i < 36; i++) {
-		prices[i] = ps->getValueForHour(PRICE_DIRECTION_IMPORT, i);
+		prices[i] = ps->getPriceForHour(PRICE_DIRECTION_IMPORT, i);
 	}
 
 	uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\""),
@@ -1046,7 +1047,8 @@ void AmsWebServer::configurationJson() {
 		price.enabled ? "true" : "false",
 		price.entsoeToken,
 		price.area,
-		price.currency
+		price.currency,
+		price.resolutionInMinues
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_DEBUG_JSON,
@@ -1611,6 +1613,7 @@ void AmsWebServer::handleSave() {
 		strcpy(price.entsoeToken, server.arg(F("pt")).c_str());
 		strcpy(price.area, priceRegion.c_str());
 		strcpy(price.currency, server.arg(F("pc")).c_str());
+		price.resolutionInMinues = server.arg(F("pm")).toInt();
 		config->setPriceServiceConfig(price);
 	}
 

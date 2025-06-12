@@ -44,6 +44,15 @@ bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAcc
         ret = publishList4(&data, ea);
         mqtt.loop();
     }
+
+    if(data.getListType() >= 2 && data.getActiveExportPower() > 0.0) {
+        hasExport = true;
+    }
+
+    if(data.getListType() >= 3 && data.getActiveExportCounter() > 0.0) {
+        hasExport = true;
+    }
+
     loop();
     return ret;
 }
@@ -285,7 +294,7 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
 	float values[38];
     for(int i = 0;i < 38; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 38; i++) {
-		float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, now, i);
+		float val = ps->getPriceForHour(PRICE_DIRECTION_IMPORT, i);
 		values[i] = val;
 
 		if(val == PRICE_NO_VALUE) break;
@@ -358,18 +367,39 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
     uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\","), WiFi.macAddress().c_str());
     if(mqttConfig.payloadFormat != 6) {
         memset(pf, 0, 4);
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"prices\":{"));
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"prices\":{\"import\":["));
+        uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
+        for(int i = 0; i < numberOfPoints; i++) {
+            float val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
+            if(val == PRICE_NO_VALUE) {
+                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
+            } else {
+                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
+            }
+        }
+        if(hasExport && ps->isExportPricesDifferentFromImport()) {
+            pos += snprintf_P(json+pos-1, BufferSize-pos, PSTR("],\"export\":["));
+            for(int i = 0; i < numberOfPoints; i++) {
+                float val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
+                if(val == PRICE_NO_VALUE) {
+                    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
+                } else {
+                    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
+                }
+            }
+        }
+        pos += snprintf_P(json+pos-1, BufferSize-pos, PSTR("],"));
     } else {
         strcpy_P(pf, PSTR("pr_"));
-    }
-
-    for(uint8_t i = 0;i < 38; i++) {
-        if(values[i] == PRICE_NO_VALUE) {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%d\":null,"), pf, i);
-        } else {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%d\":%.4f,"), pf, i, values[i]);
+        for(uint8_t i = 0;i < 38; i++) {
+            if(values[i] == PRICE_NO_VALUE) {
+                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%d\":null,"), pf, i);
+            } else {
+                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%d\":%.4f,"), pf, i, values[i]);
+            }
         }
     }
+
 
     pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%smin\":%.4f,\"%smax\":%.4f,\"%scheapest1hr\":\"%s\",\"%scheapest3hr\":\"%s\",\"%scheapest6hr\":\"%s\"}"),
         pf,

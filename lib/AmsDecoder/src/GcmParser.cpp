@@ -23,7 +23,7 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
     uint32_t headersize = 0;
     uint8_t* ptr = (uint8_t*) d;
     if(hastag) {
-        if(*ptr != GCM_TAG) return DATA_PARSE_BOUNDRY_FLAG_MISSING;
+        if(*ptr != GCM_TAG) return DATA_PARSE_BOUNDARY_FLAG_MISSING;
         ptr++;
         headersize++;
     }

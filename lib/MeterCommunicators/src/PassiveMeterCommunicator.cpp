@@ -509,11 +509,11 @@ void PassiveMeterCommunicator::printHanReadError(int pos) {
 	#endif
 	{
 		switch(pos) {
-			case DATA_PARSE_BOUNDRY_FLAG_MISSING:
+			case DATA_PARSE_BOUNDARY_FLAG_MISSING:
 				#if defined(AMS_REMOTE_DEBUG)
 				if (debugger->isActive(RemoteDebug::WARNING))
 				#endif
-				debugger->printf_P(PSTR("Boundry flag missing\n"));
+				debugger->printf_P(PSTR("Boundary flag missing\n"));
 				break;
 			case DATA_PARSE_HEADER_CHECKSUM_ERROR:
 				#if defined(AMS_REMOTE_DEBUG)

@@ -19,7 +19,7 @@ int8_t MBUSParser::parse(uint8_t *d, DataParserContext &ctx) {
 
     MbusHeader* mh = (MbusHeader*) d;
     if(mh->flag1 != MBUS_START || mh->flag2 != MBUS_START)
-        return DATA_PARSE_BOUNDRY_FLAG_MISSING;
+        return DATA_PARSE_BOUNDARY_FLAG_MISSING;
 
     // First two bytes is 1-byte length value repeated. Only used for last segment
     if(mh->len1 != mh->len2)
@@ -40,7 +40,7 @@ int8_t MBUSParser::parse(uint8_t *d, DataParserContext &ctx) {
 
     MbusFooter* mf = (MbusFooter*) (d + len + headersize);
     if(mf->flag != MBUS_END)
-        return DATA_PARSE_BOUNDRY_FLAG_MISSING;
+        return DATA_PARSE_BOUNDARY_FLAG_MISSING;
     if(checksum(d + headersize, len) != mf->fcs)
         return DATA_PARSE_FOOTER_CHECKSUM_ERROR;
 

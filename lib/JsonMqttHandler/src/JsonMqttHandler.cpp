@@ -8,6 +8,18 @@
 #include "FirmwareVersion.h"
 #include "hexutils.h"
 #include "Uptime.h"
+#include "AmsJsonGenerator.h"
+
+bool JsonMqttHandler::postConnect() {
+    if(!subTopic.isEmpty() && !mqtt.subscribe(subTopic)) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("  Unable to subscribe to to [%s]\n"), subTopic.c_str());
+        return false;
+    }
+    return true;
+}
 
 bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     if(strlen(mqttConfig.publishTopic) == 0) {
@@ -447,11 +459,35 @@ bool JsonMqttHandler::publishFirmware() {
 }
 
 void JsonMqttHandler::onMessage(String &topic, String &payload) {
-    if(strncmp(topic.c_str(), mqttConfig.subscribeTopic, 12) == 0) {
+    if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
+		return;
+
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Received command [%s] to [%s]\n"), payload.c_str(), topic.c_str());
+
+    if(topic.equals(subTopic)) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+        debugger->printf_P(PSTR(" - this is our subscribed topic\n"));
         if(payload.equals("fwupgrade")) {
             if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
                 updater->setTargetVersion(updater->getNextVersion());
             }
+        } else if(payload.equals("dayplot")) {
+            char pubTopic[192];
+            snprintf_P(pubTopic, 192, PSTR("%s/dayplot"), mqttConfig.publishTopic);
+            AmsJsonGenerator::generateDayPlotJson(ds, json, BufferSize);
+            bool ret = mqtt.publish(pubTopic, json);
+            loop();
+        } else if(payload.equals("monthplot")) {
+            char pubTopic[192];
+            snprintf_P(pubTopic, 192, PSTR("%s/monthplot"), mqttConfig.publishTopic);
+            AmsJsonGenerator::generateMonthPlotJson(ds, json, BufferSize);
+            bool ret = mqtt.publish(pubTopic, json);
+            loop();
         }
     }
 }

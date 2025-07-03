@@ -9,6 +9,7 @@
 #include "FirmwareVersion.h"
 #include "base64.h"
 #include "hexutils.h"
+#include "AmsJsonGenerator.h"
 
 #include "html/index_html.h"
 #include "html/index_css.h"
@@ -678,12 +679,7 @@ void AmsWebServer::dayplotJson() {
 	if(ds == NULL) {
 		notFound();
 	} else {
-		uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"unit\":\"kwh\""));
-		for(uint8_t i = 0; i < 24; i++) {
-			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.3f,\"e%02d\":%.3f"), i, ds->getHourImport(i) / 1000.0, i, ds->getHourExport(i) / 1000.0);
-		}
-		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
-
+		AmsJsonGenerator::generateDayPlotJson(ds, buf, BufferSize);
 		addConditionalCloudHeaders();
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -701,12 +697,7 @@ void AmsWebServer::monthplotJson() {
 	if(ds == NULL) {
 		notFound();
 	} else {
-		uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"unit\":\"kwh\""));
-		for(uint8_t i = 1; i < 32; i++) {
-			pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"i%02d\":%.3f,\"e%02d\":%.3f"), i, ds->getDayImport(i) / 1000.0, i, ds->getDayExport(i) / 1000.0);
-		}
-		snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
-
+		AmsJsonGenerator::generateMonthPlotJson(ds, buf, BufferSize);
 		addConditionalCloudHeaders();
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);

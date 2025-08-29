@@ -32,7 +32,7 @@
 
             return s;
         });
-        navigate(basepath + (sysinfo.usrcfg ? "/" : "/setup"));
+        navigate(basepath + (sysinfo.usrcfg ? "" : "setup"));
 	}
 
     let cc = false;

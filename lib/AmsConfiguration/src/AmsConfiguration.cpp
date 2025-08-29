@@ -655,7 +655,7 @@ bool AmsConfiguration::setPriceServiceConfig(PriceServiceConfig& config) {
 		priceChanged |= strcmp(config.area, existing.area) != 0;
 		priceChanged |= strcmp(config.currency, existing.currency) != 0;
 		priceChanged |= config.enabled != existing.enabled;
-		priceChanged |= config.resolutionInMinues != existing.resolutionInMinues;
+		priceChanged |= config.resolutionInMinutes != existing.resolutionInMinutes;
 	} else {
 		priceChanged = true;
 	}
@@ -676,7 +676,7 @@ void AmsConfiguration::clearPriceServiceConfig(PriceServiceConfig& config) {
 	memset(config.area, 0, 17);
 	memset(config.currency, 0, 4);
 	config.enabled = false;
-	config.resolutionInMinues = 60;
+	config.resolutionInMinutes = 60;
 }
 
 bool AmsConfiguration::isPriceServiceChanged() {

@@ -1048,7 +1048,7 @@ void AmsWebServer::configurationJson() {
 		price.entsoeToken,
 		price.area,
 		price.currency,
-		price.resolutionInMinues
+		price.resolutionInMinutes
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_DEBUG_JSON,
@@ -1613,7 +1613,7 @@ void AmsWebServer::handleSave() {
 		strcpy(price.entsoeToken, server.arg(F("pt")).c_str());
 		strcpy(price.area, priceRegion.c_str());
 		strcpy(price.currency, server.arg(F("pc")).c_str());
-		price.resolutionInMinues = server.arg(F("pm")).toInt();
+		price.resolutionInMinutes = server.arg(F("pm")).toInt();
 		config->setPriceServiceConfig(price);
 	}
 

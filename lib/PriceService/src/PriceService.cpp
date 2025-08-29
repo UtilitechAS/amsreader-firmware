@@ -43,8 +43,8 @@ void PriceService::setup(PriceServiceConfig& config) {
         this->config = new PriceServiceConfig();
     }
     memcpy(this->config, &config, sizeof(config));
-    if(this->config->resolutionInMinues != 15 && this->config->resolutionInMinues != 60) {
-        this->config->resolutionInMinues = 60;
+    if(this->config->resolutionInMinutes != 15 && this->config->resolutionInMinutes != 60) {
+        this->config->resolutionInMinutes = 60;
     }
 
     lastTodayFetch = lastTomorrowFetch = lastCurrencyFetch = 0;
@@ -155,11 +155,15 @@ float PriceService::getEnergyPricePoint(uint8_t direction, int8_t point) {
     float value = PRICE_NO_VALUE;
     uint8_t pos = point;
     float multiplier = 1.0;
-    if(pos >= today->getNumberOfPoints()) {
-        pos = pos - today->getNumberOfPoints();
-        if(pos >= tomorrow->getNumberOfPoints()) return PRICE_NO_VALUE;
+    uint8_t numberOfPointsToday = 24;
+    if(today != NULL) {
+        numberOfPointsToday = today->getNumberOfPoints();
+    }
+    if(pos >= numberOfPointsToday) {
+        pos = pos - numberOfPointsToday;
         if(tomorrow == NULL)
             return PRICE_NO_VALUE;
+        if(pos >= tomorrow->getNumberOfPoints()) return PRICE_NO_VALUE;
         if(!tomorrow->hasPrice(pos, direction))
             return PRICE_NO_VALUE;
         value = tomorrow->getPrice(pos, direction);
@@ -231,27 +235,47 @@ bool PriceService::loop() {
     if(now < 10000) return false; // Grace period
 
     time_t t = time(nullptr);
-    if(t < FirmwareVersion::BuildEpoch) return false;
+    if(t < FirmwareVersion::BuildEpoch) {
+        return false;
+    }
 
     #ifndef AMS2MQTT_PRICE_KEY
     if(strlen(getToken()) == 0) {
         return false;
     }
     #endif
-    if(strlen(config->area) == 0)
+    if(strlen(config->area) == 0){
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::WARNING))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Area is missing\n"));
         return false;
-    if(strlen(config->currency) == 0)
+    }
+    if(strlen(config->currency) == 0) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::WARNING))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Currency is missing\n"));
         return false;
+    }
 
     tmElements_t tm;
     breakTime(entsoeTz->toLocal(t), tm);
 
     if(currentDay == 0) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Day init\n"));
         currentDay = tm.Day;
         currentHour = tm.Hour;
     }
     
     if(currentDay != tm.Day) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Day reset\n"));
         if(today != NULL) delete today;
         if(tomorrow != NULL) {
             today = tomorrow;
@@ -261,6 +285,10 @@ bool PriceService::loop() {
         currentHour = tm.Hour;
         return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
     } else if(currentHour != tm.Hour) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Hour reset\n"));
         currentHour = tm.Hour;
         return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
     }
@@ -451,17 +479,22 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
             return NULL;
         }
     } else if(hub) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Going to fetch prices from hub\n"));
+
         tmElements_t tm;
         breakTime(entsoeTz->toLocal(t), tm);
 
         String data;
-        snprintf_P(buf, BufferSize, PSTR("http://hub.amsleser.no/hub/price-v2/%s/%d/%d/%d/pt%dm?currency=%s"),
+        snprintf_P(buf, BufferSize, PSTR("http://hub.amsleser.no/hub/price/%s/%d/%d/%d/pt%dm?currency=%s"),
             config->area,
             tm.Year+1970,
             tm.Month,
             tm.Day,
-            config->currency,
-            config->resolutionInMinues
+            config->resolutionInMinutes,
+            config->currency
         );
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::INFO))

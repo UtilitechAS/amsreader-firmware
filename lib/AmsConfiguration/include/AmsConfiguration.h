@@ -206,7 +206,7 @@ struct PriceServiceConfig {
 	char entsoeToken[37];
 	char area[17];
 	char currency[4];
-	uint8_t resolutionInMinues;
+	uint8_t resolutionInMinutes;
 	uint8_t unused2;
 	uint16_t unused3;
 	bool enabled;

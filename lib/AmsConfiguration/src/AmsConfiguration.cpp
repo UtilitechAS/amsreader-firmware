@@ -13,13 +13,17 @@
 bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 	EEPROM.begin(EEPROM_SIZE);
 	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
-	if(configVersion == EEPROM_CHECK_SUM || configVersion == EEPROM_CLEARED_INDICATOR) {
+	if(configVersion == EEPROM_CHECK_SUM) {
 		EEPROM.get(CONFIG_SYSTEM_START, config);
 		EEPROM.end();
 		return true;
 	} else {
-		config.boardType = 0xFF;
-		config.vendorConfigured = false;
+		if(configVersion == EEPROM_CLEARED_INDICATOR) {
+			config.vendorConfigured = true;
+		} else {
+			config.vendorConfigured = false;
+			config.boardType = 0xFF;
+		}
 		config.userConfigured = false;
 		config.dataCollectionConsent = 0;
 		config.energyspeedometer = 0;
@@ -1101,6 +1105,7 @@ bool AmsConfiguration::relocateConfig103() {
 
 bool AmsConfiguration::save() {
 	EEPROM.begin(EEPROM_SIZE);
+	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
 	bool success = EEPROM.commit();
 	EEPROM.end();

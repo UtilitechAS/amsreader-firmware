@@ -162,7 +162,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
         if(kwhi > 0) {
             realtimeData->use += kwhi;
-            float importPrice = ps == NULL ? PRICE_NO_VALUE : ps->getPrice(PRICE_DIRECTION_IMPORT);
+            float importPrice = ps == NULL ? PRICE_NO_VALUE : ps->getCurrentPrice(PRICE_DIRECTION_IMPORT);
             if(importPrice != PRICE_NO_VALUE) {
                 float cost = importPrice * kwhi;
                 realtimeData->costHour += cost;
@@ -177,7 +177,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
         if(kwhe > 0) {
             realtimeData->produce += kwhe;
-            float exportPrice = ps == NULL ? PRICE_NO_VALUE : ps->getPrice(PRICE_DIRECTION_EXPORT);
+            float exportPrice = ps == NULL ? PRICE_NO_VALUE : ps->getCurrentPrice(PRICE_DIRECTION_EXPORT);
             if(exportPrice != PRICE_NO_VALUE) {
                 float income = exportPrice * kwhe;
                 realtimeData->incomeHour += income;
@@ -216,13 +216,13 @@ void EnergyAccounting::calcDayCost() {
         for(uint8_t i = calcFromHour; i < realtimeData->currentHour; i++) {
             breakTime(now - ((local.Hour - i) * 3600), utc);
 
-            float priceIn = ps->getPriceForHour(PRICE_DIRECTION_IMPORT, i - local.Hour);
+            float priceIn = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i - local.Hour);
             if(priceIn != PRICE_NO_VALUE) {
                 int16_t wh = ds->getHourImport(utc.Hour);
                 realtimeData->costDay += priceIn * (wh / 1000.0);
             }
 
-            float priceOut = ps->getPriceForHour(PRICE_DIRECTION_EXPORT, i - local.Hour);
+            float priceOut = ps->getPriceForRelativeHour(PRICE_DIRECTION_EXPORT, i - local.Hour);
             if(priceOut != PRICE_NO_VALUE) {
                 int16_t wh = ds->getHourExport(utc.Hour);
                 realtimeData->incomeDay += priceOut * (wh / 1000.0);

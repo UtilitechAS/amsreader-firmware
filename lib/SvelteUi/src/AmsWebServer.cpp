@@ -581,8 +581,8 @@ void AmsWebServer::dataJson() {
 		mqttStatus = 3;
 	}
 
-	float price = ps == NULL ? PRICE_NO_VALUE : ps->getPrice(PRICE_DIRECTION_IMPORT);
-	float exportPrice = ps == NULL ? PRICE_NO_VALUE : ps->getPrice(PRICE_DIRECTION_EXPORT);
+	float price = ps == NULL ? PRICE_NO_VALUE : ps->getCurrentPrice(PRICE_DIRECTION_IMPORT);
+	float exportPrice = ps == NULL ? PRICE_NO_VALUE : ps->getCurrentPrice(PRICE_DIRECTION_EXPORT);
 
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
@@ -731,7 +731,7 @@ void AmsWebServer::energyPriceJson() {
 
 	float prices[36];
 	for(int i = 0; i < 36; i++) {
-		prices[i] = ps->getPriceForHour(PRICE_DIRECTION_IMPORT, i);
+		prices[i] = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i);
 	}
 
 	uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\""),
@@ -781,7 +781,7 @@ void AmsWebServer::priceJson(uint8_t direction) {
 		prices[i] = ps->getPricePoint(direction, i);
 	}
 
-	uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\",\"\"resolution\":%d,\"direction\":\"%s\",\"importExportPriceDifferent\":%s"),
+	snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\",\"resolution\":%d,\"direction\":\"%s\",\"importExportPriceDifferent\":%s"),
 		ps->getCurrency(),
 		ps->getSource(),
 		ps->getResolutionInMinutes(),
@@ -789,22 +789,24 @@ void AmsWebServer::priceJson(uint8_t direction) {
 		ps->isExportPricesDifferentFromImport() ? "true" : "false"
 	);
 
-    for(uint8_t i = 0;i < numberOfPoints; i++) {
-        if(prices[i] == PRICE_NO_VALUE) {
-            pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"%02d\":null"), i);
-        } else {
-            pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"%02d\":%.4f"), i, prices[i]);
-        }
-    }
-	snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
-
 	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-	server.setContentLength(strlen(buf));
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
 	server.send(200, MIME_JSON, buf);
+
+    for(uint8_t i = 0;i < numberOfPoints; i++) {
+        if(prices[i] == PRICE_NO_VALUE) {
+            snprintf_P(buf, BufferSize, PSTR(",\"%02d\":null"), i);
+			server.sendContent(buf);
+        } else {
+            snprintf_P(buf, BufferSize, PSTR(",\"%02d\":%.4f"), i, prices[i]);
+			server.sendContent(buf);
+        }
+    }
+	server.sendContent_P(PSTR("}"));
 }
 
 void AmsWebServer::temperatureJson() {

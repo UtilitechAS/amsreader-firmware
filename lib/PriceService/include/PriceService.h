@@ -81,17 +81,15 @@ public:
     uint8_t getResolutionInMinutes();
     uint8_t getNumberOfPointsAvailable();
 
-    bool isExportPricesDifferentFromImport() {
-        return today != NULL && today->isExportPricesDifferentFromImport();
-    }
+    bool isExportPricesDifferentFromImport();
 
     bool hasPrice() { return hasPrice(PRICE_DIRECTION_IMPORT); }
-    bool hasPrice(uint8_t direction) { return getPrice(direction) != PRICE_NO_VALUE; }
+    bool hasPrice(uint8_t direction) { return getCurrentPrice(direction) != PRICE_NO_VALUE; }
     bool hasPricePoint(uint8_t direction, int8_t point) { return getPricePoint(direction, point) != PRICE_NO_VALUE; }
     
-    float getPrice(uint8_t direction) { return getPricePoint(direction, 0); }
-    float getPricePoint(uint8_t direction, int8_t point);
-    float getPriceForHour(uint8_t direction, int8_t hour); // If not 60min interval, average
+    float getCurrentPrice(uint8_t direction);
+    float getPricePoint(uint8_t direction, uint8_t point);
+    float getPriceForRelativeHour(uint8_t direction, int8_t hour); // If not 60min interval, average
 
     std::vector<PriceConfig>& getPriceConfig();
     void setPriceConfig(uint8_t index, PriceConfig &priceConfig);
@@ -141,6 +139,6 @@ private:
     float getCurrencyMultiplier(const char* from, const char* to, time_t t);
     bool timeIsInPeriod(tmElements_t tm, PriceConfig pc);
     float getFixedPrice(uint8_t direction, int8_t hour);
-    float getEnergyPricePoint(uint8_t direction, int8_t point);
+    float getEnergyPricePoint(uint8_t direction, uint8_t point);
 };
 #endif

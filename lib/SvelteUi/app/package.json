@@ -15,7 +15,7 @@
   }
 },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^2.1.0",
+    "@sveltejs/vite-plugin-svelte": "^6.2.0",
     "@tailwindcss/forms": "^0.5.3",
     "autoprefixer": "^10.4.14",
     "http-proxy-middleware": "^2.0.9",
@@ -26,7 +26,7 @@
     "svelte-preprocess": "^5.0.3",
     "svelte-qrcode": "^1.0.0",
     "tailwindcss": "^3.3.1",
-    "vite": "^4.5.14"
+    "vite": "^7.1.5"
   },
   "dependencies": {
     "cssnano": "^5.1.15",

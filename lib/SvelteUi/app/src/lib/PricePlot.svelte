@@ -1,6 +1,7 @@
 <script>
-    import { zeropad, addHours, getPriceSourceName, getPriceSourceUrl, formatCurrency } from './Helpers.js';
+    import { zeropad, addHours, addMinutes, getPriceSourceName, getPriceSourceUrl, formatCurrency } from './Helpers.js';
     import BarChart from './BarChart.svelte';
+    import { onMount } from 'svelte';
 
     export let title;
     export let json;
@@ -12,40 +13,44 @@
 
     let dark = document.documentElement.classList.contains('dark');
 
+    let cur = new Date();
+
+    onMount(() => {
+        let timeout;
+        function scheduleUpdate() {
+            cur = new Date();
+            timeout = setTimeout(() => {
+                scheduleUpdate();
+            }, (15 - (cur.getMinutes() % 15)) * 60000);
+        }
+
+        scheduleUpdate();
+
+		return () => {
+			clearTimeout(timeout);
+		};
+	});
+
     $: {
         let currency = json.currency;
-        let hour = new Date().getUTCHours();
-        let i = 0;
         let val = 0;
-        let h = 0;
         let yTicks = [];
         let xTicks = [];
         let values = [];
         min = max = 0;
-        let cur = new Date();
-        addHours(cur, sysinfo.clock_offset - ((24 + cur.getHours() - cur.getUTCHours())%24));
-        for(i = hour; i<24; i++) {
-            val = json[zeropad(h++)];
+        let i = Math.floor(((cur.getHours()*60) + cur.getMinutes()) / json?.resolution);
+        cur.setMinutes(Math.floor(cur.getMinutes()/json.resolution)*json.resolution,0,0);
+        while(json?.hasOwnProperty(zeropad(i))) {
+            val = json[zeropad(i++)];
             if(val == null) break;
             xTicks.push({
-                label: zeropad(cur.getHours())
+                label: values.length > 1 && json.resolution < 60 && cur.getMinutes() != 0 ? '' : zeropad(cur.getHours())
             });
             values.push(val*100);
             min = Math.min(min, val*100);
             max = Math.max(max, val*100);
-            addHours(cur, 1);
-        };
-        for(i = 0; i < 24; i++) {
-            val = json[zeropad(h++)];
-            if(val == null) break;
-            xTicks.push({
-                label: zeropad(cur.getHours())
-            });
-            values.push(val*100);
-            min = Math.min(min, val*100);
-            max = Math.max(max, val*100);
-            addHours(cur, 1);
-        };
+            addMinutes(cur, json.resolution);
+        }
 
         let ret = formatCurrency(Math.max(Math.abs(min) / 100.0, Math.abs(max) / 100.0), currency);
         if(ret && ret[1] && ret[1] != currency) {

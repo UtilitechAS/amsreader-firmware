@@ -168,8 +168,7 @@ float PriceService::getCurrentPrice(uint8_t direction) {
     time_t ts = time(nullptr);
     tmElements_t tm;
     breakTime(tz->toLocal(ts), tm);
-    float pointsPerHour = 60.0 / today->getResolutionInMinutes();
-    uint8_t pos = (uint8_t) floor(pointsPerHour * tm.Hour);
+    uint8_t pos = ((tm.Hour * 60) + tm.Minute) / today->getResolutionInMinutes();
 
     return getPricePoint(direction, pos);
 }

@@ -317,24 +317,31 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
 		sprintf(ts6hr, "%04d-%02d-%02dT%02d:00:00Z", tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
-	uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
+    mqtt.publish(topic + "/price/import/current", String(ps->getCurrentPrice(PRICE_DIRECTION_IMPORT), 4), true, 0);
+    mqtt.loop();
+    if(hasExport && ps->isExportPricesDifferentFromImport()) {
+        mqtt.publish(topic + "/price/export/current", String(ps->getCurrentPrice(PRICE_DIRECTION_EXPORT), 4), true, 0);
+        mqtt.loop();
+    }
+
+    uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
 	for(int i = 0; i < numberOfPoints; i++) {
 		float importVal = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
         if(importVal == PRICE_NO_VALUE) {
-            mqtt.publish(topic + "/price/import/" + String(i), "", true, 0);
+            mqtt.publish(topic + "/price/import/all/" + String(i), "", true, 0);
             mqtt.loop();
         } else {
-            mqtt.publish(topic + "/price/import/" + String(i), String(importVal, 4), true, 0);
+            mqtt.publish(topic + "/price/import/all/" + String(i), String(importVal, 4), true, 0);
             mqtt.loop();
         }
 
         if(hasExport && ps->isExportPricesDifferentFromImport()) {
             float exportVal = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
             if(exportVal == PRICE_NO_VALUE) {
-                mqtt.publish(topic + "/price/export/" + String(i), "", true, 0);
+                mqtt.publish(topic + "/price/export/all/" + String(i), "", true, 0);
                 mqtt.loop();
             } else {
-                mqtt.publish(topic + "/price/export/" + String(i), String(exportVal, 4), true, 0);
+                mqtt.publish(topic + "/price/export/all/" + String(i), String(exportVal, 4), true, 0);
                 mqtt.loop();
             }
         }

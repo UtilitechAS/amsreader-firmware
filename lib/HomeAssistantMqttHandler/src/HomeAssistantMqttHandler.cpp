@@ -442,7 +442,10 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
-    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{\"import\":["), WiFi.macAddress().c_str());
+    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{\"import\":{\"current\":%.4f,\"all\":["), 
+        WiFi.macAddress().c_str(), 
+        ps->getCurrentPrice(PRICE_DIRECTION_IMPORT)
+    );
 	uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
 	for(int i = 0; i < numberOfPoints; i++) {
 		float val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
@@ -453,7 +456,8 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
         }
 	}
     if(rteInit && ps->isExportPricesDifferentFromImport()) {
-        pos += snprintf_P(json+pos-1, BufferSize-pos, PSTR("],\"export\":["));
+        pos--;
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("]},\"export\":{\"current\":%.4f,\"all\":["), ps->getCurrentPrice(PRICE_DIRECTION_EXPORT));
         for(int i = 0; i < numberOfPoints; i++) {
             float val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
             if(val == PRICE_NO_VALUE) {
@@ -464,7 +468,8 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
         }
     }
 
-    pos += snprintf_P(json+pos-1, BufferSize-pos, PSTR("],\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}"),
+    pos--;
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("]},\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}}"),
         min == INT16_MAX ? 0.0 : min,
         max == INT16_MIN ? 0.0 : max,
         ts1hr,
@@ -697,35 +702,47 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
         pInit = true;
     }
     if(!prInit && ps->hasPrice()) {
-        char path[strlen(PriceSensor.path)+1];
-        snprintf(path, strlen(PriceSensor.path)+1, PriceSensor.path, "import", 0);
-        HomeAssistantSensor sensor = {
-            "Current import price",
-            PriceSensor.topic,
-            PriceSensor.path,
-            PriceSensor.ttl,
-            uom.c_str(),
-            PriceSensor.devcl,
-            PriceSensor.stacl
-        };
-        publishSensor(sensor);
+        for(uint8_t i = 0; i < ps->getNumberOfPointsAvailable(); i++) {
+            char name[32];
+            snprintf_P(name, 32, PSTR("Import price point %02d"), i);
+            char path[32];
+            snprintf_P(path, 32, PSTR("prices.import.all[%d]"), i);
+            HomeAssistantSensor sensor = {
+                name,
+                "/prices",
+                path,
+                ps->getResolutionInMinutes() * 60 + 30,
+                uom.c_str(),
+                "monetary",
+                ""
+            };
+            publishSensor(sensor);
+        }
         prInit = true;
     }
 
     if(rteInit && !preInit && ps->isExportPricesDifferentFromImport()) {
-        char path[strlen(PriceSensor.path)+1];
-        snprintf(path, strlen(PriceSensor.path)+1, PriceSensor.path, "export", 0);
-        HomeAssistantSensor sensor = {
-            "Current export price",
-            PriceSensor.topic,
-            PriceSensor.path,
-            PriceSensor.ttl,
-            uom.c_str(),
-            PriceSensor.devcl,
-            PriceSensor.stacl
-        };
+        HomeAssistantSensor sensor = ExportPriceSensor;
+        sensor.uom = uom.c_str();
         publishSensor(sensor);
-        prInit = true;
+        
+        for(uint8_t i = 0; i < ps->getNumberOfPointsAvailable(); i++) {
+            char name[32];
+            snprintf_P(name, 32, PSTR("Export price point %02d"), i);
+            char path[32];
+            snprintf_P(path, 32, PSTR("prices.export.all[%d]"), i);
+            HomeAssistantSensor sensor = {
+                name,
+                "/prices",
+                path,
+                ps->getResolutionInMinutes() * 60 + 30,
+                uom.c_str(),
+                "monetary",
+                ""
+            };
+            publishSensor(sensor);
+        }
+        preInit = true;
     }
 }
 

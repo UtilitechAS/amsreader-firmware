@@ -168,7 +168,7 @@ float PriceService::getCurrentPrice(uint8_t direction) {
     time_t ts = time(nullptr);
     tmElements_t tm;
     breakTime(tz->toLocal(ts), tm);
-    uint8_t pos = ((tm.Hour * 60) + tm.Minute) / today->getResolutionInMinutes();
+    uint8_t pos = getCurrentPricePointIndex();
 
     return getPricePoint(direction, pos);
 }
@@ -307,7 +307,7 @@ bool PriceService::loop() {
         #endif
         debugger->printf_P(PSTR("(PriceService) Day init\n"));
         currentDay = tm.Day;
-        currentHour = tm.Hour;
+        currentPricePoint = getCurrentPricePointIndex();
     }
     
     if(currentDay != tm.Day) {
@@ -321,14 +321,14 @@ bool PriceService::loop() {
             tomorrow = NULL;
         }
         currentDay = tm.Day;
-        currentHour = tm.Hour;
+        currentPricePoint = getCurrentPricePointIndex();
         return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
-    } else if(currentHour != tm.Hour) {
+    } else if(currentPricePoint != getCurrentPricePointIndex()) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::INFO))
         #endif
-        debugger->printf_P(PSTR("(PriceService) Hour reset\n"));
-        currentHour = tm.Hour;
+        debugger->printf_P(PSTR("(PriceService) Price point reset\n"));
+        currentPricePoint = getCurrentPricePointIndex();
         return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
     }
 
@@ -348,6 +348,7 @@ bool PriceService::loop() {
             }
             today = NULL;
         }
+        currentPricePoint = getCurrentPricePointIndex();
         return today != NULL && !readyToFetchForTomorrow; // Only trigger MQTT publish if we have todays prices and we are not immediately ready to fetch price for tomorrow.
     }
 
@@ -364,6 +365,7 @@ bool PriceService::loop() {
             }
             tomorrow = NULL;
         }
+        currentPricePoint = getCurrentPricePointIndex();
         return tomorrow != NULL;
     }
 
@@ -582,7 +584,8 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
                     int32_t* points = (int32_t*) &header[1];
 
                     for(uint8_t i = 0; i < header->numberOfPoints; i++) {
-                        float value = ntohl(points[i]) / 10000.0;
+                        int32_t intval = ntohl(points[i]);
+                        float value = intval / 10000.0;
                         #if defined(AMS_REMOTE_DEBUG)
                         if (debugger->isActive(RemoteDebug::VERBOSE))
                         #endif
@@ -591,7 +594,8 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
                     }
                     if(header->differentExportPrices) {
                         for(uint8_t i = 0; i < header->numberOfPoints; i++) {
-                            float value = ntohl(points[i]) / 10000.0;
+                            int32_t intval = ntohl(points[i]);
+                            float value = intval / 10000.0;
                             #if defined(AMS_REMOTE_DEBUG)
                             if (debugger->isActive(RemoteDebug::VERBOSE))
                             #endif
@@ -761,4 +765,13 @@ bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
     }
 
     return makeTime(tms) <= makeTime(tm) && makeTime(tme) >= makeTime(tm);
+}
+
+uint8_t PriceService::getCurrentPricePointIndex() {
+    if(today == NULL) return 0;
+
+    time_t ts = time(nullptr);
+    tmElements_t tm;
+    breakTime(tz->toLocal(ts), tm);
+    return ((tm.Hour * 60) + tm.Minute) / today->getResolutionInMinutes();
 }

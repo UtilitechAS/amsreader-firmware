@@ -105,16 +105,16 @@ const HomeAssistantSensor RealtimeExportSensors[RealtimeExportSensorCount] PROGM
 const HomeAssistantSensor RealtimePeakSensor PROGMEM = {"Current month peak %d", "/realtime", "peaks[%d]", 4000, "kWh", "energy", ""};
 const HomeAssistantSensor RealtimeThresholdSensor PROGMEM = {"Tariff threshold %d", "/realtime", "thresholds[%d]", 4000, "kWh", "energy", ""};
 
-const uint8_t PriceSensorCount PROGMEM = 5;
+const uint8_t PriceSensorCount PROGMEM = 6;
 const HomeAssistantSensor PriceSensors[PriceSensorCount] PROGMEM = {
-    {"Minimum price ahead",        "/prices",  "prices.min",        4000, "",     "monetary",        ""},
-    {"Maximum price ahead",        "/prices",  "prices.max",        4000, "",     "monetary",        ""},
-    {"Cheapest 1hr period ahead",  "/prices",  "prices.cheapest1hr",4000, "",     "timestamp",       ""},
-    {"Cheapest 3hr period ahead",  "/prices",  "prices.cheapest3hr",4000, "",     "timestamp",       ""},
-    {"Cheapest 6hr period ahead",  "/prices",  "prices.cheapest6hr",4000, "",     "timestamp",       ""}
+    {"Import price",               "/prices",  "prices.import.current", 4000, "",     "monetary",        ""},
+    {"Minimum price ahead",        "/prices",  "prices.min",     4000, "",     "monetary",        ""},
+    {"Maximum price ahead",        "/prices",  "prices.max",     4000, "",     "monetary",        ""},
+    {"Cheapest 1hr period ahead",  "/prices",  "prices.cheapest1hr",    4000, "",     "timestamp",       ""},
+    {"Cheapest 3hr period ahead",  "/prices",  "prices.cheapest3hr",    4000, "",     "timestamp",       ""},
+    {"Cheapest 6hr period ahead",  "/prices",  "prices.cheapest6hr",    4000, "",     "timestamp",       ""}
 };
-
-const HomeAssistantSensor PriceSensor PROGMEM = {"Current %s price", "/prices", "prices.%s[%d]", 4000, "", "monetary", "total"};
+const HomeAssistantSensor ExportPriceSensor PROGMEM = {"Export price", "/prices", "prices.export.current", 4000, "", "monetary", ""};
 
 const uint8_t SystemSensorCount PROGMEM = 3;
 const HomeAssistantSensor SystemSensors[SystemSensorCount] PROGMEM = {

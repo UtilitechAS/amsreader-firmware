@@ -109,7 +109,7 @@ private:
     PriceServiceConfig* config = NULL;
     HTTPClient* http = NULL;
 
-    uint8_t currentDay = 0, currentHour = 0;
+    uint8_t currentDay = 0, currentPricePoint = 0;
     uint8_t tomorrowFetchMinute = 15; // How many minutes over 13:00 should it fetch prices
     uint8_t nextFetchDelayMinutes = 15;
     uint64_t lastTodayFetch = 0;
@@ -140,5 +140,6 @@ private:
     bool timeIsInPeriod(tmElements_t tm, PriceConfig pc);
     float getFixedPrice(uint8_t direction, int8_t hour);
     float getEnergyPricePoint(uint8_t direction, uint8_t point);
+    uint8_t getCurrentPricePointIndex();
 };
 #endif

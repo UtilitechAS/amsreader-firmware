@@ -635,12 +635,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             } 
         }
 
-        if(this->packageTimestamp > 0) {
-            if(meterType == AmsTypeKamstrup) {
-                this->packageTimestamp = this->packageTimestamp - 3600;
-            }
-        }
-
         uint8_t str_len = 0;
         str_len = getString(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), ((char *) (d)), str);
         if(str_len > 0) {
@@ -741,8 +735,11 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         if(meterTs != NULL) {
             AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
             time_t ts = decodeCosemDateTime(amst->dt);
-            if(amst->dt.deviation == 0x8000) { // Deviation not specified, adjust from localtime to UTC
+            if(amst->dt.deviation == ((int16_t) 0x8000)) { // Deviation not specified, adjust from localtime to UTC
                 meterTimestamp = tz.toUTC(ts);
+                if(ctx.timestamp > 0) {
+                    this->packageTimestamp = tz.toUTC(ctx.timestamp);
+                }
             } else if(meterType == AmsTypeAidon) {
                 meterTimestamp = ts - 3600; // 21.09.24, the clock is now correct
             } else {

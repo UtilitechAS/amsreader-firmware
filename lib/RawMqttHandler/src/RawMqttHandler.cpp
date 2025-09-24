@@ -7,6 +7,7 @@
 #include "RawMqttHandler.h"
 #include "hexutils.h"
 #include "Uptime.h"
+#include "FirmwareVersion.h"
 
 bool RawMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
 	if(topic.isEmpty() || !mqtt.connected())
@@ -382,4 +383,11 @@ bool RawMqttHandler::publishRaw(String data) {
 }
 
 void RawMqttHandler::onMessage(String &topic, String &payload) {
+    if(strncmp(topic.c_str(), mqttConfig.subscribeTopic, 12) == 0) {
+        if(payload.equals("fwupgrade")) {
+            if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
+                updater->setTargetVersion(updater->getNextVersion());
+            }
+        }
+    }
 }

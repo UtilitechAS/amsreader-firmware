@@ -33,15 +33,18 @@ bool AmsMqttHandler::connect() {
 		if(epoch < FirmwareVersion::BuildEpoch) {
 			return false;
 		}
+		
+		bool applySslConfiguration = mqttConfigChanged;
 		if(mqttSecureClient == NULL) {
 			mqttSecureClient = new WiFiClientSecure();
 			#if defined(ESP8266)
 				mqttSecureClient->setBufferSizes(512, 512);
 				return false;
 			#endif
+			applySslConfiguration = true;
 		}
 
-		if(mqttConfigChanged) {
+		if(applySslConfiguration) {
 			if(caVerification && LittleFS.begin()) {
 				File file;
 

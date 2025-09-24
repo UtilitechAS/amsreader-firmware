@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - name: Check out code from repo
-      uses: actions/checkout@v1
+      uses: actions/checkout@v4
     - name: Get release version for filenames
       id: release_tag
       env:
@@ -33,17 +33,17 @@ jobs:
         sed -i 's/NO_ENERGY_SPEEDOMETER_PASS/ENERGY_SPEEDOMETER_PASS=\\"${{secrets.ENERGY_SPEEDOMETER_PASS}}\\"/g' platformio.ini
 
     - name: Cache Python dependencies
-      uses: actions/cache@v1
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('platformio.ini') }}
     - name: Cache PlatformIO dependencies
-      uses: actions/cache@v1
+      uses: actions/cache@v4
       with:
         path: ~/.pio/libdeps
         key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
     - name: Set up Python 3.9
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v5
       with:
         python-version: 3.9
     - name: Install dependencies
@@ -52,9 +52,9 @@ jobs:
         pip install -U platformio css_html_js_minify
 
     - name: Set up node
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v4
       with:
-        node-version: '16.x'
+        node-version: '19.x'
     - name: Build with node
       run: |
         cd lib/SvelteUi/app
@@ -67,16 +67,12 @@ jobs:
     - name: PlatformIO lib install
       run: pio lib install
 
-    - name: Create Release
+    - name: Create release with release notes
       id: create_release
-      uses: actions/create-release@v1.0.0
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: ncipollo/release-action@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
-        draft: false
-        prerelease: false
+        name: Release v${{ steps.release_tag.outputs.tag }}
+        generateReleaseNotes: true
 
     - name: Build esp8266 firmware
       run: pio run -e esp8266

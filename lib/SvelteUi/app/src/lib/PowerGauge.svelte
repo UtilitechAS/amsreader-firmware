@@ -6,8 +6,7 @@
     export let max;
     export let unit;
     export let label;
-    export let sub = "";
-    export let subunit = "";
+    export let sub = ['', ''];
     export let colorFn;
 
     let arr;
@@ -27,8 +26,8 @@
         <span class="pl-unt">{arr[1]}</span>
         {#if sub}
         <br/>
-        <span class="pl-sub">{sub}</span>
-        <span class="pl-snt">{subunit}/kWh</span>
+        <span class="pl-sub">{sub[0]}</span>
+        <span class="pl-snt">{sub[1]}/kWh</span>
         {/if}
     </span>
 </div>

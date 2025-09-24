@@ -169,9 +169,24 @@ bool CloudConnector::init() {
 }
 
 void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
-    if(!config.enabled) return;
     unsigned long now = millis();
-    if(now-lastUpdate < config.interval*1000) return;
+    if(now-lastUpdate < ((unsigned long)config.interval)*1000) {
+        return;
+    };
+    bool sendFirst = lastUpdate == 0;
+    lastUpdate = now;
+    if(config.enabled) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::VERBOSE))
+        #endif
+        debugger->printf_P(PSTR("(CloudConnector) Enabled\n"));
+    } else {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::VERBOSE))
+        #endif
+        debugger->printf_P(PSTR("(CloudConnector) Not enabled\n"));
+        return;
+    }
     if(!ESPRandom::isValidV4Uuid(config.clientId)) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::WARNING))
@@ -179,15 +194,19 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
         debugger->printf_P(PSTR("(CloudConnector) Client ID is not valid\n"));
         return;
     }
-    if(data.getListType() < 2) return;
+    if(data.getListType() < 2) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::VERBOSE))
+        #endif
+        debugger->printf_P(PSTR("(CloudConnector) List type not enough data\n"));
+        return;
+    }
 
     if(!initialized && !init()) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::WARNING))
         #endif
         debugger->printf_P(PSTR("Unable to initialize cloud connector\n"));
-        lastUpdate = now;
-        config.enabled = false;
         return;
     }
     initialized = true;
@@ -202,7 +221,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     }
 
     bool sendData = true;
-    if(lastUpdate == 0) {
+    if(sendFirst) {
         seed.clear();
         if(mainFuse > 0 && distributionSystem > 0) {
             int voltage = distributionSystem == 2 ? 400 : 230;
@@ -460,7 +479,13 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     uint16_t crc = crc16((uint8_t*) clearBuffer, pos);
     pos += snprintf_P(clearBuffer+pos, CC_BUF_SIZE-pos, PSTR(",\"crc\":\"%04X\"}"), crc);
 
-    if(rsa == nullptr) return;
+    if(rsa == nullptr) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::WARNING))
+        #endif
+        debugger->printf_P(PSTR("RSA is null\n"));
+        return;
+    }
     int ret = mbedtls_rsa_check_pubkey(rsa);
     if(ret != 0) {
         #if defined(AMS_REMOTE_DEBUG)
@@ -481,7 +506,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     Stream *stream = NULL;
 
     if(config.proto == 0) {
-        udp.beginPacket(config.hostname,7443);
+        udp.beginPacket(config.hostname, config.port);
         stream = &udp;
     } else if(config.proto == 1) {
         if(!tcp.connected()) {
@@ -493,7 +518,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
                 debugger->printf_P(PSTR("tcp.connect(%s, %d) return code: %d\n"), config.hostname, config.port, ret);
                 return;
             }
-            tcp.setTimeout(config.interval * 2);
+            tcp.setTimeout((config.interval * 1000) / 2);
         }
         while(tcp.available()) tcp.read(); // Empty incoming buffer
         stream = &tcp;
@@ -521,6 +546,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
         if(ret == 0) {
             if(stream != NULL) {
                 stream->write(encryptedBuffer, rsa->len);
+                stream->flush();
             } else {
                 memcpy(httpBuffer + sendBytes, encryptedBuffer, rsa->len);
             }
@@ -565,12 +591,11 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             http.end();
         }
     }
-    lastUpdate = now;
 
     #if defined(AMS_REMOTE_DEBUG)
     if (debugger->isActive(RemoteDebug::DEBUG))
     #endif
-    debugger->printf_P(PSTR("%d bytes sent to %s:%d from %s\n"), sendBytes, config.hostname, config.proto == 2 ? 80 : config.port, uuid.c_str());
+    debugger->printf_P(PSTR("(CloudConnector) %d bytes sent to %s:%d from %s\n"), sendBytes, config.hostname, config.proto == 2 ? 80 : config.port, uuid.c_str());
 }
 
 void CloudConnector::forceUpdate() {

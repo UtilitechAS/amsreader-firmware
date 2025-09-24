@@ -1,5 +1,5 @@
 <script>
-    import { zeropad, addHours, getPriceSourceName, getPriceSourceUrl } from './Helpers.js';
+    import { zeropad, addHours, getPriceSourceName, getPriceSourceUrl, formatCurrency } from './Helpers.js';
     import BarChart from './BarChart.svelte';
 
     export let title;
@@ -47,24 +47,9 @@
             addHours(cur, 1);
         };
 
-        if(min > -100 && max < 100) {
-            switch(currency) {
-                case 'NOK':
-                case 'DKK':
-                    currency = 'øre';
-                    break;
-                case 'SEK':
-                    currency = 'öre';
-                    break;
-                case 'EUR':
-                    currency = 'cent';
-                    break;
-                case 'CHF':
-                    currency = 'rp.';
-                    break;
-                default:
-                    currency = currency+'/100';
-            }
+        let ret = formatCurrency(Math.max(Math.abs(min) / 100.0, Math.abs(max) / 100.0), currency);
+        if(ret && ret[1] && ret[1] != currency) {
+            currency = ret[1];
             min *= 100;
             max *= 100;
             for(i = 0; i < values.length; i++) {

@@ -30,12 +30,12 @@ jobs:
         sed -i 's/NO_ENERGY_SPEEDOMETER_USER/ENERGY_SPEEDOMETER_USER=\\"${{secrets.ENERGY_SPEEDOMETER_USER}}\\"/g' platformio.ini
         sed -i 's/NO_ENERGY_SPEEDOMETER_PASS/ENERGY_SPEEDOMETER_PASS=\\"${{secrets.ENERGY_SPEEDOMETER_PASS}}\\"/g' platformio.ini
     - name: Cache Python dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('platformio.ini') }}
     - name: Cache PlatformIO dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.pio/libdeps
         key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
@@ -50,7 +50,7 @@ jobs:
     - name: Set up node
       uses: actions/setup-node@v4
       with:
-        node-version: '16.x'
+        node-version: '19.x'
     - name: Build with node
       run: |
         cd lib/SvelteUi/app

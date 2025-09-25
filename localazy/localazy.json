@@ -1,0 +1,9 @@
+{
+  "upload": {},
+  "download": {
+    "includeSourceLang": true,
+    "folder": "./language/",
+    "files": "${lang}.json"
+  },
+  "transformations": []
+}

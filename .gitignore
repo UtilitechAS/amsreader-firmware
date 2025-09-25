@@ -19,3 +19,5 @@ platformio-user.ini
 node_modules
 /gui/dist
 /scripts/*dev
+localazy-keys.json
+localazy/language

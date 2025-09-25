@@ -13,13 +13,17 @@
 bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 	EEPROM.begin(EEPROM_SIZE);
 	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
-	if(configVersion == EEPROM_CHECK_SUM || configVersion == EEPROM_CLEARED_INDICATOR) {
+	if(configVersion == EEPROM_CHECK_SUM) {
 		EEPROM.get(CONFIG_SYSTEM_START, config);
 		EEPROM.end();
 		return true;
 	} else {
-		config.boardType = 0xFF;
-		config.vendorConfigured = false;
+		if(configVersion == EEPROM_CLEARED_INDICATOR) {
+			config.vendorConfigured = true;
+		} else {
+			config.vendorConfigured = false;
+			config.boardType = 0xFF;
+		}
 		config.userConfigured = false;
 		config.dataCollectionConsent = 0;
 		config.energyspeedometer = 0;
@@ -91,7 +95,7 @@ bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 	}
 	
 	stripNonAscii((uint8_t*) config.ssid, 32, true);
-	stripNonAscii((uint8_t*) config.psk, 64, true);
+	stripNonAscii((uint8_t*) config.psk, 64, true, false);
 	stripNonAscii((uint8_t*) config.ip, 16);
 	stripNonAscii((uint8_t*) config.gateway, 16);
 	stripNonAscii((uint8_t*) config.subnet, 16);
@@ -186,7 +190,7 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 	stripNonAscii((uint8_t*) config.publishTopic, 64);
 	stripNonAscii((uint8_t*) config.subscribeTopic, 64);
 	stripNonAscii((uint8_t*) config.username, 128, true);
-	stripNonAscii((uint8_t*) config.password, 256, true);
+	stripNonAscii((uint8_t*) config.password, 256, true, false);
 	if(config.timeout < 500) config.timeout = 1000;
 	if(config.timeout > 10000) config.timeout = 1000;
 	if(config.keepalive < 5) config.keepalive = 60;
@@ -252,7 +256,7 @@ bool AmsConfiguration::setWebConfig(WebConfig& config) {
 	}
 
 	stripNonAscii((uint8_t*) config.username, 37);
-	stripNonAscii((uint8_t*) config.password, 37);
+	stripNonAscii((uint8_t*) config.password, 37, false, false);
 	stripNonAscii((uint8_t*) config.context, 37);
 
 	EEPROM.begin(EEPROM_SIZE);
@@ -892,6 +896,65 @@ void AmsConfiguration::ackCloudConfig() {
 	cloudChanged = false;
 }
 
+bool AmsConfiguration::getZmartChargeConfig(ZmartChargeConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_ZC_START, config);
+		EEPROM.end();
+		stripNonAscii((uint8_t*) config.token, 21);
+		stripNonAscii((uint8_t*) config.baseUrl, 64);
+		if(strlen(config.token) < 20) {
+			config.enabled = false;
+			memset(config.token, 0, 64);
+			memset(config.baseUrl, 0, 64);
+		}
+		if(strncmp_P(config.baseUrl, PSTR("https"), 5) != 0) {
+			memset(config.baseUrl, 0, 64);
+	        snprintf_P(config.baseUrl, 64, PSTR("https://main.zmartcharge.com/api"));
+		}
+		return true;
+	} else {
+		clearZmartChargeConfig(config);
+		return false;
+	}
+}
+
+bool AmsConfiguration::setZmartChargeConfig(ZmartChargeConfig& config) {
+	ZmartChargeConfig existing;
+	if(getZmartChargeConfig(existing)) {
+		zcChanged |= config.enabled != existing.enabled;
+		zcChanged |= memcmp(config.token, existing.token, 21) != 0;
+		zcChanged |= memcmp(config.token, existing.baseUrl, 64) != 0;
+	} else {
+		zcChanged = true;
+	}
+
+	stripNonAscii((uint8_t*) config.token, 21);
+	stripNonAscii((uint8_t*) config.baseUrl, 64);
+	if(strncmp_P(config.baseUrl, PSTR("https"), 5) != 0) {
+		memset(config.baseUrl, 0, 64);
+	}
+
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_ZC_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+void AmsConfiguration::clearZmartChargeConfig(ZmartChargeConfig& config) {
+	config.enabled = false;
+	memset(config.token, 0, 21);
+}
+
+bool AmsConfiguration::isZmartChargeConfigChanged() {
+	return zcChanged;
+}
+
+void AmsConfiguration::ackZmartChargeConfig() {
+	zcChanged = false;
+}
+
 void AmsConfiguration::setUiLanguageChanged() {
 	uiLanguageChanged = true;
 }
@@ -1093,6 +1156,10 @@ bool AmsConfiguration::relocateConfig103() {
 	clearCloudConfig(cloud);
 	EEPROM.put(CONFIG_CLOUD_START, cloud);
 
+	ZmartChargeConfig zcc;
+	clearZmartChargeConfig(zcc);
+	EEPROM.put(CONFIG_ZC_START, zcc);
+
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 104);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
@@ -1101,6 +1168,7 @@ bool AmsConfiguration::relocateConfig103() {
 
 bool AmsConfiguration::save() {
 	EEPROM.begin(EEPROM_SIZE);
+	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
 	bool success = EEPROM.commit();
 	EEPROM.end();

@@ -13,7 +13,6 @@
 #define EEPROM_CHECK_SUM 104 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CLEARED_INDICATOR 0xFC
 #define EEPROM_CONFIG_ADDRESS 0
-#define EEPROM_TEMP_CONFIG_ADDRESS 2048
 
 #define CONFIG_SYSTEM_START 8
 #define CONFIG_NETWORK_START 40
@@ -30,6 +29,7 @@
 #define CONFIG_UI_START 1720
 #define CONFIG_CLOUD_START 1742
 #define CONFIG_UPGRADE_INFO_START 1934
+#define CONFIG_ZC_START 2000
 
 #define CONFIG_METER_START_103 32
 #define CONFIG_UPGRADE_INFO_START_103 216
@@ -256,6 +256,12 @@ struct CloudConfig {
 	uint8_t proto;
 }; // 88
 
+struct ZmartChargeConfig {
+	bool enabled;
+	char token[21];
+	char baseUrl[64];
+}; // 86
+
 class AmsConfiguration {
 public:
 	bool hasConfig();
@@ -349,6 +355,13 @@ public:
 	void clearCloudConfig(CloudConfig&);
 	bool isCloudChanged();
 	void ackCloudConfig();
+	
+	bool getZmartChargeConfig(ZmartChargeConfig&);
+	bool setZmartChargeConfig(ZmartChargeConfig&);
+	void clearZmartChargeConfig(ZmartChargeConfig&);
+	bool isZmartChargeConfigChanged();
+	void ackZmartChargeConfig();
+	
 
 	void clear();
 
@@ -357,7 +370,7 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool sysChanged = false, networkChanged = false, mqttChanged = false, webChanged = false, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false;
+	bool sysChanged = false, networkChanged = false, mqttChanged = false, webChanged = false, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false, zcChanged = true;
 
 	bool relocateConfig103(); // 2.2.12, until, but not including 2.3
 

@@ -26,6 +26,9 @@ ADC_MODE(ADC_VCC);
 #if defined(AMS_CLOUD)
 #include "CloudConnector.h"
 #endif
+#if defined(ZMART_CHARGE)
+#include "ZmartChargeCloudConnector.h"
+#endif
 
 #define WDT_TIMEOUT 120
 #if defined(SLOW_PROC_TRIGGER_MS)
@@ -43,6 +46,7 @@ ADC_MODE(ADC_VCC);
 #define METER_PARSER_PULSE 2
 #define METER_PARSER_KAMSTRUP 9
 
+#define METER_ERROR_UNKNOWN_DATA 89
 #define METER_ERROR_NO_DATA 90
 #define METER_ERROR_BREAK 91
 #define METER_ERROR_BUFFER 92
@@ -182,6 +186,11 @@ AmsFirmwareUpdater updater(&Debug, &hw, &meterState);
 AmsDataStorage ds(&Debug);
 #if defined(_CLOUDCONNECTOR_H)
 CloudConnector *cloud = NULL;
+#endif
+#if defined(ZMART_CHARGE)
+ZmartChargeCloudConnector *zcloud = NULL;
+#endif
+#if defined(ESP32)
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
 #else
 EnergyAccountingRealtimeData rtd;
@@ -692,6 +701,36 @@ void loop() {
 			}
 			if(cloud != NULL) {
 				cloud->update(meterState, ea);
+			}
+			#endif
+
+			#if defined(ZMART_CHARGE)
+			if(config.isZmartChargeConfigChanged()) {
+				ZmartChargeConfig zcc;
+				if(config.getZmartChargeConfig(zcc) && zcc.enabled) {
+					if(zcloud == NULL) {
+						zcloud = new ZmartChargeCloudConnector(&Debug, (char*) commonBuffer);
+					}
+					zcloud->setup(zcc.baseUrl, zcc.token);
+				} else if(zcloud != NULL) {
+					delete zcloud;
+					zcloud = NULL;
+				}
+				config.ackZmartChargeConfig();
+			}
+			if(zcloud != NULL) {
+				zcloud->update(meterState);
+				if(zcloud->isConfigChanged()) {
+					ZmartChargeConfig zcc;
+					if(config.getZmartChargeConfig(zcc)) {
+						const char* newBaseUrl = zcloud->getBaseUrl();
+						memset(zcc.baseUrl, 0, 64);
+						memcpy(zcc.baseUrl, newBaseUrl, strlen(newBaseUrl));
+						config.setZmartChargeConfig(zcc);
+						config.ackZmartChargeConfig();
+					}
+					zcloud->ackConfigChanged();
+				}
 			}
 			#endif
 			start = millis();
@@ -1307,6 +1346,8 @@ bool readHanPort() {
 	if(data != NULL) {
 		if(data->getListType() > 0) {
 			handleDataSuccess(data);
+		} else {
+			meterState.setLastError(METER_ERROR_UNKNOWN_DATA);
 		}
 		delete data;
 	}
@@ -1620,7 +1661,9 @@ void configFileParse() {
 		}
 		if(strncmp_P(buf, PSTR("boardType "), 10) == 0) {
 			if(!lSys) { config.getSystemConfig(sys); lSys = true; };
-			sys.boardType = String(buf+10).toInt();
+			if(sys.boardType == 0xFF) {
+				sys.boardType = String(buf+10).toInt();
+			}
 		} else if(strncmp_P(buf, PSTR("netmode "), 8) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
 			network.mode = String(buf+8).toInt();

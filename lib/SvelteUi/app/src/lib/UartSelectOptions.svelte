@@ -7,7 +7,7 @@
             case 'esp8266': gpioMax = 16; break;
             case 'esp32s2': gpioMax = 44; break;
             case 'esp32s3': gpioMax = 46; break;
-            case 'esp32c3': gpioMax = 19; break;
+            case 'esp32c3': gpioMax = 21; break;
         }
     }
 </script>
@@ -23,4 +23,3 @@
         <option value={i}>GPIO{i}</option>
     {/if}
 {/each}
-

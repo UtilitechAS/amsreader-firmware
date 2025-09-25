@@ -399,6 +399,10 @@ void AmsWebServer::sysinfoJson() {
 	if(!features.isEmpty()) features += ",";
 	features += "\"cloud\"";
 	#endif
+	#if defined(ZMART_CHARGE)
+	if(!features.isEmpty()) features += ",";
+	features += "\"zc\"";
+	#endif
 
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		FirmwareVersion::VersionString,
@@ -939,6 +943,9 @@ void AmsWebServer::configurationJson() {
 	config->getHomeAssistantConfig(haconf);
 	CloudConfig cloud;
 	config->getCloudConfig(cloud);
+	ZmartChargeConfig zcc;
+	config->getZmartChargeConfig(zcc);
+	stripNonAscii((uint8_t*) zcc.token, 21);
 
 	bool qsc = false;
 	bool qsr = false;
@@ -1119,10 +1126,12 @@ void AmsWebServer::configurationJson() {
 		cloud.enabled ? "true" : "false",
 		cloud.proto,
 		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
-		sysConfig.energyspeedometer == 7 ? "true" : "false"
+		sysConfig.energyspeedometer == 7 ? "true" : "false",
 		#else
-		"null"
+		"null",
 		#endif
+		zcc.enabled ? "true" : "false",
+		zcc.token
 	);
 	server.sendContent(buf);
 	server.sendContent_P(PSTR("}"));
@@ -1251,9 +1260,6 @@ void AmsWebServer::handleSave() {
 	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
 		int boardType = server.arg(F("vb")).toInt();
 		int hanPin = server.arg(F("vh")).toInt();
-		if(server.hasArg(F("vr")) && server.arg(F("vr")) == F("true")) {
-			config->clear();
-		}
 
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
@@ -1643,6 +1649,16 @@ void AmsWebServer::handleSave() {
 		cloud.enabled = server.hasArg(F("ce")) && server.arg(F("ce")) == F("true");
 		cloud.proto = server.arg(F("cp")).toInt();
 		config->setCloudConfig(cloud);
+
+		ZmartChargeConfig zcc;
+		config->getZmartChargeConfig(zcc);
+		zcc.enabled = server.hasArg(F("cze")) && server.arg(F("cze")) == F("true");
+		String token = server.arg(F("czt"));
+		strcpy(zcc.token, token.c_str());
+		if(server.hasArg(F("czu")) && server.arg(F("czu")).startsWith(F("https"))) {
+			strcpy(zcc.baseUrl, server.arg(F("czu")).c_str());
+		}
+		config->setZmartChargeConfig(zcc);
 	}
 
 	if(server.hasArg(F("r")) && server.arg(F("r")) == F("true")) {
@@ -1718,7 +1734,10 @@ void AmsWebServer::handleSave() {
 	#endif
 	debugger->printf_P(PSTR("Saving configuration now...\n"));
 
-	if (config->save()) {
+	// If vendor page and clear all config is selected
+	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true") && server.hasArg(F("vr")) && server.arg(F("vr")) == F("true")) {
+		config->clear();
+	} else if(config->save()) {
 		#if defined(AMS_REMOTE_DEBUG)
 		if (debugger->isActive(RemoteDebug::INFO))
 		#endif

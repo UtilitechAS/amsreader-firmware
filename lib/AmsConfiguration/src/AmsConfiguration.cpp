@@ -896,6 +896,65 @@ void AmsConfiguration::ackCloudConfig() {
 	cloudChanged = false;
 }
 
+bool AmsConfiguration::getZmartChargeConfig(ZmartChargeConfig& config) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_ZC_START, config);
+		EEPROM.end();
+		stripNonAscii((uint8_t*) config.token, 21);
+		stripNonAscii((uint8_t*) config.baseUrl, 64);
+		if(strncmp_P(config.token, PSTR(" "), 1) == 0) {
+			config.enabled = false;
+			memset(config.token, 0, 64);
+			memset(config.baseUrl, 0, 64);
+		}
+		if(strncmp_P(config.baseUrl, PSTR("https"), 5) != 0) {
+			memset(config.baseUrl, 0, 64);
+	        snprintf_P(config.baseUrl, 64, PSTR("https://main.zmartcharge.com/api"));
+		}
+		return true;
+	} else {
+		clearZmartChargeConfig(config);
+		return false;
+	}
+}
+
+bool AmsConfiguration::setZmartChargeConfig(ZmartChargeConfig& config) {
+	ZmartChargeConfig existing;
+	if(getZmartChargeConfig(existing)) {
+		zcChanged |= config.enabled != existing.enabled;
+		zcChanged |= memcmp(config.token, existing.token, 21) != 0;
+		zcChanged |= memcmp(config.token, existing.baseUrl, 64) != 0;
+	} else {
+		zcChanged = true;
+	}
+
+	stripNonAscii((uint8_t*) config.token, 21);
+	stripNonAscii((uint8_t*) config.baseUrl, 64);
+	if(strncmp_P(config.baseUrl, PSTR("https"), 5) != 0) {
+		memset(config.baseUrl, 0, 64);
+	}
+
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_ZC_START, config);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+void AmsConfiguration::clearZmartChargeConfig(ZmartChargeConfig& config) {
+	config.enabled = false;
+	memset(config.token, 0, 21);
+}
+
+bool AmsConfiguration::isZmartChargeConfigChanged() {
+	return zcChanged;
+}
+
+void AmsConfiguration::ackZmartChargeConfig() {
+	zcChanged = false;
+}
+
 void AmsConfiguration::setUiLanguageChanged() {
 	uiLanguageChanged = true;
 }
@@ -1096,6 +1155,10 @@ bool AmsConfiguration::relocateConfig103() {
 	CloudConfig cloud;
 	clearCloudConfig(cloud);
 	EEPROM.put(CONFIG_CLOUD_START, cloud);
+
+	ZmartChargeConfig zcc;
+	clearZmartChargeConfig(zcc);
+	EEPROM.put(CONFIG_ZC_START, zcc);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 104);
 	bool ret = EEPROM.commit();

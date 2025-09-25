@@ -397,6 +397,10 @@ void AmsWebServer::sysinfoJson() {
 	if(!features.isEmpty()) features += ",";
 	features += "\"cloud\"";
 	#endif
+	#if defined(ZMART_CHARGE)
+	if(!features.isEmpty()) features += ",";
+	features += "\"zc\"";
+	#endif
 
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		FirmwareVersion::VersionString,
@@ -879,6 +883,9 @@ void AmsWebServer::configurationJson() {
 	config->getHomeAssistantConfig(haconf);
 	CloudConfig cloud;
 	config->getCloudConfig(cloud);
+	ZmartChargeConfig zcc;
+	config->getZmartChargeConfig(zcc);
+	stripNonAscii((uint8_t*) zcc.token, 21);
 
 	bool qsc = false;
 	bool qsr = false;
@@ -1058,10 +1065,12 @@ void AmsWebServer::configurationJson() {
 		cloud.enabled ? "true" : "false",
 		cloud.proto,
 		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
-		sysConfig.energyspeedometer == 7 ? "true" : "false"
+		sysConfig.energyspeedometer == 7 ? "true" : "false",
 		#else
-		"null"
+		"null",
 		#endif
+		zcc.enabled ? "true" : "false",
+		zcc.token
 	);
 	server.sendContent(buf);
 	server.sendContent_P(PSTR("}"));
@@ -1578,6 +1587,16 @@ void AmsWebServer::handleSave() {
 		cloud.enabled = server.hasArg(F("ce")) && server.arg(F("ce")) == F("true");
 		cloud.proto = server.arg(F("cp")).toInt();
 		config->setCloudConfig(cloud);
+
+		ZmartChargeConfig zcc;
+		config->getZmartChargeConfig(zcc);
+		zcc.enabled = server.hasArg(F("cze")) && server.arg(F("cze")) == F("true");
+		String token = server.arg(F("czt"));
+		strcpy(zcc.token, token.c_str());
+		if(server.hasArg(F("czu")) && server.arg(F("czu")).startsWith(F("https"))) {
+			strcpy(zcc.baseUrl, server.arg(F("czu")).c_str());
+		}
+		config->setZmartChargeConfig(zcc);
 	}
 
 	if(server.hasArg(F("r")) && server.arg(F("r")) == F("true")) {

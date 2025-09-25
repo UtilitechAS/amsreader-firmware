@@ -757,6 +757,16 @@
                         {/if}
                     {/if}
                 </div>
+                {#if sysinfo?.features?.includes('zc')}
+                    <div class="my-1">
+                        <label><input type="checkbox" name="cze" value="true" bind:checked={configuration.c.ze} class="rounded mb-1"/> ZmartCharge</label>
+                    </div>
+                    {#if configuration.c.ze}
+                        <div class="my-1">
+                            <input name="czt" bind:value={configuration.c.zt} type="text" class="in-s" placeholder="ZmartCharge token"/>
+                        </div>
+                    {/if}
+                {/if}
             </div>
         {/if}
         {#if configuration?.p?.r?.startsWith("NO") || configuration?.p?.r?.startsWith("10YNO") || configuration?.p?.r?.startsWith('10Y1001A1001A4')}

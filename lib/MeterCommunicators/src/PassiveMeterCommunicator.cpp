@@ -278,7 +278,7 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
 			#endif
 			debugger->printf_P(PSTR("DLMS\n"));
 			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
-			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx, meterState);
+			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx, meterState, debugger);
 		}
 	} else if(ctx.type == DATA_TAG_DSMR) {
 		data = new IEC6205621(payload, tz, &meterConfig);

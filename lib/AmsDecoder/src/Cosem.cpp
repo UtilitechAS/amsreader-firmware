@@ -19,8 +19,6 @@ time_t decodeCosemDateTime(CosemDateTime timestamp) {
     tm.Minute = timestamp.minute;
     tm.Second = timestamp.second;
 
-    //Serial.printf("\nY: %d, M: %d, D: %d, h: %d, m: %d, s: %d, deviation: 0x%2X, status: 0x%1X\n", tm.Year, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second, timestamp.deviation, timestamp.status);
-
     time_t time = makeTime(tm);
     int16_t deviation = ntohs(timestamp.deviation);
     if(deviation >= -720 && deviation <= 720) {

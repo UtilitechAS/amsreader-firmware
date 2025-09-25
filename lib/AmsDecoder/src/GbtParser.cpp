@@ -11,7 +11,7 @@ int8_t GBTParser::parse(uint8_t *d, DataParserContext &ctx) {
     GBTHeader* h = (GBTHeader*) (d);
     uint16_t sequence = ntohs(h->sequence);
 
-    if(h->flag != GBT_TAG) return DATA_PARSE_BOUNDRY_FLAG_MISSING;
+    if(h->flag != GBT_TAG) return DATA_PARSE_BOUNDARY_FLAG_MISSING;
 
     if(sequence == 1) {
         if(buf == NULL) buf = (uint8_t *)malloc((size_t)1024); // TODO find out from first package ?

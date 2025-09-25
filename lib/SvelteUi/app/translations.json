@@ -316,7 +316,7 @@
         "han" : {
             "-1" : "Parse error",
             "-2" : "Incomplete data received",
-            "-3" : "Payload boundry flag missing",
+            "-3" : "Payload boundary flag missing",
             "-4" : "Header checksum error",
             "-5" : "Footer checksum error",
             "-9" : "Unknown data received, check meter config",

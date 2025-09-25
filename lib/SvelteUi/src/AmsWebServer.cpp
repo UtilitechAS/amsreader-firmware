@@ -1190,9 +1190,6 @@ void AmsWebServer::handleSave() {
 	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
 		int boardType = server.arg(F("vb")).toInt();
 		int hanPin = server.arg(F("vh")).toInt();
-		if(server.hasArg(F("vr")) && server.arg(F("vr")) == F("true")) {
-			config->clear();
-		}
 
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
@@ -1656,7 +1653,10 @@ void AmsWebServer::handleSave() {
 	#endif
 	debugger->printf_P(PSTR("Saving configuration now...\n"));
 
-	if (config->save()) {
+	// If vendor page and clear all config is selected
+	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true") && server.hasArg(F("vr")) && server.arg(F("vr")) == F("true")) {
+		config->clear();
+	} else if(config->save()) {
 		#if defined(AMS_REMOTE_DEBUG)
 		if (debugger->isActive(RemoteDebug::INFO))
 		#endif

@@ -903,7 +903,7 @@ bool AmsConfiguration::getZmartChargeConfig(ZmartChargeConfig& config) {
 		EEPROM.end();
 		stripNonAscii((uint8_t*) config.token, 21);
 		stripNonAscii((uint8_t*) config.baseUrl, 64);
-		if(strncmp_P(config.token, PSTR(" "), 1) == 0) {
+		if(strlen(config.token) < 20) {
 			config.enabled = false;
 			memset(config.token, 0, 64);
 			memset(config.baseUrl, 0, 64);

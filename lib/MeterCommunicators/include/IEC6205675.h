@@ -11,6 +11,9 @@
 #include "AmsConfiguration.h"
 #include "DataParser.h"
 #include "Cosem.h"
+#if defined(AMS_REMOTE_DEBUG)
+#include "RemoteDebug.h"
+#endif
 
 #define NOVALUE 0xFFFFFFFF
 
@@ -21,7 +24,11 @@ struct AmsOctetTimestamp {
 
 class IEC6205675 : public AmsData {
 public:
-    IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state);
+    #if defined(AMS_REMOTE_DEBUG)
+    IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, RemoteDebug* debugger);
+    #else
+    IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, Stream* debugger);
+    #endif
 
 private:
     CosemData* getCosemDataAt(uint8_t index, const char* ptr);

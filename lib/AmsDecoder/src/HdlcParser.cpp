@@ -29,7 +29,7 @@ int8_t HDLCParser::parse(uint8_t *d, DataParserContext &ctx) {
 
         // First and last byte should be HDLC_FLAG
         if(h->flag != HDLC_FLAG || f->flag != HDLC_FLAG)
-            return DATA_PARSE_BOUNDRY_FLAG_MISSING;
+            return DATA_PARSE_BOUNDARY_FLAG_MISSING;
 
         // Verify FCS
         if(ntohs(f->fcs) != crc16_x25(d + 1, len - sizeof *f - 1))

@@ -1658,7 +1658,9 @@ void configFileParse() {
 		}
 		if(strncmp_P(buf, PSTR("boardType "), 10) == 0) {
 			if(!lSys) { config.getSystemConfig(sys); lSys = true; };
-			sys.boardType = String(buf+10).toInt();
+			if(sys.boardType == 0xFF) {
+				sys.boardType = String(buf+10).toInt();
+			}
 		} else if(strncmp_P(buf, PSTR("netmode "), 8) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
 			network.mode = String(buf+8).toInt();

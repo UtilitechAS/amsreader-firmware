@@ -324,6 +324,7 @@
             "-51" : "Authentication failed",
             "-52" : "Decryption failed",
             "-53" : "Encryption key invalid",
+            "89" : "Unrecognized data received from meter",
             "90" : "No HAN data received for at least 30s",
             "91" : "Serial break",
             "92" : "Serial buffer full",

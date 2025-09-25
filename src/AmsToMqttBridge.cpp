@@ -46,6 +46,7 @@ ADC_MODE(ADC_VCC);
 #define METER_PARSER_PULSE 2
 #define METER_PARSER_KAMSTRUP 9
 
+#define METER_ERROR_UNKNOWN_DATA 89
 #define METER_ERROR_NO_DATA 90
 #define METER_ERROR_BREAK 91
 #define METER_ERROR_BUFFER 92
@@ -1345,6 +1346,8 @@ bool readHanPort() {
 	if(data != NULL) {
 		if(data->getListType() > 0) {
 			handleDataSuccess(data);
+		} else {
+			meterState.setLastError(METER_ERROR_UNKNOWN_DATA);
 		}
 		delete data;
 	}

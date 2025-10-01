@@ -11,7 +11,11 @@
 #include "Uptime.h"
 #include "hexutils.h"
 
-IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state) {
+#if defined(AMS_REMOTE_DEBUG)
+IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, RemoteDebug* debugger) {
+#else
+IEC6205675::IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, Stream* debugger) {
+#endif
     float val;
     char str[64];
 
@@ -635,12 +639,6 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
             } 
         }
 
-        if(this->packageTimestamp > 0) {
-            if(meterType == AmsTypeKamstrup) {
-                this->packageTimestamp = this->packageTimestamp - 3600;
-            }
-        }
-
         uint8_t str_len = 0;
         str_len = getString(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), ((char *) (d)), str);
         if(str_len > 0) {
@@ -741,8 +739,12 @@ IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterCo
         if(meterTs != NULL) {
             AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
             time_t ts = decodeCosemDateTime(amst->dt);
-            if(amst->dt.deviation == 0x8000) { // Deviation not specified, adjust from localtime to UTC
+            int16_t deviation = ntohs(amst->dt.deviation);
+            if(deviation < -720 || deviation > 720) { // Deviation not specified, adjust from localtime to UTC
                 meterTimestamp = tz.toUTC(ts);
+                if(ctx.timestamp > 0) {
+                    this->packageTimestamp = tz.toUTC(ctx.timestamp);
+                }
             } else if(meterType == AmsTypeAidon) {
                 meterTimestamp = ts - 3600; // 21.09.24, the clock is now correct
             } else {

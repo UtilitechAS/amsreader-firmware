@@ -32,10 +32,10 @@
 
             return s;
         });
-        navigate(basepath + (sysinfo.usrcfg ? "/" : "/setup"));
+        navigate(basepath + (sysinfo.usrcfg ? "" : "setup"));
 	}
 
-    let cc = false;
+    let cc = true;
     sysinfoStore.subscribe(update => {
       sysinfo = update;
       if(update.fwconsent === 1) {

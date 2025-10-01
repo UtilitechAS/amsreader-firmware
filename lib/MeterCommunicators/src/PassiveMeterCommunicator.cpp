@@ -278,7 +278,7 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
 			#endif
 			debugger->printf_P(PSTR("DLMS\n"));
 			// TODO: Split IEC6205675 into DataParserKaifa and DataParserObis. This way we can add other means of parsing, for those other proprietary formats
-			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx, meterState);
+			data = new IEC6205675(payload, meterState.getMeterType(), &meterConfig, ctx, meterState, debugger);
 		}
 	} else if(ctx.type == DATA_TAG_DSMR) {
 		data = new IEC6205621(payload, tz, &meterConfig);
@@ -509,11 +509,11 @@ void PassiveMeterCommunicator::printHanReadError(int pos) {
 	#endif
 	{
 		switch(pos) {
-			case DATA_PARSE_BOUNDRY_FLAG_MISSING:
+			case DATA_PARSE_BOUNDARY_FLAG_MISSING:
 				#if defined(AMS_REMOTE_DEBUG)
 				if (debugger->isActive(RemoteDebug::WARNING))
 				#endif
-				debugger->printf_P(PSTR("Boundry flag missing\n"));
+				debugger->printf_P(PSTR("Boundary flag missing\n"));
 				break;
 			case DATA_PARSE_HEADER_CHECKSUM_ERROR:
 				#if defined(AMS_REMOTE_DEBUG)

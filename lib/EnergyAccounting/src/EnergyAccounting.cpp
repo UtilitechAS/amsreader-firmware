@@ -72,15 +72,15 @@ bool EnergyAccounting::update(AmsData* amsData) {
         this->realtimeData->currentHour = local.Hour;
         this->realtimeData->currentDay = local.Day;
         if(!load()) {
-            data = { 6, local.Month, 
+            data = { 7, local.Month, 
                 0, 0, 0, // Cost
                 0, 0, 0, // Income
                 0, 0, 0, // Last month import, export and accuracy
-                0, 0, // Peak 1
-                0, 0, // Peak 2
-                0, 0, // Peak 3
-                0, 0, // Peak 4
-                0, 0 // Peak 5
+                0, 0, 0, // Peak 1
+                0, 0, 0, // Peak 2
+                0, 0, 0, // Peak 3
+                0, 0, 0, // Peak 4
+                0, 0, 0  // Peak 5
             };
         }
         init = true;
@@ -97,7 +97,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         uint16_t val = round(ds->getHourImport(oneHrAgo.Hour) / 10.0);
 
         breakTime(tz->toLocal(now-3600), oneHrAgoLocal);
-        ret |= updateMax(val, oneHrAgoLocal.Day);
+        ret |= updateMax(val, oneHrAgoLocal.Day, oneHrAgoLocal.Hour);
 
         this->realtimeData->currentHour = local.Hour; // Need to be defined here so that day cost is correctly calculated
         if(local.Hour > 0) {
@@ -407,85 +407,29 @@ bool EnergyAccounting::load() {
         char buf[file.size()];
         file.readBytes(buf, file.size());
 
-        if(buf[0] == 6) {
+        if(buf[0] == 7) {
             EnergyAccountingData* data = (EnergyAccountingData*) buf;
             memcpy(&this->data, data, sizeof(this->data));
             ret = true;
-        } else if(buf[0] == 5) {
-            EnergyAccountingData5* data = (EnergyAccountingData5*) buf;
-            this->data = { 6, data->month, 
-                ((uint32_t) data->costYesterday) * 10,
-                ((uint32_t) data->costThisMonth) * 100,
-                ((uint32_t) data->costLastMonth) * 100,
-                ((uint32_t) data->incomeYesterday) * 10,
-                ((uint32_t) data->incomeThisMonth) * 100,
-                ((uint32_t) data->incomeLastMonth) * 100,
-                0,0,0, // Last month import, export and accuracy
-                data->peaks[0].day, data->peaks[0].value,
-                data->peaks[1].day, data->peaks[1].value,
-                data->peaks[2].day, data->peaks[2].value,
-                data->peaks[3].day, data->peaks[3].value,
-                data->peaks[4].day, data->peaks[4].value
-            };
-            ret = true;
-        } else if(buf[0] == 4) {
-            EnergyAccountingData4* data = (EnergyAccountingData4*) buf;
-            this->data = { 5, data->month, 
-                ((uint32_t) data->costYesterday) * 10,
-                ((uint32_t) data->costThisMonth) * 100,
-                ((uint32_t) data->costLastMonth) * 100,
-                0,0,0, // Income from production
-                0,0,0, // Last month import, export and accuracy
-                data->peaks[0].day, data->peaks[0].value,
-                data->peaks[1].day, data->peaks[1].value,
-                data->peaks[2].day, data->peaks[2].value,
-                data->peaks[3].day, data->peaks[3].value,
-                data->peaks[4].day, data->peaks[4].value
-            };
-            ret = true;
-        } else if(buf[0] == 3) {
-            EnergyAccountingData* data = (EnergyAccountingData*) buf;
-            this->data = { 5, data->month, 
-                data->costYesterday * 10,
+        } else if(buf[0] == 6) {
+            EnergyAccountingData6* data = (EnergyAccountingData6*) buf;
+            this->data = { 7, data->month, 
+                data->costYesterday,
                 data->costThisMonth,
                 data->costLastMonth,
-                0,0,0, // Income from production
-                0,0,0, // Last month import, export and accuracy
-                data->peaks[0].day, data->peaks[0].value,
-                data->peaks[1].day, data->peaks[1].value,
-                data->peaks[2].day, data->peaks[2].value,
-                data->peaks[3].day, data->peaks[3].value,
-                data->peaks[4].day, data->peaks[4].value
+                data->incomeYesterday,
+                data->incomeThisMonth,
+                data->incomeLastMonth,
+                data->lastMonthImport,
+                data->lastMonthExport,
+                data->lastMonthAccuracy,
+                data->peaks[0].day, 0, data->peaks[0].value,
+                data->peaks[1].day, 0, data->peaks[1].value,
+                data->peaks[2].day, 0, data->peaks[2].value,
+                data->peaks[3].day, 0, data->peaks[3].value,
+                data->peaks[4].day, 0, data->peaks[4].value
             };
             ret = true;
-        } else {
-            data = { 5, 0, 
-                0, 0, 0, // Cost
-                0,0,0, // Income from production
-                0,0,0, // Last month import, export and accuracy
-                0, 0, // Peak 1
-                0, 0, // Peak 2
-                0, 0, // Peak 3
-                0, 0, // Peak 4
-                0, 0 // Peak 5
-            };
-            if(buf[0] == 2) {
-                EnergyAccountingData2* data = (EnergyAccountingData2*) buf;
-                this->data.month = data->month;
-                this->data.costYesterday = data->costYesterday * 10;
-                this->data.costThisMonth = data->costThisMonth;
-                this->data.costLastMonth = data->costLastMonth;
-                uint8_t b = 0;
-                for(uint8_t i = sizeof(this->data); i < file.size(); i+=2) {
-                    this->data.peaks[b].day = b;
-                    memcpy(&this->data.peaks[b].value, buf+i, 2);
-                    b++;
-                    if(b >= config->hours || b >= 5) break;
-                }
-                ret = true;
-            } else {
-                ret = false;
-            }
         }
 
         file.close();
@@ -518,11 +462,12 @@ void EnergyAccounting::setData(EnergyAccountingData& data) {
     this->data = data;
 }
 
-bool EnergyAccounting::updateMax(uint16_t val, uint8_t day) {
+bool EnergyAccounting::updateMax(uint16_t val, uint8_t day, uint8_t hour) {
     for(uint8_t i = 0; i < 5; i++) {
         if(data.peaks[i].day == day || data.peaks[i].day == 0) {
             if(val > data.peaks[i].value) {
                 data.peaks[i].day = day;
+                data.peaks[i].hour = hour;
                 data.peaks[i].value = val;
                 return true;
             }

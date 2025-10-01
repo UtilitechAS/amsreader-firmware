@@ -67,13 +67,23 @@ uint16_t JsonMqttHandler::appendJsonFooter(EnergyAccounting* ea, uint16_t pos) {
     } else {
         memset(pf, 0, 4);
     }
+
+    String peaks = "";
+    uint8_t peakCount = ea->getConfig()->hours;
+    if(peakCount > 5) peakCount = 5;
+    for(uint8_t i = 1; i <= peakCount; i++) {
+        if(!peaks.isEmpty()) peaks += ",";
+        peaks += String(ea->getPeak(i).value / 100.0, 2);
+    }
     
-    return snprintf_P(json+pos, BufferSize-pos, PSTR("%s\"%sh\":%.2f,\"%sd\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.2f,\"%sde\":%.1f%s"),
+    return snprintf_P(json+pos, BufferSize-pos, PSTR("%s\"%sh\":%.2f,\"%sd\":%.1f,\"%sd\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.2f,\"%sde\":%.1,\"%sme\":%.1f,\"peaks\":[%s]%s"),
         strlen(pf) == 0 ? "},\"realtime\":{" : ",",
         pf,
         ea->getUseThisHour(),
         pf,
         ea->getUseToday(),
+        pf,
+        ea->getUseThisMonth(),
         pf,
         ea->getCurrentThreshold(),
         pf,
@@ -82,6 +92,9 @@ uint16_t JsonMqttHandler::appendJsonFooter(EnergyAccounting* ea, uint16_t pos) {
         ea->getProducedThisHour(),
         pf,
         ea->getProducedToday(),
+        pf,
+        ea->getProducedThisMonth(),
+        peaks.c_str(),
         strlen(pf) == 0 ? "}" : ""
     );
 }

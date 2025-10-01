@@ -71,6 +71,7 @@ public:
     PriceService(Stream*);
     #endif
     void setup(PriceServiceConfig&);
+    void setTimezone(Timezone* tz);
     bool loop();
 
     char* getToken();
@@ -114,6 +115,7 @@ private:
     std::vector<PriceConfig> priceConfig;
 
     Timezone* tz = NULL;
+    Timezone* entsoeTz = NULL;
 
     static const uint16_t BufferSize = 256;
     char* buf;
@@ -129,5 +131,6 @@ private:
     PricesContainer* fetchPrices(time_t);
     bool retrieve(const char* url, Stream* doc);
     float getCurrencyMultiplier(const char* from, const char* to, time_t t);
+    bool timeIsInPeriod(tmElements_t tm, PriceConfig pc);
 };
 #endif

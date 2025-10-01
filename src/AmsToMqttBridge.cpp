@@ -26,6 +26,9 @@ ADC_MODE(ADC_VCC);
 #if defined(AMS_CLOUD)
 #include "CloudConnector.h"
 #endif
+#if defined(ZMART_CHARGE)
+#include "ZmartChargeCloudConnector.h"
+#endif
 
 #define WDT_TIMEOUT 120
 #if defined(SLOW_PROC_TRIGGER_MS)
@@ -43,6 +46,7 @@ ADC_MODE(ADC_VCC);
 #define METER_PARSER_PULSE 2
 #define METER_PARSER_KAMSTRUP 9
 
+#define METER_ERROR_UNKNOWN_DATA 89
 #define METER_ERROR_NO_DATA 90
 #define METER_ERROR_BREAK 91
 #define METER_ERROR_BUFFER 92
@@ -182,6 +186,11 @@ AmsFirmwareUpdater updater(&Debug, &hw, &meterState);
 AmsDataStorage ds(&Debug);
 #if defined(_CLOUDCONNECTOR_H)
 CloudConnector *cloud = NULL;
+#endif
+#if defined(ZMART_CHARGE)
+ZmartChargeCloudConnector *zcloud = NULL;
+#endif
+#if defined(ESP32)
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
 #else
 EnergyAccountingRealtimeData rtd;
@@ -641,6 +650,64 @@ void loop() {
 				}
 			}
 			#endif
+
+			#if defined(ZMART_CHARGE)
+			if(config.isZmartChargeConfigChanged()) {
+				ZmartChargeConfig zcc;
+				if(config.getZmartChargeConfig(zcc) && zcc.enabled) {
+					if(zcloud == NULL) {
+						zcloud = new ZmartChargeCloudConnector(&Debug, (char*) commonBuffer);
+					}
+					zcloud->setup(zcc.baseUrl, zcc.token);
+				} else if(zcloud != NULL) {
+					delete zcloud;
+					zcloud = NULL;
+				}
+				config.ackZmartChargeConfig();
+			}
+			if(zcloud != NULL) {
+				zcloud->update(meterState);
+				if(zcloud->isConfigChanged()) {
+					ZmartChargeConfig zcc;
+					if(config.getZmartChargeConfig(zcc)) {
+						const char* newBaseUrl = zcloud->getBaseUrl();
+						memset(zcc.baseUrl, 0, 64);
+						memcpy(zcc.baseUrl, newBaseUrl, strlen(newBaseUrl));
+						config.setZmartChargeConfig(zcc);
+						config.ackZmartChargeConfig();
+					}
+					zcloud->ackConfigChanged();
+				}
+			}
+			#endif
+			start = millis();
+			handleUiLanguage();
+			end = millis();
+			if(end-start > SLOW_PROC_TRIGGER_MS) {
+				debugW_P(PSTR("Used %dms to handle language update"), end-start);
+			}
+			start = millis();
+			updater.loop();
+			if(updater.isUpgradeInformationChanged()) {
+				UpgradeInformation upinfo;
+				updater.getUpgradeInformation(upinfo);
+				config.setUpgradeInformation(upinfo);
+				updater.ackUpgradeInformationChanged();
+				if(mqttHandler != NULL)
+					mqttHandler->publishFirmware();
+				
+				if(upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_SIGNAL) {
+					debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);
+					upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
+					config.setUpgradeInformation(upinfo);
+					delay(1000);
+					ESP.restart();
+				}
+			}
+			end = millis();
+			if(end-start > SLOW_PROC_TRIGGER_MS) {
+				debugW_P(PSTR("Used %dms to handle firmware updater"), end-start);
+			}
 		}
 	} else {
 		handleSmartConfig();
@@ -738,10 +805,11 @@ void handleNtp() {
 			configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntpServerName, "", "");
 			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0); // Not implemented on ESP32?
 			ntpEnabled = ntp.enable;
-	
+
 			ws.setTimezone(tz);
 			ds.setTimezone(tz);
 			ea.setTimezone(tz);
+			ps->setTimezone(tz);
 		}
 	
 		config.ackNtpChange();
@@ -1364,6 +1432,8 @@ bool readHanPort() {
 	if(data != NULL) {
 		if(data->getListType() > 0) {
 			handleDataSuccess(data);
+		} else {
+			meterState.setLastError(METER_ERROR_UNKNOWN_DATA);
 		}
 		delete data;
 	}
@@ -1675,7 +1745,9 @@ void configFileParse() {
 		}
 		if(strncmp_P(buf, PSTR("boardType "), 10) == 0) {
 			if(!lSys) { config.getSystemConfig(sys); lSys = true; };
-			sys.boardType = String(buf+10).toInt();
+			if(sys.boardType == 0xFF) {
+				sys.boardType = String(buf+10).toInt();
+			}
 		} else if(strncmp_P(buf, PSTR("netmode "), 8) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
 			network.mode = String(buf+8).toInt();
@@ -1774,6 +1846,18 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("meterAuthenticationKey "), 23) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			fromHex(meter.authenticationKey, String(buf+23), 16);
+		} else if(strncmp_P(buf, PSTR("meterWattageMultiplier "), 23) == 0) {
+			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.wattageMultiplier = String(buf+23).toDouble() * 1000;
+		} else if(strncmp_P(buf, PSTR("meterVoltageMultiplier "), 23) == 0) {
+			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.voltageMultiplier = String(buf+23).toDouble() * 1000;
+		} else if(strncmp_P(buf, PSTR("meterAmperageMultiplier "), 24) == 0) {
+			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.amperageMultiplier = String(buf+24).toDouble() * 1000;
+		} else if(strncmp_P(buf, PSTR("meterAccumulatedMultiplier "), 27) == 0) {
+			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
+			meter.accumulatedMultiplier = String(buf+27).toDouble() * 1000;
 		} else if(strncmp_P(buf, PSTR("gpioHanPin "), 11) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.rxPin = String(buf+11).toInt();

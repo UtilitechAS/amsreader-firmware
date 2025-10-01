@@ -225,6 +225,10 @@
         }
     }
 
+    async function enablePriceFetch() {
+        configuration.p.e = true;
+    }
+
     let gpioMax = 44;
     $: {
         gpioMax = sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39;
@@ -272,7 +276,7 @@
                 <div class="flex">
                     <div class="w-full">
                         {translations.conf?.price?.region ?? "Price region"}<br/>
-                        <select name="pr" bind:value={configuration.p.r} class="in-f w-full">
+                        <select name="pr" bind:value={configuration.p.r} on:change={enablePriceFetch} class="in-f w-full">
                             <optgroup label="Norway">
                                 {#if !configuration.p.t}
                                     <option value="NO1S">NO1 with support</option>
@@ -753,6 +757,16 @@
                         {/if}
                     {/if}
                 </div>
+                {#if sysinfo?.features?.includes('zc')}
+                    <div class="my-1">
+                        <label><input type="checkbox" name="cze" value="true" bind:checked={configuration.c.ze} class="rounded mb-1"/> ZmartCharge</label>
+                    </div>
+                    {#if configuration.c.ze}
+                        <div class="my-1">
+                            <input name="czt" bind:value={configuration.c.zt} type="text" class="in-s" placeholder="ZmartCharge token"/>
+                        </div>
+                    {/if}
+                {/if}
             </div>
         {/if}
         {#if configuration?.p?.r?.startsWith("NO") || configuration?.p?.r?.startsWith("10YNO") || configuration?.p?.r?.startsWith('10Y1001A1001A4')}

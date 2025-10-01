@@ -32,7 +32,8 @@ PriceService::PriceService(Stream* Debug) : priceConfig(std::vector<PriceConfig>
     // Entso-E uses CET/CEST
     TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
 	TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
-	tz = new Timezone(CEST, CET);
+	entsoeTz = new Timezone(CEST, CET);
+    tz = entsoeTz;
 
     tomorrowFetchMinute = 15 + random(45); // Random between 13:15 and 14:00
 }
@@ -70,6 +71,10 @@ void PriceService::setup(PriceServiceConfig& config) {
     #endif
 
     load();
+}
+
+void PriceService::setTimezone(Timezone* tz) {
+    this->tz = tz;
 }
 
 char* PriceService::getToken() {
@@ -111,29 +116,22 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
 
     tmElements_t tm;
     breakTime(tz->toLocal(ts + (hour * SECS_PER_HOUR)), tm);
-    uint8_t day = 0x01 << ((tm.Wday+5)%7);
-    uint32_t hrs = 0x01 << tm.Hour;
 
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
         PriceConfig pc = priceConfig.at(i);
         if(pc.type == PRICE_TYPE_FIXED) continue;
-        uint8_t start_month = pc.start_month == 0 || pc.start_month > 12 ? 1 : pc.start_month;
-        uint8_t start_dayofmonth = pc.start_dayofmonth == 0 || pc.start_dayofmonth > 31 ? 1 : pc.start_dayofmonth;
-        uint8_t end_month = pc.end_month == 0 || pc.end_month > 12 ? 12 : pc.end_month;
-        uint8_t end_dayofmonth = pc.end_dayofmonth == 0 || pc.end_dayofmonth > 31 ? 31 : pc.end_dayofmonth;
-
-        if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs && tm.Month >= start_month && tm.Day >= start_dayofmonth && tm.Month <= end_month && tm.Day <= end_dayofmonth) {
-            switch(pc.type) {
-                case PRICE_TYPE_ADD:
-                    ret += pc.value / 10000.0;
-                    break;
-                case PRICE_TYPE_SUBTRACT:
-                    ret -= pc.value / 10000.0;
-                    break;
-                case PRICE_TYPE_PCT:
-                    ret += ((pc.value / 10000.0) * ret) / 100.0;
-                    break;
-            }
+        if((pc.direction & direction) != direction) continue;
+        if(!timeIsInPeriod(tm, pc)) continue;
+        switch(pc.type) {
+            case PRICE_TYPE_ADD:
+                ret += pc.value / 10000.0;
+                break;
+            case PRICE_TYPE_SUBTRACT:
+                ret -= pc.value / 10000.0;
+                break;
+            case PRICE_TYPE_PCT:
+                ret += ((pc.value / 10000.0) * ret) / 100.0;
+                break;
         }
     }
     return ret;
@@ -142,48 +140,42 @@ float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
 float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t hour) {
     tmElements_t tm;
     breakTime(tz->toLocal(ts + (hour * SECS_PER_HOUR)), tm);
-    uint8_t day = 0x01 << ((tm.Wday+5)%7);
-    uint32_t hrs = 0x01 << tm.Hour;
 
     float value = PRICE_NO_VALUE;
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
         PriceConfig pc = priceConfig.at(i);
         if(pc.type != PRICE_TYPE_FIXED) continue;
-        uint8_t start_month = pc.start_month == 0 || pc.start_month > 12 ? 1 : pc.start_month;
-        uint8_t start_dayofmonth = pc.start_dayofmonth == 0 || pc.start_dayofmonth > 31 ? 1 : pc.start_dayofmonth;
-        uint8_t end_month = pc.end_month == 0 || pc.end_month > 12 ? 12 : pc.end_month;
-        uint8_t end_dayofmonth = pc.end_dayofmonth == 0 || pc.end_dayofmonth > 31 ? 31 : pc.end_dayofmonth;
+        if((pc.direction & direction) != direction) continue;
+        if(!timeIsInPeriod(tm, pc)) continue;
 
-        if((pc.direction & direction) == direction && (pc.days & day) == day && (pc.hours & hrs) == hrs && tm.Month >= start_month && tm.Day >= start_dayofmonth && tm.Month <= end_month && tm.Day <= end_dayofmonth) {
-            if(value == PRICE_NO_VALUE) {
-                value = pc.value / 10000.0;
-            } else {
-                value += pc.value / 10000.0;
-            }
+        if(value == PRICE_NO_VALUE) {
+            value = pc.value / 10000.0;
+        } else {
+            value += pc.value / 10000.0;
         }
     }
     if(value != PRICE_NO_VALUE) return value;
 
     int8_t pos = hour;
 
-    breakTime(tz->toLocal(ts), tm);
+    breakTime(entsoeTz->toLocal(ts), tm);
     while(tm.Hour > 0) {
         ts -= 3600;
-        breakTime(tz->toLocal(ts), tm);
+        breakTime(entsoeTz->toLocal(ts), tm);
         pos++;
     }
     uint8_t hoursToday = 0;
     uint8_t todayDate = tm.Day;
     while(tm.Day == todayDate) {
         ts += 3600;
-        breakTime(tz->toLocal(ts), tm);
+        breakTime(entsoeTz->toLocal(ts), tm);
         hoursToday++;
     }
     uint8_t hoursTomorrow = 0;
     uint8_t tomorrowDate = tm.Day;
     while(tm.Day == tomorrowDate) {
         ts += 3600;
-        breakTime(tz->toLocal(ts), tm);
+        breakTime(entsoeTz->toLocal(ts), tm);
         hoursTomorrow++;
     }
 
@@ -244,7 +236,7 @@ bool PriceService::loop() {
         return false;
 
     tmElements_t tm;
-    breakTime(tz->toLocal(t), tm);
+    breakTime(entsoeTz->toLocal(t), tm);
 
     if(currentDay == 0) {
         currentDay = tm.Day;
@@ -415,7 +407,7 @@ float PriceService::getCurrencyMultiplier(const char* from, const char* to, time
 PricesContainer* PriceService::fetchPrices(time_t t) {
     if(strlen(getToken()) > 0) {
         tmElements_t tm;
-        breakTime(tz->toLocal(t), tm);
+        breakTime(entsoeTz->toLocal(t), tm);
         time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // Local midnight
         time_t e2 = e1 + SECS_PER_DAY;
         tmElements_t d1, d2;
@@ -452,7 +444,7 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
         }
     } else if(hub) {
         tmElements_t tm;
-        breakTime(tz->toLocal(t), tm);
+        breakTime(entsoeTz->toLocal(t), tm);
 
         String data;
         snprintf_P(buf, BufferSize, PSTR("http://hub.amsleser.no/hub/price/%s/%d/%d/%d?currency=%s"),
@@ -632,4 +624,38 @@ bool PriceService::load() {
     file.close();
 
     return true;
+}
+
+
+bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
+    uint8_t day = 0x01 << ((tm.Wday+5)%7);
+    uint32_t hrs = 0x01 << tm.Hour;
+
+    if((pc.days & day) != day) return false;
+    if((pc.hours & hrs) != hrs) return false;
+
+    tmElements_t tms;
+    tms.Year = tm.Year;
+    tms.Month = pc.start_month == 0 || pc.start_month > 12 ? 1 : pc.start_month;
+    tms.Day = pc.start_dayofmonth == 0 || pc.start_dayofmonth > 31 ? 1 : pc.start_dayofmonth;
+    tms.Hour = 0;
+    tms.Minute = 0;
+    tms.Second = 0;
+
+    tmElements_t tme;
+    tme.Year = tm.Year;
+    tme.Month = pc.end_month == 0 || pc.end_month > 12 ? 12 : pc.end_month;
+    tme.Day = pc.end_dayofmonth == 0 || pc.end_dayofmonth > 31 ? 31 : pc.end_dayofmonth;
+    tme.Hour = 23;
+    tme.Minute = 59;
+    tme.Second = 59;
+    if(makeTime(tms) > makeTime(tme)) {
+        if(makeTime(tm) <= makeTime(tme)) {
+            tms.Year--;
+        } else {
+            tme.Year++;
+        }
+    }
+
+    return makeTime(tms) <= makeTime(tm) && makeTime(tme) >= makeTime(tm);
 }

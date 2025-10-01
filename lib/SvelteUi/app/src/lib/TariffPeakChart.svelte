@@ -29,6 +29,7 @@
                 let peak = tariffData.p[i];
                 points.push({
                     label: peak.v.toFixed(2), 
+                    title: peak.v.toFixed(2) + ' kWh', 
                     value: peak.v, 
                     color: dark ? '#5c2da5' : '#7c3aed'
                 });

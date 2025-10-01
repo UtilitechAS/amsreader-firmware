@@ -365,66 +365,20 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
 
     char pf[4];
     uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\","), WiFi.macAddress().c_str());
-    uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
     if(mqttConfig.payloadFormat != 6) {
         memset(pf, 0, 4);
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"prices\":{\"import\":{\"current\":%.4f,\"all\":["), ps->getCurrentPrice(PRICE_DIRECTION_IMPORT));
-        for(int i = 0; i < numberOfPoints; i++) {
-            float val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
-            if(val == PRICE_NO_VALUE) {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
-            } else {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
-            }
-        }
-        if(hasExport && ps->isExportPricesDifferentFromImport()) {
-            pos--;
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("]},\"export\":{\"current\":%.4f,\"all\":["), ps->getCurrentPrice(PRICE_DIRECTION_EXPORT));
-            for(int i = 0; i < numberOfPoints; i++) {
-                float val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
-                if(val == PRICE_NO_VALUE) {
-                    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
-                } else {
-                    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
-                }
-            }
-        }
-        pos--;
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("]},"));
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"prices\":{"));
     } else {
         strcpy_P(pf, PSTR("pr_"));
-        float val = ps->getCurrentPrice(PRICE_DIRECTION_IMPORT);
-        if(val == PRICE_NO_VALUE) {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%sc\":null,"), pf);
-        } else {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%sc\":%.4f,"), pf, val);
-        }
-        for(uint8_t i = 0;i < numberOfPoints; i++) {
-            val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
-            if(val == PRICE_NO_VALUE) {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%02d\":null,"), pf, i);
-            } else {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%02d\":%.4f,"), pf, i, val);
             }
-        }
-        if(hasExport && ps->isExportPricesDifferentFromImport()) {
-            float val = ps->getCurrentPrice(PRICE_DIRECTION_EXPORT);
-            if(val == PRICE_NO_VALUE) {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%sec\":null,"), pf);
+
+    for(uint8_t i = 0;i < 38; i++) {
+        if(values[i] == PRICE_NO_VALUE) {
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%d\":null,"), pf, i);
             } else {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%sec\":%.4f,"), pf, val);
-            }
-            for(uint8_t i = 0;i < numberOfPoints; i++) {
-                val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
-                if(val == PRICE_NO_VALUE) {
-                    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%se%02d\":null,"), pf, i);
-                } else {
-                    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%se%02d\":%.4f,"), pf, i, val);
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%d\":%.4f,"), pf, i, values[i]);
                 }
             }
-        }
-    }
-
 
     pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%smin\":%.4f,\"%smax\":%.4f,\"%scheapest1hr\":\"%s\",\"%scheapest3hr\":\"%s\",\"%scheapest6hr\":\"%s\"}"),
         pf,

@@ -113,7 +113,7 @@ uint8_t PriceService::getResolutionInMinutes() {
 }
 
 uint8_t PriceService::getNumberOfPointsAvailable() {
-    if(today == NULL) return 0;
+    if(today == NULL) return getResolutionInMinutes() == 15 ? 96 : 24;
     if(tomorrow != NULL) return today->getNumberOfPoints() + tomorrow->getNumberOfPoints();
     return today->getNumberOfPoints();
 }
@@ -768,10 +768,8 @@ bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
 }
 
 uint8_t PriceService::getCurrentPricePointIndex() {
-    if(today == NULL) return 0;
-
     time_t ts = time(nullptr);
     tmElements_t tm;
     breakTime(tz->toLocal(ts), tm);
-    return ((tm.Hour * 60) + tm.Minute) / today->getResolutionInMinutes();
+    return ((tm.Hour * 60) + tm.Minute) / getResolutionInMinutes();
 }

@@ -442,40 +442,29 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
-    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{\"import\":{\"current\":%.4f,\"all\":["), 
-        WiFi.macAddress().c_str(), 
-        ps->getCurrentPrice(PRICE_DIRECTION_IMPORT)
-    );
-	uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
-	for(int i = 0; i < numberOfPoints; i++) {
-		float val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
-        if(val == PRICE_NO_VALUE) {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
-        } else {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
-        }
-	}
-    if(rteInit && ps->isExportPricesDifferentFromImport()) {
-        pos--;
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("]},\"export\":{\"current\":%.4f,\"all\":["), ps->getCurrentPrice(PRICE_DIRECTION_EXPORT));
-        for(int i = 0; i < numberOfPoints; i++) {
-            float val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
-            if(val == PRICE_NO_VALUE) {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
+    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{"), WiFi.macAddress().c_str());
+    for(uint8_t i = 0;i < 38; i++) {
+        if(values[i] == PRICE_NO_VALUE) {
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%d\":null,"), i);
             } else {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
-            }
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%d\":%.4f,"), i, values[i]);
         }
     }
 
-    pos--;
-    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("]},\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}}"),
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}"),
         min == INT16_MAX ? 0.0 : min,
         max == INT16_MIN ? 0.0 : max,
         ts1hr,
         ts3hr,
         ts6hr
     );
+
+    float val = ps->getPriceForRelativeHour(PRICE_DIRECTION_EXPORT, 0);
+    if(val == PRICE_NO_VALUE) {
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"exportprices\":{\"0\":null}"));
+    } else {
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"exportprices\":{\"0\":%.4f}"), val);
+    }
 
 	char pt[24];
     memset(pt, 0, 24);
@@ -701,50 +690,46 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
         }
         pInit = true;
     }
-    if(!prInit && ps->hasPrice()) {
-        for(uint8_t i = 0; i < ps->getNumberOfPointsAvailable(); i++) {
-            char name[32];
-            snprintf_P(name, 32, PSTR("Import price point %02d"), i);
-            char path[32];
-            snprintf_P(path, 32, PSTR("prices.import.all[%d]"), i);
-            HomeAssistantSensor sensor = {
-                name,
-                "/prices",
-                path,
-                ps->getResolutionInMinutes() * 60 + 30,
-                uom.c_str(),
-                "monetary",
-                ""
-            };
-            publishSensor(sensor);
-        }
-        prInit = true;
-    }
+    for(uint8_t i = 0; i < 38; i++) {
+        if(prInit[i]) continue;
+        float val = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i);
+        if(val == PRICE_NO_VALUE) continue;
 
-    if(rteInit && !preInit && ps->isExportPricesDifferentFromImport()) {
-        HomeAssistantSensor sensor = ExportPriceSensor;
-        sensor.uom = uom.c_str();
-        publishSensor(sensor);
-        
-        for(uint8_t i = 0; i < ps->getNumberOfPointsAvailable(); i++) {
-            char name[32];
-            snprintf_P(name, 32, PSTR("Export price point %02d"), i);
-            char path[32];
-            snprintf_P(path, 32, PSTR("prices.export.all[%d]"), i);
+        char name[strlen(PriceSensor.name)+2];
+        snprintf(name, strlen(PriceSensor.name)+2, PriceSensor.name, i, i == 1 ? "hour" : "hours");
+        char path[strlen(PriceSensor.path)+1];
+        snprintf(path, strlen(PriceSensor.path)+1, PriceSensor.path, i);
             HomeAssistantSensor sensor = {
-                name,
-                "/prices",
+            i == 0 ? "Price current hour" : name,
+            PriceSensor.topic,
                 path,
-                ps->getResolutionInMinutes() * 60 + 30,
+            PriceSensor.ttl,
                 uom.c_str(),
-                "monetary",
-                ""
+            PriceSensor.devcl,
+            i == 0 ? "total" : PriceSensor.stacl
             };
             publishSensor(sensor);
-        }
+        prInit[i] = true;
+    }
+        
+    float exportPrice = ps->getPriceForRelativeHour(PRICE_DIRECTION_EXPORT, 0);
+    if(exportPrice != PRICE_NO_VALUE) {
+        char path[20];
+        snprintf(path, 20, "exportprices['%d']", 0);
+            HomeAssistantSensor sensor = {
+            "Export price current hour",
+            PriceSensor.topic,
+                path,
+            PriceSensor.ttl,
+                uom.c_str(),
+            PriceSensor.devcl,
+            "total"
+            };
+            publishSensor(sensor);
         preInit = true;
     }
 }
+
 
 void HomeAssistantMqttHandler::publishSystemSensors() {
     if(sInit) return;
@@ -812,8 +797,9 @@ void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
             if (debugger->isActive(RemoteDebug::INFO))
             #endif
             debugger->printf_P(PSTR("Received online status from HA, resetting sensor status\n"));
-            l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = prInit = preInit = false;
+            l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = preInit = false;
             for(uint8_t i = 0; i < 32; i++) tInit[i] = false;
+            for(uint8_t i = 0; i < 38; i++) prInit[i] = false;
         }
     } else if(topic.equals(subTopic)) {
         if(payload.equals("fwupgrade")) {

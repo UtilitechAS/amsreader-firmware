@@ -80,6 +80,7 @@ public:
 
     uint8_t getResolutionInMinutes();
     uint8_t getNumberOfPointsAvailable();
+    uint8_t getCurrentPricePointIndex();
 
     bool isExportPricesDifferentFromImport();
 
@@ -140,6 +141,5 @@ private:
     bool timeIsInPeriod(tmElements_t tm, PriceConfig pc);
     float getFixedPrice(uint8_t direction, int8_t hour);
     float getEnergyPricePoint(uint8_t direction, uint8_t point);
-    uint8_t getCurrentPricePointIndex();
 };
 #endif

@@ -55,8 +55,9 @@ private:
     String updateTopic;
     String sensorNamePrefix;
 
-    bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit, rInit, fInit, prInit, preInit;
+    bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit, rInit, fInit, preInit;
     bool tInit[32] = {false};
+    bool prInit[38] = {false};
     uint32_t lastThresholdPublish = 0;
 
     HwTools* hw;

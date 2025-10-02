@@ -654,8 +654,12 @@ bool HwTools::writeLedPin(uint8_t color, uint8_t state) {
 }
 
 bool HwTools::isVoltageOptimal(float range) {
-	if(boardType >= 5 && boardType <= 7 && maxVcc > 2.8) { // Pow-*
-		float vcc = getVcc();
+	if(boardType >= 1 && boardType <= 8 && maxVcc > 2.8) { // BUS-Power boards
+        unsigned long now = millis();
+        if(now - lastVccRead > 250) {
+		    vcc = getVcc();
+            lastVccRead = now;
+        }
 		if(vcc > 3.4 || vcc < 2.8) {
 			maxVcc = 0; // Voltage is outside the operating range, we have to assume voltage is OK
 		} else if(vcc > maxVcc) {

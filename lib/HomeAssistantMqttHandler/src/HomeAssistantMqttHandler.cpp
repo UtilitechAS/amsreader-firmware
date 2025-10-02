@@ -760,9 +760,10 @@ bool HomeAssistantMqttHandler::publishRaw(String data) {
 
 bool HomeAssistantMqttHandler::publishFirmware() {
     if(!fInit) {
-        snprintf_P(json, BufferSize, PSTR("{\"name\":\"%sFirmware\",\"stat_t\":\"%s/firmware\",\"dev_cla\":\"firmware\",\"cmd_t\":\"%s\",\"pl_inst\":\"fwupgrade\"}"),
+        snprintf_P(json, BufferSize, PSTR("{\"name\":\"%sFirmware\",\"stat_t\":\"%s/firmware\",\"uniq_id\":\"%s_fwupgrade\",\"dev_cla\":\"firmware\",\"cmd_t\":\"%s\",\"pl_inst\":\"fwupgrade\"}"),
             sensorNamePrefix.c_str(),
             pubTopic.c_str(),
+            deviceUid.c_str(),
             subTopic.c_str()
         );
         fInit = mqtt.publish(updateTopic + "/" + deviceUid + "/config", json, true, 0);

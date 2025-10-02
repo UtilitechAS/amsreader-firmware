@@ -92,7 +92,7 @@
         config = {
             title: title,
             dark: document.documentElement.classList.contains('dark'),
-            padding: { top: 20, right: 35, bottom: 20, left: 35 },
+            padding: { top: 20, right: 20, bottom: 20, left: 20 },
             y: {
                 min: min,
                 max: max,

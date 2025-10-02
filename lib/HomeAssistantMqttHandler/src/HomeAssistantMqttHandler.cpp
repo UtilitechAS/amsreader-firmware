@@ -19,7 +19,7 @@
 #include <esp_task_wdt.h>
 #endif
 
-void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config) {
+void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config, char* hostname) {
     l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = false;
 
     pubTopic = String(mqttConfig.publishTopic);
@@ -38,14 +38,6 @@ void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config
     deviceModel = boardTypeToString(boardType);
     manufacturer = boardManufacturerToString(boardType);
 
-    char hostname[32];
-    #if defined(ESP8266)
-        strcpy(hostname, WiFi.hostname().c_str());
-    #elif defined(ESP32)
-        strcpy(hostname, WiFi.getHostname());
-    #endif
-
-    stripNonAscii((uint8_t*) hostname, 32, false);
     deviceUid = String(hostname); // Maybe configurable in the future?
 
     if(strlen(config.discoveryHostname) > 0) {
@@ -768,9 +760,10 @@ bool HomeAssistantMqttHandler::publishRaw(String data) {
 
 bool HomeAssistantMqttHandler::publishFirmware() {
     if(!fInit) {
-        snprintf_P(json, BufferSize, PSTR("{\"name\":\"%sFirmware\",\"stat_t\":\"%s/firmware\",\"dev_cla\":\"firmware\",\"cmd_t\":\"%s\",\"pl_inst\":\"fwupgrade\"}"),
+        snprintf_P(json, BufferSize, PSTR("{\"name\":\"%sFirmware\",\"stat_t\":\"%s/firmware\",\"uniq_id\":\"%s_fwupgrade\",\"dev_cla\":\"firmware\",\"cmd_t\":\"%s\",\"pl_inst\":\"fwupgrade\"}"),
             sensorNamePrefix.c_str(),
             pubTopic.c_str(),
+            deviceUid.c_str(),
             subTopic.c_str()
         );
         fInit = mqtt.publish(updateTopic + "/" + deviceUid + "/config", json, true, 0);

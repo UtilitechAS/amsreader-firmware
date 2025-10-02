@@ -41,12 +41,6 @@
         min = 0;
         max = 0;
 
-        /*
-        console.log("\n--Realtime plot debug--")
-        console.log("Data length: %d\nSize: %d", realtime?.data?.length, realtime?.size);
-        console.log("Height: %d\nWidth: %d\nBar width: %s", heightAvailable, widthAvailable, barWidth);
-        */
-
         if(realtime.data && heightAvailable > 10 && widthAvailable > 100 && barWidth > 0.1) {
             visible = true;
             for(let p in realtime.data) {
@@ -90,9 +84,6 @@
         } else {
             visible = false;
         }
-        /*
-        console.log("Min: %d\nMax: %d\nShow: %s", min, max, visible);
-        */
     }
 </script>
 

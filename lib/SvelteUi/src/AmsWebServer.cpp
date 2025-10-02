@@ -127,6 +127,8 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
 	server.on(context + F("/monthplot.json"), HTTP_GET, std::bind(&AmsWebServer::monthplotJson, this));
 	server.on(context + F("/energyprice.json"), HTTP_GET, std::bind(&AmsWebServer::energyPriceJson, this));
+	server.on(context + F("/importprice.json"), HTTP_GET, std::bind(&AmsWebServer::importPriceJson, this));
+	server.on(context + F("/exportprice.json"), HTTP_GET, std::bind(&AmsWebServer::exportPriceJson, this));
 	server.on(context + F("/temperature.json"), HTTP_GET, std::bind(&AmsWebServer::temperatureJson, this));
 	server.on(context + F("/tariff.json"), HTTP_GET, std::bind(&AmsWebServer::tariffJson, this));
 	server.on(context + F("/realtime.json"), HTTP_GET, std::bind(&AmsWebServer::realtimeJson, this));
@@ -584,8 +586,8 @@ void AmsWebServer::dataJson() {
 		mqttStatus = 3;
 	}
 
-	float price = ea->getPriceForHour(PRICE_DIRECTION_IMPORT, 0);
-	float exportPrice = ea->getPriceForHour(PRICE_DIRECTION_EXPORT, 0);
+	float price = ps == NULL ? PRICE_NO_VALUE : ps->getCurrentPrice(PRICE_DIRECTION_IMPORT);
+	float exportPrice = ps == NULL ? PRICE_NO_VALUE : ps->getCurrentPrice(PRICE_DIRECTION_EXPORT);
 
 	String peaks = "";
 	for(uint8_t i = 1; i <= ea->getConfig()->hours; i++) {
@@ -712,18 +714,24 @@ void AmsWebServer::monthplotJson() {
 	}
 }
 
+// Deprecated
 void AmsWebServer::energyPriceJson() {
 	if(!checkSecurity(2))
 		return;
 
+	if(ps == NULL || !ps->hasPrice()) {
+		notFound();
+		return;
+	}
+
 	float prices[36];
 	for(int i = 0; i < 36; i++) {
-		prices[i] = ps == NULL ? PRICE_NO_VALUE : ps->getValueForHour(PRICE_DIRECTION_IMPORT, i);
+		prices[i] = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i);
 	}
 
 	uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\""),
-		ps == NULL ? "" : ps->getCurrency(),
-		ps == NULL ? "" : ps->getSource()
+		ps->getCurrency(),
+		ps->getSource()
 	);
 
     for(uint8_t i = 0;i < 36; i++) {
@@ -742,6 +750,58 @@ void AmsWebServer::energyPriceJson() {
 
 	server.setContentLength(strlen(buf));
 	server.send(200, MIME_JSON, buf);
+}
+
+void AmsWebServer::importPriceJson() {
+	priceJson(PRICE_DIRECTION_IMPORT);
+}
+
+void AmsWebServer::exportPriceJson() {
+	priceJson(PRICE_DIRECTION_EXPORT);
+}
+
+void AmsWebServer::priceJson(uint8_t direction) {
+	if(!checkSecurity(2))
+		return;
+
+	if(ps == NULL || !ps->hasPrice()) {
+		notFound();
+		return;
+	}
+
+	uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
+
+	float prices[numberOfPoints];
+	for(int i = 0; i < numberOfPoints; i++) {
+		prices[i] = ps->getPricePoint(direction, i);
+	}
+
+	snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\",\"resolution\":%d,\"direction\":\"%s\",\"importExportPriceDifferent\":%s,\"prices\":["),
+		ps->getCurrency(),
+		ps->getSource(),
+		ps->getResolutionInMinutes(),
+		direction == PRICE_DIRECTION_IMPORT ? "import" : direction == PRICE_DIRECTION_EXPORT ? "export" : "both",
+		ps->isExportPricesDifferentFromImport() ? "true" : "false"
+	);
+
+	addConditionalCloudHeaders();
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
+	server.send(200, MIME_JSON, buf);
+
+    for(uint8_t i = 0;i < numberOfPoints; i++) {
+        if(prices[i] == PRICE_NO_VALUE) {
+            snprintf_P(buf, BufferSize, PSTR("%snull"), i == 0 ? "" : ",");
+			server.sendContent(buf);
+        } else {
+            snprintf_P(buf, BufferSize, PSTR("%s%.4f"), i == 0 ? "" : ",", prices[i]);
+			server.sendContent(buf);
+        }
+    }
+	server.sendContent_P(PSTR("]}"));
 }
 
 void AmsWebServer::temperatureJson() {
@@ -987,7 +1047,8 @@ void AmsWebServer::configurationJson() {
 		price.enabled ? "true" : "false",
 		price.entsoeToken,
 		price.area,
-		price.currency
+		price.currency,
+		price.resolutionInMinutes
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_DEBUG_JSON,
@@ -1551,6 +1612,7 @@ void AmsWebServer::handleSave() {
 		strcpy(price.entsoeToken, server.arg(F("pt")).c_str());
 		strcpy(price.area, priceRegion.c_str());
 		strcpy(price.currency, server.arg(F("pc")).c_str());
+		price.resolutionInMinutes = server.arg(F("pm")).toInt();
 		config->setPriceServiceConfig(price);
 	}
 

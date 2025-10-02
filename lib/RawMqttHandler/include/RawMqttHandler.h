@@ -36,6 +36,7 @@ private:
     bool full;
     String topic;
     uint32_t lastThresholdPublish = 0;
+    bool hasExport = false;
 
     bool publishList1(AmsData* data, AmsData* meterState);
     bool publishList2(AmsData* data, AmsData* meterState);

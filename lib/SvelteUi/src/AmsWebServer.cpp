@@ -33,6 +33,7 @@
 #include "html/conf_ui_json.h"
 #include "html/conf_cloud_json.h"
 #include "html/firmware_html.h"
+#include "html/neas_logotype_white_svg.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
@@ -121,6 +122,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	
 	server.on(context + F("/favicon.svg"), HTTP_GET, std::bind(&AmsWebServer::faviconSvg, this)); 
 	server.on(context + F("/logo.svg"), HTTP_GET, std::bind(&AmsWebServer::logoSvg, this)); 
+	server.on(context + F("/neas_logotype_white.svg"), HTTP_GET, std::bind(&AmsWebServer::neasLogoSvg, this));
 	server.on(context + F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
 	server.on(context + F("/data.json"), HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
 	server.on(context + F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
@@ -294,6 +296,10 @@ void AmsWebServer::logoSvg() {
 	String svg = String(FAVICON_SVG);
 	svg.replace("045c7c", "f3f4f6");
 	server.send(200, "image/svg+xml", svg.c_str());
+}
+
+void AmsWebServer::neasLogoSvg() {
+    server.send_P(200, "image/svg+xml", NEAS_LOGOTYPE_WHITE_SVG, NEAS_LOGOTYPE_WHITE_SVG_LEN);
 }
 
 void AmsWebServer::sysinfoJson() {

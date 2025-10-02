@@ -120,6 +120,7 @@ private:
 	void indexCss();
 	void faviconSvg();
 	void logoSvg();
+	void neasLogoSvg();
 
     void sysinfoJson();
     void dataJson();

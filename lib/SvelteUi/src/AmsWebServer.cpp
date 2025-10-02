@@ -776,7 +776,7 @@ void AmsWebServer::priceJson(uint8_t direction) {
 		prices[i] = ps->getPricePoint(direction, i);
 	}
 
-	snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\",\"resolution\":%d,\"direction\":\"%s\",\"importExportPriceDifferent\":%s"),
+	snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\",\"resolution\":%d,\"direction\":\"%s\",\"importExportPriceDifferent\":%s,\"prices\":["),
 		ps->getCurrency(),
 		ps->getSource(),
 		ps->getResolutionInMinutes(),
@@ -794,14 +794,14 @@ void AmsWebServer::priceJson(uint8_t direction) {
 
     for(uint8_t i = 0;i < numberOfPoints; i++) {
         if(prices[i] == PRICE_NO_VALUE) {
-            snprintf_P(buf, BufferSize, PSTR(",\"%02d\":null"), i);
+            snprintf_P(buf, BufferSize, PSTR("%snull"), i == 0 ? "" : ",");
 			server.sendContent(buf);
         } else {
-            snprintf_P(buf, BufferSize, PSTR(",\"%02d\":%.4f"), i, prices[i]);
+            snprintf_P(buf, BufferSize, PSTR("%s%.4f"), i == 0 ? "" : ",", prices[i]);
 			server.sendContent(buf);
         }
     }
-	server.sendContent_P(PSTR("}"));
+	server.sendContent_P(PSTR("]}"));
 }
 
 void AmsWebServer::temperatureJson() {

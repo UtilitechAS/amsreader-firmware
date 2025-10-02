@@ -113,7 +113,7 @@ uint8_t PriceService::getResolutionInMinutes() {
 }
 
 uint8_t PriceService::getNumberOfPointsAvailable() {
-    if(today == NULL) return getResolutionInMinutes() == 15 ? 96 : 24;
+    if(today == NULL) return getResolutionInMinutes() == 15 ? 192 : 48;
     if(tomorrow != NULL) return today->getNumberOfPoints() + tomorrow->getNumberOfPoints();
     return today->getNumberOfPoints();
 }
@@ -163,8 +163,6 @@ float PriceService::getPricePoint(uint8_t direction, uint8_t point) {
 }
 
 float PriceService::getCurrentPrice(uint8_t direction) {
-    if(today == NULL) return PRICE_NO_VALUE;
-
     time_t ts = time(nullptr);
     tmElements_t tm;
     breakTime(tz->toLocal(ts), tm);

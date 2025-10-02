@@ -34,6 +34,10 @@
 #include "html/conf_cloud_json.h"
 #include "html/firmware_html.h"
 #include "html/neas_logotype_white_svg.h"
+#include "html/wifi_high_light_svg.h"
+#include "html/wifi_medium_light_svg.h"
+#include "html/wifi_low_light_svg.h"
+#include "html/wifi_off_light_svg.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
@@ -123,6 +127,11 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/favicon.svg"), HTTP_GET, std::bind(&AmsWebServer::faviconSvg, this)); 
 	server.on(context + F("/logo.svg"), HTTP_GET, std::bind(&AmsWebServer::logoSvg, this)); 
 	server.on(context + F("/neas_logotype_white.svg"), HTTP_GET, std::bind(&AmsWebServer::neasLogoSvg, this));
+	server.on(context + F("/wifi-high-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiHighLightSvg, this));
+	server.on(context + F("/wifi-medium-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiMediumLightSvg, this));
+	server.on(context + F("/wifi-low-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiLowLightSvg, this));
+	server.on(context + F("/wifi-off.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiOffSvg, this));
+
 	server.on(context + F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
 	server.on(context + F("/data.json"), HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
 	server.on(context + F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
@@ -300,6 +309,22 @@ void AmsWebServer::logoSvg() {
 
 void AmsWebServer::neasLogoSvg() {
     server.send_P(200, "image/svg+xml", NEAS_LOGOTYPE_WHITE_SVG, NEAS_LOGOTYPE_WHITE_SVG_LEN);
+}
+
+void AmsWebServer::wifiHighLightSvg() {
+    server.send_P(200, "image/svg+xml", WIFI_HIGH_LIGHT_SVG, WIFI_HIGH_LIGHT_SVG_LEN);
+}
+
+void AmsWebServer::wifiMediumLightSvg() {
+    server.send_P(200, "image/svg+xml", WIFI_MEDIUM_LIGHT_SVG, WIFI_MEDIUM_LIGHT_SVG_LEN);
+}
+
+void AmsWebServer::wifiLowLightSvg() {
+    server.send_P(200, "image/svg+xml", WIFI_LOW_LIGHT_SVG, WIFI_LOW_LIGHT_SVG_LEN);
+}
+
+void AmsWebServer::wifiOffSvg() {
+    server.send_P(200, "image/svg+xml", WIFI_OFF_LIGHT_SVG, WIFI_OFF_LIGHT_SVG_LEN);
 }
 
 void AmsWebServer::sysinfoJson() {

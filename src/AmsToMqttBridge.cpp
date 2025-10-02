@@ -1284,7 +1284,7 @@ void toggleSetupMode() {
 		#else
 		WiFi.beginSmartConfig();
 		#endif
-		WiFi.softAP(PSTR("AMS2MQTT"));
+		WiFi.softAP(PSTR("NEAS-WATTUP"));
 
 		if(dnsServer == NULL) {
 			dnsServer = new DNSServer();

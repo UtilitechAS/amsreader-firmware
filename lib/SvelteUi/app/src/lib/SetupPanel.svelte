@@ -71,7 +71,6 @@
                 {translations.conf?.connection?.title ?? "Connection"}<br/>
                 <select name="sc" class="in-s" bind:value={connectionMode}>
                     <option value={1}>{translations.conf?.connection?.wifi ?? "Connect to WiFi"}</option>
-                    <option value={2}>{translations.conf?.connection?.ap ?? "Standalone access point"}</option>
                     {#if sysinfo.if && sysinfo.if.eth}
                     <option value={3}>{translations.conf?.connection?.eth ?? "Ethernet"}</option>
                     {/if}
@@ -80,21 +79,27 @@
             {#if connectionMode == 1 || connectionMode == 2}
                 <div class="my-3">
                     {translations.conf?.connection?.ssid ?? "SSID"}
-                    <label class="float-right mr-3"><input type="checkbox" value="true" bind:checked={manual} class="rounded mb-1"/> manual</label>
                     <br/>
                     {#if manual}
                         <input name="ss" type="text" pattern={asciiPatternExt} class="in-s" required={connectionMode == 1 || connectionMode == 2}/>
                     {:else}
-                        <select name="ss" class="in-s" required={connectionMode == 1 || connectionMode == 2}>
-                            {#if networks?.c == -1}
-                                <option value="" selected disabled>Scanning...</option>
-                            {/if}
-                            {#if networks?.n}
-                                {#each networks?.n as network}
-                                    <option value={network.s}>{network.s} ({network.e}, RSSI: {network.r})</option>
+                        {#if networks?.c == -1}
+                            <p class="text-sm italic">{translations.conf?.connection?.scanning ?? "Scanning..."}</p>
+                        {/if}
+                        {#if networks?.n?.length}
+                            <ul class="space-y-1">
+                                {#each networks.n as network (network.s)}
+                                    <li>
+                                        <label class="flex items-center gap-2">
+                                            <input type="radio" name="ss" value={network.s} required={connectionMode == 1 || connectionMode == 2}/>
+                                            <span>{network.s} ({network.e}, Nettverksstyrke: {network.r})</span>
+                                        </label>
+                                    </li>
                                 {/each}
-                            {/if}
-                        </select>
+                            </ul>
+                        {:else if networks?.c != -1}
+                            <p class="text-sm italic">{translations.conf?.connection?.noNetworks ?? "No networks found."}</p>
+                        {/if}
                     {/if}
                 </div>
                 <div class="my-3">
@@ -107,7 +112,6 @@
                 <input name="sh" bind:value={sysinfo.hostname} type="text" class="in-s" maxlength="32" pattern={charAndNumPattern} placeholder="Optional, ex.: ams-reader" autocomplete="off"/>
             </div>
             <div class="my-3">
-                <label><input type="checkbox" name="sm" value="static" class="rounded mb-1" bind:checked={staticIp} /> {translations.setup?.static ?? "Static IP"}</label>
                 {#if staticIp}
                 <br/>
                 <div class="flex">
@@ -137,4 +141,4 @@
     </div>
 </div>
 
-<Mask active={loadingOrSaving} message={translations.setup?.mask ?? "Saving"}/>
+<Mask active={loadingOrSaving} message={translations.setup?.mask ?? "Lagrer"}/>

@@ -17,6 +17,10 @@
   } from "./lib/TranslationService.js";
   import Favicon from "./assets/favicon.svg"; // Need this for the build
   import NeasLogo from "./assets/neas_logotype_white.svg";
+  import WifiLowIcon from "./assets/wifi-low-light.svg";
+  import WifiMediumIcon from "./assets/wifi-medium-light.svg";
+  import WifiHighIcon from "./assets/wifi-high-light.svg";
+  import WifiOffIcon from "./assets/wifi-off-light.svg";
   import Header from "./lib/Header.svelte";
   import Dashboard from "./lib/Dashboard.svelte";
   import ConfigurationPanel from "./lib/ConfigurationPanel.svelte";

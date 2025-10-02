@@ -12,6 +12,13 @@
   import GearIcon from "./GearIcon.svelte";
   import InfoIcon from "./InfoIcon.svelte";
   import HelpIcon from "./HelpIcon.svelte";
+  import WifiLowIcon from "./../assets/wifi-low-light.svg";
+  import WifiMediumIcon from "./../assets/wifi-medium-light.svg";
+  import WifiHighIcon from "./../assets/wifi-high-light.svg";
+  import WifiOffIcon from "./../assets/wifi-off-light.svg";
+
+  let wifiIcon = WifiOffIcon;
+  let wifiTitle = "Wi-Fi offline";
 
   export let basepath = "/";
   export let data = {};
@@ -49,6 +56,26 @@
   $: {
     progress = Math.max(0, sysinfo.upgrade.p);
   }
+
+  $: {
+    const rssi = data?.r;
+
+    if (typeof rssi === "number") {
+      if (rssi >= -50) {
+        wifiIcon = WifiHighIcon;
+        wifiTitle = `Wi-Fi strong (${rssi} dBm)`;
+      } else if (rssi >= -60) {
+        wifiIcon = WifiMediumIcon;
+        wifiTitle = `Wi-Fi medium (${rssi} dBm)`;
+      } else if (rssi >= -75) {
+        wifiIcon = WifiLowIcon;
+        wifiTitle = `Wi-Fi weak (${rssi} dBm)`;
+      } else {
+        wifiIcon = WifiOffIcon;
+        wifiTitle = `Wi-Fi very weak/offline (${rssi} dBm)`;
+      }
+    }
+  }
 </script>
 
 <nav class="bg-neas-green-90 rounded-md">
@@ -82,11 +109,6 @@
         color={bcol(sysinfo.booting ? 9 : data.hm)}
       />
       <Badge
-        title="WiFi"
-        text={data.r ? data.r.toFixed(0) + "dBm" : "WiFi"}
-        color={bcol(sysinfo.booting ? 9 : data.wm)}
-      />
-      <Badge
         title="MQTT"
         text="MQTT"
         color={bcol(sysinfo.booting ? 9 : data.mm)}
@@ -115,7 +137,7 @@
     {/if}
     <div class="flex-auto p-2 flex flex-row-reverse flex-wrap">
       <div class="flex-none flex text-xl text-neas-gray p-2 flex-auto">
-        <span>{sysinfo.version}</span>
+        <img class="h-10 w-10" src={wifiIcon} alt={wifiTitle} />
       </div>
       <div class="flex-none my-auto px-2">
         <Clock

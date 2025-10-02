@@ -1631,8 +1631,10 @@ void MQTT_connect() {
 				case 4: {
 					HomeAssistantConfig haconf;
 					config.getHomeAssistantConfig(haconf);
+					NetworkConfig network;
+					ch->getCurrentConfig(network);
 					HomeAssistantMqttHandler* hamh = (HomeAssistantMqttHandler*) &mqttHandler;
-					hamh->setHomeAssistantConfig(haconf);
+					hamh->setHomeAssistantConfig(haconf, network.hostname);
 					break;
 				}
 			}
@@ -1658,7 +1660,9 @@ void MQTT_connect() {
 			case 4:
 				HomeAssistantConfig haconf;
 				config.getHomeAssistantConfig(haconf);
-				mqttHandler = new HomeAssistantMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, sysConfig.boardType, haconf, &hw, &updater);
+				NetworkConfig network;
+				ch->getCurrentConfig(network);
+				mqttHandler = new HomeAssistantMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, sysConfig.boardType, haconf, &hw, &updater, network.hostname);
 				break;
 			case 255:
 				mqttHandler = new PassthroughMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &updater);

@@ -19,7 +19,7 @@
 #include <esp_task_wdt.h>
 #endif
 
-void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config) {
+void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config, char* hostname) {
     l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = false;
 
     pubTopic = String(mqttConfig.publishTopic);
@@ -38,14 +38,6 @@ void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config
     deviceModel = boardTypeToString(boardType);
     manufacturer = boardManufacturerToString(boardType);
 
-    char hostname[32];
-    #if defined(ESP8266)
-        strcpy(hostname, WiFi.hostname().c_str());
-    #elif defined(ESP32)
-        strcpy(hostname, WiFi.getHostname());
-    #endif
-
-    stripNonAscii((uint8_t*) hostname, 32, false);
     deviceUid = String(hostname); // Maybe configurable in the future?
 
     if(strlen(config.discoveryHostname) > 0) {

@@ -124,18 +124,6 @@ bool AmsMqttHandler::connect() {
 		#endif
 		debugger->printf_P(PSTR("Successfully connected to MQTT\n"));
 		mqtt.onMessage(std::bind(&AmsMqttHandler::onMessage, this, std::placeholders::_1, std::placeholders::_2));
-		if(strlen(mqttConfig.subscribeTopic) > 0) {
-			#if defined(AMS_REMOTE_DEBUG)
-			if (debugger->isActive(RemoteDebug::INFO))
-			#endif
-			debugger->printf_P(PSTR("  Subscribing to [%s]\n"), mqttConfig.subscribeTopic);
-			if(!mqtt.subscribe(mqttConfig.subscribeTopic)) {
-				#if defined(AMS_REMOTE_DEBUG)
-				if (debugger->isActive(RemoteDebug::ERROR))
-				#endif
-				debugger->printf_P(PSTR("  Unable to subscribe to to [%s]\n"), mqttConfig.subscribeTopic);
-			}
-		}
 		mqtt.publish(statusTopic, "online", true, 0);
         mqtt.loop();
 		postConnect();

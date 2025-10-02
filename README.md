@@ -46,3 +46,5 @@ pio run -t upload -e esp32s2
 ```
 
 To finish it off, go to the flash-updater site [here](https://www.amsleser.cloud/flasher) and update to latest version to ensure a new firmware download
+
+**Doing this will result in all data being deleted, and needing to setup the board from scratch**

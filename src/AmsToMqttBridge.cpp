@@ -2164,11 +2164,11 @@ void configFileParse() {
                 0, 0, 0, // Cost
                 0, 0, 0, // Income
                 0, 0, 0, // Last month import, export and accuracy
-                0, 0, // Peak 1
-                0, 0, // Peak 2
-                0, 0, // Peak 3
-                0, 0, // Peak 4
-                0, 0 // Peak 5
+                0, 0, 0, // Peak 1
+                0, 0, 0, // Peak 2
+                0, 0, 0, // Peak 3
+                0, 0, 0, // Peak 4
+                0, 0, 0 // Peak 5
             };
 			uint8_t peak = 0;
 			uint64_t totalImport = 0, totalExport = 0;
@@ -2184,7 +2184,7 @@ void configFileParse() {
 					} else if(i == 2) {
 						float val = String(pch).toFloat();
 						if(val > 0.0) {
-							ead.peaks[0] = { 1, (uint16_t) (val*100) };
+							ead.peaks[0] = { 1, 0, (uint16_t) (val*100) };
 						}
 					} else if(i == 3) {
 						float val = String(pch).toFloat();
@@ -2196,7 +2196,6 @@ void configFileParse() {
 						float val = String(pch).toFloat();
 						ead.costLastMonth = val * 100;
 					} else if(i >= 6 && i < 18) {
-						uint8_t hour = i-6;					
 						{			
 							long val = String(pch).toInt();
 							ead.peaks[peak].day = val;
@@ -2208,6 +2207,47 @@ void configFileParse() {
 							ead.peaks[peak].value = val * 100;
 						}
 						peak++;
+					}
+				} else if(ead.version < 7) {
+					if(i == 1) {
+						long val = String(pch).toInt();
+						ead.month = val;
+					} else if(i == 2) {
+						float val = String(pch).toFloat();
+						ead.costYesterday = val * 100;
+					} else if(i == 3) {
+						float val = String(pch).toFloat();
+						ead.costThisMonth = val * 100;
+					} else if(i == 4) {
+						float val = String(pch).toFloat();
+						ead.costLastMonth = val * 100;
+					} else if(i == 5) {
+						float val = String(pch).toFloat();
+						ead.incomeYesterday= val * 100;
+					} else if(i == 6) {
+						float val = String(pch).toFloat();
+						ead.incomeThisMonth = val * 100;
+					} else if(i == 7) {
+						float val = String(pch).toFloat();
+						ead.incomeLastMonth = val * 100;
+					} else if(i >= 8 && i < 18) {
+						{			
+							long val = String(pch).toInt();
+							ead.peaks[peak].day = val;
+						} 
+						pch = strtok (NULL, " ");
+						i++;
+						{
+							float val = String(pch).toFloat();
+							ead.peaks[peak].value = val * 100;
+						}
+						peak++;
+					} else if(i == 18) {
+						float val = String(pch).toFloat();
+						totalImport = val * 1000;
+					} else if(i == 19) {
+						float val = String(pch).toFloat();
+						totalExport = val * 1000;
 					}
 				} else {
 					if(i == 1) {
@@ -2231,11 +2271,16 @@ void configFileParse() {
 					} else if(i == 7) {
 						float val = String(pch).toFloat();
 						ead.incomeLastMonth = val * 100;
-					} else if(i >= 8 && i < 18) {
-						uint8_t hour = i-8;		
+					} else if(i >= 8 && i < 23) {
 						{			
 							long val = String(pch).toInt();
 							ead.peaks[peak].day = val;
+						} 
+						pch = strtok (NULL, " ");
+						i++;
+						{			
+							long val = String(pch).toInt();
+							ead.peaks[peak].hour = val;
 						} 
 						pch = strtok (NULL, " ");
 						i++;
@@ -2265,7 +2310,7 @@ void configFileParse() {
             ead.lastMonthImport = importUpdate;
             ead.lastMonthExport = exportUpdate;
 
-			ead.version = 6;
+			ead.version = 7;
 			ea.setData(ead);
 			sEa = true;
 		}

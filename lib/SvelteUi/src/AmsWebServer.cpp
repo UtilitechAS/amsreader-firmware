@@ -2097,8 +2097,9 @@ void AmsWebServer::tariffJson() {
 	String peaks;
     for(uint8_t x = 0;x < min((uint8_t) 5, eac->hours); x++) {
 		EnergyAccountingPeak peak = ea->getPeak(x+1);
-		int len = snprintf_P(buf, BufferSize, PSTR("{\"d\":%d,\"v\":%.2f}"),
+		int len = snprintf_P(buf, BufferSize, PSTR("{\"d\":%d,\"h\":%d,\"v\":%.2f}"),
 			peak.day,
+			peak.hour,
 			peak.value / 100.0
 		);
 		buf[len] = '\0';
@@ -2592,7 +2593,7 @@ void AmsWebServer::configFileDownload() {
 		EnergyAccountingConfig eac;
 		config->getEnergyAccountingConfig(eac);
 		EnergyAccountingData ead = ea->getData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("energyaccounting %d %d %.2f %.2f %.2f %.2f %.2f %.2f %d %.2f %d %.2f %d %.2f %d %.2f %d %.2f %.2f %.2f"), 
+		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("energyaccounting %d %d %.2f %.2f %.2f %.2f %.2f %.2f %d %d %.2f %d %d %.2f %d %d %.2f %d %d %.2f %d %d %.2f %.2f %.2f"), 
 			ead.version,
 			ead.month,
 			ea->getCostYesterday(),
@@ -2602,14 +2603,19 @@ void AmsWebServer::configFileDownload() {
 			ea->getIncomeThisMonth(),
 			ea->getIncomeLastMonth(),
 			ead.peaks[0].day,
+			ead.peaks[0].hour,
 			ead.peaks[0].value / 100.0,
 			ead.peaks[1].day,
+			ead.peaks[1].hour,
 			ead.peaks[1].value / 100.0,
 			ead.peaks[2].day,
+			ead.peaks[2].hour,
 			ead.peaks[2].value / 100.0,
 			ead.peaks[3].day,
+			ead.peaks[3].hour,
 			ead.peaks[3].value / 100.0,
 			ead.peaks[4].day,
+			ead.peaks[4].hour,
 			ead.peaks[4].value / 100.0,
 			ea->getUseLastMonth(),
 			ea->getProducedLastMonth()

@@ -88,7 +88,7 @@ uint16_t JsonMqttHandler::appendJsonFooter(EnergyAccounting* ea, uint16_t pos) {
         peaks += String(ea->getPeak(i).value / 100.0, 2);
     }
     
-    return snprintf_P(json+pos, BufferSize-pos, PSTR("%s\"%sh\":%.2f,\"%sd\":%.1f,\"%sd\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.2f,\"%sde\":%.1,\"%sme\":%.1f,\"peaks\":[%s]%s"),
+    return snprintf_P(json+pos, BufferSize-pos, PSTR("%s\"%sh\":%.3f,\"%sd\":%.2f,\"%sm\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.3f,\"%sde\":%.2f,\"%sme\":%.1f,\"peaks\":[%s]%s"),
         strlen(pf) == 0 ? "},\"realtime\":{" : ",",
         pf,
         ea->getUseThisHour(),

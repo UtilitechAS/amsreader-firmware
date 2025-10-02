@@ -15,13 +15,13 @@
 class HomeAssistantMqttHandler : public AmsMqttHandler {
 public:
     #if defined(AMS_REMOTE_DEBUG)
-    HomeAssistantMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
+    HomeAssistantMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw, AmsFirmwareUpdater* updater, char* hostname) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
     #else
     HomeAssistantMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
     #endif
         this->boardType = boardType;
         this->hw = hw;
-        setHomeAssistantConfig(config);
+        setHomeAssistantConfig(config, hostname);
     };
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
@@ -36,7 +36,7 @@ public:
 
     uint8_t getFormat();
 
-    void setHomeAssistantConfig(HomeAssistantConfig config);
+    void setHomeAssistantConfig(HomeAssistantConfig config, char* hostname);
 private:
     uint8_t boardType;
 

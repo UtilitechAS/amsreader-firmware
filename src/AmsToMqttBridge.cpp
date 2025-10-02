@@ -215,7 +215,6 @@ void connectToNetwork();
 void toggleSetupMode();
 void postConnect();
 void MQTT_connect();
-void handleNtpChange();
 void handleDataSuccess(AmsData* data);
 void handleTemperature(unsigned long now);
 void handleSystem(unsigned long now);
@@ -223,10 +222,26 @@ void handleButton(unsigned long now);
 void handlePriceService(unsigned long now);
 void handleClear(unsigned long now);
 void handleUiLanguage();
-void handleEnergyAccountingChanged();
-bool handleVoltageCheck();
+void handleEnergyAccounting();
 bool readHanPort();
 void errorBlink();
+
+void handleUpdater();
+char ntpServerName[64] = "";
+void handleNtp();
+#if defined(ESP8266)
+void handleMdns();
+#endif
+#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
+void handleEnergySpeedometer();
+#endif
+#if defined(AMS_CLOUD)
+void handleCloud();
+#endif
+void handleMqtt();
+void handleWebserver();
+void handleSmartConfig();
+void handleMeterConfig();
 
 uint8_t pulses = 0;
 void onPulse();
@@ -500,7 +515,6 @@ void setup() {
 	if(config.hasConfig()) {
 		config.print(&Debug);
 		connectToNetwork();
-		handleNtpChange();
 		ds.load();
 	} else {
 		debugI_P(PSTR("No configuration, booting AP"));
@@ -552,6 +566,9 @@ uint64_t lastErrorBlink = 0;
 unsigned long lastVoltageCheck = 0;
 int lastError = 0;
 
+bool vccLevel1 = true;
+bool vccLevel2 = true;
+
 void loop() {
 	unsigned long now = millis();
 	unsigned long start = now;
@@ -569,7 +586,7 @@ void loop() {
 		errorBlink();
 	}
 
-	// Only do normal stuff if we're not booted as AP
+	// Only do normal stuff if we're not booted into setup mode
 	if (!setupMode) {
 		if (ch != NULL && !ch->isConnected()) {
 			if(networkConnected) {
@@ -588,119 +605,49 @@ void loop() {
 			if(!networkConnected) {
 				postConnect();
 			}
-			if(config.isNtpChanged()) {
-				handleNtpChange();
-			}
-			#if defined ESP8266
-			if(mdnsEnabled) {
-				start = millis();
-				MDNS.update();
-				end = millis();
-				if(end - start > SLOW_PROC_TRIGGER_MS) {
-					debugW_P(PSTR("Used %dms to update mDNS"), millis()-start);
-				}
-			}
-			#endif
 
-			if (mqttEnabled || config.isMqttChanged()) {
-				if(mqttHandler == NULL || !mqttHandler->connected() || config.isMqttChanged()) {
-					if(mqttHandler != NULL && config.isMqttChanged()) {
-						mqttHandler->disconnect();
-					}
-					MQTT_connect();
-					config.ackMqttChange();
-				}
-			} else if(mqttHandler != NULL) {
-				mqttHandler->disconnect();
-			}
+			handleUpdater();
 
-			#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
-			if(sysConfig.energyspeedometer == 7) {
-				if(!meterState.getMeterId().isEmpty()) {
-					if(energySpeedometer == NULL) {
-						uint16_t chipId;
-						#if defined(ESP32)
-							chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
-						#else
-							chipId = ESP.getChipId();
-						#endif
-						strcpy(energySpeedometerConfig.clientId, (String("ams") + String(chipId, HEX)).c_str());
-						energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw, &updater);
-						energySpeedometer->setCaVerification(false);
-					}
-					if(!energySpeedometer->connected()) {
-						lwmqtt_err_t err = energySpeedometer->lastError();
-						if(err > 0)
-							debugE_P(PSTR("Energyspeedometer connector reporting error (%d)"), err);
-						energySpeedometer->connect();
-						energySpeedometer->publishSystem(&hw, ps, &ea);
-					}
-					energySpeedometer->loop();
-					delay(10);
-				}
-			} else if(energySpeedometer != NULL) {
-				if(energySpeedometer->connected()) {
-					energySpeedometer->disconnect();
-					energySpeedometer->loop();
-				} else {
-					delete energySpeedometer;
-					energySpeedometer = NULL;
-				}
-			}
-			#endif
-
-			try {
+			// Only do these tasks if we have super-smooth voltage
+			if(hw.isVoltageOptimal(0.1)) {
+				handleNtp();
+				#if defined(ESP8266)
+					handleMdns();
+				#endif
+				#if defined(ESP32)
+					#if defined(ENERGY_SPEEDOMETER_PASS)
+						handleEnergySpeedometer();
+					#endif
+				#endif
 				handlePriceService(now);
-			} catch(const std::exception& e) {
-				debugE_P(PSTR("Exception in PriceService loop (%s)"), e.what());
-			}
-			start = millis();
-			ws.loop();
-			end = millis();
-			if(end - start > SLOW_PROC_TRIGGER_MS) {
-				debugW_P(PSTR("Used %dms to handle web"), millis()-start);
+				#if defined(AMS_CLOUD)
+					handleCloud();
+				#endif
+				handleUiLanguage();
+				vccLevel1 = true;
+			} else if(vccLevel1) {
+				vccLevel1 = false;
+				debugW_P(PSTR("Vcc below level 1"));
 			}
 
-			if(mqttHandler != NULL) {
-				start = millis();
-				mqttHandler->loop();
-				delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
-				end = millis();
-				if(end - start > SLOW_PROC_TRIGGER_MS) {
-					debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
+			// Only do these task if we have smooth voltage
+			if(hw.isVoltageOptimal(0.2)) {
+				handleMqtt();
+				vccLevel2 = true;
+			} else if(vccLevel2) {
+				vccLevel2 = false;
+				debugW_P(PSTR("Vcc below level 2"));
+			}
+			
+			handleWebserver();
+
+			#if defined(ESP32)
+			// At this point, if the voltage is not optimal, disconnect from WiFi to preserve power
+			if(!hw.isVoltageOptimal(0.35)) {
+				if(WiFi.getMode() == WIFI_STA) {
+					debugW_P(PSTR("Vcc dropped below limit, disconnecting WiFi for 5 seconds to preserve power"));
+					ch->disconnect(5000);
 				}
-			}
-
-			#if defined(_CLOUDCONNECTOR_H)
-			if(config.isCloudChanged()) {
-				CloudConfig cc;
-				if(config.getCloudConfig(cc) && cc.enabled) {
-					if(cloud == NULL) {
-						cloud = new CloudConnector(&Debug);
-					}
-					NtpConfig ntp;
-					config.getNtpConfig(ntp);
-					if(cloud->setup(cc, meterConfig, sysConfig, ntp, &hw, &rdc, ps)) {
-						config.setCloudConfig(cc);
-					}
-					cloud->setConnectionHandler(ch);
-
-					PriceServiceConfig price;
-					config.getPriceServiceConfig(price);
-					cloud->setPriceConfig(price);
-
-					EnergyAccountingConfig *eac = ea.getConfig();
-					cloud->setEnergyAccountingConfig(*eac);
-
-					ws.setCloud(cloud);
-				} else if(cloud != NULL) {
-					delete cloud;
-					cloud = NULL;
-				}
-				config.ackCloudConfig();
-			}
-			if(cloud != NULL) {
-				cloud->update(meterState, ea);
 			}
 			#endif
 
@@ -762,45 +709,255 @@ void loop() {
 				debugW_P(PSTR("Used %dms to handle firmware updater"), end-start);
 			}
 		}
-		#if defined(ESP32)
-		if(now - lastVoltageCheck > 1000) {
-			start = millis();
-			handleVoltageCheck();
-			end = millis();
-			lastVoltageCheck = now;
-			if(end-start > SLOW_PROC_TRIGGER_MS) {
-				debugW_P(PSTR("Used %dms to handle language update"), end-start);
-			}
-		}
-		#endif
 	} else {
-		if(WiFi.smartConfigDone()) {
-			debugI_P(PSTR("Smart config DONE!"));
-
-			NetworkConfig network;
-			config.getNetworkConfig(network);
-			strcpy(network.ssid, WiFi.SSID().c_str());
-			strcpy(network.psk, WiFi.psk().c_str());
-			network.mode = 1;
-			network.mdns = true;
-			config.setNetworkConfig(network);
-
-			SystemConfig sys;
-			config.getSystemConfig(sys);
-			sys.userConfigured = true;
-			sys.dataCollectionConsent = 0;
-			config.setSystemConfig(sys);
-			config.save();
-
-			delay(1000);
-			ESP.restart();
-		}
+		handleSmartConfig();
 		if(dnsServer != NULL) {
 			dnsServer->processNextRequest();
 		}
 		ws.loop();
 	}
 
+	handleMeterConfig();
+	handleEnergyAccounting();
+
+	try {
+		start = millis();
+		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
+			end = millis();
+			if(end - start > SLOW_PROC_TRIGGER_MS) {
+				debugW_P(PSTR("Used %dms to read HAN port (true)"), millis()-start);
+			}
+			if(hw.isVoltageOptimal(0.1)) {
+				handleTemperature(now);
+				handleSystem(now);
+			}
+			hw.setBootSuccessful(true);
+		} else {
+			end = millis();
+			if(end - start > SLOW_PROC_TRIGGER_MS) {
+				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
+			}
+		}
+		if(millis() - meterState.getLastUpdateMillis() > 1800000 && !ds.isHappy(time(nullptr))) {
+			handleClear(now);
+		}
+	} catch(const std::exception& e) {
+		debugE_P(PSTR("Exception in readHanPort (%s)"), e.what());
+		meterState.setLastError(METER_ERROR_EXCEPTION);
+	}
+
+	delay(10); // Needed for auto modem sleep
+	start = millis();
+	#if defined(ESP32)
+		esp_task_wdt_reset();
+	#elif defined(ESP8266)
+		ESP.wdtFeed();
+	#endif
+	yield();
+
+	end = millis();
+	if(end-start > SLOW_PROC_TRIGGER_MS) {
+		debugW_P(PSTR("Used %dms to feed WDT"), end-start);
+	}
+
+	if(end-now > SLOW_PROC_TRIGGER_MS*2) {
+		debugW_P(PSTR("loop() used %dms"), end-now);
+	}
+}
+
+void handleUpdater() {
+	unsigned long start = millis();
+	updater.loop();
+	if(updater.isUpgradeInformationChanged()) {
+		UpgradeInformation upinfo;
+		updater.getUpgradeInformation(upinfo);
+		config.setUpgradeInformation(upinfo);
+		updater.ackUpgradeInformationChanged();
+		if(mqttHandler != NULL)
+			mqttHandler->publishFirmware();
+		
+		if(upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_SIGNAL) {
+			debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);
+			upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
+			config.setUpgradeInformation(upinfo);
+			delay(1000);
+			ESP.restart();
+		}
+	}
+	unsigned long end = millis();
+	if(end-start > SLOW_PROC_TRIGGER_MS) {
+		debugW_P(PSTR("Used %dms to handle firmware updater"), end-start);
+	}
+}
+
+void handleNtp() {
+	if(config.isNtpChanged()) {
+		NtpConfig ntp;
+		if(config.getNtpConfig(ntp)) {
+			tz = resolveTimezone(ntp.timezone);
+			if(ntp.enable && strlen(ntp.server) > 0) {
+				strcpy(ntpServerName, ntp.server);
+			} else if(ntp.enable) {
+				strcpy(ntpServerName, "pool.ntp.org");
+			} else {
+				memset(ntpServerName, 0, 64);
+			}
+			configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntpServerName, "", "");
+			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0); // Not implemented on ESP32?
+			ntpEnabled = ntp.enable;
+
+			ws.setTimezone(tz);
+			ds.setTimezone(tz);
+			ea.setTimezone(tz);
+			ps->setTimezone(tz);
+		}
+	
+		config.ackNtpChange();
+	}
+}
+
+#if defined(ESP8266)
+void handleMdns() {
+	if(mdnsEnabled) {
+		unsigned long start = millis();
+		MDNS.update();
+		unsigned long end = millis();
+		if(end - start > SLOW_PROC_TRIGGER_MS) {
+			debugW_P(PSTR("Used %dms to update mDNS"), millis()-start);
+		}
+	}
+}
+#endif
+
+#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
+void handleEnergySpeedometer() {
+	if(sysConfig.energyspeedometer == 7) {
+		if(!meterState.getMeterId().isEmpty()) {
+			if(energySpeedometer == NULL) {
+				uint16_t chipId;
+				#if defined(ESP32)
+					chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
+				#else
+					chipId = ESP.getChipId();
+				#endif
+				strcpy(energySpeedometerConfig.clientId, (String("ams") + String(chipId, HEX)).c_str());
+				energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
+				energySpeedometer->setCaVerification(false);
+			}
+			if(!energySpeedometer->connected()) {
+				lwmqtt_err_t err = energySpeedometer->lastError();
+				if(err > 0)
+					debugE_P(PSTR("Energyspeedometer connector reporting error (%d)"), err);
+				energySpeedometer->connect();
+				energySpeedometer->publishSystem(&hw, ps, &ea);
+			}
+			energySpeedometer->loop();
+			delay(10);
+		}
+	} else if(energySpeedometer != NULL) {
+		if(energySpeedometer->connected()) {
+			energySpeedometer->disconnect();
+			energySpeedometer->loop();
+		} else {
+			delete energySpeedometer;
+			energySpeedometer = NULL;
+		}
+	}
+}
+#endif
+
+#if defined(AMS_CLOUD)
+void handleCloud() {
+	if(config.isCloudChanged()) {
+		CloudConfig cc;
+		if(config.getCloudConfig(cc) && cc.enabled) {
+			if(cloud == NULL) {
+				cloud = new CloudConnector(&Debug);
+			}
+			NtpConfig ntp;
+			config.getNtpConfig(ntp);
+			if(cloud->setup(cc, meterConfig, sysConfig, ntp, &hw, &rdc, ps)) {
+				config.setCloudConfig(cc);
+			}
+			cloud->setConnectionHandler(ch);
+
+			PriceServiceConfig price;
+			config.getPriceServiceConfig(price);
+			cloud->setPriceConfig(price);
+
+			EnergyAccountingConfig *eac = ea.getConfig();
+			cloud->setEnergyAccountingConfig(*eac);
+
+			ws.setCloud(cloud);
+		} else if(cloud != NULL) {
+			delete cloud;
+			cloud = NULL;
+		}
+		config.ackCloudConfig();
+	}
+	if(cloud != NULL) {
+		cloud->update(meterState, ea);
+	}
+}
+#endif
+
+void handleMqtt() {
+	if (mqttEnabled || config.isMqttChanged()) {
+		if(mqttHandler == NULL || !mqttHandler->connected() || config.isMqttChanged()) {
+			if(mqttHandler != NULL && config.isMqttChanged()) {
+				mqttHandler->disconnect();
+			}
+			MQTT_connect();
+			config.ackMqttChange();
+		}
+	} else if(mqttHandler != NULL) {
+		mqttHandler->disconnect();
+	}
+
+	if(mqttHandler != NULL) {
+		unsigned long start = millis();
+		mqttHandler->loop();
+		unsigned long end = millis();
+		if(end - start > SLOW_PROC_TRIGGER_MS) {
+			debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
+		}
+	}
+}
+
+void handleWebserver() {
+	unsigned long start = millis();
+	ws.loop();
+	unsigned long end = millis();
+	if(end - start > SLOW_PROC_TRIGGER_MS) {
+		debugW_P(PSTR("Used %dms to handle web"), millis()-start);
+	}
+}
+
+void handleSmartConfig() {
+	if(WiFi.smartConfigDone()) {
+		debugI_P(PSTR("Smart config DONE!"));
+
+		NetworkConfig network;
+		config.getNetworkConfig(network);
+		strcpy(network.ssid, WiFi.SSID().c_str());
+		strcpy(network.psk, WiFi.psk().c_str());
+		network.mode = 1;
+		network.mdns = true;
+		config.setNetworkConfig(network);
+
+		SystemConfig sys;
+		config.getSystemConfig(sys);
+		sys.userConfigured = true;
+		sys.dataCollectionConsent = 0;
+		config.setSystemConfig(sys);
+		config.save();
+
+		delay(1000);
+		ESP.restart();
+	}
+}
+
+void handleMeterConfig() {
 	if(config.isMeterChanged()) {
 		config.getMeterConfig(meterConfig);
 		if(meterConfig.source == METER_SOURCE_GPIO) {
@@ -874,54 +1031,10 @@ void loop() {
 		ws.setMeterConfig(meterConfig.distributionSystem, meterConfig.mainFuse, meterConfig.productionCapacity);
 		config.ackMeterChanged();
 	}
-
-	if(config.isEnergyAccountingChanged()) {
-		handleEnergyAccountingChanged();
-	}
-	try {
-		start = millis();
-		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
-			end = millis();
-			if(end - start > SLOW_PROC_TRIGGER_MS) {
-				debugW_P(PSTR("Used %dms to read HAN port (true)"), millis()-start);
-			}
-			handleTemperature(now);
-			handleSystem(now);
-			hw.setBootSuccessful(true);
-		} else {
-			end = millis();
-			if(end - start > SLOW_PROC_TRIGGER_MS) {
-				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
-			}
-		}
-		if(millis() - meterState.getLastUpdateMillis() > 1800000 && !ds.isHappy(time(nullptr))) {
-			handleClear(now);
-		}
-	} catch(const std::exception& e) {
-		debugE_P(PSTR("Exception in readHanPort (%s)"), e.what());
-		meterState.setLastError(METER_ERROR_EXCEPTION);
-	}
-
-	delay(10); // Needed for auto modem sleep
-	start = millis();
-	#if defined(ESP32)
-		esp_task_wdt_reset();
-	#elif defined(ESP8266)
-		ESP.wdtFeed();
-	#endif
-	yield();
-
-	end = millis();
-	if(end-start > SLOW_PROC_TRIGGER_MS) {
-		debugW_P(PSTR("Used %dms to feed WDT"), end-start);
-	}
-
-	if(end-now > SLOW_PROC_TRIGGER_MS*2) {
-		debugW_P(PSTR("loop() used %dms"), end-now);
-	}
 }
 
 void handleUiLanguage() {
+	unsigned long start = millis();
 	if(config.isUiLanguageChanged()) {
 		debugD_P(PSTR("Language has changed"));
 		if(LittleFS.begin()) {
@@ -971,6 +1084,10 @@ void handleUiLanguage() {
 
 		config.ackUiLanguageChange();
 	}
+	unsigned long end = millis();
+	if(end-start > SLOW_PROC_TRIGGER_MS) {
+		debugW_P(PSTR("Used %dms to handle language update"), end-start);
+	}
 }
 
 void handleClear(unsigned long now) {
@@ -984,42 +1101,18 @@ void handleClear(unsigned long now) {
 	}
 }
 
-void handleEnergyAccountingChanged() {
-	EnergyAccountingConfig *eac = ea.getConfig();
-	config.getEnergyAccountingConfig(*eac);
-	ea.setup(&ds, eac);
-	config.ackEnergyAccountingChange();
-	#if defined(_CLOUDCONNECTOR_H)
-	if(cloud != NULL) {
-		cloud->setEnergyAccountingConfig(*eac);
-	}
-	#endif
-}
-
-char ntpServerName[64] = "";
-
-void handleNtpChange() {
-	NtpConfig ntp;
-	if(config.getNtpConfig(ntp)) {
-		tz = resolveTimezone(ntp.timezone);
-		if(ntp.enable && strlen(ntp.server) > 0) {
-			strcpy(ntpServerName, ntp.server);
-		} else if(ntp.enable) {
-			strcpy(ntpServerName, "pool.ntp.org");
-		} else {
-			memset(ntpServerName, 0, 64);
+void handleEnergyAccounting() {
+	if(config.isEnergyAccountingChanged()) {
+		EnergyAccountingConfig *eac = ea.getConfig();
+		config.getEnergyAccountingConfig(*eac);
+		ea.setup(&ds, eac);
+		config.ackEnergyAccountingChange();
+		#if defined(AMS_CLOUD)
+		if(cloud != NULL) {
+			cloud->setEnergyAccountingConfig(*eac);
 		}
-		configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntpServerName, "", "");
-		sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0); // Not implemented on ESP32?
-		ntpEnabled = ntp.enable;
-
-		ws.setTimezone(tz);
-		ds.setTimezone(tz);
-		ea.setTimezone(tz);
-		ps->setTimezone(tz);
+		#endif
 	}
-
-	config.ackNtpChange();
 }
 
 void handleSystem(unsigned long now) {
@@ -1060,17 +1153,6 @@ void handleSystem(unsigned long now) {
 	}
 }
 
-bool handleVoltageCheck() {
-	if(!hw.isVoltageOptimal()) {
-		if(WiFi.getMode() == WIFI_STA) {
-			debugW_P(PSTR("Vcc dropped below limit, disconnecting WiFi for 5 seconds to preserve power"));
-			ch->disconnect(5000);
-		}
-		return false;
-	}
-	return true;
-}
-
 void handleTemperature(unsigned long now) {
 	unsigned long start, end;
 	if(now - lastTemperatureRead > 15000) {
@@ -1090,51 +1172,55 @@ void handleTemperature(unsigned long now) {
 }
 
 void handlePriceService(unsigned long now) {
-	unsigned long start, end;
-	if(ps != NULL && ntpEnabled) {
-		start = millis();
-		if(ps->loop() && mqttHandler != NULL) {
-			end = millis();
-			if(end - start > SLOW_PROC_TRIGGER_MS) {
-				debugW_P(PSTR("Used %dms to update prices"), millis()-start);
-			}
-
+	try {
+		unsigned long start, end;
+		if(ps != NULL && ntpEnabled) {
 			start = millis();
-			mqttHandler->publishPrices(ps);
-			end = millis();
-			if(end - start > SLOW_PROC_TRIGGER_MS) {
-				debugW_P(PSTR("Used %dms to publish prices to MQTT"), millis()-start);
-			}
-		} else {
-			end = millis();
-			if(end - start > SLOW_PROC_TRIGGER_MS) {
-				debugW_P(PSTR("Used %dms to handle price API"), millis()-start);
-			}
-		}
-	}
-	
-	if(config.isPriceServiceChanged()) {
-		PriceServiceConfig price;
-		if(config.getPriceServiceConfig(price) && price.enabled && strlen(price.area) > 0) {
-			if(ps == NULL) {
-				ps = new PriceService(&Debug);
-				ea.setPriceService(ps);
-				ws.setPriceService(ps);
-				#if defined(_CLOUDCONNECTOR_H)
-				if(cloud != NULL) {
-					cloud->setPriceConfig(price);
+			if(ps->loop() && mqttHandler != NULL) {
+				end = millis();
+				if(end - start > SLOW_PROC_TRIGGER_MS) {
+					debugW_P(PSTR("Used %dms to update prices"), millis()-start);
 				}
-				#endif
+	
+				start = millis();
+				mqttHandler->publishPrices(ps);
+				end = millis();
+				if(end - start > SLOW_PROC_TRIGGER_MS) {
+					debugW_P(PSTR("Used %dms to publish prices to MQTT"), millis()-start);
+				}
+			} else {
+				end = millis();
+				if(end - start > SLOW_PROC_TRIGGER_MS) {
+					debugW_P(PSTR("Used %dms to handle price API"), millis()-start);
+				}
 			}
-			ps->setup(price);
-		} else if(ps != NULL) {
-			delete ps;
-			ps = NULL;
-			ws.setPriceService(NULL);
 		}
-		ws.setPriceSettings(price.area, price.currency);
-		config.ackPriceServiceChange();
-		ea.setCurrency(price.currency);
+		
+		if(config.isPriceServiceChanged()) {
+			PriceServiceConfig price;
+			if(config.getPriceServiceConfig(price) && price.enabled && strlen(price.area) > 0) {
+				if(ps == NULL) {
+					ps = new PriceService(&Debug);
+					ea.setPriceService(ps);
+					ws.setPriceService(ps);
+					#if defined(_CLOUDCONNECTOR_H)
+					if(cloud != NULL) {
+						cloud->setPriceConfig(price);
+					}
+					#endif
+				}
+				ps->setup(price);
+			} else if(ps != NULL) {
+				delete ps;
+				ps = NULL;
+				ws.setPriceService(NULL);
+			}
+			ws.setPriceSettings(price.area, price.currency);
+			config.ackPriceServiceChange();
+			ea.setCurrency(price.currency);
+		}
+	} catch(const std::exception& e) {
+		debugE_P(PSTR("Exception in PriceService loop (%s)"), e.what());
 	}
 }
 
@@ -1206,7 +1292,7 @@ void connectToNetwork() {
 		return;
 	}
 	lastConnectRetry = millis();
-	if(!handleVoltageCheck()) {
+	if(!hw.isVoltageOptimal(0.1) && (millis() - lastConnectRetry) < 60000) {
 		debugW_P(PSTR("Voltage is not high enough to reconnect"));
 		return;
 	}
@@ -1359,20 +1445,18 @@ void handleDataSuccess(AmsData* data) {
 	if(!setupMode && !hw.ledBlink(LED_GREEN, 1))
 		hw.ledBlink(LED_INTERNAL, 1);
 
-	if(mqttHandler != NULL) {
+	if(mqttHandler != NULL && hw.isVoltageOptimal(0.2)) {
 		#if defined(ESP32)
 			esp_task_wdt_reset();
 		#elif defined(ESP8266)
 			ESP.wdtFeed();
 		#endif
 		yield();
-		if(mqttHandler->publish(data, &meterState, &ea, ps)) {
-			delay(10);
-		}
+		mqttHandler->publish(data, &meterState, &ea, ps);
 	}
 	#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
-	if(energySpeedometer != NULL && energySpeedometer->publish(&meterState, &meterState, &ea, ps)) {
-		delay(10);
+	if(energySpeedometer != NULL && hw.isVoltageOptimal(0.1)) {
+		energySpeedometer->publish(&meterState, &meterState, &ea, ps);
 	}
 	#endif
 
@@ -1547,8 +1631,10 @@ void MQTT_connect() {
 				case 4: {
 					HomeAssistantConfig haconf;
 					config.getHomeAssistantConfig(haconf);
+					NetworkConfig network;
+					ch->getCurrentConfig(network);
 					HomeAssistantMqttHandler* hamh = (HomeAssistantMqttHandler*) &mqttHandler;
-					hamh->setHomeAssistantConfig(haconf);
+					hamh->setHomeAssistantConfig(haconf, network.hostname);
 					break;
 				}
 			}
@@ -1560,7 +1646,7 @@ void MQTT_connect() {
 			case 0:
 			case 5:
 			case 6:
-				mqttHandler = new JsonMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &hw, &updater);
+				mqttHandler = new JsonMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
 				break;
 			case 1:
 			case 2:
@@ -1574,7 +1660,9 @@ void MQTT_connect() {
 			case 4:
 				HomeAssistantConfig haconf;
 				config.getHomeAssistantConfig(haconf);
-				mqttHandler = new HomeAssistantMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, sysConfig.boardType, haconf, &hw, &updater);
+				NetworkConfig network;
+				ch->getCurrentConfig(network);
+				mqttHandler = new HomeAssistantMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, sysConfig.boardType, haconf, &hw, &updater, network.hostname);
 				break;
 			case 255:
 				mqttHandler = new PassthroughMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &updater);
@@ -2076,11 +2164,11 @@ void configFileParse() {
                 0, 0, 0, // Cost
                 0, 0, 0, // Income
                 0, 0, 0, // Last month import, export and accuracy
-                0, 0, // Peak 1
-                0, 0, // Peak 2
-                0, 0, // Peak 3
-                0, 0, // Peak 4
-                0, 0 // Peak 5
+                0, 0, 0, // Peak 1
+                0, 0, 0, // Peak 2
+                0, 0, 0, // Peak 3
+                0, 0, 0, // Peak 4
+                0, 0, 0 // Peak 5
             };
 			uint8_t peak = 0;
 			uint64_t totalImport = 0, totalExport = 0;
@@ -2096,7 +2184,7 @@ void configFileParse() {
 					} else if(i == 2) {
 						float val = String(pch).toFloat();
 						if(val > 0.0) {
-							ead.peaks[0] = { 1, (uint16_t) (val*100) };
+							ead.peaks[0] = { 1, 0, (uint16_t) (val*100) };
 						}
 					} else if(i == 3) {
 						float val = String(pch).toFloat();
@@ -2108,7 +2196,6 @@ void configFileParse() {
 						float val = String(pch).toFloat();
 						ead.costLastMonth = val * 100;
 					} else if(i >= 6 && i < 18) {
-						uint8_t hour = i-6;					
 						{			
 							long val = String(pch).toInt();
 							ead.peaks[peak].day = val;
@@ -2120,6 +2207,47 @@ void configFileParse() {
 							ead.peaks[peak].value = val * 100;
 						}
 						peak++;
+					}
+				} else if(ead.version < 7) {
+					if(i == 1) {
+						long val = String(pch).toInt();
+						ead.month = val;
+					} else if(i == 2) {
+						float val = String(pch).toFloat();
+						ead.costYesterday = val * 100;
+					} else if(i == 3) {
+						float val = String(pch).toFloat();
+						ead.costThisMonth = val * 100;
+					} else if(i == 4) {
+						float val = String(pch).toFloat();
+						ead.costLastMonth = val * 100;
+					} else if(i == 5) {
+						float val = String(pch).toFloat();
+						ead.incomeYesterday= val * 100;
+					} else if(i == 6) {
+						float val = String(pch).toFloat();
+						ead.incomeThisMonth = val * 100;
+					} else if(i == 7) {
+						float val = String(pch).toFloat();
+						ead.incomeLastMonth = val * 100;
+					} else if(i >= 8 && i < 18) {
+						{			
+							long val = String(pch).toInt();
+							ead.peaks[peak].day = val;
+						} 
+						pch = strtok (NULL, " ");
+						i++;
+						{
+							float val = String(pch).toFloat();
+							ead.peaks[peak].value = val * 100;
+						}
+						peak++;
+					} else if(i == 18) {
+						float val = String(pch).toFloat();
+						totalImport = val * 1000;
+					} else if(i == 19) {
+						float val = String(pch).toFloat();
+						totalExport = val * 1000;
 					}
 				} else {
 					if(i == 1) {
@@ -2143,11 +2271,16 @@ void configFileParse() {
 					} else if(i == 7) {
 						float val = String(pch).toFloat();
 						ead.incomeLastMonth = val * 100;
-					} else if(i >= 8 && i < 18) {
-						uint8_t hour = i-8;		
+					} else if(i >= 8 && i < 23) {
 						{			
 							long val = String(pch).toInt();
 							ead.peaks[peak].day = val;
+						} 
+						pch = strtok (NULL, " ");
+						i++;
+						{			
+							long val = String(pch).toInt();
+							ead.peaks[peak].hour = val;
 						} 
 						pch = strtok (NULL, " ");
 						i++;
@@ -2177,7 +2310,7 @@ void configFileParse() {
             ead.lastMonthImport = importUpdate;
             ead.lastMonthExport = exportUpdate;
 
-			ead.version = 6;
+			ead.version = 7;
 			ea.setData(ead);
 			sEa = true;
 		}

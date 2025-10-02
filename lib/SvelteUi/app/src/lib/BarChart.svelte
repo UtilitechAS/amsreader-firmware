@@ -62,7 +62,7 @@
                     {#if !isNaN(yScale(tick.value))}
                         <g class="tick tick-{tick.value} tick-{tick.color}" transform="translate(0, {yScale(tick.value)})">
                             <line x2="100%"></line>
-                            <text y="-4" x={tick.align == 'right' ? '85%' : ''}>{tick.label}</text>
+                            <text y="-4" x={tick.align == 'right' ? '90%' : ''}>{tick.label}</text>
                         </g>
                         {/if}
                 {/each}

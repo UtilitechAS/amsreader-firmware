@@ -14,6 +14,12 @@
 
 struct EnergyAccountingPeak {
     uint8_t day;
+    uint8_t hour;
+    uint16_t value;
+};
+
+struct EnergyAccountingPeak6 {
+    uint8_t day;
     uint16_t value;
 };
 
@@ -32,34 +38,19 @@ struct EnergyAccountingData {
     EnergyAccountingPeak peaks[5];
 };
 
-struct EnergyAccountingData5 {
+struct EnergyAccountingData6 {
     uint8_t version;
     uint8_t month;
-    uint16_t costYesterday;
-    uint16_t costThisMonth;
-    uint16_t costLastMonth;
-    uint16_t incomeYesterday;
-    uint16_t incomeThisMonth;
-    uint16_t incomeLastMonth;
-    EnergyAccountingPeak peaks[5];
-};
-
-struct EnergyAccountingData4 {
-    uint8_t version;
-    uint8_t month;
-    uint16_t costYesterday;
-    uint16_t costThisMonth;
-    uint16_t costLastMonth;
-    EnergyAccountingPeak peaks[5];
-};
-
-struct EnergyAccountingData2 {
-    uint8_t version;
-    uint8_t month;
-    uint16_t maxHour;
-    uint16_t costYesterday;
-    uint16_t costThisMonth;
-    uint16_t costLastMonth;
+    int32_t costYesterday;
+    int32_t costThisMonth;
+    int32_t costLastMonth;
+    int32_t incomeYesterday;
+    int32_t incomeThisMonth;
+    int32_t incomeLastMonth;
+    uint32_t lastMonthImport;
+    uint32_t lastMonthExport;
+    uint8_t lastMonthAccuracy;
+    EnergyAccountingPeak6 peaks[5];
 };
 
 struct EnergyAccountingRealtimeData {
@@ -142,7 +133,7 @@ private:
     String currency = "";
 
     void calcDayCost();
-    bool updateMax(uint16_t val, uint8_t day);
+    bool updateMax(uint16_t val, uint8_t day, uint8_t hour);
 };
 
 #endif

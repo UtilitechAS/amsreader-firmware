@@ -129,7 +129,7 @@
     {/if}
     {#if uiVisibility(sysinfo.ui.t, data.pr && (data.pr.startsWith("NO") || data.pr.startsWith("10YNO") || data.pr.startsWith('10Y1001A1001A4')))}
         <div class="cnt h-64">
-            <TariffPeakChart title={translations.dashboard?.tariffpeak ?? "Tariff peaks"} tariffData={tariffData} translations={translations}/>
+            <TariffPeakChart title={translations.dashboard?.tariffpeak ?? "Tariff peaks"} tariffData={tariffData} realtime={data.ea} translations={translations}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.l, data.hm == 1)}

@@ -12,14 +12,18 @@
 class JsonMqttHandler : public AmsMqttHandler {
 public:
     #if defined(AMS_REMOTE_DEBUG)
-    JsonMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, HwTools* hw, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
-        this->hw = hw;
-    };
+    JsonMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
     #else
-    JsonMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
-        this->hw = hw;
-    };
+    JsonMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
     #endif
+        subTopic = String(mqttConfig.subscribeTopic);
+        if(subTopic.isEmpty()) {
+            String pubTopic = String(mqttConfig.publishTopic);
+            subTopic = pubTopic+"/command";
+        }
+        this->hw = hw;
+        this->ds = ds;
+    };
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(PriceService*);
@@ -27,13 +31,18 @@ public:
     bool publishRaw(String data);
     bool publishFirmware();
 
+    bool postConnect();
+
     void onMessage(String &topic, String &payload);
 
     uint8_t getFormat();
 
 private:
+    String subTopic;
     HwTools* hw;
     bool hasExport = false;
+    AmsDataStorage* ds;
+
     uint16_t appendJsonHeader(AmsData* data);
     uint16_t appendJsonFooter(EnergyAccounting* ea, uint16_t pos);
     bool publishList1(AmsData* data, EnergyAccounting* ea);

@@ -27,3 +27,22 @@ To ensure the sustainability of our venture, we have opted to license our softwa
 For more information, please refer to our [LICENSE](/LICENSE) file.
 
 If your usage falls outside the scope of this license and you require a separate license, please contact us at [post@utilitech.no](mailto:post@utilitech.no) for further details.
+
+
+# How to wipe bricked board?
+
+To wipe the board you need to set it in USB mode. Connect the board to a usb board on you computor, hold AP/Prog button and shortly click reset before letting go of AP/Prog. To check if device is in usb mode you can check connections on this [site](https://www.amsleser.cloud/flasher)
+
+When you have confirmed that board is in USB mode you need to figure out which port its connected to, then change to that port in the platformio.ini file under the function [env:esp32s2dev]
+
+When that is complete, run 
+```
+pio run -t erase -e esp32s2dev
+```
+
+Then run:
+```
+pio run -t upload -e esp32s2
+```
+
+To finish it off, go to the flash-updater site [here](https://www.amsleser.cloud/flasher) and update to latest version to ensure a new firmware download

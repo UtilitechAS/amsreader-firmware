@@ -1,5 +1,6 @@
 <script>
     import { Link } from "svelte-navigator";
+	import { tooltip } from './tooltip';
 
     export let config;
 
@@ -83,7 +84,7 @@
             <g class='bars'>
                 {#each config.points as point, i}
                     {#if !isNaN(xScale(i)) && !isNaN(yScale(point.value))}
-                        <g>
+                        <g data-title="{point.title}" use:tooltip>
                         {#if point.value !== undefined}
                             <rect
                                 x="{xScale(i) + 2}"
@@ -102,9 +103,6 @@
                                     transform="translate({xScale(i) + barWidth/2} {yScale(point.value) > yScale(0) - labelOffset ? yScale(point.value) - labelOffset : yScale(point.value) + 10}) rotate({point.labelAngle ? point.labelAngle : barWidth < vertSwitch ? 90 : 0})"
                                     
                                 >{point.label}</text>
-                                {#if point.title}
-                                <title>{point.title}</title>
-                                {/if}
                             {/if}
                         {/if}
                         </g>

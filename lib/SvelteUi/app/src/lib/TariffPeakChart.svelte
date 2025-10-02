@@ -49,6 +49,7 @@
                 title = title + ': ' + peak.v.toFixed(2) + ' kWh';
                 points.push({
                     label: peak.v.toFixed(2), 
+                    title: peak.v.toFixed(2) + ' kWh', 
                     value: peak.v, 
                     title: title,
                     color: dark ? '#5c2da5' : '#7c3aed'

@@ -841,7 +841,7 @@ void handleEnergySpeedometer() {
 					chipId = ESP.getChipId();
 				#endif
 				strcpy(energySpeedometerConfig.clientId, (String("ams") + String(chipId, HEX)).c_str());
-				energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw, &updater);
+				energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
 				energySpeedometer->setCaVerification(false);
 			}
 			if(!energySpeedometer->connected()) {
@@ -1644,7 +1644,7 @@ void MQTT_connect() {
 			case 0:
 			case 5:
 			case 6:
-				mqttHandler = new JsonMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &hw, &updater);
+				mqttHandler = new JsonMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
 				break;
 			case 1:
 			case 2:

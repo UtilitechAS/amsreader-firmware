@@ -4,6 +4,13 @@
     import Mask from './Mask.svelte'
     import SubnetOptions from './SubnetOptions.svelte';
     import { scanForDevice, charAndNumPattern, asciiPatternExt, ipPattern } from './Helpers.js';
+    import WifiLowIcon from "./../assets/wifi-low-light.svg";
+    import WifiMediumIcon from "./../assets/wifi-medium-light.svg";
+    import WifiHighIcon from "./../assets/wifi-high-light.svg";
+    import WifiOffIcon from "./../assets/wifi-off-light.svg";
+
+    let wifiIcon = WifiOffIcon;
+    let wifiTitle = "Wi-Fi offline";
 
     let translations = {};
     translationsStore.subscribe(update => {
@@ -59,6 +66,27 @@
             return s;
         });
     }
+
+
+    $: {
+    const rssi = data?.r;
+
+    if (typeof rssi === "number") {
+      if (rssi >= -50) {
+        wifiIcon = WifiHighIcon;
+        wifiTitle = `Wi-Fi strong (${rssi} dBm)`;
+      } else if (rssi >= -60) {
+        wifiIcon = WifiMediumIcon;
+        wifiTitle = `Wi-Fi medium (${rssi} dBm)`;
+      } else if (rssi >= -75) {
+        wifiIcon = WifiLowIcon;
+        wifiTitle = `Wi-Fi weak (${rssi} dBm)`;
+      } else {
+        wifiIcon = WifiOffIcon;
+        wifiTitle = `Wi-Fi very weak/offline (${rssi} dBm)`;
+      }
+    }
+  }
 </script>
 
 
@@ -92,7 +120,10 @@
                                     <li>
                                         <label class="flex items-center gap-2">
                                             <input type="radio" name="ss" value={network.s} required={connectionMode == 1 || connectionMode == 2}/>
-                                            <span>{network.s} ({network.e}, Nettverksstyrke: {network.r})</span>
+                                            <span class="flex items-center justify-between w-full">
+                                                <span>{network.s}</span>
+                                                <img class="h-7 w-7" src={wifiIcon} alt={network.r}/>
+                                            </span>
                                         </label>
                                     </li>
                                 {/each}

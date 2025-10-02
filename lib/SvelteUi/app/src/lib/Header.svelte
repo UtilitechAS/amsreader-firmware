@@ -95,35 +95,26 @@
     </div>
     <div class="flex-auto flex-wrap my-auto justify-center p-2">
       <Badge
-        title="ESP"
-        text={sysinfo.booting
-          ? (translations.header?.booting ?? "Booting")
-          : data.v > 2.0
-            ? data.v.toFixed(2) + "V"
-            : "ESP"}
-        color={bcol(sysinfo.booting ? 2 : data.em)}
-      />
-      <Badge
-        title="HAN"
-        text="HAN"
+        title="Strømmåler"
+        text="Strømmåler"
         color={bcol(sysinfo.booting ? 9 : data.hm)}
       />
       <Badge
-        title="MQTT"
-        text="MQTT"
+        title="Minside"
+        text="Minside"
         color={bcol(sysinfo.booting ? 9 : data.mm)}
       />
     </div>
     {#if data.he < 0 || data.he > 0}
       <div class="bd-red">
-        {(translations.header?.han ?? "HAN") +
+        {(translations.header?.han ?? "Strømmåler") +
           ": " +
           (translations.errors?.han?.[data.he] ?? data.he)}
       </div>
     {/if}
     {#if data.me < 0}
       <div class="bd-red">
-        {(translations.header?.mqtt ?? "MQTT") +
+        {(translations.header?.mqtt ?? "Minside") +
           ": " +
           (translations.errors?.mqtt?.[data.me] ?? data.me)}
       </div>
@@ -148,13 +139,13 @@
       </div>
       {#if sysinfo.vndcfg && sysinfo.usrcfg}
         <div
-          class="flex-none px-1 mt-1 pt-[0.4rem]"
+          class="flex-none px-1 mt-1 pt-[0.5rem]"
           title={translations.header?.config ?? ""}
         >
           <Link to="/configuration"><GearIcon /></Link>
         </div>
         <div
-          class="flex-none px-1 mt-1 pt-[0.4rem]"
+          class="flex-none px-1 mt-1 pt-[0.5rem]"
           title={translations.header?.status ?? ""}
         >
           <Link to="/status"><InfoIcon /></Link>

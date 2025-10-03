@@ -5,7 +5,9 @@
  */
 
 #include "AmsConfiguration.h"
+#include "MqttDefaults.h"
 #include "hexutils.h"
+#include <cstring>
 #if defined(ESP32)
 #include "ESPRandom.h"
 #endif
@@ -204,21 +206,41 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 }
 
 void AmsConfiguration::clearMqtt(MqttConfig& config) {
-	memset(config.host, 0, 128);
-	config.port = 1883;
+	memset(config.host, 0, sizeof(config.host));
+	memset(config.clientId, 0, sizeof(config.clientId));
+	memset(config.publishTopic, 0, sizeof(config.publishTopic));
+	memset(config.subscribeTopic, 0, sizeof(config.subscribeTopic));
+	memset(config.username, 0, sizeof(config.username));
+	memset(config.password, 0, sizeof(config.password));
 
-	memset(config.clientId, 0, 32);
-	memset(config.publishTopic, 0, 64);
-	memset(config.subscribeTopic, 0, 64);
-	memset(config.username, 0, 128);
-	memset(config.password, 0, 256);
-	config.payloadFormat = 0;
-	config.ssl = false;
-	config.magic = 0x7B;
-	config.stateUpdate = false;
-	config.stateUpdateInterval = 10;
-	config.timeout = 1000;
-	config.keepalive = 60;
+	if(strlen(MQTT_DEFAULT_HOST) > 0) {
+		strncpy(config.host, MQTT_DEFAULT_HOST, sizeof(config.host) - 1);
+	}
+	if(strlen(MQTT_DEFAULT_CLIENT_ID) > 0) {
+		strncpy(config.clientId, MQTT_DEFAULT_CLIENT_ID, sizeof(config.clientId) - 1);
+	}
+	if(strlen(MQTT_DEFAULT_PUBLISH_TOPIC) > 0) {
+		strncpy(config.publishTopic, MQTT_DEFAULT_PUBLISH_TOPIC, sizeof(config.publishTopic) - 1);
+	}
+	if(strlen(MQTT_DEFAULT_SUBSCRIBE_TOPIC) > 0) {
+		strncpy(config.subscribeTopic, MQTT_DEFAULT_SUBSCRIBE_TOPIC, sizeof(config.subscribeTopic) - 1);
+	}
+	if(strlen(MQTT_DEFAULT_USERNAME) > 0) {
+		strncpy(config.username, MQTT_DEFAULT_USERNAME, sizeof(config.username) - 1);
+	}
+	if(strlen(MQTT_DEFAULT_PASSWORD) > 0) {
+		strncpy(config.password, MQTT_DEFAULT_PASSWORD, sizeof(config.password) - 1);
+	}
+
+	config.port = MQTT_DEFAULT_PORT;
+	config.payloadFormat = MQTT_DEFAULT_PAYLOAD_FORMAT;
+	config.ssl = MQTT_DEFAULT_SSL;
+	config.stateUpdate = MQTT_DEFAULT_STATE_UPDATE;
+	config.stateUpdateInterval = MQTT_DEFAULT_STATE_UPDATE_INTERVAL;
+	config.timeout = MQTT_DEFAULT_TIMEOUT;
+	config.keepalive = MQTT_DEFAULT_KEEPALIVE;
+
+	config.magic = strlen(MQTT_DEFAULT_HOST) > 0 ? 0x9C : 0x7B;
 }
 
 void AmsConfiguration::setMqttChanged() {

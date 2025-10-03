@@ -519,7 +519,7 @@
                         <ul class="border rounded divide-y">
                             {#each networks.n as network, index}
                                 <li>
-                                    <label class="flex items-center px-2 py-1 cursor-pointer hover:bg-gray-100">
+                                    <label class="flex items-center gap-2">
                                         <input
                                             type="radio"
                                             class="mr-2"
@@ -541,27 +541,6 @@
                 <div class="my-1">
                     {translations.conf?.connection?.psk ?? "Passord"}<br/>
                     <input name="wp" bind:value={configuration.w.p} type="password" class="in-s" pattern={asciiPatternExt}/>
-                </div>
-                <div class="my-1 flex">
-                    <div class="w-1/2">
-                        {translations.conf?.connection?.ps?.title ?? "Power saving"}<br/>
-                        <select name="wz" bind:value={configuration.w.z} class="in-s">
-                            <option value={255}>{translations.conf?.connection?.ps?.default ?? "Default"}</option>
-                            <option value={0}>{translations.conf?.connection?.ps?.off ?? "Off"}</option>
-                            <option value={1}>{translations.conf?.connection?.ps?.min ?? "Min"}</option>
-                            <option value={2}>{translations.conf?.connection?.ps?.max ?? "Max"}</option>
-                        </select>
-                    </div>
-                    <div class="ml-2 w-1/2">
-                        {translations.conf?.connection?.pwr ?? "Power"}<br/>
-                        <div class="flex">
-                            <input name="ww" bind:value={configuration.w.w} type="number" min="0" max="20.5" step="0.5" class="in-f tr w-full"/>
-                            <span class="in-post">dBm</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="my-3">
-                    <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> {translations.conf?.connection?.tick_11b ?? "802.11b"}</label>
                 </div>
             {/if}
             {#if configuration.n.c == 1 || configuration.n.c == 2}

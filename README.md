@@ -29,59 +29,11 @@ For more information, please refer to our [LICENSE](/LICENSE) file.
 If your usage falls outside the scope of this license and you require a separate license, please contact us at [post@utilitech.no](mailto:post@utilitech.no) for further details.
 
 
-{#if configuration.n.c == 1 || configuration.n.c == 2}
-                <div class="my-1">
-                    {translations.conf?.connection?.ssid ?? "Nettverksnavn (SSID)"}
-                    <br/>
-                    {#if networks?.c == -1}
-                        <div class="text-sm italic">Søker etter Nettverk...</div>
-                    {/if}
-                    {#if networks?.n?.length}
-                        <ul class="border rounded divide-y">
-                            {#each networks.n as network, index}
-                                <li>
-                                    <label class="flex items-center px-2 py-1 cursor-pointer hover:bg-gray-100">
-                                        <input
-                                            type="radio"
-                                            class="mr-2"
-                                            name="ws-option"
-                                            value={network.s}
-                                            bind:group={configuration.w.s}/>
-                                        <span class="flex items-center justify-between w-full">
-                                            <span>{network.s}</span>
-                                            <img class="h-7 w-7" src={wifiIcon} alt={network.r}/>
-                                        </span>
-                                    </label>
-                                </li>
-                            {/each}
-                        </ul>
-                    {:else if networks?.c != -1}
-                        <div class="text-sm italic">Ingen nettverk funnet</div>
-                    {/if}
-                </div>
-                <div class="my-1">
-                    {translations.conf?.connection?.psk ?? "Passord"}<br/>
-                    <input name="wp" bind:value={configuration.w.p} type="password" class="in-s" pattern={asciiPatternExt}/>
-                </div>
-                <div class="my-1 flex">
-                    <div class="w-1/2">
-                        {translations.conf?.connection?.ps?.title ?? "Power saving"}<br/>
-                        <select name="wz" bind:value={configuration.w.z} class="in-s">
-                            <option value={255}>{translations.conf?.connection?.ps?.default ?? "Default"}</option>
-                            <option value={0}>{translations.conf?.connection?.ps?.off ?? "Off"}</option>
-                            <option value={1}>{translations.conf?.connection?.ps?.min ?? "Min"}</option>
-                            <option value={2}>{translations.conf?.connection?.ps?.max ?? "Max"}</option>
-                        </select>
-                    </div>
-                    <div class="ml-2 w-1/2">
-                        {translations.conf?.connection?.pwr ?? "Power"}<br/>
-                        <div class="flex">
-                            <input name="ww" bind:value={configuration.w.w} type="number" min="0" max="20.5" step="0.5" class="in-f tr w-full"/>
-                            <span class="in-post">dBm</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="my-3">
-                    <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> {translations.conf?.connection?.tick_11b ?? "802.11b"}</label>
-                </div>
-            {/if}
+## MQTT auto-provisioning defaults
+If you want devices to connect to a known MQTT broker immediately after flashing, keep credentials in a local `.env` file rather than committing them:
+
+1. Copy `.env.example` to `.env` and fill in the MQTT values (host, port, username/password, client ID, topics, etc.).
+2. Commit the `.env.example` changes only—`.env` is ignored so secrets stay local.
+3. Build the firmware; the PlatformIO pre-build hook injects these values so the device boots with your broker settings.
+
+Any field you leave empty will fall back to the defaults in `lib/AmsConfiguration/include/MqttDefaults.h`, meaning the web UI will prompt for credentials during first-time setup.

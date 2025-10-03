@@ -158,7 +158,7 @@
       <ConsentComponent {sysinfo} {basepath} />
     </Route>
     <Route path="/setup">
-      <SetupPanel {sysinfo} />
+      <SetupPanel {sysinfo} {data} />
     </Route>
     <Route path="/vendor">
       <VendorPanel {sysinfo} {basepath} />

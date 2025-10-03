@@ -24,6 +24,7 @@
     });
 
     export let sysinfo = {}
+    export let data = {}
 
     let staticIp = false;
     let connectionMode = 1;

@@ -523,7 +523,7 @@
                                         <input
                                             type="radio"
                                             class="mr-2"
-                                            name="ws-option"
+                                            name="ws"
                                             value={network.s}
                                             bind:group={configuration.w.s}/>
                                         <span class="flex items-center justify-between w-full">

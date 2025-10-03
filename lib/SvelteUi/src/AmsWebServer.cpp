@@ -32,6 +32,7 @@
 #include "html/conf_ha_json.h"
 #include "html/conf_ui_json.h"
 #include "html/conf_cloud_json.h"
+#include "html/translations_json.h"
 #include "html/firmware_html.h"
 #include "html/neas_logotype_white_svg.h"
 #include "html/wifi_high_light_svg.h"
@@ -130,6 +131,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/wifi-high-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiHighLightSvg, this));
 	server.on(context + F("/wifi-medium-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiMediumLightSvg, this));
 	server.on(context + F("/wifi-low-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiLowLightSvg, this));
+	server.on(context + F("/wifi-off-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiOffSvg, this));
 	server.on(context + F("/wifi-off.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiOffSvg, this));
 
 	server.on(context + F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
@@ -1162,11 +1164,6 @@ void AmsWebServer::priceConfigJson() {
 }
 
 void AmsWebServer::translationsJson() {
-	if(!LittleFS.begin()) {
-		server.send_P(500, MIME_PLAIN, PSTR("500: Filesystem unavailable"));
-		return;
-	}
-
 	String lang = server.arg("lang");
 	if(lang.isEmpty()) {
 		UiConfig ui;
@@ -1174,28 +1171,44 @@ void AmsWebServer::translationsJson() {
 			lang = String(ui.language);
 		}
 	}
+	if(lang.isEmpty()) {
+		lang = F("en");
+	}
 
-	snprintf_P(buf, BufferSize, PSTR("/translations-%s.json"), lang.c_str());
-	if(!LittleFS.exists(buf)) {
-		notFound();
+	bool served = false;
+	if(LittleFS.begin()) {
+		snprintf_P(buf, BufferSize, PSTR("/translations-%s.json"), lang.c_str());
+		if(LittleFS.exists(buf)) {
+			File file = LittleFS.open(buf, "r");
+			if(file) {
+				addConditionalCloudHeaders();
+				server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+				server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+				server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+				server.setContentLength(file.size());
+				server.send(200, MIME_JSON);
+				while(file.available() > 0) {
+					int len = file.readBytes(buf, BufferSize);
+					server.sendContent(buf, len);
+				}
+				file.close();
+				served = true;
+			}
+		}
+	}
+
+	if(served) {
 		return;
 	}
 
 	addConditionalCloudHeaders();
-//	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-	File file = LittleFS.open(buf, "r");
-	server.setContentLength(file.size());
-
-	server.send(200, MIME_JSON);
-	while(file.available() > 0) {
-		int len = file.readBytes(buf, BufferSize);
-		server.sendContent(buf, len);
-	}
-	file.close();
+	uint16_t len = pgm_read_word(&TRANSLATIONS_JSON_LEN);
+	server.send_P(200, MIME_JSON, TRANSLATIONS_JSON, len);
 }
 
 void AmsWebServer::cloudkeyJson() {
@@ -1365,7 +1378,12 @@ void AmsWebServer::handleSave() {
 			NetworkConfig network;
 			config->getNetworkConfig(network);
 			network.mode = mode;
-			strcpy(network.ssid, server.arg(F("ws")).c_str());
+			if(server.hasArg(F("ws"))) {
+				String ssid = server.arg(F("ws"));
+				if(ssid.length() > 0) {
+					strcpy(network.ssid, ssid.c_str());
+				}
+			}
 			String psk = server.arg(F("wp"));
 			if(!psk.equals("***")) {
 				strcpy(network.psk, psk.c_str());

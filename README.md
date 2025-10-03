@@ -27,3 +27,61 @@ To ensure the sustainability of our venture, we have opted to license our softwa
 For more information, please refer to our [LICENSE](/LICENSE) file.
 
 If your usage falls outside the scope of this license and you require a separate license, please contact us at [post@utilitech.no](mailto:post@utilitech.no) for further details.
+
+
+{#if configuration.n.c == 1 || configuration.n.c == 2}
+                <div class="my-1">
+                    {translations.conf?.connection?.ssid ?? "Nettverksnavn (SSID)"}
+                    <br/>
+                    {#if networks?.c == -1}
+                        <div class="text-sm italic">Søker etter Nettverk...</div>
+                    {/if}
+                    {#if networks?.n?.length}
+                        <ul class="border rounded divide-y">
+                            {#each networks.n as network, index}
+                                <li>
+                                    <label class="flex items-center px-2 py-1 cursor-pointer hover:bg-gray-100">
+                                        <input
+                                            type="radio"
+                                            class="mr-2"
+                                            name="ws-option"
+                                            value={network.s}
+                                            bind:group={configuration.w.s}/>
+                                        <span class="flex items-center justify-between w-full">
+                                            <span>{network.s}</span>
+                                            <img class="h-7 w-7" src={wifiIcon} alt={network.r}/>
+                                        </span>
+                                    </label>
+                                </li>
+                            {/each}
+                        </ul>
+                    {:else if networks?.c != -1}
+                        <div class="text-sm italic">Ingen nettverk funnet</div>
+                    {/if}
+                </div>
+                <div class="my-1">
+                    {translations.conf?.connection?.psk ?? "Passord"}<br/>
+                    <input name="wp" bind:value={configuration.w.p} type="password" class="in-s" pattern={asciiPatternExt}/>
+                </div>
+                <div class="my-1 flex">
+                    <div class="w-1/2">
+                        {translations.conf?.connection?.ps?.title ?? "Power saving"}<br/>
+                        <select name="wz" bind:value={configuration.w.z} class="in-s">
+                            <option value={255}>{translations.conf?.connection?.ps?.default ?? "Default"}</option>
+                            <option value={0}>{translations.conf?.connection?.ps?.off ?? "Off"}</option>
+                            <option value={1}>{translations.conf?.connection?.ps?.min ?? "Min"}</option>
+                            <option value={2}>{translations.conf?.connection?.ps?.max ?? "Max"}</option>
+                        </select>
+                    </div>
+                    <div class="ml-2 w-1/2">
+                        {translations.conf?.connection?.pwr ?? "Power"}<br/>
+                        <div class="flex">
+                            <input name="ww" bind:value={configuration.w.w} type="number" min="0" max="20.5" step="0.5" class="in-f tr w-full"/>
+                            <span class="in-post">dBm</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="my-3">
+                    <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> {translations.conf?.connection?.tick_11b ?? "802.11b"}</label>
+                </div>
+            {/if}

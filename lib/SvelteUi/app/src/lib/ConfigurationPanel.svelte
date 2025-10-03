@@ -19,7 +19,7 @@
     export let basepath = "/";
     export let sysinfo = {};
     export let data;
-
+  
     let wifiIcon = WifiOffIcon;
     let wifiTitle = "Wi-Fi offline";
   
@@ -502,14 +502,12 @@
             <div class="my-1">
                 <select name="nc" class="in-s" bind:value={configuration.n.c}>
                     <option value={1}>{translations.conf?.connection?.wifi ?? "WiFi"}</option>
+                    <option value={2}>{translations.conf?.connection?.ap ?? "AP"}</option>
                     {#if sysinfo.if && sysinfo.if.eth}
                     <option value={3}>{translations.conf?.connection?.eth ?? "Ethernet"}</option>
                     {/if}
                 </select>
             </div>
-
-            <!-- TODO: ADD WIFI SYMBOL -->
-
             {#if configuration.n.c == 1 || configuration.n.c == 2}
                 <div class="my-1">
                     {translations.conf?.connection?.ssid ?? "Nettverksnavn (SSID)"}
@@ -566,7 +564,36 @@
                     <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> {translations.conf?.connection?.tick_11b ?? "802.11b"}</label>
                 </div>
             {/if}
-             {#if configuration?.n}
+            {#if configuration.n.c == 1 || configuration.n.c == 2}
+                <div class="my-1">
+                    {translations.conf?.connection?.psk ?? "Password"}<br/>
+                    <input name="wp" bind:value={configuration.w.p} type="password" class="in-s" pattern={asciiPatternExt}/>
+                </div>
+                <div class="my-1 flex">
+                    <div class="w-1/2">
+                        {translations.conf?.connection?.ps?.title ?? "Power saving"}<br/>
+                        <select name="wz" bind:value={configuration.w.z} class="in-s">
+                            <option value={255}>{translations.conf?.connection?.ps?.default ?? "Default"}</option>
+                            <option value={0}>{translations.conf?.connection?.ps?.off ?? "Off"}</option>
+                            <option value={1}>{translations.conf?.connection?.ps?.min ?? "Min"}</option>
+                            <option value={2}>{translations.conf?.connection?.ps?.max ?? "Max"}</option>
+                        </select>
+                    </div>
+                    <div class="ml-2 w-1/2">
+                        {translations.conf?.connection?.pwr ?? "Power"}<br/>
+                        <div class="flex">
+                            <input name="ww" bind:value={configuration.w.w} type="number" min="0" max="20.5" step="0.5" class="in-f tr w-full"/>
+                            <span class="in-post">dBm</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="my-3">
+                    <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> {translations.conf?.connection?.tick_11b ?? "802.11b"}</label>
+                </div>
+            {/if}
+        </div>
+        {/if}
+        {#if configuration?.n}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.network?.title ?? "Network"}</strong>
             <a href="{wiki('Network-configuration')}" target="_blank" class="float-right">&#9432;</a>
@@ -609,8 +636,6 @@
                     <input name="ntph" bind:value={configuration.n.n1} type="text" class="in-s" pattern={asciiPattern}/>
                 </div>
             </div>
-        </div>
-        {/if}
         </div>
         {/if}
         {#if configuration?.q}

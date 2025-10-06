@@ -348,7 +348,11 @@ void AmsWebServer::sysinfoJson() {
 	if(sys.userConfigured) {
 		NetworkConfig networkConfig;
 		config->getNetworkConfig(networkConfig);
-		hostname = String(networkConfig.hostname);
+		if(strlen(networkConfig.hostname) > 0) {
+			hostname = String(networkConfig.hostname);
+		} else {
+			hostname = "ams-"+chipIdStr;
+		}
 	} else {
 		hostname = "ams-"+chipIdStr;
 	}
@@ -1239,6 +1243,18 @@ void AmsWebServer::handleSave() {
 	SystemConfig sys;
 	config->getSystemConfig(sys);
 
+	uint32_t chipId;
+	#if defined(ESP32)
+		chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
+	#else
+		chipId = ESP.getChipId();
+	#endif
+	String chipIdStr = String(chipId, HEX);
+	String defaultHostname = F("ams-");
+	defaultHostname += chipIdStr;
+	String reconnectHost = "";
+	String reconnectIp = "";
+
 	bool success = true;
 	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
 		int boardType = server.arg(F("vb")).toInt();
@@ -1276,17 +1292,25 @@ void AmsWebServer::handleSave() {
 		network.mode = server.arg(F("sc")).toInt();
 		if(network.mode > 3 || network.mode == 0) network.mode = 1; // WiFi Client
 
+		String requestedHostname = server.hasArg(F("sh")) ? server.arg(F("sh")) : String("");
+		requestedHostname.trim();
+
 		if(network.mode == 3 || strlen(network.ssid) > 0) {
 			if(server.hasArg(F("sm")) && server.arg(F("sm")) == "static") {
-				strcpy(network.ip, server.arg(F("si")).c_str());
+				String ipValue = server.arg(F("si"));
+				strcpy(network.ip, ipValue.c_str());
+				reconnectIp = ipValue;
 				strcpy(network.gateway, server.arg(F("sg")).c_str());
 				strcpy(network.subnet, server.arg(F("su")).c_str());
 				strcpy(network.dns1, server.arg(F("sd")).c_str());
+			} else {
+				reconnectIp = "";
 			}
 
-			if(server.hasArg(F("sh")) && !server.arg(F("sh")).isEmpty()) {
-				strcpy(network.hostname, server.arg(F("sh")).c_str());
+			if(requestedHostname.length() > 0) {
+				strcpy(network.hostname, requestedHostname.c_str());
 				network.mdns = true;
+				reconnectHost = requestedHostname;
 			} else {
 				network.mdns = false;
 			}
@@ -1318,6 +1342,12 @@ void AmsWebServer::handleSave() {
 			#endif
 			config->setNetworkConfig(network);
 			config->setMeterConfig(meterConfig);
+			if(reconnectIp.length() == 0) {
+				probeNewNetworkIp(network, reconnectIp);
+			}
+			if(reconnectHost.length() == 0 && sys.vendorConfigured) {
+				reconnectHost = defaultHostname;
+			}
 			
 			sys.userConfigured = success;
 			sys.dataCollectionConsent = 0;
@@ -1394,22 +1424,28 @@ void AmsWebServer::handleSave() {
 
 			if(server.hasArg(F("nm"))) {
 				if(server.arg(F("nm")) == "static") {
-					strcpy(network.ip, server.arg(F("ni")).c_str());
+					String ipValue = server.arg(F("ni"));
+					strcpy(network.ip, ipValue.c_str());
 					strcpy(network.gateway, server.arg(F("ng")).c_str());
 					strcpy(network.subnet, server.arg(F("ns")).c_str());
 					strcpy(network.dns1, server.arg(F("nd1")).c_str());
 					strcpy(network.dns2, server.arg(F("nd2")).c_str());
+					reconnectIp = ipValue;
 				} else if(server.arg(F("nm")) == "dhcp") {
 					strcpy(network.ip, "");
 					strcpy(network.gateway, "");
 					strcpy(network.subnet, "");
 					strcpy(network.dns1, "");
 					strcpy(network.dns2, "");
+					reconnectIp = "";
 				}
 			}
 			network.ipv6 = server.hasArg(F("nx")) && server.arg(F("nx")) == F("true");
 			network.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == F("true");
 			config->setNetworkConfig(network);
+			if(strlen(network.hostname) > 0) {
+				reconnectHost = network.hostname;
+			}
 		} 
 
 	}
@@ -1505,6 +1541,15 @@ void AmsWebServer::handleSave() {
 			strcpy(network.hostname, server.arg(F("gh")).c_str());
 		}
 		config->setNetworkConfig(network);
+		if(server.hasArg(F("gh"))) {
+			String hostArg = server.arg(F("gh"));
+			hostArg.trim();
+			if(hostArg.length() > 0) {
+				reconnectHost = hostArg;
+			}
+		} else if(strlen(network.hostname) > 0) {
+			reconnectHost = network.hostname;
+		}
 
 		NtpConfig ntp;
 		config->getNtpConfig(ntp);
@@ -1738,9 +1783,36 @@ void AmsWebServer::handleSave() {
 		success = false;
 	}
 
+	NetworkConfig currentNetwork;
+	config->getNetworkConfig(currentNetwork);
+	if(reconnectHost.length() == 0 && strlen(currentNetwork.hostname) > 0) {
+		reconnectHost = String(currentNetwork.hostname);
+	}
+	if(reconnectHost.length() == 0) {
+		reconnectHost = defaultHostname;
+	}
+	reconnectHost.trim();
+	if(reconnectIp.length() == 0 && strlen(currentNetwork.ip) > 0) {
+		reconnectIp = String(currentNetwork.ip);
+	}
+	String reconnectMdns = reconnectHost;
+	reconnectMdns.trim();
+	if(reconnectMdns.length() > 0) {
+		bool appearsToBeHostName = reconnectMdns.indexOf('.') == -1 && reconnectMdns.indexOf(':') == -1;
+		if(!reconnectMdns.endsWith(F(".local")) && appearsToBeHostName) {
+			reconnectMdns += F(".local");
+		}
+	}
+	String reconnectHint = reconnectHost;
+	String mdnsForHint = reconnectMdns.length() > 0 ? reconnectMdns : reconnectHost;
+	reconnectHint += F("|");
+	reconnectHint += mdnsForHint;
+	reconnectHint += F("|");
+	reconnectHint += reconnectIp;
+
 	snprintf_P(buf, BufferSize, RESPONSE_JSON,
 		success ? "true" : "false",
-		"",
+		reconnectHint.c_str(),
 		performRestart ? "true" : "false"
 	);
 	server.setContentLength(strlen(buf));
@@ -2828,6 +2900,54 @@ void AmsWebServer::optionsGet() {
 	addConditionalCloudHeaders();
 	server.sendHeader(F("Allow"), F("GET"));
 	server.send(200);
+}
+
+bool AmsWebServer::probeNewNetworkIp(NetworkConfig& network, String& ipOut) {
+	if(network.mode != NETWORK_MODE_WIFI_CLIENT || strlen(network.ssid) == 0) {
+		return false;
+	}
+	if(ipOut.length() > 0) {
+		return true;
+	}
+
+	bool found = false;
+#if defined(ESP8266) || defined(ESP32)
+	#if defined(ESP8266)
+		WiFiMode_t originalMode = WiFi.getMode();
+	#else
+		wifi_mode_t originalMode = WiFi.getMode();
+	#endif
+	if(originalMode != WIFI_AP_STA) {
+		WiFi.mode(WIFI_AP_STA);
+	}
+	WiFi.persistent(false);
+	if(strlen(network.hostname) > 0) {
+		#if defined(ESP32)
+		WiFi.setHostname(network.hostname);
+		#else
+		WiFi.hostname(network.hostname);
+		#endif
+	}
+	WiFi.begin(network.ssid, strlen(network.psk) > 0 ? network.psk : NULL);
+	unsigned long start = millis();
+	while(millis() - start < 8000) {
+		wl_status_t status = WiFi.status();
+		if(status == WL_CONNECTED) {
+			IPAddress candidate = WiFi.localIP();
+			if(candidate != IPAddress()) {
+				ipOut = candidate.toString();
+				found = true;
+				break;
+			}
+		}
+		server.handleClient();
+		delay(120);
+		yield();
+	}
+	WiFi.disconnect(false);
+	WiFi.mode(originalMode);
+#endif
+	return found;
 }
 
 void AmsWebServer::wifiScan() {

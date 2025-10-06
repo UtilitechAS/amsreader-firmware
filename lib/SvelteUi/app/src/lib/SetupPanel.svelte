@@ -1,5 +1,6 @@
 <script>
     import { sysinfoStore, networksStore } from './DataStores.js';
+    import { get } from 'svelte/store';
     import { translationsStore } from './TranslationService.js';
     import Mask from './Mask.svelte'
     import SubnetOptions from './SubnetOptions.svelte';
@@ -29,6 +30,7 @@
     let staticIp = false;
     let connectionMode = 1;
     let loadingOrSaving = false;
+    let reconnectTargets = [];
 
     function updateSysinfo(url) {
         sysinfoStore.update(s => {
@@ -53,19 +55,41 @@
         let res = (await response.json())
         loadingOrSaving = false;
 
+        const hostFromForm = (formData.get('sh') ?? '').trim();
+        const message = typeof res.message === 'string' ? res.message : '';
+        const hintParts = message.split('|').map(part => part.trim());
+        const hintHost = hintParts[0] ?? '';
+        const hintMdns = hintParts[1] ?? '';
+        const hintIp = hintParts[2] ?? '';
+        const fallbackHostname = hintHost || hostFromForm || sysinfo.hostname || (sysinfo?.chipId ? `ams-${sysinfo.chipId}` : 'ams-reader');
+        const fallbackMdns = hintMdns || (fallbackHostname && fallbackHostname.indexOf('.') === -1 && fallbackHostname.indexOf(':') === -1 ? `${fallbackHostname}.local` : fallbackHostname);
+        const staticIpValue = staticIp ? (formData.get('si') || '').trim() : hintIp;
+    const uniqueTargets = Array.from(new Set([staticIpValue, fallbackHostname, fallbackMdns].filter(val => val && val.length > 0)));
+    reconnectTargets = res.reboot ? [...uniqueTargets] : [];
+
         sysinfoStore.update(s => {
-            s.hostname = formData.get('sh');
-            s.usrcfg = res.success;
-            s.booting = res.reboot;
+            if(!s.net) s.net = {};
+            const computedHostname = fallbackHostname || s.hostname || hostFromForm;
+            s.hostname = computedHostname;
             if(staticIp) {
-                s.net.ip = formData.get('si');
+                s.net.ip = staticIpValue;
                 s.net.mask = formData.get('su');
                 s.net.gw = formData.get('sg');
                 s.net.dns1 = formData.get('sd');
+            } else if(hintIp) {
+                s.net.ip = hintIp;
             }
-            if(res.reboot) setTimeout(scanForDevice, 5000, sysinfo, updateSysinfo);
+            s.targets = [...uniqueTargets];
+            s.usrcfg = res.success;
+            s.booting = res.reboot;
             return s;
         });
+
+        const latestSysinfo = get(sysinfoStore);
+        sysinfo = latestSysinfo;
+        if(res.reboot) {
+            setTimeout(() => scanForDevice(latestSysinfo, updateSysinfo), 5000);
+        }
     }
 
 
@@ -169,6 +193,16 @@
             <div class="my-3">
                 <button type="submit" class="btn-pri">{translations.btn?.save ?? "Save"}</button>
             </div>
+            {#if reconnectTargets.length}
+                <div class="mt-4 text-sm text-gray-600 dark:text-gray-300">
+                    <p>{translations.setup?.reconnect?.info ?? "Device will reboot now. Try these addresses to reconnect:"}</p>
+                    <ul class="list-disc pl-5 space-y-1 mt-2">
+                        {#each reconnectTargets as target}
+                            <li><code>{target.startsWith('http://') || target.startsWith('https://') ? target : `http://${target}`}</code></li>
+                        {/each}
+                    </ul>
+                </div>
+            {/if}
         </form>
     </div>
 </div>

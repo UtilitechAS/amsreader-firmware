@@ -174,6 +174,7 @@ private:
 
 	void addConditionalCloudHeaders();
 	void optionsGet();
+	bool probeNewNetworkIp(NetworkConfig& network, String& ipOut);
 };
 
 #endif

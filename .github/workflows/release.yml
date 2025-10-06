@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'
+      - 'beta-*'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 
 jobs:
@@ -211,3 +217,24 @@ jobs:
         asset_path: esp32c3.zip
         asset_name: ams2mqtt-esp32c3-${{ steps.release_tag.outputs.tag }}.zip
         asset_content_type: application/zip
+
+    - name: Package firmware manifests
+      run: |
+        python scripts/package_firmware.py --output dist --channel stable --version ${{ steps.release_tag.outputs.tag }}
+        ls -R dist
+
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

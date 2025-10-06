@@ -79,6 +79,7 @@ jobs:
       with:
         name: Release v${{ steps.release_tag.outputs.tag }}
         generateReleaseNotes: true
+        allowUpdates: true
 
     - name: Build esp8266 firmware
       run: pio run -e esp8266

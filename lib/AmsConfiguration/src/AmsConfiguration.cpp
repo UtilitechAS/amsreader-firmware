@@ -645,6 +645,9 @@ bool AmsConfiguration::getPriceServiceConfig(PriceServiceConfig& config) {
 			clearPriceServiceConfig(config);
 			return false;
 		}
+		if(config.resolutionInMinutes != 15 && config.resolutionInMinutes != 60) {
+			config.resolutionInMinutes = 60;
+		}
 		return true;
 	} else {
 		clearPriceServiceConfig(config);

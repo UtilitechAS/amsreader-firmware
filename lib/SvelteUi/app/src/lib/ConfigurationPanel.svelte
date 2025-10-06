@@ -3,7 +3,7 @@
     import { sysinfoStore, networksStore } from './DataStores.js';
     import fetchWithTimeout from './fetchWithTimeout';
     import { translationsStore } from './TranslationService';
-    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern } from './Helpers.js';
+    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern, wifiStateFromRssi } from './Helpers.js';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
     import Badge from './Badge.svelte';
@@ -20,7 +20,14 @@
     export let sysinfo = {};
     export let data;
   
-    let wifiIcon = WifiOffIcon;
+    const WIFI_ICON_MAP = {
+        high: WifiHighIcon,
+        medium: WifiMediumIcon,
+        low: WifiLowIcon,
+        off: WifiOffIcon
+    };
+
+    let wifiIcon = WIFI_ICON_MAP.off;
     let wifiTitle = "Wi-Fi offline";
   
     let translations = {};
@@ -98,6 +105,7 @@
 
     let manual = true;
     let networks = {};
+    let networkSignalInfos = [];
     networksStore.subscribe(update => {
         manual = true;
         for (let i = 0; i < update.n.length; i++) {
@@ -255,26 +263,21 @@
     _global.bindToCloud = function() {
         console.log("BIND CALLED");
     }
+        $: {
+                const { level, label } = wifiStateFromRssi(data?.r);
+                wifiIcon = WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off;
+                wifiTitle = label;
+        }
 
-    $: {
-    const rssi = data?.r;
-
-    if (typeof rssi === "number") {
-      if (rssi >= -50) {
-        wifiIcon = WifiHighIcon;
-        wifiTitle = `Wi-Fi strong (${rssi} dBm)`;
-      } else if (rssi >= -60) {
-        wifiIcon = WifiMediumIcon;
-        wifiTitle = `Wi-Fi medium (${rssi} dBm)`;
-      } else if (rssi >= -75) {
-        wifiIcon = WifiLowIcon;
-        wifiTitle = `Wi-Fi weak (${rssi} dBm)`;
-      } else {
-        wifiIcon = WifiOffIcon;
-        wifiTitle = `Wi-Fi very weak/offline (${rssi} dBm)`;
-      }
-    }
-  }
+        $: networkSignalInfos = Array.isArray(networks?.n)
+                ? networks.n.map((net) => {
+                        const { level, label } = wifiStateFromRssi(net?.r);
+                        return {
+                                icon: WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off,
+                                title: label
+                        };
+                })
+                : [];
 </script>
 
 <form on:submit|preventDefault={handleSubmit} autocomplete="off">
@@ -517,7 +520,7 @@
                     {/if}
                     {#if networks?.n?.length}
                         <ul class="border rounded divide-y">
-                            {#each networks.n as network, index}
+                            {#each networks.n as network, index (network.s ?? index)}
                                 <li>
                                     <label class="flex items-center gap-2">
                                         <input
@@ -528,7 +531,7 @@
                                             bind:group={configuration.w.s}/>
                                         <span class="flex items-center justify-between w-full">
                                             <span>{network.s}</span>
-                                            <img class="h-7 w-7" src={wifiIcon} alt={network.r}/>
+                                            <img class="h-7 w-7" src={networkSignalInfos[index]?.icon ?? WIFI_ICON_MAP.off} alt={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'} title={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'}/>
                                         </span>
                                     </label>
                                 </li>

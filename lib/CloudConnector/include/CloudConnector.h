@@ -107,7 +107,7 @@ private:
     mbedtls_rsa_context* rsa = nullptr;
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_entropy_context entropy;
-    char* pers = "amsreader";
+    const char* pers = "amsreader";
 
     bool init();
 

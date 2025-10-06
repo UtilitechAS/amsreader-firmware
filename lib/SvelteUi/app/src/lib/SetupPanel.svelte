@@ -4,13 +4,20 @@
     import { translationsStore } from './TranslationService.js';
     import Mask from './Mask.svelte'
     import SubnetOptions from './SubnetOptions.svelte';
-    import { scanForDevice, charAndNumPattern, asciiPatternExt, ipPattern } from './Helpers.js';
+    import { scanForDevice, charAndNumPattern, asciiPatternExt, ipPattern, wifiStateFromRssi } from './Helpers.js';
     import WifiLowIcon from "./../assets/wifi-low-light.svg";
     import WifiMediumIcon from "./../assets/wifi-medium-light.svg";
     import WifiHighIcon from "./../assets/wifi-high-light.svg";
     import WifiOffIcon from "./../assets/wifi-off-light.svg";
 
-    let wifiIcon = WifiOffIcon;
+    const WIFI_ICON_MAP = {
+        high: WifiHighIcon,
+        medium: WifiMediumIcon,
+        low: WifiLowIcon,
+        off: WifiOffIcon
+    };
+
+    let wifiIcon = WIFI_ICON_MAP.off;
     let wifiTitle = "Wi-Fi offline";
 
     let translations = {};
@@ -31,6 +38,7 @@
     let connectionMode = 1;
     let loadingOrSaving = false;
     let reconnectTargets = [];
+    let networkSignalInfos = [];
 
     function updateSysinfo(url) {
         sysinfoStore.update(s => {
@@ -93,25 +101,21 @@
     }
 
 
-    $: {
-    const rssi = data?.r;
+        $: {
+                const { level, label } = wifiStateFromRssi(data?.r);
+                wifiIcon = WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off;
+                wifiTitle = label;
+        }
 
-    if (typeof rssi === "number") {
-      if (rssi >= -50) {
-        wifiIcon = WifiHighIcon;
-        wifiTitle = `Wi-Fi strong (${rssi} dBm)`;
-      } else if (rssi >= -60) {
-        wifiIcon = WifiMediumIcon;
-        wifiTitle = `Wi-Fi medium (${rssi} dBm)`;
-      } else if (rssi >= -75) {
-        wifiIcon = WifiLowIcon;
-        wifiTitle = `Wi-Fi weak (${rssi} dBm)`;
-      } else {
-        wifiIcon = WifiOffIcon;
-        wifiTitle = `Wi-Fi very weak/offline (${rssi} dBm)`;
-      }
-    }
-  }
+        $: networkSignalInfos = Array.isArray(networks?.n)
+            ? networks.n.map((net) => {
+                const { level, label } = wifiStateFromRssi(net?.r);
+                return {
+                    icon: WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off,
+                    title: label
+                };
+            })
+            : [];
 </script>
 
 
@@ -141,13 +145,13 @@
                         {/if}
                         {#if networks?.n?.length}
                             <ul class="space-y-1">
-                                {#each networks.n as network (network.s)}
+                                {#each networks.n as network, index (network.s ?? index)}
                                     <li>
                                         <label class="flex items-center gap-2">
                                             <input type="radio" name="ss" value={network.s} required={connectionMode == 1 || connectionMode == 2}/>
                                             <span class="flex items-center justify-between w-full">
                                                 <span>{network.s}</span>
-                                                <img class="h-7 w-7" src={wifiIcon} alt={network.r}/>
+                                                <img class="h-7 w-7" src={networkSignalInfos[index]?.icon ?? WIFI_ICON_MAP.off} alt={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'} title={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'}/>
                                             </span>
                                         </label>
                                     </li>

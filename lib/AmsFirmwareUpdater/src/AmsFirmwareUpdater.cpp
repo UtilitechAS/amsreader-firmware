@@ -1,6 +1,7 @@
 #include "AmsFirmwareUpdater.h"
 #include "AmsStorage.h"
 #include "FirmwareVersion.h"
+#include "UpgradeDefaults.h"
 
 #if defined(ESP32)
 #include "esp_ota_ops.h"
@@ -213,10 +214,10 @@ bool AmsFirmwareUpdater::fetchNextVersion() {
     const char * headerkeys[] = { "x-version" };
     http.collectHeaders(headerkeys, 1);
 
-    char firmwareVariant[10] = "stable";
+    const char* firmwareVariant = FIRMWARE_UPDATE_CHANNEL;
 
-    char url[128];
-    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/next"), chipType, firmwareVariant);
+    char url[256];
+    snprintf(url, sizeof(url), "%s/firmware/%s/%s/next", FIRMWARE_UPDATE_BASE_URL, chipType, firmwareVariant);
     #if defined(ESP8266)
     WiFiClient client;
     client.setTimeout(5000);
@@ -227,7 +228,7 @@ bool AmsFirmwareUpdater::fetchNextVersion() {
         http.useHTTP10(true);
         http.setTimeout(30000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-        http.setUserAgent("AMS-Firmware-Updater");
+    http.setUserAgent(FIRMWARE_UPDATE_USER_AGENT);
         http.addHeader(F("Cache-Control"), "no-cache");
         http.addHeader(F("x-AMS-version"), FirmwareVersion::VersionString);
         int status = http.GET();
@@ -253,10 +254,10 @@ bool AmsFirmwareUpdater::fetchVersionDetails() {
     const char * headerkeys[] = { "x-size" };
     http.collectHeaders(headerkeys, 1);
 
-    char firmwareVariant[10] = "stable";
+    const char* firmwareVariant = FIRMWARE_UPDATE_CHANNEL;
 
-    char url[128];
-    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/%s/details"), chipType, firmwareVariant, updateStatus.toVersion);
+    char url[256];
+    snprintf(url, sizeof(url), "%s/firmware/%s/%s/%s/details", FIRMWARE_UPDATE_BASE_URL, chipType, firmwareVariant, updateStatus.toVersion);
     #if defined(ESP8266)
     WiFiClient client;
     client.setTimeout(5000);
@@ -267,7 +268,7 @@ bool AmsFirmwareUpdater::fetchVersionDetails() {
         http.useHTTP10(true);
         http.setTimeout(30000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-        http.setUserAgent("AMS-Firmware-Updater");
+    http.setUserAgent(FIRMWARE_UPDATE_USER_AGENT);
         http.addHeader(F("Cache-Control"), "no-cache");
         http.addHeader(F("x-AMS-STA-MAC"), WiFi.macAddress());
         http.addHeader(F("x-AMS-AP-MAC"), WiFi.softAPmacAddress());
@@ -309,10 +310,10 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
     char range[24];
     snprintf_P(range, 24, PSTR("bytes=%lu-%lu"), start, end);
 
-    char firmwareVariant[10] = "stable";
+    const char* firmwareVariant = FIRMWARE_UPDATE_CHANNEL;
 
-    char url[128];
-    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/%s/chunk"), chipType, firmwareVariant, updateStatus.toVersion);
+    char url[256];
+    snprintf(url, sizeof(url), "%s/firmware/%s/%s/%s/chunk", FIRMWARE_UPDATE_BASE_URL, chipType, firmwareVariant, updateStatus.toVersion);
     #if defined(ESP8266)
     WiFiClient client;
     client.setTimeout(5000);
@@ -323,7 +324,7 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
         http.useHTTP10(true);
         http.setTimeout(30000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-        http.setUserAgent("AMS-Firmware-Updater");
+    http.setUserAgent(FIRMWARE_UPDATE_USER_AGENT);
         http.addHeader(F("Cache-Control"), "no-cache");
         http.addHeader(F("x-AMS-version"), FirmwareVersion::VersionString);
         http.addHeader(F("Range"), range);

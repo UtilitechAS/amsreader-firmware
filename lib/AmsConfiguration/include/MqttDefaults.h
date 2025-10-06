@@ -6,11 +6,17 @@
 // Update these values before building the firmware to automatically provision
 // new devices with a pre-configured MQTT connection. Leave any field empty to
 // keep the existing behaviour (value will be cleared on first boot).
+//
+// For secrets, prefer supplying overrides via `build_flags` in a private
+// PlatformIO config (for example `platformio-user.ini`) so credentials never
+// live in version control:
+//
+//   build_flags = ... -D MQTT_DEFAULT_USERNAME=\"user\" -D MQTT_DEFAULT_PASSWORD=\"pass\"
 //-----------------------------------------------------------------------------//
 
 // Broker hostname or IP address (leave empty to disable automatic MQTT setup)
 #ifndef MQTT_DEFAULT_HOST
-#define MQTT_DEFAULT_HOST ""
+#define MQTT_DEFAULT_HOST "mqtt.neas.no"
 #endif
 
 // Broker port (1883 for plain MQTT, 8883 for TLS)
@@ -27,9 +33,9 @@
 #define MQTT_DEFAULT_PASSWORD ""
 #endif
 
-// Default client identifier
+// Default client identifier (leave empty to auto-generate from device ID)
 #ifndef MQTT_DEFAULT_CLIENT_ID
-#define MQTT_DEFAULT_CLIENT_ID "ams-reader"
+#define MQTT_DEFAULT_CLIENT_ID ""
 #endif
 
 // Default publish and subscribe topics

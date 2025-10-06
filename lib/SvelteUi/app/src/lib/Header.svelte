@@ -2,7 +2,7 @@
   import { Link } from "svelte-navigator";
   import { sysinfoStore } from "./DataStores.js";
   import { upgrade, upgradeWarningText } from "./UpgradeHelper";
-  import { boardtype, isBusPowered, wiki, bcol } from "./Helpers.js";
+  import { boardtype, isBusPowered, wiki, bcol, wifiStateFromRssi } from "./Helpers.js";
   import { translationsStore } from "./TranslationService.js";
   import NeasLogo from "./../assets/neas_logotype_white.svg";
   import FavIco from "./../assets/favicon.svg";
@@ -17,7 +17,14 @@
   import WifiHighIcon from "./../assets/wifi-high-light.svg";
   import WifiOffIcon from "./../assets/wifi-off-light.svg";
 
-  let wifiIcon = WifiOffIcon;
+  const WIFI_ICON_MAP = {
+    high: WifiHighIcon,
+    medium: WifiMediumIcon,
+    low: WifiLowIcon,
+    off: WifiOffIcon
+  };
+
+  let wifiIcon = WIFI_ICON_MAP.off;
   let wifiTitle = "Wi-Fi offline";
 
   export let basepath = "/";
@@ -58,23 +65,9 @@
   }
 
   $: {
-    const rssi = data?.r;
-
-    if (typeof rssi === "number") {
-      if (rssi >= -50) {
-        wifiIcon = WifiHighIcon;
-        wifiTitle = `Wi-Fi strong (${rssi} dBm)`;
-      } else if (rssi >= -60) {
-        wifiIcon = WifiMediumIcon;
-        wifiTitle = `Wi-Fi medium (${rssi} dBm)`;
-      } else if (rssi >= -75) {
-        wifiIcon = WifiLowIcon;
-        wifiTitle = `Wi-Fi weak (${rssi} dBm)`;
-      } else {
-        wifiIcon = WifiOffIcon;
-        wifiTitle = `Wi-Fi very weak/offline (${rssi} dBm)`;
-      }
-    }
+    const { level, label } = wifiStateFromRssi(data?.r);
+    wifiIcon = WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off;
+    wifiTitle = label;
   }
 </script>
 

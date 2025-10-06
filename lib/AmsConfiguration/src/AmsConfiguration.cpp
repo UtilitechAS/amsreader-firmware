@@ -153,7 +153,11 @@ bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_MQTT_START, config);
 		EEPROM.end();
+		bool needsFactoryDefaults = false;
 		if(config.magic != 0x9C) {
+			if(strlen(config.host) == 0 && strlen(MQTT_DEFAULT_HOST) > 0) {
+				needsFactoryDefaults = true;
+			}
 			if(config.magic != 0x7B) {
 				config.stateUpdate = false;
 				config.stateUpdateInterval = 10;
@@ -161,6 +165,14 @@ bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
 			config.timeout = 1000;
 			config.keepalive = 60;
 			config.magic = 0x9C;
+		}
+		if(needsFactoryDefaults) {
+			clearMqtt(config);
+			EEPROM.begin(EEPROM_SIZE);
+			EEPROM.put(CONFIG_MQTT_START, config);
+			EEPROM.commit();
+			EEPROM.end();
+			mqttChanged = true;
 		}
 		return true;
 	} else {
@@ -218,6 +230,13 @@ void AmsConfiguration::clearMqtt(MqttConfig& config) {
 	}
 	if(strlen(MQTT_DEFAULT_CLIENT_ID) > 0) {
 		strncpy(config.clientId, MQTT_DEFAULT_CLIENT_ID, sizeof(config.clientId) - 1);
+	} else {
+		#if defined(ESP32)
+			uint64_t chipId = ESP.getEfuseMac();
+			snprintf(config.clientId, sizeof(config.clientId), "amsreader-%06llX", (unsigned long long)(chipId & 0xFFFFFF));
+		#else
+			snprintf(config.clientId, sizeof(config.clientId), "amsreader-%06X", ESP.getChipId());
+		#endif
 	}
 	if(strlen(MQTT_DEFAULT_PUBLISH_TOPIC) > 0) {
 		strncpy(config.publishTopic, MQTT_DEFAULT_PUBLISH_TOPIC, sizeof(config.publishTopic) - 1);

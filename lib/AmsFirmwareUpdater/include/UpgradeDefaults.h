@@ -8,7 +8,7 @@
 // ----------------------------------------------------------------------------
 
 #ifndef FIRMWARE_UPDATE_BASE_URL
-#define FIRMWARE_UPDATE_BASE_URL "http://firmware.neas.no"
+#define FIRMWARE_UPDATE_BASE_URL "https://github.com/EivindH06/neas-amsreader-firmware-test"
 #endif
 
 #ifndef FIRMWARE_UPDATE_CHANNEL
@@ -17,4 +17,12 @@
 
 #ifndef FIRMWARE_UPDATE_USER_AGENT
 #define FIRMWARE_UPDATE_USER_AGENT "NEAS-Firmware-Updater"
+#endif
+
+#ifndef FIRMWARE_UPDATE_USE_MANIFEST
+#define FIRMWARE_UPDATE_USE_MANIFEST 1
+#endif
+
+#ifndef FIRMWARE_UPDATE_MANIFEST_NAME
+#define FIRMWARE_UPDATE_MANIFEST_NAME "manifest.json"
 #endif

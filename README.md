@@ -72,3 +72,24 @@ If you want devices to connect to a known MQTT broker immediately after flashing
 3. Build the firmware; the PlatformIO pre-build hook injects these values so the device boots with your broker settings.
 
 Any field you leave empty will fall back to the defaults in `lib/AmsConfiguration/include/MqttDefaults.h`, meaning the web UI will prompt for credentials during first-time setup.
+
+
+# How to wipe bricked board?
+
+To wipe the board you need to set it in USB mode. Connect the board to a usb board on you computor, hold AP/Prog button and shortly click reset before letting go of AP/Prog. To check if device is in usb mode you can check connections on this [site](https://www.amsleser.cloud/flasher)
+
+When you have confirmed that board is in USB mode you need to figure out which port its connected to, then change to that port in the platformio.ini file under the function [env:esp32s2dev]
+
+When that is complete, run 
+```
+pio run -t erase -e esp32s2dev
+```
+
+Then run:
+```
+pio run -t upload -e esp32s2
+```
+
+To finish it off, go to the flash-updater site [here](https://www.amsleser.cloud/flasher) and update to latest version to ensure a new firmware download
+
+**Doing this will result in all data being deleted, and needing to setup the board from scratch**

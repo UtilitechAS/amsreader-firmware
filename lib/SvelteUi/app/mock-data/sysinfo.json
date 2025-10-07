@@ -1,0 +1,75 @@
+{
+    "version": "v2.4.8",
+    "chip": "esp32s2",
+    "chipId": "a29a",
+    "cpu": 160,
+    "mac": "48:27:E2:45:9A:A2",
+    "apmac": "48:27:E2:45:9A:A3",
+    "board": 5,
+    "vndcfg": true,
+    "usrcfg": true,
+    "fwconsent": 1,
+    "hostname": "ams-a29a",
+    "booting": false,
+    "upgrading": false,
+    "net": {
+        "ip": "10.22.22.158",
+        "mask": "255.255.255.0",
+        "gw": "10.22.22.1",
+        "dns1": "",
+        "dns2": "",
+        "ipv6": "",
+        "dns1v6": "fe80:0000:0000:0000:46d4:37ff:fe88:36a0",
+        "dns2v6": ""
+    },
+    "if": {
+        "eth": false
+    },
+    "meter": {
+        "mfg": 255,
+        "model": "",
+        "id": ""
+    },
+    "ui": {
+        "i": 1,
+        "e": 2,
+        "v": 2,
+        "a": 2,
+        "r": 0,
+        "c": 1,
+        "t": 2,
+        "p": 2,
+        "d": 1,
+        "m": 1,
+        "s": 2,
+        "l": 2,
+        "h": 2,
+        "f": 2,
+        "k": 2,
+        "lang": "en"
+    },
+    "security": 0,
+    "context": "",
+    "boot_reason": 3,
+    "ex_cause": 0,
+    "upgrade": {
+        "e": 122,
+        "f": "v2.4.0",
+        "t": "v2.4.8",
+        "n": "",
+        "p": -1.0
+    },
+    "last_month": {
+        "u": 0.00,
+        "c": 0.00,
+        "p": 0.00,
+        "i": 0.00
+    },
+    "clock_offset": 2,
+    "features": [
+        "rdebug",
+        "kmp",
+        "cloud",
+        "zc"
+    ]
+}

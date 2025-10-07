@@ -4,6 +4,7 @@
 #include "HwTools.h"
 #include "AmsData.h"
 #include "AmsConfiguration.h"
+#include "UpgradeDefaults.h"
 
 #if defined(ESP32)
     #include "esp_flash_partitions.h"
@@ -98,6 +99,20 @@ private:
     uint8_t firmwareVariant;
     bool autoUpgrade;
     char nextVersion[10];
+
+
+#if FIRMWARE_UPDATE_USE_MANIFEST
+    struct FirmwareManifestInfo {
+        bool loaded = false;
+        String version;
+        uint32_t size = 0;
+        String downloadUrl;
+        String md5;
+        unsigned long fetchedAt = 0;
+    } manifestInfo;
+
+    bool loadManifest(bool force = false);
+#endif
 
 
     bool fetchNextVersion();

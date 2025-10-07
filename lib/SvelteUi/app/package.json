@@ -10,15 +10,17 @@
     "preview": "vite preview"
   },
   "overrides": {
-  "svelte-navigator": {
-    "svelte": ">=4.x"
-  }
-},
+    "svelte-navigator": {
+      "svelte": ">=4.x"
+    }
+  },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.1.0",
     "@tailwindcss/forms": "^0.5.3",
     "autoprefixer": "^10.4.14",
     "http-proxy-middleware": "^2.0.9",
+    "husky": "^9.1.7",
+    "is-ci": "^4.1.0",
     "postcss": "^8.4.31",
     "postcss-load-config": "^4.0.1",
     "svelte": "^4.2.19",

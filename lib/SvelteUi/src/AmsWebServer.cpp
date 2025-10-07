@@ -32,7 +32,13 @@
 #include "html/conf_ha_json.h"
 #include "html/conf_ui_json.h"
 #include "html/conf_cloud_json.h"
+#include "html/translations_json.h"
 #include "html/firmware_html.h"
+#include "html/neas_logotype_white_svg.h"
+#include "html/wifi_high_light_svg.h"
+#include "html/wifi_medium_light_svg.h"
+#include "html/wifi_low_light_svg.h"
+#include "html/wifi_off_light_svg.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
@@ -121,6 +127,13 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	
 	server.on(context + F("/favicon.svg"), HTTP_GET, std::bind(&AmsWebServer::faviconSvg, this)); 
 	server.on(context + F("/logo.svg"), HTTP_GET, std::bind(&AmsWebServer::logoSvg, this)); 
+	server.on(context + F("/neas_logotype_white.svg"), HTTP_GET, std::bind(&AmsWebServer::neasLogoSvg, this));
+	server.on(context + F("/wifi-high-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiHighLightSvg, this));
+	server.on(context + F("/wifi-medium-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiMediumLightSvg, this));
+	server.on(context + F("/wifi-low-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiLowLightSvg, this));
+	server.on(context + F("/wifi-off-light.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiOffSvg, this));
+	server.on(context + F("/wifi-off.svg"), HTTP_GET, std::bind(&AmsWebServer::wifiOffSvg, this));
+
 	server.on(context + F("/sysinfo.json"), HTTP_GET, std::bind(&AmsWebServer::sysinfoJson, this));
 	server.on(context + F("/data.json"), HTTP_GET, std::bind(&AmsWebServer::dataJson, this));
 	server.on(context + F("/dayplot.json"), HTTP_GET, std::bind(&AmsWebServer::dayplotJson, this));
@@ -296,6 +309,26 @@ void AmsWebServer::logoSvg() {
 	server.send(200, "image/svg+xml", svg.c_str());
 }
 
+void AmsWebServer::neasLogoSvg() {
+    server.send_P(200, "image/svg+xml", NEAS_LOGOTYPE_WHITE_SVG, NEAS_LOGOTYPE_WHITE_SVG_LEN);
+}
+
+void AmsWebServer::wifiHighLightSvg() {
+    server.send_P(200, "image/svg+xml", WIFI_HIGH_LIGHT_SVG, WIFI_HIGH_LIGHT_SVG_LEN);
+}
+
+void AmsWebServer::wifiMediumLightSvg() {
+    server.send_P(200, "image/svg+xml", WIFI_MEDIUM_LIGHT_SVG, WIFI_MEDIUM_LIGHT_SVG_LEN);
+}
+
+void AmsWebServer::wifiLowLightSvg() {
+    server.send_P(200, "image/svg+xml", WIFI_LOW_LIGHT_SVG, WIFI_LOW_LIGHT_SVG_LEN);
+}
+
+void AmsWebServer::wifiOffSvg() {
+    server.send_P(200, "image/svg+xml", WIFI_OFF_LIGHT_SVG, WIFI_OFF_LIGHT_SVG_LEN);
+}
+
 void AmsWebServer::sysinfoJson() {
 	if(!checkSecurity(2, true))
 		return;
@@ -315,7 +348,11 @@ void AmsWebServer::sysinfoJson() {
 	if(sys.userConfigured) {
 		NetworkConfig networkConfig;
 		config->getNetworkConfig(networkConfig);
-		hostname = String(networkConfig.hostname);
+		if(strlen(networkConfig.hostname) > 0) {
+			hostname = String(networkConfig.hostname);
+		} else {
+			hostname = "ams-"+chipIdStr;
+		}
 	} else {
 		hostname = "ams-"+chipIdStr;
 	}
@@ -1131,11 +1168,6 @@ void AmsWebServer::priceConfigJson() {
 }
 
 void AmsWebServer::translationsJson() {
-	if(!LittleFS.begin()) {
-		server.send_P(500, MIME_PLAIN, PSTR("500: Filesystem unavailable"));
-		return;
-	}
-
 	String lang = server.arg("lang");
 	if(lang.isEmpty()) {
 		UiConfig ui;
@@ -1143,28 +1175,44 @@ void AmsWebServer::translationsJson() {
 			lang = String(ui.language);
 		}
 	}
+	if(lang.isEmpty()) {
+		lang = F("en");
+	}
 
-	snprintf_P(buf, BufferSize, PSTR("/translations-%s.json"), lang.c_str());
-	if(!LittleFS.exists(buf)) {
-		notFound();
+	bool served = false;
+	if(LittleFS.begin()) {
+		snprintf_P(buf, BufferSize, PSTR("/translations-%s.json"), lang.c_str());
+		if(LittleFS.exists(buf)) {
+			File file = LittleFS.open(buf, "r");
+			if(file) {
+				addConditionalCloudHeaders();
+				server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+				server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+				server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+				server.setContentLength(file.size());
+				server.send(200, MIME_JSON);
+				while(file.available() > 0) {
+					int len = file.readBytes(buf, BufferSize);
+					server.sendContent(buf, len);
+				}
+				file.close();
+				served = true;
+			}
+		}
+	}
+
+	if(served) {
 		return;
 	}
 
 	addConditionalCloudHeaders();
-//	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_1DA);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
-	File file = LittleFS.open(buf, "r");
-	server.setContentLength(file.size());
-
-	server.send(200, MIME_JSON);
-	while(file.available() > 0) {
-		int len = file.readBytes(buf, BufferSize);
-		server.sendContent(buf, len);
-	}
-	file.close();
+	uint16_t len = pgm_read_word(&TRANSLATIONS_JSON_LEN);
+	server.send_P(200, MIME_JSON, TRANSLATIONS_JSON, len);
 }
 
 void AmsWebServer::cloudkeyJson() {
@@ -1194,6 +1242,18 @@ void AmsWebServer::handleSave() {
 
 	SystemConfig sys;
 	config->getSystemConfig(sys);
+
+	uint32_t chipId;
+	#if defined(ESP32)
+		chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
+	#else
+		chipId = ESP.getChipId();
+	#endif
+	String chipIdStr = String(chipId, HEX);
+	String defaultHostname = F("ams-");
+	defaultHostname += chipIdStr;
+	String reconnectHost = "";
+	String reconnectIp = "";
 
 	bool success = true;
 	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
@@ -1232,17 +1292,25 @@ void AmsWebServer::handleSave() {
 		network.mode = server.arg(F("sc")).toInt();
 		if(network.mode > 3 || network.mode == 0) network.mode = 1; // WiFi Client
 
+		String requestedHostname = server.hasArg(F("sh")) ? server.arg(F("sh")) : String("");
+		requestedHostname.trim();
+
 		if(network.mode == 3 || strlen(network.ssid) > 0) {
 			if(server.hasArg(F("sm")) && server.arg(F("sm")) == "static") {
-				strcpy(network.ip, server.arg(F("si")).c_str());
+				String ipValue = server.arg(F("si"));
+				strcpy(network.ip, ipValue.c_str());
+				reconnectIp = ipValue;
 				strcpy(network.gateway, server.arg(F("sg")).c_str());
 				strcpy(network.subnet, server.arg(F("su")).c_str());
 				strcpy(network.dns1, server.arg(F("sd")).c_str());
+			} else {
+				reconnectIp = "";
 			}
 
-			if(server.hasArg(F("sh")) && !server.arg(F("sh")).isEmpty()) {
-				strcpy(network.hostname, server.arg(F("sh")).c_str());
+			if(requestedHostname.length() > 0) {
+				strcpy(network.hostname, requestedHostname.c_str());
 				network.mdns = true;
+				reconnectHost = requestedHostname;
 			} else {
 				network.mdns = false;
 			}
@@ -1274,6 +1342,12 @@ void AmsWebServer::handleSave() {
 			#endif
 			config->setNetworkConfig(network);
 			config->setMeterConfig(meterConfig);
+			if(reconnectIp.length() == 0) {
+				probeNewNetworkIp(network, reconnectIp);
+			}
+			if(reconnectHost.length() == 0 && sys.vendorConfigured) {
+				reconnectHost = defaultHostname;
+			}
 			
 			sys.userConfigured = success;
 			sys.dataCollectionConsent = 0;
@@ -1334,7 +1408,12 @@ void AmsWebServer::handleSave() {
 			NetworkConfig network;
 			config->getNetworkConfig(network);
 			network.mode = mode;
-			strcpy(network.ssid, server.arg(F("ws")).c_str());
+			if(server.hasArg(F("ws"))) {
+				String ssid = server.arg(F("ws"));
+				if(ssid.length() > 0) {
+					strcpy(network.ssid, ssid.c_str());
+				}
+			}
 			String psk = server.arg(F("wp"));
 			if(!psk.equals("***")) {
 				strcpy(network.psk, psk.c_str());
@@ -1345,22 +1424,28 @@ void AmsWebServer::handleSave() {
 
 			if(server.hasArg(F("nm"))) {
 				if(server.arg(F("nm")) == "static") {
-					strcpy(network.ip, server.arg(F("ni")).c_str());
+					String ipValue = server.arg(F("ni"));
+					strcpy(network.ip, ipValue.c_str());
 					strcpy(network.gateway, server.arg(F("ng")).c_str());
 					strcpy(network.subnet, server.arg(F("ns")).c_str());
 					strcpy(network.dns1, server.arg(F("nd1")).c_str());
 					strcpy(network.dns2, server.arg(F("nd2")).c_str());
+					reconnectIp = ipValue;
 				} else if(server.arg(F("nm")) == "dhcp") {
 					strcpy(network.ip, "");
 					strcpy(network.gateway, "");
 					strcpy(network.subnet, "");
 					strcpy(network.dns1, "");
 					strcpy(network.dns2, "");
+					reconnectIp = "";
 				}
 			}
 			network.ipv6 = server.hasArg(F("nx")) && server.arg(F("nx")) == F("true");
 			network.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == F("true");
 			config->setNetworkConfig(network);
+			if(strlen(network.hostname) > 0) {
+				reconnectHost = network.hostname;
+			}
 		} 
 
 	}
@@ -1456,6 +1541,15 @@ void AmsWebServer::handleSave() {
 			strcpy(network.hostname, server.arg(F("gh")).c_str());
 		}
 		config->setNetworkConfig(network);
+		if(server.hasArg(F("gh"))) {
+			String hostArg = server.arg(F("gh"));
+			hostArg.trim();
+			if(hostArg.length() > 0) {
+				reconnectHost = hostArg;
+			}
+		} else if(strlen(network.hostname) > 0) {
+			reconnectHost = network.hostname;
+		}
 
 		NtpConfig ntp;
 		config->getNtpConfig(ntp);
@@ -1689,9 +1783,36 @@ void AmsWebServer::handleSave() {
 		success = false;
 	}
 
+	NetworkConfig currentNetwork;
+	config->getNetworkConfig(currentNetwork);
+	if(reconnectHost.length() == 0 && strlen(currentNetwork.hostname) > 0) {
+		reconnectHost = String(currentNetwork.hostname);
+	}
+	if(reconnectHost.length() == 0) {
+		reconnectHost = defaultHostname;
+	}
+	reconnectHost.trim();
+	if(reconnectIp.length() == 0 && strlen(currentNetwork.ip) > 0) {
+		reconnectIp = String(currentNetwork.ip);
+	}
+	String reconnectMdns = reconnectHost;
+	reconnectMdns.trim();
+	if(reconnectMdns.length() > 0) {
+		bool appearsToBeHostName = reconnectMdns.indexOf('.') == -1 && reconnectMdns.indexOf(':') == -1;
+		if(!reconnectMdns.endsWith(F(".local")) && appearsToBeHostName) {
+			reconnectMdns += F(".local");
+		}
+	}
+	String reconnectHint = reconnectHost;
+	String mdnsForHint = reconnectMdns.length() > 0 ? reconnectMdns : reconnectHost;
+	reconnectHint += F("|");
+	reconnectHint += mdnsForHint;
+	reconnectHint += F("|");
+	reconnectHint += reconnectIp;
+
 	snprintf_P(buf, BufferSize, RESPONSE_JSON,
 		success ? "true" : "false",
-		"",
+		reconnectHint.c_str(),
 		performRestart ? "true" : "false"
 	);
 	server.setContentLength(strlen(buf));
@@ -2779,6 +2900,54 @@ void AmsWebServer::optionsGet() {
 	addConditionalCloudHeaders();
 	server.sendHeader(F("Allow"), F("GET"));
 	server.send(200);
+}
+
+bool AmsWebServer::probeNewNetworkIp(NetworkConfig& network, String& ipOut) {
+	if(network.mode != NETWORK_MODE_WIFI_CLIENT || strlen(network.ssid) == 0) {
+		return false;
+	}
+	if(ipOut.length() > 0) {
+		return true;
+	}
+
+	bool found = false;
+#if defined(ESP8266) || defined(ESP32)
+	#if defined(ESP8266)
+		WiFiMode_t originalMode = WiFi.getMode();
+	#else
+		wifi_mode_t originalMode = WiFi.getMode();
+	#endif
+	if(originalMode != WIFI_AP_STA) {
+		WiFi.mode(WIFI_AP_STA);
+	}
+	WiFi.persistent(false);
+	if(strlen(network.hostname) > 0) {
+		#if defined(ESP32)
+		WiFi.setHostname(network.hostname);
+		#else
+		WiFi.hostname(network.hostname);
+		#endif
+	}
+	WiFi.begin(network.ssid, strlen(network.psk) > 0 ? network.psk : NULL);
+	unsigned long start = millis();
+	while(millis() - start < 8000) {
+		wl_status_t status = WiFi.status();
+		if(status == WL_CONNECTED) {
+			IPAddress candidate = WiFi.localIP();
+			if(candidate != IPAddress()) {
+				ipOut = candidate.toString();
+				found = true;
+				break;
+			}
+		}
+		server.handleClient();
+		delay(120);
+		yield();
+	}
+	WiFi.disconnect(false);
+	WiFi.mode(originalMode);
+#endif
+	return found;
 }
 
 void AmsWebServer::wifiScan() {

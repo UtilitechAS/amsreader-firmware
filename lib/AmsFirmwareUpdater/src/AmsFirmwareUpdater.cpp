@@ -1,6 +1,8 @@
 #include "AmsFirmwareUpdater.h"
 #include "AmsStorage.h"
 #include "FirmwareVersion.h"
+#include "UpgradeDefaults.h"
+#include <ArduinoJson.h>
 
 #if defined(ESP32)
 #include "esp_ota_ops.h"
@@ -209,14 +211,31 @@ void AmsFirmwareUpdater::loop() {
 }
 
 bool AmsFirmwareUpdater::fetchNextVersion() {
+#if FIRMWARE_UPDATE_USE_MANIFEST
+    if(!loadManifest(true)) {
+        return false;
+    }
+    if(manifestInfo.version.isEmpty()) {
+        return false;
+    }
+
+    strncpy(nextVersion, manifestInfo.version.c_str(), sizeof(nextVersion) - 1);
+    nextVersion[sizeof(nextVersion) - 1] = '\0';
+
+    if(autoUpgrade && strcmp(updateStatus.toVersion, nextVersion) != 0) {
+        strcpy(updateStatus.toVersion, nextVersion);
+        updateStatus.size = 0;
+    }
+    return strlen(nextVersion) > 0;
+#else
     HTTPClient http;
     const char * headerkeys[] = { "x-version" };
     http.collectHeaders(headerkeys, 1);
 
-    char firmwareVariant[10] = "stable";
+    const char* firmwareVariant = FIRMWARE_UPDATE_CHANNEL;
 
-    char url[128];
-    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/next"), chipType, firmwareVariant);
+    char url[256];
+    snprintf(url, sizeof(url), "%s/firmware/%s/%s/next", FIRMWARE_UPDATE_BASE_URL, chipType, firmwareVariant);
     #if defined(ESP8266)
     WiFiClient client;
     client.setTimeout(5000);
@@ -227,7 +246,7 @@ bool AmsFirmwareUpdater::fetchNextVersion() {
         http.useHTTP10(true);
         http.setTimeout(30000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-        http.setUserAgent("AMS-Firmware-Updater");
+    http.setUserAgent(FIRMWARE_UPDATE_USER_AGENT);
         http.addHeader(F("Cache-Control"), "no-cache");
         http.addHeader(F("x-AMS-version"), FirmwareVersion::VersionString);
         int status = http.GET();
@@ -246,17 +265,34 @@ bool AmsFirmwareUpdater::fetchNextVersion() {
         http.end();
     }
     return false;
+#endif
 }
 
 bool AmsFirmwareUpdater::fetchVersionDetails() {
+#if FIRMWARE_UPDATE_USE_MANIFEST
+    if(!loadManifest(false)) {
+        return false;
+    }
+    if(manifestInfo.version.isEmpty() || manifestInfo.size == 0) {
+        return false;
+    }
+
+    updateStatus.size = manifestInfo.size;
+    if(manifestInfo.md5.length() > 0) {
+        md5 = manifestInfo.md5;
+    } else {
+        md5 = F("unknown");
+    }
+    return true;
+#else
     HTTPClient http;
     const char * headerkeys[] = { "x-size" };
     http.collectHeaders(headerkeys, 1);
 
-    char firmwareVariant[10] = "stable";
+    const char* firmwareVariant = FIRMWARE_UPDATE_CHANNEL;
 
-    char url[128];
-    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/%s/details"), chipType, firmwareVariant, updateStatus.toVersion);
+    char url[256];
+    snprintf(url, sizeof(url), "%s/firmware/%s/%s/%s/details", FIRMWARE_UPDATE_BASE_URL, chipType, firmwareVariant, updateStatus.toVersion);
     #if defined(ESP8266)
     WiFiClient client;
     client.setTimeout(5000);
@@ -267,7 +303,7 @@ bool AmsFirmwareUpdater::fetchVersionDetails() {
         http.useHTTP10(true);
         http.setTimeout(30000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-        http.setUserAgent("AMS-Firmware-Updater");
+    http.setUserAgent(FIRMWARE_UPDATE_USER_AGENT);
         http.addHeader(F("Cache-Control"), "no-cache");
         http.addHeader(F("x-AMS-STA-MAC"), WiFi.macAddress());
         http.addHeader(F("x-AMS-AP-MAC"), WiFi.softAPmacAddress());
@@ -298,9 +334,49 @@ bool AmsFirmwareUpdater::fetchVersionDetails() {
         http.end();
     }
     return false;
+#endif
 }
 
 bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
+#if FIRMWARE_UPDATE_USE_MANIFEST
+    if(!loadManifest(false)) {
+        return false;
+    }
+    if(manifestInfo.downloadUrl.isEmpty()) {
+        return false;
+    }
+
+    uint32_t start = updateStatus.block_position * UPDATE_BUF_SIZE;
+    uint32_t end = start + (UPDATE_BUF_SIZE * 1);
+    char range[24];
+    snprintf_P(range, 24, PSTR("bytes=%lu-%lu"), start, end);
+
+    const char* url = manifestInfo.downloadUrl.c_str();
+
+#if defined(ESP8266)
+    WiFiClient client;
+    client.setTimeout(5000);
+    if(http.begin(client, url)) {
+#elif defined(ESP32)
+    if(http.begin(url)) {
+#endif
+        http.useHTTP10(true);
+        http.setTimeout(30000);
+        http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+        http.setUserAgent(FIRMWARE_UPDATE_USER_AGENT);
+        http.addHeader(F("Cache-Control"), "no-cache");
+        http.addHeader(F("x-AMS-version"), FirmwareVersion::VersionString);
+        http.addHeader(F("Range"), range);
+        int status = http.GET();
+        if(status == HTTP_CODE_PARTIAL_CONTENT || status == HTTP_CODE_OK) {
+            if(md5.equals(F("unknown")) && manifestInfo.md5.length() > 0) {
+                md5 = manifestInfo.md5;
+            }
+            return true;
+        }
+    }
+    return false;
+#else
     const char * headerkeys[] = { "x-MD5" };
     http.collectHeaders(headerkeys, 1);
 
@@ -309,10 +385,10 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
     char range[24];
     snprintf_P(range, 24, PSTR("bytes=%lu-%lu"), start, end);
 
-    char firmwareVariant[10] = "stable";
+    const char* firmwareVariant = FIRMWARE_UPDATE_CHANNEL;
 
-    char url[128];
-    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/%s/chunk"), chipType, firmwareVariant, updateStatus.toVersion);
+    char url[256];
+    snprintf(url, sizeof(url), "%s/firmware/%s/%s/%s/chunk", FIRMWARE_UPDATE_BASE_URL, chipType, firmwareVariant, updateStatus.toVersion);
     #if defined(ESP8266)
     WiFiClient client;
     client.setTimeout(5000);
@@ -323,7 +399,7 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
         http.useHTTP10(true);
         http.setTimeout(30000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
-        http.setUserAgent("AMS-Firmware-Updater");
+    http.setUserAgent(FIRMWARE_UPDATE_USER_AGENT);
         http.addHeader(F("Cache-Control"), "no-cache");
         http.addHeader(F("x-AMS-version"), FirmwareVersion::VersionString);
         http.addHeader(F("Range"), range);
@@ -333,7 +409,90 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
         }
     }
     return false;
+#endif
 }
+
+#if FIRMWARE_UPDATE_USE_MANIFEST
+bool AmsFirmwareUpdater::loadManifest(bool force) {
+    if(manifestInfo.loaded && !force) {
+        return true;
+    }
+
+    HTTPClient http;
+    char url[256];
+    snprintf(url, sizeof(url), "%s/firmware/%s/%s/%s", FIRMWARE_UPDATE_BASE_URL, chipType, FIRMWARE_UPDATE_CHANNEL, FIRMWARE_UPDATE_MANIFEST_NAME);
+
+#if defined(ESP8266)
+    WiFiClient client;
+    client.setTimeout(5000);
+    if(!http.begin(client, url)) {
+        return manifestInfo.loaded;
+    }
+#elif defined(ESP32)
+    if(!http.begin(url)) {
+        return manifestInfo.loaded;
+    }
+#endif
+
+    http.useHTTP10(true);
+    http.setTimeout(30000);
+    http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
+    http.setUserAgent(FIRMWARE_UPDATE_USER_AGENT);
+    http.addHeader(F("Cache-Control"), "no-cache");
+
+    bool success = false;
+    int status = http.GET();
+    if(status == HTTP_CODE_OK) {
+        WiFiClient* stream = http.getStreamPtr();
+        DynamicJsonDocument doc(2048);
+        DeserializationError err = deserializeJson(doc, *stream);
+        if(!err) {
+            String version = doc["version"].as<String>();
+            String download = doc["url"].as<String>();
+            if(download.length() == 0 && doc["download_url"].is<String>()) {
+                download = doc["download_url"].as<String>();
+            }
+            uint32_t size = doc["size"] | 0;
+            String checksum = doc["md5"].as<String>();
+
+            if(version.length() > 0 && download.length() > 0 && size > 0) {
+                String manifestUrl = url;
+                int lastSlash = manifestUrl.lastIndexOf('/');
+                if(lastSlash >= 0) {
+                    manifestUrl = manifestUrl.substring(0, lastSlash + 1);
+                }
+
+                if(download.startsWith("http://") || download.startsWith("https://")) {
+                    manifestInfo.downloadUrl = download;
+                } else {
+                    manifestInfo.downloadUrl = manifestUrl + download;
+                }
+
+                manifestInfo.version = version;
+                manifestInfo.size = size;
+                manifestInfo.md5 = checksum;
+                manifestInfo.loaded = true;
+                manifestInfo.fetchedAt = millis();
+                success = true;
+            }
+        } else {
+#if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+#endif
+            debugger->printf_P(PSTR("Manifest parse error: %s\n"), err.c_str());
+        }
+    }
+
+    http.end();
+    if(!success && !manifestInfo.loaded) {
+#if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::WARNING))
+#endif
+        debugger->printf_P(PSTR("Unable to fetch manifest from %s (HTTP %d)\n"), url, status);
+    }
+    return manifestInfo.loaded;
+}
+#endif
 
 bool AmsFirmwareUpdater::writeUpdateStatus() {
     if(updateStatus.block_position - lastSaveBlocksWritten > 32) {

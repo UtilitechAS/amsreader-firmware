@@ -3,7 +3,7 @@
     import { sysinfoStore, networksStore } from './DataStores.js';
     import fetchWithTimeout from './fetchWithTimeout';
     import { translationsStore } from './TranslationService';
-    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern } from './Helpers.js';
+    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern, wifiStateFromRssi } from './Helpers.js';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
     import Badge from './Badge.svelte';
@@ -11,10 +11,24 @@
     import { Link, navigate } from 'svelte-navigator';
     import SubnetOptions from './SubnetOptions.svelte';
     import QrCode from 'svelte-qrcode';
+    import WifiLowIcon from "./../assets/wifi-low-light.svg";
+    import WifiMediumIcon from "./../assets/wifi-medium-light.svg";
+    import WifiHighIcon from "./../assets/wifi-high-light.svg";
+    import WifiOffIcon from "./../assets/wifi-off-light.svg";
 
     export let basepath = "/";
     export let sysinfo = {};
     export let data;
+  
+    const WIFI_ICON_MAP = {
+        high: WifiHighIcon,
+        medium: WifiMediumIcon,
+        low: WifiLowIcon,
+        off: WifiOffIcon
+    };
+
+    let wifiIcon = WIFI_ICON_MAP.off;
+    let wifiTitle = "Wi-Fi offline";
   
     let translations = {};
     translationsStore.subscribe(update => {
@@ -91,6 +105,7 @@
 
     let manual = true;
     let networks = {};
+    let networkSignalInfos = [];
     networksStore.subscribe(update => {
         manual = true;
         for (let i = 0; i < update.n.length; i++) {
@@ -248,6 +263,21 @@
     _global.bindToCloud = function() {
         console.log("BIND CALLED");
     }
+        $: {
+                const { level, label } = wifiStateFromRssi(data?.r);
+                wifiIcon = WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off;
+                wifiTitle = label;
+        }
+
+        $: networkSignalInfos = Array.isArray(networks?.n)
+                ? networks.n.map((net) => {
+                        const { level, label } = wifiStateFromRssi(net?.r);
+                        return {
+                                icon: WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off,
+                                title: label
+                        };
+                })
+                : [];
 </script>
 
 <form on:submit|preventDefault={handleSubmit} autocomplete="off">
@@ -483,24 +513,40 @@
             </div>
             {#if configuration.n.c == 1 || configuration.n.c == 2}
                 <div class="my-1">
-                    {translations.conf?.connection?.ssid ?? "SSID"}
-                    <label class="float-right mr-3"><input type="checkbox" value="true" bind:checked={manual} class="rounded mb-1"/> manual</label>
+                    {translations.conf?.connection?.ssid ?? "Nettverksnavn (SSID)"}
                     <br/>
-                    {#if manual}
-                        <input name="ws" bind:value={configuration.w.s} type="text" class="in-s" pattern={asciiPatternExt} required={configuration.n.c == 1 || configuration.n.c == 2}/>
-                    {:else}
-                        <select name="ws" bind:value={configuration.w.s} class="in-s" required={configuration.n.c == 1 || configuration.n.c == 2}>
-                            {#if networks?.c == -1}
-                                <option value="" selected disabled>Scanning...</option>
-                            {/if}
-                            {#if networks?.n}
-                                {#each networks?.n as network}
-                                    <option value={network.s}>{network.s} ({network.e}, RSSI: {network.r})</option>
-                                {/each}
-                            {/if}
-                        </select>
+                    {#if networks?.c == -1}
+                        <div class="text-sm italic">Søker etter Nettverk...</div>
+                    {/if}
+                    {#if networks?.n?.length}
+                        <ul class="border rounded divide-y">
+                            {#each networks.n as network, index (network.s ?? index)}
+                                <li>
+                                    <label class="flex items-center gap-2">
+                                        <input
+                                            type="radio"
+                                            class="mr-2"
+                                            name="ws"
+                                            value={network.s}
+                                            bind:group={configuration.w.s}/>
+                                        <span class="flex items-center justify-between w-full">
+                                            <span>{network.s}</span>
+                                            <img class="h-7 w-7" src={networkSignalInfos[index]?.icon ?? WIFI_ICON_MAP.off} alt={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'} title={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'}/>
+                                        </span>
+                                    </label>
+                                </li>
+                            {/each}
+                        </ul>
+                    {:else if networks?.c != -1}
+                        <div class="text-sm italic">Ingen nettverk funnet</div>
                     {/if}
                 </div>
+                <div class="my-1">
+                    {translations.conf?.connection?.psk ?? "Passord"}<br/>
+                    <input name="wp" bind:value={configuration.w.p} type="password" class="in-s" pattern={asciiPatternExt}/>
+                </div>
+            {/if}
+            {#if configuration.n.c == 1 || configuration.n.c == 2}
                 <div class="my-1">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>
                     <input name="wp" bind:value={configuration.w.p} type="password" class="in-s" pattern={asciiPatternExt}/>

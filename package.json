@@ -1,0 +1,5 @@
+{
+  "devDependencies": {
+    "svelte-preprocess": "^6.0.3"
+  }
+}

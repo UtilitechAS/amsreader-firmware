@@ -21,4 +21,5 @@ node_modules
 /scripts/*dev
 localazy-keys.json
 localazy/language
+.env
 /.env

@@ -88,8 +88,8 @@
     </div>
     <div class="flex-auto flex-wrap my-auto justify-center p-2">
       <Badge
-        title="Strømmåler"
-        text="Strømmåler"
+        title="Han-port"
+        text="Han-port"
         color={bcol(sysinfo.booting ? 9 : data.hm)}
       />
       <Badge
@@ -100,7 +100,7 @@
     </div>
     {#if data.he < 0 || data.he > 0}
       <div class="bd-red">
-        {(translations.header?.han ?? "Strømmåler") +
+        {(translations.header?.han ?? "Han-port") +
           ": " +
           (translations.errors?.han?.[data.he] ?? data.he)}
       </div>

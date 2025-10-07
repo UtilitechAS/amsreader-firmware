@@ -350,10 +350,24 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
         return false;
     }
 
+    if(updateStatus.size == 0) {
+        lastHttpStatus = -203;
+        return false;
+    }
+
     uint32_t start = updateStatus.block_position * UPDATE_BUF_SIZE;
-    uint32_t end = start + (UPDATE_BUF_SIZE * 1);
-    char range[24];
-    snprintf_P(range, 24, PSTR("bytes=%lu-%lu"), start, end);
+    if(start >= updateStatus.size) {
+        lastHttpStatus = HTTP_CODE_OK;
+        return false;
+    }
+
+    uint32_t end = start + UPDATE_BUF_SIZE - 1;
+    if(end >= updateStatus.size) {
+        end = updateStatus.size - 1;
+    }
+
+    char range[32];
+    snprintf_P(range, sizeof(range), PSTR("bytes=%lu-%lu"), static_cast<unsigned long>(start), static_cast<unsigned long>(end));
 
     const char* url = manifestInfo.downloadUrl.c_str();
 
@@ -388,10 +402,24 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
     const char * headerkeys[] = { "x-MD5" };
     http.collectHeaders(headerkeys, 1);
 
+    if(updateStatus.size == 0) {
+        lastHttpStatus = -203;
+        return false;
+    }
+
     uint32_t start = updateStatus.block_position * UPDATE_BUF_SIZE;
-    uint32_t end = start + (UPDATE_BUF_SIZE * 1);
-    char range[24];
-    snprintf_P(range, 24, PSTR("bytes=%lu-%lu"), start, end);
+    if(start >= updateStatus.size) {
+        lastHttpStatus = HTTP_CODE_OK;
+        return false;
+    }
+
+    uint32_t end = start + UPDATE_BUF_SIZE - 1;
+    if(end >= updateStatus.size) {
+        end = updateStatus.size - 1;
+    }
+
+    char range[32];
+    snprintf_P(range, sizeof(range), PSTR("bytes=%lu-%lu"), static_cast<unsigned long>(start), static_cast<unsigned long>(end));
 
     const char* firmwareVariant = FIRMWARE_UPDATE_CHANNEL;
 

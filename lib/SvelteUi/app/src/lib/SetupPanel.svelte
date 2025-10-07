@@ -39,6 +39,7 @@
     let loadingOrSaving = false;
     let reconnectTargets = [];
     let networkSignalInfos = [];
+    let selectedSsid = '';
 
     function updateSysinfo(url) {
         sysinfoStore.update(s => {
@@ -141,24 +142,36 @@
                         <input name="ss" type="text" pattern={asciiPatternExt} class="in-s" required={connectionMode == 1 || connectionMode == 2}/>
                     {:else}
                         {#if networks?.c == -1}
-                            <p class="text-sm italic">{translations.conf?.connection?.scanning ?? "Scanning..."}</p>
+                            <p class="text-sm italic">{translations.conf?.connection?.searching ?? "Scanning for networks..."}</p>
                         {/if}
                         {#if networks?.n?.length}
-                            <ul class="space-y-1">
+                            <div class="mt-2 space-y-2">
                                 {#each networks.n as network, index (network.s ?? index)}
-                                    <li>
-                                        <label class="flex items-center gap-2">
-                                            <input type="radio" name="ss" value={network.s} required={connectionMode == 1 || connectionMode == 2}/>
-                                            <span class="flex items-center justify-between w-full">
-                                                <span>{network.s}</span>
-                                                <img class="h-7 w-7" src={networkSignalInfos[index]?.icon ?? WIFI_ICON_MAP.off} alt={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'} title={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'}/>
+                                    <label class="group flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 shadow-sm transition hover:border-blue-400 hover:bg-blue-50 hover:shadow-md dark:border-slate-700 dark:bg-slate-800/70 dark:hover:border-blue-300 dark:hover:bg-slate-800">
+                                        <span class="flex items-center gap-3">
+                                            <input
+                                                type="radio"
+                                                class="h-4 w-4 text-blue-600 focus:ring-blue-500"
+                                                name="ss"
+                                                value={network.s}
+                                                bind:group={selectedSsid}
+                                                required={connectionMode == 1 || connectionMode == 2}/>
+                                            <span class="flex flex-col">
+                                                <span class="font-medium text-slate-800 dark:text-slate-100">{network.s || (translations.conf?.connection?.hidden_ssid ?? "Hidden network")}</span>
+                                                <span class="text-xs text-slate-500 dark:text-slate-400">{networkSignalInfos[index]?.title ?? (translations.conf?.connection?.wifi_offline ?? "Signal unavailable")}</span>
                                             </span>
-                                        </label>
-                                    </li>
+                                        </span>
+                                        <div class="flex items-center gap-2">
+                                            <img class="h-6 w-6 opacity-80 group-hover:opacity-100" src={networkSignalInfos[index]?.icon ?? WIFI_ICON_MAP.off} alt={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'} title={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'}/>
+                                            {#if selectedSsid === network.s}
+                                                <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600 group-hover:bg-blue-200 dark:bg-blue-400/20 dark:text-blue-200">{translations.conf?.connection?.selected ?? "Selected"}</span>
+                                            {/if}
+                                        </div>
+                                    </label>
                                 {/each}
-                            </ul>
+                            </div>
                         {:else if networks?.c != -1}
-                            <p class="text-sm italic">{translations.conf?.connection?.noNetworks ?? "No networks found."}</p>
+                            <p class="text-sm italic">{translations.conf?.connection?.no_networks ?? "No networks found"}</p>
                         {/if}
                     {/if}
                 </div>

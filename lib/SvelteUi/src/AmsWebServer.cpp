@@ -518,6 +518,7 @@ void AmsWebServer::sysinfoJson() {
 		upinfo.toVersion,
 		updater->getNextVersion(),
 		updater->getProgress(),
+		updater->getLastHttpStatus(),
 		ea->getUseLastMonth(),
 		ea->getCostLastMonth(),
 		ea->getProducedLastMonth(),

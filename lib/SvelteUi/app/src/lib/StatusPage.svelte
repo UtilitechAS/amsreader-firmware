@@ -220,6 +220,13 @@
             </div>
         </div>
         {/if}
+        {#if sysinfo.upgrade?.x !== undefined && sysinfo.upgrade.x !== -1}
+        <div class="my-2">
+            <div class="bd-gray text-xs">
+                Last HTTP status: {sysinfo.upgrade.x}
+            </div>
+        </div>
+        {/if}
         {#if sysinfo.upgrade.n}
             <div class="my-2 flex">
                 {translations.status?.firmware?.latest ?? "Latest"}: 

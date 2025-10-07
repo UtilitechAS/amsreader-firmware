@@ -340,9 +340,11 @@ bool AmsFirmwareUpdater::fetchVersionDetails() {
 bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
 #if FIRMWARE_UPDATE_USE_MANIFEST
     if(!loadManifest(false)) {
+        lastHttpStatus = -200;
         return false;
     }
     if(manifestInfo.downloadUrl.isEmpty()) {
+        lastHttpStatus = -201;
         return false;
     }
 
@@ -368,12 +370,16 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
         http.addHeader(F("x-AMS-version"), FirmwareVersion::VersionString);
         http.addHeader(F("Range"), range);
         int status = http.GET();
+        lastHttpStatus = status;
         if(status == HTTP_CODE_PARTIAL_CONTENT || status == HTTP_CODE_OK) {
             if(md5.equals(F("unknown")) && manifestInfo.md5.length() > 0) {
                 md5 = manifestInfo.md5;
             }
             return true;
         }
+    }
+    if(lastHttpStatus == 0) {
+        lastHttpStatus = -202;
     }
     return false;
 #else
@@ -387,6 +393,7 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
 
     const char* firmwareVariant = FIRMWARE_UPDATE_CHANNEL;
 
+        lastHttpStatus = status;
     char url[256];
     snprintf(url, sizeof(url), "%s/firmware/%s/%s/%s/chunk", FIRMWARE_UPDATE_BASE_URL, chipType, firmwareVariant, updateStatus.toVersion);
     #if defined(ESP8266)
@@ -394,6 +401,9 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
     client.setTimeout(5000);
     if(http.begin(client, url)) {
     #elif defined(ESP32)
+    if(lastHttpStatus == 0) {
+        lastHttpStatus = -202;
+    }
     if(http.begin(url)) {
     #endif
         http.useHTTP10(true);

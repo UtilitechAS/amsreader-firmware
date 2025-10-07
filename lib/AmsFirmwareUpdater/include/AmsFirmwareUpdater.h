@@ -61,6 +61,8 @@ public:
     bool isUpgradeInformationChanged();
     void ackUpgradeInformationChanged();
 
+    int getLastHttpStatus() const { return lastHttpStatus; }
+
     bool startFirmwareUpload(uint32_t size, const char* version);
     bool addFirmwareUploadChunk(uint8_t* buf, size_t length);
     bool completeFirmwareUpload(uint32_t size);
@@ -126,6 +128,7 @@ private:
 
     uint8_t* buf = NULL;
     uint16_t bufPos = 0;
+    int lastHttpStatus = 0;
 
     #if defined(ESP32)
     bool readPartition(uint8_t num, const esp_partition_info_t* info);

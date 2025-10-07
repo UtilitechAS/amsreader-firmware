@@ -181,7 +181,7 @@ bool ntpEnabled = false;
 
 bool mdnsEnabled = false;
 
-AmsFirmwareUpdater updater(&Debug, &hw, &meterState);
+AmsFirmwareUpdater updater(&Debug, &hw, &meterState, &config);
 
 AmsDataStorage ds(&Debug);
 #if defined(_CLOUDCONNECTOR_H)

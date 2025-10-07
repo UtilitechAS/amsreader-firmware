@@ -1,6 +1,7 @@
 #pragma once
 #include <stdint.h>
 #include <Print.h>
+#include <ArduinoJson.h>
 #include "HwTools.h"
 #include "AmsData.h"
 #include "AmsConfiguration.h"
@@ -44,9 +45,9 @@
 class AmsFirmwareUpdater {
 public:
     #if defined(AMS_REMOTE_DEBUG)
-    AmsFirmwareUpdater(RemoteDebug* debugger, HwTools* hw, AmsData* meterState);
+    AmsFirmwareUpdater(RemoteDebug* debugger, HwTools* hw, AmsData* meterState, AmsConfiguration* configuration);
     #else
-    AmsFirmwareUpdater(Print* debugger, HwTools* hw, AmsData* meterState);
+    AmsFirmwareUpdater(Print* debugger, HwTools* hw, AmsData* meterState, AmsConfiguration* configuration);
     #endif
     bool relocateOrRepartitionIfNecessary();
     void loop();
@@ -111,6 +112,7 @@ private:
         String downloadUrl;
         String md5;
         unsigned long fetchedAt = 0;
+        bool mqttApplied = false;
     } manifestInfo;
 
     bool loadManifest(bool force = false);
@@ -120,15 +122,18 @@ private:
     bool fetchNextVersion();
     bool fetchVersionDetails();
     bool fetchFirmwareChunk(HTTPClient& http);
-    bool writeBufferToFlash();
+    bool writeBufferToFlash(size_t length);
     bool verifyChecksum();
     bool activateNewFirmware();
     bool writeUpdateStatus();
     bool isFlashReadyForNextUpdateVersion(uint32_t size);
+    bool applyManifestMqttDefaults(JsonVariantConst mqttSection);
 
     uint8_t* buf = NULL;
     uint16_t bufPos = 0;
     int lastHttpStatus = 0;
+
+    AmsConfiguration* configuration;
 
     #if defined(ESP32)
     bool readPartition(uint8_t num, const esp_partition_info_t* info);

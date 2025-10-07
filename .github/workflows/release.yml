@@ -37,6 +37,38 @@ jobs:
         sed -i 's/NO_ENERGY_SPEEDOMETER_USER/ENERGY_SPEEDOMETER_USER=\\"${{secrets.ENERGY_SPEEDOMETER_USER}}\\"/g' platformio.ini
         sed -i 's/NO_ENERGY_SPEEDOMETER_PASS/ENERGY_SPEEDOMETER_PASS=\\"${{secrets.ENERGY_SPEEDOMETER_PASS}}\\"/g' platformio.ini
 
+    - name: Write MQTT defaults
+      env:
+        MQTT_DEFAULT_HOST: ${{ secrets.MQTT_DEFAULT_HOST }}
+        MQTT_DEFAULT_PORT: ${{ secrets.MQTT_DEFAULT_PORT }}
+        MQTT_DEFAULT_USERNAME: ${{ secrets.MQTT_DEFAULT_USERNAME }}
+        MQTT_DEFAULT_PASSWORD: ${{ secrets.MQTT_DEFAULT_PASSWORD }}
+        MQTT_DEFAULT_CLIENT_ID: ${{ secrets.MQTT_DEFAULT_CLIENT_ID }}
+        MQTT_DEFAULT_PUBLISH_TOPIC: ${{ secrets.MQTT_DEFAULT_PUBLISH_TOPIC }}
+        MQTT_DEFAULT_SUBSCRIBE_TOPIC: ${{ secrets.MQTT_DEFAULT_SUBSCRIBE_TOPIC }}
+        MQTT_DEFAULT_PAYLOAD_FORMAT: ${{ secrets.MQTT_DEFAULT_PAYLOAD_FORMAT }}
+        MQTT_DEFAULT_SSL: ${{ secrets.MQTT_DEFAULT_SSL }}
+        MQTT_DEFAULT_STATE_UPDATE: ${{ secrets.MQTT_DEFAULT_STATE_UPDATE }}
+        MQTT_DEFAULT_STATE_UPDATE_INTERVAL: ${{ secrets.MQTT_DEFAULT_STATE_UPDATE_INTERVAL }}
+        MQTT_DEFAULT_TIMEOUT: ${{ secrets.MQTT_DEFAULT_TIMEOUT }}
+        MQTT_DEFAULT_KEEPALIVE: ${{ secrets.MQTT_DEFAULT_KEEPALIVE }}
+      run: |
+        {
+          printf 'MQTT_DEFAULT_HOST="%s"\n' "${MQTT_DEFAULT_HOST}"
+          printf 'MQTT_DEFAULT_PORT="%s"\n' "${MQTT_DEFAULT_PORT}"
+          printf 'MQTT_DEFAULT_USERNAME="%s"\n' "${MQTT_DEFAULT_USERNAME}"
+          printf 'MQTT_DEFAULT_PASSWORD="%s"\n' "${MQTT_DEFAULT_PASSWORD}"
+          printf 'MQTT_DEFAULT_CLIENT_ID="%s"\n' "${MQTT_DEFAULT_CLIENT_ID}"
+          printf 'MQTT_DEFAULT_PUBLISH_TOPIC="%s"\n' "${MQTT_DEFAULT_PUBLISH_TOPIC}"
+          printf 'MQTT_DEFAULT_SUBSCRIBE_TOPIC="%s"\n' "${MQTT_DEFAULT_SUBSCRIBE_TOPIC}"
+          printf 'MQTT_DEFAULT_PAYLOAD_FORMAT="%s"\n' "${MQTT_DEFAULT_PAYLOAD_FORMAT}"
+          printf 'MQTT_DEFAULT_SSL="%s"\n' "${MQTT_DEFAULT_SSL}"
+          printf 'MQTT_DEFAULT_STATE_UPDATE="%s"\n' "${MQTT_DEFAULT_STATE_UPDATE}"
+          printf 'MQTT_DEFAULT_STATE_UPDATE_INTERVAL="%s"\n' "${MQTT_DEFAULT_STATE_UPDATE_INTERVAL}"
+          printf 'MQTT_DEFAULT_TIMEOUT="%s"\n' "${MQTT_DEFAULT_TIMEOUT}"
+          printf 'MQTT_DEFAULT_KEEPALIVE="%s"\n' "${MQTT_DEFAULT_KEEPALIVE}"
+        } > .env
+
     - name: Cache Python dependencies
       uses: actions/cache@v4
       with:

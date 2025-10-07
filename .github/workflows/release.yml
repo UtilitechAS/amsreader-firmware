@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'
+      - 'beta-*'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
 
 permissions:
   contents: write
@@ -78,6 +84,7 @@ jobs:
       with:
         name: Release v${{ steps.release_tag.outputs.tag }}
         generateReleaseNotes: true
+        allowUpdates: true
 
     - name: Build esp8266 firmware
       run: pio run -e esp8266

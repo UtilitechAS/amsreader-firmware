@@ -22,3 +22,4 @@ node_modules
 localazy-keys.json
 localazy/language
 .env
+/.env

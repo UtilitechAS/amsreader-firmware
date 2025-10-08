@@ -93,8 +93,8 @@
         color={bcol(sysinfo.booting ? 9 : data.hm)}
       />
       <Badge
-        title="Tilkoblet Minside"
-        text="Tilkoblet Minside"
+        title="Minside"
+        text="Minside"
         color={bcol(sysinfo.booting ? 9 : data.mm)}
       />
     </div>
@@ -107,7 +107,7 @@
     {/if}
     {#if data.me < 0}
       <div class="bd-red">
-        {(translations.header?.mqtt ?? "Tilkoblet Minside") +
+        {(translations.header?.mqtt ?? "Minside") +
           ": " +
           (translations.errors?.mqtt?.[data.me] ?? data.me)}
       </div>

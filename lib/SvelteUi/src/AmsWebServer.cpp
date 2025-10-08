@@ -10,6 +10,8 @@
 #include "base64.h"
 #include "hexutils.h"
 
+#include <cstring>
+
 #include "html/index_html.h"
 #include "html/index_css.h"
 #include "html/index_js.h"
@@ -412,6 +414,14 @@ void AmsWebServer::sysinfoJson() {
 	UpgradeInformation upinfo;
 	updater->getUpgradeInformation(upinfo);
 
+	const char* nextVersion = updater->getNextVersion();
+	const char* nextVersionForUi = "";
+	if(nextVersion != NULL && nextVersion[0] != '\0') {
+		if(strcmp(nextVersion, FirmwareVersion::VersionString) != 0) {
+			nextVersionForUi = nextVersion;
+		}
+	}
+
 	String meterModel = meterState->getMeterModel();
 	if(!meterModel.isEmpty())
 		meterModel.replace(F("\\"), F("\\\\"));
@@ -516,7 +526,7 @@ void AmsWebServer::sysinfoJson() {
 		upinfo.errorCode,
 		upinfo.fromVersion,
 		upinfo.toVersion,
-		updater->getNextVersion(),
+		nextVersionForUi,
 		updater->getProgress(),
 		updater->getLastHttpStatus(),
 		ea->getUseLastMonth(),

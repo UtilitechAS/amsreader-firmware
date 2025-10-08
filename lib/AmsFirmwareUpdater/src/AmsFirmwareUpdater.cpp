@@ -72,6 +72,21 @@ void AmsFirmwareUpdater::setUpgradeInformation(UpgradeInformation& upinfo) {
     if (debugger->isActive(RemoteDebug::INFO))
     #endif
     debugger->printf_P(PSTR("Upgrade status information updated\n"));
+
+    if(strlen(updateStatus.toVersion) > 0 && strcmp(updateStatus.toVersion, FirmwareVersion::VersionString) == 0 && updateStatus.errorCode >= AMS_UPDATE_ERR_SUCCESS_SIGNAL) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("Upgrade to %s already applied, clearing status\n"), updateStatus.toVersion);
+        memset(updateStatus.fromVersion, 0, sizeof(updateStatus.fromVersion));
+        memset(updateStatus.toVersion, 0, sizeof(updateStatus.toVersion));
+        updateStatus.size = 0;
+        updateStatus.block_position = 0;
+        updateStatus.retry_count = 0;
+        updateStatus.reboot_count = 0;
+        updateStatus.errorCode = AMS_UPDATE_ERR_OK;
+        updateStatusChanged = true;
+    }
     if(strlen(updateStatus.toVersion) > 0 && updateStatus.size > 0 && updateStatus.block_position * UPDATE_BUF_SIZE < updateStatus.size) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::INFO))
@@ -126,9 +141,6 @@ void AmsFirmwareUpdater::loop() {
             if (debugger->isActive(RemoteDebug::DEBUG))
             #endif
             debugger->printf_P(PSTR("fetch details took %lums\n"), end-start);
-            updateStatus.retry_count = 0;
-            updateStatus.block_position = 0;
-            updateStatus.errorCode = AMS_UPDATE_ERR_OK;
         } else if(updateStatus.block_position * UPDATE_BUF_SIZE < updateStatus.size) {
             HTTPClient http;
             start = millis();
@@ -147,17 +159,13 @@ void AmsFirmwareUpdater::loop() {
             #endif
             debugger->printf_P(PSTR("fetch chunk took %lums\n"), end-start);
 
-            start = millis();
             WiFiClient* client = http.getStreamPtr();
-            if(!client->available()) {
+            if(client == NULL) {
                 http.end();
                 return;
             }
-            end = millis();
-            #if defined(AMS_REMOTE_DEBUG)
-            if (debugger->isActive(RemoteDebug::DEBUG))
-            #endif
-            debugger->printf_P(PSTR("get ptr took %lums (%d) \n"), end-start, client->available());
+            client->setTimeout(15000);
+
             uint32_t remaining = 0;
             if(updateStatus.size > updateStatus.block_position * UPDATE_BUF_SIZE) {
                 remaining = updateStatus.size - (updateStatus.block_position * UPDATE_BUF_SIZE);
@@ -172,25 +180,44 @@ void AmsFirmwareUpdater::loop() {
             memset(buf, 0, UPDATE_BUF_SIZE);
 
             size_t totalRead = 0;
+            uint32_t idleDeadline = millis() + 20000;
+            uint32_t overallDeadline = millis() + 120000;
             while(totalRead < expected) {
-                start = millis();
-                size_t chunk = client->readBytes(buf + totalRead, expected - totalRead);
-                end = millis();
-                #if defined(AMS_REMOTE_DEBUG)
-                if (debugger->isActive(RemoteDebug::DEBUG))
-                #endif
-                debugger->printf_P(PSTR("read buffer took %lums (%lu bytes, %d left)\n"), end-start, chunk, client->available());
-                if(chunk == 0) {
+                size_t available = client->available();
+                if(available > 0) {
+                    size_t toRead = expected - totalRead;
+                    if(toRead > available) {
+                        toRead = available;
+                    }
+                    size_t chunk = client->read((uint8_t*) buf + totalRead, toRead);
+                    #if defined(AMS_REMOTE_DEBUG)
+                    if (debugger->isActive(RemoteDebug::DEBUG))
+                    #endif
+                    debugger->printf_P(PSTR("read buffer (%lu bytes, %d left)\n"), chunk, client->available());
+                    if(chunk > 0) {
+                        totalRead += chunk;
+                        idleDeadline = millis() + 20000;
+                        continue;
+                    }
+                }
+
+                if(!client->connected() && available == 0) {
                     break;
                 }
-                totalRead += chunk;
+
+                uint32_t now = millis();
+                if((int32_t) (now - idleDeadline) >= 0 || (int32_t) (now - overallDeadline) >= 0) {
+                    break;
+                }
+
+                delay(50);
             }
 
             if(totalRead != expected) {
                 #if defined(AMS_REMOTE_DEBUG)
                 if (debugger->isActive(RemoteDebug::WARNING))
                 #endif
-                debugger->printf_P(PSTR("Expected %lu bytes but received %lu\n"), expected, totalRead);
+                debugger->printf_P(PSTR("Expected %lu bytes but received %lu (connected=%d, available=%d)\n"), expected, totalRead, client->connected(), client->available());
                 http.end();
                 if(updateStatus.retry_count++ == 3) {
                     updateStatus.errorCode = AMS_UPDATE_ERR_FETCH;
@@ -274,8 +301,8 @@ bool AmsFirmwareUpdater::fetchNextVersion() {
     #elif defined(ESP32)
     if(http.begin(url)) {
     #endif
-        http.useHTTP10(true);
-        http.setTimeout(30000);
+    http.useHTTP10(true);
+    http.setTimeout(60000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
     http.setUserAgent(FIRMWARE_UPDATE_USER_AGENT);
         http.addHeader(F("Cache-Control"), "no-cache");
@@ -407,8 +434,8 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
 #elif defined(ESP32)
     if(http.begin(url)) {
 #endif
-        http.useHTTP10(true);
-        http.setTimeout(30000);
+    http.useHTTP10(true);
+    http.setTimeout(60000);
         http.setFollowRedirects(HTTPC_FORCE_FOLLOW_REDIRECTS);
         http.setUserAgent(FIRMWARE_UPDATE_USER_AGENT);
         http.addHeader(F("Cache-Control"), "no-cache");

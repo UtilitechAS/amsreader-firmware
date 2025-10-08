@@ -149,7 +149,6 @@ void AmsFirmwareUpdater::loop() {
 
             start = millis();
             WiFiClient* client = http.getStreamPtr();
-            updateStatus.retry_count = 0;
             if(!client->available()) {
                 http.end();
                 return;
@@ -159,38 +158,68 @@ void AmsFirmwareUpdater::loop() {
             if (debugger->isActive(RemoteDebug::DEBUG))
             #endif
             debugger->printf_P(PSTR("get ptr took %lums (%d) \n"), end-start, client->available());
-            size_t bytes = UPDATE_BUF_SIZE; // To start first loop
-            while(bytes > 0 && client->available() > 0) {
-                start = millis();
-                memset(buf, 0, UPDATE_BUF_SIZE);
-                bytes = client->readBytes(buf, min((uint32_t) UPDATE_BUF_SIZE, updateStatus.size - (updateStatus.block_position * UPDATE_BUF_SIZE)));
-                end = millis();
-                #if defined(AMS_REMOTE_DEBUG)
-                if (debugger->isActive(RemoteDebug::DEBUG))
-                #endif
-                debugger->printf_P(PSTR("read buffer took %lums (%lu bytes, %d left)\n"), end-start, bytes, client->available());
-                if(bytes > 0) {
-                    start = millis();
-                    if(!writeBufferToFlash(bytes)) {
-                        http.end();
-                        return;
-                    }
-                    end = millis();
-                    #if defined(AMS_REMOTE_DEBUG)
-                    if (debugger->isActive(RemoteDebug::DEBUG))
-                    #endif
-                    debugger->printf_P(PSTR("write buffer took %lums\n"), end-start);
-                }
-                start = millis();
-                if(!hw->isVoltageOptimal(0.2)) {
-                    writeUpdateStatus();
-                }
-                end = millis();
-                #if defined(AMS_REMOTE_DEBUG)
-                if (debugger->isActive(RemoteDebug::DEBUG))
-                #endif
-                debugger->printf_P(PSTR("check voltage took %lums\n"), end-start);
+            uint32_t remaining = 0;
+            if(updateStatus.size > updateStatus.block_position * UPDATE_BUF_SIZE) {
+                remaining = updateStatus.size - (updateStatus.block_position * UPDATE_BUF_SIZE);
             }
+
+            if(remaining == 0) {
+                http.end();
+                return;
+            }
+
+            size_t expected = remaining > UPDATE_BUF_SIZE ? UPDATE_BUF_SIZE : remaining;
+            memset(buf, 0, UPDATE_BUF_SIZE);
+
+            size_t totalRead = 0;
+            while(totalRead < expected) {
+                start = millis();
+                size_t chunk = client->readBytes(buf + totalRead, expected - totalRead);
+                end = millis();
+                #if defined(AMS_REMOTE_DEBUG)
+                if (debugger->isActive(RemoteDebug::DEBUG))
+                #endif
+                debugger->printf_P(PSTR("read buffer took %lums (%lu bytes, %d left)\n"), end-start, chunk, client->available());
+                if(chunk == 0) {
+                    break;
+                }
+                totalRead += chunk;
+            }
+
+            if(totalRead != expected) {
+                #if defined(AMS_REMOTE_DEBUG)
+                if (debugger->isActive(RemoteDebug::WARNING))
+                #endif
+                debugger->printf_P(PSTR("Expected %lu bytes but received %lu\n"), expected, totalRead);
+                http.end();
+                if(updateStatus.retry_count++ == 3) {
+                    updateStatus.errorCode = AMS_UPDATE_ERR_FETCH;
+                    updateStatusChanged = true;
+                }
+                return;
+            }
+
+            start = millis();
+            if(!writeBufferToFlash(totalRead)) {
+                http.end();
+                return;
+            }
+            updateStatus.retry_count = 0;
+            end = millis();
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
+            debugger->printf_P(PSTR("write buffer took %lums\n"), end-start);
+
+            start = millis();
+            if(!hw->isVoltageOptimal(0.2)) {
+                writeUpdateStatus();
+            }
+            end = millis();
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::DEBUG))
+            #endif
+            debugger->printf_P(PSTR("check voltage took %lums\n"), end-start);
             start = millis();
             http.end();
             end = millis();

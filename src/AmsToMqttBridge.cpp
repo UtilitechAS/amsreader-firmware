@@ -751,7 +751,7 @@ void loop() {
 				
 				if(upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_SIGNAL) {
 					debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);
-					upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
+					upinfo.errorCode = AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
 					config.setUpgradeInformation(upinfo);
 					delay(1000);
 					ESP.restart();

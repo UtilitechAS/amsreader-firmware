@@ -121,6 +121,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/consent"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(context + F("/vendor"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(context + F("/setup"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
+	server.on(context + F("/welcome"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(context + F("/mqtt-ca"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(context + F("/mqtt-cert"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
 	server.on(context + F("/mqtt-key"), HTTP_GET, std::bind(&AmsWebServer::indexHtml, this));
@@ -312,46 +313,24 @@ debugger->printf_P(PSTR("URI '%s' was not found\n"), server.uri().c_str());
 }
 
 void AmsWebServer::captivePortalProbe() {
-	IPAddress apIp = WiFi.softAPIP();
-	String target = F("http://");
-	target += apIp.toString();
-
-	String context;
+	String target = String(F("http://")) + WiFi.softAPIP().toString();
 	config->getWebConfig(webConfig);
 	stripNonAscii((uint8_t*) webConfig.context, 32);
 	if(strlen(webConfig.context) > 0) {
-		context = String(F("/")) + String(webConfig.context);
+		String context = String(webConfig.context);
 		context.replace(" ", "");
-		if(context.length() == 1) {
-			context = "";
+		if(!context.isEmpty()) {
+			target += "/";
+			target += context;
 		}
 	}
+	target += F("/welcome");
 
-	target += context;
-
+	server.sendHeader(HEADER_LOCATION, target, true);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
-	server.sendHeader(HEADER_LOCATION, target);
-
-	if(server.method() == HTTP_HEAD) {
-		server.send(302);
-		return;
-	}
-
-	const char* targetUrl = target.c_str();
-	snprintf_P(buf, BufferSize, PSTR(
-		"<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
-		"<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
-		"<meta http-equiv=\"refresh\" content=\"0; url=%s\">"
-		"<title>NEAS Setup</title></head><body><main>"
-		"<h1>NEAS AMS Reader</h1>"
-		"<p>Tap <a href=\"%s\">%s</a> to continue configuring your device.</p>"
-		"<p>If this window closes automatically, open the same address in your browser to resume setup.</p>"
-		"</main></body></html>"
-	), targetUrl, targetUrl, targetUrl);
-
-	server.send(200, MIME_HTML, buf);
+	server.send(302, MIME_PLAIN, "");
 }
 
 void AmsWebServer::faviconSvg() {

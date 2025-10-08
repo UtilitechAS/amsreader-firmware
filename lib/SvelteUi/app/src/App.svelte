@@ -27,6 +27,7 @@
   import StatusPage from "./lib/StatusPage.svelte";
   import VendorPanel from "./lib/VendorPanel.svelte";
   import SetupPanel from "./lib/SetupPanel.svelte";
+  import Welcome from "./lib/Welcome.svelte";
   import Mask from "./lib/Mask.svelte";
   import FileUploadComponent from "./lib/FileUploadComponent.svelte";
   import ConsentComponent from "./lib/ConsentComponent.svelte";
@@ -68,12 +69,24 @@
   let currentVersion;
   sysinfoStore.subscribe((update) => {
     sysinfo = update;
+    const currentPath = (() => {
+      if (typeof window === "undefined") return "";
+      const pathname = window.location.pathname ?? "/";
+      if (!pathname.startsWith(basepath)) {
+        return pathname.replace(/^\/+/, "");
+      }
+      const stripped = pathname.slice(basepath.length).replace(/^\/+/, "");
+      return stripped;
+    })();
+
     if (sysinfo.vndcfg === false) {
-      navigate(basepath + "vendor");
+      if (currentPath !== "vendor") navigate(basepath + "vendor");
     } else if (sysinfo.usrcfg === false) {
-      navigate(basepath + "setup");
+      if (currentPath !== "welcome" && currentPath !== "setup") {
+        navigate(basepath + "welcome");
+      }
     } else if (sysinfo.fwconsent === 0) {
-      navigate(basepath + "consent");
+      if (currentPath !== "consent") navigate(basepath + "consent");
     }
 
     if (sysinfo.ui.k === 1) {
@@ -124,6 +137,9 @@
 <div class="container mx-auto m-3">
   <Router {basepath}>
     <Header {data} {basepath} />
+    <Route path="/welcome">
+      <Welcome {basepath} />
+    </Route>
     <Route path="/">
       <Dashboard
         {data}

@@ -185,12 +185,24 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/cloudkey.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
 	server.on(context + F("/configuration.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
 
-	/* These trigger captive portal. Only problem is that after you have "signed in", the portal is closed and the user has no idea how to reach the device
-	server.on(context + F("/generate_204"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Android captive portal check: http://connectivitycheck.gstatic.com/generate_204
-	server.on(context + F("/ncsi.txt"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check: http://www.msftncsi.com/ncsi.txt 
-	server.on(context + F("/fwlink"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check
-	server.on(context + F("/library/test/success.html"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Apple connectivity check: http://www.apple.com/library/test/success.html
-	*/
+	const auto registerCaptiveProbe = [this, &context](const char* path) {
+		server.on(path, HTTP_GET, std::bind(&AmsWebServer::captivePortalProbe, this));
+		server.on(path, HTTP_HEAD, std::bind(&AmsWebServer::captivePortalProbe, this));
+		if(!context.isEmpty()) {
+			String contextualPath = context + path;
+			server.on(contextualPath, HTTP_GET, std::bind(&AmsWebServer::captivePortalProbe, this));
+			server.on(contextualPath, HTTP_HEAD, std::bind(&AmsWebServer::captivePortalProbe, this));
+		}
+	};
+
+	registerCaptiveProbe("/generate_204");              // Android captive portal check
+	registerCaptiveProbe("/gen_204");                  // Legacy Android check
+	registerCaptiveProbe("/hotspot-detect.html");       // Apple captive portal check
+	registerCaptiveProbe("/library/test/success.html"); // Apple fallback check
+	registerCaptiveProbe("/ncsi.txt");                  // Microsoft connectivity check
+	registerCaptiveProbe("/fwlink");                    // Microsoft fallback
+	registerCaptiveProbe("/connecttest.txt");           // Windows 10+ connectivity check
+	registerCaptiveProbe("/captiveportal");             // Firefox/Kindle generic probe
 
 	server.on("/ssdp/schema.xml", HTTP_GET, std::bind(&AmsWebServer::ssdpSchema, this));
 
@@ -297,6 +309,49 @@ debugger->printf_P(PSTR("URI '%s' was not found\n"), server.uri().c_str());
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 	server.send_P(404, MIME_HTML, PSTR("Not found"));
+}
+
+void AmsWebServer::captivePortalProbe() {
+	IPAddress apIp = WiFi.softAPIP();
+	String target = F("http://");
+	target += apIp.toString();
+
+	String context;
+	config->getWebConfig(webConfig);
+	stripNonAscii((uint8_t*) webConfig.context, 32);
+	if(strlen(webConfig.context) > 0) {
+		context = String(F("/")) + String(webConfig.context);
+		context.replace(" ", "");
+		if(context.length() == 1) {
+			context = "";
+		}
+	}
+
+	target += context;
+
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+	server.sendHeader(HEADER_LOCATION, target);
+
+	if(server.method() == HTTP_HEAD) {
+		server.send(302);
+		return;
+	}
+
+	const char* targetUrl = target.c_str();
+	snprintf_P(buf, BufferSize, PSTR(
+		"<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+		"<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
+		"<meta http-equiv=\"refresh\" content=\"0; url=%s\">"
+		"<title>NEAS Setup</title></head><body><main>"
+		"<h1>NEAS AMS Reader</h1>"
+		"<p>Tap <a href=\"%s\">%s</a> to continue configuring your device.</p>"
+		"<p>If this window closes automatically, open the same address in your browser to resume setup.</p>"
+		"</main></body></html>"
+	), targetUrl, targetUrl, targetUrl);
+
+	server.send(200, MIME_HTML, buf);
 }
 
 void AmsWebServer::faviconSvg() {

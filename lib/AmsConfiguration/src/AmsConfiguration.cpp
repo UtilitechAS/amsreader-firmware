@@ -885,6 +885,65 @@ void AmsConfiguration::clearUpgradeInformation(UpgradeInformation& upinfo) {
 	upinfo.reboot_count = 0;
 }
 
+bool AmsConfiguration::setUpgradeConfig(UpgradeConfig& cfg) {
+	UpgradeConfig existing;
+	bool hadExisting = getUpgradeConfig(existing);
+	if(!hadExisting) {
+		clearUpgradeConfig(existing);
+	}
+	if(cfg.windowStartHour >= 24) cfg.windowStartHour %= 24;
+	if(cfg.windowEndHour >= 24) cfg.windowEndHour %= 24;
+
+	if(cfg.autoUpgrade != existing.autoUpgrade ||
+	   cfg.windowStartHour != existing.windowStartHour ||
+	   cfg.windowEndHour != existing.windowEndHour) {
+		upgradeSettingsChanged = true;
+	}
+
+	EEPROM.begin(EEPROM_SIZE);
+	EEPROM.put(CONFIG_UPGRADE_SETTINGS_START, cfg);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::getUpgradeConfig(UpgradeConfig& cfg) {
+	if(hasConfig()) {
+		EEPROM.begin(EEPROM_SIZE);
+		EEPROM.get(CONFIG_UPGRADE_SETTINGS_START, cfg);
+		EEPROM.end();
+		if(cfg.windowStartHour == 0xFF || cfg.windowEndHour == 0xFF) {
+			clearUpgradeConfig(cfg);
+			return false;
+		}
+		if(cfg.windowStartHour >= 24) cfg.windowStartHour %= 24;
+		if(cfg.windowEndHour >= 24) cfg.windowEndHour %= 24;
+		if(cfg.windowStartHour == 0 && cfg.windowEndHour == 0 && !cfg.autoUpgrade) {
+			// Detect uninitialized area (all zeros)
+			clearUpgradeConfig(cfg);
+			return false;
+		}
+		return true;
+	} else {
+		clearUpgradeConfig(cfg);
+		return false;
+	}
+}
+
+void AmsConfiguration::clearUpgradeConfig(UpgradeConfig& cfg) {
+	cfg.autoUpgrade = false;
+	cfg.windowStartHour = 2;
+	cfg.windowEndHour = 3;
+}
+
+bool AmsConfiguration::isUpgradeConfigChanged() {
+	return upgradeSettingsChanged;
+}
+
+void AmsConfiguration::ackUpgradeConfig() {
+	upgradeSettingsChanged = false;
+}
+
 bool AmsConfiguration::getCloudConfig(CloudConfig& config) {
 	if(hasConfig()) {
 		EEPROM.begin(EEPROM_SIZE);
@@ -1059,6 +1118,10 @@ void AmsConfiguration::clear() {
 	clearUpgradeInformation(upinfo);
 	EEPROM.put(CONFIG_UPGRADE_INFO_START, upinfo);
 
+	UpgradeConfig upgradeCfg;
+	clearUpgradeConfig(upgradeCfg);
+	EEPROM.put(CONFIG_UPGRADE_SETTINGS_START, upgradeCfg);
+
 	CloudConfig cloud;
 	clearCloudConfig(cloud);
 	EEPROM.put(CONFIG_CLOUD_START, cloud);
@@ -1180,6 +1243,9 @@ bool AmsConfiguration::relocateConfig103() {
 	ui.darkMode = 2;
 
 	EEPROM.put(CONFIG_UPGRADE_INFO_START, upinfo);
+	UpgradeConfig upgradeCfg;
+	clearUpgradeConfig(upgradeCfg);
+	EEPROM.put(CONFIG_UPGRADE_SETTINGS_START, upgradeCfg);
 	EEPROM.put(CONFIG_NETWORK_START, wifi);
 	EEPROM.put(CONFIG_METER_START, meter);
 	EEPROM.put(CONFIG_GPIO_START, gpio);

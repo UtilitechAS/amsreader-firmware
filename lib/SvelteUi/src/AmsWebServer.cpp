@@ -33,6 +33,7 @@
 #include "html/conf_domoticz_json.h"
 #include "html/conf_ha_json.h"
 #include "html/conf_ui_json.h"
+#include "html/conf_upgrade_json.h"
 #include "html/conf_cloud_json.h"
 #include "html/translations_json.h"
 #include "html/firmware_html.h"
@@ -563,6 +564,7 @@ void AmsWebServer::sysinfoJson() {
 		nextVersionForUi,
 		updater->getProgress(),
 		updater->getLastHttpStatus(),
+		updater->isCurrentVersionLatest() ? "true" : "false",
 		ea->getUseLastMonth(),
 		ea->getCostLastMonth(),
 		ea->getProducedLastMonth(),
@@ -969,6 +971,9 @@ void AmsWebServer::configurationJson() {
 	config->getZmartChargeConfig(zcc);
 	stripNonAscii((uint8_t*) zcc.token, 21);
 
+	UpgradeConfig upgradeCfg;
+	config->getUpgradeConfig(upgradeCfg);
+
 	bool qsc = false;
 	bool qsr = false;
 	bool qsk = false;
@@ -1141,6 +1146,12 @@ void AmsWebServer::configurationJson() {
 		haconf.discoveryPrefix,
 		haconf.discoveryHostname,
 		haconf.discoveryNameTag
+	);
+	server.sendContent(buf);
+	snprintf_P(buf, BufferSize, CONF_UPGRADE_JSON,
+		upgradeCfg.autoUpgrade ? "true" : "false",
+		upgradeCfg.windowStartHour,
+		upgradeCfg.windowEndHour
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
@@ -1700,6 +1711,25 @@ void AmsWebServer::handleSave() {
 		strcpy(price.area, priceRegion.c_str());
 		strcpy(price.currency, server.arg(F("pc")).c_str());
 		config->setPriceServiceConfig(price);
+	}
+
+	if(server.hasArg(F("fw")) && server.arg(F("fw")) == F("true")) {
+		UpgradeConfig upgradeCfg;
+		config->getUpgradeConfig(upgradeCfg);
+		upgradeCfg.autoUpgrade = server.hasArg(F("fwa")) && server.arg(F("fwa")) == F("true");
+		int startHour = upgradeCfg.windowStartHour;
+		int endHour = upgradeCfg.windowEndHour;
+		if(server.hasArg(F("fws"))) {
+			startHour = server.arg(F("fws")).toInt();
+		}
+		if(server.hasArg(F("fwe"))) {
+			endHour = server.arg(F("fwe")).toInt();
+		}
+		if(startHour < 0) startHour = 0;
+		if(endHour < 0) endHour = 0;
+		upgradeCfg.windowStartHour = startHour % 24;
+		upgradeCfg.windowEndHour = endHour % 24;
+		config->setUpgradeConfig(upgradeCfg);
 	}
 
 	if(server.hasArg(F("t")) && server.arg(F("t")) == F("true")) {

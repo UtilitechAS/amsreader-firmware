@@ -54,6 +54,8 @@ It is recommended to use Visual Studio Code with the PlatformIO plugin for devel
 
 For development purposes, copy the ```platformio-user.ini-example``` to ```platformio-user.ini``` and customize to your preference. The code will adapt to the platform and board set in your profile.
 
+The repository now defaults to the primary ESP32 firmware when you run `pio run`. If you need to build one of the alternative targets (ESP8266, ESP32-C3, ESP32-S2, ESP32-S3, etc.), pass the environment explicitly, for example `pio run -e esp8266` or `pio run -e esp32c3`.
+
 ## Licensing
 Initially, this project began as a hobby, consuming countless hours of our spare time. However, the time required to support this project has expanded beyond the scope of a hobby. As a result, we established ‘Utilitech’, a company dedicated to maintaining the software and hardware for this project as part of our regular work.
 

@@ -238,6 +238,21 @@
           </p>
         </div>
       {/if}
+
+      <div class="flex flex-col items-start gap-2 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200">
+        <p class="font-medium text-slate-800 dark:text-slate-100">3. Start selve oppsettet</p>
+        <a
+          class="btn-pri inline-block"
+          href={setupUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Åpne oppsettet i nettleseren
+        </a>
+        <p class="text-xs text-slate-500 dark:text-slate-400">
+          Lenken åpnes i standardnettleseren din. Du kan også lime inn adressen manuelt hvis du foretrekker det.
+        </p>
+      </div>
     </div>
   </div>
 </section>

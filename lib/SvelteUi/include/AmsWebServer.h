@@ -168,6 +168,7 @@ private:
 	void modifyMonthPlot();
 
 	void notFound();
+	void captivePortalProbe();
 	void redirectToMain();
 	void robotstxt();
 	void ssdpSchema();

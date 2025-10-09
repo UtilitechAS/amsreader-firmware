@@ -95,6 +95,10 @@ ADC_MODE(ADC_VCC);
 
 #include "Uptime.h"
 
+#if defined(ESP32)
+extern "C" void dhcps_set_option_info(uint8_t op_id, void* opt_info, uint32_t opt_len);
+#endif
+
 #if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
 
@@ -1285,6 +1289,18 @@ void toggleSetupMode() {
 		WiFi.beginSmartConfig();
 		#endif
 		WiFi.softAP(PSTR("NEAS-WATTUP"));
+		#if defined(ESP32)
+		{
+			static char captivePortalUri[64];
+			const String captive = String(F("http://")) + WiFi.softAPIP().toString();
+			size_t length = captive.length();
+			if(length >= sizeof(captivePortalUri)) {
+				length = sizeof(captivePortalUri) - 1;
+			}
+			captive.toCharArray(captivePortalUri, length + 1);
+			dhcps_set_option_info(114, captivePortalUri, static_cast<uint32_t>(length));
+		}
+		#endif
 
 		if(dnsServer == NULL) {
 			dnsServer = new DNSServer();

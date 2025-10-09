@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <Print.h>
 #include <ArduinoJson.h>
+#include <Timezone.h>
 #include "HwTools.h"
 #include "AmsData.h"
 #include "AmsConfiguration.h"
@@ -62,7 +63,11 @@ public:
     bool isUpgradeInformationChanged();
     void ackUpgradeInformationChanged();
 
+    void setUpgradeConfig(const UpgradeConfig& cfg);
+    void setTimezone(Timezone* tz);
+
     int getLastHttpStatus() const { return lastHttpStatus; }
+    bool isCurrentVersionLatest() const { return currentVersionMatchesLatest; }
 
     bool startFirmwareUpload(uint32_t size, const char* version);
     bool addFirmwareUploadChunk(uint8_t* buf, size_t length);
@@ -128,12 +133,22 @@ private:
     bool writeUpdateStatus();
     bool isFlashReadyForNextUpdateVersion(uint32_t size);
     bool applyManifestMqttDefaults(JsonVariantConst mqttSection);
+    void refreshUpgradeConfig();
+    bool shouldTriggerAutoUpgrade();
+    bool isWithinAutoWindow(time_t localTime) const;
+    bool computeCurrentVersionMatch();
 
     uint8_t* buf = NULL;
     uint16_t bufPos = 0;
     int lastHttpStatus = 0;
 
     AmsConfiguration* configuration;
+    UpgradeConfig upgradeConfig = {false, 2, 3};
+    bool upgradeConfigInitialized = false;
+    Timezone* tz = NULL;
+    time_t lastAutoAttemptDay = 0;
+    time_t nextAutoAttemptDay = 0;
+    bool currentVersionMatchesLatest = false;
 
     #if defined(ESP32)
     bool readPartition(uint8_t num, const esp_partition_info_t* info);

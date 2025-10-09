@@ -212,6 +212,11 @@
         <div class="my-2">
             {translations.status?.firmware?.installed ?? "Installed"}: {sysinfo.version}
         </div>
+        {#if sysinfo.upgrade?.m === true}
+        <div class="my-2 text-green-600">
+            {translations.status?.firmware?.uptodate ?? "You're already running the latest firmware."}
+        </div>
+        {/if}
         {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version && sysinfo.upgrade.e != 0 && sysinfo.upgrade.e != 123}
         <div class="my-2">
             <div class="bd-yellow">

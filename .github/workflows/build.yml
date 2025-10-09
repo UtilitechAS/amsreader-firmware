@@ -62,4 +62,4 @@ jobs:
     - name: PlatformIO lib install
       run: pio pkg install
     - name: PlatformIO run
-      run: pio run
+      run: ./scripts/pio-run.sh run

@@ -653,11 +653,15 @@ void loop() {
 			}
 			#endif
 
+#if defined(ESP8266)
+			handlePriceService(now);
+#else
 			try {
 				handlePriceService(now);
 			} catch(const std::exception& e) {
 				debugE_P(PSTR("Exception in PriceService loop (%s)"), e.what());
 			}
+#endif
 			start = millis();
 			ws.loop();
 			end = millis();
@@ -882,6 +886,26 @@ void loop() {
 	if(config.isEnergyAccountingChanged()) {
 		handleEnergyAccountingChanged();
 	}
+#if defined(ESP8266)
+	start = millis();
+	if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
+		end = millis();
+		if(end - start > SLOW_PROC_TRIGGER_MS) {
+			debugW_P(PSTR("Used %dms to read HAN port (true)"), millis()-start);
+		}
+		handleTemperature(now);
+		handleSystem(now);
+		hw.setBootSuccessful(true);
+	} else {
+		end = millis();
+		if(end - start > SLOW_PROC_TRIGGER_MS) {
+			debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
+		}
+	}
+	if(millis() - meterState.getLastUpdateMillis() > 1800000 && !ds.isHappy(time(nullptr))) {
+		handleClear(now);
+	}
+#else
 	try {
 		start = millis();
 		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
@@ -905,6 +929,7 @@ void loop() {
 		debugE_P(PSTR("Exception in readHanPort (%s)"), e.what());
 		meterState.setLastError(METER_ERROR_EXCEPTION);
 	}
+#endif
 
 	delay(10); // Needed for auto modem sleep
 	start = millis();

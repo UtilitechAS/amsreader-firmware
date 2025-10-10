@@ -23,7 +23,9 @@ jobs:
       id: release_tag
       env:
         GITHUB_REF: ${{ github.ref }}
-      run: echo ::set-output name=tag::$(echo ${GITHUB_REF:11})
+      run: |
+        tag="${GITHUB_REF#refs/tags/}"
+        echo "tag=${tag}" >> "$GITHUB_OUTPUT"
     - name: Get release version for code
       env:
         GITHUB_REF: ${{ github.ref }}
@@ -254,6 +256,9 @@ jobs:
       run: |
         python scripts/package_firmware.py --output dist --channel stable --version ${{ steps.release_tag.outputs.tag }}
         ls -R dist
+
+    - name: Configure GitHub Pages
+      uses: actions/configure-pages@v4
 
     - name: Upload Pages artifact
       uses: actions/upload-pages-artifact@v3

@@ -37,7 +37,7 @@
             },
             "psk": "Password",
             "pwr": "Power",
-            "ssid": "SSID",
+            "ssid": "SSID (network name)",
             "tick_11b": "Allow 802.11b legacy rates",
             "title": "Connection",
             "wifi": "Connect to Wi-Fi"

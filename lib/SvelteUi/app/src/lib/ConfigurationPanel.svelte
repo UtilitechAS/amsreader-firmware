@@ -594,15 +594,6 @@
             <strong class="text-sm">{translations.conf?.connection?.title ?? "Connection"}</strong>
             <a href="{wiki('Network-connection')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="w" value="true"/>
-            <div class="my-1">
-                <select name="nc" class="in-s" bind:value={configuration.n.c}>
-                    <option value={1}>{translations.conf?.connection?.wifi ?? "WiFi"}</option>
-                    <option value={2}>{translations.conf?.connection?.ap ?? "AP"}</option>
-                    {#if sysinfo.if && sysinfo.if.eth}
-                    <option value={3}>{translations.conf?.connection?.eth ?? "Ethernet"}</option>
-                    {/if}
-                </select>
-            </div>
             {#if configuration.n.c == 1 || configuration.n.c == 2}
                 <div class="my-1">
                     {translations.conf?.connection?.ssid ?? "Network name (SSID)"}
@@ -665,51 +656,6 @@
                     <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> {translations.conf?.connection?.tick_11b ?? "802.11b"}</label>
                 </div>
             {/if}
-        </div>
-        {/if}
-        {#if configuration?.n}
-        <div class="cnt">
-            <strong class="text-sm">{translations.conf?.network?.title ?? "Network"}</strong>
-            <a href="{wiki('Network-configuration')}" target="_blank" class="float-right">&#9432;</a>
-            <div class="my-1">
-                {translations.conf?.network?.ip ?? "IP"}<br/>
-                <div class="flex">
-                    <select name="nm" bind:value={configuration.n.m} class="in-f">
-                        <option value="dhcp">{translations.conf?.network?.dhcp ?? "DHCP"}</option>
-                        <option value="static">{translations.conf?.network?.static ?? "Static"}</option>
-                    </select>
-                    <input name="ni" bind:value={configuration.n.i} type="text" class="in-m w-full" disabled={configuration.n.m == 'dhcp'} required={configuration.n.m == 'static'} pattern={ipPattern}/>
-                    <select name="ns" bind:value={configuration.n.s} class="in-l" disabled={configuration.n.m == 'dhcp'} required={configuration.n.m == 'static'}>
-                        <SubnetOptions/>
-                    </select>
-                </div>
-            </div>
-            {#if configuration.n.m == 'static'}
-            <div class="my-1">
-                {translations.conf?.network?.gw ?? "Gateway"}<br/>
-                <input name="ng" bind:value={configuration.n.g} type="text" class="in-s" pattern={ipPattern}/>
-            </div>
-            <div class="my-1">
-                {translations.conf?.network?.dns ?? "DNS"}<br/>
-                <div class="flex">
-                    <input name="nd1" bind:value={configuration.n.d1} type="text" class="in-f w-full" pattern={ipPattern}/>
-                    <input name="nd2" bind:value={configuration.n.d2} type="text" class="in-l w-full" pattern={ipPattern}/>
-                </div>
-            </div>
-            {/if}
-            <div class="my-1">
-                <label><input name="nx" value="true" bind:checked={configuration.n.x} type="checkbox" class="rounded mb-1"/> IPv6</label>
-            </div>
-            <div class="my-1">
-                <label><input name="nd" value="true" bind:checked={configuration.n.d} type="checkbox" class="rounded mb-1"/> {translations.conf?.network?.tick_mdns ?? "mDNS"}</label>
-            </div>
-            <input type="hidden" name="ntp" value="true"/>
-            <div class="my-1">
-                {translations.conf?.network?.ntp ?? "NTP"} <label class="ml-4"><input name="ntpd" value="true" bind:checked={configuration.n.h} type="checkbox" class="rounded mb-1"/> {translations.conf?.network?.tick_ntp_dhcp ?? "from DHCP"}</label><br/>
-                <div class="flex">
-                    <input name="ntph" bind:value={configuration.n.n1} type="text" class="in-s" pattern={asciiPattern}/>
-                </div>
-            </div>
         </div>
         {/if}
         {#if configuration?.q}
@@ -858,55 +804,6 @@
                 </div>
             </div>
         {/if}
-        {#if configuration?.c}
-            <div class="cnt">
-                <strong class="text-sm">{translations.conf?.cloud?.title ?? "Cloud connections"}</strong>
-                <a href="{wiki('Cloud')}" target="_blank" class="float-right">&#9432;</a>
-                <input type="hidden" name="c" value="true"/>
-                {#if sysinfo?.features?.includes('cloud')}
-                <div class="my-1">
-                    <label><input type="checkbox" name="ce" value="true" bind:checked={configuration.c.e} class="rounded mb-1"/> {translations.conf?.cloud?.ams ?? "AMS reader cloud"}</label>
-                    {#if configuration.c.e}
-                        <div class="ml-6">
-                            <label for="cp">Protocol</label>
-                            <select name="cp" bind:value={configuration.c.p} class="in-s">
-                                {#if configuration.c.p == 0}
-                                <option value={0} title="No longer recommended">UDP</option>
-                                {/if}
-                                <option value={1}>TCP</option>
-                                <option value={2}>HTTP</option>
-                            </select>
-                        </div>
-                        {#if cloudenabled}
-                            <button type="button" on:click={cloudBind} class="text-blue-500 ml-6">Connect device to my cloud account</button>
-                        {/if}
-                    {/if}
-                </div>
-                {/if}
-                <div class="my-1">
-                    <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> {translations.conf?.cloud?.es ?? "Energy Speedometer"}</label>
-                    {#if configuration?.c?.es}
-                        <div class="pl-5">MAC: {sysinfo.mac}</div>
-                        <div class="pl-5">Meter ID: {sysinfo.meter.id ? sysinfo.meter.id : "missing, required"}</div>
-                        {#if sysinfo.mac && sysinfo.meter.id}
-                            <div class="pl-2">
-                                <QrCode value='{'{'}"mac":"{sysinfo.mac}","meter":"{sysinfo.meter.id}"{'}'}'/>
-                            </div>
-                        {/if}
-                    {/if}
-                </div>
-                {#if sysinfo?.features?.includes('zc')}
-                    <div class="my-1">
-                        <label><input type="checkbox" name="cze" value="true" bind:checked={configuration.c.ze} class="rounded mb-1"/> ZmartCharge</label>
-                    </div>
-                    {#if configuration.c.ze}
-                        <div class="my-1">
-                            <input name="czt" bind:value={configuration.c.zt} type="text" class="in-s" placeholder="ZmartCharge token"/>
-                        </div>
-                    {/if}
-                {/if}
-            </div>
-        {/if}
         {#if configuration?.p?.r?.startsWith("NO") || configuration?.p?.r?.startsWith("10YNO") || configuration?.p?.r?.startsWith('10Y1001A1001A4')}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.thresholds?.title ?? "Thresholds"}</strong>
@@ -945,139 +842,6 @@
                     </div>
                 {/each}
             </div>
-        </div>
-        {/if}
-        {#if configuration?.i?.h && (sysinfo?.board > 20 || sysinfo?.chip == 'esp8266' || configuration?.i?.d?.d > 0)}
-        <div class="cnt">
-            <strong class="text-sm">{translations.conf?.hw?.title ?? "Hardware"}</strong>
-            <a href="{wiki('GPIO-configuration')}" target="_blank" class="float-right">&#9432;</a>
-            {#if sysinfo.board > 20}
-            <input type="hidden" name="i" value="true"/>
-            <div class="flex flex-wrap">
-                <div class="w-1/3">
-                    {translations.conf?.hw?.han?.rx ?? "HAN RX"}<br/>
-                    <select name="ihp" bind:value={configuration.i.h.p} class="in-f w-full">
-                        <UartSelectOptions chip={sysinfo.chip}/>
-                    </select>
-                </div>
-                <div class="w-1/3">
-                    {translations.conf?.hw?.han?.tx ?? "HAN TX"}<br/>
-                    <select name="iht" bind:value={configuration.i.h.t} class="in-l w-full">
-                        <UartSelectOptions chip={sysinfo.chip}/>
-                    </select>
-                </div>
-                <div class="w-1/3">
-                    <label class="ml-2"><input name="ihu" value="true" bind:checked={configuration.i.h.u} type="checkbox" class="rounded mb-1"/> {translations.conf?.hw?.han?.pullup ?? "pullup"}</label>
-                </div>
-            </div>
-            <div class="flex flex-wrap">
-                <div class="w-1/3">
-                    {translations.conf?.hw?.ap_btn ?? "AP button"}<br/>
-                    <input name="ia" bind:value={configuration.i.a} type="number" min="0" max={gpioMax} class="in-f tr w-full"/>
-                </div>
-                <div class="w-1/3">
-                    {translations.conf?.hw?.led?.title ?? "LED"}<br/>
-                    <div class="flex">
-                        <input name="ilp" bind:value={configuration.i.l.p} type="number" min="0" max={gpioMax} class="in-l tr w-full"/>
-                    </div>
-                </div>
-                <div class="w-1/3">
-                    <label class="ml-4"><input name="ili" value="true" bind:checked={configuration.i.l.i} type="checkbox" class="rounded mb-1"/> {translations.conf?.hw?.led?.inverted ?? "inverted"}</label>
-                </div>
-                <div class="w-full">
-                    {translations.conf?.hw?.led?.rgb ?? "RGB"}<label class="ml-4"><input name="iri" value="true" bind:checked={configuration.i.r.i} type="checkbox" class="rounded mb-1"/> {translations.conf?.hw?.led?.inverted ?? "inverted"}</label><br/>
-                    <div class="flex">
-                        <input name="irr" bind:value={configuration.i.r.r} type="number" min="0" max={gpioMax} class="in-f tr w-1/3"/>
-                        <input name="irg" bind:value={configuration.i.r.g} type="number" min="0" max={gpioMax} class="in-m tr w-1/3"/>
-                        <input name="irb" bind:value={configuration.i.r.b} type="number" min="0" max={gpioMax} class="in-l tr w-1/3"/>
-                    </div>
-                </div>
-                <div class="w-full">
-                    <div class="my-1 pr-1 w-1/3">
-                        {translations.conf?.hw?.led?.disable ?? "LED dis. GPIO"}
-                        <input name="idd" bind:value={configuration.i.d.d} type="number" min="0" max={gpioMax} class="in-s tr"/>
-                    </div>
-                </div>
-                <div class="my-1 w-1/3">
-                    {translations.conf?.hw?.temp ?? "Temperature"}<br/>
-                    <input name="itd" bind:value={configuration.i.t.d} type="number" min="0" max={gpioMax} class="in-f tr w-full"/>
-                </div>
-                <div class="my-1 pr-1 w-1/3">
-                    {translations.conf?.hw?.temp_analog ?? "Analog temp"}<br/>
-                    <input name="ita" bind:value={configuration.i.t.a} type="number" min="0" max={gpioMax} class="in-l tr w-full"/>
-                </div>
-                {#if sysinfo.chip != 'esp8266'}
-                <div class="my-1 pl-1 w-1/3">
-                    {translations.conf?.hw?.vcc?.title ?? "Vcc"}<br/>
-                    <input name="ivp" bind:value={configuration.i.v.p} type="number" min="0" max={gpioMax} class="in-s tr w-full"/>
-                </div>
-                {/if}
-                {#if configuration?.i?.v?.p > 0}
-                <div class="my-1">
-                    {translations.conf?.hw?.vcc?.divider ?? "Voltage divider"}<br/>
-                    <div class="flex">
-                        <input name="ivdv" bind:value={configuration.i.v.d.v} type="number" min="0" max="65535" class="in-f tr w-full" placeholder={translations.conf?.hw?.vcc?.div_vcc ?? "VCC"}/>
-                        <input name="ivdg" bind:value={configuration.i.v.d.g} type="number" min="0" max="65535" class="in-l tr w-full" placeholder={translations.conf?.hw?.vcc?.div_gnd ?? "GND"}/>
-                    </div>
-                </div>
-                {/if}
-            </div> 
-            {/if}
-            {#if configuration?.i?.d?.d > 0}
-            <div class="my-1 w-full">
-                {translations.conf?.hw?.led?.behaviour?.title ?? "LED behaviour"}
-                <select name="idb" bind:value={configuration.i.d.b} class="in-s">
-                    <option value={0}>{translations.conf?.hw?.led?.behaviour?.enabled ?? "Enabled"}</option>
-                    <option value={1}>{translations.conf?.hw?.led?.behaviour?.disabled ?? "Disabled"}</option>
-                </select>
-            </div>
-            {/if}
-            {#if sysinfo.chip == 'esp8266'}
-            <input type="hidden" name="iv" value="true"/>
-            <div class="my-1 flex flex-wrap">
-                <div class="w-1/3">
-                    {translations.conf?.hw?.vcc?.offset ?? "Vcc offset"}<br/>
-                    <input name="ivo" bind:value={configuration.i.v.o} type="number" min="0.0" max="3.5" step="0.01" class="in-f tr w-full"/>
-                </div>
-                <div class="w-1/3 pr-1">
-                    {translations.conf?.hw?.vcc?.multiplier ?? "Multiplier"}<br/>
-                    <input name="ivm" bind:value={configuration.i.v.m} type="number" min="0.1" max="10" step="0.01" class="in-l tr w-full"/>
-                </div>
-                {#if sysinfo.board == 2 || sysinfo.board == 100}
-                <div class="w-1/3 pl-1">
-                    {translations.conf?.hw?.vcc?.boot ?? "Boot limit"}<br/>
-                    <input name="ivb" bind:value={configuration.i.v.b} type="number" min="2.5" max="3.5" step="0.1" class="in-s tr w-full"/>
-                </div>
-                {/if}
-            </div>
-            {/if}
-        </div>
-        {/if}
-        {#if configuration?.d && sysinfo?.features?.includes('rdebug')}
-        <div class="cnt">
-            <strong class="text-sm">{translations.conf?.debug?.title ?? "Debugging"}</strong>
-            <a href="https://amsleser.no/blog/post/24-telnet-debug" target="_blank" class="float-right">&#9432;</a>
-            <input type="hidden" name="d" value="true"/>
-            <div class="mt-3">
-                <label><input type="checkbox" name="ds" value="true" bind:checked={configuration.d.s} class="rounded mb-1"/> {translations.conf?.debug?.enable ?? "Enable debugging"}</label>
-            </div>
-            {#if configuration?.d?.s}
-            <div class="bd-red">{translations.conf?.debug?.danger ?? "Disable when done"}</div>
-            <div class="my-1">
-                <label><input type="checkbox" name="dt" value="true" bind:checked={configuration.d.t} class="rounded mb-1"/> {translations.conf?.debug?.telnet ?? "Enable telnet"}</label>
-            </div>
-            {#if configuration.d.t}
-            <div class="bd-red">{translations.conf?.debug?.telnet_danger ?? "Disable when done"}</div>
-            {/if}
-            <div class="my-1">
-                <select name="dl" bind:value={configuration.d.l} class="in-s">
-                    <option value={1}>Verbose</option>
-                    <option value={2}>Debug</option>
-                    <option value={3}>Info</option>
-                    <option value={4}>Warning</option>
-                </select>
-            </div>
-            {/if}
         </div>
         {/if}
     </div>

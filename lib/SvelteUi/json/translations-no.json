@@ -1,0 +1,413 @@
+{
+    "language": {
+        "code": "no",
+        "name": "Norsk"
+    },
+    "common": {
+        "import": "Import",
+        "export": "Eksport",
+        "voltage": "Spenning",
+        "amperage": "Strøm",
+        "seconds": "sekunder",
+        "minute": "minutt",
+        "minutes": "minutter",
+        "hour": "time",
+        "hours": "timer",
+        "day": "dag",
+        "days": "dager",
+        "month": "måned",
+        "unknown": "Ukjent"
+    },
+    "btn": {
+        "reboot": "Start på nytt",
+        "save": "Lagre",
+        "upload": "Last opp"
+    },
+    "header": {
+        "mem": "Ledig minne",
+        "price": "Pristjeneste",
+        "booting": "Starter",
+        "config": "Konfigurasjon",
+        "status": "Enhetsinformasjon",
+        "doc": "Dokumentasjon",
+        "new_version": "Ny versjon",
+        "upgrade": "Vil du oppgradere denne enheten til {0}?",
+        "uptime": "Oppetid"
+    },
+    "dashboard": {
+        "phase": "Faseeffekt",
+        "pf": "Effektfaktor",
+        "tariffpeak": "Topper for nettleie",
+        "realtime": "Sanntidsgraf",
+        "price": "Fremtidig energipris",
+        "day": "Energibruk siste 24 timer",
+        "month": "Energibruk siste {0} dager",
+        "temperature": "Temperaturfølere"
+    },
+    "reactive": {
+        "title": "Reaktiv",
+        "instant_in": "Øyeblikk inn",
+        "instant_out": "Øyeblikk ut",
+        "total_in": "Total inn",
+        "total_out": "Total ut"
+    },
+    "realtime": {
+        "title": "Sanntidsberegninger",
+        "consumption": "Forbruk",
+        "cost": "Kostnad",
+        "last_month": "Forrige måned",
+        "last_mo": "Forr. mnd."
+    },
+    "status": {
+        "device": {
+            "title": "Enhetsinformasjon",
+            "chip": "Brikke",
+            "device": "Enhet",
+            "mac": "MAC",
+            "apmac": "AP-MAC",
+            "last_boot": "Siste oppstart",
+            "reason": "Årsak",
+            "btn_consents": "Oppdater samtykker",
+            "reboot_confirm": "Er du sikker på at du vil starte enheten på nytt"
+        },
+        "meter": {
+            "title": "Måler",
+            "manufacturer": "Produsent",
+            "model": "Modell",
+            "id": "ID"
+        },
+        "network": {
+            "title": "Nettverk"
+        },
+        "firmware": {
+            "title": "Fastvare",
+            "installed": "Installert versjon",
+            "latest": "Nyeste versjon",
+            "install": "Installer denne versjonen",
+            "failed": "Forrige oppgradering fra {0} til {1} mislyktes",
+            "btn_select_file": "Velg fastvarefil for oppgradering",
+            "no_one_click": "Du har deaktivert ett-klikks oppgradering, lenken for egen oppgradering er deaktivert"
+        },
+        "backup": {
+            "title": "Sikkerhetskopi og gjenoppretting",
+            "iw": "WiFi",
+            "im": "MQTT",
+            "ie": "Web",
+            "it": "Måler",
+            "ih": "Grenser",
+            "ig": "GPIO",
+            "in": "NTP",
+            "is": "Pris-API",
+            "secrets": "Ta med hemmeligheter",
+            "secrets_desc": "(SSID, PSK, passord og token)",
+            "btn_select_file": "Velg fil...",
+            "btn_download": "Last ned"
+        },
+        "mask": {
+            "firmware": "Laster opp fastvare, vennligst vent",
+            "config": "Laster opp konfigurasjon, vennligst vent"
+        }
+    },
+    "conf": {
+        "general": {
+            "title": "Generelt",
+            "hostname": "Vertsnavn",
+            "timezone": "Tidssone",
+            "security": {
+                "title": "Sikkerhet",
+                "none": "Ingen",
+                "conf": "Kun konfigurasjon",
+                "all": "Alt"
+            },
+            "context": "Kontekst",
+            "context_placeholder": "[rot]"
+        },
+        "price": {
+            "title": "Priskonfigurasjon",
+            "region": "Prisområde",
+            "currency": "Valuta",
+            "conf": "Konfigurer pris",
+            "enabled": "Aktiver pris fra ekstern server",
+            "api_key_placeholder": "ENTSO-E API-nøkkel, valgfritt, se dokumentasjon",
+            "both": "Begge",
+            "fixed": "Fast",
+            "btn_add": "Legg til",
+            "mask_loading": "Laster priskonfigurasjon",
+            "mask_saving": "Lagrer priskonfigurasjon"
+        },
+        "meter": {
+            "title": "Måler",
+            "comm": {
+                "title": "Kommunikasjon",
+                "passive": "Passiv (push)",
+                "pulse": "Puls"
+            },
+            "serial": "Seriell konf.",
+            "inverted": "invertert",
+            "buffer": "Bufferstørrelse",
+            "pulses": "Pulser per kWh",
+            "voltage": "Spenning",
+            "fuse": "Hovedsikring",
+            "prod": "Produksjon",
+            "encrypted": "Måleren er kryptert",
+            "authkey": "Autentiseringsnøkkel",
+            "multipliers": {
+                "title": "Multiplikatorer",
+                "watt": "Watt",
+                "volt": "Volt",
+                "amp": "Ampere",
+                "kwh": "kWh"
+            }
+        },
+        "connection": {
+            "title": "Tilkobling",
+            "wifi": "Koble til WiFi",
+            "ap": "Eget aksesspunkt",
+            "eth": "Ethernet",
+            "ssid": "SSID",
+            "psk": "Passord",
+            "ps": {
+                "title": "Strømsparing",
+                "default": "Standard",
+                "off": "Av",
+                "min": "Minimal",
+                "max": "Maksimal"
+            },
+            "pwr": "Effekt",
+            "tick_11b": "Tillat 802.11b-hastigheter"
+        },
+        "network": {
+            "title": "Nettverk",
+            "ip": "IP",
+            "static": "Statisk",
+            "dhcp": "DHCP",
+            "gw": "Gateway",
+            "dns": "DNS",
+            "tick_mdns": "aktiver mDNS",
+            "ntp": "NTP",
+            "tick_ntp_dhcp": "hent fra DHCP"
+        },
+        "mqtt": {
+            "title": "MQTT",
+            "server": "Server",
+            "user": "Brukernavn",
+            "pass": "Passord",
+            "id": "Klient-ID",
+            "payload": "Payload",
+            "publish": "Publiserings-emne",
+            "btn_ca_upload": "Last opp CA",
+            "btn_crt_upload": "Last opp sertifikat",
+            "btn_key_upload": "Last opp nøkkel",
+            "ca_ok": "CA ok",
+            "crt_ok": "Sertifikat ok",
+            "key_ok": "Nøkkel ok",
+            "title_ca": "Klikk her for å laste opp CA",
+            "title_crt": "Klikk her for å laste opp sertifikat",
+            "title_key": "Klikk her for å laste opp privat nøkkel",
+            "domoticz": {
+                "title": "Domoticz",
+                "eidx": "Strøm-IDX",
+                "cidx": "Strøm-IDX",
+                "vidx": "Spenning-IDX"
+            },
+            "ha": {
+                "title": "Home Assistant",
+                "discovery": "Prefiks for oppdagelsestopic",
+                "hostname": "Vertsnavn for URL",
+                "tag": "Navnetagg"
+            }
+        },
+        "cloud": {
+            "title": "Skytjenester",
+            "ams": "AMS-leser sky",
+            "es": "Energy Speedometer"
+        },
+        "thresholds": {
+            "title": "Tariffgrenser",
+            "avg": "Snitt av"
+        },
+        "ui": {
+            "title": "Brukergrensesnitt",
+            "i": "Importmåler",
+            "e": "Eksportmåler",
+            "v": "Spenning",
+            "a": "Strøm",
+            "h": "Per fase",
+            "f": "Effektfaktor",
+            "r": "Reaktiv",
+            "c": "Sanntid",
+            "t": "Topper",
+            "l": "Sanntidsgraf",
+            "p": "Pris",
+            "d": "Døgngraf",
+            "m": "Månedsgraf",
+            "s": "Temperaturgraf",
+            "k": "Mørk modus",
+            "lang": "Språk",
+            "enabled": "Aktivert",
+            "disabled": "Deaktivert",
+            "auto": "Auto"
+        },
+        "hw": {
+            "title": "Maskinvare",
+            "han": {
+                "rx": "HAN RX",
+                "tx": "HAN TX",
+                "pullup": "Pullup"
+            },
+            "ap_btn": "AP-knapp",
+            "led": {
+                "title": "LED",
+                "rgb": "RGB",
+                "inverted": "invertert",
+                "disable": "LED-deaktiverings-GPIO",
+                "behaviour": {
+                    "title": "LED-oppførsel",
+                    "enabled": "Aktivert",
+                    "disabled": "Deaktivert"
+                }
+            },
+            "temp": "Temperatur",
+            "temp_analog": "Analog temp",
+            "vcc": {
+                "title": "Vcc",
+                "offset": "Vcc-offset",
+                "multiplier": "Multiplikator",
+                "divider": "Motstandsdelere",
+                "div_vcc": "VCC",
+                "div_gnd": "GND",
+                "boot": "Oppstartsgrense"
+            }
+        },
+        "debug": {
+            "title": "Feilsøking",
+            "enable": "Aktiver feilsøking",
+            "danger": "Feilsøking kan gi plutselige omstarter. Ikke la den stå på!",
+            "telnet": "Aktiver telnet",
+            "telnet_danger": "Telnet er usikkert og bør være av når det ikke brukes"
+        },
+        "btn_reset": "Fabrikktilbakestill",
+        "mask": {
+            "loading": "Laster konfigurasjon",
+            "saving": "Lagrer konfigurasjon",
+            "reset": "Utfører fabrikktilbakestilling",
+            "reset_done": "Enheten er fabrikktilbakestilt og satt i AP-modus"
+        }
+    },
+    "consent": {
+        "title": "Tillatelser vi trenger for å gjøre jobben",
+        "one_click": "Aktiver ett-klikks oppgradering? (innebærer datainnsamling)",
+        "read_more": "Les mer",
+        "yes": "Ja",
+        "no": "Nei",
+        "mask_saving": "Lagrer valg",
+        "language": "Språk",
+        "load_from_server": "Last fra server"
+    },
+    "upload": {
+        "title": "Last opp",
+        "desc": "Velg riktig fil og klikk last opp",
+        "mask": "Laster opp fil, vennligst vent"
+    },
+    "setup": {
+        "title": "Oppsett",
+        "static": "Statisk IP",
+        "mask": "Lagrer konfigurasjonen på enheten"
+    },
+    "errors": {
+        "han": {
+            "-1": "Analysefeil",
+            "-2": "Ufullstendige data mottatt",
+            "-3": "Markør for datafelt mangler",
+            "-4": "Kontrollsum i header er feil",
+            "-5": "Kontrollsum i footer er feil",
+            "-9": "Ukjente data mottatt, sjekk måleroppsettet",
+            "-41": "Rammelengde stemmer ikke",
+            "-51": "Autentisering mislyktes",
+            "-52": "Dekryptering mislyktes",
+            "-53": "Krypteringsnøkkel er ugyldig",
+            "89": "Ukjente data mottatt fra måler",
+            "90": "Ingen HAN-data mottatt på minst 30 s",
+            "91": "Serielt brudd",
+            "92": "Seriell buffer er full",
+            "93": "Seriell FIFO-overløp",
+            "94": "Seriell rammekonflikt",
+            "95": "Seriell paritetsfeil",
+            "96": "RX-feil",
+            "98": "Unntak i kode, feilsøking nødvendig",
+            "99": "Autodeteksjon mislyktes"
+        },
+        "mqtt": {
+            "-3": "Tilkobling mislyktes",
+            "-4": "Nettverkstidsavbrudd",
+            "-10": "Tilkobling nektet",
+            "-11": "Klarte ikke å abonnere",
+            "-13": "Tilkobling mistet"
+        },
+        "price": {
+            "400": "Ukjente data i forespørsel",
+            "401": "Ikke autorisert, sjekk API-nøkkel",
+            "403": "Ikke autorisert, sjekk API-nøkkel",
+            "404": "Pris utilgjengelig, ikke funnet",
+            "425": "Serveren sier det er for tidlig",
+            "429": "API-grensen er nådd",
+            "500": "Intern serverfeil",
+            "-1": "Tilkoblingsfeil",
+            "-2": "Ufullstendige data mottatt",
+            "-3": "Ugyldige data, tag mangler",
+            "-51": "Autentisering mislyktes",
+            "-52": "Dekryptering mislyktes",
+            "-53": "Krypteringsnøkkel er ugyldig"
+        },
+        "http": {
+            "255": "Kan ikke starte oppgradering",
+            "-1": "Tilkobling ble nektet",
+            "-2": "Klarte ikke å sende headere",
+            "-3": "Klarte ikke å sende payload",
+            "-4": "Ikke tilkoblet",
+            "-5": "Tilkobling mistet",
+            "-6": "Ingen datastrøm",
+            "-7": "Ikke en HTTP-server",
+            "-8": "Ikke nok minne",
+            "-9": "Kodingsfeil",
+            "-10": "Feil ved strøm-skriving",
+            "-11": "Lese-timeout"
+        }
+    },
+    "esp8266": {
+        "reason": {
+            "0": "Normal",
+            "1": "WDT-reset",
+            "2": "Unntaksreset",
+            "3": "Myk WDT-reset",
+            "4": "Programvarestart",
+            "5": "Dvale",
+            "6": "Ekstern reset"
+        }
+    },
+    "esp32": {
+        "reason": {
+            "1": "Vbat power on reset",
+            "3": "Programvarestyrt reset",
+            "4": "WDT-reset",
+            "5": "Dvale",
+            "6": "SLC-reset",
+            "7": "Timer Group0 WDT-reset",
+            "8": "Timer Group1 WDT-reset",
+            "9": "RTC WDT-reset",
+            "10": "Intrusion test reset CPU",
+            "11": "Timer Group reset CPU",
+            "12": "Programvarestyrt reset CPU",
+            "13": "RTC WTD reset CPU",
+            "14": "PRO CPU",
+            "15": "AP CPU",
+            "16": "Brownout reset",
+            "17": "HP core reset",
+            "18": "LP core reset",
+            "19": "HP-app reset",
+            "20": "LP-app reset",
+            "21": "HP-system reset",
+            "22": "LP-system reset"
+        }
+    }
+}

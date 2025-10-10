@@ -2,7 +2,7 @@
     import { getConfiguration, configurationStore } from './ConfigurationStore'
     import { sysinfoStore, networksStore } from './DataStores.js';
     import fetchWithTimeout from './fetchWithTimeout';
-    import { translationsStore } from './TranslationService';
+    import { translationsStore, getTranslations } from './TranslationService';
     import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern, wifiStateFromRssi } from './Helpers.js';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
@@ -94,7 +94,11 @@
             cloudenabled = update?.c?.e;
             configuration = update;
             loading = false;
-            languages = [{ code: 'en', name: 'English'}];
+            const hubLabel = translations.consent?.load_from_server ?? 'Load from server';
+            languages = [
+                { code: 'en', name: 'English'},
+                { code: 'no', name: 'Norsk'}
+            ];
             if(!configuration?.fw) {
                 configuration = {
                     ...configuration,
@@ -111,13 +115,26 @@
                     e: Number(configuration.fw.e ?? 3)
                 };
             }
-            if(configuration?.u?.lang && configuration.u.lang != 'en') {
+            if(configuration?.u?.lang && !languages.find(lang => lang.code === configuration.u.lang)) {
                 languages.push({ code: configuration.u.lang, name: translations.language?.name ?? "Unknown"})
             }
-            languages.push({ code: 'hub', name: 'Load from server'})
+            languages.push({ code: 'hub', name: hubLabel })
         }
     });
     getConfiguration();
+
+    $: if(languages.length) {
+        const hubLabel = translations.consent?.load_from_server ?? 'Load from server';
+        const hasHub = languages.some(lang => lang.code === 'hub');
+        if(!hasHub) {
+            languages = [...languages, { code: 'hub', name: hubLabel }];
+        } else {
+            const needsUpdate = languages.find(lang => lang.code === 'hub' && lang.name !== hubLabel);
+            if(needsUpdate) {
+                languages = languages.map(lang => lang.code === 'hub' ? { ...lang, name: hubLabel } : lang);
+            }
+        }
+    }
 
     let manual = true;
     let networks = {};
@@ -253,6 +270,11 @@
             const response = await fetchWithTimeout("http://hub.amsleser.no/hub/language/list.json");
             languages = (await response.json())
             configuration.u.lang = translations.language.code;
+            return;
+        }
+
+        if(configuration.u.lang) {
+            await getTranslations(configuration.u.lang);
         }
     }
 
@@ -328,6 +350,14 @@
                         </select>
                     </div>
                 </div>
+            </div>
+            <div class="my-1">
+                {translations.conf?.general?.language ?? translations.conf?.ui?.lang ?? "Language"}<br/>
+                <select name="ulang" class="in-s" bind:value={configuration.u.lang} on:change={languageChanged}>
+                    {#each languages as lang}
+                        <option value={lang.code}>{lang.name}</option>
+                    {/each}
+                </select>
             </div>
             <input type="hidden" name="p" value="true"/>
             <div class="my-1">
@@ -914,14 +944,6 @@
                         </select>
                     </div>
                 {/each}
-                <div class="w-1/2">
-                    {translations.conf?.ui?.lang ?? "Language"}
-                    <select name="ulang" class="in-s" bind:value={configuration.u.lang} on:change={languageChanged}>
-                        {#each languages as lang}
-                            <option value={lang.code}>{lang.name}</option>
-                        {/each}
-                    </select>
-                </div>
             </div>
         </div>
         {/if}

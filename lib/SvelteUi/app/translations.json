@@ -300,7 +300,9 @@
         "read_more" : "Read more",
         "yes" : "Yes",
         "no" : "No",
-        "mask_saving" : "Saving preferences"
+        "mask_saving" : "Saving preferences",
+        "language" : "Language",
+        "load_from_server" : "Load from server"
     },
     "upload" : {
         "title" : "Upload",

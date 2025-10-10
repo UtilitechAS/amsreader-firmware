@@ -8,41 +8,6 @@ Later development have added Energy usage graph for both day and month, as well 
 
 Go to the [WiKi](https://github.com/UtilitechAS/amsreader-firmware/wiki) for information on how to get your own device! And find the latest prebuilt firmware file at the [release section](https://github.com/UtilitechAS/amsreader-firmware/releases).
 
-## OTA updates from GitHub releases
-
-The firmware now supports downloading updates straight from GitHub Pages using a
-lightweight manifest file. Each time you push a tag like `v1.2.3`, the
-`.github/workflows/release.yml` pipeline will:
-
-1. Build every supported PlatformIO environment and publish `.bin`/`.zip`
-	assets on the release page (existing behaviour).
-2. Run `scripts/package_firmware.py` to assemble a static structure under
-	`dist/firmware/<chip>/<channel>/` with the firmware binary, an MD5 checksum,
-	and a `manifest.json` pointing at the binary.
-3. Deploy the contents of `dist/` to GitHub Pages, yielding public URLs such as
-	`https://<your-user>.github.io/neas-amsreader-firmware-test/firmware/esp32s2/stable/manifest.json`.
-
-> ℹ️ Make sure GitHub Pages for the repository is configured to "GitHub
-> Actions" under *Settings → Pages* the first time you run the workflow.
-
-To make the device follow those releases, set the default OTA endpoint before
-flashing:
-
-```cpp
-#define FIRMWARE_UPDATE_BASE_URL "https://<your-user>.github.io/neas-amsreader-firmware-test"
-#define FIRMWARE_UPDATE_CHANNEL  "stable"
-```
-
-You can override the defaults either by editing
-`lib/AmsFirmwareUpdater/include/UpgradeDefaults.h` or by adding corresponding
-`-D` flags in `platformio.ini`. When a release is available, the device fetches
-`manifest.json`, compares the `version` against its current firmware, and then
-downloads the referenced binary in chunks.
-
-If you need parallel release tracks (for example `beta` versus `stable`), pass
-`--channel beta` to `package_firmware.py` inside your automation and override
-`FIRMWARE_UPDATE_CHANNEL` for the devices you want on that track.
-
 ## Building this project with PlatformIO
 To build this project, you need [PlatformIO](https://platformio.org/) installed.
 
@@ -54,39 +19,6 @@ It is recommended to use Visual Studio Code with the PlatformIO plugin for devel
 
 For development purposes, copy the ```platformio-user.ini-example``` to ```platformio-user.ini``` and customize to your preference. The code will adapt to the platform and board set in your profile.
 
-### Running builds on macOS Apple Silicon
-
-The ESP8266 and ESP32-C3 toolchains bundled with the custom Tasmota platform
-are still compiled for Intel macOS. To keep `pio run` working without forcing
-you to remember `arch -x86_64`, the repository now ships a tiny wrapper:
-
-```bash
-./scripts/pio-run.sh run            # build every default environment (all boards)
-./scripts/pio-run.sh run -e esp8266 # build a specific environment only
-```
-
-The script automatically re-launches PlatformIO under Rosetta 2 when you are on
-an Apple Silicon Mac. On first run it also provisions a dedicated x86 Python
-virtual environment in `~/.platformio/penv-x86` and installs PlatformIO inside
-it, so expect an extra minute for the initial setup. If Rosetta is missing you
-will see a friendly reminder to install it with
-`softwareupdate --install-rosetta --agree-to-license`.
-
-If you prefer using npm scripts, the same wrapper is available through:
-
-```bash
-npm run pio:run                 # builds every configured board
-npm run pio:run:env -- esp32c3  # pass any PlatformIO environment name
-```
-
-> **Heads-up:** invoking `pio run` directly on an Apple Silicon Mac will still
-> fail for the ESP8266/ESP32-C3 environments unless you prefix it with
-> `arch -x86_64`. Using `scripts/pio-run.sh` (or the npm aliases) keeps the
-> command portable across macOS and Linux without special flags.
-
-> The first macOS run may print `NotOpenSSLWarning` from `urllib3`; this comes
-> from Apple's LibreSSL build and can safely be ignored for local development.
-
 ## Licensing
 Initially, this project began as a hobby, consuming countless hours of our spare time. However, the time required to support this project has expanded beyond the scope of a hobby. As a result, we established ‘Utilitech’, a company dedicated to maintaining the software and hardware for this project as part of our regular work.
 
@@ -96,59 +28,7 @@ For more information, please refer to our [LICENSE](/LICENSE) file.
 
 If your usage falls outside the scope of this license and you require a separate license, please contact us at [post@utilitech.no](mailto:post@utilitech.no) for further details.
 
-
-## MQTT auto-provisioning defaults
-If you want devices to connect to a known MQTT broker immediately after flashing, keep credentials in a local `.env` file rather than committing them:
-
-1. Copy `.env.example` to `.env` and fill in the MQTT values (host, port, username/password, client ID, topics, etc.).
-2. Commit the `.env.example` changes only—`.env` is ignored so secrets stay local.
-3. Build the firmware; the PlatformIO pre-build hook injects these values so the device boots with your broker settings.
-
-Any field you leave empty will fall back to the defaults in `lib/AmsConfiguration/include/MqttDefaults.h`, meaning the web UI will prompt for credentials during first-time setup.
-
-### Shipping credentials with GitHub releases (without committing secrets)
-
-The OTA manifest generated by `scripts/package_firmware.py` now carries an
-optional `mqtt` block. If the build machine provides values for
-`MQTT_DEFAULT_*` (through environment variables or a `.env` file), the script
-embeds those defaults alongside the firmware checksum. Devices that upgrade via
-GitHub Pages will download the manifest, detect the `mqtt` section, and apply
-the broker settings automatically—unless the installer has already customised
-the device through the web UI.
-
-To keep secrets out of source control while still provisioning releases:
-
-1. Store your broker credentials as GitHub Action secrets (for example
-	`MQTT_DEFAULT_USERNAME`, `MQTT_DEFAULT_PASSWORD`, etc.).
-2. In the release workflow, write a temporary `.env` file before invoking the
-	PlatformIO build:
-
-	```yaml
-	- name: Write MQTT defaults
-	  run: |
-		 cat <<'EOF' > .env
-		 MQTT_DEFAULT_HOST=${{ secrets.MQTT_DEFAULT_HOST }}
-		 MQTT_DEFAULT_PORT=${{ secrets.MQTT_DEFAULT_PORT }}
-		 MQTT_DEFAULT_USERNAME=${{ secrets.MQTT_DEFAULT_USERNAME }}
-		 MQTT_DEFAULT_PASSWORD=${{ secrets.MQTT_DEFAULT_PASSWORD }}
-		 MQTT_DEFAULT_CLIENT_ID=${{ secrets.MQTT_DEFAULT_CLIENT_ID }}
-		 MQTT_DEFAULT_PUBLISH_TOPIC=${{ secrets.MQTT_DEFAULT_PUBLISH_TOPIC }}
-		 MQTT_DEFAULT_SUBSCRIBE_TOPIC=${{ secrets.MQTT_DEFAULT_SUBSCRIBE_TOPIC }}
-		 EOF
-	```
-
-3. Build the firmware and run `scripts/package_firmware.py` as usual; the
-	generated `manifest.json` will include the broker defaults.
-4. Upload `dist/` to GitHub Pages (the existing release workflow already covers
-	this), so devices retrieving the manifest can bootstrap the MQTT connection
-	immediately after flashing.
-
-Because the `.env` file is created on-the-fly inside CI and never committed,
-your credentials remain private while every release published to GitHub ships
-with working MQTT settings out of the box.
-
-
-# How to wipe bricked board?
+# How to wipe bricked firmware?
 
 To wipe the board you need to set it in USB mode. Connect the board to a usb board on you computor, hold AP/Prog button and shortly click reset before letting go of AP/Prog. To check if device is in usb mode you can check connections on this [site](https://www.amsleser.cloud/flasher)
 

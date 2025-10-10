@@ -13,16 +13,17 @@
 bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 	EEPROM.begin(EEPROM_SIZE);
 	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
+	EEPROM.get(CONFIG_SYSTEM_START, config);
+	EEPROM.end();
 	if(configVersion == EEPROM_CHECK_SUM) {
-		EEPROM.get(CONFIG_SYSTEM_START, config);
-		EEPROM.end();
 		return true;
 	} else {
-		if(configVersion == EEPROM_CLEARED_INDICATOR) {
+		if(configVersion == EEPROM_CLEARED_INDICATOR && config.boardType > 0 && config.boardType < 250) {
 			config.vendorConfigured = true;
 		} else {
 			config.vendorConfigured = false;
 			config.boardType = 0xFF;
+			clear();
 		}
 		config.userConfigured = false;
 		config.dataCollectionConsent = 0;
@@ -282,8 +283,9 @@ void AmsConfiguration::ackWebChange() {
 }
 
 bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
-	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
+	EEPROM.begin(EEPROM_SIZE);
+	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
+	if(configVersion == EEPROM_CHECK_SUM || configVersion == EEPROM_CLEARED_INDICATOR) {
 		EEPROM.get(CONFIG_METER_START, config);
 		EEPROM.end();
 		if(config.bufferSize < 1 || config.bufferSize > 64) {
@@ -903,12 +905,14 @@ bool AmsConfiguration::getZmartChargeConfig(ZmartChargeConfig& config) {
 		EEPROM.end();
 		stripNonAscii((uint8_t*) config.token, 21);
 		stripNonAscii((uint8_t*) config.baseUrl, 64);
-		if(strlen(config.token) < 20) {
+		if(strlen(config.token) != 20) {
 			config.enabled = false;
 			memset(config.token, 0, 64);
 			memset(config.baseUrl, 0, 64);
 		}
 		if(strncmp_P(config.baseUrl, PSTR("https"), 5) != 0) {
+			config.enabled = false;
+			memset(config.token, 0, 64);
 			memset(config.baseUrl, 0, 64);
 	        snprintf_P(config.baseUrl, 64, PSTR("https://main.zmartcharge.com/api"));
 		}
@@ -1021,6 +1025,10 @@ void AmsConfiguration::clear() {
 	CloudConfig cloud;
 	clearCloudConfig(cloud);
 	EEPROM.put(CONFIG_CLOUD_START, cloud);
+
+	ZmartChargeConfig zc;
+	clearZmartChargeConfig(zc);
+	EEPROM.put(CONFIG_ZC_START, zc);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CLEARED_INDICATOR);
 	EEPROM.commit();

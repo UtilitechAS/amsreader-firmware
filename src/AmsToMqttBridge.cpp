@@ -307,20 +307,15 @@ void setup() {
 	if(!config.getGpioConfig(gpioConfig)) {
 		config.clearGpio(gpioConfig);
 	}
-	if(config.getSystemConfig(sysConfig)) {
-		config.getMeterConfig(meterConfig);
-		if(sysConfig.boardType < 20) {
-			config.clearGpio(gpioConfig, false);
-			hw.applyBoardConfig(sysConfig.boardType, gpioConfig, meterConfig, meterConfig.rxPin);
-			config.setMeterConfig(meterConfig);
-			config.setGpioConfig(gpioConfig);
-		}
-	} else {
-		config.clearMeter(meterConfig);
-		sysConfig.boardType = 0;
-		sysConfig.vendorConfigured = false;
-		sysConfig.userConfigured = false;
-		sysConfig.dataCollectionConsent = false;
+	config.getSystemConfig(sysConfig);
+	config.getMeterConfig(meterConfig);
+
+	if(sysConfig.boardType < 20) {
+		Serial.printf_P(PSTR("Applying default GPIO configuration for board type %d\n"), sysConfig.boardType);
+		config.clearGpio(gpioConfig, false);
+		hw.applyBoardConfig(sysConfig.boardType, gpioConfig, meterConfig, meterConfig.rxPin);
+		config.setMeterConfig(meterConfig);
+		config.setGpioConfig(gpioConfig);
 	}
 
 	delay(1);
@@ -417,10 +412,11 @@ void setup() {
 	float vcc = hw.getVcc();
 
 	debugI_P(PSTR("AMS reader %s started"), FirmwareVersion::VersionString);
+	debugI_P(PSTR("Configuration version: %d, board type: %d"), config.getConfigVersion(), sysConfig.boardType);
 	debugI_P(PSTR("Voltage: %.2fV"), vcc);
 
 	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
-	if(vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
+	if(vcc > 2.5 && vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
 		if (vcc < vccBootLimit) {
 			{
 				Debug.printf_P(PSTR("(setup) Voltage is too low (%.2f < %.2f), sleeping\n"), vcc, vccBootLimit);
@@ -1336,6 +1332,7 @@ bool readHanPort() {
 	}
 	if(mc->isConfigChanged()) {
 		mc->getCurrentConfig(meterConfig);
+		debugI_P(PSTR("Meter configuration based on auto-detect"));
 		config.setMeterConfig(meterConfig);
 		mc->ackConfigChanged();
 	}

@@ -8,7 +8,7 @@
 // ----------------------------------------------------------------------------
 
 #ifndef FIRMWARE_UPDATE_BASE_URL
-#define FIRMWARE_UPDATE_BASE_URL "https://eivindh06.github.io/neas-amsreader-firmware-test"
+#define FIRMWARE_UPDATE_BASE_URL "https://eivindh06.github.io/neas-energymeter-firmware/"
 #endif
 
 #ifndef FIRMWARE_UPDATE_CHANNEL

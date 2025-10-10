@@ -147,25 +147,25 @@
 
       {#if sysinfo.upgrading}
         <div class="flex-none mr-3 mt-1 text-yellow-300">
-          Updaterer til {sysinfo.upgrade.t}, {progress.toFixed(1)}%
+          Oppdaterer til {sysinfo.upgrade.t}, {progress.toFixed(1)}%
         </div>
       {:else if sysinfo.fwconsent === 1 && sysinfo.upgrade.n}
         <div
           class="flex-none mr-3 text-yellow-500"
-          title={(translations.header?.new_version ?? "Ny updatering") +
+          title={(translations.header?.new_version ?? "Ny oppdatering") +
             ": " +
             sysinfo.upgrade.n}
         >
           {#if sysinfo.security == 0 || data.a}
             <button on:click={askUpgrade} class="flex"
               ><span class="mt-1"
-                >{translations.header?.new_version ?? "Ny updatering"}: {sysinfo
+                >{translations.header?.new_version ?? "Ny oppdatering"}: {sysinfo
                   .upgrade.n}</span
               ></button
             >
           {:else}
             <span
-              >{translations.header?.new_version ?? "Ny updatering"}: {sysinfo
+              >{translations.header?.new_version ?? "Ny oppdatering"}: {sysinfo
                 .upgrade.n}</span
             >
           {/if}

@@ -80,7 +80,11 @@
     })();
 
     if (sysinfo.vndcfg === false) {
-      if (currentPath !== "vendor") navigate(basepath + "vendor");
+      if (currentPath === "setup") {
+        navigate(basepath + "vendor");
+      } else if (currentPath !== "welcome" && currentPath !== "vendor") {
+        navigate(basepath + "welcome");
+      }
     } else if (sysinfo.usrcfg === false) {
       if (currentPath !== "welcome" && currentPath !== "setup") {
         navigate(basepath + "welcome");

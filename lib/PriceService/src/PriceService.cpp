@@ -263,6 +263,14 @@ bool PriceService::loop() {
     bool readyToFetchForTomorrow = tomorrow == NULL && (tm.Hour > 13 || (tm.Hour == 13 && tm.Minute >= tomorrowFetchMinute)) && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > (nextFetchDelayMinutes*60000));
 
     if(today == NULL && (lastTodayFetch == 0 || now - lastTodayFetch > (nextFetchDelayMinutes*60000))) {
+#if defined(ESP8266)
+        lastTodayFetch = now;
+        today = fetchPrices(t);
+        if(today == NULL && lastError == 0) {
+            lastError = 900;
+            nextFetchDelayMinutes = 60;
+        }
+#else
         try {
             lastTodayFetch = now;
             today = fetchPrices(t);
@@ -273,12 +281,21 @@ bool PriceService::loop() {
             }
             today = NULL;
         }
+#endif
         return today != NULL && !readyToFetchForTomorrow; // Only trigger MQTT publish if we have todays prices and we are not immediately ready to fetch price for tomorrow.
     }
 
     // Prices for next day are published at 13:00 CE(S)T, but to avoid heavy server traffic at that time, we will 
     // fetch with one hour (with some random delay) and retry every 15 minutes
     if(readyToFetchForTomorrow) {
+#if defined(ESP8266)
+        lastTomorrowFetch = now;
+        tomorrow = fetchPrices(t+SECS_PER_DAY);
+        if(tomorrow == NULL && lastError == 0) {
+            lastError = 900;
+            nextFetchDelayMinutes = 60;
+        }
+#else
         try {
             lastTomorrowFetch = now;
             tomorrow = fetchPrices(t+SECS_PER_DAY);
@@ -289,6 +306,7 @@ bool PriceService::loop() {
             }
             tomorrow = NULL;
         }
+#endif
         return tomorrow != NULL;
     }
 

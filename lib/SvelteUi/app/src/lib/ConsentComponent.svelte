@@ -14,6 +14,23 @@
     });
 
     let loadingOrSaving = false;
+    let consentChoice = '';
+    let autoUpdateChoice = '';
+    let canSave = false;
+
+    $: if (sysinfo) {
+        if (sysinfo.fwconsent === 1 || sysinfo.fwconsent === 2) {
+            consentChoice = String(sysinfo.fwconsent);
+        }
+        const autoFlag = sysinfo?.upgrade?.auto;
+        if (autoFlag === true) {
+            autoUpdateChoice = 'true';
+        } else if (autoFlag === false) {
+            autoUpdateChoice = 'false';
+        }
+    }
+
+    $: canSave = consentChoice !== '' && autoUpdateChoice !== '' && !loadingOrSaving;
 
     async function handleSubmit(e) {
         loadingOrSaving = true;
@@ -24,6 +41,10 @@
             data.append(key, value)
         }
 
+        const consentValue = formData.get('sf');
+        const autoValue = formData.get('fwa');
+        const autoDecision = autoValue === 'true' ? true : autoValue === 'false' ? false : null;
+
         const response = await fetch('save', {
             method: 'POST',
             body: data
@@ -32,7 +53,13 @@
         loadingOrSaving = false;
 
         sysinfoStore.update(s => {
-            s.fwconsent = formData['sf'] === true ? 1 : formData['sf'] === false ? 2 : 0;
+            s.fwconsent = consentValue === '1' ? 1 : consentValue === '2' ? 2 : 0;
+            if (!s.upgrade || typeof s.upgrade !== 'object') {
+                s.upgrade = {};
+            }
+            if (autoDecision !== null) {
+                s.upgrade.auto = autoDecision;
+            }
             s.booting = res.reboot;
             return s;
         });
@@ -50,11 +77,17 @@
             <div class="my-3">
                 {translations.consent?.one_click ?? "One-click"}<br/>
                 <a href="{wiki('Data-collection-on-one-click-firmware-upgrade')}" target="_blank" class="text-blue-600 hover:text-blue-800">{translations.consent?.read_more ?? "Read more"}</a><br/>
-                <label><input type="radio" name="sf" value={1} checked={sysinfo.fwconsent === 1} class="rounded m-2" required/> {translations.consent?.yes ?? "Yes"}</label>
-                <label><input type="radio" name="sf" value={2} checked={sysinfo.fwconsent === 2} class="rounded m-2" required/> {translations.consent?.no ?? "No"}</label><br/>
+                <label><input type="radio" name="sf" value="1" bind:group={consentChoice} class="rounded m-2" required/> {translations.consent?.yes ?? "Yes"}</label>
+                <label><input type="radio" name="sf" value="2" bind:group={consentChoice} class="rounded m-2" required/> {translations.consent?.no ?? "No"}</label><br/>
+            </div>
+            <input type="hidden" name="fw" value="true"/>
+            <div class="my-3">
+                {translations.consent?.auto_update ?? "Automatic firmware updates"}<br/>
+                <label><input type="radio" name="fwa" value="true" bind:group={autoUpdateChoice} class="rounded m-2" required/> {translations.consent?.yes ?? "Yes"}</label>
+                <label><input type="radio" name="fwa" value="false" bind:group={autoUpdateChoice} class="rounded m-2" required/> {translations.consent?.no ?? "No"}</label><br/>
             </div>
             <div class="my-3">
-                <button type="submit" class="btn-pri">{translations.btn?.save ?? "Save"}</button>
+                <button type="submit" class="btn-pri" disabled={!canSave}>{translations.btn?.save ?? "Save"}</button>
             </div>
         </form>
     </div>

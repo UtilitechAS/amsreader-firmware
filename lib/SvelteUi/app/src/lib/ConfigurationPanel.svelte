@@ -95,6 +95,22 @@
             configuration = update;
             loading = false;
             languages = [{ code: 'en', name: 'English'}];
+            if(!configuration?.fw) {
+                configuration = {
+                    ...configuration,
+                    fw: {
+                        a: false,
+                        s: 2,
+                        e: 3
+                    }
+                };
+            } else {
+                configuration.fw = {
+                    a: !!configuration.fw.a,
+                    s: Number(configuration.fw.s ?? 2),
+                    e: Number(configuration.fw.e ?? 3)
+                };
+            }
             if(configuration?.u?.lang && configuration.u.lang != 'en') {
                 languages.push({ code: configuration.u.lang, name: translations.language?.name ?? "Unknown"})
             }
@@ -244,6 +260,18 @@
         configuration.p.e = true;
     }
 
+    function formatHour(hour) {
+        let value = Number(hour ?? 0);
+        if(!Number.isFinite(value)) {
+            value = parseInt(hour ?? 0, 10);
+        }
+        if(!Number.isFinite(value)) {
+            value = 0;
+        }
+        const normalized = ((value % 24) + 24) % 24;
+        return `${normalized.toString().padStart(2, '0')}:00`;
+    }
+
     let gpioMax = 44;
     $: {
         gpioMax = sysinfo.chip == 'esp8266' ? 16 : sysinfo.chip == 'esp32s2' ? 44 : 39;
@@ -387,6 +415,40 @@
             <div class="my-1">
                 {translations.conf?.general?.context ?? "Context"}<br/>
                 <input name="gc" bind:value={configuration.g.c} type="text" pattern={charAndNumPattern} placeholder={translations.conf?.general?.context_placeholder ?? "/"} class="in-s" maxlength="36"/>
+            </div>
+        </div>
+        {/if}
+        {#if configuration?.fw}
+        <div class="cnt">
+            <strong class="text-sm">Firmware updates</strong>
+            <input type="hidden" name="fw" value="true"/>
+            <div class="my-1">
+                <label>
+                    <input type="checkbox" name="fwa" value="true" bind:checked={configuration.fw.a} class="rounded mb-1"/>
+                    Enable nightly auto-updates
+                </label>
+            </div>
+            <div class="my-1 grid grid-cols-2 gap-2">
+                <div>
+                    Start hour<br/>
+                    <input name="fws" type="number" min="0" max="23" class="in-s w-full" bind:value={configuration.fw.s} disabled={!configuration.fw.a}/>
+                </div>
+                <div>
+                    End hour<br/>
+                    <input name="fwe" type="number" min="0" max="23" class="in-s w-full" bind:value={configuration.fw.e} disabled={!configuration.fw.a}/>
+                </div>
+            </div>
+            <div class="my-1 text-xs text-gray-500">
+                When enabled, the device will install available updates once per night between {formatHour(configuration.fw.s)} and {formatHour(configuration.fw.e)} using its local time zone.
+            </div>
+            <div class="my-1 text-xs">
+                {#if sysinfo?.upgrade?.m === true}
+                    <span class="text-green-600">Latest firmware already installed.</span>
+                {:else if sysinfo?.upgrade?.n}
+                    Latest available: {sysinfo.upgrade.n}
+                {:else}
+                    Checking for updates…
+                {/if}
             </div>
         </div>
         {/if}

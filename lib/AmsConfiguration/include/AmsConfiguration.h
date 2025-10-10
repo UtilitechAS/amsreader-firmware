@@ -29,6 +29,7 @@
 #define CONFIG_UI_START 1720
 #define CONFIG_CLOUD_START 1742
 #define CONFIG_UPGRADE_INFO_START 1934
+#define CONFIG_UPGRADE_SETTINGS_START 1964
 #define CONFIG_ZC_START 2000
 
 #define CONFIG_METER_START_103 32
@@ -245,6 +246,12 @@ struct UpgradeInformation {
 	int8_t errorCode;
 }; // 25
 
+struct UpgradeConfig {
+	bool autoUpgrade;
+	uint8_t windowStartHour;
+	uint8_t windowEndHour;
+}; // 3
+
 struct CloudConfig {
 	bool enabled;
 	uint8_t interval;
@@ -348,6 +355,12 @@ public:
 	bool setUpgradeInformation(UpgradeInformation&);
 	void clearUpgradeInformation(UpgradeInformation&);
 
+	bool getUpgradeConfig(UpgradeConfig&);
+	bool setUpgradeConfig(UpgradeConfig&);
+	void clearUpgradeConfig(UpgradeConfig&);
+	bool isUpgradeConfigChanged();
+	void ackUpgradeConfig();
+
 	bool getCloudConfig(CloudConfig&);
 	bool setCloudConfig(CloudConfig&);
 	void clearCloudConfig(CloudConfig&);
@@ -368,7 +381,7 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool sysChanged = false, networkChanged = false, mqttChanged = false, webChanged = false, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false, zcChanged = true;
+	bool sysChanged = false, networkChanged = false, mqttChanged = false, webChanged = false, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false, zcChanged = true, upgradeSettingsChanged = false;
 
 	bool relocateConfig103(); // 2.2.12, until, but not including 2.3
 

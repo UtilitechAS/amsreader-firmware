@@ -54,6 +54,39 @@ It is recommended to use Visual Studio Code with the PlatformIO plugin for devel
 
 For development purposes, copy the ```platformio-user.ini-example``` to ```platformio-user.ini``` and customize to your preference. The code will adapt to the platform and board set in your profile.
 
+### Running builds on macOS Apple Silicon
+
+The ESP8266 and ESP32-C3 toolchains bundled with the custom Tasmota platform
+are still compiled for Intel macOS. To keep `pio run` working without forcing
+you to remember `arch -x86_64`, the repository now ships a tiny wrapper:
+
+```bash
+./scripts/pio-run.sh run            # build every default environment (all boards)
+./scripts/pio-run.sh run -e esp8266 # build a specific environment only
+```
+
+The script automatically re-launches PlatformIO under Rosetta 2 when you are on
+an Apple Silicon Mac. On first run it also provisions a dedicated x86 Python
+virtual environment in `~/.platformio/penv-x86` and installs PlatformIO inside
+it, so expect an extra minute for the initial setup. If Rosetta is missing you
+will see a friendly reminder to install it with
+`softwareupdate --install-rosetta --agree-to-license`.
+
+If you prefer using npm scripts, the same wrapper is available through:
+
+```bash
+npm run pio:run                 # builds every configured board
+npm run pio:run:env -- esp32c3  # pass any PlatformIO environment name
+```
+
+> **Heads-up:** invoking `pio run` directly on an Apple Silicon Mac will still
+> fail for the ESP8266/ESP32-C3 environments unless you prefix it with
+> `arch -x86_64`. Using `scripts/pio-run.sh` (or the npm aliases) keeps the
+> command portable across macOS and Linux without special flags.
+
+> The first macOS run may print `NotOpenSSLWarning` from `urllib3`; this comes
+> from Apple's LibreSSL build and can safely be ignored for local development.
+
 ## Licensing
 Initially, this project began as a hobby, consuming countless hours of our spare time. However, the time required to support this project has expanded beyond the scope of a hobby. As a result, we established ‘Utilitech’, a company dedicated to maintaining the software and hardware for this project as part of our regular work.
 

@@ -4,6 +4,7 @@
 #include "UpgradeDefaults.h"
 #include <ArduinoJson.h>
 #include <cstring>
+#include <TimeLib.h>
 
 #if defined(ESP32)
 #include "esp_ota_ops.h"
@@ -116,6 +117,7 @@ float AmsFirmwareUpdater::getProgress() {
 }
 
 void AmsFirmwareUpdater::loop() {
+    refreshUpgradeConfig();
     if(millis() < 30000) {
         // Wait 30 seconds before starting upgrade. This allows the device to deal with other tasks first
         // It will also allow BUS powered devices to reach a stable voltage so that hw->isVoltageOptimal will behave properly
@@ -265,25 +267,156 @@ void AmsFirmwareUpdater::loop() {
             fetchNextVersion();
             lastVersionCheck = seconds;
         }
+
+        if(shouldTriggerAutoUpgrade()) {
+            if(setTargetVersion(nextVersion)) {
+                updateStatus.size = 0;
+                updateStatusChanged = true;
+                if(nextAutoAttemptDay != 0) {
+                    lastAutoAttemptDay = nextAutoAttemptDay;
+                    nextAutoAttemptDay = 0;
+                }
+            }
+        }
     }
+}
+
+void AmsFirmwareUpdater::setUpgradeConfig(const UpgradeConfig& cfg) {
+    bool changed = !upgradeConfigInitialized ||
+                   upgradeConfig.autoUpgrade != cfg.autoUpgrade ||
+                   upgradeConfig.windowStartHour != cfg.windowStartHour ||
+                   upgradeConfig.windowEndHour != cfg.windowEndHour;
+
+    upgradeConfig = cfg;
+    upgradeConfigInitialized = true;
+    if(upgradeConfig.windowStartHour >= 24) upgradeConfig.windowStartHour %= 24;
+    if(upgradeConfig.windowEndHour >= 24) upgradeConfig.windowEndHour %= 24;
+    autoUpgrade = upgradeConfig.autoUpgrade;
+
+    if(changed) {
+        nextAutoAttemptDay = 0;
+        lastAutoAttemptDay = 0;
+    }
+}
+
+void AmsFirmwareUpdater::setTimezone(Timezone* tz) {
+    this->tz = tz;
+}
+
+void AmsFirmwareUpdater::refreshUpgradeConfig() {
+    if(configuration == NULL) {
+        return;
+    }
+
+    bool shouldRefresh = !upgradeConfigInitialized || configuration->isUpgradeConfigChanged();
+    if(!shouldRefresh) {
+        return;
+    }
+
+    UpgradeConfig cfg;
+    bool hasConfig = configuration->getUpgradeConfig(cfg);
+    if(!hasConfig) {
+        configuration->clearUpgradeConfig(cfg);
+        configuration->setUpgradeConfig(cfg);
+        configuration->getUpgradeConfig(cfg);
+    }
+
+    setUpgradeConfig(cfg);
+    if(configuration->isUpgradeConfigChanged()) {
+        configuration->ackUpgradeConfig();
+    }
+}
+
+bool AmsFirmwareUpdater::shouldTriggerAutoUpgrade() {
+    nextAutoAttemptDay = 0;
+
+    if(!autoUpgrade) return false;
+    if(tz == NULL) return false;
+    if(strlen(nextVersion) == 0) return false;
+    if(currentVersionMatchesLatest) return false;
+    if(strlen(updateStatus.toVersion) > 0) return false;
+    if(!hw->isVoltageOptimal(0.2)) return false;
+
+    time_t nowUtc = now();
+    if(nowUtc <= 0) return false;
+
+    time_t localTime = tz->toLocal(nowUtc);
+    if(!isWithinAutoWindow(localTime)) return false;
+
+    tmElements_t tm;
+    breakTime(localTime, tm);
+    time_t midnight = localTime - (tm.Hour * 3600UL + tm.Minute * 60UL + tm.Second);
+
+    if(lastAutoAttemptDay == midnight) {
+        return false;
+    }
+
+    nextAutoAttemptDay = midnight;
+    return true;
+}
+
+bool AmsFirmwareUpdater::isWithinAutoWindow(time_t localTime) const {
+    uint8_t start = upgradeConfig.windowStartHour % 24;
+    uint8_t end = upgradeConfig.windowEndHour % 24;
+
+    tmElements_t tm;
+    breakTime(localTime, tm);
+    uint8_t hour = tm.Hour % 24;
+
+    if(start == end) {
+        return hour == start;
+    }
+
+    if(start < end) {
+        return hour >= start && hour < end;
+    }
+
+    // Window wraps around midnight
+    return hour >= start || hour < end;
+}
+
+bool AmsFirmwareUpdater::computeCurrentVersionMatch() {
+#if FIRMWARE_UPDATE_USE_MANIFEST
+    if(!manifestInfo.loaded || manifestInfo.version.isEmpty()) {
+        return false;
+    }
+
+    if(manifestInfo.version.equalsIgnoreCase(FirmwareVersion::VersionString)) {
+        return true;
+    }
+
+    if(manifestInfo.md5.length() > 0) {
+        String sketchMD5 = ESP.getSketchMD5();
+        if(!sketchMD5.isEmpty()) {
+            return sketchMD5.equalsIgnoreCase(manifestInfo.md5);
+        }
+    }
+
+    return false;
+#else
+    return false;
+#endif
 }
 
 bool AmsFirmwareUpdater::fetchNextVersion() {
 #if FIRMWARE_UPDATE_USE_MANIFEST
     if(!loadManifest(true)) {
+        currentVersionMatchesLatest = false;
         return false;
     }
     if(manifestInfo.version.isEmpty()) {
+        currentVersionMatchesLatest = false;
+        return false;
+    }
+
+    currentVersionMatchesLatest = computeCurrentVersionMatch();
+    if(currentVersionMatchesLatest) {
+        memset(nextVersion, 0, sizeof(nextVersion));
         return false;
     }
 
     strncpy(nextVersion, manifestInfo.version.c_str(), sizeof(nextVersion) - 1);
     nextVersion[sizeof(nextVersion) - 1] = '\0';
-
-    if(autoUpgrade && strcmp(updateStatus.toVersion, nextVersion) != 0) {
-        strcpy(updateStatus.toVersion, nextVersion);
-        updateStatus.size = 0;
-    }
     return strlen(nextVersion) > 0;
 #else
     HTTPClient http;
@@ -311,14 +444,15 @@ bool AmsFirmwareUpdater::fetchNextVersion() {
         if(status == 204) {
             String nextVersion = http.header("x-version");
             strcpy(this->nextVersion, nextVersion.c_str());
-            if(autoUpgrade && strcmp(updateStatus.toVersion, this->nextVersion) != 0) {
-                strcpy(updateStatus.toVersion, this->nextVersion);
-                updateStatus.size = 0;
+            currentVersionMatchesLatest = nextVersion.equalsIgnoreCase(FirmwareVersion::VersionString);
+            if(currentVersionMatchesLatest) {
+                memset(this->nextVersion, 0, sizeof(this->nextVersion));
             }
             http.end();
             return strlen(this->nextVersion) > 0;
         } else if(status == 200) {
             memset(this->nextVersion, 0, sizeof(this->nextVersion));
+            currentVersionMatchesLatest = true;
         }
         http.end();
     }

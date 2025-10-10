@@ -23,7 +23,9 @@ jobs:
       id: release_tag
       env:
         GITHUB_REF: ${{ github.ref }}
-      run: echo ::set-output name=tag::$(echo ${GITHUB_REF:11})
+      run: |
+        tag="${GITHUB_REF#refs/tags/}"
+        echo "tag=${tag}" >> "$GITHUB_OUTPUT"
     - name: Get release version for code
       env:
         GITHUB_REF: ${{ github.ref }}
@@ -102,7 +104,7 @@ jobs:
         CI: false
 
     - name: PlatformIO lib install
-      run: pio lib install
+      run: ./scripts/pio-run.sh lib install
 
     - name: Create release with release notes
       id: create_release
@@ -113,7 +115,7 @@ jobs:
         allowUpdates: true
 
     - name: Build esp8266 firmware
-      run: pio run -e esp8266
+      run: ./scripts/pio-run.sh run -e esp8266
     - name: Create esp8266 zip file
       run: /bin/sh scripts/esp8266/mkzip.sh
     - name: Upload esp8266 binary to release
@@ -136,7 +138,7 @@ jobs:
         asset_content_type: application/zip
 
     - name: Build esp32 firmware
-      run: pio run -e esp32
+      run: ./scripts/pio-run.sh run -e esp32
     - name: Create esp32 zip file
       run: /bin/sh scripts/esp32/mkzip.sh
     - name: Upload esp32 binary to release
@@ -159,7 +161,7 @@ jobs:
         asset_content_type: application/zip
 
     - name: Build esp32s2 firmware
-      run: pio run -e esp32s2
+      run: ./scripts/pio-run.sh run -e esp32s2
     - name: Create esp32s2 zip file
       run: /bin/sh scripts/esp32s2/mkzip.sh
     - name: Upload esp32s2 binary to release
@@ -182,7 +184,7 @@ jobs:
         asset_content_type: application/zip
 
     - name: Build esp32s3 firmware
-      run: pio run -e esp32s3
+      run: ./scripts/pio-run.sh run -e esp32s3
     - name: Create esp32s3 zip file
       run: /bin/sh scripts/esp32s3/mkzip.sh
     - name: Upload esp32s3 binary to release
@@ -205,7 +207,7 @@ jobs:
         asset_content_type: application/zip
 
     - name: Build esp32solo firmware
-      run: pio run -e esp32solo
+      run: ./scripts/pio-run.sh run -e esp32solo
     - name: Create esp32solo zip file
       run: /bin/sh scripts/esp32solo/mkzip.sh
     - name: Upload esp32solo binary to release
@@ -228,7 +230,7 @@ jobs:
         asset_content_type: application/zip
 
     - name: Build esp32c3 firmware
-      run: pio run -e esp32c3
+      run: ./scripts/pio-run.sh run -e esp32c3
     - name: Create esp32c3 zip file
       run: /bin/sh scripts/esp32c3/mkzip.sh
     - name: Upload esp32c3 binary to release
@@ -254,6 +256,9 @@ jobs:
       run: |
         python scripts/package_firmware.py --output dist --channel stable --version ${{ steps.release_tag.outputs.tag }}
         ls -R dist
+
+    - name: Configure GitHub Pages
+      uses: actions/configure-pages@v4
 
     - name: Upload Pages artifact
       uses: actions/upload-pages-artifact@v3

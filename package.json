@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "pio:run": "./scripts/pio-run.sh run",
+    "pio:run:env": "./scripts/pio-run.sh run -e"
+  },
   "devDependencies": {
     "svelte-preprocess": "^6.0.3"
   }

@@ -36,6 +36,7 @@
 #include "html/conf_upgrade_json.h"
 #include "html/conf_cloud_json.h"
 #include "html/translations_json.h"
+#include "html/translations_no_json.h"
 #include "html/firmware_html.h"
 #include "html/neas_logotype_white_svg.h"
 #include "html/wifi_high_light_svg.h"
@@ -1266,6 +1267,12 @@ void AmsWebServer::translationsJson() {
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	if(lang.equalsIgnoreCase(F("no"))) {
+		uint16_t len = pgm_read_word(&TRANSLATIONS_NO_JSON_LEN);
+		server.send_P(200, MIME_JSON, TRANSLATIONS_NO_JSON, len);
+		return;
+	}
 
 	uint16_t len = pgm_read_word(&TRANSLATIONS_JSON_LEN);
 	server.send_P(200, MIME_JSON, TRANSLATIONS_JSON, len);

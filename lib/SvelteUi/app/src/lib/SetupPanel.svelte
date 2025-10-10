@@ -204,11 +204,6 @@
                 </div>
             {/if}
             <div>
-            <div class="my-3">
-                {translations.consent?.auto_update ?? "Automatic firmware updates"}<br/>
-                <label><input type="radio" name="fwa" value="true" bind:group={autoUpdateChoice} class="rounded m-2"/> {translations.consent?.yes ?? "Yes"}</label>
-                <label><input type="radio" name="fwa" value="false" bind:group={autoUpdateChoice} class="rounded m-2"/> {translations.consent?.no ?? "No"}</label>
-            </div>
                 {translations.conf?.general?.hostname ?? "Hostname"}
                 <input name="sh" bind:value={sysinfo.hostname} type="text" class="in-s" maxlength="32" pattern={charAndNumPattern} placeholder="Optional, ex.: ams-reader" autocomplete="off"/>
             </div>

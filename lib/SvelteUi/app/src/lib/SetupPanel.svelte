@@ -40,6 +40,8 @@
     let reconnectTargets = [];
     let networkSignalInfos = [];
     let selectedSsid = '';
+    let autoUpdateChoice = 'false';
+    let lastAutoFlag;
 
     function updateSysinfo(url) {
         sysinfoStore.update(s => {
@@ -57,6 +59,9 @@
 			data.append(key, value)
         }
 
+        const autoValue = formData.get('fwa');
+        const autoDecision = autoValue === 'true';
+
         const response = await fetch('save', {
             method: 'POST',
             body: data
@@ -73,13 +78,17 @@
         const fallbackHostname = hintHost || hostFromForm || sysinfo.hostname || (sysinfo?.chipId ? `ams-${sysinfo.chipId}` : 'ams-reader');
         const fallbackMdns = hintMdns || (fallbackHostname && fallbackHostname.indexOf('.') === -1 && fallbackHostname.indexOf(':') === -1 ? `${fallbackHostname}.local` : fallbackHostname);
         const staticIpValue = staticIp ? (formData.get('si') || '').trim() : hintIp;
-    const uniqueTargets = Array.from(new Set([staticIpValue, fallbackHostname, fallbackMdns].filter(val => val && val.length > 0)));
-    reconnectTargets = res.reboot ? [...uniqueTargets] : [];
+        const uniqueTargets = Array.from(new Set([staticIpValue, fallbackHostname, fallbackMdns].filter(val => val && val.length > 0)));
+        reconnectTargets = res.reboot ? [...uniqueTargets] : [];
 
         sysinfoStore.update(s => {
             if(!s.net) s.net = {};
             const computedHostname = fallbackHostname || s.hostname || hostFromForm;
             s.hostname = computedHostname;
+            if(!s.upgrade || typeof s.upgrade !== 'object') {
+                s.upgrade = {};
+            }
+            s.upgrade.auto = autoDecision;
             if(staticIp) {
                 s.net.ip = staticIpValue;
                 s.net.mask = formData.get('su');
@@ -102,21 +111,34 @@
     }
 
 
-        $: {
-                const { level, label } = wifiStateFromRssi(data?.r);
-                wifiIcon = WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off;
-                wifiTitle = label;
+    $: {
+        const autoFlag = sysinfo?.upgrade?.auto;
+        if(!loadingOrSaving && autoFlag !== lastAutoFlag) {
+            if(autoFlag === true) {
+                autoUpdateChoice = 'true';
+            } else {
+                autoUpdateChoice = 'false';
+            }
+            lastAutoFlag = autoFlag;
         }
+    }
 
-        $: networkSignalInfos = Array.isArray(networks?.n)
-            ? networks.n.map((net) => {
-                const { level, label } = wifiStateFromRssi(net?.r);
-                return {
-                    icon: WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off,
-                    title: label
-                };
-            })
-            : [];
+
+    $: {
+        const { level, label } = wifiStateFromRssi(data?.r);
+        wifiIcon = WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off;
+        wifiTitle = label;
+    }
+
+    $: networkSignalInfos = Array.isArray(networks?.n)
+        ? networks.n.map((net) => {
+            const { level, label } = wifiStateFromRssi(net?.r);
+            return {
+                icon: WIFI_ICON_MAP[level] ?? WIFI_ICON_MAP.off,
+                title: label
+            };
+        })
+        : [];
 </script>
 
 
@@ -124,6 +146,7 @@
     <div class="cnt">
         <form on:submit|preventDefault={handleSubmit}>
             <input type="hidden" name="s" value="true"/>
+            <input type="hidden" name="fw" value="true"/>
             <strong class="text-sm">{translations.setup?.title ?? "Setup"}</strong>
             <div class="my-3">
                 {translations.conf?.connection?.title ?? "Connection"}<br/>
@@ -181,6 +204,11 @@
                 </div>
             {/if}
             <div>
+            <div class="my-3">
+                {translations.consent?.auto_update ?? "Automatic firmware updates"}<br/>
+                <label><input type="radio" name="fwa" value="true" bind:group={autoUpdateChoice} class="rounded m-2"/> {translations.consent?.yes ?? "Yes"}</label>
+                <label><input type="radio" name="fwa" value="false" bind:group={autoUpdateChoice} class="rounded m-2"/> {translations.consent?.no ?? "No"}</label>
+            </div>
                 {translations.conf?.general?.hostname ?? "Hostname"}
                 <input name="sh" bind:value={sysinfo.hostname} type="text" class="in-s" maxlength="32" pattern={charAndNumPattern} placeholder="Optional, ex.: ams-reader" autocomplete="off"/>
             </div>

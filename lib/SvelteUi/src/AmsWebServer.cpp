@@ -1713,22 +1713,26 @@ void AmsWebServer::handleSave() {
 		config->setPriceServiceConfig(price);
 	}
 
-	if(server.hasArg(F("fw")) && server.arg(F("fw")) == F("true")) {
+	bool upgradeSection = server.hasArg(F("fw")) && server.arg(F("fw")) == F("true");
+	bool hasAutoArg = server.hasArg(F("fwa"));
+	bool hasStartArg = server.hasArg(F("fws"));
+	bool hasEndArg = server.hasArg(F("fwe"));
+	if(upgradeSection || hasAutoArg || hasStartArg || hasEndArg) {
 		UpgradeConfig upgradeCfg;
 		config->getUpgradeConfig(upgradeCfg);
-		upgradeCfg.autoUpgrade = server.hasArg(F("fwa")) && server.arg(F("fwa")) == F("true");
-		int startHour = upgradeCfg.windowStartHour;
-		int endHour = upgradeCfg.windowEndHour;
-		if(server.hasArg(F("fws"))) {
-			startHour = server.arg(F("fws")).toInt();
+		if(hasAutoArg) {
+			upgradeCfg.autoUpgrade = server.arg(F("fwa")) == F("true");
 		}
-		if(server.hasArg(F("fwe"))) {
-			endHour = server.arg(F("fwe")).toInt();
+		if(hasStartArg) {
+			int startHour = server.arg(F("fws")).toInt();
+			if(startHour < 0) startHour = 0;
+			upgradeCfg.windowStartHour = startHour % 24;
 		}
-		if(startHour < 0) startHour = 0;
-		if(endHour < 0) endHour = 0;
-		upgradeCfg.windowStartHour = startHour % 24;
-		upgradeCfg.windowEndHour = endHour % 24;
+		if(hasEndArg) {
+			int endHour = server.arg(F("fwe")).toInt();
+			if(endHour < 0) endHour = 0;
+			upgradeCfg.windowEndHour = endHour % 24;
+		}
 		config->setUpgradeConfig(upgradeCfg);
 	}
 

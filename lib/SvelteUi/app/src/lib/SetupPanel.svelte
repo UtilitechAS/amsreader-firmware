@@ -1,6 +1,8 @@
 <script>
+    import { onMount, onDestroy } from 'svelte';
     import { sysinfoStore, networksStore } from './DataStores.js';
     import { get } from 'svelte/store';
+    import { configurationStore, getConfiguration } from './ConfigurationStore';
     import { translationsStore } from './TranslationService.js';
     import Mask from './Mask.svelte'
     import SubnetOptions from './SubnetOptions.svelte';
@@ -9,6 +11,7 @@
     import WifiMediumIcon from "./../assets/wifi-medium-light.svg";
     import WifiHighIcon from "./../assets/wifi-high-light.svg";
     import WifiOffIcon from "./../assets/wifi-off-light.svg";
+    import { meterPresets, getMeterPresetById, buildMeterStateFromPreset, createMeterStateFromConfiguration, describePresetSummary } from './meterPresets.js';
 
     const WIFI_ICON_MAP = {
         high: WifiHighIcon,
@@ -24,6 +27,89 @@
     translationsStore.subscribe(update => {
       translations = update;
     });
+
+    let configuration;
+    let meterState;
+    let meterStateInitialized = false;
+    let selectedMeterPresetId = '';
+    let selectedMeterPreset = null;
+
+    const unsubscribeConfiguration = configurationStore.subscribe(update => {
+        configuration = update;
+        if(update?.m && !meterStateInitialized) {
+            meterState = createMeterStateFromConfiguration(update.m);
+            meterStateInitialized = true;
+        }
+    });
+
+    onMount(() => {
+        getConfiguration();
+    });
+
+    onDestroy(() => {
+        if (typeof unsubscribeConfiguration === 'function') {
+            unsubscribeConfiguration();
+        }
+    });
+
+    function ensureMeterState() {
+        if(!meterStateInitialized && configuration?.m) {
+            meterState = createMeterStateFromConfiguration(configuration.m);
+            meterStateInitialized = true;
+        }
+        if(!meterState && configuration?.m) {
+            meterState = createMeterStateFromConfiguration(configuration.m);
+        }
+    }
+
+    function handlePresetSelection(presetId) {
+        ensureMeterState();
+        selectedMeterPresetId = presetId;
+        const preset = getMeterPresetById(presetId);
+        selectedMeterPreset = preset ?? null;
+        if(preset) {
+            meterState = buildMeterStateFromPreset(meterState, preset);
+        } else if(configuration?.m) {
+            meterState = createMeterStateFromConfiguration(configuration.m);
+        }
+    }
+
+    function clearPresetSelection() {
+        selectedMeterPresetId = '';
+        selectedMeterPreset = null;
+        if(configuration?.m) {
+            meterState = createMeterStateFromConfiguration(configuration.m);
+        }
+    }
+
+    function buildMeterPayload() {
+        ensureMeterState();
+        const state = meterState ?? createMeterStateFromConfiguration(configuration?.m);
+        if(!state) {
+            return null;
+        }
+        const cfg = configuration?.m ?? {};
+        return {
+            source: state.source ?? cfg.o ?? 1,
+            parser: state.parser ?? cfg.a ?? 0,
+            baud: state.baud ?? cfg.b ?? 0,
+            parity: state.parity ?? cfg.p ?? 3,
+            invert: state.invert ?? cfg.i ?? false,
+            distributionSystem: state.distributionSystem ?? cfg.d ?? 2,
+            mainFuse: state.mainFuse ?? cfg.f ?? 0,
+            production: state.production ?? cfg.r ?? 0,
+            buffer: state.buffer ?? cfg.s ?? 256,
+            encrypted: state.encrypted ?? cfg?.e?.e ?? false,
+            encryptionKey: state.encryptionKey ?? cfg?.e?.k ?? '',
+            authenticationKey: state.authenticationKey ?? cfg?.e?.a ?? '',
+            multipliers: {
+                watt: state.multipliers?.watt ?? cfg?.m?.w ?? 1,
+                volt: state.multipliers?.volt ?? cfg?.m?.v ?? 1,
+                amp: state.multipliers?.amp ?? cfg?.m?.a ?? 1,
+                kwh: state.multipliers?.kwh ?? cfg?.m?.c ?? 1
+            }
+        };
+    }
 
     let manual = false;
     let networks = {};
@@ -56,7 +142,30 @@
         const data = new URLSearchParams();
         for (let field of formData) {
             const [key, value] = field;
-			data.append(key, value)
+			data.append(key, typeof value === 'string' ? value : String(value))
+        }
+
+        const meterPayload = buildMeterPayload();
+        if(meterPayload) {
+            data.set('m', 'true');
+            data.set('mo', String(meterPayload.source ?? 1));
+            data.set('ma', String(meterPayload.parser ?? 0));
+            data.set('mb', String(meterPayload.baud ?? 0));
+            data.set('mp', String(meterPayload.parity ?? 3));
+            data.set('mi', meterPayload.invert ? 'true' : 'false');
+            data.set('md', String(meterPayload.distributionSystem ?? 2));
+            data.set('mf', String(meterPayload.mainFuse ?? 0));
+            data.set('mr', String(meterPayload.production ?? 0));
+            data.set('ms', String(meterPayload.buffer ?? 256));
+            if(meterPayload.encrypted) {
+                data.set('me', 'true');
+                data.set('mek', meterPayload.encryptionKey ?? '');
+                data.set('mea', meterPayload.authenticationKey ?? '');
+            }
+            data.set('mmw', String(meterPayload.multipliers?.watt ?? 1));
+            data.set('mmv', String(meterPayload.multipliers?.volt ?? 1));
+            data.set('mma', String(meterPayload.multipliers?.amp ?? 1));
+            data.set('mmc', String(meterPayload.multipliers?.kwh ?? 1));
         }
 
         const autoValue = formData.get('fwa');
@@ -69,7 +178,7 @@
         let res = (await response.json())
         loadingOrSaving = false;
 
-        const hostFromForm = (formData.get('sh') ?? '').trim();
+    const hostFromForm = String(formData.get('sh') ?? '').trim();
         const message = typeof res.message === 'string' ? res.message : '';
         const hintParts = message.split('|').map(part => part.trim());
         const hintHost = hintParts[0] ?? '';
@@ -77,7 +186,7 @@
         const hintIp = hintParts[2] ?? '';
         const fallbackHostname = hintHost || hostFromForm || sysinfo.hostname || (sysinfo?.chipId ? `ams-${sysinfo.chipId}` : 'ams-reader');
         const fallbackMdns = hintMdns || (fallbackHostname && fallbackHostname.indexOf('.') === -1 && fallbackHostname.indexOf(':') === -1 ? `${fallbackHostname}.local` : fallbackHostname);
-        const staticIpValue = staticIp ? (formData.get('si') || '').trim() : hintIp;
+    const staticIpValue = staticIp ? String(formData.get('si') ?? '').trim() : hintIp;
         const uniqueTargets = Array.from(new Set([staticIpValue, fallbackHostname, fallbackMdns].filter(val => val && val.length > 0)));
         reconnectTargets = res.reboot ? [...uniqueTargets] : [];
 
@@ -86,7 +195,7 @@
             const computedHostname = fallbackHostname || s.hostname || hostFromForm;
             s.hostname = computedHostname;
             if(!s.upgrade || typeof s.upgrade !== 'object') {
-                s.upgrade = {};
+                s.upgrade = { x: -1, e: 0, f: null, t: null, m: false };
             }
             s.upgrade.auto = autoDecision;
             if(staticIp) {

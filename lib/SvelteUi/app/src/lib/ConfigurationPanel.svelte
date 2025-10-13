@@ -15,6 +15,7 @@
     import WifiMediumIcon from "./../assets/wifi-medium-light.svg";
     import WifiHighIcon from "./../assets/wifi-high-light.svg";
     import WifiOffIcon from "./../assets/wifi-off-light.svg";
+    import { meterPresets, getMeterPresetById, buildMeterStateFromPreset, createMeterStateFromConfiguration, applyMeterStateToConfiguration, describePresetSummary } from './meterPresets.js';
 
     export let basepath = "/";
     export let sysinfo = {};
@@ -89,6 +90,8 @@
 
     let configuration;
     let languages = [];
+    let selectedMeterPresetId = '';
+    let selectedMeterPreset = null;
     configurationStore.subscribe(update => {
         if(update.version) {
             cloudenabled = update?.c?.e;
@@ -276,6 +279,27 @@
         if(configuration.u.lang) {
             await getTranslations(configuration.u.lang);
         }
+    }
+
+    function applyMeterPresetSelection(presetId) {
+        selectedMeterPresetId = presetId;
+        const preset = getMeterPresetById(presetId);
+        selectedMeterPreset = preset ?? null;
+        if(!preset || !configuration?.m) {
+            return;
+        }
+        const currentState = createMeterStateFromConfiguration(configuration.m);
+        const updatedState = buildMeterStateFromPreset(currentState, preset);
+        const nextMeter = applyMeterStateToConfiguration(configuration.m, updatedState);
+        configuration = {
+            ...configuration,
+            m: nextMeter
+        };
+    }
+
+    function clearMeterPresetSelection() {
+        selectedMeterPresetId = '';
+        selectedMeterPreset = null;
     }
 
     async function enablePriceFetch() {
@@ -488,6 +512,30 @@
             <a href="{wiki('Meter-configuration')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="m" value="true"/>
             <input type="hidden" name="mo" value="1"/>
+            <div class="my-1">
+                <label class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400" for="meter-preset-select">{translations.conf?.meter?.preset?.title ?? "Meter preset"}</label>
+                <div class="mt-1 flex gap-2">
+                    <select id="meter-preset-select" class="in-s w-full" bind:value={selectedMeterPresetId} on:change={(event) => applyMeterPresetSelection(event.target.value)}>
+                        <option value="">{translations.conf?.meter?.preset?.manual ?? "Manual configuration"}</option>
+                        {#each meterPresets as preset}
+                            <option value={preset.id}>{preset.label}</option>
+                        {/each}
+                    </select>
+                    {#if selectedMeterPresetId}
+                        <button type="button" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200" on:click={clearMeterPresetSelection}>
+                            {translations.conf?.meter?.preset?.clear ?? "Clear"}
+                        </button>
+                    {/if}
+                </div>
+                {#if selectedMeterPreset}
+                    <div class="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                        {describePresetSummary(selectedMeterPreset)}
+                        {#if selectedMeterPreset.notes}
+                            <span class="block">{selectedMeterPreset.notes}</span>
+                        {/if}
+                    </div>
+                {/if}
+            </div>
             <div class="my-1">
                 {translations.conf?.meter?.comm?.title ?? "Communication"}<br/>
                 <select name="ma" bind:value={configuration.m.a} class="in-s">

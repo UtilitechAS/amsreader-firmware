@@ -137,6 +137,11 @@
         },
         "meter": {
             "title": "Måler",
+            "preset": {
+                "title": "Måleroppsett",
+                "manual": "Manuell konfigurasjon",
+                "clear": "Fjern"
+            },
             "comm": {
                 "title": "Kommunikasjon",
                 "passive": "Passiv (push)",
@@ -312,7 +317,14 @@
     "setup": {
         "title": "Oppsett",
         "static": "Statisk IP",
-        "mask": "Lagrer konfigurasjonen på enheten"
+        "mask": "Lagrer konfigurasjonen på enheten",
+        "meter": {
+            "title": "Strømmåler",
+            "description": "Velg måleren din for å fylle ut serielle innstillinger.",
+            "clear": "Fjern valg",
+            "applied": "Innstillingene lagres når du trykker lagre.",
+            "manual": "Du kan hoppe over dette og justere måleren senere."
+        }
     },
     "errors": {
         "han": {

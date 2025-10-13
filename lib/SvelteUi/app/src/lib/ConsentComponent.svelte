@@ -5,6 +5,7 @@
     import Mask from './Mask.svelte'
     import { navigate } from 'svelte-navigator';
     import { wiki } from './Helpers';
+    import { meterPresets, getMeterPresetById, buildMeterStateFromPreset, createMeterStateFromConfiguration, describePresetSummary, applyMeterStateToConfiguration } from './meterPresets.js';
 
     export let basepath = "/";
     export let sysinfo = {};
@@ -23,6 +24,9 @@
         { code: 'no', name: 'Norsk' }
     ];
     let canSave = false;
+    let meterState = createMeterStateFromConfiguration();
+    let selectedMeterPresetId = '';
+    let selectedMeterPreset = null;
 
     $: if (translations?.language?.code && !languages.find(lang => lang.code === translations.language.code)) {
         languages = [...languages, { code: translations.language.code, name: translations.language.name ?? translations.language.code }];
@@ -75,18 +79,85 @@
         }
     }
 
+    function handlePresetSelection(presetId) {
+        selectedMeterPresetId = presetId;
+        const preset = getMeterPresetById(presetId);
+        selectedMeterPreset = preset ?? null;
+        if (preset) {
+            meterState = buildMeterStateFromPreset(createMeterStateFromConfiguration(), preset);
+        } else {
+            meterState = createMeterStateFromConfiguration();
+        }
+    }
+
+    function clearMeterPresetSelection() {
+        selectedMeterPresetId = '';
+        selectedMeterPreset = null;
+        meterState = createMeterStateFromConfiguration();
+    }
+
+    function buildMeterPayload() {
+        if (!selectedMeterPreset) {
+            return null;
+        }
+        const state = meterState ?? createMeterStateFromConfiguration();
+        return {
+            source: state.source ?? 1,
+            parser: state.parser ?? 0,
+            baud: state.baud ?? 0,
+            parity: state.parity ?? 3,
+            invert: state.invert ?? false,
+            distributionSystem: state.distributionSystem ?? 2,
+            mainFuse: state.mainFuse ?? 0,
+            production: state.production ?? 0,
+            buffer: state.buffer ?? 256,
+            encrypted: state.encrypted ?? false,
+            encryptionKey: state.encryptionKey ?? '',
+            authenticationKey: state.authenticationKey ?? '',
+            multipliers: {
+                watt: state.multipliers?.watt ?? 1,
+                volt: state.multipliers?.volt ?? 1,
+                amp: state.multipliers?.amp ?? 1,
+                kwh: state.multipliers?.kwh ?? 1
+            }
+        };
+    }
+
     async function handleSubmit(e) {
         loadingOrSaving = true;
         const formData = new FormData(e.target)
         const data = new URLSearchParams()
         for (let field of formData) {
             const [key, value] = field
-            data.append(key, value)
+            data.append(key, typeof value === 'string' ? value : String(value))
         }
 
         const consentValue = formData.get('sf');
         const autoValue = formData.get('fwa');
         const autoDecision = autoValue === 'true' ? true : autoValue === 'false' ? false : null;
+
+        const meterPayload = buildMeterPayload();
+        if (meterPayload) {
+            data.set('m', 'true');
+            data.set('mo', String(meterPayload.source ?? 1));
+            data.set('ma', String(meterPayload.parser ?? 0));
+            data.set('mb', String(meterPayload.baud ?? 0));
+            data.set('mp', String(meterPayload.parity ?? 3));
+            data.set('mi', meterPayload.invert ? 'true' : 'false');
+            data.set('md', String(meterPayload.distributionSystem ?? 2));
+            data.set('mf', String(meterPayload.mainFuse ?? 0));
+            data.set('mr', String(meterPayload.production ?? 0));
+            data.set('ms', String(meterPayload.buffer ?? 256));
+            if (meterPayload.encrypted) {
+                data.set('me', 'true');
+                data.set('mek', meterPayload.encryptionKey ?? '');
+                data.set('mea', meterPayload.authenticationKey ?? '');
+            }
+            data.set('mmw', String(meterPayload.multipliers?.watt ?? 1));
+            data.set('mmv', String(meterPayload.multipliers?.volt ?? 1));
+            data.set('mma', String(meterPayload.multipliers?.amp ?? 1));
+            data.set('mmc', String(meterPayload.multipliers?.kwh ?? 1));
+        }
 
         const response = await fetch('save', {
             method: 'POST',
@@ -104,10 +175,15 @@
                 s.ui.lang = languageChoice;
             }
             if (!s.upgrade || typeof s.upgrade !== 'object') {
-                s.upgrade = {};
+                s.upgrade = { x: -1, e: 0, f: null, t: null, m: false };
             }
             if (autoDecision !== null) {
                 s.upgrade.auto = autoDecision;
+            }
+            if (meterPayload) {
+                const config = applyMeterStateToConfiguration(s.m ?? {}, meterState);
+                config.appliedPresetId = meterState.appliedPresetId;
+                s.m = config;
             }
             s.booting = res.reboot;
             return s;
@@ -134,6 +210,30 @@
                 {translations.consent?.auto_update ?? "Automatic firmware updates"}<br/>
                 <label><input type="radio" name="fwa" value="true" bind:group={autoUpdateChoice} class="rounded m-2" required/> {translations.consent?.yes ?? "Yes"}</label>
                 <label><input type="radio" name="fwa" value="false" bind:group={autoUpdateChoice} class="rounded m-2" required/> {translations.consent?.no ?? "No"}</label><br/>
+            </div>
+            <div class="my-3">
+                <label class="block text-sm font-medium text-slate-700 dark:text-slate-200" for="consent-meter-preset">{translations.conf?.meter?.preset?.title ?? "Meter preset"}</label>
+                <div class="mt-2 flex gap-2">
+                    <select id="consent-meter-preset" class="in-s w-full" bind:value={selectedMeterPresetId} on:change={(event) => handlePresetSelection(event.target.value)}>
+                        <option value="">{translations.conf?.meter?.preset?.manual ?? "Manual configuration"}</option>
+                        {#each meterPresets as preset}
+                            <option value={preset.id}>{preset.label}</option>
+                        {/each}
+                    </select>
+                    {#if selectedMeterPresetId}
+                        <button type="button" class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200" on:click={clearMeterPresetSelection}>
+                            {translations.conf?.meter?.preset?.clear ?? "Clear"}
+                        </button>
+                    {/if}
+                </div>
+                {#if selectedMeterPreset}
+                    <div class="mt-1 text-xs text-slate-500 dark:text-slate-400 leading-snug">
+                        {describePresetSummary(selectedMeterPreset)}
+                        {#if selectedMeterPreset.notes}
+                            <span class="block">{selectedMeterPreset.notes}</span>
+                        {/if}
+                    </div>
+                {/if}
             </div>
             <div class="my-3">
                 {translations.consent?.language ?? "Language"}<br/>

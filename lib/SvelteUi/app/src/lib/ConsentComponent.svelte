@@ -18,7 +18,7 @@
     let loadingOrSaving = false;
     let consentChoice = '';
     let autoUpdateChoice = '';
-    let languageChoice = '';
+    let languageChoice = 'no'; // Default to Norwegian
     let languages = [
         { code: 'en', name: 'English' },
         { code: 'no', name: 'Norsk' }
@@ -27,6 +27,11 @@
     let meterState = createMeterStateFromConfiguration();
     let selectedMeterPresetId = '';
     let selectedMeterPreset = null;
+
+    // Load Norwegian translations on component initialization
+    if (languageChoice === 'no') {
+        getTranslations('no');
+    }
 
     $: if (translations?.language?.code && !languages.find(lang => lang.code === translations.language.code)) {
         languages = [...languages, { code: translations.language.code, name: translations.language.name ?? translations.language.code }];
@@ -52,8 +57,8 @@
     }
 
     $: {
-        if (!languageChoice && translations?.language?.code) {
-            languageChoice = translations.language.code;
+        if (!languageChoice) {
+            languageChoice = 'no'; // Ensure Norwegian is always the default
         }
     }
 
@@ -235,6 +240,22 @@
                     </div>
                 {/if}
             </div>
+            {#if selectedMeterPreset}
+                <div class="my-3">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{translations.common?.voltage ?? "Voltage"}</label>
+                    <select bind:value={meterState.distributionSystem} class="in-s mt-1">
+                        <option value={2}>400V (TN)</option>
+                        <option value={1}>230V (IT/TT)</option>
+                    </select>
+                </div>
+                <div class="my-3">
+                    <label class="block text-sm font-medium text-slate-700 dark:text-slate-200">{translations.conf?.meter?.fuse ?? "Main fuse"}</label>
+                    <div class="mt-1 flex">
+                        <input type="number" bind:value={meterState.mainFuse} min="5" max="65535" class="in-f tr flex-1"/>
+                        <span class="in-post">A</span>
+                    </div>
+                </div>
+            {/if}
             <div class="my-3">
                 {translations.consent?.language ?? "Language"}<br/>
                 <select name="ulang" class="in-s" bind:value={languageChoice} on:change={handleLanguageChange}>

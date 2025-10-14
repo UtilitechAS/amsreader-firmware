@@ -12,6 +12,7 @@
     import WifiHighIcon from "./../assets/wifi-high-light.svg";
     import WifiOffIcon from "./../assets/wifi-off-light.svg";
     import { meterPresets, getMeterPresetById, buildMeterStateFromPreset, createMeterStateFromConfiguration, describePresetSummary } from './meterPresets.js';
+    import NeasLogo from "./../assets/neas_logotype_white.svg";
 
     const WIFI_ICON_MAP = {
         high: WifiHighIcon,
@@ -251,36 +252,62 @@
 </script>
 
 
-<div class="grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2">
-    <div class="cnt">
+<div class="min-h-screen bg-neas-green flex flex-col items-center p-4">
+    <!-- Neas Logo -->
+    <div class="mb-8">
+        <svg class="w-24 h-24 text-blue-600 dark:text-blue-400" viewBox="0 0 100 100" fill="currentColor">
+           <img alt="Neas logo" src={NeasLogo} class="w-full h-full" />
+        </svg>
+    </div>
+    
+    <!-- Main Card -->
+    <div class="bg-neas-green dark:neas-green rounded-2xl max-w-md w-full p-8">
         <form on:submit|preventDefault={handleSubmit}>
             <input type="hidden" name="s" value="true"/>
             <input type="hidden" name="fw" value="true"/>
-            <strong class="text-sm">{translations.setup?.title ?? "Setup"}</strong>
-            <div class="my-3">
-                {translations.conf?.connection?.title ?? "Connection"}<br/>
-                <select name="sc" class="in-s" bind:value={connectionMode}>
-                    <option value={1}>{translations.conf?.connection?.wifi ?? "Connect to WiFi"}</option>
-                    {#if sysinfo.if && sysinfo.if.eth}
-                    <option value={3}>{translations.conf?.connection?.eth ?? "Ethernet"}</option>
-                    {/if}
-                </select>
+            
+            <!-- Title -->
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
+                    {translations.setup?.title ?? "WiFi Setup"}
+                </h1>
+                <p class="text-sm text-slate-600 dark:text-slate-400">
+                    Connect your device to the internet
+                </p>
             </div>
-            {#if connectionMode == 1 || connectionMode == 2}
-                <div class="my-3">
-                    {translations.conf?.connection?.ssid ?? "SSID"}
-                    <br/>
+
+                <!-- WiFi Network Selection -->
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="block text-sm font-medium text-slate-900 dark:text-slate-100">
+                            {translations.conf?.connection?.ssid ?? "Select Network"}
+                        </span>
+                        <button type="button" 
+                                class="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+                                on:click={() => manual = !manual}>
+                            {manual ? "Show Networks" : "Manual Entry"}
+                        </button>
+                    </div>
+                    
                     {#if manual}
-                        <input name="ss" type="text" pattern={asciiPatternExt} class="in-s" required={connectionMode == 1 || connectionMode == 2}/>
+                        <input name="ss" 
+                               type="text" 
+                               pattern={asciiPatternExt} 
+                               placeholder="Enter network name (SSID)"
+                               class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                               required={connectionMode == 1 || connectionMode == 2}/>
                     {:else}
                         {#if networks?.c == -1}
-                            <p class="text-sm italic">{translations.conf?.connection?.searching ?? "Scanning for networks..."}</p>
+                            <div class="flex items-center justify-center py-8 text-slate-500 dark:text-slate-400">
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
+                                <span class="text-sm">{translations.conf?.connection?.searching ?? "Scanning for networks..."}</span>
+                            </div>
                         {/if}
                         {#if networks?.n?.length}
-                            <div class="mt-2 space-y-2">
+                            <div class="space-y-2 max-h overflow-y-auto">
                                 {#each networks.n as network, index (network.s ?? index)}
-                                    <label class="group flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white/80 px-3 py-2 shadow-sm transition hover:border-blue-400 hover:bg-blue-50 hover:shadow-md dark:border-slate-700 dark:bg-slate-800/70 dark:hover:border-blue-300 dark:hover:bg-slate-800">
-                                        <span class="flex items-center gap-3">
+                                    <label class="group flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-3 shadow-sm transition hover:border-blue-400 hover:bg-blue-50 hover:shadow-md dark:border-slate-700 dark:bg-slate-800/50 dark:hover:border-blue-300 dark:hover:bg-slate-700 cursor-pointer">
+                                        <span class="flex items-center gap-3 flex-1 min-w-0">
                                             <input
                                                 type="radio"
                                                 class="h-4 w-4 text-blue-600 focus:ring-blue-500"
@@ -288,72 +315,174 @@
                                                 value={network.s}
                                                 bind:group={selectedSsid}
                                                 required={connectionMode == 1 || connectionMode == 2}/>
-                                            <span class="flex flex-col">
-                                                <span class="font-medium text-slate-800 dark:text-slate-100">{network.s || (translations.conf?.connection?.hidden_ssid ?? "Hidden network")}</span>
-                                                <span class="text-xs text-slate-500 dark:text-slate-400">{networkSignalInfos[index]?.title ?? (translations.conf?.connection?.wifi_offline ?? "Signal unavailable")}</span>
+                                            <span class="flex flex-col min-w-0 flex-1">
+                                                <span class="font-medium text-slate-900 dark:text-slate-100 truncate">
+                                                    {network.s || (translations.conf?.connection?.hidden_ssid ?? "Hidden network")}
+                                                </span>
+                                                <span class="text-xs text-slate-500 dark:text-slate-400">
+                                                    {networkSignalInfos[index]?.title ?? (translations.conf?.connection?.wifi_offline ?? "Signal unavailable")}
+                                                </span>
                                             </span>
                                         </span>
-                                        <div class="flex items-center gap-2">
-                                            <img class="h-6 w-6 opacity-80 group-hover:opacity-100" src={networkSignalInfos[index]?.icon ?? WIFI_ICON_MAP.off} alt={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'} title={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'}/>
+                                        <div class="flex items-center gap-2 flex-shrink-0">
+                                            <img class="h-5 w-5 opacity-70 group-hover:opacity-100" 
+                                                 src={networkSignalInfos[index]?.icon ?? WIFI_ICON_MAP.off} 
+                                                 alt={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'} 
+                                                 title={networkSignalInfos[index]?.title ?? 'Wi-Fi offline'}/>
                                             {#if selectedSsid === network.s}
-                                                <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-600 group-hover:bg-blue-200 dark:bg-blue-400/20 dark:text-blue-200">{translations.conf?.connection?.selected ?? "Selected"}</span>
+                                                <div class="w-2 h-2 bg-blue-600 rounded-full"></div>
                                             {/if}
                                         </div>
                                     </label>
                                 {/each}
                             </div>
                         {:else if networks?.c != -1}
-                            <p class="text-sm italic">{translations.conf?.connection?.no_networks ?? "No networks found"}</p>
+                            <div class="text-center py-8 text-slate-500 dark:text-slate-400">
+                                <svg class="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/>
+                                </svg>
+                                <p class="text-sm">{translations.conf?.connection?.no_networks ?? "No networks found"}</p>
+                                <button type="button" 
+                                        class="mt-2 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                                        on:click={() => manual = true}>
+                                    Enter network manually
+                                </button>
+                            </div>
                         {/if}
                     {/if}
                 </div>
-                <div class="my-3">
-                    {translations.conf?.connection?.psk ?? "Password"}<br/>
-                    <input name="sp" type="password" pattern={asciiPatternExt} class="in-s" autocomplete="off" required={connectionMode == 2}/>
+                <!-- WiFi Password -->
+                <div class="mb-6">
+                    <label for="wifi-password" class="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+                        {translations.conf?.connection?.psk ?? "WiFi Password"}
+                    </label>
+                    <input id="wifi-password"
+                           name="sp" 
+                           type="password" 
+                           pattern={asciiPatternExt} 
+                           class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                           placeholder="Enter WiFi password"
+                           autocomplete="off" 
+                           required={connectionMode == 2}/>
                 </div>
-            {/if}
-            <div>
-                {translations.conf?.general?.hostname ?? "Hostname"}
-                <input name="sh" bind:value={sysinfo.hostname} type="text" class="in-s" maxlength="32" pattern={charAndNumPattern} placeholder="Optional, ex.: ams-reader" autocomplete="off"/>
+            
+            <!-- Device Hostname -->
+            <div class="mb-6">
+                <label for="hostname-input" class="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+                    {translations.conf?.general?.hostname ?? "Device Name"}
+                </label>
+                <input id="hostname-input"
+                       name="sh" 
+                       bind:value={sysinfo.hostname} 
+                       type="text" 
+                       class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                       maxlength="32" 
+                       pattern={charAndNumPattern} 
+                       placeholder="e.g., ams-reader-01" 
+                       autocomplete="off"/>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Optional: Give your device a custom name</p>
             </div>
-            <div class="my-3">
+            <!-- Advanced Network Settings Toggle -->
+            <div class="mb-6">
+                <button type="button" 
+                        class="flex items-center justify-between w-full p-3 text-left bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                        on:click={() => staticIp = !staticIp}>
+                    <span class="text-sm font-medium text-slate-900 dark:text-slate-100">
+                        Advanced Network Settings
+                    </span>
+                    <svg class="w-4 h-4 text-slate-500 dark:text-slate-400 transform transition-transform {staticIp ? 'rotate-180' : ''}" 
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                    </svg>
+                </button>
+                
                 {#if staticIp}
-                <br/>
-                <div class="flex">
-                    <input name="si" type="text" class="in-f w-full" required={staticIp} pattern={ipPattern}/>
-                    <select name="su" class="in-l" required={staticIp}>
-                        <SubnetOptions/>
-                    </select>
-                </div>
+                    <div class="mt-4 space-y-4 p-4 bg-slate-50/50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-600">
+                        <!-- Static IP -->
+                        <div>
+                            <label for="static-ip" class="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+                                Static IP Address
+                            </label>
+                            <div class="flex space-x-2">
+                                <input id="static-ip"
+                                       name="si" 
+                                       type="text" 
+                                       class="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                       required={staticIp} 
+                                       pattern={ipPattern}
+                                       placeholder="192.168.1.100"/>
+                                <select name="su" 
+                                        class="px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                        required={staticIp}>
+                                    <SubnetOptions/>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Gateway and DNS -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="gateway" class="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+                                    {translations.conf?.network?.gw ?? "Gateway"}
+                                </label>
+                                <input id="gateway"
+                                       name="sg" 
+                                       type="text" 
+                                       class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                       pattern={ipPattern}
+                                       placeholder="192.168.1.1"/>
+                            </div>
+                            <div>
+                                <label for="dns" class="block text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">
+                                    {translations.conf?.network?.dns ?? "DNS Server"}
+                                </label>
+                                <input id="dns"
+                                       name="sd" 
+                                       type="text" 
+                                       class="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors" 
+                                       pattern={ipPattern}
+                                       placeholder="8.8.8.8"/>
+                            </div>
+                        </div>
+                    </div>
                 {/if}
             </div>
-            {#if staticIp}
-            <div class="my-3 flex">
-                <div>
-                    {translations.conf?.network?.gw ?? "Gateway"}<br/>
-                    <input name="sg" type="text" class="in-f w-full" pattern={ipPattern}/>
-                </div>
-                <div>
-                    {translations.conf?.network?.dns ?? "DNS"}<br/>
-                    <input name="sd" type="text" class="in-l w-full" pattern={ipPattern}/>
-                </div>
-            </div>
-            {/if}
-            <div class="my-3">
-                <button type="submit" class="btn-pri">{translations.btn?.save ?? "Save"}</button>
+            
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button type="submit" 
+                        class="w-full bg-neas-lightgreen hover:bg-neas-lightgreen-30 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-medium py-3 px-6 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-800">
+                    {translations.btn?.save ?? "Connect & Continue"}
+                </button>
             </div>
             {#if reconnectTargets.length}
-                <div class="mt-4 text-sm text-gray-600 dark:text-gray-300">
-                    <p>{translations.setup?.reconnect?.info ?? "Device will reboot now. Try these addresses to reconnect:"}</p>
-                    <ul class="list-disc pl-5 space-y-1 mt-2">
-                        {#each reconnectTargets as target}
-                            <li><code>{target.startsWith('http://') || target.startsWith('https://') ? target : `http://${target}`}</code></li>
-                        {/each}
-                    </ul>
+                <div class="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                    <div class="flex items-start">
+                        <svg class="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div>
+                            <h4 class="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+                                {translations.setup?.reconnect?.title ?? "Setup Complete!"}
+                            </h4>
+                            <p class="text-sm text-green-700 dark:text-green-300 mb-3">
+                                {translations.setup?.reconnect?.info ?? "Device is rebooting. You can reconnect using these addresses:"}
+                            </p>
+                            <div class="space-y-1">
+                                {#each reconnectTargets as target}
+                                    <div class="flex items-center">
+                                        <code class="text-xs bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200 px-2 py-1 rounded font-mono">
+                                            {target.startsWith('http://') || target.startsWith('https://') ? target : `http://${target}`}
+                                        </code>
+                                    </div>
+                                {/each}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             {/if}
         </form>
     </div>
 </div>
 
-<Mask active={loadingOrSaving} message={translations.setup?.mask ?? "Lagrer"}/>
+<Mask active={loadingOrSaving} message={translations.setup?.mask ?? "Connecting..."}/>

@@ -343,6 +343,8 @@ void setup() {
 					if(!hw.ledBlink(LED_RED, 6)) {
 						hw.ledBlink(LED_INTERNAL, 6);
 					}
+					ESP.restart();
+					return;
 				}
 			}
 		}

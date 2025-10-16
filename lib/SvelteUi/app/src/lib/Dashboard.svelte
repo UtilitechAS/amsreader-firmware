@@ -140,17 +140,17 @@
     {#if uiVisibility(sysinfo.ui.p, data.pe && !Number.isNaN(data.p))}
         {#if importPrices?.importExportPriceDifferent && (data.om || data.e > 0)}
             <div class="cnt gwf">
-                <PricePlot title={translations.dashboard?.price_import ?? "Price import"} json={importPrices} sysinfo={sysinfo}/>
+                <PricePlot title={translations.dashboard?.price_import ?? "Price import"} json={importPrices}/>
             </div>
         {:else}
             <div class="cnt gwf">
-                <PricePlot title={translations.dashboard?.price ?? "Price"} json={importPrices} sysinfo={sysinfo}/>
+                <PricePlot title={translations.dashboard?.price ?? "Price"} json={importPrices}/>
             </div>
         {/if}
     {/if}
     {#if uiVisibility(sysinfo.ui.p, data.pe && !Number.isNaN(data.p) && importPrices?.importExportPriceDifferent && (data.om || data.e > 0))}
         <div class="cnt gwf">
-            <PricePlot title={translations.dashboard?.price_export ?? "Price export"} json={exportPrices} sysinfo={sysinfo}/>
+            <PricePlot title={translations.dashboard?.price_export ?? "Price export"} json={exportPrices}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.d, dayPlot)}

@@ -5,7 +5,6 @@
 
     export let title;
     export let json;
-    export let sysinfo;
 
     let config = {};
     let max;
@@ -33,6 +32,7 @@
 
     $: {
         if(json?.prices?.length > 0) {
+            cur = new Date();
             let currency = json?.currency;
             let val = 0;
             let yTicks = [];

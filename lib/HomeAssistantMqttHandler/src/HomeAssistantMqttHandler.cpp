@@ -39,6 +39,10 @@ void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config
     manufacturer = boardManufacturerToString(boardType);
 
     deviceUid = String(hostname); // Maybe configurable in the future?
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("  Hostname is [%s]\n"), hostname);
 
     if(strlen(config.discoveryHostname) > 0) {
         if(strncmp_P(config.discoveryHostname, PSTR("http"), 4) == 0) {

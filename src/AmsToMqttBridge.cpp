@@ -253,6 +253,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 	if(setupMode) return; // None of this necessary in setup mode
 	if(ch != NULL) ch->eventHandler(event, info);
 	switch(event) {
+		case ARDUINO_EVENT_ETH_CONNECTED:
 		case ARDUINO_EVENT_WIFI_STA_CONNECTED: {
 			dnsState = 0;
 			if(ch != NULL) {
@@ -265,6 +266,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			}
 			break;
 		}
+		case ARDUINO_EVENT_ETH_GOT_IP:
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
 			if(dnsState == 0) {
 				const ip_addr_t* dns = dns_getserver(0);
@@ -282,6 +284,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			}
 			break;
 		}
+		case ARDUINO_EVENT_ETH_DISCONNECTED:
 		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
 			if(WiFi.getMode() == WIFI_STA) {
 				wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
@@ -1631,7 +1634,7 @@ void MQTT_connect() {
 					HomeAssistantConfig haconf;
 					config.getHomeAssistantConfig(haconf);
 					NetworkConfig network;
-					ch->getCurrentConfig(network);
+					config.getNetworkConfig(network);
 					HomeAssistantMqttHandler* hamh = (HomeAssistantMqttHandler*) &mqttHandler;
 					hamh->setHomeAssistantConfig(haconf, network.hostname);
 					break;
@@ -1660,7 +1663,7 @@ void MQTT_connect() {
 				HomeAssistantConfig haconf;
 				config.getHomeAssistantConfig(haconf);
 				NetworkConfig network;
-				ch->getCurrentConfig(network);
+				config.getNetworkConfig(network);
 				mqttHandler = new HomeAssistantMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, sysConfig.boardType, haconf, &hw, &updater, network.hostname);
 				break;
 			case 255:

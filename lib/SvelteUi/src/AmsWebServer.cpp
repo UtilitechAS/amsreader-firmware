@@ -1393,18 +1393,20 @@ void AmsWebServer::handleSave() {
 
 	if(server.hasArg(F("w")) && server.arg(F("w")) == F("true")) {
 		long mode = server.arg(F("nc")).toInt();
-		if(mode > 0 && mode < 3) {
+		if(mode > 0) {
 			NetworkConfig network;
 			config->getNetworkConfig(network);
 			network.mode = mode;
-			strcpy(network.ssid, server.arg(F("ws")).c_str());
-			String psk = server.arg(F("wp"));
-			if(!psk.equals("***")) {
-				strcpy(network.psk, psk.c_str());
+			if(mode < 3) {
+				strcpy(network.ssid, server.arg(F("ws")).c_str());
+				String psk = server.arg(F("wp"));
+				if(!psk.equals("***")) {
+					strcpy(network.psk, psk.c_str());
+				}
+				network.power = server.arg(F("ww")).toFloat() * 10;
+				network.sleep = server.arg(F("wz")).toInt();
+				network.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
 			}
-			network.power = server.arg(F("ww")).toFloat() * 10;
-			network.sleep = server.arg(F("wz")).toInt();
-			network.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
 
 			if(server.hasArg(F("nm"))) {
 				if(server.arg(F("nm")) == "static") {

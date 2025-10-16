@@ -276,26 +276,6 @@ bool PriceService::loop() {
         return false;
     }
 
-    #ifndef AMS2MQTT_PRICE_KEY
-    if(strlen(getToken()) == 0) {
-        return false;
-    }
-    #endif
-    if(strlen(config->area) == 0){
-        #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::WARNING))
-        #endif
-        debugger->printf_P(PSTR("(PriceService) Area is missing\n"));
-        return false;
-    }
-    if(strlen(config->currency) == 0) {
-        #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::WARNING))
-        #endif
-        debugger->printf_P(PSTR("(PriceService) Currency is missing\n"));
-        return false;
-    }
-
     tmElements_t tm;
     breakTime(entsoeTz->toLocal(t), tm);
 
@@ -332,6 +312,18 @@ bool PriceService::loop() {
 
     if(!config->enabled)
         return false;
+
+    #ifndef AMS2MQTT_PRICE_KEY
+    if(strlen(getToken()) == 0) {
+        return false;
+    }
+    #endif
+    if(strlen(config->area) == 0){
+        return false;
+    }
+    if(strlen(config->currency) == 0) {
+        return false;
+    }
 
     bool readyToFetchForTomorrow = tomorrow == NULL && (tm.Hour > 13 || (tm.Hour == 13 && tm.Minute >= tomorrowFetchMinute)) && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > (nextFetchDelayMinutes*60000));
 

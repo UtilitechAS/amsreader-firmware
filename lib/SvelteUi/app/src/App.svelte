@@ -34,6 +34,7 @@
   import PriceConfig from "./lib/PriceConfig.svelte";
   import DataEdit from "./lib/DataEdit.svelte";
   import { updateRealtime } from "./lib/RealtimeStore.js";
+  import { onMount, onDestroy } from "svelte";
 
   let basepath = document.getElementsByTagName("base")[0].getAttribute("href");
   if (!basepath) basepath = "/";
@@ -67,16 +68,37 @@
   let data = {};
   let sysinfo = {};
   let currentVersion;
+  const normalizePathname = (pathname = "") => {
+    if (typeof pathname !== "string") {
+      return "/";
+    }
+
+    let normalized = pathname || "/";
+
+    if (basepath && basepath !== "/" && normalized.startsWith(basepath)) {
+      normalized = normalized.slice(basepath.length);
+      if (!normalized.startsWith("/")) {
+        normalized = `/${normalized}`;
+      }
+    }
+
+    if (!normalized.startsWith("/")) {
+      normalized = `/${normalized}`;
+    }
+
+    if (normalized.length > 1) {
+      normalized = normalized.replace(/\/+$/, "");
+    }
+
+    return normalized || "/";
+  };
+
   sysinfoStore.subscribe((update) => {
     sysinfo = update;
     const currentPath = (() => {
       if (typeof window === "undefined") return "";
-      const pathname = window.location.pathname ?? "/";
-      if (!pathname.startsWith(basepath)) {
-        return pathname.replace(/^\/+/, "");
-      }
-      const stripped = pathname.slice(basepath.length).replace(/^\/+/, "");
-      return stripped;
+      const normalized = normalizePathname(window.location.pathname ?? "/");
+      return normalized.replace(/^\/+/, "");
     })();
 
     if (sysinfo.vndcfg === false) {
@@ -136,11 +158,59 @@
     tariffData = update;
   });
   getTariff();
+
+  let currentPathname =
+    typeof window !== "undefined"
+      ? normalizePathname(window.location.pathname ?? "/")
+      : "/";
+
+  const shouldHideHeaderPath = (pathname = "/") =>
+    pathname === "/setup" || pathname === "/consent" || pathname === "/welcome";
+
+  const updateCurrentPathname = () => {
+    if (typeof window !== "undefined") {
+      currentPathname = normalizePathname(window.location.pathname ?? "/");
+    }
+  };
+
+  $: hideHeader = shouldHideHeaderPath(currentPathname);
+
+  onMount(() => {
+    updateCurrentPathname();
+
+    const handlePopState = () => updateCurrentPathname();
+    window.addEventListener("popstate", handlePopState);
+
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function (...args) {
+      originalPushState.apply(this, args);
+      updateCurrentPathname();
+    };
+
+    history.replaceState = function (...args) {
+      originalReplaceState.apply(this, args);
+      updateCurrentPathname();
+    };
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  });
+
+  onDestroy(() => {
+    updateCurrentPathname();
+  });
 </script>
 
 <div class="container mx-auto m-3">
   <Router {basepath}>
-    <Header {data} {basepath} />
+    {#if !hideHeader}
+      <Header {data} {basepath} />
+    {/if}
     <Route path="/welcome">
       <Welcome {basepath} />
     </Route>

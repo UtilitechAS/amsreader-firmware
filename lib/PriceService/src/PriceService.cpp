@@ -82,7 +82,7 @@ void PriceService::setTimezone(Timezone* tz) {
 }
 
 char* PriceService::getToken() {
-    return this->config->entsoeToken;
+    return ""; // Currently the implementation is not working, so lets disable it for al. Old code: this->config->entsoeToken;
 }
 
 char* PriceService::getCurrency() {

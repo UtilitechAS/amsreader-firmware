@@ -286,7 +286,7 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
 	len = 0;
     if(data != NULL) {
         if(data->getListType() > 0) {
-            validDataReceived = true;
+            validDataReceived++;
             if(rxBufferErrors > 0) rxBufferErrors--;
         }
     }
@@ -586,14 +586,14 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		autodetectBaud = baud = 2400;
 	}
 
+	if(parityOrdinal == 0) {
+		parityOrdinal = 11; // 8E1
+	}
+
 	#if defined(AMS_REMOTE_DEBUG)
 	if (debugger->isActive(RemoteDebug::INFO))
 	#endif
 	debugger->printf_P(PSTR("(setupHanPort) Setting up HAN on pin %d/%d with baud %d and parity %d\n"), rxpin, txpin, baud, parityOrdinal);
-
-	if(parityOrdinal == 0) {
-		parityOrdinal = 3; // 8N1
-	}
 
 	if(rxpin == 3 || rxpin == 113) {
 		#if ARDUINO_USB_CDC_ON_BOOT
@@ -799,6 +799,7 @@ HardwareSerial* PassiveMeterCommunicator::getHwSerial() {
 
 void PassiveMeterCommunicator::rxerr(int err) {
 	if(err == 0) return;
+	if(lastError == 90+err) return; // Do not flood with same error
 	switch(err) {
 		case 2:
 			#if defined(AMS_REMOTE_DEBUG)
@@ -836,10 +837,9 @@ void PassiveMeterCommunicator::rxerr(int err) {
 		    unsigned long now = millis();
 			if(autodetect) {
 				meterAutodetectLastChange = 0;
-			} else if(meterAutodetectLastChange > 0 && now - meterAutodetectLastChange < 120000 && validDataReceived) {
+			} else if(validDataReceived > 2) {
 				meterConfig.parity = getNextParity(meterConfig.parity);
 				configChanged = true;
-				setupHanPort(meterConfig.baud, meterConfig.parity, meterConfig.invert);
 			}
 			break;
 	}
@@ -849,12 +849,14 @@ void PassiveMeterCommunicator::rxerr(int err) {
 
 void PassiveMeterCommunicator::handleAutodetect(unsigned long now) {
     if(!autodetect) return;
+	if(now - meterAutodetectLastChange < 12000) return;
 
-	if(!validDataReceived) {
-		if(now - meterAutodetectLastChange > 12000 && (meterConfig.baud == 0 || meterConfig.parity == 0)) {
+	if(validDataReceived < 2) {
+		if(meterConfig.baud == 0 || meterConfig.parity == 0) {
 			autodetect = true;
 			if(lastError == 95) { // If parity error, switch parity
 				autodetectParity = getNextParity(autodetectParity);
+				lastError = 0;
 			} else {
 				autodetectCount++;
 			}

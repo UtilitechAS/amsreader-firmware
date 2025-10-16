@@ -340,8 +340,9 @@
             </div>
             <div class="my-1">
                 <label><input type="checkbox" name="pe" value="true" bind:checked={configuration.p.e} class="rounded mb-1"/> {translations.conf?.price?.enabled ?? "Enabled"}</label>
-                {#if configuration.p.e && sysinfo.chip != 'esp8266'}
-                <br/><input name="pt" bind:value={configuration.p.t} type="text" class="in-s" placeholder={translations.conf?.price?.api_key_placeholder ?? ""} pattern={charAndNumPattern}/>
+                {#if configuration.p.e && sysinfo.chip != 'esp8266' && configuration.p.t}
+                <input name="pt" type="hidden" bind:value={configuration.p.t}/>
+                <br/><input type="text" class="in-s" placeholder="ENTSO-E API key disabled, ref issue #1030" disabled/>
                 {/if}
             </div>
             <div class="my-1">

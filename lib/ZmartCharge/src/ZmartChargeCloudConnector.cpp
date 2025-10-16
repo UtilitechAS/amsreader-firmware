@@ -38,7 +38,7 @@ void ZmartChargeCloudConnector::update(AmsData& data) {
         return;
     }
 
-    if(((now - lastUpdate) / 1000) > (fast || lastFailed ? heartbeatFast : heartbeat)) {
+    if(lastUpdate == 0 || ((now - lastUpdate) / 1000) > (fast || lastFailed ? heartbeatFast : heartbeat)) {
         if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf_P(PSTR("(ZmartCharge) Preparing to update cloud\n"));
         memset(json, 0, BufferSize);
         snprintf_P(json, BufferSize, ZC_LB_JSON,
@@ -86,9 +86,9 @@ void ZmartChargeCloudConnector::update(AmsData& data) {
                 }
                 http->end();
             } else {
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(ZmartCharge) Communication error, returned status: %d\n"), status);
-                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf(http->errorToString(status).c_str());
-                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf(http->getString().c_str());
+                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(ZmartCharge) Communication error with %s, returned status: %d\n"), baseUrl, status);
+                if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf("%s\n", http->errorToString(status).c_str());
+                if(debugger->isActive(RemoteDebug::DEBUG)) debugger->printf("%s\n", http->getString().c_str());
 
                 http->end();
             }

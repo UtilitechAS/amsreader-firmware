@@ -62,7 +62,8 @@ protected:
     HardwareSerial *hwSerial = NULL;
     uint8_t rxBufferErrors = 0;
 
-    bool autodetect = false, validDataReceived = false;
+    bool autodetect = false;
+    uint8_t validDataReceived = 0;
     unsigned long meterAutodetectLastChange = 0;
     long rate = 10000;
     uint32_t autodetectBaud = 0;

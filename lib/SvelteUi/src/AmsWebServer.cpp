@@ -1183,6 +1183,17 @@ void AmsWebServer::handleSave() {
 	if(!checkSecurity(1))
 		return;
 
+	#if defined(AMS_REMOTE_DEBUG)
+	if (debugger->isActive(RemoteDebug::DEBUG)) {
+	#endif
+		debugger->printf(PSTR("Received %d args for /save\n"), server.args());
+		for(uint8_t i = 0; i < server.args(); i++) {
+			debugger->printf_P(PSTR(" %s: %s\n"), server.argName(i).c_str(), server.arg(i).c_str());
+		}
+	#if defined(AMS_REMOTE_DEBUG)
+	}
+	#endif
+
 	SystemConfig sys;
 	config->getSystemConfig(sys);
 

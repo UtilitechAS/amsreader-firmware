@@ -188,3 +188,22 @@ svg {
   display: block;
   text-align: center;
 }
+
+.tooltip {
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  padding: 4px;
+  position: absolute;
+}
+
+.tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -9px;
+  border-width: 9px;
+  border-style: solid;
+  border-color: #ddd transparent transparent transparent;
+}

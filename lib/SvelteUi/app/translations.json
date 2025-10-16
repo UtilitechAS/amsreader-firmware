@@ -137,6 +137,11 @@
         },
         "meter" : {
             "title" : "Meter",
+            "preset" : {
+                "title" : "Meter preset",
+                "manual" : "Manual configuration",
+                "clear" : "Clear"
+            },
             "comm" : {
                 "title" : "Communication",
                 "passive" : "Passive (Push)",
@@ -312,7 +317,14 @@
     "setup" : {
         "title" : "Setup",
         "static" : "Static IP",
-        "mask" : "Saving your configuration to the device"
+        "mask" : "Saving your configuration to the device",
+        "meter" : {
+            "title" : "Energy meter",
+            "description" : "Choose your energy meter to prefill serial settings.",
+            "clear" : "Clear selection",
+            "applied" : "Those settings will be applied when you save.",
+            "manual" : "You can leave this blank and adjust meter settings later."
+        }
     },
     "errors" : {
         "han" : {

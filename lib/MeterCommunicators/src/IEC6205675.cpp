@@ -12,18 +12,14 @@
 #include "hexutils.h"
 
 #if defined(AMS_REMOTE_DEBUG)
-IEC6205675::IEC6205675(const char* d, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, RemoteDebug* debugger) {
+IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, RemoteDebug* debugger) {
 #else
-IEC6205675::IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, Stream* debugger) {
+IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, Stream* debugger) {
 #endif
     float val;
     char str[64];
 
-    TimeChangeRule CEST = {"CEST", Last, Sun, Mar, 2, 120};
-    TimeChangeRule CET = {"CET ", Last, Sun, Oct, 3, 60};
-    Timezone tz(CEST, CET);
-
-    this->packageTimestamp = ctx.timestamp == 0 ? time(nullptr) : ctx.timestamp;
+    this->packageTimestamp = time(nullptr); // ctx.timestamp is mostly garbage, so we use current time as package timestamp
 
     val = getNumber(AMS_OBIS_ACTIVE_IMPORT, sizeof(AMS_OBIS_ACTIVE_IMPORT), ((char *) (d)));
     if(val == NOVALUE) {
@@ -31,13 +27,13 @@ IEC6205675::IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* m
         
         // Kaifa special case...
         if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {
-            this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
+            this->packageTimestamp = this->packageTimestamp > 0 ? tz->toUTC(this->packageTimestamp) : 0;
             listType = 1;
             meterType = AmsTypeKaifa;
             activeImportPower = ntohl(data->dlu.data);
             lastUpdateMillis = millis64();
         } else if(data->base.type == CosemTypeOctetString) {
-            this->packageTimestamp = this->packageTimestamp > 0 ? tz.toUTC(this->packageTimestamp) : 0;
+            this->packageTimestamp = this->packageTimestamp > 0 ? tz->toUTC(this->packageTimestamp) : 0;
 
             memcpy(str, data->oct.data, data->oct.length);
             str[data->oct.length] = 0x00;
@@ -127,7 +123,7 @@ IEC6205675::IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* m
                             if(data->oct.length == 0x0C) {
                                 AmsOctetTimestamp* amst = (AmsOctetTimestamp*) data;
                                 time_t ts = decodeCosemDateTime(amst->dt);
-                                meterTimestamp = tz.toUTC(ts);
+                                meterTimestamp = tz->toUTC(ts);
                             }
                         }
                     }
@@ -738,18 +734,7 @@ IEC6205675::IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* m
         CosemData* meterTs = findObis(AMS_OBIS_METER_TIMESTAMP, sizeof(AMS_OBIS_METER_TIMESTAMP), ((char *) (d)));
         if(meterTs != NULL) {
             AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
-            time_t ts = decodeCosemDateTime(amst->dt);
-            int16_t deviation = ntohs(amst->dt.deviation);
-            if(deviation < -720 || deviation > 720) { // Deviation not specified, adjust from localtime to UTC
-                meterTimestamp = tz.toUTC(ts);
-                if(ctx.timestamp > 0) {
-                    this->packageTimestamp = tz.toUTC(ctx.timestamp);
-                }
-            } else if(meterType == AmsTypeAidon) {
-                meterTimestamp = ts - 3600; // 21.09.24, the clock is now correct
-            } else {
-                meterTimestamp = ts;
-            }
+            this->meterTimestamp = adjustForKnownIssues(amst->dt, tz, meterType == AmsTypeUnknown ? useMeterType : meterType);
         }
 
         val = getNumber(AMS_OBIS_POWER_FACTOR, sizeof(AMS_OBIS_POWER_FACTOR), ((char *) (d)));
@@ -1124,4 +1109,25 @@ time_t IEC6205675::getTimestamp(uint8_t* obis, int matchlength, const char* ptr)
         }
     }
     return 0;
+}
+
+time_t IEC6205675::adjustForKnownIssues(CosemDateTime dt, Timezone* tz, uint8_t meterType) {    
+    time_t ts = decodeCosemDateTime(dt);
+    int16_t deviation = ntohs(dt.deviation);
+    if(deviation < -720 || deviation > 720) {
+        // Time zone not specified
+        if(meterType == AmsTypeAidon || meterType == AmsTypeKamstrup) {
+            // Special known case
+            // 21.09.24, the clock is now correct for Aidon
+            // 23.10.25, the clock is now correct for Kamstrup
+            ts -= 3600;
+        } else {
+            // Adjust from localtime to UTC
+            ts = tz->toUTC(ts);
+        }
+    } else if(meterType == AmsTypeAidon) {
+        // 21.09.24, the clock is now correct for Aidon
+        ts -= 3600;
+    }
+    return ts;  
 }

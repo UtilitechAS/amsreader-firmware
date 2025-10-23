@@ -25,9 +25,9 @@ struct AmsOctetTimestamp {
 class IEC6205675 : public AmsData {
 public:
     #if defined(AMS_REMOTE_DEBUG)
-    IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, RemoteDebug* debugger);
+    IEC6205675(const char* payload, Timezone* tz, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, RemoteDebug* debugger);
     #else
-    IEC6205675(const char* payload, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, Stream* debugger);
+    IEC6205675(const char* payload, Timezone* tz, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, Stream* debugger);
     #endif
 
 private:
@@ -37,8 +37,9 @@ private:
     float getNumber(uint8_t* obis, int matchlength, const char* ptr);
     float getNumber(CosemData*);
     time_t getTimestamp(uint8_t* obis, int matchlength, const char* ptr);
+    time_t adjustForKnownIssues(CosemDateTime dt, Timezone* tz, uint8_t meterType);
 
-    uint8_t AMS_OBIS_UNKNOWN_1[4]                 = { 25, 9, 0, 255 };
+    uint8_t AMS_OBIS_UNKNOWN_1[4]               = { 25, 9, 0, 255 };
 
     uint8_t AMS_OBIS_VERSION[4]                 = {  0, 2, 129, 255 };
     uint8_t AMS_OBIS_METER_MODEL[4]             = { 96, 1, 1, 255 };

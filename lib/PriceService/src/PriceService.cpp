@@ -43,6 +43,10 @@ void PriceService::setup(PriceServiceConfig& config) {
         this->config = new PriceServiceConfig();
     }
     memcpy(this->config, &config, sizeof(config));
+    if(this->config->resolutionInMinutes != 15 && this->config->resolutionInMinutes != 60) {
+        this->config->resolutionInMinutes = 60;
+    }
+
     lastTodayFetch = lastTomorrowFetch = lastCurrencyFetch = 0;
     if(today != NULL) delete today;
     if(tomorrow != NULL) delete tomorrow;
@@ -91,55 +95,156 @@ char* PriceService::getArea() {
 
 char* PriceService::getSource() {
     if(this->today != NULL && this->tomorrow != NULL) {
-        if(strcmp(this->today->source, this->tomorrow->source) == 0) {
-            return this->today->source;
+        if(strcmp(this->today->getSource(), this->tomorrow->getSource()) == 0) {
+            return this->today->getSource();
         } else {
             return "MIX";
         }
     } else if(today != NULL) {
-        return this->today->source;
+        return this->today->getSource();
     } else if(tomorrow != NULL) {
-        return this->tomorrow->source;
+        return this->tomorrow->getSource();
     }
     return "";
 }
 
-float PriceService::getValueForHour(uint8_t direction, int8_t hour) {
-    time_t cur = time(nullptr);
-    return getValueForHour(direction, cur, hour);
+uint8_t PriceService::getResolutionInMinutes() {
+    return today != NULL ? today->getResolutionInMinutes() : 60;
 }
 
-float PriceService::getValueForHour(uint8_t direction, time_t ts, int8_t hour) {
-    float ret = getEnergyPriceForHour(direction, ts, hour);
-    if(ret == PRICE_NO_VALUE)
-        return ret;
+uint8_t PriceService::getNumberOfPointsAvailable() {
+    if(today == NULL) return getResolutionInMinutes() == 15 ? 192 : 48;
+    if(tomorrow != NULL) return today->getNumberOfPoints() + tomorrow->getNumberOfPoints();
+    return today->getNumberOfPoints();
+}
+
+bool PriceService::isExportPricesDifferentFromImport() {
+    for (uint8_t i = 0; i < priceConfig.size(); i++) {
+        PriceConfig pc = priceConfig.at(i);
+        if(pc.direction != PRICE_DIRECTION_BOTH) {
+            return true;
+        }
+    }
+    return today != NULL && today->isExportPricesDifferentFromImport();
+}
+
+float PriceService::getPricePoint(uint8_t direction, uint8_t point) {
+    float value = getFixedPrice(direction, point * getResolutionInMinutes() / 60);
+    if(value == PRICE_NO_VALUE) value = getEnergyPricePoint(direction, point);
+    if(value == PRICE_NO_VALUE) return PRICE_NO_VALUE;
 
     tmElements_t tm;
-    breakTime(tz->toLocal(ts + (hour * SECS_PER_HOUR)), tm);
+    time_t ts = time(nullptr);
+    breakTime(tz->toLocal(ts), tm);
+    tm.Hour = tm.Minute = tm.Second = 0;
+    breakTime(makeTime(tm) + (point * SECS_PER_MIN * getResolutionInMinutes()), tm);
 
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
         PriceConfig pc = priceConfig.at(i);
         if(pc.type == PRICE_TYPE_FIXED) continue;
         if((pc.direction & direction) != direction) continue;
         if(!timeIsInPeriod(tm, pc)) continue;
+        float pcVal = pc.value / 10000.0;
+
         switch(pc.type) {
             case PRICE_TYPE_ADD:
-                ret += pc.value / 10000.0;
+                value += pcVal;
                 break;
             case PRICE_TYPE_SUBTRACT:
-                ret -= pc.value / 10000.0;
+                value -= pcVal;
                 break;
             case PRICE_TYPE_PCT:
-                ret += ((pc.value / 10000.0) * ret) / 100.0;
+                value += (pcVal * value) / 100.0;
                 break;
         }
     }
-    return ret;
+
+    return value;
 }
 
-float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t hour) {
+float PriceService::getCurrentPrice(uint8_t direction) {
+    time_t ts = time(nullptr);
     tmElements_t tm;
-    breakTime(tz->toLocal(ts + (hour * SECS_PER_HOUR)), tm);
+    breakTime(tz->toLocal(ts), tm);
+    uint8_t pos = getCurrentPricePointIndex();
+
+    return getPricePoint(direction, pos);
+}
+
+float PriceService::getEnergyPricePoint(uint8_t direction, uint8_t point) {
+    uint8_t pos = point;
+    float multiplier = 1.0;
+    uint8_t numberOfPointsToday = 24;
+    if(today != NULL) {
+        numberOfPointsToday = today->getNumberOfPoints();
+    }
+
+    float value = PRICE_NO_VALUE;
+    if(pos >= numberOfPointsToday) {
+        pos = pos - numberOfPointsToday;
+        if(tomorrow == NULL)
+            return PRICE_NO_VALUE;
+        if(pos >= tomorrow->getNumberOfPoints()) return PRICE_NO_VALUE;
+        if(!tomorrow->hasPrice(pos, direction))
+            return PRICE_NO_VALUE;
+        value = tomorrow->getPrice(pos, direction);
+        float mult = getCurrencyMultiplier(tomorrow->getCurrency(), config->currency, time(nullptr));
+        if(mult == 0) return PRICE_NO_VALUE;
+        multiplier *= mult;
+    } else if(pos >= 0) {
+        if(today == NULL)
+            return PRICE_NO_VALUE;
+        if(!today->hasPrice(pos, direction))
+            return PRICE_NO_VALUE;
+        value = today->getPrice(pos, direction);
+        float mult = getCurrencyMultiplier(today->getCurrency(), config->currency, time(nullptr));
+        if(mult == 0) return PRICE_NO_VALUE;
+        multiplier *= mult;
+    }
+    return value == PRICE_NO_VALUE ? PRICE_NO_VALUE : value * multiplier;
+}
+
+float PriceService::getPriceForRelativeHour(uint8_t direction, int8_t hour) {
+    time_t ts = time(nullptr);
+    tmElements_t tm;
+
+    breakTime(tz->toLocal(ts), tm);
+    int8_t targetHour = tm.Hour + hour;
+    tm.Hour = tm.Minute = tm.Second = 0;
+    time_t startOfDay = tz->toUTC(makeTime(tm));
+
+    if((ts + (hour * SECS_PER_HOUR)) < startOfDay) {
+        return PRICE_NO_VALUE;
+    }
+
+    if(getResolutionInMinutes() == 60) {
+        return getPricePoint(direction, targetHour);
+    }
+
+    float valueSum = 0.0f;
+    uint8_t valueCount = 0;
+    float indexIncrements = 60.0 / today->getResolutionInMinutes();
+    uint8_t priceMapIndexStart = (uint8_t) floor(indexIncrements * targetHour);
+    uint8_t priceMapIndexEnd = (uint8_t) ceil(indexIncrements * (targetHour+1));
+
+    for(uint8_t mi = priceMapIndexStart; mi < priceMapIndexEnd; mi++) {
+        float val = getPricePoint(direction, mi);
+        if(val == PRICE_NO_VALUE) continue;
+        valueSum += val;
+        valueCount++;
+    }
+    if(valueCount == 0) return PRICE_NO_VALUE;
+    return valueSum / valueCount;
+}
+
+float PriceService::getFixedPrice(uint8_t direction, int8_t hour) {
+    time_t ts = time(nullptr);
+
+    tmElements_t tm;
+    breakTime(tz->toLocal(ts), tm);
+    tm.Minute = 0;
+    tm.Second = 0;
+    breakTime(makeTime(tm) + (hour * SECS_PER_HOUR), tm);
 
     float value = PRICE_NO_VALUE;
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
@@ -154,68 +259,7 @@ float PriceService::getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t h
             value += pc.value / 10000.0;
         }
     }
-    if(value != PRICE_NO_VALUE) return value;
-
-    int8_t pos = hour;
-
-    breakTime(entsoeTz->toLocal(ts), tm);
-    while(tm.Hour > 0) {
-        ts -= 3600;
-        breakTime(entsoeTz->toLocal(ts), tm);
-        pos++;
-    }
-    uint8_t hoursToday = 0;
-    uint8_t todayDate = tm.Day;
-    while(tm.Day == todayDate) {
-        ts += 3600;
-        breakTime(entsoeTz->toLocal(ts), tm);
-        hoursToday++;
-    }
-    uint8_t hoursTomorrow = 0;
-    uint8_t tomorrowDate = tm.Day;
-    while(tm.Day == tomorrowDate) {
-        ts += 3600;
-        breakTime(entsoeTz->toLocal(ts), tm);
-        hoursTomorrow++;
-    }
-
-    float multiplier = 1.0;
-    if(pos >= hoursToday) {
-        pos = pos - hoursToday;
-        if(pos >= hoursTomorrow) return PRICE_NO_VALUE;
-        if(tomorrow == NULL)
-            return PRICE_NO_VALUE;
-        if(tomorrow->points[pos] == PRICE_NO_VALUE)
-            return PRICE_NO_VALUE;
-        value = tomorrow->points[pos] / 10000.0;
-        if(strcmp(tomorrow->measurementUnit, "KWH") == 0) {
-            // Multiplier is 1
-        } else if(strcmp(tomorrow->measurementUnit, "MWH") == 0) {
-            multiplier *= 0.001;
-        } else {
-            return PRICE_NO_VALUE;
-        }
-        float mult = getCurrencyMultiplier(tomorrow->currency, config->currency, time(nullptr));
-        if(mult == 0) return PRICE_NO_VALUE;
-        multiplier *= mult;
-    } else if(pos >= 0) {
-        if(today == NULL)
-            return PRICE_NO_VALUE;
-        if(today->points[pos] == PRICE_NO_VALUE)
-            return PRICE_NO_VALUE;
-        value = today->points[pos] / 10000.0;
-        if(strcmp(today->measurementUnit, "KWH") == 0) {
-            // Multiplier is 1
-        } else if(strcmp(today->measurementUnit, "MWH") == 0) {
-            multiplier *= 0.001;
-        } else {
-            return PRICE_NO_VALUE;
-        }
-        float mult = getCurrencyMultiplier(today->currency, config->currency, time(nullptr));
-        if(mult == 0) return PRICE_NO_VALUE;
-        multiplier *= mult;
-    }
-    return value == PRICE_NO_VALUE ? PRICE_NO_VALUE : value * multiplier;
+    return value;
 }
 
 bool PriceService::loop() {
@@ -223,42 +267,58 @@ bool PriceService::loop() {
     if(now < 10000) return false; // Grace period
 
     time_t t = time(nullptr);
-    if(t < FirmwareVersion::BuildEpoch) return false;
-
-    #ifndef AMS2MQTT_PRICE_KEY
-    if(strlen(getToken()) == 0) {
+    if(t < FirmwareVersion::BuildEpoch) {
         return false;
     }
-    #endif
-    if(strlen(config->area) == 0)
-        return false;
-    if(strlen(config->currency) == 0)
-        return false;
 
     tmElements_t tm;
     breakTime(entsoeTz->toLocal(t), tm);
 
     if(currentDay == 0) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Day init\n"));
         currentDay = tm.Day;
-        currentHour = tm.Hour;
+        currentPricePoint = getCurrentPricePointIndex();
     }
     
     if(currentDay != tm.Day) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Day reset\n"));
         if(today != NULL) delete today;
         if(tomorrow != NULL) {
             today = tomorrow;
             tomorrow = NULL;
         }
         currentDay = tm.Day;
-        currentHour = tm.Hour;
+        currentPricePoint = getCurrentPricePointIndex();
         return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
-    } else if(currentHour != tm.Hour) {
-        currentHour = tm.Hour;
+    } else if(currentPricePoint != getCurrentPricePointIndex()) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Price point reset\n"));
+        currentPricePoint = getCurrentPricePointIndex();
         return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
     }
 
     if(!config->enabled)
         return false;
+
+    #ifndef AMS2MQTT_PRICE_KEY
+    if(strlen(getToken()) == 0) {
+        return false;
+    }
+    #endif
+    if(strlen(config->area) == 0){
+        return false;
+    }
+    if(strlen(config->currency) == 0) {
+        return false;
+    }
 
     bool readyToFetchForTomorrow = tomorrow == NULL && (tm.Hour > 13 || (tm.Hour == 13 && tm.Minute >= tomorrowFetchMinute)) && (lastTomorrowFetch == 0 || now - lastTomorrowFetch > (nextFetchDelayMinutes*60000));
 
@@ -273,6 +333,7 @@ bool PriceService::loop() {
             }
             today = NULL;
         }
+        currentPricePoint = getCurrentPricePointIndex();
         return today != NULL && !readyToFetchForTomorrow; // Only trigger MQTT publish if we have todays prices and we are not immediately ready to fetch price for tomorrow.
     }
 
@@ -289,6 +350,7 @@ bool PriceService::loop() {
             }
             tomorrow = NULL;
         }
+        currentPricePoint = getCurrentPricePointIndex();
         return tomorrow != NULL;
     }
 
@@ -434,24 +496,30 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
         if (debugger->isActive(RemoteDebug::DEBUG))
         #endif
         debugger->printf_P(PSTR("(PriceService)  url: %s\n"), buf);
-        EntsoeA44Parser a44;
-        if(retrieve(buf, &a44) && a44.getPoint(0) != PRICE_NO_VALUE) {
-            PricesContainer* ret = new PricesContainer();
-            a44.get(ret);
+        PricesContainer* ret = new PricesContainer("EOE");
+        EntsoeA44Parser a44(ret);
+        if(retrieve(buf, &a44) && ret->hasPrice(0, PRICE_DIRECTION_IMPORT)) {
             return ret;
         } else {
+            delete ret;
             return NULL;
         }
     } else if(hub) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Going to fetch prices from hub\n"));
+
         tmElements_t tm;
         breakTime(entsoeTz->toLocal(t), tm);
 
         String data;
-        snprintf_P(buf, BufferSize, PSTR("http://hub.amsleser.no/hub/price/%s/%d/%d/%d?currency=%s"),
+        snprintf_P(buf, BufferSize, PSTR("http://hub.amsleser.no/hub/price/%s/%d/%d/%d/pt%dm?currency=%s"),
             config->area,
             tm.Year+1970,
             tm.Month,
             tm.Day,
+            config->resolutionInMinutes,
             config->currency
         );
         #if defined(AMS_REMOTE_DEBUG)
@@ -488,13 +556,37 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
                 GCMParser gcm(key, auth);
                 int8_t gcmRet = gcm.parse(content, ctx);
                 if(gcmRet > 0) {
-                    PricesContainer* ret = new PricesContainer();
-                    for(uint8_t i = 0; i < 25; i++) {
-                        ret->points[i] = PRICE_NO_VALUE;
+                    AmsPriceV2Header* header = (AmsPriceV2Header*) (content+gcmRet);
+
+                    PricesContainer* ret = new PricesContainer(header->source);
+                    #if defined(AMS_REMOTE_DEBUG)
+                    if (debugger->isActive(RemoteDebug::DEBUG))
+                    #endif
+                    debugger->printf_P(PSTR("(PriceService) Setting up price container with pt%dm, %dpts, edi: %d\n"), header->resolutionInMinutes, header->numberOfPoints, header->differentExportPrices);
+
+                    ret->setup(header->resolutionInMinutes, header->numberOfPoints, header->differentExportPrices);
+                    ret->setCurrency(header->currency);
+                    int32_t* points = (int32_t*) &header[1];
+
+                    for(uint8_t i = 0; i < header->numberOfPoints; i++) {
+                        int32_t intval = ntohl(points[i]);
+                        float value = intval / 10000.0;
+                        #if defined(AMS_REMOTE_DEBUG)
+                        if (debugger->isActive(RemoteDebug::VERBOSE))
+                        #endif
+                        debugger->printf_P(PSTR("(PriceService) Import price position and value received: %d :: %.2f\n"), i, value);
+                        ret->setPrice(i, value, PRICE_DIRECTION_IMPORT);
                     }
-                    memcpy(ret, content+gcmRet, sizeof(*ret));
-                    for(uint8_t i = 0; i < 25; i++) {
-                        ret->points[i] = ntohl(ret->points[i]);
+                    if(header->differentExportPrices) {
+                        for(uint8_t i = 0; i < header->numberOfPoints; i++) {
+                            int32_t intval = ntohl(points[i]);
+                            float value = intval / 10000.0;
+                            #if defined(AMS_REMOTE_DEBUG)
+                            if (debugger->isActive(RemoteDebug::VERBOSE))
+                            #endif
+                            debugger->printf_P(PSTR("(PriceService) Export price position and value received: %d :: %.2f\n"), i, value);
+                            ret->setPrice(i, value, PRICE_DIRECTION_EXPORT);
+                        }
                     }
                     lastError = 0;
                     nextFetchDelayMinutes = 1;
@@ -658,4 +750,11 @@ bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
     }
 
     return makeTime(tms) <= makeTime(tm) && makeTime(tme) >= makeTime(tm);
+}
+
+uint8_t PriceService::getCurrentPricePointIndex() {
+    time_t ts = time(nullptr);
+    tmElements_t tm;
+    breakTime(tz->toLocal(ts), tm);
+    return ((tm.Hour * 60) + tm.Minute) / getResolutionInMinutes();
 }

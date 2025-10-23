@@ -12,7 +12,22 @@
 #include "DataParser.h"
 #include "Cosem.h"
 
-struct Lng2Data_3p {
+struct Lng2Data_3p_0b {
+    CosemBasic header;
+    CosemLongUnsigned u1;
+    CosemLongUnsigned u2;
+    CosemLongUnsigned u3;
+    CosemLongUnsigned i1;
+    CosemLongUnsigned i2;
+    CosemLongUnsigned i3;
+    CosemDLongUnsigned activeImport;
+    CosemDLongUnsigned activeExport;
+    CosemDLongUnsigned acumulatedImport;
+    CosemDLongUnsigned accumulatedExport;
+    CosemString meterId;
+} __attribute__((packed));
+
+struct Lng2Data_3p_0e {
     CosemBasic header;
     CosemLongUnsigned u1;
     CosemLongUnsigned u2;

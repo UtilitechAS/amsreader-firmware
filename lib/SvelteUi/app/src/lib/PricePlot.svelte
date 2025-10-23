@@ -41,7 +41,7 @@
             min = max = 0;
             let i = Math.floor(((cur.getHours()*60) + cur.getMinutes()) / json?.resolution);
             cur.setMinutes(Math.floor(cur.getMinutes()/json?.resolution)*json?.resolution,0,0);
-            while(i++ < json?.prices?.length) {
+            while(i < json?.prices?.length) {
                 val = json.prices[i];
                 if(val == null) break;
                 xTicks.push({
@@ -51,6 +51,7 @@
                 min = Math.min(min, val*100);
                 max = Math.max(max, val*100);
                 addMinutes(cur, json?.resolution);
+                i++;
             }
 
             let ret = formatCurrency(Math.max(Math.abs(min) / 100.0, Math.abs(max) / 100.0), currency);

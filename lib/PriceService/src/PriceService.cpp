@@ -205,24 +205,19 @@ float PriceService::getEnergyPricePoint(uint8_t direction, uint8_t point) {
 }
 
 float PriceService::getPriceForRelativeHour(uint8_t direction, int8_t hour) {
-    float value = getFixedPrice(direction, hour);
-    if(value != PRICE_NO_VALUE) return value;
-    if(today == NULL) return PRICE_NO_VALUE;
     time_t ts = time(nullptr);
     tmElements_t tm;
 
     breakTime(tz->toLocal(ts), tm);
+    int8_t targetHour = tm.Hour + hour;
     tm.Hour = tm.Minute = tm.Second = 0;
-    time_t startOfDay = makeTime(tm);
+    time_t startOfDay = tz->toUTC(makeTime(tm));
 
-    if(makeTime(tm) < startOfDay) {
+    if((ts + (hour * SECS_PER_HOUR)) < startOfDay) {
         return PRICE_NO_VALUE;
     }
 
-    breakTime(tz->toLocal(ts), tm);
-    int8_t targetHour = tm.Hour + hour;
-
-    if(today->getResolutionInMinutes() == 60) {
+    if(getResolutionInMinutes() == 60) {
         return getPricePoint(direction, targetHour);
     }
 

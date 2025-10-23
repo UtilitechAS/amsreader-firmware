@@ -320,28 +320,30 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
     mqtt.publish(topic + "/price/resolution", String(ps->getResolutionInMinutes()), true, 0);
     mqtt.loop();
 
+    uint8_t relativeIndex = 0;
     uint8_t startIndex = ps->getCurrentPricePointIndex();
     uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
 	for(int i = startIndex; i < numberOfPoints; i++) {
 		float importVal = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
         if(importVal == PRICE_NO_VALUE) {
-            mqtt.publish(topic + "/price/import/" + String(i), "", true, 0);
+            mqtt.publish(topic + "/price/import/" + String(relativeIndex), "", true, 0);
             mqtt.loop();
         } else {
-            mqtt.publish(topic + "/price/import/" + String(i), String(importVal, 4), true, 0);
+            mqtt.publish(topic + "/price/import/" + String(relativeIndex), String(importVal, 4), true, 0);
             mqtt.loop();
         }
 
         if(hasExport && ps->isExportPricesDifferentFromImport()) {
             float exportVal = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
             if(exportVal == PRICE_NO_VALUE) {
-                mqtt.publish(topic + "/price/export/" + String(i), "", true, 0);
+                mqtt.publish(topic + "/price/export/" + String(relativeIndex), "", true, 0);
                 mqtt.loop();
             } else {
-                mqtt.publish(topic + "/price/export/" + String(i), String(exportVal, 4), true, 0);
+                mqtt.publish(topic + "/price/export/" + String(relativeIndex), String(exportVal, 4), true, 0);
                 mqtt.loop();
             }
         }
+        relativeIndex++;
     }
     if(min != INT16_MAX) {
         mqtt.publish(topic + "/price/min", String(min, 4), true, 0);

@@ -38,4 +38,4 @@ jobs:
       run: localazy download -k localazy-keys.json
 
     - name: Upload translations to S3
-      run: aws s3 sync ./localazy/language/ s3://amscloud-private/language/
+      run: aws s3 sync ./localazy/language/ s3://${{ secrets.AWS_S3_BUCKET }}/language/

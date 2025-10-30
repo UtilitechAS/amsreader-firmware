@@ -1,0 +1,84 @@
+name: Release candidate build and upload
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+'
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code from repo
+      uses: actions/checkout@v4
+    - name: Get release version for filenames
+      id: release_tag
+      env:
+        GITHUB_REF: ${{ github.ref }}
+      run: echo ::set-output name=tag::$(echo ${GITHUB_REF:11})
+
+    - name: Create release with release notes
+      id: create_release
+      uses: ncipollo/release-action@v1
+      with:
+        name: Release candidate v${{ steps.release_tag.outputs.tag }}
+        prerelease: true
+
+    outputs:
+      version: ${{ steps.release_tag.outputs.tag }}
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+
+  esp32s2:
+    needs: prepare
+    uses: ./.github/workflows/release-deploy-env.yml
+    secrets: inherit
+    with:
+      env: esp32s2
+      version: ${{ needs.prepare.outputs.version }}
+      upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc
+  esp32s3:
+    needs: prepare
+    uses: ./.github/workflows/release-deploy-env.yml
+    secrets: inherit
+    with:
+      env: esp32s3
+      version: ${{ needs.prepare.outputs.version }}
+      upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc
+  esp32c3:
+    needs: prepare
+    uses: ./.github/workflows/release-deploy-env.yml
+    secrets: inherit
+    with:
+      env: esp32c3
+      version: ${{ needs.prepare.outputs.version }}
+      upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc
+  esp32:
+    needs: prepare
+    uses: ./.github/workflows/release-deploy-env.yml
+    secrets: inherit
+    with:
+      env: esp32
+      version: ${{ needs.prepare.outputs.version }}
+      upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc
+  esp32solo:
+    needs: prepare
+    uses: ./.github/workflows/release-deploy-env.yml
+    secrets: inherit
+    with:
+      env: esp32solo
+      version: ${{ needs.prepare.outputs.version }}
+      upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc
+  esp8266:
+    needs: prepare
+    uses: ./.github/workflows/release-deploy-env.yml
+    secrets: inherit
+    with:
+      env: esp8266
+      version: ${{ needs.prepare.outputs.version }}
+      upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc

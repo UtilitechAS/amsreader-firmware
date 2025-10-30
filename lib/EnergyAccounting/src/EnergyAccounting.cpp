@@ -30,7 +30,7 @@ EnergyAccounting::EnergyAccounting(Stream* Stream, EnergyAccountingRealtimeData*
         rtd->lastImportUpdateMillis = 0;
         rtd->lastExportUpdateMillis = 0;
     }
-    this->realtimeData = rtd;
+    realtimeData = rtd;
 }
 
 void EnergyAccounting::setup(AmsDataStorage *ds, EnergyAccountingConfig *config) {
@@ -67,14 +67,14 @@ bool EnergyAccounting::update(AmsData* amsData) {
     breakTime(tz->toLocal(now), local);
 
     if(!init) {
-        this->realtimeData->lastImportUpdateMillis = 0;
-        this->realtimeData->lastExportUpdateMillis = 0;
-        this->realtimeData->currentHour = local.Hour;
-        this->realtimeData->currentDay = local.Day;
+        realtimeData->lastImportUpdateMillis = 0;
+        realtimeData->lastExportUpdateMillis = 0;
+        realtimeData->currentHour = local.Hour;
+        realtimeData->currentDay = local.Day;
         if(!load()) {
             data = { 7, local.Month, 
-                0, 0, 0, // Cost
-                0, 0, 0, // Income
+                0, 0, 0, 0, // Cost
+                0, 0, 0, 0, // Income
                 0, 0, 0, // Last month import, export and accuracy
                 0, 0, 0, // Peak 1
                 0, 0, 0, // Peak 2
@@ -86,12 +86,11 @@ bool EnergyAccounting::update(AmsData* amsData) {
         init = true;
     }
 
-    float importPrice = getPriceForHour(PRICE_DIRECTION_IMPORT, 0);
-    if(!initPrice && importPrice != PRICE_NO_VALUE) {
+    if(!initPrice && ps != NULL && ps->hasPrice()) {
         calcDayCost();
     }
 
-    if(local.Hour != this->realtimeData->currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
+    if(local.Hour != realtimeData->currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
         tmElements_t oneHrAgo, oneHrAgoLocal;
         breakTime(now-3600, oneHrAgo);
         uint16_t val = round(ds->getHourImport(oneHrAgo.Hour) / 10.0);
@@ -99,27 +98,24 @@ bool EnergyAccounting::update(AmsData* amsData) {
         breakTime(tz->toLocal(now-3600), oneHrAgoLocal);
         ret |= updateMax(val, oneHrAgoLocal.Day, oneHrAgoLocal.Hour);
 
-        this->realtimeData->currentHour = local.Hour; // Need to be defined here so that day cost is correctly calculated
-        if(local.Hour > 0) {
-            calcDayCost();
-        }
+        realtimeData->currentHour = local.Hour; // Need to be defined here so that day cost is correctly calculated
 
-        this->realtimeData->use = 0;
-        this->realtimeData->produce = 0;
-        this->realtimeData->costHour = 0;
-        this->realtimeData->incomeHour = 0;
+        realtimeData->use = 0;
+        realtimeData->produce = 0;
+        realtimeData->costHour = 0;
+        realtimeData->incomeHour = 0;
 
-        uint8_t prevDay = this->realtimeData->currentDay;
-        if(local.Day != this->realtimeData->currentDay) {
-            data.costYesterday = this->realtimeData->costDay * 100;
-            data.costThisMonth += this->realtimeData->costDay * 100;
-            this->realtimeData->costDay = 0;
+        uint8_t prevDay = realtimeData->currentDay;
+        if(local.Day != realtimeData->currentDay) {
+            data.costYesterday = realtimeData->costDay * 100;
+            data.costThisMonth += realtimeData->costDay * 100;
+            realtimeData->costDay = 0;
 
-            data.incomeYesterday = this->realtimeData->incomeDay * 100;
-            data.incomeThisMonth += this->realtimeData->incomeDay * 100;
-            this->realtimeData->incomeDay = 0;
+            data.incomeYesterday = realtimeData->incomeDay * 100;
+            data.incomeThisMonth += realtimeData->incomeDay * 100;
+            realtimeData->incomeDay = 0;
 
-            this->realtimeData->currentDay = local.Day;
+            realtimeData->currentDay = local.Day;
             ret = true;
         }
 
@@ -149,42 +145,49 @@ bool EnergyAccounting::update(AmsData* amsData) {
             data.lastMonthAccuracy = accuracy;
 
             data.month = local.Month;
-            this->realtimeData->currentThresholdIdx = 0;
+            realtimeData->currentThresholdIdx = 0;
             ret = true;
         }
+
+        if(ret) {
+            data.costToday = realtimeData->costDay * 100;
+            data.incomeToday = realtimeData->incomeDay * 100;
+            data.lastUpdated = now;
+        }
     }
 
-    if(this->realtimeData->lastImportUpdateMillis < amsData->getLastUpdateMillis()) {
-        unsigned long ms = amsData->getLastUpdateMillis() - this->realtimeData->lastImportUpdateMillis;
+    if(realtimeData->lastImportUpdateMillis < amsData->getLastUpdateMillis()) {
+        unsigned long ms = amsData->getLastUpdateMillis() - realtimeData->lastImportUpdateMillis;
         float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
         if(kwhi > 0) {
-            this->realtimeData->use += kwhi;
+            realtimeData->use += kwhi;
+            float importPrice = ps == NULL ? PRICE_NO_VALUE : ps->getCurrentPrice(PRICE_DIRECTION_IMPORT);
             if(importPrice != PRICE_NO_VALUE) {
                 float cost = importPrice * kwhi;
-                this->realtimeData->costHour += cost;
-                this->realtimeData->costDay += cost;
+                realtimeData->costHour += cost;
+                realtimeData->costDay += cost;
             }
         }
-        this->realtimeData->lastImportUpdateMillis = amsData->getLastUpdateMillis();
+        realtimeData->lastImportUpdateMillis = amsData->getLastUpdateMillis();
     }
 
-    if(amsData->getListType() > 1 && this->realtimeData->lastExportUpdateMillis < amsData->getLastUpdateMillis()) {
-        unsigned long ms = amsData->getLastUpdateMillis() - this->realtimeData->lastExportUpdateMillis;
+    if(amsData->getListType() > 1 && realtimeData->lastExportUpdateMillis < amsData->getLastUpdateMillis()) {
+        unsigned long ms = amsData->getLastUpdateMillis() - realtimeData->lastExportUpdateMillis;
         float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
         if(kwhe > 0) {
-            this->realtimeData->produce += kwhe;
-            float exportPrice = getPriceForHour(PRICE_DIRECTION_EXPORT, 0);
+            realtimeData->produce += kwhe;
+            float exportPrice = ps == NULL ? PRICE_NO_VALUE : ps->getCurrentPrice(PRICE_DIRECTION_EXPORT);
             if(exportPrice != PRICE_NO_VALUE) {
                 float income = exportPrice * kwhe;
-                this->realtimeData->incomeHour += income;
-                this->realtimeData->incomeDay += income;
+                realtimeData->incomeHour += income;
+                realtimeData->incomeDay += income;
             }
         }
-        this->realtimeData->lastExportUpdateMillis = amsData->getLastUpdateMillis();
+        realtimeData->lastExportUpdateMillis = amsData->getLastUpdateMillis();
     }
 
     if(config != NULL) {
-        while(getMonthMax() > config->thresholds[this->realtimeData->currentThresholdIdx] && this->realtimeData->currentThresholdIdx < 10) this->realtimeData->currentThresholdIdx++;
+        while(getMonthMax() > config->thresholds[realtimeData->currentThresholdIdx] && realtimeData->currentThresholdIdx < 10) realtimeData->currentThresholdIdx++;
     }
 
     return ret;
@@ -192,28 +195,36 @@ bool EnergyAccounting::update(AmsData* amsData) {
 
 void EnergyAccounting::calcDayCost() {
     time_t now = time(nullptr);
-    tmElements_t local, utc;
+    tmElements_t local, utc, lastUpdateUtc;
     if(tz == NULL) return;
     breakTime(tz->toLocal(now), local);
+    if(ps == NULL) return;
 
-    if(getPriceForHour(PRICE_DIRECTION_IMPORT, 0) != PRICE_NO_VALUE) {
-        if(initPrice) {
-            this->realtimeData->costDay = 0;
-            this->realtimeData->incomeDay = 0;
+    if(ps->hasPrice()) {
+        breakTime(data.lastUpdated, lastUpdateUtc);
+        uint8_t calcFromHour = 0;
+        if(lastUpdateUtc.Day != local.Day || lastUpdateUtc.Month != local.Month || lastUpdateUtc.Year != local.Year) {
+            realtimeData->costDay = 0;
+            realtimeData->incomeDay = 0;
+            calcFromHour = 0;
+        } else {
+            realtimeData->costDay = data.costToday / 100.0;
+            realtimeData->incomeDay = data.incomeToday / 100.0;
+            calcFromHour = lastUpdateUtc.Hour;
         }
-        for(uint8_t i = 0; i < this->realtimeData->currentHour; i++) {
+        for(uint8_t i = calcFromHour; i < realtimeData->currentHour; i++) {
             breakTime(now - ((local.Hour - i) * 3600), utc);
 
-            float priceIn = getPriceForHour(PRICE_DIRECTION_IMPORT, i - local.Hour);
+            float priceIn = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i - local.Hour);
             if(priceIn != PRICE_NO_VALUE) {
                 int16_t wh = ds->getHourImport(utc.Hour);
-                this->realtimeData->costDay += priceIn * (wh / 1000.0);
+                realtimeData->costDay += priceIn * (wh / 1000.0);
             }
 
-            float priceOut = getPriceForHour(PRICE_DIRECTION_EXPORT, i - local.Hour);
+            float priceOut = ps->getPriceForRelativeHour(PRICE_DIRECTION_EXPORT, i - local.Hour);
             if(priceOut != PRICE_NO_VALUE) {
                 int16_t wh = ds->getHourExport(utc.Hour);
-                this->realtimeData->incomeDay += priceOut * (wh / 1000.0);
+                realtimeData->incomeDay += priceOut * (wh / 1000.0);
             }
         }
         initPrice = true;
@@ -221,7 +232,7 @@ void EnergyAccounting::calcDayCost() {
 }
 
 float EnergyAccounting::getUseThisHour() {
-    return this->realtimeData->use;
+    return realtimeData->use;
 }
 
 float EnergyAccounting::getUseToday() {
@@ -231,7 +242,7 @@ float EnergyAccounting::getUseToday() {
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
     tmElements_t utc, local;
     breakTime(tz->toLocal(now), local);
-    for(uint8_t i = 0; i < this->realtimeData->currentHour; i++) {
+    for(uint8_t i = 0; i < realtimeData->currentHour; i++) {
         breakTime(now - ((local.Hour - i) * 3600), utc);
         ret += ds->getHourImport(utc.Hour) / 1000.0;
     }
@@ -242,7 +253,7 @@ float EnergyAccounting::getUseThisMonth() {
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
     float ret = 0;
-    for(uint8_t i = 1; i < this->realtimeData->currentDay; i++) {
+    for(uint8_t i = 1; i < realtimeData->currentDay; i++) {
         ret += ds->getDayImport(i) / 1000.0;
     }
     return ret + getUseToday();
@@ -253,7 +264,7 @@ float EnergyAccounting::getUseLastMonth() {
 }
 
 float EnergyAccounting::getProducedThisHour() {
-    return this->realtimeData->produce;
+    return realtimeData->produce;
 }
 
 float EnergyAccounting::getProducedToday() {
@@ -263,7 +274,7 @@ float EnergyAccounting::getProducedToday() {
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
     tmElements_t utc, local;
     breakTime(tz->toLocal(now), local);
-    for(uint8_t i = 0; i < this->realtimeData->currentHour; i++) {
+    for(uint8_t i = 0; i < realtimeData->currentHour; i++) {
         breakTime(now - ((local.Hour - i) * 3600), utc);
         ret += ds->getHourExport(utc.Hour) / 1000.0;
     }
@@ -274,7 +285,7 @@ float EnergyAccounting::getProducedThisMonth() {
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
     float ret = 0;
-    for(uint8_t i = 1; i < this->realtimeData->currentDay; i++) {
+    for(uint8_t i = 1; i < realtimeData->currentDay; i++) {
         ret += ds->getDayExport(i) / 1000.0;
     }
     return ret + getProducedToday();
@@ -285,11 +296,11 @@ float EnergyAccounting::getProducedLastMonth() {
 }
 
 float EnergyAccounting::getCostThisHour() {
-    return this->realtimeData->costHour;
+    return realtimeData->costHour;
 }
 
 float EnergyAccounting::getCostToday() {
-    return this->realtimeData->costDay;
+    return realtimeData->costDay;
 }
 
 float EnergyAccounting::getCostYesterday() {
@@ -305,11 +316,11 @@ float EnergyAccounting::getCostLastMonth() {
 }
 
 float EnergyAccounting::getIncomeThisHour() {
-    return this->realtimeData->incomeHour;
+    return realtimeData->incomeHour;
 }
 
 float EnergyAccounting::getIncomeToday() {
-    return this->realtimeData->incomeDay;
+    return realtimeData->incomeDay;
 }
 
 float EnergyAccounting::getIncomeYesterday() {
@@ -327,7 +338,7 @@ float EnergyAccounting::getIncomeLastMonth() {
 uint8_t EnergyAccounting::getCurrentThreshold() {
     if(config == NULL)
         return 0;
-    return config->thresholds[this->realtimeData->currentThresholdIdx];
+    return config->thresholds[realtimeData->currentThresholdIdx];
 }
 
 float EnergyAccounting::getMonthMax() {
@@ -414,9 +425,11 @@ bool EnergyAccounting::load() {
         } else if(buf[0] == 6) {
             EnergyAccountingData6* data = (EnergyAccountingData6*) buf;
             this->data = { 7, data->month, 
+                0, // Cost today
                 data->costYesterday,
                 data->costThisMonth,
                 data->costLastMonth,
+                0, // Income today
                 data->incomeYesterday,
                 data->incomeThisMonth,
                 data->incomeLastMonth,
@@ -494,9 +507,4 @@ bool EnergyAccounting::updateMax(uint16_t val, uint8_t day, uint8_t hour) {
 
 void EnergyAccounting::setCurrency(String currency) {
     this->currency = currency;
-}
-
-float EnergyAccounting::getPriceForHour(uint8_t d, uint8_t h) {
-    if(ps == NULL) return PRICE_NO_VALUE;
-    return ps->getValueForHour(d, h);
 }

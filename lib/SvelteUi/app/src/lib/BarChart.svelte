@@ -89,14 +89,14 @@
                             <rect
                                 x="{xScale(i) + 2}"
                                 y="{yScale(point.value)}"
-                                width="{barWidth - 4}"
+                                width="{barWidth * 0.95}"
                                 height="{yScale(config.y.min) - yScale(Math.min(config.y.min, 0) + point.value)}"
                                 fill="{point.color}"
                             />
 
                             {#if barWidth > 15}
                                 <text 
-                                    width="{barWidth - 4}"
+                                    width="{barWidth * 0.95}"
                                     dominant-baseline="middle"
                                     text-anchor="{barWidth < vertSwitch || point.labelAngle ? 'left' : 'middle'}"
                                     fill="{yScale(point.value) > yScale(0)-labelOffset && !config.dark ? point.color : 'white'}"
@@ -111,13 +111,13 @@
                             <rect
                                 x="{xScale(i) + 2}"
                                 y="{yScale(0)}"
-                                width="{barWidth - 4}"
+                                width="{barWidth * 0.95}"
                                 height="{yScale(config.y.min) - yScale(config.y.min + point.value2)}"
                                 fill="{point.color2 ? point.color2 : point.color}"
                             />
                             {#if barWidth > 15}
                                 <text 
-                                    width="{barWidth - 4}"
+                                    width="{barWidth * 0.95}"
                                     dominant-baseline="middle"
                                     text-anchor="{'middle'}"
                                     fill="{yScale(-point.value2) < yScale(0) + 15 && !config.dark ? point.color2 ? point.color2 : point.color : 'white'}"

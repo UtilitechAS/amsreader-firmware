@@ -40,6 +40,7 @@ public:
 private:
     String subTopic;
     HwTools* hw;
+    bool hasExport = false;
     AmsDataStorage* ds;
 
     uint16_t appendJsonHeader(AmsData* data);

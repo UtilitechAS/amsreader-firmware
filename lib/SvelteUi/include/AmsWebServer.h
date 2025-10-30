@@ -125,7 +125,10 @@ private:
     void dataJson();
 	void dayplotJson();
 	void monthplotJson();
-	void energyPriceJson();
+	void energyPriceJson(); // Deprecated
+	void importPriceJson();
+	void exportPriceJson();
+	void priceJson(uint8_t direction);
 	void temperatureJson();
 	void tariffJson();
 	void realtimeJson();

@@ -114,6 +114,7 @@ bool EthernetConnectionHandler::connect(NetworkConfig config, SystemConfig sys) 
                     debugger->printf_P(PSTR("Static IP configuration is invalid, not using\n"));
                 }
             }
+            this->config = config;
         } else {
 			#if defined(AMS_REMOTE_DEBUG)
             if (debugger->isActive(RemoteDebug::ERROR))
@@ -147,6 +148,9 @@ void EthernetConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_t 
             {
                 debugger->printf_P(PSTR("Successfully connected to Ethernet!\n"));
             }
+			if(config.ipv6 && !ETH.enableIpV6()) {
+				debugger->printf_P(PSTR("Unable to enable IPv6\n"));
+			}
             break;
         case ARDUINO_EVENT_ETH_GOT_IP:
             #if defined(AMS_REMOTE_DEBUG)

@@ -80,7 +80,7 @@ jobs:
 
     - name: PlatformIO lib install
       env:
-        GITHUB_TAG: ${{ inputs.version }}
+        GITHUB_TAG: v${{ inputs.version }}
       run: pio lib install
 
     - name: Build firmware

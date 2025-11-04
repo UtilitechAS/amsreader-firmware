@@ -230,6 +230,16 @@ bool AmsFirmwareUpdater::fetchNextVersion() {
         http.setUserAgent("AMS-Firmware-Updater");
         http.addHeader(F("Cache-Control"), "no-cache");
         http.addHeader(F("x-AMS-version"), FirmwareVersion::VersionString);
+        http.addHeader(F("x-AMS-STA-MAC"), WiFi.macAddress());
+        http.addHeader(F("x-AMS-AP-MAC"), WiFi.softAPmacAddress());
+        http.addHeader(F("x-AMS-chip-size"), String(ESP.getFlashChipSize()));
+		http.addHeader(F("x-AMS-board-type"), String(hw->getBoardType(), 10));
+		if(meterState->getMeterType() != AmsTypeAutodetect) {
+			http.addHeader(F("x-AMS-meter-mfg"), String(meterState->getMeterType(), 10));
+		}
+		if(!meterState->getMeterModel().isEmpty()) {
+			http.addHeader(F("x-AMS-meter-model"), meterState->getMeterModel());
+		}
         int status = http.GET();
         if(status == 204) {
             String nextVersion = http.header("x-version");

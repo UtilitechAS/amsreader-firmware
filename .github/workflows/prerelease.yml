@@ -1,28 +1,28 @@
-name: Release build and upload
+name: Release candidate build and upload
 
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+'
 
 jobs:
   prepare:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code from repo
-        uses: actions/checkout@v4
-      - name: Get release version for filenames
-        id: release_tag
-        env:
-          GITHUB_REF: ${{ github.ref }}
-        run: echo ::set-output name=tag::$(echo ${GITHUB_REF:11})
+    - name: Check out code from repo
+      uses: actions/checkout@v4
+    - name: Get release version for filenames
+      id: release_tag
+      env:
+        GITHUB_REF: ${{ github.ref }}
+      run: echo ::set-output name=tag::$(echo ${GITHUB_REF:11})
 
-      - name: Create release with release notes
-        id: create_release
-        uses: ncipollo/release-action@v1
-        with:
-          name: Release v${{ steps.release_tag.outputs.tag }}
-          generateReleaseNotes: true
+    - name: Create release with release notes
+      id: create_release
+      uses: ncipollo/release-action@v1
+      with:
+        name: Release candidate v${{ steps.release_tag.outputs.tag }}
+        prerelease: true
 
     outputs:
       version: ${{ steps.release_tag.outputs.tag }}
@@ -36,6 +36,7 @@ jobs:
       env: esp32s2
       version: ${{ needs.prepare.outputs.version }}
       upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc
   esp32s3:
     needs: prepare
     uses: ./.github/workflows/release-deploy-env.yml
@@ -44,6 +45,7 @@ jobs:
       env: esp32s3
       version: ${{ needs.prepare.outputs.version }}
       upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc
   esp32c3:
     needs: prepare
     uses: ./.github/workflows/release-deploy-env.yml
@@ -52,6 +54,7 @@ jobs:
       env: esp32c3
       version: ${{ needs.prepare.outputs.version }}
       upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc
   esp32:
     needs: prepare
     uses: ./.github/workflows/release-deploy-env.yml
@@ -60,6 +63,7 @@ jobs:
       env: esp32
       version: ${{ needs.prepare.outputs.version }}
       upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc
   esp32solo:
     needs: prepare
     uses: ./.github/workflows/release-deploy-env.yml
@@ -68,6 +72,7 @@ jobs:
       env: esp32solo
       version: ${{ needs.prepare.outputs.version }}
       upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc
   esp8266:
     needs: prepare
     uses: ./.github/workflows/release-deploy-env.yml
@@ -76,3 +81,4 @@ jobs:
       env: esp8266
       version: ${{ needs.prepare.outputs.version }}
       upload_url: ${{ needs.prepare.outputs.upload_url }}
+      subfolder: /rc

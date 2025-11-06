@@ -152,14 +152,17 @@ bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_MQTT_START, config);
 		EEPROM.end();
-		if(config.magic != 0x9C) {
-			if(config.magic != 0x7B) {
-				config.stateUpdate = false;
-				config.stateUpdateInterval = 10;
+		if(config.magic != 0xA5) { // New magic for 2.4.11
+			if(config.magic != 0x9C) {
+				if(config.magic != 0x7B) {
+					config.stateUpdate = false;
+					config.stateUpdateInterval = 10;
+				}
+				config.timeout = 1000;
+				config.keepalive = 60;
 			}
-			config.timeout = 1000;
-			config.keepalive = 60;
-			config.magic = 0x9C;
+			config.rebootMinutes = config.ssl ? 5 : 0;
+			config.magic = 0xA5;
 		}
 		return true;
 	} else {
@@ -182,6 +185,9 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 		mqttChanged |= config.ssl != existing.ssl;
 		mqttChanged |= config.stateUpdate != existing.stateUpdate;
 		mqttChanged |= config.stateUpdateInterval != existing.stateUpdateInterval;
+		mqttChanged |= config.timeout != existing.timeout;
+		mqttChanged |= config.keepalive != existing.keepalive;
+		mqttChanged |= config.rebootMinutes != existing.rebootMinutes;
 	} else {
 		mqttChanged = true;
 	}
@@ -196,6 +202,7 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 	if(config.timeout > 10000) config.timeout = 1000;
 	if(config.keepalive < 5) config.keepalive = 60;
 	if(config.keepalive > 240) config.keepalive = 60;
+	if(config.rebootMinutes > 240) config.rebootMinutes = 0;
 
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_MQTT_START, config);
@@ -220,6 +227,7 @@ void AmsConfiguration::clearMqtt(MqttConfig& config) {
 	config.stateUpdateInterval = 10;
 	config.timeout = 1000;
 	config.keepalive = 60;
+	config.rebootMinutes = 0;
 }
 
 void AmsConfiguration::setMqttChanged() {
@@ -1246,6 +1254,9 @@ void AmsConfiguration::print(Print* debugger)
 			}
 			debugger->printf_P(PSTR("Payload format:       %i\r\n"), mqtt.payloadFormat);
 			debugger->printf_P(PSTR("SSL:                  %s\r\n"), mqtt.ssl ? "Yes" : "No");
+			debugger->printf_P(PSTR("Timeout:              %i\r\n"), mqtt.timeout);
+			debugger->printf_P(PSTR("Keep-alive:           %i\r\n"), mqtt.keepalive);
+			debugger->printf_P(PSTR("Auto reboot minutes:  %i\r\n"), mqtt.rebootMinutes);
 		} else {
 			debugger->printf_P(PSTR("Enabled:              No\r\n"));
 		}

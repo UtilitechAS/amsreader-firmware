@@ -447,7 +447,7 @@ bool JsonMqttHandler::publishFirmware() {
 }
 
 void JsonMqttHandler::onMessage(String &topic, String &payload) {
-    if(strncmp(topic.c_str(), mqttConfig.subscribeTopic, 12) == 0) {
+    if(topic.equals(subTopic)) {
         if(payload.equals("fwupgrade")) {
             if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
                 updater->setTargetVersion(updater->getNextVersion());

@@ -40,10 +40,6 @@ public:
 private:
     uint8_t boardType;
 
-    String pubTopic;
-    String subTopic;
-
-
     String deviceName;
     String deviceModel;
     String deviceUid;

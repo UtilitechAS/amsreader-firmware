@@ -22,6 +22,9 @@ bool HwTools::applyBoardConfig(uint8_t boardType, GpioConfig& gpioConfig, MeterC
                 gpioConfig.vccResistorGnd = 22;
                 gpioConfig.vccResistorVcc = 33;
                 gpioConfig.ledDisablePin = 6;
+                gpioConfig.vccBootLimit = 0;
+                gpioConfig.vccOffset = 0;
+                gpioConfig.vccMultiplier = 0;
                 return true;
             case 51: // Wemos S2 mini
                 gpioConfig.ledPin = 15;

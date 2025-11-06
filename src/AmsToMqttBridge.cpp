@@ -1723,6 +1723,15 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("mqttSsl "), 8) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			mqtt.ssl = String(buf+8).toInt() == 1;;
+		} else if(strncmp_P(buf, PSTR("mqttTimeout "), 12) == 0) {
+			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
+			mqtt.timeout = String(buf+12).toInt();
+		} else if(strncmp_P(buf, PSTR("mqttKeepalive "), 14) == 0) {
+			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
+			mqtt.keepalive = String(buf+14).toInt();
+		} else if(strncmp_P(buf, PSTR("mqttRebootMinutes "), 18) == 0) {
+			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
+			mqtt.rebootMinutes = String(buf+18).toInt();
 		} else if(strncmp_P(buf, PSTR("webSecurity "), 12) == 0) {
 			if(!lWeb) { config.getWebConfig(web); lWeb = true; };
 			web.security = String(buf+12).toInt();

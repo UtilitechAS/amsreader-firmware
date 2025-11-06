@@ -16,11 +16,6 @@ public:
     #else
     JsonMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
     #endif
-        subTopic = String(mqttConfig.subscribeTopic);
-        if(subTopic.isEmpty()) {
-            String pubTopic = String(mqttConfig.publishTopic);
-            subTopic = pubTopic+"/command";
-        }
         this->hw = hw;
         this->ds = ds;
     };
@@ -38,7 +33,6 @@ public:
     uint8_t getFormat();
 
 private:
-    String subTopic;
     HwTools* hw;
     bool hasExport = false;
     AmsDataStorage* ds;

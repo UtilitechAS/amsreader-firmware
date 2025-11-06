@@ -1039,7 +1039,8 @@ void AmsWebServer::configurationJson() {
 		mqttConfig.stateUpdate,
 		mqttConfig.stateUpdateInterval,
 		mqttConfig.timeout,
-		mqttConfig.keepalive
+		mqttConfig.keepalive,
+		mqttConfig.rebootMinutes == 0 ? "null" : String(mqttConfig.rebootMinutes, 10).c_str()
 	);
 	server.sendContent(buf);
 
@@ -1468,6 +1469,7 @@ void AmsWebServer::handleSave() {
 			mqtt.stateUpdateInterval = server.arg(F("qd")).toInt();
 			mqtt.timeout = server.arg(F("qi")).toInt();
 			mqtt.keepalive = server.arg(F("qk")).toInt();
+			mqtt.rebootMinutes = server.arg(F("qe")).toInt();
 		} else {
 			config->clearMqtt(mqtt);
 		}
@@ -2309,6 +2311,10 @@ void AmsWebServer::configFileDownload() {
 			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPassword %s\n"), mqtt.password));
 			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPayloadFormat %d\n"), mqtt.payloadFormat));
 			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttSsl %d\n"), mqtt.ssl ? 1 : 0));
+
+			if(mqtt.timeout > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttTimeout %d\n"), mqtt.timeout));
+			if(mqtt.keepalive > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttKeepalive %d\n"), mqtt.keepalive));
+			if(mqtt.rebootMinutes > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttRebootMinutes %d\n"), mqtt.rebootMinutes));
 
 			if(mqtt.payloadFormat == 3) {
 				DomoticzConfig domo;

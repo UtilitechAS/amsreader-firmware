@@ -97,7 +97,8 @@ struct MqttConfig {
 	uint16_t stateUpdateInterval;
 	uint16_t timeout;
 	uint8_t keepalive;
-}; // 685
+	uint8_t rebootMinutes;
+}; // 684
 
 struct WebConfig {
 	uint8_t security;

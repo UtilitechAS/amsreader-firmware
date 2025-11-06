@@ -8,6 +8,7 @@
 #include "FirmwareVersion.h"
 #include "AmsStorage.h"
 #include "LittleFS.h"
+#include "Uptime.h"
 
 void AmsMqttHandler::setCaVerification(bool caVerification) {
 	this->caVerification = caVerification;
@@ -165,7 +166,20 @@ bool AmsMqttHandler::connected() {
 }
 
 bool AmsMqttHandler::loop() {
-    bool ret = mqtt.loop();
+	uint64_t now = millis64();
+    bool ret = mqtt.connected() && mqtt.loop();
+	if(ret) {
+		lastSuccessfulLoop = now;
+	} else if(mqttConfig.rebootMinutes > 0) {
+		if(now - lastSuccessfulLoop > (uint64_t) mqttConfig.rebootMinutes * 60000) {
+			// Reboot the device if the MQTT connection is lost for too long
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::WARNING))
+			#endif
+			debugger->printf_P(PSTR("MQTT connection lost for over %d minutes, rebooting device\n"), mqttConfig.rebootMinutes);
+			ESP.restart();
+		}
+	}
 	delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
     yield();
 	#if defined(ESP32)

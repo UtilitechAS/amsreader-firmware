@@ -22,10 +22,6 @@
 void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config, char* hostname) {
     l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = false;
 
-    pubTopic = String(mqttConfig.publishTopic);
-    subTopic = String(mqttConfig.subscribeTopic);
-    if(subTopic.isEmpty()) subTopic = pubTopic+"/command";
-
     if(strlen(config.discoveryNameTag) > 0) {
         snprintf_P(json, 128, PSTR("AMS reader (%s)"), config.discoveryNameTag);
         deviceName = String(json);

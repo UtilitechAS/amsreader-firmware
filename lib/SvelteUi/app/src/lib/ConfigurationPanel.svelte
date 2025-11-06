@@ -676,11 +676,15 @@
                 </div>
             </div>
             <div class="my-1">
-                {translations.conf?.mqtt?.timeout ?? "Timeout"}
-                <span class="float-right">{translations.conf?.mqtt?.keepalive ?? "Keep-alive"}</span>
+                <div class="grid grid-cols-3">
+                    <p>{translations.conf?.mqtt?.timeout ?? "Timeout"}</p>
+                    <p>{translations.conf?.mqtt?.keepalive ?? "Keep-alive"}</p>
+                    <p>{translations.conf?.mqtt?.autoreboot ?? "Auto-reboot"}</p>
+                </div>
                 <div class="flex">
                     <input name="qi" bind:value={configuration.q.i} type="number" min="500" max="10000" class="in-f tr w-1/2"/>
-                    <input name="qk" bind:value={configuration.q.k} type="number" min="5" max="180" class="in-l tr w-1/2"/>
+                    <input name="qk" bind:value={configuration.q.k} type="number" min="5" max="180" class="in-m tr w-1/2"/>
+                    <input name="qe" bind:value={configuration.q.e} type="number" min="0" max="240" class="in-l tr w-1/2"/>
                 </div>
             </div>
         </div>

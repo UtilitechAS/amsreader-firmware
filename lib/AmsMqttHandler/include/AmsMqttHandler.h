@@ -24,22 +24,20 @@ class AmsMqttHandler {
 public:
     #if defined(AMS_REMOTE_DEBUG)
     AmsMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, AmsFirmwareUpdater* updater) {
+    #else
+    AmsMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf) {
+    #endif
         this->mqttConfig = mqttConfig;
     	this->mqttConfigChanged = true;
         this->debugger = debugger;
         this->json = buf;
         this->updater = updater;
         mqtt.dropOverflow(true);
+
+        pubTopic = String(mqttConfig.publishTopic);
+        subTopic = String(mqttConfig.subscribeTopic);
+        if(subTopic.isEmpty()) subTopic = pubTopic+"/command";
     };
-    #else
-    AmsMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf) {
-        this->mqttConfig = mqttConfig;
-    	this->mqttConfigChanged = true;
-        this->debugger = debugger;
-        this->json = buf;
-        mqtt.dropOverflow(true);
-    };
-    #endif
 
     void setCaVerification(bool);
     void setConfig(MqttConfig& mqttConfig);
@@ -84,6 +82,10 @@ protected:
     char* json;
     uint16_t BufferSize = 2048;
     uint64_t lastStateUpdate = 0;
+    uint64_t lastSuccessfulLoop = 0;
+
+    String pubTopic;
+    String subTopic;
 
     AmsFirmwareUpdater* updater = NULL;
 };

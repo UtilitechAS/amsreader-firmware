@@ -97,7 +97,7 @@ private:
     uint32_t lastVersionCheck = 0;
     uint8_t firmwareVariant;
     bool autoUpgrade;
-    char nextVersion[10];
+    char nextVersion[17];
 
 
     bool fetchNextVersion();

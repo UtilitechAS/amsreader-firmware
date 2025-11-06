@@ -82,3 +82,4 @@ jobs:
       version: ${{ needs.prepare.outputs.version }}
       upload_url: ${{ needs.prepare.outputs.upload_url }}
       subfolder: /rc
+      is_esp32: false

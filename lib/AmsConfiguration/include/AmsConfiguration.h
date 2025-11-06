@@ -239,14 +239,14 @@ struct UiConfig {
 }; // 15
 
 struct UpgradeInformation {
-	char fromVersion[8];
-	char toVersion[8];
+	char fromVersion[16];
+	char toVersion[16];
     uint32_t size;
     uint16_t block_position;
     uint8_t retry_count;
     uint8_t reboot_count;
 	int8_t errorCode;
-}; // 25
+}; // 41+3
 
 struct CloudConfig {
 	bool enabled;

@@ -20,6 +20,11 @@ on:
         required: false
         type: string
         default: ''
+      is_esp32:
+        description: 'Whether the build is for ESP32 based firmware'
+        required: false
+        type: boolean
+        default: true
 
 jobs:
   build-and-deploy:
@@ -79,11 +84,11 @@ jobs:
         CI: false
 
     - name: PlatformIO lib install
-      env:
-        GITHUB_TAG: v${{ inputs.version }}
       run: pio lib install
 
     - name: Build firmware
+      env:
+        GITHUB_TAG: v${{ inputs.version }}
       run: pio run -e ${{ inputs.env }}
 
     - name: Create zip file
@@ -119,10 +124,13 @@ jobs:
       run: aws s3 cp firmware.md5 s3://${{ secrets.AWS_S3_BUCKET }}/firmware${{ inputs.subfolder }}/ams2mqtt-${{ inputs.env }}-${{ inputs.version }}.md5
 
     - name: Upload bootloader to S3
+      if: ${{ inputs.is_esp32 }}
       run: aws s3 cp .pio/build/${{ inputs.env }}/bootloader.bin s3://${{ secrets.AWS_S3_BUCKET }}/firmware${{ inputs.subfolder }}/ams2mqtt-${{ inputs.env }}-${{ inputs.version }}-bootloader.bin
     
     - name: Upload partition table to S3
+      if: ${{ inputs.is_esp32 }}
       run: aws s3 cp .pio/build/${{ inputs.env }}/partitions.bin s3://${{ secrets.AWS_S3_BUCKET }}/firmware${{ inputs.subfolder }}/ams2mqtt-${{ inputs.env }}-${{ inputs.version }}-partitions.bin
 
     - name: Upload app0 to S3
+      if: ${{ inputs.is_esp32 }}
       run: aws s3 cp ~/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin s3://${{ secrets.AWS_S3_BUCKET }}/firmware${{ inputs.subfolder }}/ams2mqtt-${{ inputs.env }}-${{ inputs.version }}-app0.bin

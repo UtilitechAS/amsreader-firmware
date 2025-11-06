@@ -208,11 +208,11 @@ struct PriceServiceConfig {
 	char area[17];
 	char currency[4];
 	uint8_t resolutionInMinutes;
-	uint8_t unused2;
+	uint16_t unused2;
 	uint16_t unused3;
 	bool enabled;
-	uint16_t unused4;
-}; // 64
+	uint16_t unused6;
+};
 
 struct EnergyAccountingConfig {
 	uint16_t thresholds[10];

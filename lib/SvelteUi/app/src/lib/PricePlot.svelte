@@ -45,7 +45,7 @@
                 val = json.prices[i];
                 if(val == null) break;
                 xTicks.push({
-                    label: values.length > 1 && json?.resolution < 60 && cur.getMinutes() != 0 ? '' : zeropad(cur.getHours())
+                    label: values.length > 0 && json?.resolution < 60 && cur.getMinutes() != 0 ? '' : zeropad(cur.getHours())
                 });
                 values.push(val*100);
                 min = Math.min(min, val*100);

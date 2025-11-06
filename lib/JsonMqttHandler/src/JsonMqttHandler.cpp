@@ -8,6 +8,18 @@
 #include "FirmwareVersion.h"
 #include "hexutils.h"
 #include "Uptime.h"
+#include "AmsJsonGenerator.h"
+
+bool JsonMqttHandler::postConnect() {
+    if(!subTopic.isEmpty() && !mqtt.subscribe(subTopic)) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::ERROR))
+        #endif
+        debugger->printf_P(PSTR("  Unable to subscribe to to [%s]\n"), subTopic.c_str());
+        return false;
+    }
+    return true;
+}
 
 bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     if(strlen(mqttConfig.publishTopic) == 0) {
@@ -67,13 +79,23 @@ uint16_t JsonMqttHandler::appendJsonFooter(EnergyAccounting* ea, uint16_t pos) {
     } else {
         memset(pf, 0, 4);
     }
+
+    String peaks = "";
+    uint8_t peakCount = ea->getConfig()->hours;
+    if(peakCount > 5) peakCount = 5;
+    for(uint8_t i = 1; i <= peakCount; i++) {
+        if(!peaks.isEmpty()) peaks += ",";
+        peaks += String(ea->getPeak(i).value / 100.0, 2);
+    }
     
-    return snprintf_P(json+pos, BufferSize-pos, PSTR("%s\"%sh\":%.2f,\"%sd\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.2f,\"%sde\":%.1f%s"),
+    return snprintf_P(json+pos, BufferSize-pos, PSTR("%s\"%sh\":%.3f,\"%sd\":%.2f,\"%sm\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.3f,\"%sde\":%.2f,\"%sme\":%.1f,\"peaks\":[%s]%s"),
         strlen(pf) == 0 ? "},\"realtime\":{" : ",",
         pf,
         ea->getUseThisHour(),
         pf,
         ea->getUseToday(),
+        pf,
+        ea->getUseThisMonth(),
         pf,
         ea->getCurrentThreshold(),
         pf,
@@ -82,6 +104,9 @@ uint16_t JsonMqttHandler::appendJsonFooter(EnergyAccounting* ea, uint16_t pos) {
         ea->getProducedThisHour(),
         pf,
         ea->getProducedToday(),
+        pf,
+        ea->getProducedThisMonth(),
+        peaks.c_str(),
         strlen(pf) == 0 ? "}" : ""
     );
 }
@@ -447,11 +472,35 @@ bool JsonMqttHandler::publishFirmware() {
 }
 
 void JsonMqttHandler::onMessage(String &topic, String &payload) {
+    if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
+		return;
+
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("Received command [%s] to [%s]\n"), payload.c_str(), topic.c_str());
+
     if(topic.equals(subTopic)) {
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::DEBUG))
+        #endif
+        debugger->printf_P(PSTR(" - this is our subscribed topic\n"));
         if(payload.equals("fwupgrade")) {
             if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
                 updater->setTargetVersion(updater->getNextVersion());
             }
+        } else if(payload.equals("dayplot")) {
+            char pubTopic[192];
+            snprintf_P(pubTopic, 192, PSTR("%s/dayplot"), mqttConfig.publishTopic);
+            AmsJsonGenerator::generateDayPlotJson(ds, json, BufferSize);
+            bool ret = mqtt.publish(pubTopic, json);
+            loop();
+        } else if(payload.equals("monthplot")) {
+            char pubTopic[192];
+            snprintf_P(pubTopic, 192, PSTR("%s/monthplot"), mqttConfig.publishTopic);
+            AmsJsonGenerator::generateMonthPlotJson(ds, json, BufferSize);
+            bool ret = mqtt.publish(pubTopic, json);
+            loop();
         }
     }
 }

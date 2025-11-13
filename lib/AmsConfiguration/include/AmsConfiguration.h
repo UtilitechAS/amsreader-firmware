@@ -207,10 +207,12 @@ struct PriceServiceConfig {
 	char entsoeToken[37];
 	char area[17];
 	char currency[4];
-	uint32_t unused1;
-	bool enabled;
+	uint8_t resolutionInMinutes;
 	uint16_t unused2;
-}; // 64
+	uint16_t unused3;
+	bool enabled;
+	uint16_t unused6;
+};
 
 struct EnergyAccountingConfig {
 	uint16_t thresholds[10];
@@ -237,14 +239,14 @@ struct UiConfig {
 }; // 15
 
 struct UpgradeInformation {
-	char fromVersion[8];
-	char toVersion[8];
+	char fromVersion[16];
+	char toVersion[16];
     uint32_t size;
     uint16_t block_position;
     uint8_t retry_count;
     uint8_t reboot_count;
 	int8_t errorCode;
-}; // 25
+}; // 41+3
 
 struct CloudConfig {
 	bool enabled;

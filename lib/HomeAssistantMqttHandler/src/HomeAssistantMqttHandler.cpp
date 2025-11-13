@@ -35,6 +35,10 @@ void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config
     manufacturer = boardManufacturerToString(boardType);
 
     deviceUid = String(hostname); // Maybe configurable in the future?
+    #if defined(AMS_REMOTE_DEBUG)
+    if (debugger->isActive(RemoteDebug::INFO))
+    #endif
+    debugger->printf_P(PSTR("  Hostname is [%s]\n"), hostname);
 
     if(strlen(config.discoveryHostname) > 0) {
         if(strncmp_P(config.discoveryHostname, PSTR("http"), 4) == 0) {
@@ -348,7 +352,7 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 	if(pubTopic.isEmpty() || !mqtt.connected())
 		return false;
-	if(ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) == PRICE_NO_VALUE)
+	if(!ps->hasPrice())
 		return false;
 
     publishPriceSensors(ps);
@@ -361,7 +365,7 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 	float values[38];
     for(int i = 0;i < 38; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 38; i++) {
-		float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, now, i);
+		float val = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i);
 		values[i] = val;
 
 		if(val == PRICE_NO_VALUE) break;
@@ -430,31 +434,41 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
-    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{"), WiFi.macAddress().c_str());
-    for(uint8_t i = 0;i < 38; i++) {
-        if(values[i] == PRICE_NO_VALUE) {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%d\":null,"), i);
+    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{\"import\":["), WiFi.macAddress().c_str());
+
+    uint8_t currentPricePointIndex = ps->getCurrentPricePointIndex();
+	uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
+	for(int i = currentPricePointIndex; i < numberOfPoints; i++) {
+		float val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
+        if(val == PRICE_NO_VALUE) {
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
         } else {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%d\":%.4f,"), i, values[i]);
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
+        }
+	}
+    if(rteInit && ps->isExportPricesDifferentFromImport()) {
+        pos--;
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("],\"export\":["));
+        for(int i = currentPricePointIndex; i < numberOfPoints; i++) {
+            float val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
+            if(val == PRICE_NO_VALUE) {
+                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
+            } else {
+                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
+            }
         }
     }
 
-    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}"),
+    pos--;
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("],\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}"),
         min == INT16_MAX ? 0.0 : min,
         max == INT16_MIN ? 0.0 : max,
         ts1hr,
         ts3hr,
         ts6hr
     );
-
-    float val = ps->getValueForHour(PRICE_DIRECTION_EXPORT, now, 0);
-    if(val == PRICE_NO_VALUE) {
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"exportprices\":{\"0\":null}"));
-    } else {
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR(",\"exportprices\":{\"0\":%.4f}"), val);
-    }
-
-	char pt[24];
+    
+    char pt[24];
     memset(pt, 0, 24);
     if(now > 0) {
         tmElements_t tm;
@@ -503,11 +517,16 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, Ener
 }
 
 void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor sensor) {
-    String uid = String(sensor.path);
-    uid.replace(".", "");
-    uid.replace("[", "");
-    uid.replace("]", "");
-    uid.replace("'", "");
+    String uid;
+    if(strlen(sensor.uid) > 0) {
+        uid = String(sensor.uid);
+    } else {
+        uid = String(sensor.path);
+        uid.replace(".", "");
+        uid.replace("[", "");
+        uid.replace("]", "");
+        uid.replace("'", "");
+    }
     snprintf_P(json, BufferSize, HADISCOVER_JSON,
         sensorNamePrefix.c_str(),
         sensor.name,
@@ -530,7 +549,7 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor sensor) {
         strlen_P(sensor.stacl) > 0 ? (char *) FPSTR(sensor.stacl) : "",
         strlen_P(sensor.stacl) > 0 ? "\"" : ""
     );
-    mqtt.publish(sensorTopic + "/" + deviceUid + "_" + uid.c_str() + "/config", json, true, 0);
+    mqtt.publish(sensorTopic + "/" + deviceUid + "_" + uid + "/config", json, true, 0);
     loop();
 }
 
@@ -619,7 +638,8 @@ void HomeAssistantMqttHandler::publishRealtimeSensors(EnergyAccounting* ea, Pric
             RealtimePeakSensor.ttl,
             RealtimePeakSensor.uom,
             RealtimePeakSensor.devcl,
-            RealtimePeakSensor.stacl
+            RealtimePeakSensor.stacl,
+            RealtimePeakSensor.uid
         };
         publishSensor(sensor);
     }
@@ -658,7 +678,8 @@ void HomeAssistantMqttHandler::publishTemperatureSensor(uint8_t index, String id
         TemperatureSensor.ttl,
         TemperatureSensor.uom,
         TemperatureSensor.devcl,
-        TemperatureSensor.stacl
+        TemperatureSensor.stacl,
+        TemperatureSensor.uid
     };
     publishSensor(sensor);
     tInit[index] = true;
@@ -678,44 +699,95 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
         }
         pInit = true;
     }
-    for(uint8_t i = 0; i < 38; i++) {
-        if(prInit[i]) continue;
-        float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, i);
-        if(val == PRICE_NO_VALUE) continue;
-        
-        char name[strlen(PriceSensor.name)+2];
-        snprintf(name, strlen(PriceSensor.name)+2, PriceSensor.name, i, i == 1 ? "hour" : "hours");
-        char path[strlen(PriceSensor.path)+1];
-        snprintf(path, strlen(PriceSensor.path)+1, PriceSensor.path, i);
-        HomeAssistantSensor sensor = {
-            i == 0 ? "Price current hour" : name,
-            PriceSensor.topic,
-            path,
-            PriceSensor.ttl,
-            uom.c_str(),
-            PriceSensor.devcl,
-            i == 0 ? "total" : PriceSensor.stacl
-        };
-        publishSensor(sensor);
-        prInit[i] = true;
+
+    uint8_t currentPricePointIndex = ps->getCurrentPricePointIndex();
+	uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
+
+    if(priceImportInit < numberOfPoints-currentPricePointIndex) {
+        uint8_t importPriceSensorNo = 0;
+        for(int pricePointIndex = currentPricePointIndex; pricePointIndex < numberOfPoints; pricePointIndex++) {
+            float val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, pricePointIndex);
+            if(val == PRICE_NO_VALUE) break;
+            if(importPriceSensorNo < priceImportInit) {
+                importPriceSensorNo++;
+                continue;
+            }
+
+            uint8_t resolution = ps->getResolutionInMinutes();
+
+            char path[64];
+            memset(path, 0, 64);
+            snprintf_P(path, 64, PSTR("prices.import[%d]"), importPriceSensorNo);
+
+            char uid[32];
+            memset(uid, 0, 32);
+            snprintf_P(uid, 32, PSTR("prices%d"), importPriceSensorNo);
+
+            char name[64];
+            if(resolution == 60) 
+                snprintf_P(name, 64, PSTR("Import price in %02d hour%s"), importPriceSensorNo, importPriceSensorNo == 1 ? "" : "s");
+            else    
+                snprintf_P(name, 64, PSTR("Import price in %03d minutes"), importPriceSensorNo * resolution);
+
+            HomeAssistantSensor sensor = {
+                importPriceSensorNo == 0 ? "Current import price" : name,
+                "/prices",
+                path,
+                resolution * 60 + 300,
+                uom.c_str(),
+                "monetary",
+                importPriceSensorNo == 0 ? "total" : "",
+                uid
+            };
+            publishSensor(sensor);
+
+            priceImportInit = importPriceSensorNo++;
+        }
     }
 
-    float exportPrice = ps->getValueForHour(PRICE_DIRECTION_EXPORT, 0);
-    if(exportPrice != PRICE_NO_VALUE) {
-        char path[20];
-        snprintf(path, 20, "exportprices['%d']", 0);
-        HomeAssistantSensor sensor = {
-            "Export price current hour",
-            PriceSensor.topic,
-            path,
-            PriceSensor.ttl,
-            uom.c_str(),
-            PriceSensor.devcl,
-            "total"
-        };
-        publishSensor(sensor);
+    if(priceExportInit < numberOfPoints-currentPricePointIndex) {
+        uint8_t exportPriceSensorNo = 0;
+        for(int pricePointIndex = currentPricePointIndex; pricePointIndex < numberOfPoints; pricePointIndex++) {
+            float val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, pricePointIndex);
+            if(val == PRICE_NO_VALUE) break;
+            if(exportPriceSensorNo < priceExportInit) {
+                exportPriceSensorNo++;
+                continue;
+            }
+
+            uint8_t resolution = ps->getResolutionInMinutes();
+
+            char path[64];
+            memset(path, 0, 64);
+            snprintf_P(path, 64, PSTR("prices.export[%d]"), exportPriceSensorNo);
+
+            char uid[32];
+            memset(uid, 0, 32);
+            snprintf_P(uid, 32, PSTR("exportprices%d"), exportPriceSensorNo);
+
+                        char name[64];
+            if(resolution == 60) 
+                snprintf_P(name, 64, PSTR("Export price in %02d hour%s"), exportPriceSensorNo, exportPriceSensorNo == 1 ? "" : "s");
+            else    
+                snprintf_P(name, 64, PSTR("Export price in %03d minutes"), exportPriceSensorNo * resolution);
+
+            HomeAssistantSensor sensor = {
+                exportPriceSensorNo == 0 ? "Current export price" : name,
+                "/prices",
+                path,
+                resolution * 60 + 300,
+                uom.c_str(),
+                "monetary",
+                exportPriceSensorNo == 0 ? "total" : "",
+                uid
+            };
+            publishSensor(sensor);
+
+            priceExportInit = exportPriceSensorNo++;
+        }
     }
 }
+
 
 void HomeAssistantMqttHandler::publishSystemSensors() {
     if(sInit) return;
@@ -739,7 +811,8 @@ void HomeAssistantMqttHandler::publishThresholdSensors() {
             RealtimeThresholdSensor.ttl,
             RealtimeThresholdSensor.uom,
             RealtimeThresholdSensor.devcl,
-            RealtimeThresholdSensor.stacl
+            RealtimeThresholdSensor.stacl,
+            RealtimeThresholdSensor.uid
         };
         publishSensor(sensor);
     }
@@ -786,7 +859,8 @@ void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
             debugger->printf_P(PSTR("Received online status from HA, resetting sensor status\n"));
             l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = false;
             for(uint8_t i = 0; i < 32; i++) tInit[i] = false;
-            for(uint8_t i = 0; i < 38; i++) prInit[i] = false;
+            priceImportInit = 0;
+            priceExportInit = 0;
         }
     } else if(topic.equals(subTopic)) {
         if(payload.equals("fwupgrade")) {

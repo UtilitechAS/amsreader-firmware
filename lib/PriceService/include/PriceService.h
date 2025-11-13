@@ -27,10 +27,6 @@
 
 #define SSL_BUF_SIZE 512
 
-#define PRICE_DIRECTION_IMPORT 0x01
-#define PRICE_DIRECTION_EXPORT 0x02
-#define PRICE_DIRECTION_BOTH 0x03
-
 #define PRICE_DAY_MO 0x01
 #define PRICE_DAY_TU 0x02
 #define PRICE_DAY_WE 0x04
@@ -57,10 +53,13 @@ struct PriceConfig {
     uint8_t end_dayofmonth;
 };
 
-struct PricePart {
-    char name[32];
-    char description[32];
-    uint32_t value;
+struct AmsPriceV2Header {
+    char currency[4];
+    char measurementUnit[4];
+    char source[4];
+    uint8_t resolutionInMinutes;
+    bool differentExportPrices;
+    uint8_t numberOfPoints;
 };
 
 class PriceService {
@@ -78,16 +77,24 @@ public:
     char* getCurrency();
     char* getArea();
     char* getSource();
-    float getValueForHour(uint8_t direction, int8_t hour);
-    float getValueForHour(uint8_t direction, time_t ts, int8_t hour);
 
-    float getEnergyPriceForHour(uint8_t direction, time_t ts, int8_t hour);
+    uint8_t getResolutionInMinutes();
+    uint8_t getNumberOfPointsAvailable();
+    uint8_t getCurrentPricePointIndex();
+
+    bool isExportPricesDifferentFromImport();
+
+    bool hasPrice() { return hasPrice(PRICE_DIRECTION_IMPORT); }
+    bool hasPrice(uint8_t direction) { return getCurrentPrice(direction) != PRICE_NO_VALUE; }
+    bool hasPricePoint(uint8_t direction, int8_t point) { return getPricePoint(direction, point) != PRICE_NO_VALUE; }
+    
+    float getCurrentPrice(uint8_t direction);
+    float getPricePoint(uint8_t direction, uint8_t point);
+    float getPriceForRelativeHour(uint8_t direction, int8_t hour); // If not 60min interval, average
 
     std::vector<PriceConfig>& getPriceConfig();
     void setPriceConfig(uint8_t index, PriceConfig &priceConfig);
     void cropPriceConfig(uint8_t size);
-
-    PricePart getPricePart(uint8_t index);
 
     int16_t getLastError();
 
@@ -103,7 +110,7 @@ private:
     PriceServiceConfig* config = NULL;
     HTTPClient* http = NULL;
 
-    uint8_t currentDay = 0, currentHour = 0;
+    uint8_t currentDay = 0, currentPricePoint = 0;
     uint8_t tomorrowFetchMinute = 15; // How many minutes over 13:00 should it fetch prices
     uint8_t nextFetchDelayMinutes = 15;
     uint64_t lastTodayFetch = 0;
@@ -132,5 +139,7 @@ private:
     bool retrieve(const char* url, Stream* doc);
     float getCurrencyMultiplier(const char* from, const char* to, time_t t);
     bool timeIsInPeriod(tmElements_t tm, PriceConfig pc);
+    float getFixedPrice(uint8_t direction, int8_t hour);
+    float getEnergyPricePoint(uint8_t direction, uint8_t point);
 };
 #endif

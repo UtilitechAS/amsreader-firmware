@@ -56,6 +56,15 @@ bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAcc
         ret = publishList4(&data, ea);
         mqtt.loop();
     }
+
+    if(data.getListType() >= 2 && data.getActiveExportPower() > 0.0) {
+        hasExport = true;
+    }
+
+    if(data.getListType() >= 3 && data.getActiveExportCounter() > 0.0) {
+        hasExport = true;
+    }
+
     loop();
     return ret;
 }
@@ -299,7 +308,7 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
 bool JsonMqttHandler::publishPrices(PriceService* ps) {
 	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
 		return false;
-	if(ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) == PRICE_NO_VALUE)
+	if(!ps->hasPrice())
 		return false;
 
 	time_t now = time(nullptr);
@@ -310,7 +319,7 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
 	float values[38];
     for(int i = 0;i < 38; i++) values[i] = PRICE_NO_VALUE;
 	for(uint8_t i = 0; i < 38; i++) {
-		float val = ps->getValueForHour(PRICE_DIRECTION_IMPORT, now, i);
+		float val = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i);
 		values[i] = val;
 
 		if(val == PRICE_NO_VALUE) break;
@@ -379,38 +388,59 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
 		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
 	}
 
-    char pf[4];
-    uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\","), WiFi.macAddress().c_str());
-    if(mqttConfig.payloadFormat != 6) {
-        memset(pf, 0, 4);
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"prices\":{"));
-    } else {
-        strcpy_P(pf, PSTR("pr_"));
-    }
+    if(mqttConfig.payloadFormat == 6) {
+        uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\","), WiFi.macAddress().c_str());
 
-    for(uint8_t i = 0;i < 38; i++) {
-        if(values[i] == PRICE_NO_VALUE) {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%d\":null,"), pf, i);
-        } else {
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%s%d\":%.4f,"), pf, i, values[i]);
+        for(uint8_t i = 0;i < 38; i++) {
+            if(values[i] == PRICE_NO_VALUE) {
+                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"pr_%d\":null,"), i);
+            } else {
+                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"pr_%d\":%.4f,"), i, values[i]);
+            }
         }
-    }
 
-    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"%smin\":%.4f,\"%smax\":%.4f,\"%scheapest1hr\":\"%s\",\"%scheapest3hr\":\"%s\",\"%scheapest6hr\":\"%s\"}"),
-        pf,
-        min == INT16_MAX ? 0.0 : min,
-        pf,
-        max == INT16_MIN ? 0.0 : max,
-        pf,
-        ts1hr,
-        pf,
-        ts3hr,
-        pf,
-        ts6hr
-    );
-    if(mqttConfig.payloadFormat != 6) {
-        json[pos++] = '}';
-        json[pos] = '\0';
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"pr_min\":%.4f,\"pr_max\":%.4f,\"pr_cheapest1hr\":\"%s\",\"pr_cheapest3hr\":\"%s\",\"pr_cheapest6hr\":\"%s\"}"),
+            min == INT16_MAX ? 0.0 : min,
+            max == INT16_MIN ? 0.0 : max,
+            ts1hr,
+            ts3hr,
+            ts6hr
+        );
+    } else {
+        uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{\"import\":["), WiFi.macAddress().c_str());
+
+        uint8_t currentPricePointIndex = ps->getCurrentPricePointIndex();
+        uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
+        for(int i = currentPricePointIndex; i < numberOfPoints; i++) {
+            float val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
+            if(val == PRICE_NO_VALUE) {
+                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
+            } else {
+                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
+            }
+        }
+        if(hasExport && ps->isExportPricesDifferentFromImport()) {
+            pos--;
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("],\"export\":["));
+            for(int i = currentPricePointIndex; i < numberOfPoints; i++) {
+                float val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
+                if(val == PRICE_NO_VALUE) {
+                    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
+                } else {
+                    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
+                }
+            }
+        }
+
+        pos--;
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("],\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}}"),
+            min == INT16_MAX ? 0.0 : min,
+            max == INT16_MIN ? 0.0 : max,
+            ts1hr,
+            ts3hr,
+            ts6hr
+        );
+        
     }
     bool ret = false;
     if(mqttConfig.payloadFormat == 5) {

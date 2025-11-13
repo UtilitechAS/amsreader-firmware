@@ -253,6 +253,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 	if(setupMode) return; // None of this necessary in setup mode
 	if(ch != NULL) ch->eventHandler(event, info);
 	switch(event) {
+		case ARDUINO_EVENT_ETH_CONNECTED:
 		case ARDUINO_EVENT_WIFI_STA_CONNECTED: {
 			dnsState = 0;
 			if(ch != NULL) {
@@ -265,6 +266,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			}
 			break;
 		}
+		case ARDUINO_EVENT_ETH_GOT_IP:
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
 			if(dnsState == 0) {
 				const ip_addr_t* dns = dns_getserver(0);
@@ -282,6 +284,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			}
 			break;
 		}
+		case ARDUINO_EVENT_ETH_DISCONNECTED:
 		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
 			if(WiFi.getMode() == WIFI_STA) {
 				wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
@@ -1631,7 +1634,7 @@ void MQTT_connect() {
 					HomeAssistantConfig haconf;
 					config.getHomeAssistantConfig(haconf);
 					NetworkConfig network;
-					ch->getCurrentConfig(network);
+					config.getNetworkConfig(network);
 					HomeAssistantMqttHandler* hamh = (HomeAssistantMqttHandler*) &mqttHandler;
 					hamh->setHomeAssistantConfig(haconf, network.hostname);
 					break;
@@ -1660,7 +1663,7 @@ void MQTT_connect() {
 				HomeAssistantConfig haconf;
 				config.getHomeAssistantConfig(haconf);
 				NetworkConfig network;
-				ch->getCurrentConfig(network);
+				config.getNetworkConfig(network);
 				mqttHandler = new HomeAssistantMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, sysConfig.boardType, haconf, &hw, &updater, network.hostname);
 				break;
 			case 255:
@@ -1673,7 +1676,7 @@ void MQTT_connect() {
 	if(mqttHandler != NULL) {
 		mqttHandler->connect();
 		mqttHandler->publishSystem(&hw, ps, &ea);
-		if(ps != NULL && ps->getValueForHour(PRICE_DIRECTION_IMPORT, 0) != PRICE_NO_VALUE) {
+		if(ps != NULL && ps->hasPrice()) {
 			mqttHandler->publishPrices(ps);
 		}
 	}
@@ -1966,12 +1969,6 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("entsoeCurrency "), 15) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			strcpy(price.currency, buf+15);
-		} else if(strncmp_P(buf, PSTR("entsoeMultiplier "), 17) == 0) {
-			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.unused1 = String(buf+17).toFloat() * 1000;
-		} else if(strncmp_P(buf, PSTR("entsoeFixedPrice "), 17) == 0) {
-			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.unused2 = String(buf+17).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("priceEnabled "), 13) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			price.enabled = String(buf+13).toInt() == 1;
@@ -1984,12 +1981,6 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("priceCurrency "), 14) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			strcpy(price.currency, buf+14);
-		} else if(strncmp_P(buf, PSTR("priceMultiplier "), 16) == 0) {
-			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.unused1 = String(buf+16).toFloat() * 1000;
-		} else if(strncmp_P(buf, PSTR("priceFixedPrice "), 16) == 0) {
-			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			price.unused2 = String(buf+16).toFloat() * 1000;
 		} else if(strncmp_P(buf, PSTR("priceModifier "), 14) == 0) {
 			PriceConfig pc;
 			memset(&pc, 0, sizeof(PriceConfig));

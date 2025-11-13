@@ -14,7 +14,8 @@
 
     export let data = {}
     export let sysinfo = {}
-    export let prices = {}
+    export let importPrices = {}
+    export let exportPrices = {}
     export let dayPlot = {}
     export let monthPlot = {}
     export let temperatures = {};
@@ -136,9 +137,20 @@
             <RealtimePlot title={translations.dashboard?.realtime ?? "Real time"}/>
         </div>
     {/if}
-    {#if uiVisibility(sysinfo.ui.p, data.pe && !Number.isNaN(data.p))}
+    {#if uiVisibility(sysinfo.ui.p, data.p && !Number.isNaN(data.p))}
+        {#if importPrices?.importExportPriceDifferent && (data.om || data.e > 0)}
+            <div class="cnt gwf">
+                <PricePlot title="{translations.dashboard?.price_import ?? "Price import"}" json={importPrices}/>
+            </div>
+        {:else}
+            <div class="cnt gwf">
+                <PricePlot title={translations.dashboard?.price ?? "Price"} json={importPrices}/>
+            </div>
+        {/if}
+    {/if}
+    {#if importPrices?.importExportPriceDifferent && (data.om || data.e > 0) && uiVisibility(sysinfo.ui.p, data.pe && !Number.isNaN(data.pe))}
         <div class="cnt gwf">
-            <PricePlot title={translations.dashboard?.price ?? "Price"} json={prices} sysinfo={sysinfo}/>
+            <PricePlot title={translations.dashboard?.price_export ?? "Price export"} json={exportPrices}/>
         </div>
     {/if}
     {#if uiVisibility(sysinfo.ui.d, dayPlot)}

@@ -40,6 +40,8 @@
         "tariffpeak" : "Tariff peaks",
         "realtime" : "Real-time plot",
         "price" : "Future energy price",
+        "price_import" : "Future import price",
+        "price_export" : "Future export price",
         "day" : "Energy use last 24 hours",
         "month" : "Energy use last {0} days",
         "temperature" : "Temperature sensors"

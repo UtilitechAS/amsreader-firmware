@@ -1,6 +1,6 @@
 <script>
   import { Router, Route, navigate } from "svelte-navigator";
-  import { getTariff, tariffStore, sysinfoStore, dataStore, pricesStore, dayPlotStore, monthPlotStore, temperaturesStore, getSysinfo } from './lib/DataStores.js';
+  import { getTariff, tariffStore, sysinfoStore, dataStore, importPricesStore, exportPricesStore, dayPlotStore, monthPlotStore, temperaturesStore, getSysinfo } from './lib/DataStores.js';
   import { translationsStore, getTranslations } from "./lib/TranslationService.js";
   import Favicon from './assets/favicon.svg'; // Need this for the build
   import Header from './lib/Header.svelte';
@@ -19,9 +19,14 @@
   let basepath = document.getElementsByTagName('base')[0].getAttribute("href");
   if(!basepath) basepath = "/";
 
-  let prices;
-  pricesStore.subscribe(update => {
-      prices = update;
+  let importPrices;
+  importPricesStore.subscribe(update => {
+      importPrices = update;
+  });
+
+  let exportPrices;
+  exportPricesStore.subscribe(update => {
+      exportPrices = update;
   });
 
   let dayPlot;
@@ -100,7 +105,7 @@
   <Router basepath={basepath}>
     <Header data={data} basepath={basepath}/>
     <Route path="/">
-      <Dashboard data={data} sysinfo={sysinfo} prices={prices} dayPlot={dayPlot} monthPlot={monthPlot} temperatures={temperatures} translations={translations} tariffData={tariffData}/>
+      <Dashboard data={data} sysinfo={sysinfo} importPrices={importPrices} exportPrices={exportPrices} dayPlot={dayPlot} monthPlot={monthPlot} temperatures={temperatures} translations={translations} tariffData={tariffData}/>
     </Route>
     <Route path="/configuration">
       <ConfigurationPanel sysinfo={sysinfo} basepath={basepath} data={data}/>

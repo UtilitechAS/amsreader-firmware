@@ -25,8 +25,6 @@
             label: 0
         });
 
-        console.log(realtime);
-
         if(tariffData && !isNaN(realtime?.h?.u)) {
             points.push({
                 label: realtime.h.u.toFixed(2),

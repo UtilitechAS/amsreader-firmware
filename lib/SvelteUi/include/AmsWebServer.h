@@ -146,6 +146,7 @@ private:
 	void firmwarePost();
 	void firmwareUpload();
 	void isAliveCheck();
+	void fwchannel();
 
 	void mqttCaUpload();
 	void mqttCaDelete();

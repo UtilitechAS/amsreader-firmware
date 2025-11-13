@@ -50,6 +50,11 @@
 #define LED_BEHAVIOUR_ERROR_ONLY 3
 #define LED_BEHAVIOUR_OFF 9
 
+#define FIRMWARE_CHANNEL_STABLE 0
+#define FIRMWARE_CHANNEL_EARLY 1
+#define FIRMWARE_CHANNEL_RC 2
+#define FIRMWARE_CHANNEL_SNAPSHOT 3
+
 struct ResetDataContainer {
 	uint8_t cause;
 	uint8_t last_cause;
@@ -63,6 +68,7 @@ struct SystemConfig {
 	uint8_t dataCollectionConsent; // 0 = unknown, 1 = accepted, 2 = declined
 	char country[3];
 	uint8_t energyspeedometer;
+	uint8_t firmwareChannel;
 }; // 8
 
 struct NetworkConfig {

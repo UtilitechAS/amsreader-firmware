@@ -53,6 +53,7 @@
     "boot_reason": %d,
     "ex_cause": %d,
     "upgrade": {
+        "c": %d,
         "e": %d,
         "f": "%s",
         "t": "%s",

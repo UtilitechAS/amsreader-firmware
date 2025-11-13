@@ -1,5 +1,5 @@
 <script>
-    import { metertype, boardtype, isBusPowered, getBaseChip } from './Helpers.js';
+    import { metertype, boardtype, isBusPowered, getBaseChip, wiki } from './Helpers.js';
     import { getSysinfo, sysinfoStore } from './DataStores.js';
     import { upgrade, upgradeWarningText } from './UpgradeHelper';
     import { translationsStore } from './TranslationService.js';
@@ -108,6 +108,15 @@
         });
     };
 
+    function changeFirmwareChannel() {
+        const formData = new FormData();
+        formData.append('channel', sysinfo.upgrade.c);
+        fetch('fwchannel', {
+            method: 'POST',
+            body: formData
+        });
+    };
+
     $: {
         if(configFiles.length == 1) {
             let file = configFiles[0];
@@ -209,25 +218,37 @@
     {/if}
     <div class="cnt">
         <strong class="text-sm">{translations.status?.firmware?.title ?? "Firmware"}</strong>
+        <a href="{wiki('Firmware-Channels')}" target="_blank" class="float-right">&#9432;</a>
+        {#if sysinfo.fwconsent === 1}
+            <div class="my-2">
+                Channel: 
+                <select class="in-s w-full" bind:value={sysinfo.upgrade.c} on:change={changeFirmwareChannel}>
+                    <option value={0}>Stable</option>
+                    <option value={1}>Early</option>
+                    <option value={2}>Release Candidate</option>
+                    <option value={3} disabled>Snapshot</option>
+                </select>
+            </div>
+        {/if}
         <div class="my-2">
             {translations.status?.firmware?.installed ?? "Installed"}: {sysinfo.version}
         </div>
         {#if sysinfo.upgrade.t && sysinfo.upgrade.t != sysinfo.version && sysinfo.upgrade.e != 0 && sysinfo.upgrade.e != 123}
-        <div class="my-2">
-            <div class="bd-yellow">
-                {(translations.status?.firmware?.failed ?? "Upgrade from {0} to {1} failed").replace('{0}', sysinfo.upgrade.f).replace('{1}', sysinfo.upgrade.t)}
-                {(translations.errors?.upgrade?.[sysinfo.upgrade.e] ?? sysinfo.upgrade.e)}
+            <div class="my-2">
+                <div class="bd-yellow">
+                    {(translations.status?.firmware?.failed ?? "Upgrade from {0} to {1} failed").replace('{0}', sysinfo.upgrade.f).replace('{1}', sysinfo.upgrade.t)}
+                    {(translations.errors?.upgrade?.[sysinfo.upgrade.e] ?? sysinfo.upgrade.e)}
+                </div>
             </div>
-        </div>
         {/if}
         {#if sysinfo.upgrade.n}
             <div class="my-2 flex">
                 {translations.status?.firmware?.latest ?? "Latest"}: 
                 <a href={"https://github.com/UtilitechAS/amsreader-firmware/releases/tag/" + sysinfo.upgrade.n} class="ml-2 text-blue-600 hover:text-blue-800" target='_blank' rel="noreferrer">{sysinfo.upgrade.n}</a>
                 {#if (sysinfo.security == 0 || data.a) && sysinfo.fwconsent === 1 && sysinfo.upgrade.n && sysinfo.upgrade.n != sysinfo.version}
-                <div class="flex-none ml-2 text-green-500" title={translations.status?.firmware?.install ?? "Install"}>
-                    <button on:click={askUpgrade}>&#8659;</button>
-                </div>
+                    <div class="flex-none ml-2 text-green-500" title={translations.status?.firmware?.install ?? "Install"}>
+                        <button on:click={askUpgrade}>&#8659;</button>
+                    </div>
                 {/if}
             </div>
             {#if sysinfo.fwconsent === 2}
@@ -237,22 +258,22 @@
             {/if}
         {/if}
         {#if (sysinfo.security == 0 || data.a) && isBusPowered(sysinfo.board) }
-        <div class="bd-red">
-            {upgradeWarningText(boardtype(sysinfo.chip, sysinfo.board))}
-        </div>
+            <div class="bd-red">
+                {upgradeWarningText(boardtype(sysinfo.chip, sysinfo.board))}
+            </div>
         {/if}
         {#if sysinfo.security == 0 || data.a}
-        <div class="my-2 flex">
-            <form action="firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true} autocomplete="off">
-                <input style="display:none" name="file" type="file" accept=".bin" bind:this={firmwareFileInput} bind:files={firmwareFiles}>
-                {#if firmwareFiles.length == 0}
-                <button type="button" on:click={()=>{firmwareFileInput.click();}} class="btn-pri-sm float-right">{translations.status?.firmware?.btn_select_file ?? "Select file"}</button>
-                {:else}
-                {firmwareFiles[0].name}
-                <button type="submit" class="btn-pri-sm float-right ml-2">{translations.btn?.upload ?? "Upload"}</button>
-                {/if}
-            </form>
-        </div>
+            <div class="my-2 flex">
+                <form action="firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true} autocomplete="off">
+                    <input style="display:none" name="file" type="file" accept=".bin" bind:this={firmwareFileInput} bind:files={firmwareFiles}>
+                    {#if firmwareFiles.length == 0}
+                    <button type="button" on:click={()=>{firmwareFileInput.click();}} class="btn-pri-sm float-right">{translations.status?.firmware?.btn_select_file ?? "Select file"}</button>
+                    {:else}
+                    {firmwareFiles[0].name}
+                    <button type="submit" class="btn-pri-sm float-right ml-2">{translations.btn?.upload ?? "Upload"}</button>
+                    {/if}
+                </form>
+            </div>
         {/if}
     </div>
     {#if sysinfo.security == 0 || data.a}

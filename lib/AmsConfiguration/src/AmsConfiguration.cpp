@@ -15,6 +15,11 @@ bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
 	EEPROM.get(CONFIG_SYSTEM_START, config);
 	EEPROM.end();
+
+	if(config.firmwareChannel > 3) {
+		config.firmwareChannel = 0;
+	}
+
 	if(configVersion == EEPROM_CHECK_SUM) {
 		return true;
 	} else {
@@ -27,6 +32,7 @@ bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 		}
 		config.userConfigured = false;
 		config.dataCollectionConsent = 0;
+		config.firmwareChannel = 0;
 		config.energyspeedometer = 0;
 		memset(config.country, 0, 3);
 		return false;
@@ -42,6 +48,9 @@ bool AmsConfiguration::setSystemConfig(SystemConfig& config) {
 		sysChanged |= config.dataCollectionConsent != existing.dataCollectionConsent;
 		sysChanged |= strcmp(config.country, existing.country) != 0;
 		sysChanged |= config.energyspeedometer != existing.energyspeedometer;
+		sysChanged |= config.firmwareChannel != existing.firmwareChannel;
+	} else {
+		sysChanged = true;
 	}
 	EEPROM.begin(EEPROM_SIZE);
 	stripNonAscii((uint8_t*) config.country, 2);
@@ -979,6 +988,7 @@ void AmsConfiguration::clear() {
 	EEPROM.get(CONFIG_SYSTEM_START, sys);
 	sys.userConfigured = false;
 	sys.dataCollectionConsent = 0;
+	sys.firmwareChannel = 0;
 	sys.energyspeedometer = 0;
 	memset(sys.country, 0, 3);
 	EEPROM.put(CONFIG_SYSTEM_START, sys);

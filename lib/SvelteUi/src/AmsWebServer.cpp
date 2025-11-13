@@ -145,6 +145,7 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/firmware"), HTTP_GET, std::bind(&AmsWebServer::firmwareHtml, this));
 	server.on(context + F("/firmware"), HTTP_POST, std::bind(&AmsWebServer::firmwarePost, this), std::bind(&AmsWebServer::firmwareUpload, this));
 	server.on(context + F("/is-alive"), HTTP_GET, std::bind(&AmsWebServer::isAliveCheck, this));
+	server.on(context + F("/fwchannel"), HTTP_POST, std::bind(&AmsWebServer::fwchannel, this));
 
 	server.on(context + F("/reset"), HTTP_POST, std::bind(&AmsWebServer::factoryResetPost, this));
 
@@ -479,6 +480,7 @@ void AmsWebServer::sysinfoJson() {
 		ESP.getResetInfoPtr()->reason,
 		ESP.getResetInfoPtr()->exccause,
 		#endif
+		sys.firmwareChannel,
 		upinfo.errorCode,
 		upinfo.fromVersion,
 		upinfo.toVersion,
@@ -1341,6 +1343,7 @@ void AmsWebServer::handleSave() {
 			
 			sys.userConfigured = success;
 			sys.dataCollectionConsent = 0;
+			sys.firmwareChannel = 0;
 			config->setSystemConfig(sys);
 
 			performRestart = true;
@@ -2019,6 +2022,17 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 
 void AmsWebServer::isAliveCheck() {
 	server.sendHeader(HEADER_ACCESS_CONTROL_ALLOW_ORIGIN, F("*"));
+	server.send(200);
+}
+
+void AmsWebServer::fwchannel() {
+	if(!checkSecurity(1))
+		return;
+
+	SystemConfig sys;
+	config->getSystemConfig(sys);
+	sys.firmwareChannel = server.arg(F("channel")).toInt();
+	config->setSystemConfig(sys);
 	server.send(200);
 }
 

@@ -60,6 +60,13 @@ public:
     bool isUpgradeInformationChanged();
     void ackUpgradeInformationChanged();
 
+    void setFirmwareChannel(uint8_t channel) {
+        if(firmwareChannel != channel) {
+            firmwareChannel = channel;
+            lastVersionCheck = 0;
+        }
+    }
+
     bool startFirmwareUpload(uint32_t size, const char* version);
     bool addFirmwareUploadChunk(uint8_t* buf, size_t length);
     bool completeFirmwareUpload(uint32_t size);
@@ -95,10 +102,11 @@ private:
     String md5;
 
     uint32_t lastVersionCheck = 0;
-    uint8_t firmwareVariant;
+    uint8_t firmwareChannel;
     bool autoUpgrade;
     char nextVersion[17];
 
+    void getChannelName(char * buffer);
 
     bool fetchNextVersion();
     bool fetchVersionDetails();

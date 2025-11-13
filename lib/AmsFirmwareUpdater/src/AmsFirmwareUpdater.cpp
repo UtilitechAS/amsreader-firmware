@@ -22,7 +22,7 @@ this->debugger = debugger;
     this->hw = hw;
     this->meterState = meterState;
     memset(nextVersion, 0, sizeof(nextVersion));
-    firmwareVariant = 0;
+    firmwareChannel = 0;
     autoUpgrade = false;
 }
 
@@ -208,15 +208,33 @@ void AmsFirmwareUpdater::loop() {
     }
 }
 
+void AmsFirmwareUpdater::getChannelName(char * buffer) {
+    switch(firmwareChannel) {
+        case FIRMWARE_CHANNEL_EARLY:
+            strcpy(buffer, PSTR("early"));
+            break;
+        case FIRMWARE_CHANNEL_RC:
+            strcpy(buffer, PSTR("rc"));
+            break;
+        case FIRMWARE_CHANNEL_SNAPSHOT:
+            strcpy(buffer, PSTR("snapshot"));
+            break;  
+        default:
+            strcpy(buffer, PSTR("stable"));
+            break;
+    }
+}
+
 bool AmsFirmwareUpdater::fetchNextVersion() {
     HTTPClient http;
     const char * headerkeys[] = { "x-version" };
     http.collectHeaders(headerkeys, 1);
 
-    char firmwareVariant[10] = "stable";
+    char channel[10] = "";
+    getChannelName(channel);
 
     char url[128];
-    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/next"), chipType, firmwareVariant);
+    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/next"), chipType, channel);
     #if defined(ESP8266)
     WiFiClient client;
     client.setTimeout(5000);
@@ -263,10 +281,11 @@ bool AmsFirmwareUpdater::fetchVersionDetails() {
     const char * headerkeys[] = { "x-size" };
     http.collectHeaders(headerkeys, 1);
 
-    char firmwareVariant[10] = "stable";
+    char channel[10] = "";
+    getChannelName(channel);
 
     char url[128];
-    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/%s/details"), chipType, firmwareVariant, updateStatus.toVersion);
+    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/%s/details"), chipType, channel, updateStatus.toVersion);
     #if defined(ESP8266)
     WiFiClient client;
     client.setTimeout(5000);
@@ -319,10 +338,11 @@ bool AmsFirmwareUpdater::fetchFirmwareChunk(HTTPClient& http) {
     char range[24];
     snprintf_P(range, 24, PSTR("bytes=%lu-%lu"), start, end);
 
-    char firmwareVariant[10] = "stable";
+    char channel[10] = "";
+    getChannelName(channel);
 
     char url[128];
-    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/%s/chunk"), chipType, firmwareVariant, updateStatus.toVersion);
+    snprintf_P(url, 128, PSTR("http://hub.amsleser.no/hub/firmware/%s/%s/%s/chunk"), chipType, channel, updateStatus.toVersion);
     #if defined(ESP8266)
     WiFiClient client;
     client.setTimeout(5000);

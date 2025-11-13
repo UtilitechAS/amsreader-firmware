@@ -1120,6 +1120,7 @@ void handleSystem(unsigned long now) {
 	if(config.isSystemConfigChanged()) {
 		config.getSystemConfig(sysConfig);
 		config.ackSystemConfigChanged();
+		updater.setFirmwareChannel(sysConfig.firmwareChannel);
 	}
 
 	unsigned long start, end;

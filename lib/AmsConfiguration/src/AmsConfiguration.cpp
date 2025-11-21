@@ -517,6 +517,7 @@ bool AmsConfiguration::getGpioConfig(GpioConfig& config) {
 	if(configVersion == EEPROM_CHECK_SUM || configVersion == EEPROM_CLEARED_INDICATOR) {
 		EEPROM.get(CONFIG_GPIO_START, config);
 		EEPROM.end();
+		if(config.powersaving > 4) config.powersaving = 0;
 		return true;
 	} else {
 		clearGpio(config);
@@ -590,6 +591,7 @@ void AmsConfiguration::clearGpio(GpioConfig& config, bool all) {
 	config.tempAnalogSensorPin = 0xFF;
 	config.vccPin = 0xFF;
 	config.ledDisablePin = 0xFF;
+	config.powersaving = 0;
 
 	if(all) {
 		config.vccOffset = 0;
@@ -1151,7 +1153,8 @@ bool AmsConfiguration::relocateConfig103() {
 		gpio103.vccResistorGnd,
 		gpio103.vccResistorVcc,
 		gpio103.ledDisablePin,
-		gpio103.ledBehaviour
+		gpio103.ledBehaviour,
+		0
 	};
 
 	WebConfig web = {web103.security};
@@ -1323,6 +1326,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf_P(PSTR("Vcc pin:              %i\r\n"), gpio.vccPin);
 		debugger->printf_P(PSTR("LED disable pin:      %i\r\n"), gpio.ledDisablePin);
 		debugger->printf_P(PSTR("LED behaviour:        %i\r\n"), gpio.ledBehaviour);
+		debugger->printf_P(PSTR("Power saving:         %i\r\n"), gpio.powersaving);
 		if(gpio.vccMultiplier > 0) {
 			debugger->printf_P(PSTR("Vcc multiplier:       %f\r\n"), gpio.vccMultiplier / 1000.0);
 		}

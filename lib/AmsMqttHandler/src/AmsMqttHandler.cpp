@@ -177,7 +177,7 @@ bool AmsMqttHandler::loop() {
 			if (debugger->isActive(RemoteDebug::WARNING))
 			#endif
 			debugger->printf_P(PSTR("MQTT connection lost for over %d minutes, rebooting device\n"), mqttConfig.rebootMinutes);
-			ESP.restart();
+			rebootSuggested = true;
 		}
 	}
 	delay(10); // Needed to preserve power. After adding this, the voltage is super smooth on a HAN powered device
@@ -188,4 +188,8 @@ bool AmsMqttHandler::loop() {
 		ESP.wdtFeed();
 	#endif
     return ret;
+}
+
+bool AmsMqttHandler::isRebootSuggested() {
+	return rebootSuggested;
 }

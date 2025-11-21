@@ -47,6 +47,7 @@ public:
     lwmqtt_err_t lastError();
     bool connected();
     bool loop();
+    bool isRebootSuggested();
 
     virtual uint8_t getFormat() { return 0; };
 
@@ -88,6 +89,7 @@ protected:
     String subTopic;
 
     AmsFirmwareUpdater* updater = NULL;
+    bool rebootSuggested = false;
 };
 
 #endif

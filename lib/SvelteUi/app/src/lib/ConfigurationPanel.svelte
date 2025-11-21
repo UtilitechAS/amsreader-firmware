@@ -3,7 +3,7 @@
     import { sysinfoStore, networksStore } from './DataStores.js';
     import fetchWithTimeout from './fetchWithTimeout';
     import { translationsStore } from './TranslationService';
-    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern } from './Helpers.js';
+    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern, isBusPowered } from './Helpers.js';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
     import Badge from './Badge.svelte';
@@ -914,6 +914,13 @@
                     <option value={1}>{translations.conf?.hw?.led?.behaviour?.disabled ?? "Disabled"}</option>
                 </select>
             </div>
+            {/if}
+            {#if isBusPowered(sysinfo.board)}
+                Power saving:
+                <select name="ip" bind:value={configuration.i.p} class="in-s">
+                    <option value={0}>{translations.conf?.hw?.powersaving?.[0] ?? "Normal"}</option>
+                    <option value={3}>{translations.conf?.hw?.powersaving?.[3] ?? "Extreme (Experimental)"}</option>
+                </select>
             {/if}
             {#if sysinfo.chip == 'esp8266'}
             <input type="hidden" name="iv" value="true"/>

@@ -29,7 +29,7 @@
             points.push({
                 label: realtime.h.u.toFixed(2),
                 value: realtime.h.u,
-                title: realtime.h.u.toFixed(2) + ' kWh',
+                title: (translations.common?.now ?? "Now") + ': ' + realtime.h.u.toFixed(2) + ' kWh',
                 color: ampcol(realtime.h.u/tariffData.c*100.0)
             });
             xTicks.push({
@@ -40,14 +40,21 @@
         if(tariffData && tariffData.p) {
             for(i = 0; i < tariffData.p.length; i++) {
                 let peak = tariffData.p[i];
-                let daylabel = peak.d > 0 ? zeropad(peak.d) + "." + (translations.months ? translations.months?.[new Date().getMonth()] : zeropad(new Date().getMonth()+1)) : "-";
-                let title = daylabel;
+
+                let title = "";
+                let daylabel = "-";
+                if(peak.d > 0) {
+                    daylabel = zeropad(peak.d) + ".";
+                    title = zeropad(peak.d) + "." + (translations.months ? translations.months?.[new Date().getMonth()] : zeropad(new Date().getMonth()+1));
+                    if(tariffData.p.length < 4) {
+                        daylabel = title;
+                    }
+                }
                 if(!isNaN(peak.h))
                     title = title + ' ' + zeropad(peak.h) + ':00';
                 title = title + ': ' + peak.v.toFixed(2) + ' kWh';
                 points.push({
                     label: peak.v.toFixed(2), 
-                    title: peak.v.toFixed(2) + ' kWh', 
                     value: peak.v, 
                     title: title,
                     color: dark ? '#5c2da5' : '#7c3aed'

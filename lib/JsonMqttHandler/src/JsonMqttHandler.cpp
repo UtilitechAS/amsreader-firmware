@@ -10,17 +10,6 @@
 #include "Uptime.h"
 #include "AmsJsonGenerator.h"
 
-bool JsonMqttHandler::postConnect() {
-    if(!subTopic.isEmpty() && !mqtt.subscribe(subTopic)) {
-        #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::ERROR))
-        #endif
-        debugger->printf_P(PSTR("  Unable to subscribe to to [%s]\n"), subTopic.c_str());
-        return false;
-    }
-    return true;
-}
-
 bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     if(strlen(mqttConfig.publishTopic) == 0) {
         return false;

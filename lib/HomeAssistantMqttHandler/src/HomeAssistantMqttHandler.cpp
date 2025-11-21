@@ -70,14 +70,22 @@ void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config
 }
 
 bool HomeAssistantMqttHandler::postConnect() {
-    if(!subTopic.isEmpty() && !mqtt.subscribe(subTopic)) {
-        #if defined(AMS_REMOTE_DEBUG)
-        if (debugger->isActive(RemoteDebug::ERROR))
-        #endif
-        debugger->printf_P(PSTR("  Unable to subscribe to to [%s]\n"), subTopic.c_str());
-        return false;
+    bool ret = true;
+    if(!statusTopic.isEmpty()) {
+        if(mqtt.subscribe(statusTopic)) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("  Subscribed to [%s]\n"), statusTopic.c_str());
+        } else {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("  Unable to subscribe to [%s]\n"), statusTopic.c_str());
+            ret = false;
+        }
     }
-    return true;
+    return ret;
 }
 
 bool HomeAssistantMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {

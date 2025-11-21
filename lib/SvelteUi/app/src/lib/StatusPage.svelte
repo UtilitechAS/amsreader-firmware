@@ -218,7 +218,7 @@
     {/if}
     <div class="cnt">
         <strong class="text-sm">{translations.status?.firmware?.title ?? "Firmware"}</strong>
-        <a href="{wiki('Firmware-Channels')}" target="_blank" class="float-right">&#9432;</a>
+        <a href="{wiki('statusinformation-screen')}" target="_blank" class="float-right">&#9432;</a>
         {#if sysinfo.fwconsent === 1}
             <div class="my-2">
                 Channel: 

@@ -830,8 +830,8 @@ void AmsConfiguration::ackUiLanguageChange() {
 }
 
 bool AmsConfiguration::setUpgradeInformation(UpgradeInformation& upinfo) {
-	stripNonAscii((uint8_t*) upinfo.fromVersion, 8);
-	stripNonAscii((uint8_t*) upinfo.toVersion, 8);
+	stripNonAscii((uint8_t*) upinfo.fromVersion, 16);
+	stripNonAscii((uint8_t*) upinfo.toVersion, 16);
 
 	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_UPGRADE_INFO_START, upinfo);
@@ -845,7 +845,7 @@ bool AmsConfiguration::getUpgradeInformation(UpgradeInformation& upinfo) {
 		EEPROM.begin(EEPROM_SIZE);
 		EEPROM.get(CONFIG_UPGRADE_INFO_START, upinfo);
 		EEPROM.end();
-		if(stripNonAscii((uint8_t*) upinfo.fromVersion, 8) || stripNonAscii((uint8_t*) upinfo.toVersion, 8)) {
+		if(stripNonAscii((uint8_t*) upinfo.fromVersion, 16) || stripNonAscii((uint8_t*) upinfo.toVersion, 16)) {
 			clearUpgradeInformation(upinfo);
 			return false;
 		}
@@ -857,8 +857,8 @@ bool AmsConfiguration::getUpgradeInformation(UpgradeInformation& upinfo) {
 }
 
 void AmsConfiguration::clearUpgradeInformation(UpgradeInformation& upinfo) {
-	memset(upinfo.fromVersion, 0, 8);
-	memset(upinfo.toVersion, 0, 8);
+	memset(upinfo.fromVersion, 0, 16);
+	memset(upinfo.toVersion, 0, 16);
 	upinfo.errorCode = 0;
 	upinfo.size = 0;
 	upinfo.block_position = 0;

@@ -49,7 +49,7 @@
             <hr/>
             <div class="my-3">
                 {translations.consent?.one_click ?? "One-click"}<br/>
-                <a href="{wiki('Data-collection-on-one-click-firmware-upgrade')}" target="_blank" class="text-blue-600 hover:text-blue-800">{translations.consent?.read_more ?? "Read more"}</a><br/>
+                <a href="https://github.com/UtilitechAS/amsreader-firmware/wiki/Data-collection-on-one-click-firmware-upgrade" target="_blank" class="text-blue-600 hover:text-blue-800">{translations.consent?.read_more ?? "Read more"}</a><br/>
                 <label><input type="radio" name="sf" value={1} checked={sysinfo.fwconsent === 1} class="rounded m-2" required/> {translations.consent?.yes ?? "Yes"}</label>
                 <label><input type="radio" name="sf" value={2} checked={sysinfo.fwconsent === 2} class="rounded m-2" required/> {translations.consent?.no ?? "No"}</label><br/>
             </div>

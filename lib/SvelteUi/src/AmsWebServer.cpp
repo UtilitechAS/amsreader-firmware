@@ -516,10 +516,9 @@ void AmsWebServer::sysinfoJson() {
 		#endif
 		debugger->printf_P(PSTR("Rebooting\n"));
 		debugger->flush();
+		rdc->cause = REBOOT_CAUSE_WEB_SYSINFO_JSON;
 		delay(1000);
-		rdc->cause = 1;
 		ESP.restart();
-		performRestart = false;
 	}
 }
 
@@ -1080,7 +1079,8 @@ void AmsWebServer::configurationJson() {
 		gpioConfig->vccMultiplier / 1000.0,
 		gpioConfig->vccResistorVcc,
 		gpioConfig->vccResistorGnd,
-		gpioConfig->vccBootLimit / 10.0
+		gpioConfig->vccBootLimit / 10.0,
+		gpioConfig->powersaving
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_UI_JSON,
@@ -1562,6 +1562,11 @@ void AmsWebServer::handleSave() {
 		config->setGpioConfig(*gpioConfig);
 	}
 
+	if(server.hasArg(F("ip"))) {
+		gpioConfig->powersaving = server.hasArg(F("ip")) && !server.arg(F("ip")).isEmpty() ? server.arg(F("ip")).toInt() : 0;
+		config->setGpioConfig(*gpioConfig);
+	}
+
 	if(server.hasArg(F("iv")) && server.arg(F("iv")) == F("true")) {
 		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toFloat() * 100 : 0;
 		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toFloat() * 1000 : 1000;
@@ -1780,9 +1785,8 @@ void AmsWebServer::handleSave() {
 		#endif
 		debugger->printf_P(PSTR("Rebooting\n"));
 		debugger->flush();
+		rdc->cause = REBOOT_CAUSE_WEB_SAVE;
 		delay(1000);
-		rdc->cause = 2;
-		performRestart = false;
 		ESP.restart();
 	}
 }
@@ -1797,14 +1801,12 @@ void AmsWebServer::reboot() {
 	delay(250);
 
 	#if defined(AMS_REMOTE_DEBUG)
-if (debugger->isActive(RemoteDebug::INFO))
-#endif
-debugger->printf_P(PSTR("Rebooting\n"));
+	if (debugger->isActive(RemoteDebug::INFO))
+	#endif
+	debugger->printf_P(PSTR("Rebooting\n"));
 	debugger->flush();
-	delay(1000);	rdc->cause = 3;
-
-	rdc->cause = 3;
-	performRestart = false;
+	rdc->cause = REBOOT_CAUSE_WEB_REBOOT;
+	delay(1000);
 	ESP.restart();
 }
 
@@ -2064,8 +2066,8 @@ void AmsWebServer::factoryResetPost() {
 	#endif
 	debugger->printf_P(PSTR("Rebooting\n"));
 	debugger->flush();
+	rdc->cause = REBOOT_CAUSE_WEB_FACTORY_RESET;
 	delay(1000);
-	rdc->cause = 5;
 	ESP.restart();
 }
 

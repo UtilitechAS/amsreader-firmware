@@ -3,7 +3,7 @@
     import { sysinfoStore, networksStore } from './DataStores.js';
     import fetchWithTimeout from './fetchWithTimeout';
     import { translationsStore } from './TranslationService';
-    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern } from './Helpers.js';
+    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern, isBusPowered } from './Helpers.js';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
     import Badge from './Badge.svelte';
@@ -255,7 +255,7 @@
         {#if configuration?.g}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.general?.title ?? "General"}</strong>
-            <a href="{wiki('General-configuration')}" target="_blank" class="float-right">&#9432;</a>
+            <a href="{wiki('general')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="g" value="true"/>
             <div class="my-1">
                 <div class="flex">
@@ -372,7 +372,7 @@
         {#if configuration?.m}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.meter?.title ?? "Meter"}</strong>
-            <a href="{wiki('Meter-configuration')}" target="_blank" class="float-right">&#9432;</a>
+            <a href="{wiki('meter')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="m" value="true"/>
             <input type="hidden" name="mo" value="1"/>
             <div class="my-1">
@@ -479,7 +479,7 @@
         {#if configuration?.w}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.connection?.title ?? "Connection"}</strong>
-            <a href="{wiki('Network-connection')}" target="_blank" class="float-right">&#9432;</a>
+            <a href="{wiki('connection')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="w" value="true"/>
             <div class="my-1">
                 <select name="nc" class="in-s" bind:value={configuration.n.c}>
@@ -541,7 +541,7 @@
         {#if configuration?.n}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.network?.title ?? "Network"}</strong>
-            <a href="{wiki('Network-configuration')}" target="_blank" class="float-right">&#9432;</a>
+            <a href="{wiki('network')}" target="_blank" class="float-right">&#9432;</a>
             <div class="my-1">
                 {translations.conf?.network?.ip ?? "IP"}<br/>
                 <div class="flex">
@@ -586,7 +586,7 @@
         {#if configuration?.q}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.mqtt?.title ?? "MQTT"}</strong>
-            <a href="{wiki('MQTT-configuration')}" target="_blank" class="float-right">&#9432;</a>
+            <a href="{wiki('mqtt')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="q" value="true"/>
             <div class="my-1">
                 {translations.conf?.mqtt?.server ?? "Server"}
@@ -736,7 +736,7 @@
         {#if configuration?.c}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.cloud?.title ?? "Cloud connections"}</strong>
-                <a href="{wiki('Cloud')}" target="_blank" class="float-right">&#9432;</a>
+                <a href="{wiki('cloud-connections')}" target="_blank" class="float-right">&#9432;</a>
                 <input type="hidden" name="c" value="true"/>
                 {#if sysinfo?.features?.includes('cloud')}
                 <div class="my-1">
@@ -785,7 +785,7 @@
         {#if configuration?.p?.r?.startsWith("NO") || configuration?.p?.r?.startsWith("10YNO") || configuration?.p?.r?.startsWith('10Y1001A1001A4')}
             <div class="cnt">
                 <strong class="text-sm">{translations.conf?.thresholds?.title ?? "Thresholds"}</strong>
-                <a href="{wiki('Threshold-configuration')}" target="_blank" class="float-right">&#9432;</a>
+                <a href="{wiki('tariff-thresholds')}" target="_blank" class="float-right">&#9432;</a>
                 <input type="hidden" name="t" value="true"/>
                 <div class="flex flex-wrap my-1">
                     {#each {length: 9} as _, i}
@@ -806,7 +806,7 @@
         {#if configuration?.u}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.ui?.title ?? "User interface"}</strong>
-            <a href="{wiki('User-interface')}" target="_blank" class="float-right">&#9432;</a>
+            <a href="{wiki('user-interface')}" target="_blank" class="float-right">&#9432;</a>
             <input type="hidden" name="u" value="true"/>
             <div class="flex flex-wrap">
                 {#each uiElements as el}
@@ -833,7 +833,7 @@
         {#if configuration?.i?.h && (sysinfo?.board > 20 || sysinfo?.chip == 'esp8266' || configuration?.i?.d?.d > 0)}
         <div class="cnt">
             <strong class="text-sm">{translations.conf?.hw?.title ?? "Hardware"}</strong>
-            <a href="{wiki('GPIO-configuration')}" target="_blank" class="float-right">&#9432;</a>
+            <a href="{wiki('hardware')}" target="_blank" class="float-right">&#9432;</a>
             {#if sysinfo.board > 20}
             <input type="hidden" name="i" value="true"/>
             <div class="flex flex-wrap">
@@ -914,6 +914,13 @@
                     <option value={1}>{translations.conf?.hw?.led?.behaviour?.disabled ?? "Disabled"}</option>
                 </select>
             </div>
+            {/if}
+            {#if isBusPowered(sysinfo.board)}
+                Power saving:
+                <select name="ip" bind:value={configuration.i.p} class="in-s">
+                    <option value={0}>{translations.conf?.hw?.powersaving?.[0] ?? "Normal"}</option>
+                    <option value={3}>{translations.conf?.hw?.powersaving?.[3] ?? "Extreme (Experimental)"}</option>
+                </select>
             {/if}
             {#if sysinfo.chip == 'esp8266'}
             <input type="hidden" name="iv" value="true"/>

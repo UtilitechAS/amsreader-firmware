@@ -55,6 +55,17 @@
 #define FIRMWARE_CHANNEL_RC 2
 #define FIRMWARE_CHANNEL_SNAPSHOT 3
 
+#define REBOOT_CAUSE_WEB_SYSINFO_JSON 1
+#define REBOOT_CAUSE_WEB_SAVE 2
+#define REBOOT_CAUSE_WEB_REBOOT 3
+#define REBOOT_CAUSE_WEB_FACTORY_RESET 4
+#define REBOOT_CAUSE_BTN_FACTORY_RESET 5
+#define REBOOT_CAUSE_REPARTITION 6
+#define REBOOT_CAUSE_CONFIG_FILE_UPDATE 7
+#define REBOOT_CAUSE_FIRMWARE_UPDATE 8
+#define REBOOT_CAUSE_MQTT_DISCONNECTED 9
+#define REBOOT_CAUSE_SMART_CONFIG 10
+
 struct ResetDataContainer {
 	uint8_t cause;
 	uint8_t last_cause;
@@ -69,7 +80,7 @@ struct SystemConfig {
 	char country[3];
 	uint8_t energyspeedometer;
 	uint8_t firmwareChannel;
-}; // 8
+}; // 9
 
 struct NetworkConfig {
 	char ssid[32];
@@ -164,7 +175,8 @@ struct GpioConfig {
 	uint16_t vccResistorVcc;
 	uint8_t ledDisablePin;
 	uint8_t ledBehaviour;
-}; // 21
+	uint8_t powersaving;
+}; // 22
 
 struct GpioConfig103 {
 	uint8_t hanPin;

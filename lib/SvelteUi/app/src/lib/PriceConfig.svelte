@@ -108,7 +108,7 @@
 </script>
 <div class="cnt">
     <strong class="text-sm">{translations.conf?.price?.title ?? "Price"}</strong>
-    <a href="{wiki('Price-configuration')}" target="_blank" class="float-right">&#9432;</a>
+    <a href="{wiki('configure-price-price-modifiers')}" target="_blank" class="float-right">&#9432;</a>
     <hr class="m-3"/>
     <form on:submit|preventDefault={handleSubmit} autocomplete="off">
         <input type="hidden" name="r" value="true"/>

@@ -86,7 +86,7 @@
           </div>
           {/if}
           <div class="flex-none px-1 mt-1" title={translations.header?.doc ?? ""}>
-            <a href={wiki('')} target='_blank' rel="noreferrer"><HelpIcon/></a>
+            <a href="{wiki('')}" target='_blank' rel="noreferrer"><HelpIcon/></a>
           </div>
           {#if sysinfo.upgrading}
             <div class="flex-none mr-3 mt-1 text-yellow-300">Upgrading to {sysinfo.upgrade.t}, {progress.toFixed(1)}%</div>

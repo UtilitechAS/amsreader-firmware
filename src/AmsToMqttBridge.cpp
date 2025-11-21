@@ -238,13 +238,23 @@ void handleEnergySpeedometer();
 #if defined(AMS_CLOUD)
 void handleCloud();
 #endif
-void handleMqtt();
-void handleWebserver();
+unsigned long handleMqtt();
+unsigned long handleWebserver();
 void handleSmartConfig();
 void handleMeterConfig();
 
 uint8_t pulses = 0;
 void onPulse();
+
+bool checkVoltageIfNeeded(float range) {
+	if(updater.getProgress() > 0) {
+		return true; // Skip voltage check during firmware update
+	}
+	if(gpioConfig.powersaving != 3) {
+		return true; // Skip voltage check if not in high power saving mode
+	}
+	return hw.isVoltageOptimal(range);
+}
 
 #if defined(ESP32)
 uint8_t dnsState = 0;
@@ -361,6 +371,8 @@ void setup() {
 					if(!hw.ledBlink(LED_RED, 6)) {
 						hw.ledBlink(LED_INTERNAL, 6);
 					}
+					rdc.cause = REBOOT_CAUSE_BTN_FACTORY_RESET;
+					delay(250);
 					ESP.restart();
 					return;
 				}
@@ -451,6 +463,8 @@ void setup() {
 	}
 	#if defined(ESP32)
 	if(updater.relocateOrRepartitionIfNecessary()) {
+		rdc.cause = REBOOT_CAUSE_REPARTITION;
+		delay(250);
 		ESP.restart();
 		return;
 	}
@@ -506,6 +520,7 @@ void setup() {
 			configFileParse();
 			debugI_P(PSTR("Config update complete, restarting"));
 			Debug.flush();
+			rdc.cause = REBOOT_CAUSE_CONFIG_FILE_UPDATE;
 			delay(250);
 			ESP.restart();
 			return;
@@ -578,7 +593,7 @@ void loop() {
 	#endif
 	unsigned long end = millis();
 	if(end - start > SLOW_PROC_TRIGGER_MS) {
-		debugW_P(PSTR("Used %dms to handle debug"), millis()-start);
+		debugW_P(PSTR("Used %dms to handle debug"), end-start);
 	}
 
 	handleButton(now);
@@ -607,10 +622,8 @@ void loop() {
 				postConnect();
 			}
 
-			handleUpdater();
-
 			// Only do these tasks if we have super-smooth voltage
-			if(hw.isVoltageOptimal(0.1)) {
+			if(checkVoltageIfNeeded(0.1)) {
 				handleNtp();
 				#if defined(ESP8266)
 					handleMdns();
@@ -631,20 +644,26 @@ void loop() {
 				debugW_P(PSTR("Vcc below level 1"));
 			}
 
+			unsigned long communicationTime = 0;
 			// Only do these task if we have smooth voltage
-			if(hw.isVoltageOptimal(0.2)) {
-				handleMqtt();
+			if(checkVoltageIfNeeded(0.2)) {
+				communicationTime += handleMqtt();
 				vccLevel2 = true;
 			} else if(vccLevel2) {
 				vccLevel2 = false;
 				debugW_P(PSTR("Vcc below level 2"));
 			}
 			
-			handleWebserver();
+			communicationTime += handleWebserver();
+			if(communicationTime > 10 && updater.getProgress() >= 0) {
+				debugI_P(PSTR("Communication is active (%dms), forcing updater to wait"), communicationTime);
+			} else {
+				handleUpdater();
+			}
 
 			#if defined(ESP32)
 			// At this point, if the voltage is not optimal, disconnect from WiFi to preserve power
-			if(!hw.isVoltageOptimal(0.35)) {
+			if(!checkVoltageIfNeeded(0.35)) {
 				if(WiFi.getMode() == WIFI_STA) {
 					debugW_P(PSTR("Vcc dropped below limit, disconnecting WiFi for 5 seconds to preserve power"));
 					ch->disconnect(5000);
@@ -687,28 +706,6 @@ void loop() {
 			if(end-start > SLOW_PROC_TRIGGER_MS) {
 				debugW_P(PSTR("Used %dms to handle language update"), end-start);
 			}
-			start = millis();
-			updater.loop();
-			if(updater.isUpgradeInformationChanged()) {
-				UpgradeInformation upinfo;
-				updater.getUpgradeInformation(upinfo);
-				config.setUpgradeInformation(upinfo);
-				updater.ackUpgradeInformationChanged();
-				if(mqttHandler != NULL)
-					mqttHandler->publishFirmware();
-				
-				if(upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_SIGNAL) {
-					debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);
-					upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
-					config.setUpgradeInformation(upinfo);
-					delay(1000);
-					ESP.restart();
-				}
-			}
-			end = millis();
-			if(end-start > SLOW_PROC_TRIGGER_MS) {
-				debugW_P(PSTR("Used %dms to handle firmware updater"), end-start);
-			}
 		}
 	} else {
 		handleSmartConfig();
@@ -726,9 +723,9 @@ void loop() {
 		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
 			end = millis();
 			if(end - start > SLOW_PROC_TRIGGER_MS) {
-				debugW_P(PSTR("Used %dms to read HAN port (true)"), millis()-start);
+				debugW_P(PSTR("Used %dms to read HAN port (true)"), end-start);
 			}
-			if(hw.isVoltageOptimal(0.1)) {
+			if(checkVoltageIfNeeded(0.1)) {
 				handleTemperature(now);
 				handleSystem(now);
 			}
@@ -736,7 +733,7 @@ void loop() {
 		} else {
 			end = millis();
 			if(end - start > SLOW_PROC_TRIGGER_MS) {
-				debugW_P(PSTR("Used %dms to read HAN port (false)"), millis()-start);
+				debugW_P(PSTR("Used %dms to read HAN port (false)"), end-start);
 			}
 		}
 		if(millis() - meterState.getLastUpdateMillis() > 1800000 && !ds.isHappy(time(nullptr))) {
@@ -781,7 +778,8 @@ void handleUpdater() {
 			debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);
 			upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
 			config.setUpgradeInformation(upinfo);
-			delay(1000);
+			rdc.cause = REBOOT_CAUSE_FIRMWARE_UPDATE;
+			delay(250);
 			ESP.restart();
 		}
 	}
@@ -824,7 +822,7 @@ void handleMdns() {
 		MDNS.update();
 		unsigned long end = millis();
 		if(end - start > SLOW_PROC_TRIGGER_MS) {
-			debugW_P(PSTR("Used %dms to update mDNS"), millis()-start);
+			debugW_P(PSTR("Used %dms to update mDNS"), end-start);
 		}
 	}
 }
@@ -902,7 +900,8 @@ void handleCloud() {
 }
 #endif
 
-void handleMqtt() {
+unsigned long handleMqtt() {
+	unsigned long start = millis();
 	if (mqttEnabled || config.isMqttChanged()) {
 		if(mqttHandler == NULL || !mqttHandler->connected() || config.isMqttChanged()) {
 			if(mqttHandler != NULL && config.isMqttChanged()) {
@@ -916,22 +915,29 @@ void handleMqtt() {
 	}
 
 	if(mqttHandler != NULL) {
-		unsigned long start = millis();
 		mqttHandler->loop();
-		unsigned long end = millis();
-		if(end - start > SLOW_PROC_TRIGGER_MS) {
-			debugW_P(PSTR("Used %dms to handle mqtt"), millis()-start);
+		if(mqttHandler->isRebootSuggested()) {
+			debugW_P(PSTR("Rebooting as suggested by MQTT handler"));
+			rdc.cause = REBOOT_CAUSE_MQTT_DISCONNECTED;
+			delay(250);
+			ESP.restart();
 		}
 	}
+	unsigned long end = millis();
+	if(end - start > SLOW_PROC_TRIGGER_MS) {
+		debugW_P(PSTR("Used %dms to handle mqtt"), end-start);
+	}
+	return end-start;
 }
 
-void handleWebserver() {
+unsigned long handleWebserver() {
 	unsigned long start = millis();
 	ws.loop();
 	unsigned long end = millis();
 	if(end - start > SLOW_PROC_TRIGGER_MS) {
-		debugW_P(PSTR("Used %dms to handle web"), millis()-start);
+		debugW_P(PSTR("Used %dms to handle web"), end-start);
 	}
+	return end-start;
 }
 
 void handleSmartConfig() {
@@ -953,7 +959,8 @@ void handleSmartConfig() {
 		config.setSystemConfig(sys);
 		config.save();
 
-		delay(1000);
+		rdc.cause = REBOOT_CAUSE_SMART_CONFIG;
+		delay(250);
 		ESP.restart();
 	}
 }
@@ -1140,7 +1147,7 @@ void handleSystem(unsigned long now) {
 		lastSysupdate = now;
 		end = millis();
 		if(end - start > SLOW_PROC_TRIGGER_MS) {
-			debugW_P(PSTR("Used %dms to send system update to MQTT"), millis()-start);
+			debugW_P(PSTR("Used %dms to send system update to MQTT"), end-start);
 		}
 
 		#if defined(ESP32)
@@ -1168,7 +1175,7 @@ void handleTemperature(unsigned long now) {
 		}
 		end = millis();
 		if(end - start > SLOW_PROC_TRIGGER_MS) {
-			debugW_P(PSTR("Used %dms to update temperature"), millis()-start);
+			debugW_P(PSTR("Used %dms to update temperature"), end-start);
 		}
 	}
 }
@@ -1181,19 +1188,19 @@ void handlePriceService(unsigned long now) {
 			if(ps->loop() && mqttHandler != NULL) {
 				end = millis();
 				if(end - start > SLOW_PROC_TRIGGER_MS) {
-					debugW_P(PSTR("Used %dms to update prices"), millis()-start);
+					debugW_P(PSTR("Used %dms to update prices"), end-start);
 				}
 	
 				start = millis();
 				mqttHandler->publishPrices(ps);
 				end = millis();
 				if(end - start > SLOW_PROC_TRIGGER_MS) {
-					debugW_P(PSTR("Used %dms to publish prices to MQTT"), millis()-start);
+					debugW_P(PSTR("Used %dms to publish prices to MQTT"), end-start);
 				}
 			} else {
 				end = millis();
 				if(end - start > SLOW_PROC_TRIGGER_MS) {
-					debugW_P(PSTR("Used %dms to handle price API"), millis()-start);
+					debugW_P(PSTR("Used %dms to handle price API"), end-start);
 				}
 			}
 		}
@@ -1294,7 +1301,7 @@ void connectToNetwork() {
 		return;
 	}
 	lastConnectRetry = millis();
-	if(!hw.isVoltageOptimal(0.1) && (millis() - lastConnectRetry) < 60000) {
+	if(!checkVoltageIfNeeded(0.1) && (millis() - lastConnectRetry) < 60000) {
 		debugW_P(PSTR("Voltage is not high enough to reconnect"));
 		return;
 	}
@@ -1448,7 +1455,7 @@ void handleDataSuccess(AmsData* data) {
 	if(!setupMode && !hw.ledBlink(LED_GREEN, 1))
 		hw.ledBlink(LED_INTERNAL, 1);
 
-	if(mqttHandler != NULL && hw.isVoltageOptimal(0.2)) {
+	if(mqttHandler != NULL && checkVoltageIfNeeded(0.2)) {
 		#if defined(ESP32)
 			esp_task_wdt_reset();
 		#elif defined(ESP8266)
@@ -1458,7 +1465,7 @@ void handleDataSuccess(AmsData* data) {
 		mqttHandler->publish(data, &meterState, &ea, ps);
 	}
 	#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
-	if(energySpeedometer != NULL && hw.isVoltageOptimal(0.1)) {
+	if(energySpeedometer != NULL && checkVoltageIfNeeded(0.1)) {
 		energySpeedometer->publish(&meterState, &meterState, &ea, ps);
 	}
 	#endif

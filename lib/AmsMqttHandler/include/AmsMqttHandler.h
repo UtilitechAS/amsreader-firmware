@@ -63,8 +63,8 @@ public:
 
     virtual ~AmsMqttHandler() {
         if(mqttSecureClient != NULL) {
+            mqttSecureClient->stop();
             delete mqttSecureClient;
-            mqttSecureClient = NULL;
         }
 
         if(mqttClient != NULL) {

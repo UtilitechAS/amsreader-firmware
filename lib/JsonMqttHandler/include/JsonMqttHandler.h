@@ -26,8 +26,6 @@ public:
     bool publishRaw(String data);
     bool publishFirmware();
 
-    bool postConnect();
-
     void onMessage(String &topic, String &payload);
 
     uint8_t getFormat();

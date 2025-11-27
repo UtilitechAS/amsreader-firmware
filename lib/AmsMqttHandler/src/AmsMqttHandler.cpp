@@ -127,6 +127,7 @@ bool AmsMqttHandler::connect() {
 		mqtt.onMessage(std::bind(&AmsMqttHandler::onMessage, this, std::placeholders::_1, std::placeholders::_2));
 		mqtt.publish(statusTopic, "online", true, 0);
         mqtt.loop();
+		defaultSubscribe();
 		postConnect();
         return true;
 	} else {
@@ -144,6 +145,25 @@ bool AmsMqttHandler::connect() {
 		}
         return false;
 	}
+}
+
+bool AmsMqttHandler::defaultSubscribe() {
+	bool ret = true;
+	if(!subTopic.isEmpty()) {
+        if(mqtt.subscribe(subTopic)) {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("  Subscribed to [%s]\n"), subTopic.c_str());
+        } else {
+            #if defined(AMS_REMOTE_DEBUG)
+            if (debugger->isActive(RemoteDebug::ERROR))
+            #endif
+            debugger->printf_P(PSTR("  Unable to subscribe to [%s]\n"), subTopic.c_str());
+            ret = false;
+        }
+    }
+	return ret;
 }
 
 void AmsMqttHandler::disconnect() {

@@ -43,6 +43,7 @@ public:
     void setConfig(MqttConfig& mqttConfig);
 
     bool connect();
+    bool defaultSubscribe();
     void disconnect();
     lwmqtt_err_t lastError();
     bool connected();

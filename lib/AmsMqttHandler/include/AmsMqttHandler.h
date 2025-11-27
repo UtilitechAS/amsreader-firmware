@@ -38,13 +38,6 @@ public:
         subTopic = String(mqttConfig.subscribeTopic);
         if(subTopic.isEmpty()) subTopic = pubTopic+"/command";
     };
-    
-    ~AmsMqttHandler() {
-        if(mqttSecureClient != NULL) {
-            delete mqttSecureClient;
-            mqttSecureClient = NULL;
-        }
-    };
 
     void setCaVerification(bool);
     void setConfig(MqttConfig& mqttConfig);
@@ -69,6 +62,11 @@ public:
     virtual void onMessage(String &topic, String &payload) {};
 
     virtual ~AmsMqttHandler() {
+        if(mqttSecureClient != NULL) {
+            delete mqttSecureClient;
+            mqttSecureClient = NULL;
+        }
+
         if(mqttClient != NULL) {
             mqttClient->stop();
             delete mqttClient;

@@ -242,9 +242,10 @@ float PriceService::getFixedPrice(uint8_t direction, int8_t hour) {
 
     tmElements_t tm;
     breakTime(tz->toLocal(ts), tm);
+    tm.Hour = hour;
     tm.Minute = 0;
     tm.Second = 0;
-    breakTime(makeTime(tm) + (hour * SECS_PER_HOUR), tm);
+    breakTime(makeTime(tm), tm);
 
     float value = PRICE_NO_VALUE;
     for (uint8_t i = 0; i < priceConfig.size(); i++) {

@@ -89,7 +89,7 @@ bool HomeAssistantMqttHandler::postConnect() {
 }
 
 bool HomeAssistantMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
-	if(pubTopic.isEmpty() || !mqtt.connected())
+	if(pubTopic.isEmpty() || !connected())
 		return false;
 
     if(time(nullptr) < FirmwareVersion::BuildEpoch)
@@ -358,7 +358,7 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 }
 
 bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
-	if(pubTopic.isEmpty() || !mqtt.connected())
+	if(pubTopic.isEmpty() || !connected())
 		return false;
 	if(!ps->hasPrice())
 		return false;
@@ -494,7 +494,7 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 }
 
 bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea) {
-	if(pubTopic.isEmpty() || !mqtt.connected())
+	if(pubTopic.isEmpty() || !connected())
 		return false;
 
     publishSystemSensors();

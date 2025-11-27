@@ -902,7 +902,9 @@ void handleCloud() {
 
 unsigned long handleMqtt() {
 	unsigned long start = millis();
-	if (mqttEnabled || config.isMqttChanged()) {
+	if(!networkConnected) {
+		mqttHandler->disconnect();
+	} else if (mqttEnabled || config.isMqttChanged()) {
 		if(mqttHandler == NULL || !mqttHandler->connected() || config.isMqttChanged()) {
 			if(mqttHandler != NULL && config.isMqttChanged()) {
 				mqttHandler->disconnect();

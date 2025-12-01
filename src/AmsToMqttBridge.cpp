@@ -1037,6 +1037,9 @@ void handleMeterConfig() {
 			debugE_P(PSTR("Unknown meter source selected: %d"), meterConfig.source);
 		}
 		ws.setMeterConfig(meterConfig.distributionSystem, meterConfig.mainFuse, meterConfig.productionCapacity);
+		if(mc != NULL && Debug.isActive(RemoteDebug::DEBUG)) {
+			mc->setMqttHandlerForDebugging(mqttHandler);
+		}
 		config.ackMeterChanged();
 	}
 }
@@ -1553,6 +1556,9 @@ void postConnect() {
 		if(!debug.telnet) {
 			Debug.stop();
 		}
+		if(mc != NULL && Debug.isActive(RemoteDebug::DEBUG)) {
+			mc->setMqttHandlerForDebugging(mqttHandler);
+		}
 	} else {
 		Debug.stop();
 	}
@@ -1628,6 +1634,7 @@ void MQTT_connect() {
 		if(mqttHandler->getFormat() != mqttConfig.payloadFormat) {
 			delete mqttHandler;
 			mqttHandler = NULL;
+			mc->setMqttHandlerForDebugging(NULL);
 		} else if(config.isMqttChanged()) {
 			mqttHandler->setConfig(mqttConfig);
 			switch(mqttConfig.payloadFormat) {
@@ -1676,10 +1683,14 @@ void MQTT_connect() {
 				break;
 			case 255:
 				mqttHandler = new PassthroughMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &updater);
+				mc->setMqttHandlerForDebugging(mqttHandler);
 				break;
 		}
 	}
 	ws.setMqttHandler(mqttHandler);
+	if(mc != NULL && Debug.isActive(RemoteDebug::DEBUG)) {
+		mc->setMqttHandlerForDebugging(mqttHandler);
+	}
 
 	if(mqttHandler != NULL) {
 		mqttHandler->connect();

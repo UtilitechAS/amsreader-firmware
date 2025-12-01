@@ -174,8 +174,8 @@ bool PassiveMeterCommunicator::loop() {
         lastError = pos;
 		printHanReadError(pos);
 		len += hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
-        if(pt != NULL) {
-            pt->publishBytes(hanBuffer, len);
+        if(mqttDebug != NULL) {
+            mqttDebug->publishRaw(hanBuffer, len);
         }
 		#if defined(AMS_REMOTE_DEBUG)
 		if (debugger->isActive(RemoteDebug::VERBOSE))
@@ -229,8 +229,8 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
 	char* payload = ((char *) (hanBuffer)) + pos;
 	if(maxDetectedPayloadSize < pos) maxDetectedPayloadSize = pos;
 	if(ctx.type == DATA_TAG_DLMS) {
-        if(pt != NULL) {
-            pt->publishBytes((uint8_t*) payload, ctx.length);
+        if(mqttDebug != NULL) {
+            mqttDebug->publishRaw((uint8_t*) payload, ctx.length);
         }
 
 		#if defined(AMS_REMOTE_DEBUG)
@@ -405,8 +405,8 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				if (debugger->isActive(RemoteDebug::VERBOSE))
 				#endif
 				debugger->printf_P(PSTR("HDLC frame:\n"));
-                if(pt != NULL) {
-                    pt->publishBytes(buf, curLen);
+                if(mqttDebug != NULL) {
+                    mqttDebug->publishRaw(buf, curLen);
                 }
                 break;
             case DATA_TAG_MBUS:
@@ -414,8 +414,8 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				if (debugger->isActive(RemoteDebug::VERBOSE))
 				#endif
 				debugger->printf_P(PSTR("MBUS frame:\n"));
-                if(pt != NULL) {
-                    pt->publishBytes(buf, curLen);
+                if(mqttDebug != NULL) {
+                    mqttDebug->publishRaw(buf, curLen);
                 }
                 break;
             case DATA_TAG_GBT:
@@ -447,8 +447,8 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				if (debugger->isActive(RemoteDebug::VERBOSE))
 				#endif
 				debugger->printf_P(PSTR("DSMR frame:\n"));
-                if(pt != NULL) {
-                    pt->publishString((char*) buf);
+                if(mqttDebug != NULL) {
+                    mqttDebug->publishRaw(buf, curLen);
                 }
                 break;
 			case DATA_TAG_SNRM:

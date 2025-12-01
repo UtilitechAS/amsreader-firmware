@@ -23,7 +23,7 @@ public:
     bool publishTemperatures(AmsConfiguration*, HwTools*);
     bool publishPrices(PriceService*);
     bool publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea);
-    bool publishRaw(String data);
+    bool publishRaw(uint8_t* raw, size_t length);
     bool publishFirmware();
 
     void onMessage(String &topic, String &payload);

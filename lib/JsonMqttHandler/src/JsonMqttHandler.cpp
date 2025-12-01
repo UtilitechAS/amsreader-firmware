@@ -472,8 +472,20 @@ uint8_t JsonMqttHandler::getFormat() {
     return 0;
 }
 
-bool JsonMqttHandler::publishRaw(String data) {
-    return false;
+bool JsonMqttHandler::publishRaw(uint8_t* raw, size_t length) {
+	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
+		return false;
+    
+    if(length <= 0 || length > BufferSize) return false;
+
+    String str = toHex(raw, length);
+
+    snprintf_P(json, BufferSize, PSTR("{\"data\":\"%s\"}"), str.c_str());
+    char topic[192];
+    snprintf_P(topic, 192, PSTR("%s/debug"), mqttConfig.publishTopic);
+    bool ret = mqtt.publish(topic, json);
+    loop();
+    return ret;
 }
 
 bool JsonMqttHandler::publishFirmware() {

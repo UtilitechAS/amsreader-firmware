@@ -396,7 +396,7 @@ uint8_t RawMqttHandler::getFormat() {
     return full ? 3 : 2;
 }
 
-bool RawMqttHandler::publishRaw(String data) {
+bool RawMqttHandler::publishRaw(uint8_t* raw, size_t length) {
     return false;
 }
 

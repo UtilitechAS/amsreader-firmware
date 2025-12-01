@@ -103,7 +103,7 @@ uint8_t DomoticzMqttHandler::getFormat() {
     return 3;
 }
 
-bool DomoticzMqttHandler::publishRaw(String data) {
+bool DomoticzMqttHandler::publishRaw(uint8_t* raw, size_t length) {
     return false;
 }
 

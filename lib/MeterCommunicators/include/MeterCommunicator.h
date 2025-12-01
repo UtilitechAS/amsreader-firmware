@@ -13,6 +13,7 @@
 #endif
 #include "AmsData.h"
 #include "AmsConfiguration.h"
+#include "AmsMqttHandler.h"
 
 class MeterCommunicator {
 public:
@@ -24,6 +25,13 @@ public:
     virtual bool isConfigChanged();
     virtual void ackConfigChanged();
     virtual void getCurrentConfig(MeterConfig& meterConfig);
+    virtual void setMqttHandlerForDebugging(AmsMqttHandler* mqttHandler) {
+        this->mqttDebug = mqttHandler;
+    };
+
+protected:
+    AmsMqttHandler* mqttDebug = NULL;
+
 };
 
 #endif

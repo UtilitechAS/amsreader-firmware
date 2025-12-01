@@ -20,7 +20,7 @@
 #endif
 
 void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config, char* hostname) {
-    l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = false;
+    l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = dInit = false;
 
     if(strlen(config.discoveryNameTag) > 0) {
         snprintf_P(json, 128, PSTR("AMS reader (%s)"), config.discoveryNameTag);
@@ -541,7 +541,6 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor sensor) {
         mqttConfig.publishTopic, sensor.topic,
         deviceUid.c_str(), uid.c_str(),
         deviceUid.c_str(), uid.c_str(),
-        sensor.uom,
         sensor.path,
         sensor.ttl,
         deviceUid.c_str(),
@@ -550,13 +549,20 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor sensor) {
         FirmwareVersion::VersionString,
         manufacturer.c_str(),
         deviceUrl.c_str(),
+
         strlen_P(sensor.devcl) > 0 ? ",\"dev_cla\":\"" : "",
         strlen_P(sensor.devcl) > 0 ? (char *) FPSTR(sensor.devcl) : "",
         strlen_P(sensor.devcl) > 0 ? "\"" : "",
+
         strlen_P(sensor.stacl) > 0 ? ",\"stat_cla\":\"" : "",
         strlen_P(sensor.stacl) > 0 ? (char *) FPSTR(sensor.stacl) : "",
-        strlen_P(sensor.stacl) > 0 ? "\"" : ""
+        strlen_P(sensor.stacl) > 0 ? "\"" : "",
+
+        strlen_P(sensor.uom) > 0 ? ",\"unit_of_meas\":\"" : "",
+        strlen_P(sensor.uom) > 0 ? (char *) FPSTR(sensor.uom) : "",
+        strlen_P(sensor.uom) > 0 ? "\"" : ""
     );
+
     mqtt.publish(sensorTopic + "/" + deviceUid + "_" + uid + "/config", json, true, 0);
     loop();
 }
@@ -837,6 +843,12 @@ bool HomeAssistantMqttHandler::publishRaw(uint8_t* raw, size_t length) {
     
     if(length <= 0 || length > BufferSize) return false;
 
+    if(!dInit) {
+        // Not sure how this sensor should be defined in HA, so skipping for now
+        //publishSensor(DataSensor);
+        dInit = true;
+    }
+
     String str = toHex(raw, length);
 
     snprintf_P(json, BufferSize, PSTR("{\"data\":\"%s\"}"), str.c_str());
@@ -877,7 +889,7 @@ void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
             if (debugger->isActive(RemoteDebug::INFO))
             #endif
             debugger->printf_P(PSTR("Received online status from HA, resetting sensor status\n"));
-            l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = false;
+            l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = dInit = false;
             for(uint8_t i = 0; i < 32; i++) tInit[i] = false;
             priceImportInit = 0;
             priceExportInit = 0;

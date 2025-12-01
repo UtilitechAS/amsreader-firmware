@@ -124,5 +124,6 @@ const HomeAssistantSensor SystemSensors[SystemSensorCount] PROGMEM = {
 
 const HomeAssistantSensor TemperatureSensor PROGMEM = {"Temperature sensor %s", "/temperatures", "temperatures['%s']", 900, "°C", "temperature", "measurement", ""};
 
+const HomeAssistantSensor DataSensor PROGMEM = {"Data", "/data", "data", 900, "", "", "", ""};
 
 #endif

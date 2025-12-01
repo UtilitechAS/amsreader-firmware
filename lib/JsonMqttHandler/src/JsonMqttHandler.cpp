@@ -14,7 +14,7 @@ bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAcc
     if(strlen(mqttConfig.publishTopic) == 0) {
         return false;
     }
-	if(!mqtt.connected()) {
+	if(!connected()) {
 		return false;
     }
 
@@ -295,7 +295,7 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
 }
 
 bool JsonMqttHandler::publishPrices(PriceService* ps) {
-	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
+	if(strlen(mqttConfig.publishTopic) == 0 || !connected())
 		return false;
 	if(!ps->hasPrice())
 		return false;
@@ -444,7 +444,7 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
 }
 
 bool JsonMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea) {
-	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
+	if(strlen(mqttConfig.publishTopic) == 0 || !connected())
 		return false;
 
     snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\"}"),
@@ -491,7 +491,7 @@ bool JsonMqttHandler::publishFirmware() {
 }
 
 void JsonMqttHandler::onMessage(String &topic, String &payload) {
-    if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
+    if(strlen(mqttConfig.publishTopic) == 0 || !connected())
 		return;
 
     #if defined(AMS_REMOTE_DEBUG)

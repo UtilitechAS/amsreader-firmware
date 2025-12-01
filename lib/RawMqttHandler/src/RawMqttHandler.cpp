@@ -10,7 +10,7 @@
 #include "FirmwareVersion.h"
 
 bool RawMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
-	if(topic.isEmpty() || !mqtt.connected())
+	if(topic.isEmpty() || !connected())
 		return false;
 
     AmsData data;
@@ -237,7 +237,7 @@ bool RawMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) 
 }
 
 bool RawMqttHandler::publishPrices(PriceService* ps) {
-	if(topic.isEmpty() || !mqtt.connected())
+	if(topic.isEmpty() || !connected())
 		return false;
 	if(!ps->hasPrice())
 		return false;
@@ -369,7 +369,7 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
 }
 
 bool RawMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea) {
-	if(topic.isEmpty() || !mqtt.connected())
+	if(topic.isEmpty() || !connected())
 		return false;
 
 	mqtt.publish(topic + "/id", WiFi.macAddress(), true, 0);

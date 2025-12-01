@@ -841,7 +841,7 @@ bool HomeAssistantMqttHandler::publishRaw(uint8_t* raw, size_t length) {
 
     snprintf_P(json, BufferSize, PSTR("{\"data\":\"%s\"}"), str.c_str());
     char topic[192];
-    snprintf_P(topic, 192, PSTR("%s/debug"), mqttConfig.publishTopic);
+    snprintf_P(topic, 192, PSTR("%s/data"), mqttConfig.publishTopic);
     bool ret = mqtt.publish(topic, json);
     loop();
     return ret;

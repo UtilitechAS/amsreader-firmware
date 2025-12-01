@@ -397,7 +397,15 @@ uint8_t RawMqttHandler::getFormat() {
 }
 
 bool RawMqttHandler::publishRaw(uint8_t* raw, size_t length) {
-    return false;
+	if(topic.isEmpty() || !connected())
+		return false;
+    
+    if(length <= 0 || length > BufferSize) return false;
+
+    String str = toHex(raw, length);
+    bool ret = mqtt.publish(topic + "/data", str);
+    loop();
+    return ret;
 }
 
 void RawMqttHandler::onMessage(String &topic, String &payload) {

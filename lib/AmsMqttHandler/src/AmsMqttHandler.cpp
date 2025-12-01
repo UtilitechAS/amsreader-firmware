@@ -102,6 +102,10 @@ bool AmsMqttHandler::connect() {
 		}
 		actualClient = mqttClient;
 	}
+	int clientTimeout = mqttConfig.timeout / 1000;
+	if(clientTimeout > 3) clientTimeout = 3; // 3000ms is default, see WiFiClient.cpp WIFI_CLIENT_DEF_CONN_TIMEOUT_MS
+	actualClient->setTimeout(clientTimeout);
+	// Why can't we set number of retries for write here? WiFiClient defaults to 10 (10*3s == 30s)
 
 	mqttConfigChanged = false;
 	mqtt.setTimeout(mqttConfig.timeout);
@@ -125,7 +129,7 @@ bool AmsMqttHandler::connect() {
 		#endif
 		debugger->printf_P(PSTR("Successfully connected to MQTT\n"));
 		mqtt.onMessage(std::bind(&AmsMqttHandler::onMessage, this, std::placeholders::_1, std::placeholders::_2));
-		mqtt.publish(statusTopic, "online", true, 0);
+		_connected = mqtt.publish(statusTopic, "online", true, 0);
         mqtt.loop();
 		defaultSubscribe();
 		postConnect();
@@ -169,10 +173,7 @@ bool AmsMqttHandler::defaultSubscribe() {
 void AmsMqttHandler::disconnect() {
     mqtt.disconnect();
     mqtt.loop();
-	if(mqttSecureClient != NULL) {
-		delete mqttSecureClient;
-		mqttSecureClient = NULL;
-	}
+	_connected = false;
     delay(10);
     yield();
 }
@@ -182,12 +183,12 @@ lwmqtt_err_t AmsMqttHandler::lastError() {
 }
 
 bool AmsMqttHandler::connected() {
-	return mqtt.connected();
+	return _connected && mqtt.connected();
 }
 
 bool AmsMqttHandler::loop() {
 	uint64_t now = millis64();
-    bool ret = mqtt.connected() && mqtt.loop();
+    bool ret = connected() && mqtt.loop();
 	if(ret) {
 		lastSuccessfulLoop = now;
 	} else if(mqttConfig.rebootMinutes > 0) {

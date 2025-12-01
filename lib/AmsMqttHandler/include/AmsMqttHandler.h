@@ -62,6 +62,11 @@ public:
     virtual void onMessage(String &topic, String &payload) {};
 
     virtual ~AmsMqttHandler() {
+        if(mqttSecureClient != NULL) {
+            mqttSecureClient->stop();
+            delete mqttSecureClient;
+        }
+
         if(mqttClient != NULL) {
             mqttClient->stop();
             delete mqttClient;
@@ -81,6 +86,7 @@ protected:
     bool caVerification = true;
     WiFiClient *mqttClient = NULL;
     WiFiClientSecure *mqttSecureClient = NULL;
+    boolean _connected = false;
     char* json;
     uint16_t BufferSize = 2048;
     uint64_t lastStateUpdate = 0;

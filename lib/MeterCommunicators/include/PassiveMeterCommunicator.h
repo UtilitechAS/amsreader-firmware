@@ -14,7 +14,7 @@
 #include "AmsConfiguration.h"
 #include "DataParsers.h"
 #include "Timezone.h"
-#include "PassthroughMqttHandler.h"
+#include "AmsMqttHandler.h"
 
 #if defined(ESP8266)
 #include "SoftwareSerial.h"
@@ -36,7 +36,6 @@ public:
     bool isConfigChanged();
     void ackConfigChanged();
     void getCurrentConfig(MeterConfig& meterConfig);
-    void setPassthroughMqttHandler(PassthroughMqttHandler*);
 
     HardwareSerial* getHwSerial();
     void rxerr(int err);
@@ -50,8 +49,6 @@ protected:
     MeterConfig meterConfig;
     bool configChanged = false;
     Timezone* tz;
-
-    PassthroughMqttHandler* pt = NULL;
 
     uint8_t *hanBuffer = NULL;
     uint16_t hanBufferSize = 0;

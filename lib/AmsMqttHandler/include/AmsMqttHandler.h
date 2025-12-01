@@ -57,7 +57,7 @@ public:
     virtual bool publishTemperatures(AmsConfiguration*, HwTools*) { return false; };
     virtual bool publishPrices(PriceService* ps) { return false; };
     virtual bool publishSystem(HwTools*, PriceService*, EnergyAccounting*) { return false; };
-    virtual bool publishRaw(String data) { return false; };
+    virtual bool publishRaw(uint8_t* raw, size_t length) { return false; };
     virtual bool publishFirmware() { return false; };
     virtual void onMessage(String &topic, String &payload) {};
 

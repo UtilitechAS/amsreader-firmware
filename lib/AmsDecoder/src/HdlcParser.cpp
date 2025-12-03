@@ -87,7 +87,7 @@ int8_t HDLCParser::parse(uint8_t *d, DataParserContext &ctx) {
                 ptr += 3; // Skip LLC
                 ctx.length -= 3;
             }
-            
+
             memcpy(buf + pos, ptr, ctx.length);
             pos += ctx.length;
 

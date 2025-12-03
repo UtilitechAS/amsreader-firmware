@@ -694,20 +694,20 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     lastUpdateMillis = millis64();
                 }
             } else if(useMeterType == AmsTypeUnknown) {
-                uint8_t str_len = 0;
-                str_len = getString(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), ((char *) (d)), str);
-                if(str_len > 0) {
+                uint8_t idx = 1;
+                CosemData* d1 = getCosemDataAt(idx++, ((char *) (d)));
+                CosemData* d2 = getCosemDataAt(idx++, ((char *) (d)));
+                CosemData* d3 = getCosemDataAt(idx++, ((char *) (d)));
+                if(d1->base.type == d2->base.type == d3->base.type == CosemTypeOctetString) {
                     meterType = AmsTypeIskra;
-                    meterId = String(str);
                     lastUpdateMillis = millis64();
                     listType = 2;
                 } else {
-                    uint8_t idx = 1;
-                    CosemData* d1 = getCosemDataAt(idx++, ((char *) (d)));
-                    CosemData* d2 = getCosemDataAt(idx++, ((char *) (d)));
-                    CosemData* d3 = getCosemDataAt(idx++, ((char *) (d)));
-                    if(d1->base.type == d2->base.type == d3->base.type == CosemTypeOctetString && d1->base.length == 0x08 && d2->base.length == 0x04 && d3->base.length == 0x05) {
+                    uint8_t str_len = 0;
+                    str_len = getString(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), ((char *) (d)), str);
+                    if(str_len > 0) {
                         meterType = AmsTypeIskra;
+                        meterId = String(str);
                         lastUpdateMillis = millis64();
                         listType = 2;
                     }

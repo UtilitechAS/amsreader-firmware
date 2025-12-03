@@ -91,10 +91,10 @@ int8_t HDLCParser::parse(uint8_t *d, DataParserContext &ctx) {
             memcpy(buf + pos, ptr, ctx.length);
             pos += ctx.length;
 
-            memcpy((uint8_t *) ptr, buf, pos);
+            memcpy((uint8_t *) d, buf, pos);
             free(buf);
             buf = NULL;
-            ctx.length = (uint8_t) pos + (ptr-d);
+            ctx.length = pos;
             pos = 0;
             return DATA_PARSE_OK;
         } else {

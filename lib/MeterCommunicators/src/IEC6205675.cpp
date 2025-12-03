@@ -690,7 +690,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                         meterId = String(str);
                     }
 
-                    listType = 3;
+                    listType = 4;
                     lastUpdateMillis = millis64();
                 }
             } else if(useMeterType == AmsTypeUnknown) {
@@ -708,7 +708,6 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     CosemData* d3 = getCosemDataAt(idx++, ((char *) (d)));
                     if(d1->base.type == d2->base.type == d3->base.type == CosemTypeOctetString && d1->base.length == 0x08 && d2->base.length == 0x04 && d3->base.length == 0x05) {
                         meterType = AmsTypeIskra;
-                        meterId = String((char*)d1->oct.data, d1->oct.length);
                         lastUpdateMillis = millis64();
                         listType = 2;
                     }

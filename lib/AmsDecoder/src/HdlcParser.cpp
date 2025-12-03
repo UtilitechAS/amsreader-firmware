@@ -69,7 +69,12 @@ int8_t HDLCParser::parse(uint8_t *d, DataParserContext &ctx) {
 
             if(buf == NULL) return DATA_PARSE_FAIL;
 
-            memcpy(buf + pos, ptr+3, ctx.length); // +3 to skip LLC
+            if((*ptr) == DATA_TAG_LLC) {
+                ptr += 3; // Skip LLC
+                ctx.length -= 3;
+            }
+
+            memcpy(buf + pos, ptr, ctx.length);
             pos += ctx.length;
 
             lastSequenceNumber++;
@@ -78,7 +83,12 @@ int8_t HDLCParser::parse(uint8_t *d, DataParserContext &ctx) {
             lastSequenceNumber = 0;
             if(buf == NULL) return DATA_PARSE_FAIL;
 
-            memcpy(buf + pos, ptr+3, ctx.length); // +3 to skip LLC
+            if((*ptr) == DATA_TAG_LLC) {
+                ptr += 3; // Skip LLC
+                ctx.length -= 3;
+            }
+            
+            memcpy(buf + pos, ptr, ctx.length);
             pos += ctx.length;
 
             memcpy((uint8_t *) d, buf, pos);

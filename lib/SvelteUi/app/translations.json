@@ -16,7 +16,8 @@
         "day" : "day",
         "days" : "days",
         "month" : "month",
-        "unknown" : "Unknown"
+        "unknown" : "Unknown",
+        "now" : "Now"
     },
     "btn" : {
         "reboot" : "Reboot",

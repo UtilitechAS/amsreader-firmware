@@ -36,6 +36,9 @@ public:
     bool isConfigChanged();
     void ackConfigChanged();
     void getCurrentConfig(MeterConfig& meterConfig);
+    void setTimezone(Timezone* tz) {
+        this->tz = tz;
+    };
 
     HardwareSerial* getHwSerial();
     void rxerr(int err);

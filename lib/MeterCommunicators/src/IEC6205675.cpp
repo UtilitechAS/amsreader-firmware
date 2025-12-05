@@ -27,13 +27,13 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
         
         // Kaifa special case...
         if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {
-            this->packageTimestamp = this->packageTimestamp > 0 ? tz->toUTC(this->packageTimestamp) : 0;
+            this->packageTimestamp = this->packageTimestamp > 0 && tz != NULL ? tz->toUTC(this->packageTimestamp) : 0;
             listType = 1;
             meterType = AmsTypeKaifa;
             activeImportPower = ntohl(data->dlu.data);
             lastUpdateMillis = millis64();
         } else if(data->base.type == CosemTypeOctetString) {
-            this->packageTimestamp = this->packageTimestamp > 0 ? tz->toUTC(this->packageTimestamp) : 0;
+            this->packageTimestamp = this->packageTimestamp > 0 && tz != NULL ? tz->toUTC(this->packageTimestamp) : 0;
 
             memcpy(str, data->oct.data, data->oct.length);
             str[data->oct.length] = 0x00;
@@ -123,7 +123,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                             if(data->oct.length == 0x0C) {
                                 AmsOctetTimestamp* amst = (AmsOctetTimestamp*) data;
                                 time_t ts = decodeCosemDateTime(amst->dt);
-                                meterTimestamp = tz->toUTC(ts);
+                                meterTimestamp = tz != NULL ? tz->toUTC(ts) : ts;
                             }
                         }
                     }
@@ -1223,7 +1223,7 @@ time_t IEC6205675::adjustForKnownIssues(CosemDateTime dt, Timezone* tz, uint8_t 
             // 21.09.24, the clock is now correct for Aidon
             // 23.10.25, the clock is now correct for Kamstrup
             ts -= 3600;
-        } else {
+        } else if(tz != NULL) {
             // Adjust from localtime to UTC
             ts = tz->toUTC(ts);
         }

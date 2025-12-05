@@ -102,10 +102,17 @@ bool AmsMqttHandler::connect() {
 		}
 		actualClient = mqttClient;
 	}
-	int clientTimeout = mqttConfig.timeout / 1000;
-	if(clientTimeout > 3) clientTimeout = 3; // 3000ms is default, see WiFiClient.cpp WIFI_CLIENT_DEF_CONN_TIMEOUT_MS
-	actualClient->setTimeout(clientTimeout);
-	// Why can't we set number of retries for write here? WiFiClient defaults to 10 (10*3s == 30s)
+
+	// This section helps with power saving on ESP32 devices by reducing timeouts
+	// The timeout is multiplied by 10 because WiFiClient is retrying 10 times internally
+	// Power drain for this timeout is too great when using the default 3s timeout
+	// On ESP8266 the timeout is used differently and the following code causes MQTT instability
+	#if defined(ESP32)
+		int clientTimeout = mqttConfig.timeout / 1000;
+		if(clientTimeout > 3) clientTimeout = 3; // 3000ms is default, see WiFiClient.cpp WIFI_CLIENT_DEF_CONN_TIMEOUT_MS
+		actualClient->setTimeout(clientTimeout);
+		// Why can't we set number of retries for write here? WiFiClient defaults to 10 (10*3s == 30s)
+	#endif
 
 	mqttConfigChanged = false;
 	mqtt.setTimeout(mqttConfig.timeout);

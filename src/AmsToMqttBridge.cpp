@@ -809,6 +809,9 @@ void handleNtp() {
 			ds.setTimezone(tz);
 			ea.setTimezone(tz);
 			ps->setTimezone(tz);
+			if(passiveMc != NULL) {
+				passiveMc->setTimezone(tz);
+			}
 		}
 	
 		config.ackNtpChange();

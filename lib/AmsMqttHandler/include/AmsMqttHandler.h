@@ -25,7 +25,7 @@ public:
     #if defined(AMS_REMOTE_DEBUG)
     AmsMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, AmsFirmwareUpdater* updater) {
     #else
-    AmsMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf) {
+    AmsMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, AmsFirmwareUpdater* updater) {
     #endif
         this->mqttConfig = mqttConfig;
     	this->mqttConfigChanged = true;

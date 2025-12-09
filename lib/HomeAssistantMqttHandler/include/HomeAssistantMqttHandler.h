@@ -17,7 +17,7 @@ public:
     #if defined(AMS_REMOTE_DEBUG)
     HomeAssistantMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw, AmsFirmwareUpdater* updater, char* hostname) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
     #else
-    HomeAssistantMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw) : AmsMqttHandler(mqttConfig, debugger, buf) {
+    HomeAssistantMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, uint8_t boardType, HomeAssistantConfig config, HwTools* hw, AmsFirmwareUpdater* updater, char* hostname) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
     #endif
         this->boardType = boardType;
         this->hw = hw;

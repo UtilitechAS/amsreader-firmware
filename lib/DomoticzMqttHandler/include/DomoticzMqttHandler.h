@@ -17,7 +17,7 @@ public:
         this->config = config;
     };
     #else
-    DomoticzMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, DomoticzConfig config) : AmsMqttHandler(mqttConfig, debugger, buf) {
+    DomoticzMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, DomoticzConfig config, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
         this->config = config;
     };
     #endif

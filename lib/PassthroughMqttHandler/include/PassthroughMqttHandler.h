@@ -16,7 +16,7 @@ public:
         this->topic = String(mqttConfig.publishTopic);
     };
     #else
-    PassthroughMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf) : AmsMqttHandler(mqttConfig, debugger, buf) {
+    PassthroughMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
         this->topic = String(mqttConfig.publishTopic);
     };
     #endif

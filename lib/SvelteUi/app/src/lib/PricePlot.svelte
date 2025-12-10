@@ -5,6 +5,7 @@
 
     export let title;
     export let json;
+    export let sysinfo;
 
     let config = {};
     let max;
@@ -40,6 +41,7 @@
             let values = [];
             min = max = 0;
             let i = Math.floor(((cur.getHours()*60) + cur.getMinutes()) / json?.resolution);
+            addHours(cur, sysinfo.clock_offset - ((24 + cur.getHours() - cur.getUTCHours())%24));
             cur.setMinutes(Math.floor(cur.getMinutes()/json?.resolution)*json?.resolution,0,0);
             while(i < json?.prices?.length) {
                 val = json.prices[i];

@@ -25,8 +25,6 @@ PriceService::PriceService(RemoteDebug* Debug) : priceConfig(std::vector<PriceCo
 #else
 PriceService::PriceService(Stream* Debug) : priceConfig(std::vector<PriceConfig>()) {
 #endif
-    this->buf = (char*) malloc(BufferSize);
-
     debugger = Debug;
 
     // Entso-E uses CET/CEST
@@ -430,11 +428,12 @@ float PriceService::getCurrencyMultiplier(const char* from, const char* to, time
         #endif
 
         float currencyMultiplier = 0;
-        snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), from);
+        char buf[80];
+        snprintf_P(buf, 80, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), from);
         if(retrieve(buf, &p)) {
             currencyMultiplier = p.getValue();
             if(strncmp(to, "NOK", 3) != 0) {
-                snprintf_P(buf, BufferSize, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), to);
+                snprintf_P(buf, 80, PSTR("https://data.norges-bank.no/api/data/EXR/B.%s.NOK.SP?lastNObservations=1"), to);
                 if(retrieve(buf, &p)) {
                     if(p.getValue() > 0.0) {
                         currencyMultiplier /= p.getValue();
@@ -477,7 +476,8 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
         breakTime(e1, d1);
         breakTime(e2, d2);
 
-        snprintf_P(buf, BufferSize, PSTR("https://web-api.tp.entsoe.eu/api?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s"), 
+        char buf[256];
+        snprintf_P(buf, 256, PSTR("https://web-api.tp.entsoe.eu/api?securityToken=%s&documentType=A44&periodStart=%04d%02d%02d%02d%02d&periodEnd=%04d%02d%02d%02d%02d&in_Domain=%s&out_Domain=%s"), 
         getToken(), 
         d1.Year+1970, d1.Month, d1.Day, d1.Hour, 00,
         d2.Year+1970, d2.Month, d2.Day, d2.Hour, 00,
@@ -514,8 +514,8 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
         tmElements_t tm;
         breakTime(entsoeTz->toLocal(t), tm);
 
-        String data;
-        snprintf_P(buf, BufferSize, PSTR("http://hub.amsleser.no/hub/price/%s/%d/%d/%d/pt%dm?currency=%s"),
+        char buf[128];
+        snprintf_P(buf, 128, PSTR("http://hub.amsleser.no/hub/price/%s/%d/%d/%d/pt%dm?currency=%s"),
             config->area,
             tm.Year+1970,
             tm.Month,
@@ -547,13 +547,14 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
             #endif
 
             if(status == HTTP_CODE_OK) {
-                data = http->getString();
-                http->end();
-                
-                uint8_t* content = (uint8_t*) (data.c_str());
+                uint8_t content[1024];
+
+                WiFiClient* stream = http->getStreamPtr(); 
 
                 DataParserContext ctx = {0,0,0,0};
-                ctx.length = data.length();
+                ctx.length = stream->readBytes(content, http->getSize());
+                http->end();
+
                 GCMParser gcm(key, auth);
                 int8_t gcmRet = gcm.parse(content, ctx);
                 if(gcmRet > 0) {
@@ -569,9 +570,11 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
                     ret->setCurrency(header->currency);
                     int32_t* points = (int32_t*) &header[1];
 
-                    for(uint8_t i = 0; i < header->numberOfPoints; i++) {
-                        int32_t intval = ntohl(points[i]);
-                        float value = intval / 10000.0;
+                    int32_t intval;
+                    for(uint8_t i = 0; i < ret->getNumberOfPoints(); i++) {
+                        // To avoid alignment issues on ESP8266, we use memcpy
+                        memcpy(&intval, &points[i], sizeof(int32_t));
+                        float value = ntohl(intval) / 10000.0;
                         #if defined(AMS_REMOTE_DEBUG)
                         if (debugger->isActive(RemoteDebug::VERBOSE))
                         #endif
@@ -579,9 +582,10 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
                         ret->setPrice(i, value, PRICE_DIRECTION_IMPORT);
                     }
                     if(header->differentExportPrices) {
-                        for(uint8_t i = 0; i < header->numberOfPoints; i++) {
-                            int32_t intval = ntohl(points[i]);
-                            float value = intval / 10000.0;
+                        for(uint8_t i = 0; i < ret->getNumberOfPoints(); i++) {
+                            // To avoid alignment issues on ESP8266, we use memcpy
+                            memcpy(&intval, &points[ret->getNumberOfPoints()+i], sizeof(int32_t));
+                            float value = ntohl(intval) / 10000.0;
                             #if defined(AMS_REMOTE_DEBUG)
                             if (debugger->isActive(RemoteDebug::VERBOSE))
                             #endif

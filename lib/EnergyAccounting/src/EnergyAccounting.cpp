@@ -260,7 +260,9 @@ float EnergyAccounting::getUseThisMonth() {
 }
 
 float EnergyAccounting::getUseLastMonth() {
-    return (data.lastMonthImport * pow(10, data.lastMonthAccuracy)) / 1000;
+    float ret = (data.lastMonthImport * pow(10, data.lastMonthAccuracy)) / 1000;
+    if(std::isnan(ret)) return 0.0;
+    return ret;
 }
 
 float EnergyAccounting::getProducedThisHour() {
@@ -292,7 +294,9 @@ float EnergyAccounting::getProducedThisMonth() {
 }
 
 float EnergyAccounting::getProducedLastMonth() {
-    return (data.lastMonthExport * pow(10, data.lastMonthAccuracy)) / 1000;
+    float ret = (data.lastMonthExport * pow(10, data.lastMonthAccuracy)) / 1000;
+    if(std::isnan(ret)) return 0.0;
+    return ret;
 }
 
 float EnergyAccounting::getCostThisHour() {

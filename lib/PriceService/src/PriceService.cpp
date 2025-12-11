@@ -127,15 +127,16 @@ bool PriceService::isExportPricesDifferentFromImport() {
 }
 
 float PriceService::getPricePoint(uint8_t direction, uint8_t point) {
-    float value = getFixedPrice(direction, point * getResolutionInMinutes() / 60);
+    float value = getFixedPrice(direction, point);
     if(value == PRICE_NO_VALUE) value = getEnergyPricePoint(direction, point);
     if(value == PRICE_NO_VALUE) return PRICE_NO_VALUE;
 
     tmElements_t tm;
     time_t ts = time(nullptr);
-    breakTime(tz->toLocal(ts), tm);
+    breakTime(entsoeTz->toLocal(ts), tm);
     tm.Hour = tm.Minute = tm.Second = 0;
-    breakTime(makeTime(tm) + (point * SECS_PER_MIN * getResolutionInMinutes()), tm);
+    ts = entsoeTz->toUTC(makeTime(tm)) + (point * SECS_PER_MIN * getResolutionInMinutes());
+    breakTime(tz->toLocal(ts), tm);
 
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
         PriceConfig pc = priceConfig.at(i);
@@ -162,8 +163,6 @@ float PriceService::getPricePoint(uint8_t direction, uint8_t point) {
 
 float PriceService::getCurrentPrice(uint8_t direction) {
     time_t ts = time(nullptr);
-    tmElements_t tm;
-    breakTime(tz->toLocal(ts), tm);
     uint8_t pos = getCurrentPricePointIndex();
 
     return getPricePoint(direction, pos);
@@ -171,6 +170,7 @@ float PriceService::getCurrentPrice(uint8_t direction) {
 
 float PriceService::getEnergyPricePoint(uint8_t direction, uint8_t point) {
     uint8_t pos = point;
+    
     float multiplier = 1.0;
     uint8_t numberOfPointsToday = 24;
     if(today != NULL) {
@@ -206,10 +206,10 @@ float PriceService::getPriceForRelativeHour(uint8_t direction, int8_t hour) {
     time_t ts = time(nullptr);
     tmElements_t tm;
 
-    breakTime(tz->toLocal(ts), tm);
-    int8_t targetHour = tm.Hour + hour;
+    breakTime(entsoeTz->toLocal(ts), tm);
+    uint8_t targetHour = tm.Hour + hour;
     tm.Hour = tm.Minute = tm.Second = 0;
-    time_t startOfDay = tz->toUTC(makeTime(tm));
+    time_t startOfDay = entsoeTz->toUTC(makeTime(tm));
 
     if((ts + (hour * SECS_PER_HOUR)) < startOfDay) {
         return PRICE_NO_VALUE;
@@ -235,15 +235,15 @@ float PriceService::getPriceForRelativeHour(uint8_t direction, int8_t hour) {
     return valueSum / valueCount;
 }
 
-float PriceService::getFixedPrice(uint8_t direction, int8_t hour) {
+float PriceService::getFixedPrice(uint8_t direction, int8_t point) {
     time_t ts = time(nullptr);
 
     tmElements_t tm;
+    breakTime(entsoeTz->toLocal(ts), tm);
+    tm.Hour = tm.Minute = tm.Second = 0;
+    ts = entsoeTz->toUTC(makeTime(tm)) + (point * SECS_PER_MIN * getResolutionInMinutes());
     breakTime(tz->toLocal(ts), tm);
-    tm.Hour = hour;
-    tm.Minute = 0;
-    tm.Second = 0;
-    breakTime(makeTime(tm), tm);
+    tm.Minute = tm.Second = 0;
 
     float value = PRICE_NO_VALUE;
     for (uint8_t i = 0; i < priceConfig.size(); i++) {
@@ -760,6 +760,6 @@ bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
 uint8_t PriceService::getCurrentPricePointIndex() {
     time_t ts = time(nullptr);
     tmElements_t tm;
-    breakTime(tz->toLocal(ts), tm);
+    breakTime(entsoeTz->toLocal(ts), tm);
     return ((tm.Hour * 60) + tm.Minute) / getResolutionInMinutes();
 }

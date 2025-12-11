@@ -124,9 +124,6 @@ private:
     Timezone* tz = NULL;
     Timezone* entsoeTz = NULL;
 
-    static const uint16_t BufferSize = 256;
-    char* buf;
-
     bool hub = false;
     uint8_t* key = NULL;
     uint8_t* auth = NULL;

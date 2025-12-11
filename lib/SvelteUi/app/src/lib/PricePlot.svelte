@@ -41,7 +41,7 @@
             let values = [];
             min = max = 0;
             addHours(cur, sysinfo.clock_offset - ((24 + cur.getHours() - cur.getUTCHours())%24));
-            let i = Math.floor(((cur.getHours()*60) + cur.getMinutes()) / json?.resolution);
+            let i = json?.cursor ? json.cursor : 0;
             cur.setMinutes(Math.floor(cur.getMinutes()/json?.resolution)*json?.resolution,0,0);
             while(i < json?.prices?.length) {
                 val = json.prices[i];

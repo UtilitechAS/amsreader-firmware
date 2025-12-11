@@ -777,11 +777,12 @@ void AmsWebServer::priceJson(uint8_t direction) {
 		prices[i] = ps->getPricePoint(direction, i);
 	}
 
-	snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\",\"resolution\":%d,\"direction\":\"%s\",\"importExportPriceDifferent\":%s,\"prices\":["),
+	snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\",\"resolution\":%d,\"direction\":\"%s\",\"cursor\":%d,\"importExportPriceDifferent\":%s,\"prices\":["),
 		ps->getCurrency(),
 		ps->getSource(),
 		ps->getResolutionInMinutes(),
 		direction == PRICE_DIRECTION_IMPORT ? "import" : direction == PRICE_DIRECTION_EXPORT ? "export" : "both",
+		ps->getCurrentPricePointIndex(),
 		ps->isExportPricesDifferentFromImport() ? "true" : "false"
 	);
 

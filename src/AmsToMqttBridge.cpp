@@ -655,7 +655,7 @@ void loop() {
 			}
 			
 			communicationTime += handleWebserver();
-			if(communicationTime > 10 && updater.getProgress() >= 0) {
+			if(communicationTime > 25 && updater.getProgress() >= 0) {
 				debugI_P(PSTR("Communication is active (%dms), forcing updater to wait"), communicationTime);
 			} else {
 				handleUpdater();
@@ -1044,7 +1044,13 @@ void handleMeterConfig() {
 			debugE_P(PSTR("Unknown meter source selected: %d"), meterConfig.source);
 		}
 		ws.setMeterConfig(meterConfig.distributionSystem, meterConfig.mainFuse, meterConfig.productionCapacity);
-		if(mc != NULL && Debug.isActive(RemoteDebug::DEBUG)) {
+		if(mc != NULL && 
+			#if defined(AMS_REMOTE_DEBUG)
+			Debug.isActive(RemoteDebug::DEBUG)
+			#else
+			false // Never send debug data 
+			#endif
+		) {
 			mc->setMqttHandlerForDebugging(mqttHandler);
 		}
 		config.ackMeterChanged();
@@ -1563,7 +1569,13 @@ void postConnect() {
 		if(!debug.telnet) {
 			Debug.stop();
 		}
-		if(mc != NULL && Debug.isActive(RemoteDebug::DEBUG)) {
+		if(mc != NULL && 
+			#if defined(AMS_REMOTE_DEBUG)
+			Debug.isActive(RemoteDebug::DEBUG)
+			#else
+			false // Never send debug data 
+			#endif
+		) {
 			mc->setMqttHandlerForDebugging(mqttHandler);
 		}
 	} else {
@@ -1695,7 +1707,13 @@ void MQTT_connect() {
 		}
 	}
 	ws.setMqttHandler(mqttHandler);
-	if(mc != NULL && Debug.isActive(RemoteDebug::DEBUG)) {
+	if(mc != NULL && 
+		#if defined(AMS_REMOTE_DEBUG)
+		Debug.isActive(RemoteDebug::DEBUG)
+		#else
+		false // Never send debug data 
+		#endif
+	) {
 		mc->setMqttHandlerForDebugging(mqttHandler);
 	}
 

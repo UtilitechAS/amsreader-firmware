@@ -124,9 +124,6 @@ private:
     Timezone* tz = NULL;
     Timezone* entsoeTz = NULL;
 
-    static const uint16_t BufferSize = 256;
-    char* buf;
-
     bool hub = false;
     uint8_t* key = NULL;
     uint8_t* auth = NULL;
@@ -139,7 +136,7 @@ private:
     bool retrieve(const char* url, Stream* doc);
     float getCurrencyMultiplier(const char* from, const char* to, time_t t);
     bool timeIsInPeriod(tmElements_t tm, PriceConfig pc);
-    float getFixedPrice(uint8_t direction, int8_t hour);
+    float getFixedPrice(uint8_t direction, int8_t point);
     float getEnergyPricePoint(uint8_t direction, uint8_t point);
 };
 #endif

@@ -73,7 +73,7 @@
                 {#each config.x.ticks as point, i}
                     {#if !isNaN(xScale(i))}
                         <g class="tick" transform="translate({xScale(i)},{heightAvailable})">
-                            {#if barWidth > 20 || i%2 == 0}
+                            {#if barWidth > 20 || i%2 == 0 || !config.x.ticks[i-1].label}
                             <text x="{barWidth/2}" y="-4">{point.label}</text>
                             {/if}
                         </g>

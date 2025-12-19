@@ -807,6 +807,7 @@ void PassiveMeterCommunicator::rxerr(int err) {
 			#endif
 			debugger->printf_P(PSTR("Serial buffer overflow\n"));
 			rxBufferErrors++;
+			#if defined(ESP32)
 			if(rxBufferErrors > 1 && meterConfig.bufferSize < 8) {
 				meterConfig.bufferSize += 2;
 				#if defined(AMS_REMOTE_DEBUG)
@@ -816,6 +817,7 @@ void PassiveMeterCommunicator::rxerr(int err) {
                 configChanged = true;
 				rxBufferErrors = 0;
 			}
+			#endif
 			break;
 		case 3:
 			#if defined(AMS_REMOTE_DEBUG)

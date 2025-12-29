@@ -42,5 +42,6 @@ private:
     bool publishList3(AmsData* data, EnergyAccounting* ea);
     bool publishList4(AmsData* data, EnergyAccounting* ea);
     String getMeterModel(AmsData* data);
+    void toJsonIsoTimestamp(time_t t, char* buf, size_t buflen);
 };
 #endif

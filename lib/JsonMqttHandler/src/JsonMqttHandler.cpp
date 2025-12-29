@@ -356,25 +356,34 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
     memset(ts1hr, 0, 24);
 	if(min1hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min1hrIdx);
-		tmElements_t tm;
+        tmElements_t tm;
         breakTime(ts, tm);
-		sprintf_P(ts1hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+        tm.Minute = 0;
+        tm.Second = 0;
+        ts = makeTime(tm);
+        toJsonIsoTimestamp(ts, ts1hr, sizeof(ts1hr));
 	}
 	char ts3hr[24];
     memset(ts3hr, 0, 24);
 	if(min3hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min3hrIdx);
-		tmElements_t tm;
+        tmElements_t tm;
         breakTime(ts, tm);
-		sprintf_P(ts3hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+        tm.Minute = 0;
+        tm.Second = 0;
+        ts = makeTime(tm);
+        toJsonIsoTimestamp(ts, ts3hr, sizeof(ts3hr));
 	}
 	char ts6hr[24];
     memset(ts6hr, 0, 24);
 	if(min6hrIdx > -1) {
         time_t ts = now + (SECS_PER_HOUR * min6hrIdx);
-		tmElements_t tm;
+        tmElements_t tm;
         breakTime(ts, tm);
-		sprintf_P(ts6hr, PSTR("%04d-%02d-%02dT%02d:00:00Z"), tm.Year+1970, tm.Month, tm.Day, tm.Hour);
+        tm.Minute = 0;
+        tm.Second = 0;
+        ts = makeTime(tm);
+        toJsonIsoTimestamp(ts, ts6hr, sizeof(ts6hr));
 	}
 
     if(mqttConfig.payloadFormat == 6) {
@@ -388,7 +397,7 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
             }
         }
 
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"pr_min\":%.4f,\"pr_max\":%.4f,\"pr_cheapest1hr\":\"%s\",\"pr_cheapest3hr\":\"%s\",\"pr_cheapest6hr\":\"%s\"}"),
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"pr_min\":%.4f,\"pr_max\":%.4f,\"pr_cheapest1hr\":%s,\"pr_cheapest3hr\":%s,\"pr_cheapest6hr\":%s}"),
             min == INT16_MAX ? 0.0 : min,
             max == INT16_MIN ? 0.0 : max,
             ts1hr,
@@ -533,5 +542,16 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
             bool ret = mqtt.publish(pubTopic, json);
             loop();
         }
+    }
+}
+
+void JsonMqttHandler::toJsonIsoTimestamp(time_t t, char* buf, size_t buflen) {
+    memset(buf, 0, buflen);
+    if(t > 0) {
+        tmElements_t tm;
+        breakTime(t, tm);
+        snprintf_P(buf, buflen, PSTR("\"%04d-%02d-%02dT%02d:%02d:%02dZ\""), tm.Year+1970, tm.Month, tm.Day, tm.Hour, tm.Minute, tm.Second);
+    } else {
+        snprintf_P(buf, buflen, PSTR("null"));
     }
 }

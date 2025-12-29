@@ -27,11 +27,6 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
         
         // Kaifa special case...
         if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {
-            #if defined(AMS_REMOTE_DEBUG)
-            if (debugger->isActive(RemoteDebug::DEBUG))
-            #endif
-            debugger->printf_P(PSTR("Kaifa list 1\n"));
-
             this->packageTimestamp = this->packageTimestamp > 0 && tz != NULL ? tz->toUTC(this->packageTimestamp) : 0;
             listType = 1;
             meterType = AmsTypeKaifa;
@@ -51,11 +46,6 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 data = getCosemDataAt(idx, ((char *) (d)));
                 idx+=2;
                 if(data->base.length == 0x0D || data->base.length == 0x12) {
-                    #if defined(AMS_REMOTE_DEBUG)
-                    if (debugger->isActive(RemoteDebug::DEBUG))
-                    #endif
-                    debugger->printf_P(PSTR("Kaifa list 3\n"));
-
                     listType = data->base.length == 0x12 ? 3 : 2;
 
                     data = getCosemDataAt(idx++, ((char *) (d)));
@@ -92,11 +82,6 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     l3voltage = ntohl(data->dlu.data) / 10.0;
                 } else if(data->base.length == 0x09 || data->base.length == 0x0E) {
-                    #if defined(AMS_REMOTE_DEBUG)
-                    if (debugger->isActive(RemoteDebug::DEBUG))
-                    #endif
-                    debugger->printf_P(PSTR("Kaifa list 2\n"));
-
                     listType = data->base.length == 0x0E ? 3 : 2;
 
                     data = getCosemDataAt(idx++, ((char *) (d)));
@@ -156,11 +141,6 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
 
                 lastUpdateMillis = millis64();
             } else if(listId.startsWith("ISK")) { // Iskra special case
-                #if defined(AMS_REMOTE_DEBUG)
-                if (debugger->isActive(RemoteDebug::DEBUG))
-                #endif
-                debugger->printf_P(PSTR("Iskra list ID\n"));
-
                 this->listId = listId;
                 meterType = AmsTypeIskra;
 
@@ -580,11 +560,6 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     activeExportCounter = ntohl(data->dlu.data) / 1000.0;
                 }
             } else if(useMeterType == AmsTypeIskra && data->base.type == CosemTypeOctetString) { // Iskra special case
-                #if defined(AMS_REMOTE_DEBUG)
-                if (debugger->isActive(RemoteDebug::DEBUG))
-                #endif
-                debugger->printf_P(PSTR("Iskra selected\n"));
-
                 meterType = AmsTypeIskra;
 
                 uint8_t idx = 0;
@@ -724,16 +699,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 CosemData* d2 = getCosemDataAt(idx++, ((char *) (d)));
                 CosemData* d3 = getCosemDataAt(idx++, ((char *) (d)));
 
-                #if defined(AMS_REMOTE_DEBUG)
-                if (debugger->isActive(RemoteDebug::DEBUG))
-                #endif
-                {
-                    debugger->printf("AMS Meter unknown type - checking for Iskra signature\n");
-                    debugger->printf("  D1 type: %d\n", d1->base.type);
-                    debugger->printf("  D2 type: %d\n", d2->base.type);
-                    debugger->printf("  D3 type: %d\n", d3->base.type);
-                }
-                if(d1->base.type == d2->base.type == d3->base.type == CosemTypeOctetString) {
+                if(d1->base.type == CosemTypeOctetString && d2->base.type == CosemTypeOctetString && d3->base.type == CosemTypeOctetString) {
                     meterType = AmsTypeIskra;
                     lastUpdateMillis = millis64();
                     listType = 3;

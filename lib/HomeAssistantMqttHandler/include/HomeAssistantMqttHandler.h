@@ -79,6 +79,7 @@ private:
     void publishPriceSensors(PriceService* ps);
     void publishSystemSensors();
     void publishThresholdSensors();
+    void toJsonIsoTimestamp(time_t t, char* buf, size_t buflen);
 
     String boardTypeToString(uint8_t b) {
         switch(b) {

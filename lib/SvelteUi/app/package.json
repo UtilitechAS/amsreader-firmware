@@ -10,10 +10,10 @@
     "preview": "vite preview"
   },
   "overrides": {
-  "svelte-navigator": {
-    "svelte": ">=4.x"
-  }
-},
+    "svelte-navigator": {
+      "svelte": ">=4.x"
+    }
+  },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^2.1.0",
     "@tailwindcss/forms": "^0.5.3",
@@ -30,6 +30,7 @@
   },
   "dependencies": {
     "cssnano": "^5.1.15",
-    "esbuild": ">=0.25.0"
+    "esbuild": ">=0.25.0",
+    "ipaddr.js": "^2.3.0"
   }
 }

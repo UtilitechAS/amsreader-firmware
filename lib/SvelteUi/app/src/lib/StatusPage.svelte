@@ -7,6 +7,7 @@
     import Clock from './Clock.svelte';
     import Mask from './Mask.svelte';
     import { scanForDevice } from './Helpers.js';
+    import ipaddr from 'ipaddr.js';
   
     export let data;
     export let sysinfo;
@@ -207,11 +208,11 @@
         </div>
         {#if sysinfo.net.ipv6}
             <div class="my-2">
-                IPv6: <span style="font-size: 14px;">{sysinfo.net.ipv6.replace(/\b:?(?:0+:?){2,}/, '::')}</span>
+                IPv6: <span style="font-size: 14px;">{ipaddr.parse(sysinfo.net.ipv6)}</span>
             </div>
             <div class="my-2">
-                {#if sysinfo.net.dns1v6}DNSv6: <span style="font-size: 14px;">{sysinfo.net.dns1v6.replace(/\b:?(?:0+:?){2,}/, '::')}</span>{/if}
-                {#if sysinfo.net.dns2v6}DNSv6: <span style="font-size: 14px;">{sysinfo.net.dns2v6.replace(/\b:?(?:0+:?){2,}/, '::')}</span>{/if}
+                {#if sysinfo.net.dns1v6}DNSv6: <span style="font-size: 14px;">{ipaddr.parse(sysinfo.net.dns1v6)}</span>{/if}
+                {#if sysinfo.net.dns2v6}DNSv6: <span style="font-size: 14px;">{ipaddr.parse(sysinfo.net.dns2v6)}</span>{/if}
             </div>
         {/if}
     </div>

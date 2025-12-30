@@ -74,7 +74,7 @@ int8_t DSMRParser::parse(uint8_t *buf, DataParserContext &ctx, bool verified, Pr
         fromHex((uint8_t*) &crc, String((char*) buf+crcPos), 2);
         crc = ntohs(crc);
 
-        if(crc != crc_calc) {
+        if(crc > 0 && crc != crc_calc) {
             if(debugger != NULL) {
                 debugger->printf_P(PSTR("CRC incorrrect, %04X != %04X at position %lu\n"), crc, crc_calc, crcPos);
             }

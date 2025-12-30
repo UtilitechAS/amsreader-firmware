@@ -574,7 +574,8 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
                     for(uint8_t i = 0; i < ret->getNumberOfPoints(); i++) {
                         // To avoid alignment issues on ESP8266, we use memcpy
                         memcpy(&intval, &points[i], sizeof(int32_t));
-                        float value = ntohl(intval) / 10000.0;
+                        intval = ntohl(intval); // Change byte order before converting to float, to support negative values
+                        float value = intval / 10000.0;
                         #if defined(AMS_REMOTE_DEBUG)
                         if (debugger->isActive(RemoteDebug::VERBOSE))
                         #endif
@@ -585,7 +586,8 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
                         for(uint8_t i = 0; i < ret->getNumberOfPoints(); i++) {
                             // To avoid alignment issues on ESP8266, we use memcpy
                             memcpy(&intval, &points[ret->getNumberOfPoints()+i], sizeof(int32_t));
-                            float value = ntohl(intval) / 10000.0;
+                            intval = ntohl(intval); // Change byte order before converting to float, to support negative values
+                            float value = intval / 10000.0;
                             #if defined(AMS_REMOTE_DEBUG)
                             if (debugger->isActive(RemoteDebug::VERBOSE))
                             #endif

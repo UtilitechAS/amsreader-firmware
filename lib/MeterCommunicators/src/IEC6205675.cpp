@@ -27,14 +27,11 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
         
         // Kaifa special case...
         if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {
-            this->packageTimestamp = this->packageTimestamp > 0 && tz != NULL ? tz->toUTC(this->packageTimestamp) : 0;
             listType = 1;
             meterType = AmsTypeKaifa;
             activeImportPower = ntohl(data->dlu.data);
             lastUpdateMillis = millis64();
         } else if(data->base.type == CosemTypeOctetString) {
-            this->packageTimestamp = this->packageTimestamp > 0 && tz != NULL ? tz->toUTC(this->packageTimestamp) : 0;
-
             memcpy(str, data->oct.data, data->oct.length);
             str[data->oct.length] = 0x00;
             String listId = String(str);

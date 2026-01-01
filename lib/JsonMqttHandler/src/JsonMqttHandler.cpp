@@ -431,7 +431,7 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
         }
 
         pos--;
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("],\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":\"%s\",\"cheapest3hr\":\"%s\",\"cheapest6hr\":\"%s\"}}"),
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("],\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":%s,\"cheapest3hr\":%s,\"cheapest6hr\":%s}}"),
             min == INT16_MAX ? 0.0 : min,
             max == INT16_MIN ? 0.0 : max,
             ts1hr,

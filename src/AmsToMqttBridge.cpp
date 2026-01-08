@@ -195,9 +195,10 @@ ZmartChargeCloudConnector *zcloud = NULL;
 
 #if defined(ESP32)
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
-RTC_DATA_ATTR uint8_t bootCycles = 0;
+RTC_DATA_ATTR uint8_t bootcount = 0;
 #else
 EnergyAccountingRealtimeData rtd;
+uint8_t bootcount = 0;
 #endif
 EnergyAccounting ea(&Debug, &rtd);
 
@@ -330,24 +331,29 @@ void rxerr(int err) {
 }
 #endif
 
-uint8_t incrementBootCycleCounter() {
+uint8_t incrementBootCycleCounter(bool deepSleep) {
 	#if defined(ESP8266)
-		uint32_t bootcount = 0;
-		if(ESP.rtcUserMemoryRead(0, &bootcount, sizeof(bootcount))) {
-			bootcount++;
-			ESP.rtcUserMemoryWrite(0, &bootcount, sizeof(bootcount));
+		if(deepSleep) {
+			if(ESP.rtcUserMemoryRead(0, &bootcount, sizeof(bootcount))) {
+				bootcount++;
+				ESP.rtcUserMemoryWrite(0, &bootcount, sizeof(bootcount));
+			}
+			return bootcount;
+		} else {
+			return ++bootcount;
 		}
-		return bootcount;
 	#else
-		return ++bootCycles;
+		return ++bootcount;
 	#endif
 }
-void resetBootCycleCounter() {
+void resetBootCycleCounter(bool deepSleep) {
 	#if defined(ESP8266)
-		uint32_t bootcount = 0;
-		ESP.rtcUserMemoryWrite(0, &bootcount, sizeof(bootcount));
+		bootcount = 0;
+		if(deepSleep) {
+			ESP.rtcUserMemoryWrite(0, &bootcount, sizeof(bootcount));
+		}
 	#else
-		bootCycles = 0;
+		bootcount = 0;
 	#endif
 }
 
@@ -462,21 +468,21 @@ void setup() {
 
 	bool deepSleep = true;
 	#if defined(ESP32)
-	float allowedDrift = bootCycles * 0.01;
+	float allowedDrift = bootcount * 0.01;
 	#else
 	float allowedDrift = gpioConfig.vccBootLimit == 0 ? 0.05 : 3.3 - min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure boot limit is never above 3.3v
 	deepSleep = gpioConfig.vccBootLimit > 0; // If a boot limit is set, we are assume the hardware has been configured for deep sleep (Hint: GPIO16)
 	#endif
 	while(!hw.isVoltageOptimal(allowedDrift)) {
-		uint8_t bootCycles = incrementBootCycleCounter();
-		debugW_P(PSTR("Voltage is outside optimal range (+-%.2fV)"), allowedDrift);
+		uint8_t bootCycles = incrementBootCycleCounter(deepSleep);
+		debugW_P(PSTR("Voltage is outside optimal range (%.2fV)"), allowedDrift);
 		if(gpioConfig.apPin != 0xFF && digitalRead(gpioConfig.apPin) == LOW) {
 			debugW_P(PSTR("AP button is pressed, skipping voltage wait"));
 		} else if(bootCycles < MAX_BOOT_CYCLES) {
 			int secs = MAX_BOOT_CYCLES - bootCycles;
-			Serial.flush();
 			if(deepSleep) {
 				debugI_P(PSTR("Sleeping for %d seconds to allow capacitor charge (%d.cycle)"), secs, bootCycles);
+				Serial.flush();
 				ESP.deepSleep(secs * 1000000); // Deep sleep to allow output cap to charge up
 				return;
 			} else {
@@ -489,7 +495,7 @@ void setup() {
 		}
 	}
 	#if defined(ESP8266)
-	resetBootCycleCounter();
+	resetBootCycleCounter(deepSleep);
 	#endif
 	hw.ledOff(LED_YELLOW);
 	hw.ledOff(LED_INTERNAL);

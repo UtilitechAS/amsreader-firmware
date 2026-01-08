@@ -678,3 +678,7 @@ bool HwTools::isVoltageOptimal(float range) {
 uint8_t HwTools::getBoardType() {
     return boardType;
 }
+
+void HwTools::setMaxVcc(float vcc) {
+    this->maxVcc = min(3.3f, vcc);
+}

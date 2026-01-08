@@ -591,7 +591,6 @@ void AmsConfiguration::clearGpio(GpioConfig& config, bool all) {
 	config.tempAnalogSensorPin = 0xFF;
 	config.vccPin = 0xFF;
 	config.ledDisablePin = 0xFF;
-	config.powersaving = 0;
 
 	if(all) {
 		config.vccOffset = 0;
@@ -600,6 +599,7 @@ void AmsConfiguration::clearGpio(GpioConfig& config, bool all) {
 		config.vccResistorGnd = 0;
 		config.vccResistorVcc = 0;
 		config.ledBehaviour = LED_BEHAVIOUR_DEFAULT;
+		config.powersaving = 0;
 	}
 }
 

@@ -1389,10 +1389,10 @@ void AmsWebServer::handleSave() {
 			memset(meterConfig.authenticationKey, 0, 16);
 		}
 
-		meterConfig.wattageMultiplier = server.arg(F("mmw")).toFloat() * 1000;
-		meterConfig.voltageMultiplier = server.arg(F("mmv")).toFloat() * 1000;
-		meterConfig.amperageMultiplier = server.arg(F("mma")).toFloat() * 1000;
-		meterConfig.accumulatedMultiplier = server.arg(F("mmc")).toFloat() * 1000;
+		meterConfig.wattageMultiplier = server.arg(F("mmw")).toDouble() * 1000.0;
+		meterConfig.voltageMultiplier = server.arg(F("mmv")).toDouble() * 1000.0;
+		meterConfig.amperageMultiplier = server.arg(F("mma")).toDouble() * 1000.0;
+		meterConfig.accumulatedMultiplier = server.arg(F("mmc")).toDouble() * 1000.0;
 		config->setMeterConfig(meterConfig);
 	}
 
@@ -1408,7 +1408,7 @@ void AmsWebServer::handleSave() {
 				if(!psk.equals("***")) {
 					strcpy(network.psk, psk.c_str());
 				}
-				network.power = server.arg(F("ww")).toFloat() * 10;
+				network.power = server.arg(F("ww")).toDouble() * 10.0;
 				network.sleep = server.arg(F("wz")).toInt();
 				network.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
 			}
@@ -1569,9 +1569,9 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("iv")) && server.arg(F("iv")) == F("true")) {
-		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toFloat() * 100 : 0;
-		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toFloat() * 1000 : 1000;
-		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? server.arg(F("ivb")).toFloat() * 10 : 0;
+		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toDouble() * 100.0 : 0;
+		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toDouble() * 1000.0 : 1000;
+		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? server.arg(F("ivb")).toDouble() * 10.0 : 0;
 		config->setGpioConfig(*gpioConfig);
 	}
 
@@ -1686,7 +1686,7 @@ void AmsWebServer::handleSave() {
 				snprintf_P(buf, BufferSize, PSTR("rd%d"), i);
 				pc.direction = server.arg(buf).toInt();
 				snprintf_P(buf, BufferSize, PSTR("rv%d"), i);
-				pc.value = server.arg(buf).toFloat() * 10000;
+				pc.value = server.arg(buf).toDouble() * 10000.0;
 				snprintf_P(buf, BufferSize, PSTR("rn%d"), i);
 				String name = server.arg(buf);
 				strcpy(pc.name, name.c_str());

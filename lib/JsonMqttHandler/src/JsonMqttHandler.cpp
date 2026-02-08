@@ -164,7 +164,7 @@ bool JsonMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
     if(mqttConfig.payloadFormat != 6) {
         pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"data\":{"));
     }
-    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"Q\":%d,\"PO\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f,\"tPI\":%.3f,\"tPO\":%.3f,\"tQI\":%.3f,\"tQO\":%.3f,\"rtc\":%lu"),
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"Q\":%d,\"PO\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f,\"tPI\":%.3f,\"tPIT1\":%.3f,\"tPIT2\":%.3f,\"tPO\":%.3f,\"tPOT1\":%.3f,\"tPOT2\":%.3f,\"tQI\":%.3f,\"tQO\":%.3f,\"rtc\":%lu"),
         data->getListId().c_str(),
         data->getMeterId().c_str(),
         getMeterModel(data).c_str(),
@@ -179,7 +179,11 @@ bool JsonMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
         data->getL2Voltage(),
         data->getL3Voltage(),
         data->getActiveImportCounter(),
+        data->getActiveImportCounterTariff1(),
+        data->getActiveImportCounterTariff2(),
         data->getActiveExportCounter(),
+        data->getActiveExportCounterTariff1(),
+        data->getActiveExportCounterTariff2(),
         data->getReactiveImportCounter(),
         data->getReactiveExportCounter(),
         data->getMeterTimestamp()
@@ -201,7 +205,7 @@ bool JsonMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
     if(mqttConfig.payloadFormat != 6) {
         pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"data\":{"));
     }
-    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"P1\":%d,\"P2\":%d,\"P3\":%d,\"Q\":%d,\"PO\":%d,\"PO1\":%d,\"PO2\":%d,\"PO3\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f,\"PF\":%.2f,\"PF1\":%.2f,\"PF2\":%.2f,\"PF3\":%.2f,\"tPI\":%.3f,\"tPO\":%.3f,\"tQI\":%.3f,\"tQO\":%.3f,\"tPI1\":%.3f,\"tPI2\":%.3f,\"tPI3\":%.3f,\"tPO1\":%.3f,\"tPO2\":%.3f,\"tPO3\":%.3f,\"rtc\":%lu"),
+    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"P1\":%d,\"P2\":%d,\"P3\":%d,\"Q\":%d,\"PO\":%d,\"PO1\":%d,\"PO2\":%d,\"PO3\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f,\"PF\":%.2f,\"PF1\":%.2f,\"PF2\":%.2f,\"PF3\":%.2f,\"tPI\":%.3f,\"tPIT1\":%.3f,\"tPIT2\":%.3f,\"tPO\":%.3f,\"tPOT1\":%.3f,\"tPOT2\":%.3f,\"tQI\":%.3f,\"tQO\":%.3f,\"tPI1\":%.3f,\"tPI2\":%.3f,\"tPI3\":%.3f,\"tPO1\":%.3f,\"tPO2\":%.3f,\"tPO3\":%.3f,\"rtc\":%lu"),
         data->getListId().c_str(),
         data->getMeterId().c_str(),
         getMeterModel(data).c_str(),
@@ -226,7 +230,11 @@ bool JsonMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
         data->getL2PowerFactor(),
         data->getL3PowerFactor(),
         data->getActiveImportCounter(),
+        data->getActiveImportCounterTariff1(),
+        data->getActiveImportCounterTariff2(),
         data->getActiveExportCounter(),
+        data->getActiveExportCounterTariff1(),
+        data->getActiveExportCounterTariff2(),
         data->getReactiveImportCounter(),
         data->getReactiveExportCounter(),
         data->getL1ActiveImportCounter(),

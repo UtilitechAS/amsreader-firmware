@@ -129,7 +129,7 @@ void AmsFirmwareUpdater::loop() {
             HTTPClient http;
             start = millis();
             if(!fetchFirmwareChunk(http)) {
-                if(updateStatus.retry_count++ == UPDATE_MAX_BLOCK_RETRY) {
+                if(updateStatus.retry_count++ > UPDATE_MAX_BLOCK_RETRY) {
                     updateStatus.errorCode = AMS_UPDATE_ERR_FETCH;
                     updateStatusChanged = true;
                 }

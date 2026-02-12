@@ -198,7 +198,7 @@ __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
 RTC_DATA_ATTR uint8_t bootcount = 0;
 #else
 EnergyAccountingRealtimeData rtd;
-uint8_t bootcount = 0;
+uint32_t bootcount = 0;
 #endif
 EnergyAccounting ea(&Debug, &rtd);
 
@@ -457,13 +457,13 @@ void setup() {
 	yield();
 	#endif
 
-	float vcc = hw.getVcc();
 
 	if(!hw.ledOn(LED_YELLOW)) {
 		hw.ledOn(LED_INTERNAL);
 	}
 	debugI_P(PSTR("AMS reader %s started"), FirmwareVersion::VersionString);
 	debugI_P(PSTR("Configuration version: %d, board type: %d"), config.getConfigVersion(), sysConfig.boardType);
+	float vcc = hw.getVcc();
 	debugI_P(PSTR("Voltage: %.2fV"), vcc);
 
 	bool deepSleep = true;
@@ -488,10 +488,13 @@ void setup() {
 			} else {
 				debugI_P(PSTR("Waiting (no sleep) for %d seconds to allow capacitor charge (%d.cycle)"), secs, bootCycles);
 				delay(secs * 1000); // Just delay to allow output cap to charge up
+				vcc = hw.getVcc();
+				debugI_P(PSTR("Voltage: %.2fV"), vcc);
 			}
 		} else {
 			debugE_P(PSTR("Voltage not reaching optimal level after multiple attempts, continuing boot"));
 			hw.setMaxVcc(vcc); // Since we had to sleep, set max Vcc to current level because this is probably the highest we will get
+			break;
 		}
 	}
 	#if defined(ESP8266)

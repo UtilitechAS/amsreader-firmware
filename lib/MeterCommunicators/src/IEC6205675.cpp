@@ -25,13 +25,206 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
     if(val == NOVALUE) {
         CosemData* data = getCosemDataAt(1, ((char *) (d)));
         
-        // Kaifa special case...
-        if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) {
+        if(useMeterType == AmsTypeIskra) { // Iskra special case
+            meterType = AmsTypeIskra;
+            uint8_t idx = 0;
+            data = getCosemDataAt(idx, ((char *) (d)));
+            if(data->base.length == 0x21) {
+                idx = 4;
+
+                // 1.8.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                // 1.8.1
+                // 1.8.2
+                idx += 2;
+                
+                // 2.8.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                // 2.8.1
+                // 2.8.2
+                idx += 2;
+
+                // 5.8.0
+                // 6.8.0
+                // 7.8.0
+                // 8.8.0
+                idx += 4;
+
+                // 1.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportPower = ntohl(data->dlu.data);
+
+                // 2.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportPower = ntohl(data->dlu.data);
+
+                // 13.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                powerFactor= ntohl(data->dlu.data) / 1000.0;
+
+                // 21.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1activeImportPower = ntohl(data->dlu.data);
+
+                // 41.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2activeImportPower = ntohl(data->dlu.data);
+
+                // 61.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3activeImportPower = ntohl(data->dlu.data);
+
+                // 22.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1activeExportPower = ntohl(data->dlu.data);
+
+                // 42.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2activeExportPower = ntohl(data->dlu.data);
+
+                // 62.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3activeExportPower = ntohl(data->dlu.data);
+
+                // 32.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1voltage = ntohs(data->lu.data) / 10.0;
+
+                // 52.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2voltage = ntohs(data->lu.data) / 10.0;
+
+                // 72.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3voltage = ntohs(data->lu.data) / 10.0;
+
+                // 31.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1current = ntohs(data->lu.data) / 100.0;
+
+                // 51.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2current = ntohs(data->lu.data) / 100.0;
+
+                // 71.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3current = ntohs(data->lu.data) / 100.0;
+
+                listType = 4;
+                lastUpdateMillis = millis64();
+            } else if(data->base.length == 0x0F) {
+                idx = 1;
+
+                // 1.8.0 ?
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                // 1.8.1 ?
+                // 1.8.2 ?
+                idx += 2;
+
+                // 2.8.0 ?
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                // 2.8.1 ?
+                // 2.8.2 ?
+                idx += 2;
+
+                idx++; // Unknown empty octet string
+
+                CosemData* meterTs = getCosemDataAt(idx++, ((char *) (d)));
+                if(meterTs != NULL) {
+                    AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
+                    time_t ts = decodeCosemDateTime(amst->dt);
+                    meterTimestamp = ts;
+                }
+
+                // 2.7.0 ?
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportPower = ntohl(data->dlu.data);
+
+                // 1.7.0 ?
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportPower = ntohl(data->dlu.data);
+
+                // 31.7.0 ?
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1current = ntohs(data->lu.data) / 100.0;
+
+                // 51.7.0 ?
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2current = ntohs(data->lu.data) / 100.0;
+
+                // 71.7.0 ?
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3current = ntohs(data->lu.data) / 100.0;
+
+                // 32.7.0 ?
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1voltage = ntohs(data->lu.data) / 10.0;
+
+                // 72.7.0 ?
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3voltage = ntohs(data->lu.data) / 10.0;
+
+                // 52.7.0 missing?
+                l2voltage = sqrt(pow(l1voltage - l3voltage * cos(60 * (PI/180)), 2) + pow(l3voltage * sin(60 * (PI/180)),2));
+
+                listType = 3;
+                lastUpdateMillis = millis64();
+            } else {
+                idx = 5;
+
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+                }
+    
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+                }
+    
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
+                }
+    
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
+                }
+
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    activeImportPower = ntohl(data->dlu.data);
+                }
+
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data != NULL) {
+                    activeExportPower = ntohl(data->dlu.data);
+                }
+
+                uint8_t str_len = 0;
+                str_len = getString(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), ((char *) (d)), str);
+                if(str_len > 0) {
+                    meterId = String(str);
+                }
+
+                listType = 4;
+                lastUpdateMillis = millis64();
+            }
+        } else if(useMeterType == AmsTypeKaifa && data->base.type == CosemTypeDLongUnsigned) { // Kaifa special case
             listType = 1;
             meterType = AmsTypeKaifa;
             activeImportPower = ntohl(data->dlu.data);
             lastUpdateMillis = millis64();
-        } else if(data->base.type == CosemTypeOctetString) {
+        } else if(data->base.type == CosemTypeOctetString) { // Assuming first string is a list identifier
             memcpy(str, data->oct.data, data->oct.length);
             str[data->oct.length] = 0x00;
             String listId = String(str);
@@ -556,163 +749,42 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeExportCounter = ntohl(data->dlu.data) / 1000.0;
                 }
-            } else if(useMeterType == AmsTypeIskra && data->base.type == CosemTypeOctetString) { // Iskra special case
+            }
+        }
+        
+        if(meterType == AmsTypeUnknown && useMeterType == AmsTypeUnknown) {
+            debugger->println("AMS unknown meter type, trying to identify...");
+            CosemData* d1 = getCosemDataAt(1, ((char *) (d)));
+            CosemData* d2 = getCosemDataAt(2, ((char *) (d)));
+            CosemData* d3 = getCosemDataAt(3, ((char *) (d)));
+            CosemData* d7 = getCosemDataAt(7, ((char *) (d)));
+            CosemData* d8 = getCosemDataAt(8, ((char *) (d)));
+
+            if(d1->base.type == CosemTypeDLongUnsigned &&
+                d2->base.type == CosemTypeDLongUnsigned &&
+                d3->base.type == CosemTypeDLongUnsigned &&
+                d7->base.type == CosemTypeOctetString &&
+                d8->base.type == CosemTypeOctetString
+            ) {
                 meterType = AmsTypeIskra;
-
-                uint8_t idx = 0;
-                data = getCosemDataAt(idx, ((char *) (d)));
-                if(data->base.length == 0x21) {
-                    idx = 4;
-
-                    // 1.8.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    activeImportCounter = ntohl(data->dlu.data) / 1000.0;
-
-                    // 1.8.1
-                    // 1.8.2
-                    idx += 2;
-                    
-                    // 2.8.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    activeExportCounter = ntohl(data->dlu.data) / 1000.0;
-
-                    // 2.8.1
-                    // 2.8.2
-                    idx += 2;
-
-                    // 5.8.0
-                    // 6.8.0
-                    // 7.8.0
-                    // 8.8.0
-                    idx += 4;
-
-                    // 1.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    activeImportPower = ntohl(data->dlu.data);
-
-                    // 2.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    activeExportPower = ntohl(data->dlu.data);
-
-                    // 13.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    powerFactor= ntohl(data->dlu.data) / 1000.0;
-
-                    // 21.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l1activeImportPower = ntohl(data->dlu.data);
-
-                    // 41.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l2activeImportPower = ntohl(data->dlu.data);
-
-                    // 61.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l3activeImportPower = ntohl(data->dlu.data);
-
-                    // 22.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l1activeExportPower = ntohl(data->dlu.data);
-
-                    // 42.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l2activeExportPower = ntohl(data->dlu.data);
-
-                    // 62.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l3activeExportPower = ntohl(data->dlu.data);
-
-                    // 32.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l1voltage = ntohs(data->lu.data) / 10.0;
-
-                    // 52.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l2voltage = ntohs(data->lu.data) / 10.0;
-
-                    // 72.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l3voltage = ntohs(data->lu.data) / 10.0;
-
-                    // 31.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l1current = ntohs(data->lu.data) / 100.0;
-
-                    // 51.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l2current = ntohs(data->lu.data) / 100.0;
-
-                    // 71.7.0
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    l3current = ntohs(data->lu.data) / 100.0;
-
-                    listType = 4;
-                    lastUpdateMillis = millis64();
-                } else {
-                    idx = 5;
-
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    if(data != NULL) {
-                        activeImportCounter = ntohl(data->dlu.data) / 1000.0;
-                    }
-        
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    if(data != NULL) {
-                        activeExportCounter = ntohl(data->dlu.data) / 1000.0;
-                    }
-        
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    if(data != NULL) {
-                        reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
-                    }
-        
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    if(data != NULL) {
-                        reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
-                    }
-
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    if(data != NULL) {
-                        activeImportPower = ntohl(data->dlu.data);
-                    }
-
-                    data = getCosemDataAt(idx++, ((char *) (d)));
-                    if(data != NULL) {
-                        activeExportPower = ntohl(data->dlu.data);
-                    }
-
-                    uint8_t str_len = 0;
-                    str_len = getString(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), ((char *) (d)), str);
-                    if(str_len > 0) {
-                        meterId = String(str);
-                    }
-
-                    listType = 4;
-                    lastUpdateMillis = millis64();
-                }
-            } else if(useMeterType == AmsTypeUnknown) {
-                uint8_t idx = 1;
-                CosemData* d1 = getCosemDataAt(idx++, ((char *) (d)));
-                CosemData* d2 = getCosemDataAt(idx++, ((char *) (d)));
-                CosemData* d3 = getCosemDataAt(idx++, ((char *) (d)));
-
-                if(d1->base.type == CosemTypeOctetString && d2->base.type == CosemTypeOctetString && d3->base.type == CosemTypeOctetString) {
+                lastUpdateMillis = millis64();
+                listType = 3;
+            } else if(d1->base.type == CosemTypeOctetString && d2->base.type == CosemTypeOctetString && d3->base.type == CosemTypeOctetString) {
+                meterType = AmsTypeIskra;
+                lastUpdateMillis = millis64();
+                listType = 3;
+            } else {
+                uint8_t str_len = 0;
+                str_len = getString(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), ((char *) (d)), str);
+                if(str_len > 0) {
                     meterType = AmsTypeIskra;
+                    meterId = String(str);
                     lastUpdateMillis = millis64();
                     listType = 3;
-                } else {
-                    uint8_t str_len = 0;
-                    str_len = getString(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), ((char *) (d)), str);
-                    if(str_len > 0) {
-                        meterType = AmsTypeIskra;
-                        meterId = String(str);
-                        lastUpdateMillis = millis64();
-                        listType = 3;
-                    }
                 }
             }
         }
-    } else {
+    } else { // OBIS code parsing
         listType = 1;
         activeImportPower = val;
 

@@ -45,6 +45,7 @@ public:
     bool applyBoardConfig(uint8_t boardType, GpioConfig& gpioConfig, MeterConfig& meterConfig, uint8_t hanPin);
     void setup(SystemConfig* sys, GpioConfig* gpio);
     float getVcc();
+    void setMaxVcc(float maxVcc);
     uint8_t getTempSensorCount();
     TempSensorData* getTempSensorData(uint8_t);
     bool updateTemperatures();
@@ -68,7 +69,7 @@ private:
     uint8_t vccPin, vccGnd_r, vccVcc_r;
     float vccOffset, vccMultiplier;
     float vcc = 3.3; // Last known Vcc
-    float maxVcc = 3.25; // Best to have this close to max as a start, in case Pow-U reboots and starts off with a low voltage, we dont want that to be perceived as max
+    float maxVcc = 3.28; // Best to have this close to max as a start, in case Pow-U reboots and starts off with a low voltage, we dont want that to be perceived as max
     unsigned long lastVccRead = 0;
 
     uint16_t analogRange = 1024;

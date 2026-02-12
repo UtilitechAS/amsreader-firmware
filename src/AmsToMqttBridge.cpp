@@ -190,10 +190,15 @@ CloudConnector *cloud = NULL;
 #if defined(ZMART_CHARGE)
 ZmartChargeCloudConnector *zcloud = NULL;
 #endif
+
+#define MAX_BOOT_CYCLES 6
+
 #if defined(ESP32)
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
+RTC_DATA_ATTR uint8_t bootcount = 0;
 #else
 EnergyAccountingRealtimeData rtd;
+uint8_t bootcount = 0;
 #endif
 EnergyAccounting ea(&Debug, &rtd);
 
@@ -326,6 +331,31 @@ void rxerr(int err) {
 }
 #endif
 
+uint8_t incrementBootCycleCounter(bool deepSleep) {
+	#if defined(ESP8266)
+		if(deepSleep) {
+			if(ESP.rtcUserMemoryRead(0, &bootcount, sizeof(bootcount))) {
+				bootcount++;
+				ESP.rtcUserMemoryWrite(0, &bootcount, sizeof(bootcount));
+			}
+			return bootcount;
+		} else {
+			return ++bootcount;
+		}
+	#else
+		return ++bootcount;
+	#endif
+}
+void resetBootCycleCounter(bool deepSleep) {
+	#if defined(ESP8266)
+		bootcount = 0;
+		if(deepSleep) {
+			ESP.rtcUserMemoryWrite(0, &bootcount, sizeof(bootcount));
+		}
+	#else
+		bootcount = 0;
+	#endif
+}
 
 void setup() {
 	Serial.begin(115200);
@@ -380,20 +410,6 @@ void setup() {
 		}
 	}
 
-	hw.ledBlink(LED_INTERNAL, 1);
-	hw.ledBlink(LED_RED, 1);
-	hw.ledBlink(LED_YELLOW, 1);
-	hw.ledBlink(LED_GREEN, 1);
-	hw.ledBlink(LED_BLUE, 1);
-
-	PriceServiceConfig price;
-	if(config.getPriceServiceConfig(price)) {
-		ps = new PriceService(&Debug);
-		ps->setup(price);
-		ws.setPriceService(ps);
-	}
-	ws.setPriceSettings(price.area, price.currency);
-	ea.setCurrency(price.currency);
 	bool shared = false;
 	Serial.flush();
 	Serial.end();
@@ -443,20 +459,46 @@ void setup() {
 
 	float vcc = hw.getVcc();
 
+	if(!hw.ledOn(LED_YELLOW)) {
+		hw.ledOn(LED_INTERNAL);
+	}
 	debugI_P(PSTR("AMS reader %s started"), FirmwareVersion::VersionString);
 	debugI_P(PSTR("Configuration version: %d, board type: %d"), config.getConfigVersion(), sysConfig.boardType);
 	debugI_P(PSTR("Voltage: %.2fV"), vcc);
 
-	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
-	if(vcc > 2.5 && vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
-		if (vcc < vccBootLimit) {
-			{
-				Debug.printf_P(PSTR("(setup) Voltage is too low (%.2f < %.2f), sleeping\n"), vcc, vccBootLimit);
+	bool deepSleep = true;
+	#if defined(ESP32)
+	float allowedDrift = bootcount * 0.01;
+	#else
+	float allowedDrift = gpioConfig.vccBootLimit == 0 ? 0.05 : 3.3 - min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure boot limit is never above 3.3v
+	deepSleep = gpioConfig.vccBootLimit > 0; // If a boot limit is set, we are assume the hardware has been configured for deep sleep (Hint: GPIO16)
+	#endif
+	while(!hw.isVoltageOptimal(allowedDrift)) {
+		uint8_t bootCycles = incrementBootCycleCounter(deepSleep);
+		debugW_P(PSTR("Voltage is outside optimal range (%.2fV)"), allowedDrift);
+		if(gpioConfig.apPin != 0xFF && digitalRead(gpioConfig.apPin) == LOW) {
+			debugW_P(PSTR("AP button is pressed, skipping voltage wait"));
+		} else if(bootCycles < MAX_BOOT_CYCLES) {
+			int secs = MAX_BOOT_CYCLES - bootCycles;
+			if(deepSleep) {
+				debugI_P(PSTR("Sleeping for %d seconds to allow capacitor charge (%d.cycle)"), secs, bootCycles);
 				Serial.flush();
+				ESP.deepSleep(secs * 1000000); // Deep sleep to allow output cap to charge up
+				return;
+			} else {
+				debugI_P(PSTR("Waiting (no sleep) for %d seconds to allow capacitor charge (%d.cycle)"), secs, bootCycles);
+				delay(secs * 1000); // Just delay to allow output cap to charge up
 			}
-			ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
-		}  
+		} else {
+			debugE_P(PSTR("Voltage not reaching optimal level after multiple attempts, continuing boot"));
+			hw.setMaxVcc(vcc); // Since we had to sleep, set max Vcc to current level because this is probably the highest we will get
+		}
 	}
+	#if defined(ESP8266)
+	resetBootCycleCounter(deepSleep);
+	#endif
+	hw.ledOff(LED_YELLOW);
+	hw.ledOff(LED_INTERNAL);
 
 	if(!hw.ledOn(LED_GREEN)) {
 		hw.ledOn(LED_INTERNAL);
@@ -471,6 +513,12 @@ void setup() {
 	#endif
 	hw.ledOff(LED_GREEN);
 	hw.ledOff(LED_INTERNAL);
+
+	hw.ledBlink(LED_INTERNAL, 1);
+	hw.ledBlink(LED_RED, 1);
+	hw.ledBlink(LED_YELLOW, 1);
+	hw.ledBlink(LED_GREEN, 1);
+	hw.ledBlink(LED_BLUE, 1);
 
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
@@ -536,6 +584,15 @@ void setup() {
 		debugI_P(PSTR("No configuration, booting AP"));
 		toggleSetupMode();
 	}
+
+	PriceServiceConfig price;
+	if(config.getPriceServiceConfig(price)) {
+		ps = new PriceService(&Debug);
+		ps->setup(price);
+		ws.setPriceService(ps);
+	}
+	ws.setPriceSettings(price.area, price.currency);
+	ea.setCurrency(price.currency);
 
 	EnergyAccountingConfig *eac = new EnergyAccountingConfig();
 	if(!config.getEnergyAccountingConfig(*eac)) {
@@ -633,7 +690,12 @@ void loop() {
 						handleEnergySpeedometer();
 					#endif
 				#endif
-				handlePriceService(now);
+
+				// In case of BUS powered meters, we need to be sure voltage is stable before fetching prices. But we refuse to wait forever, so max 30 seconds
+				if(now > 30000 || hw.isVoltageOptimal(0.01)) {
+					handlePriceService(now);
+				}
+
 				#if defined(AMS_CLOUD)
 					handleCloud();
 				#endif

@@ -582,6 +582,8 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         double obis182 = ntohl(data->dlu.data) / 1000.0;
 
+                        activeImportCounterTariff1 = obis181;
+                        activeImportCounterTariff2 = obis182;
                         if(activeImportCounter < obis181 + obis182)
                             activeImportCounter = obis181 + obis182;
 
@@ -593,6 +595,8 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         double obis282 = ntohl(data->dlu.data) / 1000.0;
 
+                        activeExportCounterTariff1 = obis281;
+                        activeExportCounterTariff2 = obis282;
                         if(activeExportCounter < obis281 + obis282)
                             activeExportCounter = obis281 + obis282;
 

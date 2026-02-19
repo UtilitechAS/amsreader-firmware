@@ -1,7 +1,7 @@
 {
     "version": "%s",
     "chip": "%s",
-    "chipId": "%s",
+    "chipId": "%06x",
     "cpu": %d,
     "mac": "%s",
     "apmac": "%s",

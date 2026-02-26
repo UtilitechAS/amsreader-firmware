@@ -378,6 +378,10 @@ void setup() {
 
 	delay(1);
 	hw.setup(&sysConfig, &gpioConfig);
+	hw.ledOff(LED_INTERNAL);
+	hw.ledOff(LED_RED);
+	hw.ledOff(LED_GREEN);
+	hw.ledOff(LED_BLUE);
 
 	if(gpioConfig.apPin >= 0) {
 		pinMode(gpioConfig.apPin, INPUT_PULLUP);

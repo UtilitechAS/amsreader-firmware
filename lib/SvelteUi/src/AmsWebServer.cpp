@@ -137,6 +137,8 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/cloudkey.json"), HTTP_GET, std::bind(&AmsWebServer::cloudkeyJson, this));
 
 	server.on(context + F("/wifiscan.json"), HTTP_GET, std::bind(&AmsWebServer::wifiScan, this));
+	server.on(context + F("/wifitest.json"), HTTP_POST, std::bind(&AmsWebServer::wifiTestStart, this));
+	server.on(context + F("/wifitest.json"), HTTP_GET, std::bind(&AmsWebServer::wifiTestStatus, this));
 
 	server.on(context + F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 	server.on(context + F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
@@ -2922,6 +2924,49 @@ void AmsWebServer::wifiScan() {
 	pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("]}"));
 	WiFi.scanDelete();
 
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
+}
+
+void AmsWebServer::wifiTestStart() {
+	if(!checkSecurity(1))
+		return;
+	
+	if(WiFi.getMode() == WIFI_AP_STA) {
+		wifiTestStarted = millis();
+		String ssid = server.arg(F("ssid"));
+		String psk = server.arg(F("psk"));
+		WiFi.begin(ssid, psk);
+		wifiTestInProgress = true;
+		wifiTestStatusCode = 0;
+	}
+	wifiTestStatus();
+}
+
+void AmsWebServer::wifiTestStatus() {
+	if(!checkSecurity(1))
+		return;
+	
+	if(wifiTestInProgress) {
+		wifiTestStatusCode = WiFi.status();
+		if(wifiTestStatusCode == WL_DISCONNECTED) { // Still trying to connect
+			if(millis() - wifiTestStarted > WIFI_TEST_TIMEOUT) {
+				wifiTestInProgress = false;
+				wifiTestStatusCode = 99; // Custom code for timeout
+			}
+		} else {
+			wifiTestInProgress = false;
+		}
+	}
+
+	wifi_config_t conf;
+    esp_wifi_get_config((wifi_interface_t)ESP_IF_WIFI_STA, &conf);
+
+	snprintf_P(buf, BufferSize, PSTR("{\"ssid\":\"%s\",\"status\":%d,\"time\":%lu,\"ip\":\"%s\"}"), conf.sta.ssid, wifiTestStatusCode, wifiTestInProgress ? millis() - wifiTestStarted : 0, WiFi.localIP().toString().c_str());
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);

@@ -30,6 +30,7 @@ ADC_MODE(ADC_VCC);
 #include "ZmartChargeCloudConnector.h"
 #endif
 
+#define MAX_BOOT_CYCLES 8
 #define WDT_TIMEOUT 120
 #if defined(SLOW_PROC_TRIGGER_MS)
 	#warning "Using predefined slow process trigger"
@@ -190,8 +191,6 @@ CloudConnector *cloud = NULL;
 #if defined(ZMART_CHARGE)
 ZmartChargeCloudConnector *zcloud = NULL;
 #endif
-
-#define MAX_BOOT_CYCLES 6
 
 #if defined(ESP32)
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;

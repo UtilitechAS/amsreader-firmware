@@ -61,14 +61,6 @@ AmsWebServer::AmsWebServer(uint8_t* buf, Stream* Debug, HwTools* hw, ResetDataCo
 	this->hw = hw;
 	this->buf = (char*) buf;
 	this->rdc = rdc;
-	if(rdc->magic != 0x4a) {
-		rdc->last_cause = 0;
-		rdc->cause = 0;
-		rdc->magic = 0x4a;
-	} else {
-		rdc->last_cause = rdc->cause;
-		rdc->cause = 0;
-	}
 }
 
 void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea, RealtimePlot* rtp, AmsFirmwareUpdater* updater) {

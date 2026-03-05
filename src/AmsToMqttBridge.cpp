@@ -311,7 +311,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			debugI_P(PSTR("SmartConfig got config"));
 			break;
 		default:
-			debugD_P(PSTR("WiFi event: %d"), event);
+			debugD_P(PSTR("WiFi event: %s"), WiFi.eventName(event));
 			break;
 	}
 }

@@ -93,7 +93,7 @@
                     s.net.ip = res.ip;
                     return s;
                 });
-                handleSubmit();
+                setTimeout(handleSubmit, 1000);
             }
         } else if(wifiTestInProgress) {
             if(res.time > 30000) {
@@ -102,6 +102,17 @@
             } else {
                 setTimeout(wifiTest, 2000);
             }
+        }
+    }
+
+    async function toggleShowPass() {
+        const input = form.querySelector('input[name="sp"]');
+        if(input.type === 'password') {
+            input.type = 'text';
+            this.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            this.textContent = '👁️';
         }
     }
 </script>
@@ -144,7 +155,10 @@
                 </div>
                 <div class="my-3">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>
-                    <input name="sp" bind:value={psk} type="password" pattern={asciiPatternExt} class="in-s" autocomplete="off" required={connectionMode == 2}/>
+                    <div class="flex">
+                        <input name="sp" bind:value={psk} on:input={() => wifiTestError = 0} type="password" pattern={asciiPatternExt} class="in-f w-full" autocomplete="off" required={connectionMode == 2}/>
+                        <span on:click={toggleShowPass} class="in-post link">👁️</span>
+                    </div>
                 </div>
             {/if}
             <div>

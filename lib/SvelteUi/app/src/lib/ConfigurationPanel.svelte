@@ -8,7 +8,7 @@
     import Mask from './Mask.svelte'
     import Badge from './Badge.svelte';
     import CountrySelectOptions from './CountrySelectOptions.svelte';
-    import { Link, navigate } from 'svelte-navigator';
+    import { push } from 'svelte-spa-router';
     import SubnetOptions from './SubnetOptions.svelte';
     import QrCode from 'svelte-qrcode';
 
@@ -150,7 +150,7 @@
         });
 
         saving = false;
-        navigate(basepath);
+        push(basepath);
 	}
 
     async function reboot() {
@@ -336,7 +336,7 @@
                 </div>
             </div>
             <div class="my-1">
-                <Link to="/priceconfig" class="text-blue-600 hover:text-blue-800">{translations.conf?.price?.conf ?? "Configure"}</Link>
+                <a href="#/priceconfig" class="text-blue-600 hover:text-blue-800">{translations.conf?.price?.conf ?? "Configure"}</a>
             </div>
             <div class="my-1">
                 <label><input type="checkbox" name="pe" value="true" bind:checked={configuration.p.e} class="rounded mb-1"/> {translations.conf?.price?.enabled ?? "Enabled"}</label>
@@ -603,28 +603,28 @@
             <div class="my-1 flex">
                 <span class="flex pr-2">
                     {#if configuration.q.s.c}
-                    <span class="bd-on"><Link to="/mqtt-ca">{translations.conf?.mqtt?.ca_ok ?? "CA OK"}</Link></span>
+                    <span class="bd-on"><a href="#/mqtt-ca">{translations.conf?.mqtt?.ca_ok ?? "CA OK"}</a></span>
                     <span class="bd-off"  on:click={askDeleteCa} on:keypress={askDeleteCa}>&#128465;</span>
                     {:else}
-                    <Link to="/mqtt-ca"><Badge color="blue" text={translations.conf?.mqtt?.btn_ca_upload ?? "Upload CA"} title={translations.conf?.mqtt?.title_ca ?? ""}/></Link>
+                    <a href="#/mqtt-ca"><Badge color="blue" text={translations.conf?.mqtt?.btn_ca_upload ?? "Upload CA"} title={translations.conf?.mqtt?.title_ca ?? ""}/></a>
                     {/if}
                 </span>
 
                 <span class="flex pr-2">
                     {#if configuration.q.s.r}
-                    <span class="bd-on"><Link to="/mqtt-cert">{translations.conf?.mqtt?.crt_ok ?? "Cert OK"}</Link></span>
+                    <span class="bd-on"><a href="#/mqtt-cert">{translations.conf?.mqtt?.crt_ok ?? "Cert OK"}</a></span>
                     <span class="bd-off" on:click={askDeleteCert} on:keypress={askDeleteCert}>&#128465;</span>
                     {:else}
-                    <Link to="/mqtt-cert"><Badge color="blue" text={translations.conf?.mqtt?.btn_crt_upload ?? "Upload cert"} title={translations.conf?.mqtt?.title_crt ?? ""}/></Link>
+                    <a href="#/mqtt-cert"><Badge color="blue" text={translations.conf?.mqtt?.btn_crt_upload ?? "Upload cert"} title={translations.conf?.mqtt?.title_crt ?? ""}/></a>
                     {/if}
                 </span>
 
                 <span class="flex pr-2">
                     {#if configuration.q.s.k}
-                    <span class="bd-on"><Link to="/mqtt-key">{translations.conf?.mqtt?.key_ok ?? "Key OK"}</Link></span>
+                    <span class="bd-on"><a href="#/mqtt-key">{translations.conf?.mqtt?.key_ok ?? "Key OK"}</a></span>
                     <span class="bd-off" on:click={askDeleteKey} on:keypress={askDeleteKey}>&#128465;</span>
                     {:else}
-                    <Link to="/mqtt-key"><Badge color="blue" text={translations.conf?.mqtt?.btn_key_upload ?? "Upload key"} title={translations.conf?.mqtt?.title_key ?? ""}/></Link>
+                    <a href="#/mqtt-key"><Badge color="blue" text={translations.conf?.mqtt?.btn_key_upload ?? "Upload key"} title={translations.conf?.mqtt?.title_key ?? ""}/></a>
                     {/if}
                 </span>
             </div>

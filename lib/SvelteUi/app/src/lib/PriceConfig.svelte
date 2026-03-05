@@ -3,7 +3,7 @@
     import { translationsStore } from './TranslationService';
     import { wiki, zeropad } from './Helpers.js';
     import Mask from './Mask.svelte'
-    import {  navigate } from 'svelte-navigator';
+    import { push } from 'svelte-spa-router';
 
     export let basepath = "/";
 
@@ -53,7 +53,7 @@
         let res = (await response.json())
 
         saving = false;
-        navigate(basepath + "configuration");
+        push("/configuration");
 	}
 
     let toggleDay = function(arr, day) {

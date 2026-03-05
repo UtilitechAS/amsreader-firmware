@@ -3,7 +3,7 @@
     import BoardTypeSelectOptions from './BoardTypeSelectOptions.svelte';
     import UartSelectOptions from './UartSelectOptions.svelte';
     import Mask from './Mask.svelte'
-    import { navigate } from 'svelte-navigator';
+    import { push } from 'svelte-spa-router';
 
     export let basepath = "/";
     export let sysinfo = {};
@@ -32,7 +32,7 @@
 
             return s;
         });
-        navigate(basepath + (sysinfo.usrcfg ? "" : "setup"));
+        push(sysinfo.usrcfg ? "/" : "/setup");
 	}
 
     let cc = true;

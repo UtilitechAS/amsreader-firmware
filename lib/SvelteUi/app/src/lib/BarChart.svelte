@@ -1,5 +1,4 @@
 <script>
-    import { Link } from "svelte-navigator";
 	import { tooltip } from './tooltip';
 
     export let config;
@@ -47,7 +46,7 @@
             {#if config.link}
                 <div class="text-xs text-right">
                     {#if config.link.route}
-                        <Link to={config.link.url}>{config.link.text}</Link>
+                        <a href={"#" + config.link.url}>{config.link.text}</a>
                     {:else}
                         <a href={config.link.url} target={config.link.target}>{config.link.text}</a>
                     {/if}

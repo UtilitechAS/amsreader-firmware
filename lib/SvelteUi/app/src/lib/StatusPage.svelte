@@ -3,7 +3,6 @@
     import { getSysinfo, sysinfoStore } from './DataStores.js';
     import { upgrade, upgradeWarningText } from './UpgradeHelper';
     import { translationsStore } from './TranslationService.js';
-    import { Link } from 'svelte-navigator';
     import Clock from './Clock.svelte';
     import Mask from './Mask.svelte';
     import { scanForDevice } from './Helpers.js';
@@ -73,11 +72,11 @@
     }
 
     let firmwareFileInput;
-    let firmwareFiles = [];
+    let firmwareFiles = null;
     let firmwareUploading = false;
 
     let configFileInput;
-    let configFiles = [];
+    let configFiles = null;
     let configUploading = false;
 
     getSysinfo();
@@ -119,7 +118,7 @@
     };
 
     $: {
-        if(configFiles.length == 1) {
+        if(configFiles && configFiles.length == 1) {
             let file = configFiles[0];
             let reader = new FileReader();
             let parseConfigFile = ( e ) => {
@@ -146,7 +145,7 @@
             {translations.status?.device?.chip ?? "Chip"}: {sysinfo.chip} {#if sysinfo.cpu}({sysinfo.cpu}MHz){/if}
         </div>
         <div class="my-2">
-            {translations.status?.device?.device ?? "Device"}: <Link to="/vendor">{boardtype(sysinfo.chip, sysinfo.board)}</Link>
+            {translations.status?.device?.device ?? "Device"}: <a href="#/vendor">{boardtype(sysinfo.chip, sysinfo.board)}</a>
         </div>
         <div class="my-2">
             {translations.status?.device?.mac ?? "MAC"}: {sysinfo.mac}
@@ -169,9 +168,9 @@
         {/if}
         {#if data?.a}
         <div class="my-2">
-            <Link to="/consent">
+            <a href="#/consent">
                 <span class="btn-pri-sm">{translations.status?.device?.btn_consents ?? "Consents"}</span>
-            </Link>
+            </a>
             <button on:click={askReboot} class="btn-yellow-sm float-right">{translations.btn?.reboot ?? "Reboot"}</button>
         </div>
         {/if}
@@ -267,7 +266,7 @@
             <div class="my-2 flex">
                 <form action="firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true} autocomplete="off">
                     <input style="display:none" name="file" type="file" accept=".bin" bind:this={firmwareFileInput} bind:files={firmwareFiles}>
-                    {#if firmwareFiles.length == 0}
+                    {#if !firmwareFiles || firmwareFiles.length == 0}
                     <button type="button" on:click={()=>{firmwareFileInput.click();}} class="btn-pri-sm float-right">{translations.status?.firmware?.btn_select_file ?? "Select file"}</button>
                     {:else}
                     {firmwareFiles[0].name}
@@ -287,13 +286,13 @@
                 {/each}
                 <label class="my-1 mx-3 col-span-2"><input type="checkbox" class="rounded" name="ic" value="true"/> {translations.status?.backup?.secrets ?? "Include secrets"}<br/><small>{translations.status?.backup?.secrets_desc ?? ""}</small></label>
             </div>
-            {#if configFiles.length == 0}
+            {#if !configFiles || configFiles.length == 0}
             <button type="submit" class="btn-pri-sm float-right">{translations.status?.backup?.btn_download ?? "Download"}</button>
             {/if}
         </form>
         <form on:submit|preventDefault={uploadConfigFile} autocomplete="off">
             <input style="display:none" name="file" type="file" accept=".cfg" bind:this={configFileInput} bind:files={configFiles}>
-            {#if configFiles.length == 0}
+            {#if !configFiles || configFiles.length == 0}
             <button type="button" on:click={()=>{configFileInput.click();}} class="btn-pri-sm">{translations.status?.backup?.btn_select_file ?? "Select file"}</button>
             {:else}
             {configFiles[0].name}

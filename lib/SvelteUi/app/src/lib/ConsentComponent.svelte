@@ -2,7 +2,7 @@
     import { sysinfoStore } from './DataStores.js';
     import { translationsStore } from './TranslationService.js';
     import Mask from './Mask.svelte'
-    import { navigate } from 'svelte-navigator';
+    import { push } from 'svelte-spa-router';
     import { wiki } from './Helpers';
 
     export let basepath = "/";
@@ -36,7 +36,7 @@
             s.booting = res.reboot;
             return s;
         });
-        navigate(basepath);
+        push(basepath);
     }
 </script>
 

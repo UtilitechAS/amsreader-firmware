@@ -1,9 +1,8 @@
 <script>
   import Router from "svelte-spa-router";
   import { push } from "svelte-spa-router";
-  import { getTariff, tariffStore, sysinfoStore, dataStore, importPricesStore, exportPricesStore, dayPlotStore, monthPlotStore, temperaturesStore, getSysinfo } from './lib/DataStores.js';
+  import { getTariff, sysinfoStore, dataStore, getSysinfo } from './lib/DataStores.js';
   import { translationsStore, getTranslations } from "./lib/TranslationService.js";
-  import Favicon from './assets/favicon.svg'; // Need this for the build
   import Header from './lib/Header.svelte';
   import DashboardRoute from './routes/DashboardRoute.svelte';
   import ConfigurationRoute from './routes/ConfigurationRoute.svelte';
@@ -22,31 +21,6 @@
   
   let basepath = document.getElementsByTagName('base')[0].getAttribute("href");
   if(!basepath) basepath = "/";
-
-  let importPrices;
-  importPricesStore.subscribe(update => {
-      importPrices = update;
-  });
-
-  let exportPrices;
-  exportPricesStore.subscribe(update => {
-      exportPrices = update;
-  });
-
-  let dayPlot;
-  dayPlotStore.subscribe(update => {
-      dayPlot = update;
-  });
-
-  let monthPlot;
-  monthPlotStore.subscribe(update => {
-      monthPlot = update;
-  });
-
-  let temperatures;
-  temperaturesStore.subscribe(update => {
-      temperatures = update;
-  });
 
   let translations = {};
   translationsStore.subscribe(update => {
@@ -98,10 +72,6 @@
     updateRealtime(update);
   });
 
-  let tariffData = {};
-  tariffStore.subscribe(update => {
-    tariffData = update;
-  });
   getTariff();
 </script>
 

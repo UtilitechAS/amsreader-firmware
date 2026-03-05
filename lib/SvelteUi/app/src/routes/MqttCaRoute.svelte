@@ -1,5 +1,25 @@
 <script>
-  import FileUploadComponent from '../lib/FileUploadComponent.svelte';
+    import Mask from "../lib/Mask.svelte";
+    import { translationsStore } from "../lib/TranslationService";
+
+    let translations = {};
+    translationsStore.subscribe(update => {
+      translations = update;
+    });
+
+    let uploading = false;
 </script>
 
-<FileUploadComponent title="CA" action="/mqtt-ca" />
+<div class="grid xl:grid-cols-4 lg:grid-cols-2 md:grid-cols-2">
+    <div class="cnt">
+        <strong>{translations.upload?.title ?? "Upload"} CA</strong>
+        <p class="mb-4">{translations.upload?.desc ?? ""}</p>
+        <form action="/mqtt-ca" enctype="multipart/form-data" method="post" on:submit={() => uploading=true} autocomplete="off">
+            <input name="file" type="file">
+            <div class="w-full text-right mt-4">
+                <button type="submit" class="btn-pri">{translations.btn?.upload ?? "Upload"}</button>
+            </div>
+        </form>
+    </div>
+</div>
+<Mask active={uploading} message={translations.upload?.mask ?? "Uploading"}/>

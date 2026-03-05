@@ -59,11 +59,6 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
       - name: Post PR comment with download links
         uses: actions/github-script@v7
         with:
@@ -73,19 +68,29 @@ jobs:
             const runId = context.runId;
             const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
 
+            // Fetch the list of artifacts for this run via the API
+            const artifactsResp = await github.rest.actions.listWorkflowRunArtifacts({ owner, repo, run_id: runId });
+            const artifacts = artifactsResp.data.artifacts;
+
             const envs = ['esp32s2', 'esp32s3', 'esp32c3', 'esp32', 'esp32solo', 'esp8266'];
-            const lines = envs.map(env =>
-              `- **${env}**: [${env}.zip](${runUrl}/artifacts) (see artifacts on the [workflow run](${runUrl}))`
-            );
+            const lines = envs.map(env => {
+              const artifact = artifacts.find(a => a.name === env);
+              if (artifact) {
+                // The artifact download page URL - directly navigable in the browser
+                const artifactUrl = `${runUrl}#artifacts-${env}`;
+                return `- **${env}**: [Download ${env}.zip](https://github.com/${owner}/${repo}/actions/runs/${runId}/artifacts/${artifact.id})`;
+              }
+              return `- **${env}**: ⚠️ artifact not found`;
+            });
 
             const body = [
               '## 🔧 PR Build Artifacts',
               '',
-              'All environments built successfully. Download the zip files from the workflow run artifacts:',
+              'All environments built successfully. Download the zip files:',
               '',
               ...lines,
               '',
-              `> [View all artifacts on the workflow run](${runUrl})`,
+              `> Artifacts expire after 7 days. [View workflow run](${runUrl})`,
             ].join('\n');
 
             // Find and delete any previous bot comment to keep the PR clean

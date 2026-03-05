@@ -67,6 +67,10 @@ jobs:
             const prNumber = context.payload.pull_request.number;
             const runId = context.runId;
             const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+            
+            // Get the commit SHA (short version)
+            const sha = context.payload.pull_request.head.sha;
+            const shortSha = sha.substring(0, 7);
 
             // Fetch the list of artifacts for this run via the API
             const artifactsResp = await github.rest.actions.listWorkflowRunArtifacts({ owner, repo, run_id: runId });
@@ -85,6 +89,8 @@ jobs:
 
             const body = [
               '## 🔧 PR Build Artifacts',
+              '',
+              `**Version**: \`${shortSha}\``,
               '',
               'All environments built successfully. Download the zip files:',
               '',

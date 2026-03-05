@@ -1463,7 +1463,13 @@ void toggleSetupMode() {
 			// If not vendor configured, use a unique SSID to avoid conflicts if multiple devices are in setup mode at the same time
 			config.getUniqueName(ssid, 32);
 		}
+		uint8_t debugLevel = RemoteDebug::INFO;
+		#if defined(DEBUG_MODE)
+			debugLevel = RemoteDebug::VERBOSE;
+		#endif
 		WiFi.softAP(ssid);
+		Debug.setSerialEnabled(true);
+		Debug.begin(F("192.168.4.1"), 23, debugLevel);
 		debugI_P(PSTR("SSID: %s"), ssid);
 
 		if(dnsServer == NULL) {
@@ -1471,10 +1477,6 @@ void toggleSetupMode() {
 		}
 		dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
 		dnsServer->start(53, PSTR("*"), WiFi.softAPIP());
-		#if defined(DEBUG_MODE)
-			Debug.setSerialEnabled(true);
-			Debug.begin(F("192.168.4.1"), 23, RemoteDebug::VERBOSE);
-		#endif
 		setupMode = true;
 
 		hw.setBootSuccessful(false);

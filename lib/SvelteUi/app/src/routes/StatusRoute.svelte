@@ -6,13 +6,65 @@
     import Clock from '../lib/Clock.svelte';
     import Mask from '../lib/Mask.svelte';
     import { scanForDevice } from '../lib/Helpers.js';
-    import ipaddr from 'ipaddr.js';
   
     let data;
     let sysinfo;
 
     dataStore.subscribe(v => data = v);
     sysinfoStore.subscribe(v => sysinfo = v);
+
+    // Format IPv6 address to compact form (RFC 5952)
+    const formatIPv6 = (addr) => {
+        if (!addr) return addr;
+        
+        // Split into groups
+        const groups = addr.toLowerCase().split(':');
+        
+        // Remove leading zeros from each group
+        const normalized = groups.map(g => g.replace(/^0+/, '') || '0');
+        
+        // Find longest sequence of consecutive zeros
+        let maxStart = -1, maxLen = 0;
+        let currStart = -1, currLen = 0;
+        
+        for (let i = 0; i < normalized.length; i++) {
+            if (normalized[i] === '0') {
+                if (currStart === -1) currStart = i;
+                currLen++;
+            } else {
+                if (currLen > maxLen) {
+                    maxStart = currStart;
+                    maxLen = currLen;
+                }
+                currStart = -1;
+                currLen = 0;
+            }
+        }
+        
+        // Check final sequence
+        if (currLen > maxLen) {
+            maxStart = currStart;
+            maxLen = currLen;
+        }
+        
+        // Only compress if we have 2 or more consecutive zeros
+        if (maxLen > 1) {
+            const before = normalized.slice(0, maxStart);
+            const after = normalized.slice(maxStart + maxLen);
+            
+            if (before.length === 0 && after.length === 0) {
+                return '::';
+            } else if (before.length === 0) {
+                return '::' + after.join(':');
+            } else if (after.length === 0) {
+                return before.join(':') + '::';
+            } else {
+                return before.join(':') + '::' + after.join(':');
+            }
+        }
+        
+        return normalized.join(':');
+    };
 
     let cfgItems = [{
         name: 'WiFi',
@@ -210,11 +262,11 @@
         </div>
         {#if sysinfo.net.ipv6}
             <div class="my-2">
-                IPv6: <span style="font-size: 14px;">{ipaddr.parse(sysinfo.net.ipv6)}</span>
+                IPv6: <span style="font-size: 14px;">{formatIPv6(sysinfo.net.ipv6)}</span>
             </div>
             <div class="my-2">
-                {#if sysinfo.net.dns1v6}DNSv6: <span style="font-size: 14px;">{ipaddr.parse(sysinfo.net.dns1v6)}</span>{/if}
-                {#if sysinfo.net.dns2v6}DNSv6: <span style="font-size: 14px;">{ipaddr.parse(sysinfo.net.dns2v6)}</span>{/if}
+                {#if sysinfo.net.dns1v6}DNSv6: <span style="font-size: 14px;">{formatIPv6(sysinfo.net.dns1v6)}</span>{/if}
+                {#if sysinfo.net.dns2v6}DNSv6: <span style="font-size: 14px;">{formatIPv6(sysinfo.net.dns2v6)}</span>{/if}
             </div>
         {/if}
     </div>

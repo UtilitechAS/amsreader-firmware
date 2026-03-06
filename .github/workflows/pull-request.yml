@@ -1,0 +1,110 @@
+name: Pull Request build
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  build-esp32s2:
+    uses: ./.github/workflows/pr-build-env.yml
+    secrets: inherit
+    with:
+      env: esp32s2
+      is_esp32: true
+
+  build-esp32s3:
+    uses: ./.github/workflows/pr-build-env.yml
+    secrets: inherit
+    with:
+      env: esp32s3
+      is_esp32: true
+
+  build-esp32c3:
+    uses: ./.github/workflows/pr-build-env.yml
+    secrets: inherit
+    with:
+      env: esp32c3
+      is_esp32: true
+
+  build-esp32:
+    uses: ./.github/workflows/pr-build-env.yml
+    secrets: inherit
+    with:
+      env: esp32
+      is_esp32: true
+
+  build-esp32solo:
+    uses: ./.github/workflows/pr-build-env.yml
+    secrets: inherit
+    with:
+      env: esp32solo
+      is_esp32: true
+
+  build-esp8266:
+    uses: ./.github/workflows/pr-build-env.yml
+    secrets: inherit
+    with:
+      env: esp8266
+      is_esp32: false
+
+  comment:
+    needs:
+      - build-esp32s2
+      - build-esp32s3
+      - build-esp32c3
+      - build-esp32
+      - build-esp32solo
+      - build-esp8266
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post PR comment with download links
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+            const runId = context.runId;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+            
+            // Get the commit SHA (short version)
+            const sha = context.payload.pull_request.head.sha;
+            const shortSha = sha.substring(0, 7);
+
+            // Fetch the list of artifacts for this run via the API
+            const artifactsResp = await github.rest.actions.listWorkflowRunArtifacts({ owner, repo, run_id: runId });
+            const artifacts = artifactsResp.data.artifacts;
+
+            const envs = ['esp32s2', 'esp32s3', 'esp32c3', 'esp32', 'esp32solo', 'esp8266'];
+            const lines = envs.map(env => {
+              const artifact = artifacts.find(a => a.name === env);
+              if (artifact) {
+                // The artifact download page URL - directly navigable in the browser
+                const artifactUrl = `${runUrl}#artifacts-${env}`;
+                return `- **${env}**: [Download ${env}.zip](https://github.com/${owner}/${repo}/actions/runs/${runId}/artifacts/${artifact.id})`;
+              }
+              return `- **${env}**: ⚠️ artifact not found`;
+            });
+
+            const body = [
+              '## 🔧 PR Build Artifacts',
+              '',
+              `**Version**: \`${shortSha}\``,
+              '',
+              'All environments built successfully. Download the zip files:',
+              '',
+              ...lines,
+              '',
+              `> Artifacts expire after 7 days. [View workflow run](${runUrl})`,
+            ].join('\n');
+
+            // Find and delete any previous bot comment to keep the PR clean
+            const comments = await github.rest.issues.listComments({ owner, repo, issue_number: prNumber });
+            for (const comment of comments.data) {
+              if (comment.user.type === 'Bot' && comment.body.includes('PR Build Artifacts')) {
+                await github.rest.issues.deleteComment({ owner, repo, comment_id: comment.id });
+              }
+            }
+
+            await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });

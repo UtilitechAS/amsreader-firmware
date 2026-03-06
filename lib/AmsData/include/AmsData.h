@@ -78,8 +78,12 @@ public:
     double getL3ActiveExportCounter();
 
     double getActiveImportCounter();
+    double getActiveImportCounterTariff1();
+    double getActiveImportCounterTariff2();
     double getReactiveImportCounter();
     double getActiveExportCounter();
+    double getActiveExportCounterTariff1();
+    double getActiveExportCounterTariff2();
     double getReactiveExportCounter();
 
     bool isThreePhase();
@@ -89,6 +93,7 @@ public:
 
     int8_t getLastError();
     void setLastError(int8_t);
+
 
 protected:
     uint64_t lastUpdateMillis = 0;
@@ -104,7 +109,7 @@ protected:
     double l1activeImportCounter = 0, l2activeImportCounter = 0, l3activeImportCounter = 0;
     double l1activeExportCounter = 0, l2activeExportCounter = 0, l3activeExportCounter = 0;
     float powerFactor = 0, l1PowerFactor = 0, l2PowerFactor = 0, l3PowerFactor = 0;
-    double activeImportCounter = 0, reactiveImportCounter = 0, activeExportCounter = 0, reactiveExportCounter = 0;
+    double activeImportCounter = 0, activeImportCounterTariff1 = 0, activeImportCounterTariff2 = 0, reactiveImportCounter = 0, activeExportCounter = 0, activeExportCounterTariff1 = 0, activeExportCounterTariff2 = 0, reactiveExportCounter = 0;
     double lastKnownCounter = 0;
     bool threePhase = false, twoPhase = false, counterEstimated = false, l2currentMissing = false;;
 

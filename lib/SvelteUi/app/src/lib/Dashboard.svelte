@@ -22,10 +22,14 @@
     export let translations = {};
     export let tariffData = {};
 
-    let it,et,threePhase, l1e, l2e, l3e;
+    let it,et,it1,it2,et1,et2,threePhase, l1e, l2e, l3e;
     $: {
         it = formatUnit(data?.ic * 1000, "Wh");
         et = formatUnit(data?.ec * 1000, "Wh");
+        it1 = formatUnit(data?.ict1 * 1000, "Wh");
+        it2 = formatUnit(data?.ict2 * 1000, "Wh");
+        et1 = formatUnit(data?.ect1 * 1000, "Wh");
+        et2 = formatUnit(data?.ect2 * 1000, "Wh");
         if(data?.l1?.u == 0.0 && data?.l2?.u == 0.0 && data?.l3?.u == 0.0) {
             l1e = l2e = l3e = threePhase = true;
         } else {
@@ -46,6 +50,12 @@
                 </div>
                 <div>{data.mt ? metertype(data.mt) : '-'}</div>
                 <div class="text-right">{it[0]} {it[1]}</div>
+                {#if data?.ict1 > 0 || data?.ict2 > 0}
+                    <div class="text-xs text-gray-500">Tariff 1</div>
+                    <div class="text-right text-xs text-gray-500">{it1[0]} {it1[1]}</div>
+                    <div class="text-xs text-gray-500">Tariff 2</div>
+                    <div class="text-right text-xs text-gray-500">{it2[0]} {it2[1]}</div>
+                {/if}
             </div>
         </div>
     {/if}
@@ -57,6 +67,12 @@
                 </div>
                 <div></div>
                 <div class="text-right">{et[0]} {et[1]}</div>
+                {#if data?.ect1 > 0 || data?.ect2 > 0}
+                    <div class="text-xs text-gray-500">Tariff 1</div>
+                    <div class="text-right text-xs text-gray-500">{et1[0]} {et1[1]}</div>
+                    <div class="text-xs text-gray-500">Tariff 2</div>
+                    <div class="text-right text-xs text-gray-500">{et2[0]} {et2[1]}</div>
+                {/if}
             </div>
         </div>
     {/if}

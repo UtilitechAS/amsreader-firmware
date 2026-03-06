@@ -235,9 +235,13 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
             }
 
             if(o181 > 0 || o182 > 0) {
+                activeImportCounterTariff1 = o181 / 1000.0;
+                activeImportCounterTariff2 = o182 / 1000.0;
                 activeImportCounter = (o181 + o182) / 1000.0;
             }
             if(o281 > 0 || o282 > 0) {
+                activeExportCounterTariff1 = o281 / 1000.0;
+                activeExportCounterTariff2 = o282 / 1000.0;
                 activeExportCounter = (o281 + o282) / 1000.0;
             }
 

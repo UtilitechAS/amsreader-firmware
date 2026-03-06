@@ -74,14 +74,22 @@ void AmsData::apply(AmsData& other) {
                 double diff = activeImportCounter - activeExportCounter - lastKnownCounter;
                 if(diff < 1.0) { // In case a very low value have been calculated, use the new values
                     this->activeImportCounter = other.getActiveImportCounter();
+                    this->activeImportCounterTariff1 = other.getActiveImportCounterTariff1();
+                    this->activeImportCounterTariff2 = other.getActiveImportCounterTariff2();
                     this->activeExportCounter = other.getActiveExportCounter();
+                    this->activeExportCounterTariff1 = other.getActiveExportCounterTariff1();
+                    this->activeExportCounterTariff2 = other.getActiveExportCounterTariff2();
                     this->reactiveImportCounter = other.getReactiveImportCounter();
                     this->reactiveExportCounter = other.getReactiveExportCounter();
                     this->lastKnownCounter = activeImportCounter - activeExportCounter;
                 }
             } else {
                 this->activeImportCounter = other.getActiveImportCounter();
+                this->activeImportCounterTariff1 = other.getActiveImportCounterTariff1();
+                this->activeImportCounterTariff2 = other.getActiveImportCounterTariff2();
                 this->activeExportCounter = other.getActiveExportCounter();
+                this->activeExportCounterTariff1 = other.getActiveExportCounterTariff1();
+                this->activeExportCounterTariff2 = other.getActiveExportCounterTariff2();
                 this->reactiveImportCounter = other.getReactiveImportCounter();
                 this->reactiveExportCounter = other.getReactiveExportCounter();
                 this->lastKnownCounter = activeImportCounter - activeExportCounter;
@@ -127,8 +135,7 @@ void AmsData::apply(OBIS_code_t obis, double value) {
         }
     }
     if(obis.tariff != 0) {
-        Serial.println("Tariff not implemented");
-        return;
+        // Tariff values are handled for accumulated counters below.
     }
     if(obis.gr == 7) { // Instant values
         switch(obis.sensor) {
@@ -216,20 +223,36 @@ void AmsData::apply(OBIS_code_t obis, double value) {
     } else if(obis.gr == 8) { // Accumulated values
         switch(obis.sensor) {
             case 1:
-                activeImportCounter = value;
+                if(obis.tariff == 1) {
+                    activeImportCounterTariff1 = value;
+                } else if(obis.tariff == 2) {
+                    activeImportCounterTariff2 = value;
+                } else {
+                    activeImportCounter = value;
+                }
                 listType = max(listType, (uint8_t) 3);
                 break;
             case 2:
-                activeExportCounter = value;
+                if(obis.tariff == 1) {
+                    activeExportCounterTariff1 = value;
+                } else if(obis.tariff == 2) {
+                    activeExportCounterTariff2 = value;
+                } else {
+                    activeExportCounter = value;
+                }
                 listType = max(listType, (uint8_t) 3);
                 break;
             case 3:
-                reactiveImportCounter = value;
-                listType = max(listType, (uint8_t) 3);
+                if(obis.tariff == 0) {
+                    reactiveImportCounter = value;
+                    listType = max(listType, (uint8_t) 3);
+                }
                 break;
             case 4:
-                reactiveExportCounter = value;
-                listType = max(listType, (uint8_t) 3);
+                if(obis.tariff == 0) {
+                    reactiveExportCounter = value;
+                    listType = max(listType, (uint8_t) 3);
+                }
                 break;
             case 21:
                 l1activeImportCounter = value;
@@ -405,12 +428,28 @@ double AmsData::getActiveImportCounter() {
     return this->activeImportCounter;
 }
 
+double AmsData::getActiveImportCounterTariff1() {
+    return this->activeImportCounterTariff1;
+}
+
+double AmsData::getActiveImportCounterTariff2() {
+    return this->activeImportCounterTariff2;
+}
+
 double AmsData::getReactiveImportCounter() {
     return this->reactiveImportCounter;
 }
 
 double AmsData::getActiveExportCounter() {
     return this->activeExportCounter;
+}
+
+double AmsData::getActiveExportCounterTariff1() {
+    return this->activeExportCounterTariff1;
+}
+
+double AmsData::getActiveExportCounterTariff2() {
+    return this->activeExportCounterTariff2;
 }
 
 double AmsData::getReactiveExportCounter() {

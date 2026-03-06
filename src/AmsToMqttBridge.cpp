@@ -905,13 +905,7 @@ void handleEnergySpeedometer() {
 	if(sysConfig.energyspeedometer == 7) {
 		if(!meterState.getMeterId().isEmpty()) {
 			if(energySpeedometer == NULL) {
-				uint16_t chipId;
-				#if defined(ESP32)
-					chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
-				#else
-					chipId = ESP.getChipId();
-				#endif
-				strcpy(energySpeedometerConfig.clientId, (String("ams") + String(chipId, HEX)).c_str());
+				config.getUniqueName(energySpeedometerConfig.clientId, 32);
 				energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
 				energySpeedometer->setCaVerification(false);
 			}
@@ -1464,17 +1458,29 @@ void toggleSetupMode() {
 		#else
 		WiFi.beginSmartConfig();
 		#endif
-		WiFi.softAP(PSTR("AMS2MQTT"));
+
+		char ssid[32];
+		if(sysConfig.vendorConfigured) {
+			// Use the standard SSID if the vendor has configured the device
+			strcpy_P(ssid, PSTR("AMS2MQTT"));
+		} else {
+			// If not vendor configured, use a unique SSID to avoid conflicts if multiple devices are in setup mode at the same time
+			config.getUniqueName(ssid, 32);
+		}
+		uint8_t debugLevel = RemoteDebug::INFO;
+		#if defined(DEBUG_MODE)
+			debugLevel = RemoteDebug::VERBOSE;
+		#endif
+		WiFi.softAP(ssid);
+		Debug.setSerialEnabled(true);
+		Debug.begin(F("192.168.4.1"), 23, debugLevel);
+		debugI_P(PSTR("SSID: %s"), ssid);
 
 		if(dnsServer == NULL) {
 			dnsServer = new DNSServer();
 		}
 		dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
 		dnsServer->start(53, PSTR("*"), WiFi.softAPIP());
-		#if defined(DEBUG_MODE)
-			Debug.setSerialEnabled(true);
-			Debug.begin(F("192.168.4.1"), 23, RemoteDebug::VERBOSE);
-		#endif
 		setupMode = true;
 
 		hw.setBootSuccessful(false);

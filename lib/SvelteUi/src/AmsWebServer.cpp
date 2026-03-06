@@ -306,22 +306,14 @@ void AmsWebServer::sysinfoJson() {
 
 	SystemConfig sys;
 	config->getSystemConfig(sys);
-
-	uint32_t chipId;
-	#if defined(ESP32)
-		chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
-	#else
-		chipId = ESP.getChipId();
-	#endif
-	String chipIdStr = String(chipId, HEX);
-
-	String hostname;
+	
+	char hostname[32];
 	if(sys.userConfigured) {
 		NetworkConfig networkConfig;
 		config->getNetworkConfig(networkConfig);
-		hostname = String(networkConfig.hostname);
+		strncpy(hostname, networkConfig.hostname, 32);
 	} else {
-		hostname = "ams-"+chipIdStr;
+		config->getUniqueName(hostname, 32);
 	}
 
 	IPAddress localIp;
@@ -421,7 +413,7 @@ void AmsWebServer::sysinfoJson() {
 		#elif defined(ESP8266)
 		"esp8266",
 		#endif
-		chipIdStr.c_str(),
+		config->getChipId(),
 		cpu_freq,
 		macStr,
 		apMacStr,
@@ -429,7 +421,7 @@ void AmsWebServer::sysinfoJson() {
 		sys.vendorConfigured ? "true" : "false",
 		sys.userConfigured ? "true" : "false",
 		sys.dataCollectionConsent,
-		hostname.c_str(),
+		hostname,
 		performRestart ? "true" : "false",
 		updater->getProgress() > 0.0 && upinfo.errorCode == 0 ? "true" : "false",
 		#if defined(ESP8266)

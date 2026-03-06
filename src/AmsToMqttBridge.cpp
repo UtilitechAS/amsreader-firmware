@@ -1611,7 +1611,7 @@ void handleDataSuccess(AmsData* data) {
 		debugD_P(PSTR("NOT Ready to update (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d, list type %d, est: %d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second, data->getListType(), wasCounterEstimated);
 	}
 
-	if(ea.update(data)) {
+	if(ea.update(dataUpdateTime, data->getLastUpdateMillis(), data->getListType(), data->getActiveImportPower(), data->getActiveExportPower())) {
 		debugI_P(PSTR("Saving energy accounting"));
 		if(!ea.save()) {
 			debugW_P(PSTR("Unable to save energy accounting"));

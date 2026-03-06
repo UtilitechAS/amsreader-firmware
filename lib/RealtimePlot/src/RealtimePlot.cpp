@@ -4,6 +4,7 @@
  * 
  */
 
+#include "Arduino.h"
 #include "RealtimePlot.h"
 #include <stdlib.h>
 

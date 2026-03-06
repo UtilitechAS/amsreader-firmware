@@ -105,6 +105,12 @@
         }
     }
 
+    async function resetWifiTest() {
+        wifiTestInProgress = false;
+        wifiTestOk = false;
+        wifiTestError = 0;
+    }
+
     async function toggleShowPass() {
         const input = form.querySelector('input[name="sp"]');
         if(input.type === 'password') {
@@ -125,7 +131,7 @@
             <strong class="text-sm">{translations.setup?.title ?? "Setup"}</strong>
             <div class="my-3">
                 {translations.conf?.connection?.title ?? "Connection"}<br/>
-                <select name="sc" class="in-s" bind:value={connectionMode}>
+                <select name="sc" class="in-s" bind:value={connectionMode} on:input={resetWifiTest}>
                     <option value={1}>{translations.conf?.connection?.wifi ?? "Connect to WiFi"}</option>
                     <option value={2}>{translations.conf?.connection?.ap ?? "Standalone access point"}</option>
                     {#if sysinfo.if && sysinfo.if.eth}
@@ -139,9 +145,9 @@
                     <label class="float-right mr-3"><input type="checkbox" value="true" bind:checked={manual} class="rounded mb-1"/> manual</label>
                     <br/>
                     {#if manual}
-                        <input name="ss" bind:value={ssid} type="text" pattern={asciiPatternExt} class="in-s" required={connectionMode == 1 || connectionMode == 2}/>
+                        <input name="ss" bind:value={ssid} on:input={resetWifiTest} type="text" pattern={asciiPatternExt} class="in-s" required={connectionMode == 1 || connectionMode == 2}/>
                     {:else}
-                        <select name="ss" bind:value={ssid} class="in-s" required={connectionMode == 1 || connectionMode == 2}>
+                        <select name="ss" bind:value={ssid} on:change={resetWifiTest} class="in-s" required={connectionMode == 1 || connectionMode == 2}>
                             {#if networks?.c == -1}
                                 <option value="" selected disabled>Scanning...</option>
                             {/if}
@@ -156,7 +162,7 @@
                 <div class="my-3">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>
                     <div class="flex">
-                        <input name="sp" bind:value={psk} on:input={() => wifiTestError = 0} type="password" pattern={asciiPatternExt} class="in-f w-full" autocomplete="off" required={connectionMode == 2}/>
+                        <input name="sp" bind:value={psk} on:input={resetWifiTest} type="password" pattern={asciiPatternExt} class="in-f w-full" autocomplete="off" required={connectionMode == 2}/>
                         <span on:click={toggleShowPass} class="in-post link">👁️</span>
                     </div>
                 </div>

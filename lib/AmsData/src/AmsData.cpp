@@ -5,6 +5,7 @@
  */
 
 #include "AmsData.h"
+#include <algorithm>
 
 AmsData::AmsData() {}
 
@@ -17,7 +18,6 @@ void AmsData::apply(AmsData& other) {
                 uint32_t power = (activeImportPower + other.getActiveImportPower()) / 2;
                 float add = power * (((float) ms) / 3600000.0);
                 activeImportCounter += add / 1000.0;
-                //Serial.printf("%dW, %dms, %.6fkWh added\n", other.getActiveImportPower(), ms, add);
             }
 
             if(other.getListType() > 1) {
@@ -112,7 +112,7 @@ void AmsData::apply(AmsData& other) {
         this->activeExportPower = other.getActiveExportPower();
 }
 
-void AmsData::apply(OBIS_code_t obis, double value) {
+void AmsData::apply(OBIS_code_t obis, double value, uint64_t millis64) {
     if(obis.sensor == 0 && obis.gr == 0 && obis.tariff == 0) {
         meterType = value;
     }
@@ -127,138 +127,137 @@ void AmsData::apply(OBIS_code_t obis, double value) {
         }
     }
     if(obis.tariff != 0) {
-        Serial.println("Tariff not implemented");
         return;
     }
     if(obis.gr == 7) { // Instant values
         switch(obis.sensor) {
             case 1:
                 activeImportPower = value;
-                listType = max(listType, (uint8_t) 2);
+                listType = std::max(listType, (uint8_t) 2);
                 break;
             case 2:
                 activeExportPower = value;
-                listType = max(listType, (uint8_t) 2);
+                listType = std::max(listType, (uint8_t) 2);
                 break;
             case 3:
                 reactiveImportPower = value;
-                listType = max(listType, (uint8_t) 2);
+                listType = std::max(listType, (uint8_t) 2);
                 break;
             case 4:
                 reactiveExportPower = value;
-                listType = max(listType, (uint8_t) 2);
+                listType = std::max(listType, (uint8_t) 2);
                 break;
             case 13:
                 powerFactor = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 21:
                 l1activeImportPower = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 22:
                 l1activeExportPower = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 31:
                 l1current = value;
-                listType = max(listType, (uint8_t) 2);
+                listType = std::max(listType, (uint8_t) 2);
                 break;
             case 32:
                 l1voltage = value;
-                listType = max(listType, (uint8_t) 2);
+                listType = std::max(listType, (uint8_t) 2);
                 break;
             case 33:
                 l1PowerFactor = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 41:
                 l2activeImportPower = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 42:
                 l2activeExportPower = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 51:
                 l2current = value;
-                listType = max(listType, (uint8_t) 2);
+                listType = std::max(listType, (uint8_t) 2);
                 break;
             case 52:
                 l2voltage = value;
-                listType = max(listType, (uint8_t) 2);
+                listType = std::max(listType, (uint8_t) 2);
                 break;
             case 53:
                 l2PowerFactor = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 61:
                 l3activeImportPower = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 62:
                 l3activeExportPower = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 71:
                 l3current = value;
-                listType = max(listType, (uint8_t) 2);
+                listType = std::max(listType, (uint8_t) 2);
                 break;
             case 72:
                 l3voltage = value;
-                listType = max(listType, (uint8_t) 2);
+                listType = std::max(listType, (uint8_t) 2);
                 break;
             case 73:
                 l3PowerFactor = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
         }
     } else if(obis.gr == 8) { // Accumulated values
         switch(obis.sensor) {
             case 1:
                 activeImportCounter = value;
-                listType = max(listType, (uint8_t) 3);
+                listType = std::max(listType, (uint8_t) 3);
                 break;
             case 2:
                 activeExportCounter = value;
-                listType = max(listType, (uint8_t) 3);
+                listType = std::max(listType, (uint8_t) 3);
                 break;
             case 3:
                 reactiveImportCounter = value;
-                listType = max(listType, (uint8_t) 3);
+                listType = std::max(listType, (uint8_t) 3);
                 break;
             case 4:
                 reactiveExportCounter = value;
-                listType = max(listType, (uint8_t) 3);
+                listType = std::max(listType, (uint8_t) 3);
                 break;
             case 21:
                 l1activeImportCounter = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 22:
                 l1activeExportCounter = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 41:
                 l2activeImportCounter = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 42:
                 l2activeExportCounter = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 61:
                 l3activeImportCounter = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
             case 62:
                 l3activeExportCounter = value;
-                listType = max(listType, (uint8_t) 4);
+                listType = std::max(listType, (uint8_t) 4);
                 break;
         }
     }
     if(listType > 0)
-        lastUpdateMillis = millis();
+        lastUpdateMillis = millis64;
 
     threePhase = l1voltage > 0 && l2voltage > 0 && l3voltage > 0;
     if(!threePhase)

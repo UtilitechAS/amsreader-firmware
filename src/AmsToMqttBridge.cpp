@@ -30,6 +30,7 @@ ADC_MODE(ADC_VCC);
 #include "ZmartChargeCloudConnector.h"
 #endif
 
+#define MAX_BOOT_CYCLES 8
 #define WDT_TIMEOUT 120
 #if defined(SLOW_PROC_TRIGGER_MS)
 	#warning "Using predefined slow process trigger"
@@ -190,8 +191,6 @@ CloudConnector *cloud = NULL;
 #if defined(ZMART_CHARGE)
 ZmartChargeCloudConnector *zcloud = NULL;
 #endif
-
-#define MAX_BOOT_CYCLES 6
 
 #if defined(ESP32)
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
@@ -470,7 +469,7 @@ void setup() {
 	float vcc = hw.getVcc();
 	debugI_P(PSTR("Voltage: %.2fV"), vcc);
 
-	bool deepSleep = true;
+	bool deepSleep = false; // Disable for now, as it makes it difficult to debug why devices rebooted
 	#if defined(ESP32)
 	float allowedDrift = bootcount * 0.01;
 	#else
@@ -504,6 +503,16 @@ void setup() {
 	#if defined(ESP8266)
 	resetBootCycleCounter(deepSleep);
 	#endif
+
+	if(rdc.magic != 0x4a) {
+		rdc.last_cause = 0;
+		rdc.cause = 0;
+		rdc.magic = 0x4a;
+	} else {
+		rdc.last_cause = rdc.cause;
+		rdc.cause = 0;
+	}
+
 	hw.ledOff(LED_YELLOW);
 	hw.ledOff(LED_INTERNAL);
 

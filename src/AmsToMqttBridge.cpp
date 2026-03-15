@@ -1577,6 +1577,7 @@ void handleDataSuccess(AmsData* data) {
 
 	time_t dataUpdateTime = now;
 	if(abs(now - meterTime) < 300) {
+		// If the meter timestamp is close to our internal clock, use meter timestamp, because that is best for data tracking
 		dataUpdateTime = meterTime;
 	}
 

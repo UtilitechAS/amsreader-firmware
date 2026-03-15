@@ -1,26 +1,38 @@
 <script>
-    import { ampcol, exportcol, metertype, uiVisibility, formatUnit, fmtnum, formatCurrency } from './Helpers.js';
-    import PowerGauge from './PowerGauge.svelte';
-    import VoltPlot from './VoltPlot.svelte';
-    import ReactiveData from './ReactiveData.svelte';
-    import AccountingData from './AccountingData.svelte';
-    import PricePlot from './PricePlot.svelte';
-    import DayPlot from './DayPlot.svelte';
-    import MonthPlot from './MonthPlot.svelte';
-    import TemperaturePlot from './TemperaturePlot.svelte';
-    import TariffPeakChart from './TariffPeakChart.svelte';
-    import RealtimePlot from './RealtimePlot.svelte';
-    import PerPhasePlot from './PerPhasePlot.svelte';
+    import { ampcol, exportcol, metertype, uiVisibility, formatUnit, fmtnum, formatCurrency } from '../lib/Helpers.js';
+    import PowerGauge from '../lib/PowerGauge.svelte';
+    import VoltPlot from '../lib/VoltPlot.svelte';
+    import ReactiveData from '../lib/ReactiveData.svelte';
+    import AccountingData from '../lib/AccountingData.svelte';
+    import PricePlot from '../lib/PricePlot.svelte';
+    import DayPlot from '../lib/DayPlot.svelte';
+    import MonthPlot from '../lib/MonthPlot.svelte';
+    import TemperaturePlot from '../lib/TemperaturePlot.svelte';
+    import TariffPeakChart from '../lib/TariffPeakChart.svelte';
+    import RealtimePlot from '../lib/RealtimePlot.svelte';
+    import PerPhasePlot from '../lib/PerPhasePlot.svelte';
+    import { dataStore, sysinfoStore, importPricesStore, exportPricesStore, dayPlotStore, monthPlotStore, temperaturesStore, tariffStore } from '../lib/DataStores.js';
+    import { translationsStore } from '../lib/TranslationService.js';
 
-    export let data = {}
-    export let sysinfo = {}
-    export let importPrices = {}
-    export let exportPrices = {}
-    export let dayPlot = {}
-    export let monthPlot = {}
-    export let temperatures = {};
-    export let translations = {};
-    export let tariffData = {};
+    let data = {}
+    let sysinfo = {}
+    let importPrices = {}
+    let exportPrices = {}
+    let dayPlot = {}
+    let monthPlot = {}
+    let temperatures = {};
+    let translations = {};
+    let tariffData = {};
+
+    dataStore.subscribe(v => data = v);
+    sysinfoStore.subscribe(v => sysinfo = v);
+    importPricesStore.subscribe(v => importPrices = v);
+    exportPricesStore.subscribe(v => exportPrices = v);
+    dayPlotStore.subscribe(v => dayPlot = v);
+    monthPlotStore.subscribe(v => monthPlot = v);
+    temperaturesStore.subscribe(v => temperatures = v);
+    translationsStore.subscribe(v => translations = v);
+    tariffStore.subscribe(v => tariffData = v);
 
     let it,et,threePhase, l1e, l2e, l3e;
     $: {

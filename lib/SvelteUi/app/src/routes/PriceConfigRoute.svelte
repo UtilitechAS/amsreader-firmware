@@ -1,11 +1,9 @@
 <script>
-    import { priceConfigStore, getPriceConfig } from './ConfigurationStore'
-    import { translationsStore } from './TranslationService';
-    import { wiki, zeropad } from './Helpers.js';
-    import Mask from './Mask.svelte'
-    import {  navigate } from 'svelte-navigator';
-
-    export let basepath = "/";
+    import { priceConfigStore, getPriceConfig } from '../lib/ConfigurationStore'
+    import { translationsStore } from '../lib/TranslationService';
+    import { wiki, zeropad } from '../lib/Helpers.js';
+    import Mask from '../lib/Mask.svelte'
+    import { push } from 'svelte-spa-router';
 
     let translations = {};
     translationsStore.subscribe(update => {
@@ -53,7 +51,7 @@
         let res = (await response.json())
 
         saving = false;
-        navigate(basepath + "configuration");
+        push("/configuration");
 	}
 
     let toggleDay = function(arr, day) {

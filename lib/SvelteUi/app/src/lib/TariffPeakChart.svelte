@@ -41,22 +41,22 @@
             for(i = 0; i < tariffData.p.length; i++) {
                 let peak = tariffData.p[i];
 
-                let title = "";
+                let peakTitle = "";
                 let daylabel = "-";
                 if(peak.d > 0) {
                     daylabel = zeropad(peak.d) + ".";
-                    title = zeropad(peak.d) + "." + (translations.months ? translations.months?.[new Date().getMonth()] : zeropad(new Date().getMonth()+1));
+                    peakTitle = zeropad(peak.d) + "." + (translations.months ? translations.months?.[new Date().getMonth()] : zeropad(new Date().getMonth()+1));
                     if(tariffData.p.length < 4) {
-                        daylabel = title;
+                        daylabel = peakTitle;
                     }
                 }
                 if(!isNaN(peak.h))
-                    title = title + ' ' + zeropad(peak.h) + ':00';
-                title = title + ': ' + peak.v.toFixed(2) + ' kWh';
+                    peakTitle = peakTitle + ' ' + zeropad(peak.h) + ':00';
+                peakTitle = peakTitle + ': ' + peak.v.toFixed(2) + ' kWh';
                 points.push({
                     label: peak.v.toFixed(2), 
                     value: peak.v, 
-                    title: title,
+                    title: peakTitle,
                     color: dark ? '#5c2da5' : '#7c3aed'
                 });
                 xTicks.push({

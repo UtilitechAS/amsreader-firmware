@@ -78,7 +78,7 @@ jobs:
 
             const envs = ['esp32s2', 'esp32s3', 'esp32c3', 'esp32', 'esp32solo', 'esp8266'];
             const lines = envs.map(env => {
-              const artifact = artifacts.find(a => a.name === env);
+              const artifact = artifacts.find(a => a.name === `${env}.zip`);
               if (artifact) {
                 // The artifact download page URL - directly navigable in the browser
                 const artifactUrl = `${runUrl}#artifacts-${env}`;

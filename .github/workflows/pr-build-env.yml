@@ -76,6 +76,6 @@ jobs:
       - name: Upload zip as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.env }}
+          name: ${{ inputs.env }}.zip
           path: ${{ inputs.env }}.zip
           retention-days: 7

@@ -58,7 +58,11 @@ private:
     uint8_t AMS_OBIS_VOLTAGE_L2[4]              = { 52, 7, 0, 255 };
     uint8_t AMS_OBIS_VOLTAGE_L3[4]              = { 72, 7, 0, 255 };
     uint8_t AMS_OBIS_ACTIVE_IMPORT_COUNT[4]     = {  1, 8, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_IMPORT_COUNT_T1[4]  = {  1, 8, 1, 255 };
+    uint8_t AMS_OBIS_ACTIVE_IMPORT_COUNT_T2[4]  = {  1, 8, 2, 255 };
     uint8_t AMS_OBIS_ACTIVE_EXPORT_COUNT[4]     = {  2, 8, 0, 255 };
+    uint8_t AMS_OBIS_ACTIVE_EXPORT_COUNT_T1[4]  = {  2, 8, 1, 255 };
+    uint8_t AMS_OBIS_ACTIVE_EXPORT_COUNT_T2[4]  = {  2, 8, 2, 255 };
     uint8_t AMS_OBIS_REACTIVE_IMPORT_COUNT[4]   = {  3, 8, 0, 255 };
     uint8_t AMS_OBIS_REACTIVE_EXPORT_COUNT[4]   = {  4, 8, 0, 255 };
     uint8_t AMS_OBIS_POWER_FACTOR[4]            = { 13, 7, 0, 255 };

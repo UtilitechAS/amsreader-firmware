@@ -12,6 +12,14 @@
 class JsonMqttHandler : public AmsMqttHandler {
 public:
     #if defined(AMS_REMOTE_DEBUG)
+    JsonMqttHandler(AmsConfiguration* config, RemoteDebug* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(config, debugger, buf, updater) {
+    #else
+    JsonMqttHandler(AmsConfiguration* config, Stream* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(config, debugger, buf, updater) {
+    #endif
+        this->hw = hw;
+        this->ds = ds;
+    };
+    #if defined(AMS_REMOTE_DEBUG)
     JsonMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
     #else
     JsonMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {

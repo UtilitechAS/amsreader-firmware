@@ -360,7 +360,7 @@ void resetBootCycleCounter(bool deepSleep) {
 void setup() {
 	Serial.begin(115200);
 
-	config.hasConfig(); // Need to run this to make sure all configuration have been migrated before we load GPIO config
+	config.load(); // Need to run this to make sure all configuration have been migrated before we load GPIO config
 
 	if(!config.getGpioConfig(gpioConfig)) {
 		config.clearGpio(gpioConfig);
@@ -1751,7 +1751,7 @@ void MQTT_connect() {
 			case 0:
 			case 5:
 			case 6:
-				mqttHandler = new JsonMqttHandler(mqttConfig, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
+				mqttHandler = new JsonMqttHandler(&config, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
 				break;
 			case 1:
 			case 2:

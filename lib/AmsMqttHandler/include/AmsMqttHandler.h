@@ -23,12 +23,19 @@
 class AmsMqttHandler {
 public:
     #if defined(AMS_REMOTE_DEBUG)
-    AmsMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, AmsFirmwareUpdater* updater) {
+    AmsMqttHandler(AmsConfiguration* config, RemoteDebug* debugger, char* buf, AmsFirmwareUpdater* updater) {
     #else
-    AmsMqttHandler(MqttConfig& mqttConfig, Stream* debugger, char* buf, AmsFirmwareUpdater* updater) {
+    AmsMqttHandler(AmsConfiguration* config, Stream* debugger, char* buf, AmsFirmwareUpdater* updater) {
     #endif
-        this->mqttConfig = mqttConfig;
-    	this->mqttConfigChanged = true;
+        this->config = config;
+        config->getMqttConfig(mqttConfig);
+        AmsMqttHandler(mqttConfig, debugger, buf, updater);
+    };
+    #if defined(AMS_REMOTE_DEBUG)
+    AmsMqttHandler(MqttConfig& MqttConfig, RemoteDebug* debugger, char* buf, AmsFirmwareUpdater* updater) {
+    #else
+    AmsMqttHandler(MqttConfig& MqttConfig, Stream* debugger, char* buf, AmsFirmwareUpdater* updater) {
+    #endif
         this->debugger = debugger;
         this->json = buf;
         this->updater = updater;
@@ -37,7 +44,7 @@ public:
         pubTopic = String(mqttConfig.publishTopic);
         subTopic = String(mqttConfig.subscribeTopic);
         if(subTopic.isEmpty()) subTopic = pubTopic+"/command";
-    };
+    }
 
     void setCaVerification(bool);
     void setConfig(MqttConfig& mqttConfig);
@@ -79,8 +86,10 @@ protected:
     #else
     Stream* debugger;
     #endif
+    AmsConfiguration* config;
     MqttConfig mqttConfig;
-    bool mqttConfigChanged = true;
+    bool mqttConfigChanged = false;
+
     MQTTClient mqtt = MQTTClient(256);
     unsigned long lastMqttRetry = -10000;
     bool caVerification = true;

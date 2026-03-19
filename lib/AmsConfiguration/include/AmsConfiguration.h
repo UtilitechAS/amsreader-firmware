@@ -10,7 +10,7 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 104 // Used to check if config is stored. Change if structure changes
+#define EEPROM_EXPECTED_VERSION 104 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CLEARED_INDICATOR 0xFC
 #define EEPROM_CONFIG_ADDRESS 0
 
@@ -283,10 +283,11 @@ struct ZmartChargeConfig {
 
 class AmsConfiguration {
 public:
+	bool load();
+	bool save();
+
 	bool hasConfig();
 	int getConfigVersion();
-
-	bool save();
 
 	bool getSystemConfig(SystemConfig&);
 	bool setSystemConfig(SystemConfig&);

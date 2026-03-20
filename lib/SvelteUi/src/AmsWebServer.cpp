@@ -19,20 +19,6 @@
 #include "html/response_json.h"
 #include "html/sysinfo_json.h"
 #include "html/tariff_json.h"
-#include "html/conf_general_json.h"
-#include "html/conf_meter_json.h"
-#include "html/conf_wifi_json.h"
-#include "html/conf_net_json.h"
-#include "html/conf_mqtt_json.h"
-#include "html/conf_price_json.h"
-#include "html/conf_price_row_json.h"
-#include "html/conf_thresholds_json.h"
-#include "html/conf_debug_json.h"
-#include "html/conf_gpio_json.h"
-#include "html/conf_domoticz_json.h"
-#include "html/conf_ha_json.h"
-#include "html/conf_ui_json.h"
-#include "html/conf_cloud_json.h"
 #include "html/firmware_html.h"
 
 #if defined(ESP32)
@@ -892,244 +878,14 @@ void AmsWebServer::configurationJson() {
 	if(!checkSecurity(1))
 		return;
 		
-
-	MeterConfig meterConfig;
-	config->getMeterConfig(meterConfig);
-	
-	bool multEnable = false;
-	if(meterConfig.wattageMultiplier != 1.0 && meterConfig.wattageMultiplier != 0.0)
-		multEnable = true;
-	if(meterConfig.voltageMultiplier != 1.0 && meterConfig.voltageMultiplier != 0.0)
-		multEnable = true;
-	if(meterConfig.amperageMultiplier != 1.0 && meterConfig.amperageMultiplier != 0.0)
-		multEnable = true;
-	if(meterConfig.accumulatedMultiplier != 1.0 && meterConfig.accumulatedMultiplier != 0.0)
-		multEnable = true;
-
-	SystemConfig sysConfig;
-	config->getSystemConfig(sysConfig);
-	NtpConfig ntpConfig;
-	config->getNtpConfig(ntpConfig);
-	NetworkConfig networkConfig;
-	config->getNetworkConfig(networkConfig);
-
-	bool encen = false;
-	for(uint8_t i = 0; i < 16; i++) {
-		if(meterConfig.encryptionKey[i] > 0) {
-			encen = true;
-		}
-	}
-
-	EnergyAccountingConfig* eac = ea->getConfig();
-	MqttConfig mqttConfig;
-	config->getMqttConfig(mqttConfig);
-
-	PriceServiceConfig price;
-	config->getPriceServiceConfig(price);
-	DebugConfig debugConfig;
-	config->getDebugConfig(debugConfig);
-	DomoticzConfig domo;
-	config->getDomoticzConfig(domo);
-	UiConfig ui;
-	config->getUiConfig(ui);
-	HomeAssistantConfig haconf;
-	config->getHomeAssistantConfig(haconf);
-	CloudConfig cloud;
-	config->getCloudConfig(cloud);
-	ZmartChargeConfig zcc;
-	config->getZmartChargeConfig(zcc);
-	stripNonAscii((uint8_t*) zcc.token, 21);
-
-	bool qsc = false;
-	bool qsr = false;
-	bool qsk = false;
-
-	if(LittleFS.begin()) {
-		qsc = LittleFS.exists(FILE_MQTT_CA);
-		qsr = LittleFS.exists(FILE_MQTT_CERT);
-		qsk = LittleFS.exists(FILE_MQTT_KEY);
-	}
-
 	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-	server.send_P(200, MIME_JSON, PSTR("{\"version\":\""));
-	server.sendContent_P(FirmwareVersion::VersionString);
-	server.sendContent_P(PSTR("\","));
-	snprintf_P(buf, BufferSize, CONF_GENERAL_JSON,
-		ntpConfig.timezone,
-		networkConfig.hostname,
-		webConfig.security,
-		webConfig.username,
-		strlen(webConfig.password) > 0 ? "***" : "",
-		webConfig.context
-	);
-	server.sendContent(buf);
-	snprintf_P(buf, BufferSize, CONF_METER_JSON,
-		meterConfig.source,
-		meterConfig.parser,
-		meterConfig.baud,
-		meterConfig.parity,
-		meterConfig.invert ? "true" : "false",
-		meterConfig.bufferSize * 64,
-		meterConfig.distributionSystem,
-		meterConfig.mainFuse,
-		meterConfig.productionCapacity,
-		encen ? "true" : "false",
-		toHex(meterConfig.encryptionKey, 16).c_str(),
-		toHex(meterConfig.authenticationKey, 16).c_str(),
-		multEnable ? "true" : "false",
-		meterConfig.wattageMultiplier == 0.0 ? 1.0 : meterConfig.wattageMultiplier / 1000.0,
-		meterConfig.voltageMultiplier == 0.0 ? 1.0 : meterConfig.voltageMultiplier / 1000.0,
-		meterConfig.amperageMultiplier == 0.0 ? 1.0 : meterConfig.amperageMultiplier / 1000.0,
-		meterConfig.accumulatedMultiplier == 0.0 ? 1.0 : meterConfig.accumulatedMultiplier / 1000.0
-	);
-	server.sendContent(buf);
-
-	snprintf_P(buf, BufferSize, CONF_THRESHOLDS_JSON,
-		eac->thresholds[0],
-		eac->thresholds[1],
-		eac->thresholds[2],
-		eac->thresholds[3],
-		eac->thresholds[4],
-		eac->thresholds[5],
-		eac->thresholds[6],
-		eac->thresholds[7],
-		eac->thresholds[8],
-		eac->thresholds[9],
-		eac->hours
-	);
-	server.sendContent(buf);
-	snprintf_P(buf, BufferSize, CONF_WIFI_JSON,
-		networkConfig.ssid,
-		strlen(networkConfig.psk) > 0 ? "***" : "",
-		networkConfig.power / 10.0,
-		networkConfig.sleep,
-		networkConfig.use11b ? "true" : "false"
-	);
-	server.sendContent(buf);
-	snprintf_P(buf, BufferSize, CONF_NET_JSON,
-		networkConfig.mode,
-		strlen(networkConfig.ip) > 0 ? "static" : "dhcp",
-		networkConfig.ip,
-		networkConfig.subnet,
-		networkConfig.gateway,
-		networkConfig.dns1,
-		networkConfig.dns2,
-		networkConfig.mdns ? "true" : "false",
-		ntpConfig.server,
-		ntpConfig.dhcp ? "true" : "false",
-		networkConfig.ipv6 ? "true" : "false"
-	);
-	server.sendContent(buf);
-	snprintf_P(buf, BufferSize, CONF_MQTT_JSON,
-		mqttConfig.host,
-		mqttConfig.port,
-		mqttConfig.username,
-		strlen(mqttConfig.password) > 0 ? "***" : "",
-		mqttConfig.clientId,
-		mqttConfig.publishTopic,
-		mqttConfig.subscribeTopic,
-		mqttConfig.payloadFormat,
-		mqttConfig.ssl ? "true" : "false",
-		qsc ? "true" : "false",
-		qsr ? "true" : "false",
-		qsk ? "true" : "false",
-		mqttConfig.stateUpdate,
-		mqttConfig.stateUpdateInterval,
-		mqttConfig.timeout,
-		mqttConfig.keepalive,
-		mqttConfig.rebootMinutes == 0 ? "null" : String(mqttConfig.rebootMinutes, 10).c_str()
-	);
-	server.sendContent(buf);
-
-	snprintf_P(buf, BufferSize, CONF_PRICE_JSON,
-		price.enabled ? "true" : "false",
-		price.entsoeToken,
-		price.area,
-		price.currency,
-		price.resolutionInMinutes
-	);
-	server.sendContent(buf);
-	snprintf_P(buf, BufferSize, CONF_DEBUG_JSON,
-		debugConfig.serial ? "true" : "false",
-		debugConfig.telnet ? "true" : "false",
-		debugConfig.level
-	);
-	server.sendContent(buf);
-	snprintf_P(buf, BufferSize, CONF_GPIO_JSON,
-		meterConfig.rxPin == 0xff ? "null" : String(meterConfig.rxPin, 10).c_str(),
-		meterConfig.rxPinPullup ? "true" : "false",
-		meterConfig.txPin == 0xff ? "null" : String(meterConfig.txPin, 10).c_str(),
-		gpioConfig->apPin == 0xff ? "null" : String(gpioConfig->apPin, 10).c_str(),
-		gpioConfig->ledPin == 0xff ? "null" : String(gpioConfig->ledPin, 10).c_str(),
-		gpioConfig->ledInverted ? "true" : "false",
-		gpioConfig->ledPinRed == 0xff ? "null" : String(gpioConfig->ledPinRed, 10).c_str(),
-		gpioConfig->ledPinGreen == 0xff ? "null" : String(gpioConfig->ledPinGreen, 10).c_str(),
-		gpioConfig->ledPinBlue == 0xff ? "null" : String(gpioConfig->ledPinBlue, 10).c_str(),
-		gpioConfig->ledRgbInverted ? "true" : "false",
-		gpioConfig->ledDisablePin == 0xff ? "null" : String(gpioConfig->ledDisablePin, 10).c_str(),
-		gpioConfig->ledBehaviour,
-		gpioConfig->tempSensorPin == 0xff ? "null" : String(gpioConfig->tempSensorPin, 10).c_str(),
-		gpioConfig->tempAnalogSensorPin == 0xff ? "null" : String(gpioConfig->tempAnalogSensorPin, 10).c_str(),
-		gpioConfig->vccPin == 0xff ? "null" : String(gpioConfig->vccPin, 10).c_str(),
-		gpioConfig->vccOffset / 100.0,
-		gpioConfig->vccMultiplier / 1000.0,
-		gpioConfig->vccResistorVcc,
-		gpioConfig->vccResistorGnd,
-		gpioConfig->vccBootLimit / 10.0,
-		gpioConfig->powersaving
-	);
-	server.sendContent(buf);
-	snprintf_P(buf, BufferSize, CONF_UI_JSON,
-		ui.showImport,
-		ui.showExport,
-		ui.showVoltage,
-		ui.showAmperage,
-		ui.showReactive,
-		ui.showRealtime,
-		ui.showPeaks,
-		ui.showPricePlot,
-		ui.showDayPlot,
-		ui.showMonthPlot,
-		ui.showTemperaturePlot,
-		ui.showRealtimePlot,
-		ui.showPerPhasePower,
-		ui.showPowerFactor,
-		ui.darkMode,
-		ui.language
-	);
-	server.sendContent(buf);
-	snprintf_P(buf, BufferSize, CONF_DOMOTICZ_JSON,
-		domo.elidx,
-		domo.cl1idx,
-		domo.vl1idx,
-		domo.vl2idx,
-		domo.vl3idx
-	);
-	server.sendContent(buf);
-	snprintf_P(buf, BufferSize, CONF_HA_JSON,
-		haconf.discoveryPrefix,
-		haconf.discoveryHostname,
-		haconf.discoveryNameTag
-	);
-	server.sendContent(buf);
-	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
-		cloud.enabled ? "true" : "false",
-		cloud.proto,
-		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
-		sysConfig.energyspeedometer == 7 ? "true" : "false",
-		#else
-		"null",
-		#endif
-		zcc.enabled ? "true" : "false",
-		zcc.token
-	);
-	server.sendContent(buf);
-	server.sendContent_P(PSTR("}"));
+	AmsJsonGenerator::generateConfigurationJson(config, buf, BufferSize);
+	server.send(200, MIME_JSON, buf);
 }
 
 void AmsWebServer::priceConfigJson() {
@@ -1165,7 +921,7 @@ void AmsWebServer::priceConfigJson() {
 				}
 				hours = hours.substring(0, hours.length()-1);
 
-				snprintf_P(buf, BufferSize, CONF_PRICE_ROW_JSON,
+				snprintf_P(buf, BufferSize, PSTR("{\"t\":%d,\"n\":\"%s\",\"d\":%d,\"a\":[%s],\"h\":[%s],\"v\":%.4f,\"s\":{\"m\":%d,\"d\":%d},\"e\":{\"m\":%d,\"d\":%d}}%s"),
 					p.type,
 					p.name,
 					p.direction,

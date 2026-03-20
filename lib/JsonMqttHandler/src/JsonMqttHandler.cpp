@@ -9,7 +9,6 @@
 #include "hexutils.h"
 #include "Uptime.h"
 #include "AmsJsonGenerator.h"
-#include "ArduinoJson.h"
 
 bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
     if(strlen(mqttConfig.publishTopic) == 0) {
@@ -528,7 +527,7 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
         debugger->printf_P(PSTR(" - this is our subscribed topic\n"));
 
         if(payload.startsWith("{")) {
-            DynamicJsonDocument doc(BufferSize);
+            DynamicJsonDocument doc(512);
             DeserializationError error = deserializeJson(doc, payload);
             if(error) {
                 #if defined(AMS_REMOTE_DEBUG)
@@ -538,434 +537,509 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
                 return;
             } else {
                 JsonObject obj = doc.as<JsonObject>();
-                if(obj.containsKey("action")) {
-                    const char* action = obj["action"];
-                    if(strcmp(action, "fwupgrade") == 0) {
+                if(obj.containsKey(F("action"))) {
+                    const char* action = obj[F("action")];
+                    if(strcmp_P(action, PSTR("fwupgrade")) == 0) {
                         if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
                             updater->setTargetVersion(updater->getNextVersion());
                         }
-                    } else if(strcmp(action, "dayplot") == 0) {
+                    } else if(strcmp_P(action, PSTR("dayplot")) == 0) {
                         char pubTopic[192];
                         snprintf_P(pubTopic, 192, PSTR("%s/dayplot"), mqttConfig.publishTopic);
                         AmsJsonGenerator::generateDayPlotJson(ds, json, BufferSize);
                         bool ret = mqtt.publish(pubTopic, json);
                         loop();
-                    } else if(strcmp(action, "monthplot") == 0) {
+                    } else if(strcmp_P(action, PSTR("monthplot")) == 0) {
                         char pubTopic[192];
                         snprintf_P(pubTopic, 192, PSTR("%s/monthplot"), mqttConfig.publishTopic);
                         AmsJsonGenerator::generateMonthPlotJson(ds, json, BufferSize);
                         bool ret = mqtt.publish(pubTopic, json);
                         loop();
-                    } else if(strcmp(action, "config") == 0 && obj.containsKey("config")) {
-                        JsonObject configObj = obj["config"];
-
-                        if(configObj.containsKey("system")) {
-                            SystemConfig newConfig;
-                            config->getSystemConfig(newConfig);
-
-                            JsonObject systemObj = configObj["system"];
-                            if(systemObj.containsKey("country")) {
-                                strlcpy(newConfig.country, systemObj["country"], sizeof(newConfig.country));
-                            }
-                            if(systemObj.containsKey("firmwareChannel")) {
-                                newConfig.firmwareChannel = systemObj["firmwareChannel"];
-                            }
-                            config->setSystemConfig(newConfig);
-                        }
-
-                        if(configObj.containsKey("network")) {
-                            NetworkConfig newConfig;
-                            config->getNetworkConfig(newConfig);
-
-                            JsonObject networkObj = configObj["network"];
-                            if(networkObj.containsKey("mode")) {
-                                newConfig.mode = networkObj["mode"];
-                            }
-                            if(newConfig.mode == 1 || newConfig.mode == 2) {
-                                if(networkObj.containsKey("ssid")) {
-                                    strlcpy(newConfig.ssid, networkObj["ssid"], sizeof(newConfig.ssid));
-                                }
-                                if(networkObj.containsKey("psk")) {
-                                    strlcpy(newConfig.psk, networkObj["psk"], sizeof(newConfig.psk));
-                                }
-                                if(networkObj.containsKey("power")) {
-                                    newConfig.power = networkObj["power"];
-                                }
-                                if(networkObj.containsKey("sleep")) {
-                                    newConfig.sleep = networkObj["sleep"];
-                                }
-                                if(networkObj.containsKey("use11b")) {
-                                    newConfig.use11b = networkObj["use11b"];
-                                }
-                            }
-                            if(networkObj.containsKey("ip")) {
-                                strlcpy(newConfig.ip, networkObj["ip"], sizeof(newConfig.ip));
-                            }
-                            if(networkObj.containsKey("gateway")) {
-                                strlcpy(newConfig.gateway, networkObj["gateway"], sizeof(newConfig.gateway));
-                            }
-                            if(networkObj.containsKey("subnet")) {
-                                strlcpy(newConfig.subnet, networkObj["subnet"], sizeof(newConfig.subnet));
-                            }
-                            if(networkObj.containsKey("dns1")) {
-                                strlcpy(newConfig.dns1, networkObj["dns1"], sizeof(newConfig.dns1));
-                            }
-                            if(networkObj.containsKey("dns2")) {
-                                strlcpy(newConfig.dns2, networkObj["dns2"], sizeof(newConfig.dns2));
-                            }
-                            if(networkObj.containsKey("hostname")) {
-                                strlcpy(newConfig.hostname, networkObj["hostname"], sizeof(newConfig.hostname));
-                            }
-                            if(networkObj.containsKey("mdns")) {
-                                newConfig.mdns = networkObj["mdns"];
-                            }
-                            if(networkObj.containsKey("ipv6")) {
-                                newConfig.ipv6 = networkObj["ipv6"];
-                            }
-                            config->setNetworkConfig(newConfig);
-                        }
-
-                        if(configObj.containsKey("web")) {
-                            WebConfig newConfig;
-                            config->getWebConfig(newConfig);
-
-                            JsonObject webObj = configObj["web"];
-                            if(webObj.containsKey("security")) {
-                                newConfig.security = webObj["security"];
-                            }
-                            if(newConfig.security > 0) {
-                                if(webObj.containsKey("username")) {
-                                    strlcpy(newConfig.username, webObj["username"], sizeof(newConfig.username));
-                                }
-                                if(webObj.containsKey("password")) {
-                                    strlcpy(newConfig.password, webObj["password"], sizeof(newConfig.password));
-                                }
-                            }
-                            if(webObj.containsKey("context")) {
-                                strlcpy(newConfig.context, webObj["context"], sizeof(newConfig.context));
-                            }
-                            config->setWebConfig(newConfig);
-                        }
-
-                        if(configObj.containsKey("meter")) {
-                            MeterConfig newConfig;
-                            config->getMeterConfig(newConfig);
-
-                            JsonObject meterObj = configObj["meter"];
-                            if(meterObj.containsKey("baud")) {
-                                newConfig.baud = meterObj["baud"];
-                            }
-                            if(meterObj.containsKey("parity")) {
-                                newConfig.parity = meterObj["parity"];
-                            }
-                            if(meterObj.containsKey("invert")) {
-                                newConfig.invert = meterObj["invert"];
-                            }
-                            if(meterObj.containsKey("distributionSystem")) {
-                                newConfig.distributionSystem = meterObj["distributionSystem"];
-                            }
-                            if(meterObj.containsKey("mainFuse")) {
-                                newConfig.mainFuse = meterObj["mainFuse"];
-                            }
-                            if(meterObj.containsKey("productionCapacity")) {
-                                newConfig.productionCapacity = meterObj["productionCapacity"];
-                            }
-                            if(meterObj.containsKey("wattageMultiplier")) {
-                                newConfig.wattageMultiplier = meterObj["wattageMultiplier"];
-                            }
-                            if(meterObj.containsKey("voltageMultiplier")) {
-                                newConfig.voltageMultiplier = meterObj["voltageMultiplier"];
-                            }
-                            if(meterObj.containsKey("amperageMultiplier")) {
-                                newConfig.amperageMultiplier = meterObj["amperageMultiplier"];
-                            }
-                            if(meterObj.containsKey("accumulatedMultiplier")) {
-                                newConfig.accumulatedMultiplier = meterObj["accumulatedMultiplier"];
-                            }
-                            if(meterObj.containsKey("parser")) {
-                                newConfig.parser = meterObj["parser"];
-                            }
-                            if(meterObj.containsKey("bufferSize")) {
-                                newConfig.bufferSize = meterObj["bufferSize"];
-                            }
-                            if(meterObj.containsKey("rxPin")) {
-                                newConfig.rxPin = meterObj["rxPin"];
-                            }
-                            if(meterObj.containsKey("rxPinPullup")) {
-                                newConfig.rxPinPullup = meterObj["rxPinPullup"];
-                            }
-                            if(meterObj.containsKey("txPin")) {
-                                newConfig.txPin = meterObj["txPin"];
-                            }
-                        }
-
-                        if(configObj.containsKey("mqtt")) {
-                            MqttConfig newConfig;
-                            config->getMqttConfig(newConfig);
-
-                            JsonObject mqttObj = configObj["mqtt"];
-                            if(mqttObj.containsKey("host")) {
-                                strlcpy(newConfig.host, mqttObj["host"], sizeof(newConfig.host));
-                            }
-                            if(mqttObj.containsKey("port")) {
-                                newConfig.port = mqttObj["port"];
-                            }
-                            if(mqttObj.containsKey("clientId")) {
-                                strlcpy(newConfig.clientId, mqttObj["clientId"], sizeof(newConfig.clientId));
-                            }
-                            if(mqttObj.containsKey("publishTopic")) {
-                                strlcpy(newConfig.publishTopic, mqttObj["publishTopic"], sizeof(newConfig.publishTopic));
-                            }
-                            if(mqttObj.containsKey("subscribeTopic")) {
-                                strlcpy(newConfig.subscribeTopic, mqttObj["subscribeTopic"], sizeof(newConfig.subscribeTopic));
-                            }
-                            if(mqttObj.containsKey("username")) {
-                                strlcpy(newConfig.username, mqttObj["username"], sizeof(newConfig.username));
-                            }
-                            if(mqttObj.containsKey("password")) {
-                                strlcpy(newConfig.password, mqttObj["password"], sizeof(newConfig.password));
-                            }
-                            if(mqttObj.containsKey("payloadFormat")) {
-                                newConfig.payloadFormat = mqttObj["payloadFormat"];
-                            }
-                            if(mqttObj.containsKey("ssl")) {
-                                newConfig.ssl = mqttObj["ssl"];
-                            }
-                            if(mqttObj.containsKey("stateUpdate")) {
-                                newConfig.stateUpdate = mqttObj["stateUpdate"];
-                            }
-                            if(mqttObj.containsKey("stateUpdateInterval")) {
-                                newConfig.stateUpdateInterval = mqttObj["stateUpdateInterval"];
-                            }
-                            if(mqttObj.containsKey("timeout")) {
-                                newConfig.timeout = mqttObj["timeout"];
-                            }
-                            if(mqttObj.containsKey("keepalive")) {
-                                newConfig.keepalive = mqttObj["keepalive"];
-                            }
-                            if(mqttObj.containsKey("rebootMinutes")) {
-                                newConfig.rebootMinutes = mqttObj["rebootMinutes"];
-                            }
-                            config->setMqttConfig(newConfig);
-
-                            if(mqttObj.containsKey("domoticz")) {
-                                DomoticzConfig newConfig;
-                                config->getDomoticzConfig(newConfig);
-                                JsonObject domoticzObj = mqttObj["domoticz"];
-                                if(domoticzObj.containsKey("elidx")) {
-                                    newConfig.elidx = domoticzObj["elidx"];
-                                }
-                                if(domoticzObj.containsKey("vl1idx")) { 
-                                    newConfig.vl1idx = domoticzObj["vl1idx"];
-                                }
-                                if(domoticzObj.containsKey("vl2idx")) {
-                                    newConfig.vl2idx = domoticzObj["vl2idx"];
-                                }
-                                if(domoticzObj.containsKey("vl3idx")) {
-                                    newConfig.vl3idx = domoticzObj["vl3idx"];
-                                }
-                                if(domoticzObj.containsKey("cl1idx")) {
-                                    newConfig.cl1idx = domoticzObj["cl1idx"];
-                                }
-                                config->setDomoticzConfig(newConfig);
-                            }
-
-                            if(mqttObj.containsKey("homeAssistant")) {
-                                HomeAssistantConfig newConfig;
-                                config->getHomeAssistantConfig(newConfig);
-                                JsonObject haObj = mqttObj["homeAssistant"];
-                                if(haObj.containsKey("discoveryPrefix")) {
-                                    strlcpy(newConfig.discoveryPrefix, haObj["discoveryPrefix"], sizeof(newConfig.discoveryPrefix));
-                                }
-                                if(haObj.containsKey("discoveryHostname")) {
-                                    strlcpy(newConfig.discoveryHostname, haObj["discoveryHostname"], sizeof(newConfig.discoveryHostname));
-                                }
-                                if(haObj.containsKey("discoveryNameTag")) {
-                                    strlcpy(newConfig.discoveryNameTag, haObj["discoveryNameTag"], sizeof(newConfig.discoveryNameTag));
-                                }
-                                config->setHomeAssistantConfig(newConfig);
-                            }
-                        }
-                    
-                        if(configObj.containsKey("debug")) {
-                            DebugConfig newConfig;
-                            config->getDebugConfig(newConfig);
-
-                            JsonObject debugObj = configObj["debug"];
-                            if(debugObj.containsKey("telnet")) {
-                                newConfig.telnet = debugObj["telnet"];
-                            }
-                            if(debugObj.containsKey("serial")) {
-                                newConfig.serial = debugObj["serial"];
-                            }
-                            if(debugObj.containsKey("level")) {
-                                newConfig.level = debugObj["level"];
-                            }
-                            config->setDebugConfig(newConfig);
-                        }
-
-                        if(configObj.containsKey("gpio")) {
-                            GpioConfig newConfig;
-                            config->getGpioConfig(newConfig);
-
-                            JsonObject gpioObj = configObj["gpio"];
-                            if(gpioObj.containsKey("apPin")) {
-                                newConfig.apPin = gpioObj["apPin"];
-                            }
-                            if(gpioObj.containsKey("ledPin")) {
-                                newConfig.ledPin = gpioObj["ledPin"];
-                            }
-                            if(gpioObj.containsKey("ledInverted")) {
-                                newConfig.ledInverted = gpioObj["ledInverted"];
-                            }
-                            if(gpioObj.containsKey("ledPinRed")) {
-                                newConfig.ledPinRed = gpioObj["ledPinRed"];
-                            }
-                            if(gpioObj.containsKey("ledPinGreen")) {
-                                newConfig.ledPinGreen = gpioObj["ledPinGreen"];
-                            }
-                            if(gpioObj.containsKey("ledPinBlue")) {
-                                newConfig.ledPinBlue = gpioObj["ledPinBlue"];
-                            }
-                            if(gpioObj.containsKey("ledRgbInverted")) {
-                                newConfig.ledRgbInverted = gpioObj["ledRgbInverted"];
-                            }
-                            if(gpioObj.containsKey("tempSensorPin")) {
-                                newConfig.tempSensorPin = gpioObj["tempSensorPin"];
-                            }
-                            if(gpioObj.containsKey("tempAnalogSensorPin")) {
-                                newConfig.tempAnalogSensorPin = gpioObj["tempAnalogSensorPin"];
-                            }
-                            if(gpioObj.containsKey("vccPin")) {
-                                newConfig.vccPin = gpioObj["vccPin"];
-                            }
-                            if(gpioObj.containsKey("vccOffset")) {
-                                newConfig.vccOffset = gpioObj["vccOffset"];
-                            }
-                            if(gpioObj.containsKey("vccMultiplier")) {
-                                newConfig.vccMultiplier = gpioObj["vccMultiplier"];
-                            }
-                            if(gpioObj.containsKey("vccBootLimit")) {
-                                newConfig.vccBootLimit = gpioObj["vccBootLimit"];
-                            }
-                            if(gpioObj.containsKey("vccResistorGnd")) {
-                                newConfig.vccResistorGnd = gpioObj["vccResistorGnd"];
-                            }
-                            if(gpioObj.containsKey("vccResistorVcc")) {
-                                newConfig.vccResistorVcc = gpioObj["vccResistorVcc"];
-                            }
-                            if(gpioObj.containsKey("ledDisablePin")) {
-                                newConfig.ledDisablePin = gpioObj["ledDisablePin"];
-                            }
-                            if(gpioObj.containsKey("ledBehaviour")) {
-                                newConfig.ledBehaviour = gpioObj["ledBehaviour"];
-                            }
-                            config->setGpioConfig(newConfig);
-                        }
-
-                        if(configObj.containsKey("ntp")) {
-                            NtpConfig newConfig;
-                            config->getNtpConfig(newConfig);
-
-                            JsonObject ntpObj = configObj["ntp"];
-                            if(ntpObj.containsKey("enable")) {
-                                newConfig.enable = ntpObj["enable"];
-                            }
-                            if(ntpObj.containsKey("dhcp")) {
-                                newConfig.dhcp = ntpObj["dhcp"];
-                            }
-                            if(ntpObj.containsKey("server")) {
-                                strlcpy(newConfig.server, ntpObj["server"], sizeof(newConfig.server));
-                            }
-                            if(ntpObj.containsKey("timezone")) {
-                                strlcpy(newConfig.timezone, ntpObj["timezone"], sizeof(newConfig.timezone));
-                            }
-                            config->setNtpConfig(newConfig);
-                        }
-
-                        if(configObj.containsKey("priceService")) {
-                            PriceServiceConfig newConfig;
-                            config->getPriceServiceConfig(newConfig);
-                            JsonObject priceServiceObj = configObj["priceService"];
-                            if(priceServiceObj.containsKey("area")) {
-                                strlcpy(newConfig.area, priceServiceObj["area"], sizeof(newConfig.area));
-                            }
-                            if(priceServiceObj.containsKey("currency")) {
-                                strlcpy(newConfig.currency, priceServiceObj["currency"], sizeof(newConfig.currency));
-                            }
-                            if(priceServiceObj.containsKey("resolutionInMinutes")) {
-                                newConfig.resolutionInMinutes = priceServiceObj["resolutionInMinutes"];
-                            }
-                            if(priceServiceObj.containsKey("enabled")) {
-                                newConfig.enabled = priceServiceObj["enabled"];
-                            }
-                            config->setPriceServiceConfig(newConfig);
-                        }
-
-                        if(configObj.containsKey("cloud")) {
-                            JsonObject cloudObj = configObj["cloud"];
-
-                            if(cloudObj.containsKey("amsleser")) {
-                                CloudConfig newConfig;
-                                config->getCloudConfig(newConfig);
-
-                                JsonObject amsCloudObj = cloudObj["amsleser"];
-                                if(amsCloudObj.containsKey("enabled")) {
-                                    newConfig.enabled = amsCloudObj["enabled"];
-                                }
-                                if(amsCloudObj.containsKey("interval")) {
-                                    newConfig.interval = amsCloudObj["interval"];
-                                }
-                                if(amsCloudObj.containsKey("hostname")) {
-                                    strlcpy(newConfig.hostname, amsCloudObj["hostname"], sizeof(newConfig.hostname));
-                                }
-                                if(amsCloudObj.containsKey("port")) {
-                                    newConfig.port = amsCloudObj["port"];
-                                }
-                                if(amsCloudObj.containsKey("clientId")) {
-                                    strlcpy((char*)newConfig.clientId, amsCloudObj["clientId"], sizeof(newConfig.clientId));
-                                }
-                                if(amsCloudObj.containsKey("proto")) {
-                                    newConfig.proto = amsCloudObj["proto"];
-                                }
-                                config->setCloudConfig(newConfig);
-                            }
-
-                            if(cloudObj.containsKey("zmartCharge")) {
-                                ZmartChargeConfig newConfig;
-                                config->getZmartChargeConfig(newConfig);
-                                JsonObject zmartChargeObj = cloudObj["zmartCharge"];
-                                if(zmartChargeObj.containsKey("enabled")) {
-                                    newConfig.enabled = zmartChargeObj["enabled"];
-                                }
-                                if(zmartChargeObj.containsKey("token")) {
-                                    strlcpy(newConfig.token, zmartChargeObj["token"], sizeof(newConfig.token));
-                                }
-                                if(zmartChargeObj.containsKey("baseUrl")) {
-                                    strlcpy(newConfig.baseUrl, zmartChargeObj["baseUrl"], sizeof(newConfig.baseUrl));
-                                }
-                                config->setZmartChargeConfig(newConfig);
-                            }
-                        }
+                    } else if(strcmp_P(action, PSTR("config")) == 0 && obj.containsKey(F("config"))) {
+                        JsonObject configObj = obj[F("config")];
+                        handleConfigMessage(configObj);
                     }
                 }
             }
-        } else if(payload.equals("fwupgrade")) {
+        } else if(payload.equals(F("fwupgrade"))) {
             if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
                 updater->setTargetVersion(updater->getNextVersion());
             }
-        } else if(payload.equals("dayplot")) {
+        } else if(payload.equals(F("dayplot"))) {
             char pubTopic[192];
             snprintf_P(pubTopic, 192, PSTR("%s/dayplot"), mqttConfig.publishTopic);
             AmsJsonGenerator::generateDayPlotJson(ds, json, BufferSize);
             bool ret = mqtt.publish(pubTopic, json);
             loop();
-        } else if(payload.equals("monthplot")) {
+        } else if(payload.equals(F("monthplot"))) {
             char pubTopic[192];
             snprintf_P(pubTopic, 192, PSTR("%s/monthplot"), mqttConfig.publishTopic);
             AmsJsonGenerator::generateMonthPlotJson(ds, json, BufferSize);
             bool ret = mqtt.publish(pubTopic, json);
             loop();
+        }
+    }
+}
+
+void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
+    // General
+    if(configObj.containsKey(F("g"))) {
+        JsonObject generalObj = configObj[F("g")];
+        if(generalObj.containsKey(F("t"))) {
+            NtpConfig ntpConfig;
+            config->getNtpConfig(ntpConfig);
+            strlcpy(ntpConfig.timezone, generalObj[F("t")], sizeof(ntpConfig.timezone));
+            config->setNtpConfig(ntpConfig);
+        }
+        if(generalObj.containsKey(F("h"))) {
+            NetworkConfig networkConfig;
+            config->getNetworkConfig(networkConfig);
+            strlcpy(networkConfig.hostname, generalObj[F("h")], sizeof(networkConfig.hostname));
+            config->setNetworkConfig(networkConfig);
+        }
+
+        WebConfig webConfig;
+        config->getWebConfig(webConfig);
+        if(generalObj.containsKey(F("s"))) {
+            webConfig.security = generalObj[F("s")];
+        }
+        if(webConfig.security > 0) {
+            if(generalObj.containsKey(F("u"))) {
+                strlcpy(webConfig.username, generalObj[F("u")], sizeof(webConfig.username));
+            }
+            if(generalObj.containsKey(F("p"))) {
+                strlcpy(webConfig.password, generalObj[F("p")], sizeof(webConfig.password));
+            }
+        }
+        if(generalObj.containsKey(F("c"))) {
+            strlcpy(webConfig.context, generalObj[F("c")], sizeof(webConfig.context));
+        }
+        config->setWebConfig(webConfig);
+    }
+
+    // Meter
+    if(configObj.containsKey(F("m"))) {
+        JsonObject meterObj = configObj[F("m")];
+        MeterConfig newConfig;
+        config->getMeterConfig(newConfig);
+
+        if(meterObj.containsKey(F("o"))) {
+            newConfig.source = meterObj[F("o")];
+        }
+        if(meterObj.containsKey(F("a"))) {
+            newConfig.parser = meterObj[F("a")];
+        }
+        if(meterObj.containsKey(F("b"))) {
+            newConfig.baud = meterObj[F("b")];
+        }
+        if(meterObj.containsKey(F("p"))) {
+            // TODO, string to enum
+            newConfig.parity = meterObj[F("p")];
+        }
+        if(meterObj.containsKey(F("i"))) {
+            newConfig.invert = meterObj[F("i")];
+        }
+        if(meterObj.containsKey(F("s"))) {
+            newConfig.bufferSize = meterObj[F("s")] / 64; // convert from bytes to 64 byte blocks
+        }
+        if(meterObj.containsKey(F("d"))) {
+            newConfig.distributionSystem = meterObj[F("d")];
+        }
+        if(meterObj.containsKey(F("f"))) {
+            newConfig.mainFuse = meterObj[F("f")];
+        }
+        if(meterObj.containsKey(F("r"))) {
+            newConfig.productionCapacity = meterObj[F("r")];
+        }
+        if(meterObj.containsKey(F("e"))) {
+            JsonObject encryptionObj = meterObj[F("e")];
+            if(encryptionObj.containsKey(F("e"))) {
+                bool enabled = encryptionObj[F("e")];
+                if(enabled) {
+                    if(encryptionObj.containsKey(F("k"))) {
+                        // TODO
+                    }
+                    if(encryptionObj.containsKey(F("a"))) {
+                        // TODO
+                    }
+                } else {
+                    memset(newConfig.encryptionKey, 0, sizeof(newConfig.encryptionKey));
+                    memset(newConfig.authenticationKey, 0, sizeof(newConfig.authenticationKey));
+                }
+            }
+        }
+
+        config->setMeterConfig(newConfig);
+    }
+
+    if(configObj.containsKey(F("system"))) {
+        SystemConfig newConfig;
+        config->getSystemConfig(newConfig);
+
+        JsonObject systemObj = configObj[F("system")];
+        if(systemObj.containsKey(F("country"))) {
+            strlcpy(newConfig.country, systemObj[F("country")], sizeof(newConfig.country));
+        }
+        if(systemObj.containsKey(F("firmwareChannel"))) {
+            newConfig.firmwareChannel = systemObj[F("firmwareChannel")];
+        }
+        config->setSystemConfig(newConfig);
+    }
+
+    if(configObj.containsKey(F("network"))) {
+        NetworkConfig newConfig;
+        config->getNetworkConfig(newConfig);
+
+        JsonObject networkObj = configObj[F("network")];
+        if(networkObj.containsKey(F("mode"))) {
+            newConfig.mode = networkObj[F("mode")];
+        }
+        if(newConfig.mode == 1 || newConfig.mode == 2) {
+            if(networkObj.containsKey(F("ssid"))) {
+                strlcpy(newConfig.ssid, networkObj[F("ssid")], sizeof(newConfig.ssid));
+            }
+            if(networkObj.containsKey(F("psk"))) {
+                strlcpy(newConfig.psk, networkObj[F("psk")], sizeof(newConfig.psk));
+            }
+            if(networkObj.containsKey(F("power"))) {
+                newConfig.power = networkObj[F("power")];
+            }
+            if(networkObj.containsKey(F("sleep"))) {
+                newConfig.sleep = networkObj[F("sleep")];
+            }
+            if(networkObj.containsKey(F("use11b"))) {
+                newConfig.use11b = networkObj[F("use11b")];
+            }
+        }
+        if(networkObj.containsKey(F("ip"))) {
+            strlcpy(newConfig.ip, networkObj[F("ip")], sizeof(newConfig.ip));
+        }
+        if(networkObj.containsKey(F("gateway"))) {
+            strlcpy(newConfig.gateway, networkObj[F("gateway")], sizeof(newConfig.gateway));
+        }
+        if(networkObj.containsKey(F("subnet"))) {
+            strlcpy(newConfig.subnet, networkObj[F("subnet")], sizeof(newConfig.subnet));
+        }
+        if(networkObj.containsKey(F("dns1"))) {
+            strlcpy(newConfig.dns1, networkObj[F("dns1")], sizeof(newConfig.dns1));
+        }
+        if(networkObj.containsKey(F("dns2"))) {
+            strlcpy(newConfig.dns2, networkObj[F("dns2")], sizeof(newConfig.dns2));
+        }
+        if(networkObj.containsKey(F("mdns"))) {
+            newConfig.mdns = networkObj[F("mdns")];
+        }
+        if(networkObj.containsKey(F("ipv6"))) {
+            newConfig.ipv6 = networkObj[F("ipv6")];
+        }
+        config->setNetworkConfig(newConfig);
+    }
+
+    if(configObj.containsKey(F("meter"))) {
+        MeterConfig newConfig;
+        config->getMeterConfig(newConfig);
+
+        JsonObject meterObj = configObj[F("meter")];
+        if(meterObj.containsKey(F("baud"))) {
+            newConfig.baud = meterObj[F("baud")];
+        }
+        if(meterObj.containsKey(F("parity"))) {
+            newConfig.parity = meterObj[F("parity")];
+        }
+        if(meterObj.containsKey(F("invert"))) {
+            newConfig.invert = meterObj[F("invert")];
+        }
+        if(meterObj.containsKey(F("distributionSystem"))) {
+            newConfig.distributionSystem = meterObj[F("distributionSystem")];
+        }
+        if(meterObj.containsKey(F("mainFuse"))) {
+            newConfig.mainFuse = meterObj[F("mainFuse")];
+        }
+        if(meterObj.containsKey(F("productionCapacity"))) {
+            newConfig.productionCapacity = meterObj[F("productionCapacity")];
+        }
+        if(meterObj.containsKey(F("wattageMultiplier"))) {
+            newConfig.wattageMultiplier = meterObj[F("wattageMultiplier")];
+        }
+        if(meterObj.containsKey(F("voltageMultiplier"))) {
+            newConfig.voltageMultiplier = meterObj[F("voltageMultiplier")];
+        }
+        if(meterObj.containsKey(F("amperageMultiplier"))) {
+            newConfig.amperageMultiplier = meterObj[F("amperageMultiplier")];
+        }
+        if(meterObj.containsKey(F("accumulatedMultiplier"))) {
+            newConfig.accumulatedMultiplier = meterObj[F("accumulatedMultiplier")];
+        }
+        if(meterObj.containsKey(F("parser"))) {
+            newConfig.parser = meterObj[F("parser")];
+        }
+        if(meterObj.containsKey(F("bufferSize"))) {
+            newConfig.bufferSize = meterObj[F("bufferSize")];
+        }
+        if(meterObj.containsKey(F("rxPin"))) {
+            newConfig.rxPin = meterObj[F("rxPin")];
+        }
+        if(meterObj.containsKey(F("rxPinPullup"))) {
+            newConfig.rxPinPullup = meterObj[F("rxPinPullup")];
+        }
+        if(meterObj.containsKey(F("txPin"))) {
+            newConfig.txPin = meterObj[F("txPin")];
+        }
+    }
+
+    if(configObj.containsKey(F("mqtt"))) {
+        MqttConfig newConfig;
+        config->getMqttConfig(newConfig);
+
+        JsonObject mqttObj = configObj[F("mqtt")];
+        if(mqttObj.containsKey(F("host"))) {
+            strlcpy(newConfig.host, mqttObj[F("host")], sizeof(newConfig.host));
+        }
+        if(mqttObj.containsKey(F("port"))) {
+            newConfig.port = mqttObj[F("port")];
+        }
+        if(mqttObj.containsKey(F("clientId"))) {
+            strlcpy(newConfig.clientId, mqttObj[F("clientId")], sizeof(newConfig.clientId));
+        }
+        if(mqttObj.containsKey(F("publishTopic"))) {
+            strlcpy(newConfig.publishTopic, mqttObj[F("publishTopic")], sizeof(newConfig.publishTopic));
+        }
+        if(mqttObj.containsKey(F("subscribeTopic"))) {
+            strlcpy(newConfig.subscribeTopic, mqttObj[F("subscribeTopic")], sizeof(newConfig.subscribeTopic));
+        }
+        if(mqttObj.containsKey(F("username"))) {
+            strlcpy(newConfig.username, mqttObj[F("username")], sizeof(newConfig.username));
+        }
+        if(mqttObj.containsKey(F("password"))) {
+            strlcpy(newConfig.password, mqttObj[F("password")], sizeof(newConfig.password));
+        }
+        if(mqttObj.containsKey(F("payloadFormat"))) {
+            newConfig.payloadFormat = mqttObj[F("payloadFormat")];
+        }
+        if(mqttObj.containsKey(F("ssl"))) {
+            newConfig.ssl = mqttObj[F("ssl")];
+        }
+        if(mqttObj.containsKey(F("stateUpdate"))) {
+            newConfig.stateUpdate = mqttObj[F("stateUpdate")];
+        }
+        if(mqttObj.containsKey(F("stateUpdateInterval"))) {
+            newConfig.stateUpdateInterval = mqttObj[F("stateUpdateInterval")];
+        }
+        if(mqttObj.containsKey(F("timeout"))) {
+            newConfig.timeout = mqttObj[F("timeout")];
+        }
+        if(mqttObj.containsKey(F("keepalive"))) {
+            newConfig.keepalive = mqttObj[F("keepalive")];
+        }
+        if(mqttObj.containsKey(F("rebootMinutes"))) {
+            newConfig.rebootMinutes = mqttObj[F("rebootMinutes")];
+        }
+        config->setMqttConfig(newConfig);
+
+        if(mqttObj.containsKey(F("domoticz"))) {
+            DomoticzConfig newConfig;
+            config->getDomoticzConfig(newConfig);
+            JsonObject domoticzObj = mqttObj[F("domoticz")];
+            if(domoticzObj.containsKey(F("elidx"))) {
+                newConfig.elidx = domoticzObj[F("elidx")];
+            }
+            if(domoticzObj.containsKey(F("vl1idx"))) {
+                newConfig.vl1idx = domoticzObj[F("vl1idx")];
+            }
+            if(domoticzObj.containsKey(F("vl2idx"))) {
+                newConfig.vl2idx = domoticzObj[F("vl2idx")];
+            }
+            if(domoticzObj.containsKey(F("vl3idx"))) {
+                newConfig.vl3idx = domoticzObj[F("vl3idx")];
+            }
+            if(domoticzObj.containsKey(F("cl1idx"))) {
+                newConfig.cl1idx = domoticzObj[F("cl1idx")];
+            }
+            config->setDomoticzConfig(newConfig);
+        }
+
+        if(mqttObj.containsKey(F("homeAssistant"))) {
+            HomeAssistantConfig newConfig;
+            config->getHomeAssistantConfig(newConfig);
+            JsonObject haObj = mqttObj[F("homeAssistant")];
+            if(haObj.containsKey(F("discoveryPrefix"))) {
+                strlcpy(newConfig.discoveryPrefix, haObj[F("discoveryPrefix")], sizeof(newConfig.discoveryPrefix));
+            }
+            if(haObj.containsKey(F("discoveryHostname"))) {
+                strlcpy(newConfig.discoveryHostname, haObj[F("discoveryHostname")], sizeof(newConfig.discoveryHostname));
+            }
+            if(haObj.containsKey(F("discoveryNameTag"))) {
+                strlcpy(newConfig.discoveryNameTag, haObj[F("discoveryNameTag")], sizeof(newConfig.discoveryNameTag));
+            }
+            config->setHomeAssistantConfig(newConfig);
+        }
+    }
+
+    if(configObj.containsKey(F("debug"))) {
+        DebugConfig newConfig;
+        config->getDebugConfig(newConfig);
+
+        JsonObject debugObj = configObj[F("debug")];
+        if(debugObj.containsKey(F("telnet"))) {
+            newConfig.telnet = debugObj[F("telnet")];
+        }
+        if(debugObj.containsKey(F("serial"))) {
+            newConfig.serial = debugObj[F("serial")];
+        }
+        if(debugObj.containsKey(F("level"))) {
+            newConfig.level = debugObj[F("level")];
+        }
+        config->setDebugConfig(newConfig);
+    }
+
+    if(configObj.containsKey(F("gpio"))) {
+        GpioConfig newConfig;
+        config->getGpioConfig(newConfig);
+
+        JsonObject gpioObj = configObj[F("gpio")];
+        if(gpioObj.containsKey(F("apPin"))) {
+            newConfig.apPin = gpioObj[F("apPin")];
+        }
+        if(gpioObj.containsKey(F("ledPin"))) {
+            newConfig.ledPin = gpioObj[F("ledPin")];
+        }
+        if(gpioObj.containsKey(F("ledInverted"))) {
+            newConfig.ledInverted = gpioObj[F("ledInverted")];
+        }
+        if(gpioObj.containsKey(F("ledPinRed"))) {
+            newConfig.ledPinRed = gpioObj[F("ledPinRed")];
+        }
+        if(gpioObj.containsKey(F("ledPinGreen"))) {
+            newConfig.ledPinGreen = gpioObj[F("ledPinGreen")];
+        }
+        if(gpioObj.containsKey(F("ledPinBlue"))) {
+            newConfig.ledPinBlue = gpioObj[F("ledPinBlue")];
+        }
+        if(gpioObj.containsKey(F("ledRgbInverted"))) {
+            newConfig.ledRgbInverted = gpioObj[F("ledRgbInverted")];
+        }
+        if(gpioObj.containsKey(F("tempSensorPin"))) {
+            newConfig.tempSensorPin = gpioObj[F("tempSensorPin")];
+        }
+        if(gpioObj.containsKey(F("tempAnalogSensorPin"))) {
+            newConfig.tempAnalogSensorPin = gpioObj[F("tempAnalogSensorPin")];
+        }
+        if(gpioObj.containsKey(F("vccPin"))) {
+            newConfig.vccPin = gpioObj[F("vccPin")];
+        }
+        if(gpioObj.containsKey(F("vccOffset"))) {
+            newConfig.vccOffset = gpioObj[F("vccOffset")];
+        }
+        if(gpioObj.containsKey(F("vccMultiplier"))) {
+            newConfig.vccMultiplier = gpioObj[F("vccMultiplier")];
+        }
+        if(gpioObj.containsKey(F("vccBootLimit"))) {
+            newConfig.vccBootLimit = gpioObj[F("vccBootLimit")];
+        }
+        if(gpioObj.containsKey(F("vccResistorGnd"))) {
+            newConfig.vccResistorGnd = gpioObj[F("vccResistorGnd")];
+        }
+        if(gpioObj.containsKey(F("vccResistorVcc"))) {
+            newConfig.vccResistorVcc = gpioObj[F("vccResistorVcc")];
+        }
+        if(gpioObj.containsKey(F("ledDisablePin"))) {
+            newConfig.ledDisablePin = gpioObj[F("ledDisablePin")];
+        }
+        if(gpioObj.containsKey(F("ledBehaviour"))) {
+            newConfig.ledBehaviour = gpioObj[F("ledBehaviour")];
+        }
+        config->setGpioConfig(newConfig);
+    }
+
+    if(configObj.containsKey(F("ntp"))) {
+        NtpConfig newConfig;
+        config->getNtpConfig(newConfig);
+
+        JsonObject ntpObj = configObj[F("ntp")];
+        if(ntpObj.containsKey(F("enable"))) {
+            newConfig.enable = ntpObj[F("enable")];
+        }
+        if(ntpObj.containsKey(F("dhcp"))) {
+            newConfig.dhcp = ntpObj[F("dhcp")];
+        }
+        if(ntpObj.containsKey(F("server"))) {
+            strlcpy(newConfig.server, ntpObj[F("server")], sizeof(newConfig.server));
+        }
+        config->setNtpConfig(newConfig);
+    }
+
+    if(configObj.containsKey(F("priceService"))) {
+        PriceServiceConfig newConfig;
+        config->getPriceServiceConfig(newConfig);
+        JsonObject priceServiceObj = configObj[F("priceService")];
+        if(priceServiceObj.containsKey(F("area"))) {
+            strlcpy(newConfig.area, priceServiceObj[F("area")], sizeof(newConfig.area));
+        }
+        if(priceServiceObj.containsKey(F("currency"))) {
+            strlcpy(newConfig.currency, priceServiceObj[F("currency")], sizeof(newConfig.currency));
+        }
+        if(priceServiceObj.containsKey(F("resolutionInMinutes"))) {
+            newConfig.resolutionInMinutes = priceServiceObj[F("resolutionInMinutes")];
+        }
+        if(priceServiceObj.containsKey(F("enabled"))) {
+            newConfig.enabled = priceServiceObj[F("enabled")];
+        }
+        config->setPriceServiceConfig(newConfig);
+    }
+
+    if(configObj.containsKey(F("cloud"))) {
+        JsonObject cloudObj = configObj[F("cloud")];
+
+        if(cloudObj.containsKey(F("amsleser"))) {
+            CloudConfig newConfig;
+            config->getCloudConfig(newConfig);
+
+            JsonObject amsCloudObj = cloudObj[F("amsleser")];
+            if(amsCloudObj.containsKey(F("enabled"))) {
+                newConfig.enabled = amsCloudObj[F("enabled")];
+            }
+            if(amsCloudObj.containsKey(F("interval"))) {
+                newConfig.interval = amsCloudObj[F("interval")];
+            }
+            if(amsCloudObj.containsKey(F("hostname"))) {
+                strlcpy(newConfig.hostname, amsCloudObj[F("hostname")], sizeof(newConfig.hostname));
+            }
+            if(amsCloudObj.containsKey(F("port"))) {
+                newConfig.port = amsCloudObj[F("port")];
+            }
+            if(amsCloudObj.containsKey(F("clientId"))) {
+                strlcpy((char*)newConfig.clientId, amsCloudObj[F("clientId")], sizeof(newConfig.clientId));
+            }
+            if(amsCloudObj.containsKey(F("proto"))) {
+                newConfig.proto = amsCloudObj[F("proto")];
+            }
+            config->setCloudConfig(newConfig);
+        }
+
+        if(cloudObj.containsKey(F("zmartcharge"))) {
+            ZmartChargeConfig newConfig;
+            config->getZmartChargeConfig(newConfig);
+            JsonObject zmartChargeObj = cloudObj[F("zmartcharge")];
+            if(zmartChargeObj.containsKey(F("enabled"))) {
+                newConfig.enabled = zmartChargeObj[F("enabled")];
+            }
+            if(zmartChargeObj.containsKey(F("token"))) {
+                strlcpy(newConfig.token, zmartChargeObj[F("token")], sizeof(newConfig.token));
+            }
+            if(zmartChargeObj.containsKey(F("baseUrl"))) {
+                strlcpy(newConfig.baseUrl, zmartChargeObj[F("baseUrl")], sizeof(newConfig.baseUrl));
+            }
+            config->setZmartChargeConfig(newConfig);
+        }
+
+        if(cloudObj.containsKey(F("energyspeedometer"))) {
+            SystemConfig newConfig;
+            config->getSystemConfig(newConfig);
+            JsonObject speedometerObj = cloudObj[F("energyspeedometer")];
+            if(speedometerObj.containsKey(F("enabled"))) {
+                newConfig.energyspeedometer = speedometerObj[F("enabled")];
+            }
+            config->setSystemConfig(newConfig);
         }
     }
 }

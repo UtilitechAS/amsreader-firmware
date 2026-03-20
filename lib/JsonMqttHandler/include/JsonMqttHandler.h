@@ -8,6 +8,7 @@
 #define _JSONMQTTHANDLER_H
 
 #include "AmsMqttHandler.h"
+#include "ArduinoJson.h"
 
 class JsonMqttHandler : public AmsMqttHandler {
 public:
@@ -51,5 +52,6 @@ private:
     bool publishList4(AmsData* data, EnergyAccounting* ea);
     String getMeterModel(AmsData* data);
     void toJsonIsoTimestamp(time_t t, char* buf, size_t buflen);
+    void handleConfigMessage(JsonObject& configObj);
 };
 #endif

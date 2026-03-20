@@ -2963,10 +2963,13 @@ void AmsWebServer::wifiTestStatus() {
 		}
 	}
 
-	wifi_config_t conf;
-    esp_wifi_get_config((wifi_interface_t)ESP_IF_WIFI_STA, &conf);
-
-	snprintf_P(buf, BufferSize, PSTR("{\"ssid\":\"%s\",\"status\":%d,\"time\":%lu,\"ip\":\"%s\"}"), conf.sta.ssid, wifiTestStatusCode, wifiTestInProgress ? millis() - wifiTestStarted : 0, WiFi.localIP().toString().c_str());
+	#if defined(ESP32)
+		wifi_config_t conf;
+		esp_wifi_get_config((wifi_interface_t)ESP_IF_WIFI_STA, &conf);
+		snprintf_P(buf, BufferSize, PSTR("{\"ssid\":\"%s\",\"status\":%d,\"time\":%lu,\"ip\":\"%s\"}"), conf.sta.ssid, wifiTestStatusCode, wifiTestInProgress ? millis() - wifiTestStarted : 0, WiFi.localIP().toString().c_str());
+	#else
+		snprintf_P(buf, BufferSize, PSTR("{\"ssid\":\"%s\",\"status\":%d,\"time\":%lu,\"ip\":\"%s\"}"), WiFi.SSID().c_str(), wifiTestStatusCode, wifiTestInProgress ? millis() - wifiTestStarted : 0, WiFi.localIP().toString().c_str());
+	#endif
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);

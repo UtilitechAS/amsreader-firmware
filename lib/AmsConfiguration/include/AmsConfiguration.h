@@ -10,7 +10,7 @@
 #include "Arduino.h"
 
 #if defined(ESP8266)
-#define BUF_SIZE_COMMON 1024
+#define BUF_SIZE_COMMON 2048
 #else
 #define BUF_SIZE_COMMON 4096
 #endif

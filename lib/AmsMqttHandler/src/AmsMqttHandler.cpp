@@ -118,8 +118,9 @@ bool AmsMqttHandler::connect() {
 	mqtt.setTimeout(mqttConfig.timeout);
 	mqtt.setKeepAlive(mqttConfig.keepalive);
 	mqtt.begin(mqttConfig.host, mqttConfig.port, *actualClient);
-	String statusTopic = String(mqttConfig.publishTopic) + "/status";
-	mqtt.setWill(statusTopic.c_str(), "offline", true, 0);
+	char statusTopic[72];
+	snprintf(statusTopic, sizeof(statusTopic), "%s/status", mqttConfig.publishTopic);
+	mqtt.setWill(statusTopic, "offline", true, 0);
 
 	#if defined(ESP8266)
 		if(mqttSecureClient) {
@@ -160,17 +161,17 @@ bool AmsMqttHandler::connect() {
 
 bool AmsMqttHandler::defaultSubscribe() {
 	bool ret = true;
-	if(!subTopic.isEmpty()) {
+	if(subTopic[0] != '\0') {
         if(mqtt.subscribe(subTopic)) {
             #if defined(AMS_REMOTE_DEBUG)
             if (debugger->isActive(RemoteDebug::ERROR))
             #endif
-            debugger->printf_P(PSTR("  Subscribed to [%s]\n"), subTopic.c_str());
+            debugger->printf_P(PSTR("  Subscribed to [%s]\n"), subTopic);
         } else {
             #if defined(AMS_REMOTE_DEBUG)
             if (debugger->isActive(RemoteDebug::ERROR))
             #endif
-            debugger->printf_P(PSTR("  Unable to subscribe to [%s]\n"), subTopic.c_str());
+            debugger->printf_P(PSTR("  Unable to subscribe to [%s]\n"), subTopic);
             ret = false;
         }
     }

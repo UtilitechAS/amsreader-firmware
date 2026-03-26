@@ -520,7 +520,7 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
     #endif
     debugger->printf_P(PSTR("Received command [%s] to [%s]\n"), payload.c_str(), topic.c_str());
 
-    if(topic.equals(subTopic)) {
+    if(topic == subTopic) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::DEBUG))
         #endif

@@ -648,8 +648,8 @@ void AmsWebServer::dataJson() {
 		ea->getProducedThisMonth(),
 		ea->getIncomeThisMonth(),
 		price == PRICE_NO_VALUE ? "false" : "true",
-		priceRegion.c_str(),
-		priceCurrency.c_str(),
+		priceRegion,
+		priceCurrency,
 		meterState->getLastError(),
 		ps == NULL ? 0 : ps->getLastError(),
 		(uint32_t) now,
@@ -1385,12 +1385,12 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("p")) && server.arg(F("p")) == F("true")) {
-		priceRegion = server.arg(F("pr"));
+		strncpy(priceRegion, server.arg(F("pr")).c_str(), sizeof(priceRegion) - 1);
 
 		PriceServiceConfig price;
 		price.enabled = server.hasArg(F("pe")) && server.arg(F("pe")) == F("true");
 		strcpy(price.entsoeToken, server.arg(F("pt")).c_str());
-		strcpy(price.area, priceRegion.c_str());
+		strcpy(price.area, priceRegion);
 		strcpy(price.currency, server.arg(F("pc")).c_str());
 		price.resolutionInMinutes = server.arg(F("pm")).toInt();
 		config->setPriceServiceConfig(price);
@@ -2022,8 +2022,8 @@ void AmsWebServer::realtimeJson() {
 }
 
 void AmsWebServer::setPriceSettings(String region, String currency) {
-	this->priceRegion = region;
-	this->priceCurrency = currency;
+	strncpy(this->priceRegion, region.c_str(), sizeof(this->priceRegion) - 1);
+	strncpy(this->priceCurrency, currency.c_str(), sizeof(this->priceCurrency) - 1);
 }
 
 void AmsWebServer::configFileDownload() {

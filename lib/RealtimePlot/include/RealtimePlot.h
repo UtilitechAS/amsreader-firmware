@@ -21,8 +21,8 @@ public:
     int16_t getSize();
 
 private:
-    int8_t* values;
-    uint8_t* scaling;
+    int8_t  values[REALTIME_SIZE];
+    uint8_t scaling[REALTIME_SIZE];
 
     unsigned long lastMillis = 0;
     double lastReading = 0;

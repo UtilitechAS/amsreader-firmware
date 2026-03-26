@@ -213,7 +213,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 uint8_t str_len = 0;
                 str_len = getString(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), ((char *) (d)), str);
                 if(str_len > 0) {
-                    meterId = String(str);
+                    strncpy(meterId, str, sizeof(meterId) - 1);
                 }
 
                 listType = 4;
@@ -227,9 +227,8 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
         } else if(data->base.type == CosemTypeOctetString) { // Assuming first string is a list identifier
             memcpy(str, data->oct.data, data->oct.length);
             str[data->oct.length] = 0x00;
-            String listId = String(str);
-            if(listId.startsWith(F("KFM_001"))) {
-                this->listId = listId;
+            if(strncmp(str, "KFM_001", 7) == 0) {
+                strncpy(this->listId, str, sizeof(this->listId) - 1);
                 meterType = AmsTypeKaifa;
 
                 uint8_t idx = 0;
@@ -241,12 +240,12 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     memcpy(str, data->oct.data, data->oct.length);
                     str[data->oct.length] = 0x00;
-                    meterId = String(str);
+                    strncpy(meterId, str, sizeof(meterId) - 1);
 
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     memcpy(str, data->oct.data, data->oct.length);
                     str[data->oct.length] = 0x00;
-                    meterModel = String(str);
+                    strncpy(meterModel, str, sizeof(meterModel) - 1);
 
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeImportPower = ntohl(data->dlu.data);
@@ -277,12 +276,12 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     memcpy(str, data->oct.data, data->oct.length);
                     str[data->oct.length] = 0x00;
-                    meterId = String(str);
+                    strncpy(meterId, str, sizeof(meterId) - 1);
 
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     memcpy(str, data->oct.data, data->oct.length);
                     str[data->oct.length] = 0x00;
-                    meterModel = String(str);
+                    strncpy(meterModel, str, sizeof(meterModel) - 1);
 
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeImportPower = ntohl(data->dlu.data);
@@ -301,7 +300,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     l1voltage = ntohl(data->dlu.data) / 10.0;
                 }
 
-                if(listType >= 2 && memcmp(meterModel.c_str(), "MA304T3", 7) == 0) {
+                if(listType >= 2 && memcmp(meterModel, "MA304T3", 7) == 0) {
                     l2voltage = sqrt(pow(l1voltage - l3voltage * cos(60 * (PI/180)), 2) + pow(l3voltage * sin(60 * (PI/180)),2));
                     l2currentMissing = true;
                 }
@@ -330,8 +329,8 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 }
 
                 lastUpdateMillis = millis64();
-            } else if(listId.startsWith("ISK")) { // Iskra special case
-                this->listId = listId;
+            } else if(strncmp(listId, "ISK", 3) == 0) { // Iskra special case
+                strncpy(this->listId, str, sizeof(this->listId) - 1);
                 meterType = AmsTypeIskra;
 
                 uint8_t idx = 0;
@@ -347,7 +346,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     memcpy(str, data->oct.data, data->oct.length);
                     str[data->oct.length] = 0x00;
-                    meterId = String(str);
+                    strncpy(meterId, str, sizeof(meterId) - 1);
 
                     // 1.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
@@ -427,7 +426,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         memcpy(str, data->oct.data, data->oct.length);
                         str[data->oct.length] = 0x00;
-                        meterId = String(str);
+                        strncpy(meterId, str, sizeof(meterId) - 1);
 
                         // 96.3.10 Disconnect control
                         // 96.14.0 Currently acrive energy tariff
@@ -469,7 +468,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         memcpy(str, data->oct.data, data->oct.length);
                         str[data->oct.length] = 0x00;
-                        meterId = String(str);
+                        strncpy(meterId, str, sizeof(meterId) - 1);
 
                         // 32.7.0
                         data = getCosemDataAt(idx++, ((char *) (d)));
@@ -526,7 +525,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         memcpy(str, data->oct.data, data->oct.length);
                         str[data->oct.length] = 0x00;
-                        meterId = String(str);
+                        strncpy(meterId, str, sizeof(meterId) - 1);
 
                         // 1.7.0
                         data = getCosemDataAt(idx++, ((char *) (d)));
@@ -572,7 +571,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         memcpy(str, data->oct.data, data->oct.length);
                         str[data->oct.length] = 0x00;
-                        meterId = String(str);
+                        strncpy(meterId, str, sizeof(meterId) - 1);
 
                         // 1.8.1
                         data = getCosemDataAt(idx++, ((char *) (d)));
@@ -633,7 +632,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                         data = getCosemDataAt(idx++, ((char *) (d)));
                         memcpy(str, data->oct.data, data->oct.length);
                         str[data->oct.length] = 0x00;
-                        meterId = String(str);
+                        strncpy(meterId, str, sizeof(meterId) - 1);
 
                         // 1.7.0
                         data = getCosemDataAt(idx++, ((char *) (d)));
@@ -707,7 +706,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     memcpy(str, data->oct.data, data->oct.length);
                     str[data->oct.length] = 0x00;
-                    meterId = String(str);
+                    strncpy(meterId, str, sizeof(meterId) - 1);
 
                     // 32.7.0
                     data = getCosemDataAt(idx++, ((char *) (d)));
@@ -778,7 +777,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 str_len = getString(AMS_OBIS_UNKNOWN_1, sizeof(AMS_OBIS_UNKNOWN_1), ((char *) (d)), str);
                 if(str_len > 0) {
                     meterType = AmsTypeIskra;
-                    meterId = String(str);
+                    strncpy(meterId, str, sizeof(meterId) - 1);
                     lastUpdateMillis = millis64();
                     listType = 3;
                 }
@@ -810,7 +809,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
         uint8_t str_len = 0;
         str_len = getString(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), ((char *) (d)), str);
         if(str_len > 0) {
-            listId = String(str);
+            strncpy(listId, str, sizeof(listId) - 1);
         }
 
         val = getNumber(AMS_OBIS_ACTIVE_EXPORT, sizeof(AMS_OBIS_ACTIVE_EXPORT), ((char *) (d)));
@@ -885,21 +884,21 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
 
         str_len = getString(AMS_OBIS_METER_MODEL, sizeof(AMS_OBIS_METER_MODEL), ((char *) (d)), str);
         if(str_len > 0) {
-            meterModel = String(str);
+            strncpy(meterModel, str, sizeof(meterModel) - 1);
         } else {
             str_len = getString(AMS_OBIS_METER_MODEL_2, sizeof(AMS_OBIS_METER_MODEL_2), ((char *) (d)), str);
             if(str_len > 0) {
-                meterModel = String(str);
+                strncpy(meterModel, str, sizeof(meterModel) - 1);
             }
         }
 
         str_len = getString(AMS_OBIS_METER_ID, sizeof(AMS_OBIS_METER_ID), ((char *) (d)), str);
         if(str_len > 0) {
-            meterId = String(str);
+            strncpy(meterId, str, sizeof(meterId) - 1);
         } else {
             str_len = getString(AMS_OBIS_METER_ID_2, sizeof(AMS_OBIS_METER_ID_2), ((char *) (d)), str);
             if(str_len > 0) {
-                meterId = String(str);
+                strncpy(meterId, str, sizeof(meterId) - 1);
             }
         }
 
@@ -1035,12 +1034,12 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     case CosemTypeString:
                         memcpy(str, mid->oct.data, mid->oct.length);
                         str[mid->oct.length] = 0x00;
-                        meterId = String(str);
+                        strncpy(meterId, str, sizeof(meterId) - 1);
                         break;
                     case CosemTypeOctetString:
                         memcpy(str, mid->str.data, mid->str.length);
                         str[mid->str.length] = 0x00;
-                        meterId = String(str);
+                        strncpy(meterId, str, sizeof(meterId) - 1);
                         break;
                 }
             }
@@ -1059,9 +1058,9 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
             meterType = AmsTypeIskra;
         }
 
-        if(meterId.isEmpty() && meterType != AmsTypeUnknown) {
+        if(meterId[0] == '\0' && meterType != AmsTypeUnknown) {
         	stripNonAscii((uint8_t*) ctx.system_title, 8);
-            meterId = String((const char*)ctx.system_title);
+            strncpy(meterId, (const char*)ctx.system_title, sizeof(meterId) - 1);
         }
     }
 
@@ -1105,7 +1104,13 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
             threePhase = true;
         }
     }
-    meterId.trim();
+    // Trim trailing whitespace from meterId
+    {
+        int len = strlen(meterId);
+        while(len > 0 && (meterId[len-1] == ' ' || meterId[len-1] == '\t' || meterId[len-1] == '\r' || meterId[len-1] == '\n')) {
+            meterId[--len] = '\0';
+        }
+    }
 }
 
 CosemData* IEC6205675::getCosemDataAt(uint8_t index, const char* ptr) {

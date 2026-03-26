@@ -98,8 +98,8 @@ protected:
     uint64_t lastStateUpdate = 0;
     uint64_t lastSuccessfulLoop = 0;
 
-    String pubTopic;
-    String subTopic;
+    char pubTopic[64];
+    char subTopic[64];
 
     AmsFirmwareUpdater* updater = NULL;
     bool rebootSuggested = false;
@@ -115,9 +115,14 @@ private:
         this->updater = updater;
         mqtt.dropOverflow(true);
 
-        pubTopic = String(mqttConfig.publishTopic);
-        subTopic = String(mqttConfig.subscribeTopic);
-        if(subTopic.isEmpty()) subTopic = pubTopic+"/command";
+        strncpy(pubTopic, mqttConfig.publishTopic, sizeof(pubTopic) - 1);
+        pubTopic[sizeof(pubTopic) - 1] = '\0';
+        if(strlen(mqttConfig.subscribeTopic) > 0) {
+            strncpy(subTopic, mqttConfig.subscribeTopic, sizeof(subTopic) - 1);
+            subTopic[sizeof(subTopic) - 1] = '\0';
+        } else {
+            snprintf(subTopic, sizeof(subTopic), "%s/command", mqttConfig.publishTopic);
+        }
     }
 };
 

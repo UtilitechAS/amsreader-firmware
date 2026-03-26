@@ -88,7 +88,7 @@ bool HomeAssistantMqttHandler::postConnect() {
 }
 
 bool HomeAssistantMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAccounting* ea, PriceService* ps) {
-	if(pubTopic.isEmpty() || !connected())
+	if(pubTopic[0] == 'pubTopic.isEmpty()' || !connected())
 		return false;
 
     if(time(nullptr) < FirmwareVersion::BuildEpoch)
@@ -136,7 +136,8 @@ bool HomeAssistantMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea)
     toJsonIsoTimestamp(data->getPackageTimestamp(), pt, sizeof(pt));
 
     snprintf_P(json, BUF_SIZE_COMMON, HA1_JSON, data->getActiveImportPower(), pt);
-    return mqtt.publish(pubTopic + "/power", json);
+    { char _t[72]; snprintf(_t, sizeof(_t), "%s/power", pubTopic);
+    return mqtt.publish(_t, json); }
 }
 
 bool HomeAssistantMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
@@ -162,7 +163,8 @@ bool HomeAssistantMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea)
         data->getL3Voltage(),
         pt
     );
-    return mqtt.publish(pubTopic + "/power", json);
+    { char _t[72]; snprintf(_t, sizeof(_t), "%s/power", pubTopic);
+    return mqtt.publish(_t, json); }
 }
 
 bool HomeAssistantMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
@@ -184,7 +186,8 @@ bool HomeAssistantMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea)
         mt,
         pt
     );
-    return mqtt.publish(pubTopic + "/energy", json);
+    { char _t[72]; snprintf(_t, sizeof(_t), "%s/energy", pubTopic);
+    return mqtt.publish(_t, json); }
 }
 
 bool HomeAssistantMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
@@ -226,7 +229,8 @@ bool HomeAssistantMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea)
         data->getL3ActiveExportCounter(),
         pt
     );
-    return mqtt.publish(pubTopic + "/power", json);
+    { char _t[72]; snprintf(_t, sizeof(_t), "%s/power", pubTopic);
+    return mqtt.publish(_t, json); }
 }
 
 String HomeAssistantMqttHandler::getMeterModel(AmsData* data) {
@@ -288,7 +292,8 @@ bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* 
     json[pos++] = '}';
     json[pos] = '\0';
 
-    return mqtt.publish(pubTopic + "/realtime", json);
+    { char _t[72]; snprintf(_t, sizeof(_t), "%s/realtime", pubTopic);
+    return mqtt.publish(_t, json); }
 }
 
 bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) {
@@ -317,13 +322,14 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
     pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR(",\"t\":%s"), pt);
 	pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("}"));
 
-    bool ret = mqtt.publish(pubTopic + "/temperatures", json);
+    char _t[72]; snprintf(_t, sizeof(_t), "%s/temperatures", pubTopic);
+    bool ret = mqtt.publish(_t, json);
     loop();
     return ret;
 }
 
 bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
-	if(pubTopic.isEmpty() || !connected())
+	if(pubTopic[0] == 'pubTopic.isEmpty()' || !connected())
 		return false;
 	if(!ps->hasPrice())
 		return false;
@@ -457,13 +463,14 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
     json[pos++] = '}';
     json[pos] = '\0';
 
-    bool ret = mqtt.publish(pubTopic + "/prices", json, true, 0);
+    char _t[72]; snprintf(_t, sizeof(_t), "%s/prices", pubTopic);
+    bool ret = mqtt.publish(_t, json, true, 0);
     loop();
     return ret;
 }
 
 bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounting* ea) {
-	if(pubTopic.isEmpty() || !connected())
+	if(pubTopic[0] == 'pubTopic.isEmpty()' || !connected())
 		return false;
 
     publishSystemSensors();
@@ -483,7 +490,8 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, Ener
         FirmwareVersion::VersionString,
         pt
     );
-    bool ret = mqtt.publish(pubTopic + "/state", json);
+    char _t[72]; snprintf(_t, sizeof(_t), "%s/state", pubTopic);
+    bool ret = mqtt.publish(_t, json);
     loop();
     return ret;
 }
@@ -827,9 +835,9 @@ bool HomeAssistantMqttHandler::publishFirmware() {
     if(!fInit) {
         snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"name\":\"%sFirmware\",\"stat_t\":\"%s/firmware\",\"uniq_id\":\"%s_fwupgrade\",\"dev_cla\":\"firmware\",\"cmd_t\":\"%s\",\"pl_inst\":\"fwupgrade\"}"),
             sensorNamePrefix.c_str(),
-            pubTopic.c_str(),
+            pubTopic,
             deviceUid.c_str(),
-            subTopic.c_str()
+            subTopic
         );
         fInit = mqtt.publish(updateTopic + "/" + deviceUid + "/config", json, true, 0);
         loop();
@@ -841,7 +849,8 @@ bool HomeAssistantMqttHandler::publishFirmware() {
         strlen(updater->getNextVersion()) == 0 ? FirmwareVersion::VersionString : updater->getNextVersion(),
         updater->getProgress() < 0 ? "null" : String(updater->getProgress(), 0)
     );
-    bool ret = mqtt.publish(pubTopic + "/firmware", json);
+    char _t[72]; snprintf(_t, sizeof(_t), "%s/firmware", pubTopic);
+    bool ret = mqtt.publish(_t, json);
     loop();
     return ret;
 }
@@ -858,7 +867,7 @@ void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
             priceImportInit = 0;
             priceExportInit = 0;
         }
-    } else if(topic.equals(subTopic)) {
+    } else if(topic == subTopic) {
         if(payload.equals("fwupgrade")) {
             if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
                 updater->setTargetVersion(updater->getNextVersion());

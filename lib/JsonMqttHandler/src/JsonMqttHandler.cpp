@@ -555,6 +555,7 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
                         AmsJsonGenerator::generateMonthPlotJson(ds, json, BUF_SIZE_COMMON);
                         bool ret = mqtt.publish(pubTopic, json);
                         loop();
+                    #if defined(ESP32)
                     } else if(strcmp_P(action, PSTR("getconfig")) == 0) {
                         char pubTopic[192];
                         snprintf_P(pubTopic, 192, PSTR("%s/config"), mqttConfig.publishTopic);
@@ -564,6 +565,7 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
                     } else if(strcmp_P(action, PSTR("setconfig")) == 0 && obj.containsKey(F("config"))) {
                         JsonObject configObj = obj[F("config")];
                         handleConfigMessage(configObj);
+                    #endif
                     }
                 }
             }
@@ -587,6 +589,7 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
     }
 }
 
+#if defined(ESP32)
 void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
     // General
     if(configObj.containsKey(F("g"))) {
@@ -1133,6 +1136,7 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
         }
     }
 }
+#endif
 
 void JsonMqttHandler::toJsonIsoTimestamp(time_t t, char* buf, size_t buflen) {
     memset(buf, 0, buflen);

@@ -149,7 +149,7 @@ bool AmsMqttHandler::connect() {
 			debugger->printf_P(PSTR("Failed to connect to MQTT: %d\n"), mqtt.lastError());
 			#if defined(ESP8266)
 				if(mqttSecureClient) {
-					mqttSecureClient->getLastSSLError((char*) json, BufferSize);
+					mqttSecureClient->getLastSSLError((char*) json, BUF_SIZE_COMMON);
 					debugger->println((char*) json);
 				}
 			#endif

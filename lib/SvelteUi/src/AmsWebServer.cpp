@@ -392,7 +392,7 @@ void AmsWebServer::sysinfoJson() {
 	features += "\"zc\"";
 	#endif
 
-	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
+	int size = snprintf_P(buf, BUF_SIZE_COMMON, SYSINFO_JSON,
 		FirmwareVersion::VersionString,
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
 		"esp32s2",
@@ -584,7 +584,7 @@ void AmsWebServer::dataJson() {
 
 	time_t now = time(nullptr);
 
-	snprintf_P(buf, BufferSize, DATA_JSON,
+	snprintf_P(buf, BUF_SIZE_COMMON, DATA_JSON,
 		maxPwr == 0 ? meterState->isThreePhase() ? 20000 : 10000 : maxPwr,
 		productionCapacity,
 		mainFuse == 0 ? 40 : mainFuse,
@@ -672,7 +672,7 @@ void AmsWebServer::dayplotJson() {
 	if(ds == NULL) {
 		notFound();
 	} else {
-		AmsJsonGenerator::generateDayPlotJson(ds, buf, BufferSize);
+		AmsJsonGenerator::generateDayPlotJson(ds, buf, BUF_SIZE_COMMON);
 		addConditionalCloudHeaders();
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -690,7 +690,7 @@ void AmsWebServer::monthplotJson() {
 	if(ds == NULL) {
 		notFound();
 	} else {
-		AmsJsonGenerator::generateMonthPlotJson(ds, buf, BufferSize);
+		AmsJsonGenerator::generateMonthPlotJson(ds, buf, BUF_SIZE_COMMON);
 		addConditionalCloudHeaders();
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 		server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
@@ -716,19 +716,19 @@ void AmsWebServer::energyPriceJson() {
 		prices[i] = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i);
 	}
 
-	uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\""),
+	uint16_t pos = snprintf_P(buf, BUF_SIZE_COMMON, PSTR("{\"currency\":\"%s\",\"source\":\"%s\""),
 		ps->getCurrency(),
 		ps->getSource()
 	);
 
     for(uint8_t i = 0;i < 36; i++) {
         if(prices[i] == PRICE_NO_VALUE) {
-            pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"%02d\":null"), i);
+            pos += snprintf_P(buf+pos, BUF_SIZE_COMMON-pos, PSTR(",\"%02d\":null"), i);
         } else {
-            pos += snprintf_P(buf+pos, BufferSize-pos, PSTR(",\"%02d\":%.4f"), i, prices[i]);
+            pos += snprintf_P(buf+pos, BUF_SIZE_COMMON-pos, PSTR(",\"%02d\":%.4f"), i, prices[i]);
         }
     }
-	snprintf_P(buf+pos, BufferSize-pos, PSTR("}"));
+	snprintf_P(buf+pos, BUF_SIZE_COMMON-pos, PSTR("}"));
 
 	addConditionalCloudHeaders();
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -763,7 +763,7 @@ void AmsWebServer::priceJson(uint8_t direction) {
 		prices[i] = ps->getPricePoint(direction, i);
 	}
 
-	snprintf_P(buf, BufferSize, PSTR("{\"currency\":\"%s\",\"source\":\"%s\",\"resolution\":%d,\"direction\":\"%s\",\"cursor\":%d,\"importExportPriceDifferent\":%s,\"prices\":["),
+	snprintf_P(buf, BUF_SIZE_COMMON, PSTR("{\"currency\":\"%s\",\"source\":\"%s\",\"resolution\":%d,\"direction\":\"%s\",\"cursor\":%d,\"importExportPriceDifferent\":%s,\"prices\":["),
 		ps->getCurrency(),
 		ps->getSource(),
 		ps->getResolutionInMinutes(),
@@ -782,10 +782,10 @@ void AmsWebServer::priceJson(uint8_t direction) {
 
     for(uint8_t i = 0;i < numberOfPoints; i++) {
         if(prices[i] == PRICE_NO_VALUE) {
-            snprintf_P(buf, BufferSize, PSTR("%snull"), i == 0 ? "" : ",");
+            snprintf_P(buf, BUF_SIZE_COMMON, PSTR("%snull"), i == 0 ? "" : ",");
 			server.sendContent(buf);
         } else {
-            snprintf_P(buf, BufferSize, PSTR("%s%.4f"), i == 0 ? "" : ",", prices[i]);
+            snprintf_P(buf, BUF_SIZE_COMMON, PSTR("%s%.4f"), i == 0 ? "" : ",", prices[i]);
 			server.sendContent(buf);
         }
     }
@@ -884,7 +884,7 @@ void AmsWebServer::configurationJson() {
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-	AmsJsonGenerator::generateConfigurationJson(config, buf, BufferSize);
+	AmsJsonGenerator::generateConfigurationJson(config, buf, BUF_SIZE_COMMON);
 	server.send(200, MIME_JSON, buf);
 }
 
@@ -921,7 +921,7 @@ void AmsWebServer::priceConfigJson() {
 				}
 				hours = hours.substring(0, hours.length()-1);
 
-				snprintf_P(buf, BufferSize, PSTR("{\"t\":%d,\"n\":\"%s\",\"d\":%d,\"a\":[%s],\"h\":[%s],\"v\":%.4f,\"s\":{\"m\":%d,\"d\":%d},\"e\":{\"m\":%d,\"d\":%d}}%s"),
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("{\"t\":%d,\"n\":\"%s\",\"d\":%d,\"a\":[%s],\"h\":[%s],\"v\":%.4f,\"s\":{\"m\":%d,\"d\":%d},\"e\":{\"m\":%d,\"d\":%d}}%s"),
 					p.type,
 					p.name,
 					p.direction,
@@ -938,7 +938,7 @@ void AmsWebServer::priceConfigJson() {
 			}
 		}
 	}
-	snprintf_P(buf, BufferSize, PSTR("]}"));
+	snprintf_P(buf, BUF_SIZE_COMMON, PSTR("]}"));
 	server.sendContent(buf);
 }
 
@@ -956,7 +956,7 @@ void AmsWebServer::translationsJson() {
 		}
 	}
 
-	snprintf_P(buf, BufferSize, PSTR("/translations-%s.json"), lang.c_str());
+	snprintf_P(buf, BUF_SIZE_COMMON, PSTR("/translations-%s.json"), lang.c_str());
 	if(!LittleFS.exists(buf)) {
 		notFound();
 		return;
@@ -973,7 +973,7 @@ void AmsWebServer::translationsJson() {
 
 	server.send(200, MIME_JSON);
 	while(file.available() > 0) {
-		int len = file.readBytes(buf, BufferSize);
+		int len = file.readBytes(buf, BUF_SIZE_COMMON);
 		server.sendContent(buf, len);
 	}
 	file.close();
@@ -988,7 +988,7 @@ void AmsWebServer::cloudkeyJson() {
 
 		String seed = cloud->generateSeed();
 
-		snprintf_P(buf, BufferSize, PSTR("{\"seed\":\"%s\"}"), seed.c_str());
+		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("{\"seed\":\"%s\"}"), seed.c_str());
 
 		server.setContentLength(strlen(buf));
 		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
@@ -1437,19 +1437,19 @@ void AmsWebServer::handleSave() {
 			uint8_t count = server.arg(F("rc")).toInt();
 			for(uint8_t i = 0; i < count; i++) {
 				PriceConfig pc;
-				snprintf_P(buf, BufferSize, PSTR("rt%d"), i);
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rt%d"), i);
 				pc.type = server.arg(buf).toInt();
-				snprintf_P(buf, BufferSize, PSTR("rd%d"), i);
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rd%d"), i);
 				pc.direction = server.arg(buf).toInt();
-				snprintf_P(buf, BufferSize, PSTR("rv%d"), i);
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rv%d"), i);
 				pc.value = server.arg(buf).toDouble() * 10000.0;
-				snprintf_P(buf, BufferSize, PSTR("rn%d"), i);
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rn%d"), i);
 				String name = server.arg(buf);
 				strcpy(pc.name, name.c_str());
 
 				int d = 0;
 				pc.days = 0x00;
-				snprintf_P(buf, BufferSize, PSTR("ra%d"), i);
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ra%d"), i);
 				String days = server.arg(buf);
 				char * pch = strtok ((char*) days.c_str(),",");
 				while (pch != NULL && d < 7) {
@@ -1461,7 +1461,7 @@ void AmsWebServer::handleSave() {
 
 				int h = 0;
 				pc.hours = 0x00000000;
-				snprintf_P(buf, BufferSize, PSTR("rh%d"), i);
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rh%d"), i);
 				String hours = server.arg(buf);
 				pch = strtok ((char*) hours.c_str(),",");
 				while (pch != NULL && h < 24) {
@@ -1471,16 +1471,16 @@ void AmsWebServer::handleSave() {
 					h++;
 				}
 
-				snprintf_P(buf, BufferSize, PSTR("rsm%d"), i);
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rsm%d"), i);
 				pc.start_month = server.arg(buf).toInt();
 
-				snprintf_P(buf, BufferSize, PSTR("rsd%d"), i);
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rsd%d"), i);
 				pc.start_dayofmonth = server.arg(buf).toInt();
 
-				snprintf_P(buf, BufferSize, PSTR("rem%d"), i);
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rem%d"), i);
 				pc.end_month = server.arg(buf).toInt();
 
-				snprintf_P(buf, BufferSize, PSTR("red%d"), i);
+				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("red%d"), i);
 				pc.end_dayofmonth = server.arg(buf).toInt();
 
 				ps->setPriceConfig(i, pc);
@@ -1522,7 +1522,7 @@ void AmsWebServer::handleSave() {
 		success = false;
 	}
 
-	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+	snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 		success ? "true" : "false",
 		"",
 		performRestart ? "true" : "false"
@@ -1574,7 +1574,7 @@ void AmsWebServer::upgrade() {
 	SystemConfig sys;
 	config->getSystemConfig(sys);
 
-	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+	snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 		sys.dataCollectionConsent == 1 ? "true" : "false",
 		"",
 		sys.dataCollectionConsent == 1 ? "true" : "false"
@@ -1637,7 +1637,7 @@ void AmsWebServer::firmwareUpload() {
 			if (debugger->isActive(RemoteDebug::ERROR))
 			#endif
 			debugger->printf_P(PSTR("Invalid file extension\n"));
-			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+			snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 				"false",
 				"Invalid file extension",
 				"false"
@@ -1651,7 +1651,7 @@ void AmsWebServer::firmwareUpload() {
 			if (debugger->isActive(RemoteDebug::ERROR))
 			#endif
 			debugger->printf_P(PSTR("An error has occurred while starting firmware upload\n"));
-			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+			snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 				"false",
 				"Unable to start firmware upgrade",
 				"false"
@@ -1678,7 +1678,7 @@ void AmsWebServer::firmwareUpload() {
 			if (debugger->isActive(RemoteDebug::ERROR))
 			#endif
 			debugger->printf_P(PSTR("An error has occurred while writing firmware to flash\n"));
-			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+			snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 				"false",
 				"Unable to write to flash",
 				"false"
@@ -1704,7 +1704,7 @@ void AmsWebServer::firmwareUpload() {
 			if (debugger->isActive(RemoteDebug::ERROR))
 			#endif
 			debugger->printf_P(PSTR("An error has occurred while activating new firmware\n"));
-			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+			snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 				"false",
 				"Unable to activate new firmware",
 				"false"
@@ -1752,7 +1752,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
 				if (debugger->isActive(RemoteDebug::ERROR))
 				#endif
 				debugger->printf_P(PSTR("An Error has occurred while writing file\n"));
-				snprintf_P(buf, BufferSize, RESPONSE_JSON,
+				snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 					"false",
 					"File size does not match",
 					"false"
@@ -1767,7 +1767,7 @@ HTTPUpload& AmsWebServer::uploadFile(const char* path) {
             file.close();
         } else {
 			debugger->printf_P(PSTR("File was not valid in the end... Write error: %d, \n"), file.getWriteError());
-			snprintf_P(buf, BufferSize, RESPONSE_JSON,
+			snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 				"false",
 				"Upload ended, but file is missing",
 				"false"
@@ -1807,7 +1807,7 @@ void AmsWebServer::factoryResetPost() {
 		success = true;
 	}
 
-	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+	snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 		success ? "true" : "false",
 		"",
 		"true"
@@ -1947,7 +1947,7 @@ void AmsWebServer::tariffJson() {
 	String peaks;
     for(uint8_t x = 0;x < min((uint8_t) 5, eac->hours); x++) {
 		EnergyAccountingPeak peak = ea->getPeak(x+1);
-		int len = snprintf_P(buf, BufferSize, PSTR("{\"d\":%d,\"h\":%d,\"v\":%.2f}"),
+		int len = snprintf_P(buf, BUF_SIZE_COMMON, PSTR("{\"d\":%d,\"h\":%d,\"v\":%.2f}"),
 			peak.day,
 			peak.hour,
 			peak.value / 100.0
@@ -1957,7 +1957,7 @@ void AmsWebServer::tariffJson() {
 		peaks += String(buf);
 	}
 
-	snprintf_P(buf, BufferSize, TARIFF_JSON,
+	snprintf_P(buf, BUF_SIZE_COMMON, TARIFF_JSON,
 		eac->thresholds[0],
 		eac->thresholds[1],
 		eac->thresholds[2],
@@ -2010,14 +2010,14 @@ void AmsWebServer::realtimeJson() {
 		offset = rtp->getSize();
 	}
 
-	uint16_t pos = snprintf_P(buf, BufferSize, PSTR("{\"offset\":%d,\"size\":%d,\"total\":%d,\"data\":["), offset, size, rtp->getSize());
+	uint16_t pos = snprintf_P(buf, BUF_SIZE_COMMON, PSTR("{\"offset\":%d,\"size\":%d,\"total\":%d,\"data\":["), offset, size, rtp->getSize());
 	bool first = true;
 	for(uint16_t i = 0; i < size; i++) {
-		pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("%s%d"), first ? "" : ",", rtp->getValue(offset+i));
+		pos += snprintf_P(buf+pos, BUF_SIZE_COMMON-pos, PSTR("%s%d"), first ? "" : ",", rtp->getValue(offset+i));
 		first = false;
 		delay(1);
 	}
-	pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("]}"));
+	pos += snprintf_P(buf+pos, BUF_SIZE_COMMON-pos, PSTR("]}"));
 	server.send(200, MIME_JSON, buf);
 }
 
@@ -2050,59 +2050,59 @@ void AmsWebServer::configFileDownload() {
 	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
 
 	server.send_P(200, MIME_PLAIN, PSTR("amsconfig\n"));
-	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("version %s\n"), FirmwareVersion::VersionString));
-	server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("boardType %d\n"), sys.boardType));
+	server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("version %s\n"), FirmwareVersion::VersionString));
+	server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("boardType %d\n"), sys.boardType));
 	
 	if(includeWifi) {
 		NetworkConfig network;
 		config->getNetworkConfig(network);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("netmode %d\n"), network.mode));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("hostname %s\n"), network.hostname));
-		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ssid %s\n"), network.ssid));
-		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("psk %s\n"), network.psk));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("netmode %d\n"), network.mode));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("hostname %s\n"), network.hostname));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ssid %s\n"), network.ssid));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("psk %s\n"), network.psk));
 		if(strlen(network.ip) > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ip %s\n"), network.ip));
-			if(strlen(network.gateway) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gateway %s\n"), network.gateway));
-			if(strlen(network.subnet) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("subnet %s\n"), network.subnet));
-			if(strlen(network.dns1) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dns1 %s\n"), network.dns1));
-			if(strlen(network.dns2) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dns2 %s\n"), network.dns2));
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ip %s\n"), network.ip));
+			if(strlen(network.gateway) > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gateway %s\n"), network.gateway));
+			if(strlen(network.subnet) > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("subnet %s\n"), network.subnet));
+			if(strlen(network.dns1) > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("dns1 %s\n"), network.dns1));
+			if(strlen(network.dns2) > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("dns2 %s\n"), network.dns2));
 		}
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mdns %d\n"), network.mdns ? 1 : 0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("use11b %d\n"), network.use11b ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mdns %d\n"), network.mdns ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("use11b %d\n"), network.use11b ? 1 : 0));
 	}
 	
 	if(includeMqtt) {
 		MqttConfig mqtt;
 		config->getMqttConfig(mqtt);
 		if(strlen(mqtt.host) > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttHost %s\n"), mqtt.host));
-			if(mqtt.port > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPort %d\n"), mqtt.port));
-			if(strlen(mqtt.clientId) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttClientId %s\n"), mqtt.clientId));
-			if(strlen(mqtt.publishTopic) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPublishTopic %s\n"), mqtt.publishTopic));
-			if(strlen(mqtt.subscribeTopic) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttSubscribeTopic %s\n"), mqtt.subscribeTopic));
-			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttUsername %s\n"), mqtt.username));
-			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPassword %s\n"), mqtt.password));
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttPayloadFormat %d\n"), mqtt.payloadFormat));
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttSsl %d\n"), mqtt.ssl ? 1 : 0));
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttHost %s\n"), mqtt.host));
+			if(mqtt.port > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttPort %d\n"), mqtt.port));
+			if(strlen(mqtt.clientId) > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttClientId %s\n"), mqtt.clientId));
+			if(strlen(mqtt.publishTopic) > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttPublishTopic %s\n"), mqtt.publishTopic));
+			if(strlen(mqtt.subscribeTopic) > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttSubscribeTopic %s\n"), mqtt.subscribeTopic));
+			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttUsername %s\n"), mqtt.username));
+			if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttPassword %s\n"), mqtt.password));
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttPayloadFormat %d\n"), mqtt.payloadFormat));
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttSsl %d\n"), mqtt.ssl ? 1 : 0));
 
-			if(mqtt.timeout > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttTimeout %d\n"), mqtt.timeout));
-			if(mqtt.keepalive > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttKeepalive %d\n"), mqtt.keepalive));
-			if(mqtt.rebootMinutes > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("mqttRebootMinutes %d\n"), mqtt.rebootMinutes));
+			if(mqtt.timeout > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttTimeout %d\n"), mqtt.timeout));
+			if(mqtt.keepalive > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttKeepalive %d\n"), mqtt.keepalive));
+			if(mqtt.rebootMinutes > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mqttRebootMinutes %d\n"), mqtt.rebootMinutes));
 
 			if(mqtt.payloadFormat == 3) {
 				DomoticzConfig domo;
 				config->getDomoticzConfig(domo);
-				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzElidx %d\n"), domo.elidx));
-				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl1idx %d\n"), domo.vl1idx));
-				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl2idx %d\n"), domo.vl2idx));
-				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzVl3idx %d\n"), domo.vl3idx));
-				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("domoticzCl1idx %d\n"), domo.cl1idx));
+				server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("domoticzElidx %d\n"), domo.elidx));
+				server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("domoticzVl1idx %d\n"), domo.vl1idx));
+				server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("domoticzVl2idx %d\n"), domo.vl2idx));
+				server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("domoticzVl3idx %d\n"), domo.vl3idx));
+				server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("domoticzCl1idx %d\n"), domo.cl1idx));
 			} else if(mqtt.payloadFormat == 4) {
 				HomeAssistantConfig haconf;
 				config->getHomeAssistantConfig(haconf);
-				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("homeAssistantDiscoveryPrefix %s\n"), haconf.discoveryPrefix));
-				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("homeAssistantDiscoveryHostname %s\n"), haconf.discoveryHostname));
-				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("homeAssistantDiscoveryNameTag %s\n"), haconf.discoveryNameTag));
+				server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("homeAssistantDiscoveryPrefix %s\n"), haconf.discoveryPrefix));
+				server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("homeAssistantDiscoveryHostname %s\n"), haconf.discoveryHostname));
+				server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("homeAssistantDiscoveryNameTag %s\n"), haconf.discoveryNameTag));
 			}
 		}
 	}
@@ -2110,17 +2110,17 @@ void AmsWebServer::configFileDownload() {
 	if(includeWeb && includeSecrets) {
 		WebConfig web;
 		config->getWebConfig(web);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("webSecurity %d\n"), web.security));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("webSecurity %d\n"), web.security));
 		if(web.security > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("webUsername %s\n"), web.username));
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("webPassword %s\n"), web.password));
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("webUsername %s\n"), web.username));
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("webPassword %s\n"), web.password));
 		}
 	}
 	
 	if(includeMeter) {
 		MeterConfig meter;
 		config->getMeterConfig(meter);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterBaud %d\n"), meter.baud));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterBaud %d\n"), meter.baud));
 		char parity[4] = "";
 		switch(meter.parity) {
 			case 2:
@@ -2139,23 +2139,23 @@ void AmsWebServer::configFileDownload() {
 				strcpy_P(parity, PSTR("8E1"));
 				break;
 		}
-		if(strlen(parity) > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterParity %s\n"), parity));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterInvert %d\n"), meter.invert ? 1 : 0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterDistributionSystem %d\n"), meter.distributionSystem));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterMainFuse %d\n"), meter.mainFuse));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterProductionCapacity %d\n"), meter.productionCapacity));
+		if(strlen(parity) > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterParity %s\n"), parity));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterInvert %d\n"), meter.invert ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterDistributionSystem %d\n"), meter.distributionSystem));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterMainFuse %d\n"), meter.mainFuse));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterProductionCapacity %d\n"), meter.productionCapacity));
 		if(includeSecrets) {
-			if(meter.encryptionKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterEncryptionKey %s\n"), toHex(meter.encryptionKey, 16).c_str()));
-			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAuthenticationKey %s\n"), toHex(meter.authenticationKey, 16).c_str()));
+			if(meter.encryptionKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterEncryptionKey %s\n"), toHex(meter.encryptionKey, 16).c_str()));
+			if(meter.authenticationKey[0] != 0x00) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterAuthenticationKey %s\n"), toHex(meter.authenticationKey, 16).c_str()));
 		}
 		if(meter.wattageMultiplier != 1.0 && meter.wattageMultiplier != 0.0)
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterWattageMultiplier %.3f\n"), meter.wattageMultiplier / 1000.0));
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterWattageMultiplier %.3f\n"), meter.wattageMultiplier / 1000.0));
 		if(meter.voltageMultiplier != 1.0 && meter.voltageMultiplier != 0.0)
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterVoltageMultiplier %.3f\n"), meter.voltageMultiplier / 1000.0));
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterVoltageMultiplier %.3f\n"), meter.voltageMultiplier / 1000.0));
 		if(meter.amperageMultiplier != 1.0 && meter.amperageMultiplier != 0.0)
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAmperageMultiplier %.3f\n"), meter.amperageMultiplier / 1000.0));
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterAmperageMultiplier %.3f\n"), meter.amperageMultiplier / 1000.0));
 		if(meter.accumulatedMultiplier != 1.0 && meter.accumulatedMultiplier != 0.0)
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("meterAccumulatedMultiplier %.3f\n"), meter.accumulatedMultiplier / 1000.0));
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("meterAccumulatedMultiplier %.3f\n"), meter.accumulatedMultiplier / 1000.0));
 	}
 	
 	if(includeGpio) {
@@ -2163,41 +2163,41 @@ void AmsWebServer::configFileDownload() {
 		config->getMeterConfig(meter);
 		GpioConfig gpio;
 		config->getGpioConfig(gpio);
-		if(meter.rxPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioHanPin %d\n"), meter.rxPin));
-		if(meter.rxPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioHanPinPullup %d\n"), meter.rxPinPullup ? 1 : 0));
-		if(gpio.apPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioApPin %d\n"), gpio.apPin));
-		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPin %d\n"), gpio.ledPin));
-		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedInverted %d\n"), gpio.ledInverted ? 1 : 0));
-		if(gpio.ledPinRed != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPinRed %d\n"), gpio.ledPinRed));
-		if(gpio.ledPinGreen != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPinGreen %d\n"), gpio.ledPinGreen));
-		if(gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedPinBlue %d\n"), gpio.ledPinBlue));
-		if(gpio.ledPinRed != 0xFF || gpio.ledPinGreen != 0xFF || gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioLedRgbInverted %d\n"), gpio.ledRgbInverted ? 1 : 0));
-		if(gpio.tempSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioTempSensorPin %d\n"), gpio.tempSensorPin));
-		if(gpio.tempAnalogSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioTempAnalogSensorPin %d\n"), gpio.tempAnalogSensorPin));
-		if(gpio.vccPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccPin %d\n"), gpio.vccPin));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccOffset %.2f\n"), gpio.vccOffset / 100.0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccMultiplier %.3f\n"), gpio.vccMultiplier / 1000.0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccBootLimit %.1f\n"), gpio.vccBootLimit / 10.0));
-		if(gpio.vccPin != 0xFF && gpio.vccResistorGnd != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccResistorGnd %d\n"), gpio.vccResistorGnd));
-		if(gpio.vccPin != 0xFF && gpio.vccResistorVcc != 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("gpioVccResistorVcc %d\n"), gpio.vccResistorVcc));
+		if(meter.rxPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioHanPin %d\n"), meter.rxPin));
+		if(meter.rxPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioHanPinPullup %d\n"), meter.rxPinPullup ? 1 : 0));
+		if(gpio.apPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioApPin %d\n"), gpio.apPin));
+		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioLedPin %d\n"), gpio.ledPin));
+		if(gpio.ledPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioLedInverted %d\n"), gpio.ledInverted ? 1 : 0));
+		if(gpio.ledPinRed != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioLedPinRed %d\n"), gpio.ledPinRed));
+		if(gpio.ledPinGreen != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioLedPinGreen %d\n"), gpio.ledPinGreen));
+		if(gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioLedPinBlue %d\n"), gpio.ledPinBlue));
+		if(gpio.ledPinRed != 0xFF || gpio.ledPinGreen != 0xFF || gpio.ledPinBlue != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioLedRgbInverted %d\n"), gpio.ledRgbInverted ? 1 : 0));
+		if(gpio.tempSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioTempSensorPin %d\n"), gpio.tempSensorPin));
+		if(gpio.tempAnalogSensorPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioTempAnalogSensorPin %d\n"), gpio.tempAnalogSensorPin));
+		if(gpio.vccPin != 0xFF) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioVccPin %d\n"), gpio.vccPin));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioVccOffset %.2f\n"), gpio.vccOffset / 100.0));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioVccMultiplier %.3f\n"), gpio.vccMultiplier / 1000.0));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioVccBootLimit %.1f\n"), gpio.vccBootLimit / 10.0));
+		if(gpio.vccPin != 0xFF && gpio.vccResistorGnd != 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioVccResistorGnd %d\n"), gpio.vccResistorGnd));
+		if(gpio.vccPin != 0xFF && gpio.vccResistorVcc != 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("gpioVccResistorVcc %d\n"), gpio.vccResistorVcc));
 	}
 
 	if(includeNtp) {
 		NtpConfig ntp;
 		config->getNtpConfig(ntp);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpEnable %d\n"), ntp.enable ? 1 : 0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpDhcp %d\n"), ntp.dhcp ? 1 : 0));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpTimezone %s\n"), ntp.timezone));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("ntpServer %s\n"), ntp.server));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ntpEnable %d\n"), ntp.enable ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ntpDhcp %d\n"), ntp.dhcp ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ntpTimezone %s\n"), ntp.timezone));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ntpServer %s\n"), ntp.server));
 	}
 
 	if(includePrice) {
 		PriceServiceConfig price;
 		config->getPriceServiceConfig(price);
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEnabled %d\n"), price.enabled ? 1 : 0));
-		if(strlen(price.entsoeToken) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceEntsoeToken %s\n"), price.entsoeToken));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceArea %s\n"), price.area));
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceCurrency %s\n"), price.currency));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("priceEnabled %d\n"), price.enabled ? 1 : 0));
+		if(strlen(price.entsoeToken) == 36 && includeSecrets) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("priceEntsoeToken %s\n"), price.entsoeToken));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("priceArea %s\n"), price.area));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("priceCurrency %s\n"), price.currency));
 		if(ps != NULL) {
 			uint8_t i = 0;
 			std::vector<PriceConfig> pc = ps->getPriceConfig();
@@ -2263,7 +2263,7 @@ void AmsWebServer::configFileDownload() {
 						if(strlen(hours) > 0) hours[strlen(hours)-1] = '\0';
 					}
 
-					server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("priceModifier %i \"%s\" %s %s %.4f %s %s %02d-%02d %02d-%02d\n"), 
+					server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("priceModifier %i \"%s\" %s %s %.4f %s %s %02d-%02d %02d-%02d\n"), 
 						i, 
 						p.name, 
 						direction,
@@ -2285,7 +2285,7 @@ void AmsWebServer::configFileDownload() {
 		EnergyAccountingConfig eac;
 		config->getEnergyAccountingConfig(eac);
 
-		if(eac.thresholds[9] > 0) server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("thresholds %d %d %d %d %d %d %d %d %d %d %d\n"), 
+		if(eac.thresholds[9] > 0) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("thresholds %d %d %d %d %d %d %d %d %d %d %d\n"), 
 			eac.thresholds[0],
 			eac.thresholds[1],
 			eac.thresholds[2],
@@ -2303,7 +2303,7 @@ void AmsWebServer::configFileDownload() {
 
 	if(ds != NULL) {
 		DayDataPoints day = ds->getDayData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("dayplot %d %lu %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("dayplot %d %lu %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			day.version,
 			(int32_t) day.lastMeterReadTime,
 			day.activeImport / 1000.0,
@@ -2334,7 +2334,7 @@ void AmsWebServer::configFileDownload() {
 			ds->getHourImport(23)
 		));
 		if(day.activeExport > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR(" %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR(" %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
 				day.activeExport / 1000.0,
 				ds->getHourExport(0),
 				ds->getHourExport(1),
@@ -2366,7 +2366,7 @@ void AmsWebServer::configFileDownload() {
 		}
 
 		MonthDataPoints month = ds->getMonthData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("monthplot %d %lu %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("monthplot %d %lu %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d"), 
 			month.version,
 			(int32_t) month.lastMeterReadTime,
 			month.activeImport / 1000.0,
@@ -2404,7 +2404,7 @@ void AmsWebServer::configFileDownload() {
 			ds->getDayImport(31)
 		));
 		if(month.activeExport > 0) {
-			server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR(" %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
+			server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR(" %.3f %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d\n"), 
 				month.activeExport / 1000.0,
 				ds->getDayExport(1),
 				ds->getDayExport(2),
@@ -2447,7 +2447,7 @@ void AmsWebServer::configFileDownload() {
 		EnergyAccountingConfig eac;
 		config->getEnergyAccountingConfig(eac);
 		EnergyAccountingData ead = ea->getData();
-		server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("energyaccounting %d %d %.2f %.2f %.2f %.2f %.2f %.2f %d %d %.2f %d %d %.2f %d %d %.2f %d %d %.2f %d %d %.2f %.2f %.2f"), 
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("energyaccounting %d %d %.2f %.2f %.2f %.2f %.2f %.2f %d %d %.2f %d %d %.2f %d %d %.2f %d %d %.2f %d %d %.2f %.2f %.2f"), 
 			ead.version,
 			ead.month,
 			ea->getCostYesterday(),
@@ -2479,7 +2479,7 @@ void AmsWebServer::configFileDownload() {
 }
 
 void AmsWebServer::configFilePost() {
-	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+	snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 		"true",
 		"",
 		performRestart ? "true" : "false"
@@ -2495,7 +2495,7 @@ void AmsWebServer::configFileUpload() {
 	HTTPUpload& upload = uploadFile(FILE_CFG);
     if(upload.status == UPLOAD_FILE_END) {
 		performRestart = true;
-		snprintf_P(buf, BufferSize, RESPONSE_JSON,
+		snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 			"true",
 			"",
 			performRestart ? "true" : "false"
@@ -2529,18 +2529,18 @@ void AmsWebServer::modifyDayPlot() {
 		return;
 
 	for(uint8_t i = 0; i < 24; i++) {
-		snprintf_P(buf, BufferSize, PSTR("i%02d"), i);
+		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("i%02d"), i);
 		if(server.hasArg(buf)) {
 			ds->setHourImport(i, server.arg(buf).toDouble() * 1000);
 		}
-		snprintf_P(buf, BufferSize, PSTR("e%02d"), i);
+		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("e%02d"), i);
 		if(server.hasArg(buf)) {
 			ds->setHourExport(i, server.arg(buf).toDouble() * 1000);
 		}
 	}
 	bool ret = ds->save();
 
-	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+	snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 		"true",
 		"",
 		ret ? "true" : "false"
@@ -2554,18 +2554,18 @@ void AmsWebServer::modifyMonthPlot() {
 		return;
 
 	for(uint8_t i = 1; i <= 31; i++) {
-		snprintf_P(buf, BufferSize, PSTR("i%02d"), i);
+		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("i%02d"), i);
 		if(server.hasArg(buf)) {
 			ds->setDayImport(i, server.arg(buf).toDouble() * 1000);
 		}
-		snprintf_P(buf, BufferSize, PSTR("e%02d"), i);
+		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("e%02d"), i);
 		if(server.hasArg(buf)) {
 			ds->setDayExport(i, server.arg(buf).toDouble() * 1000);
 		}
 	}
 	bool ret = ds->save();
 
-	snprintf_P(buf, BufferSize, RESPONSE_JSON,
+	snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON,
 		"true",
 		"",
 		ret ? "true" : "false"
@@ -2637,7 +2637,7 @@ void AmsWebServer::wifiScan() {
 		return;
 
 	int16_t count = WiFi.scanNetworks();
-	int pos = snprintf_P(buf, BufferSize, PSTR("{\"c\":%d,\"n\":["), count);
+	int pos = snprintf_P(buf, BUF_SIZE_COMMON, PSTR("{\"c\":%d,\"n\":["), count);
 	count = min(count, (int16_t) 25); // Max 25 so that we don't overflow the buffer size
 	for (int16_t i = 0; i < count; i++) {
 		uint8_t* bssid = WiFi.BSSID(i);
@@ -2673,9 +2673,9 @@ void AmsWebServer::wifiScan() {
 
 	    char bssidStr[18] = { 0 };
 	    sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X", bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
-		pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("{\"b\":\"%s\",\"s\":\"%s\",\"r\":%d,\"c\":%d,\"e\":\"%s\"}%s"), bssidStr, ssid.c_str(), rssi, chan, encStr, i == count-1 ? "" : ",");
+		pos += snprintf_P(buf+pos, BUF_SIZE_COMMON-pos, PSTR("{\"b\":\"%s\",\"s\":\"%s\",\"r\":%d,\"c\":%d,\"e\":\"%s\"}%s"), bssidStr, ssid.c_str(), rssi, chan, encStr, i == count-1 ? "" : ",");
 	}
-	pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("]}"));
+	pos += snprintf_P(buf+pos, BUF_SIZE_COMMON-pos, PSTR("]}"));
 	WiFi.scanDelete();
 
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);

@@ -115,8 +115,6 @@ RemoteDebug Debug;
 HardwareSerial Debug = Serial;
 #endif
 
-#define BUF_SIZE_COMMON (2048)
-
 #include "Timezones.h"
 
 #include "AmsFirmwareUpdater.h"
@@ -1852,8 +1850,8 @@ void configFileParse() {
 
 	size_t size;
 	char* buf = (char*) commonBuffer;
-	memset(buf, 0, 1024);
-	while((size = file.readBytesUntil('\n', buf, 1024)) > 0) {
+	memset(buf, 0, BUF_SIZE_COMMON);
+	while((size = file.readBytesUntil('\n', buf, BUF_SIZE_COMMON)) > 0) {
 		for(uint16_t i = 0; i < size; i++) {
 			if(buf[i] < 32 || buf[i] > 126) {
 				memset(buf+i, 0, size-i);

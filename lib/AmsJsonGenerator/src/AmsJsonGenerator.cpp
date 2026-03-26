@@ -170,7 +170,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 		qsr = LittleFS.exists(FILE_MQTT_CERT);
 		qsk = LittleFS.exists(FILE_MQTT_KEY);
 	}
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"q\":{\"h\":\"%s\",\"p\":%d,\"u\":\"%s\",\"a\":\"%s\",\"c\":\"%s\",\"b\":\"%s\",\"r\":\"%s\",\"m\":%d,\"s\":{\"e\":%s,\"c\":%s,\"r\":%s,\"k\":%s},\"t\":%d,\"d\":%d,\"i\":%d,\"k\":%d,\"e\":%d}"),
+	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"q\":{\"h\":\"%s\",\"p\":%d,\"u\":\"%s\",\"a\":\"%s\",\"c\":\"%s\",\"b\":\"%s\",\"r\":\"%s\",\"m\":%d,\"s\":{\"e\":%s,\"c\":%s,\"r\":%s,\"k\":%s},\"t\":%d,\"d\":%d,\"i\":%d,\"k\":%d,\"e\":%s}"),
 		mqttConfig.host,
 		mqttConfig.port,
 		mqttConfig.username,

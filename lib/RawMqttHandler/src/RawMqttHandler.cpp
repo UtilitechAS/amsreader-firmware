@@ -400,7 +400,7 @@ bool RawMqttHandler::publishRaw(uint8_t* raw, size_t length) {
 	if(topic.isEmpty() || !connected())
 		return false;
     
-    if(length <= 0 || length > BufferSize) return false;
+    if(length <= 0 || length > BUF_SIZE_COMMON) return false;
 
     String str = toHex(raw, length);
     bool ret = mqtt.publish(topic + "/data", str);

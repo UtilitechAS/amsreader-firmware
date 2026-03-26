@@ -19,7 +19,7 @@ bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAcc
     }
 
     bool ret = false;
-    memset(json, 0, BufferSize);
+    memset(json, 0, BUF_SIZE_COMMON);
 
     AmsData data;
     if(mqttConfig.stateUpdate) {
@@ -59,7 +59,7 @@ bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAcc
 }
 
 uint16_t JsonMqttHandler::appendJsonHeader(AmsData* data) {
-    return snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%u,\"t\":%lu,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,"),
+    return snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%u,\"t\":%lu,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,"),
         WiFi.macAddress().c_str(),
         mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
@@ -86,7 +86,7 @@ uint16_t JsonMqttHandler::appendJsonFooter(EnergyAccounting* ea, uint16_t pos) {
         peaks += String(ea->getPeak(i).value / 100.0, 2);
     }
     
-    return snprintf_P(json+pos, BufferSize-pos, PSTR("%s\"%sh\":%.3f,\"%sd\":%.2f,\"%sm\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.3f,\"%sde\":%.2f,\"%sme\":%.1f,\"peaks\":[%s]%s"),
+    return snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("%s\"%sh\":%.3f,\"%sd\":%.2f,\"%sm\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.3f,\"%sde\":%.2f,\"%sme\":%.1f,\"peaks\":[%s]%s"),
         strlen(pf) == 0 ? "},\"realtime\":{" : ",",
         pf,
         ea->getUseThisHour(),
@@ -112,9 +112,9 @@ uint16_t JsonMqttHandler::appendJsonFooter(EnergyAccounting* ea, uint16_t pos) {
 bool JsonMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
     uint16_t pos = appendJsonHeader(data);
     if(mqttConfig.payloadFormat != 6) {
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"data\":{"));
+        pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"data\":{"));
     }
-    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"P\":%d"), data->getActiveImportPower());
+    pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"P\":%d"), data->getActiveImportPower());
     pos += appendJsonFooter(ea, pos);
     json[pos++] = '}';
     json[pos] = '\0';
@@ -130,9 +130,9 @@ bool JsonMqttHandler::publishList1(AmsData* data, EnergyAccounting* ea) {
 bool JsonMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
     uint16_t pos = appendJsonHeader(data);
     if(mqttConfig.payloadFormat != 6) {
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"data\":{"));
+        pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"data\":{"));
     }
-    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"Q\":%d,\"PO\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f"),
+    pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"Q\":%d,\"PO\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f"),
         data->getListId().c_str(),
         data->getMeterId().c_str(),
         getMeterModel(data).c_str(),
@@ -162,9 +162,9 @@ bool JsonMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea) {
 bool JsonMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
     uint16_t pos = appendJsonHeader(data);
     if(mqttConfig.payloadFormat != 6) {
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"data\":{"));
+        pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"data\":{"));
     }
-    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"Q\":%d,\"PO\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f,\"tPI\":%.3f,\"tPO\":%.3f,\"tQI\":%.3f,\"tQO\":%.3f,\"rtc\":%lu"),
+    pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"Q\":%d,\"PO\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f,\"tPI\":%.3f,\"tPO\":%.3f,\"tQI\":%.3f,\"tQO\":%.3f,\"rtc\":%lu"),
         data->getListId().c_str(),
         data->getMeterId().c_str(),
         getMeterModel(data).c_str(),
@@ -199,9 +199,9 @@ bool JsonMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
 bool JsonMqttHandler::publishList4(AmsData* data, EnergyAccounting* ea) {
     uint16_t pos = appendJsonHeader(data);
     if(mqttConfig.payloadFormat != 6) {
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"data\":{"));
+        pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"data\":{"));
     }
-    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"P1\":%d,\"P2\":%d,\"P3\":%d,\"Q\":%d,\"PO\":%d,\"PO1\":%d,\"PO2\":%d,\"PO3\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f,\"PF\":%.2f,\"PF1\":%.2f,\"PF2\":%.2f,\"PF3\":%.2f,\"tPI\":%.3f,\"tPO\":%.3f,\"tQI\":%.3f,\"tQO\":%.3f,\"tPI1\":%.3f,\"tPI2\":%.3f,\"tPI3\":%.3f,\"tPO1\":%.3f,\"tPO2\":%.3f,\"tPO3\":%.3f,\"rtc\":%lu"),
+    pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"lv\":\"%s\",\"meterId\":\"%s\",\"type\":\"%s\",\"P\":%d,\"P1\":%d,\"P2\":%d,\"P3\":%d,\"Q\":%d,\"PO\":%d,\"PO1\":%d,\"PO2\":%d,\"PO3\":%d,\"QO\":%d,\"I1\":%.2f,\"I2\":%.2f,\"I3\":%.2f,\"U1\":%.2f,\"U2\":%.2f,\"U3\":%.2f,\"PF\":%.2f,\"PF1\":%.2f,\"PF2\":%.2f,\"PF3\":%.2f,\"tPI\":%.3f,\"tPO\":%.3f,\"tQI\":%.3f,\"tQO\":%.3f,\"tPI1\":%.3f,\"tPI2\":%.3f,\"tPI3\":%.3f,\"tPO1\":%.3f,\"tPO2\":%.3f,\"tPO3\":%.3f,\"rtc\":%lu"),
         data->getListId().c_str(),
         data->getMeterId().c_str(),
         getMeterModel(data).c_str(),
@@ -387,17 +387,17 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
 	}
 
     if(mqttConfig.payloadFormat == 6) {
-        uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\","), WiFi.macAddress().c_str());
+        uint16_t pos = snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"id\":\"%s\","), WiFi.macAddress().c_str());
 
         for(uint8_t i = 0;i < 38; i++) {
             if(values[i] == PRICE_NO_VALUE) {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"pr_%d\":null,"), i);
+                pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"pr_%d\":null,"), i);
             } else {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"pr_%d\":%.4f,"), i, values[i]);
+                pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"pr_%d\":%.4f,"), i, values[i]);
             }
         }
 
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("\"pr_min\":%.4f,\"pr_max\":%.4f,\"pr_cheapest1hr\":%s,\"pr_cheapest3hr\":%s,\"pr_cheapest6hr\":%s}"),
+        pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("\"pr_min\":%.4f,\"pr_max\":%.4f,\"pr_cheapest1hr\":%s,\"pr_cheapest3hr\":%s,\"pr_cheapest6hr\":%s}"),
             min == INT16_MAX ? 0.0 : min,
             max == INT16_MIN ? 0.0 : max,
             ts1hr,
@@ -405,33 +405,33 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
             ts6hr
         );
     } else {
-        uint16_t pos = snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"prices\":{\"import\":["), WiFi.macAddress().c_str());
+        uint16_t pos = snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"id\":\"%s\",\"prices\":{\"import\":["), WiFi.macAddress().c_str());
 
         uint8_t currentPricePointIndex = ps->getCurrentPricePointIndex();
         uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
         for(int i = currentPricePointIndex; i < numberOfPoints; i++) {
             float val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
             if(val == PRICE_NO_VALUE) {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
+                pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("null,"));
             } else {
-                pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
+                pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("%.4f,"), val);
             }
         }
         if(hasExport && ps->isExportPricesDifferentFromImport()) {
             pos--;
-            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("],\"export\":["));
+            pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("],\"export\":["));
             for(int i = currentPricePointIndex; i < numberOfPoints; i++) {
                 float val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
                 if(val == PRICE_NO_VALUE) {
-                    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
+                    pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("null,"));
                 } else {
-                    pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
+                    pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("%.4f,"), val);
                 }
             }
         }
 
         pos--;
-        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("],\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":%s,\"cheapest3hr\":%s,\"cheapest6hr\":%s}}"),
+        pos += snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("],\"min\":%.4f,\"max\":%.4f,\"cheapest1hr\":%s,\"cheapest3hr\":%s,\"cheapest6hr\":%s}}"),
             min == INT16_MAX ? 0.0 : min,
             max == INT16_MIN ? 0.0 : max,
             ts1hr,
@@ -456,7 +456,7 @@ bool JsonMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccount
 	if(strlen(mqttConfig.publishTopic) == 0 || !connected())
 		return false;
 
-    snprintf_P(json, BufferSize, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\"}"),
+    snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\"}"),
         WiFi.macAddress().c_str(),
         mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
@@ -485,11 +485,11 @@ bool JsonMqttHandler::publishRaw(uint8_t* raw, size_t length) {
 	if(strlen(mqttConfig.publishTopic) == 0 || !mqtt.connected())
 		return false;
     
-    if(length <= 0 || length > BufferSize) return false;
+    if(length <= 0 || length > BUF_SIZE_COMMON) return false;
 
     String str = toHex(raw, length);
 
-    snprintf_P(json, BufferSize, PSTR("{\"data\":\"%s\"}"), str.c_str());
+    snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"data\":\"%s\"}"), str.c_str());
     char topic[192];
     snprintf_P(topic, 192, PSTR("%s/data"), mqttConfig.publishTopic);
     bool ret = mqtt.publish(topic, json);
@@ -498,7 +498,7 @@ bool JsonMqttHandler::publishRaw(uint8_t* raw, size_t length) {
 }
 
 bool JsonMqttHandler::publishFirmware() {
-    snprintf_P(json, BufferSize, PSTR("{\"installed_version\":\"%s\",\"latest_version\":\"%s\",\"title\":\"amsreader firmware\",\"release_url\":\"https://github.com/UtilitechAS/amsreader-firmware/releases\",\"release_summary\":\"New version %s is available\",\"update_percentage\":%s}"),
+    snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"installed_version\":\"%s\",\"latest_version\":\"%s\",\"title\":\"amsreader firmware\",\"release_url\":\"https://github.com/UtilitechAS/amsreader-firmware/releases\",\"release_summary\":\"New version %s is available\",\"update_percentage\":%s}"),
         FirmwareVersion::VersionString,
         strlen(updater->getNextVersion()) == 0 ? FirmwareVersion::VersionString : updater->getNextVersion(),
         strlen(updater->getNextVersion()) == 0 ? FirmwareVersion::VersionString : updater->getNextVersion(),
@@ -546,16 +546,22 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
                     } else if(strcmp_P(action, PSTR("dayplot")) == 0) {
                         char pubTopic[192];
                         snprintf_P(pubTopic, 192, PSTR("%s/dayplot"), mqttConfig.publishTopic);
-                        AmsJsonGenerator::generateDayPlotJson(ds, json, BufferSize);
+                        AmsJsonGenerator::generateDayPlotJson(ds, json, BUF_SIZE_COMMON);
                         bool ret = mqtt.publish(pubTopic, json);
                         loop();
                     } else if(strcmp_P(action, PSTR("monthplot")) == 0) {
                         char pubTopic[192];
                         snprintf_P(pubTopic, 192, PSTR("%s/monthplot"), mqttConfig.publishTopic);
-                        AmsJsonGenerator::generateMonthPlotJson(ds, json, BufferSize);
+                        AmsJsonGenerator::generateMonthPlotJson(ds, json, BUF_SIZE_COMMON);
                         bool ret = mqtt.publish(pubTopic, json);
                         loop();
-                    } else if(strcmp_P(action, PSTR("config")) == 0 && obj.containsKey(F("config"))) {
+                    } else if(strcmp_P(action, PSTR("getconfig")) == 0) {
+                        char pubTopic[192];
+                        snprintf_P(pubTopic, 192, PSTR("%s/config"), mqttConfig.publishTopic);
+                        AmsJsonGenerator::generateConfigurationJson(config, json, BUF_SIZE_COMMON);
+                        bool ret = mqtt.publish(pubTopic, json);
+                        loop();
+                    } else if(strcmp_P(action, PSTR("setconfig")) == 0 && obj.containsKey(F("config"))) {
                         JsonObject configObj = obj[F("config")];
                         handleConfigMessage(configObj);
                     }
@@ -568,13 +574,13 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
         } else if(payload.equals(F("dayplot"))) {
             char pubTopic[192];
             snprintf_P(pubTopic, 192, PSTR("%s/dayplot"), mqttConfig.publishTopic);
-            AmsJsonGenerator::generateDayPlotJson(ds, json, BufferSize);
+            AmsJsonGenerator::generateDayPlotJson(ds, json, BUF_SIZE_COMMON);
             bool ret = mqtt.publish(pubTopic, json);
             loop();
         } else if(payload.equals(F("monthplot"))) {
             char pubTopic[192];
             snprintf_P(pubTopic, 192, PSTR("%s/monthplot"), mqttConfig.publishTopic);
-            AmsJsonGenerator::generateMonthPlotJson(ds, json, BufferSize);
+            AmsJsonGenerator::generateMonthPlotJson(ds, json, BUF_SIZE_COMMON);
             bool ret = mqtt.publish(pubTopic, json);
             loop();
         }
@@ -607,7 +613,8 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
             if(generalObj.containsKey(F("u"))) {
                 strlcpy(webConfig.username, generalObj[F("u")], sizeof(webConfig.username));
             }
-            if(generalObj.containsKey(F("p"))) {
+            // Check if password is provided and that it is not empty and is not equal *** (which is used in the UI to indicate that the password is set but not shown)
+            if(generalObj.containsKey(F("p")) && strlen(generalObj[F("p")]) > 0 && strcmp(generalObj[F("p")], "***") != 0) {
                 strlcpy(webConfig.password, generalObj[F("p")], sizeof(webConfig.password));
             }
         }
@@ -633,14 +640,13 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
             newConfig.baud = meterObj[F("b")];
         }
         if(meterObj.containsKey(F("p"))) {
-            // TODO, string to enum
             newConfig.parity = meterObj[F("p")];
         }
         if(meterObj.containsKey(F("i"))) {
             newConfig.invert = meterObj[F("i")];
         }
         if(meterObj.containsKey(F("s"))) {
-            newConfig.bufferSize = meterObj[F("s")] / 64; // convert from bytes to 64 byte blocks
+            newConfig.bufferSize = (int) meterObj[F("s")] / 64; // convert from bytes to 64 byte blocks
         }
         if(meterObj.containsKey(F("d"))) {
             newConfig.distributionSystem = meterObj[F("d")];
@@ -657,10 +663,16 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
                 bool enabled = encryptionObj[F("e")];
                 if(enabled) {
                     if(encryptionObj.containsKey(F("k"))) {
-                        // TODO
+                        String encryptionKeyHex = encryptionObj[F("k")];
+                        if(encryptionKeyHex.length() == 16) {
+                           fromHex(newConfig.encryptionKey, encryptionKeyHex, 16);
+                        }
                     }
                     if(encryptionObj.containsKey(F("a"))) {
-                        // TODO
+                        String authenticationKeyHex = encryptionObj[F("a")];
+                        if(authenticationKeyHex.length() == 16) {
+                            fromHex(newConfig.authenticationKey, authenticationKeyHex, 16);
+                        }
                     }
                 } else {
                     memset(newConfig.encryptionKey, 0, sizeof(newConfig.encryptionKey));
@@ -668,378 +680,456 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
                 }
             }
         }
+        if(meterObj.containsKey(F("m"))) {
+            JsonObject multipliersObj = meterObj[F("m")];
+            bool enabled = multipliersObj[F("e")];
+            if(enabled) {
+                if(multipliersObj.containsKey(F("w"))) {
+                    newConfig.wattageMultiplier = multipliersObj[F("w")];
+                }
+                if(multipliersObj.containsKey(F("v"))) {
+                    newConfig.voltageMultiplier = multipliersObj[F("v")];
+                }
+                if(multipliersObj.containsKey(F("a"))) {
+                    newConfig.amperageMultiplier = multipliersObj[F("a")];
+                }
+                if(multipliersObj.containsKey(F("c"))) {
+                    newConfig.accumulatedMultiplier = multipliersObj[F("c")];
+                }
+            } else {
+                newConfig.wattageMultiplier = 1.0;
+                newConfig.voltageMultiplier = 1.0;
+                newConfig.amperageMultiplier = 1.0;
+                newConfig.accumulatedMultiplier = 1.0;
+            }
+        }
 
         config->setMeterConfig(newConfig);
     }
 
-    if(configObj.containsKey(F("system"))) {
-        SystemConfig newConfig;
-        config->getSystemConfig(newConfig);
-
-        JsonObject systemObj = configObj[F("system")];
-        if(systemObj.containsKey(F("country"))) {
-            strlcpy(newConfig.country, systemObj[F("country")], sizeof(newConfig.country));
-        }
-        if(systemObj.containsKey(F("firmwareChannel"))) {
-            newConfig.firmwareChannel = systemObj[F("firmwareChannel")];
-        }
-        config->setSystemConfig(newConfig);
-    }
-
-    if(configObj.containsKey(F("network"))) {
+    // Network
+    if(configObj.containsKey(F("n"))) {
         NetworkConfig newConfig;
         config->getNetworkConfig(newConfig);
 
-        JsonObject networkObj = configObj[F("network")];
-        if(networkObj.containsKey(F("mode"))) {
-            newConfig.mode = networkObj[F("mode")];
+        JsonObject networkObj = configObj[F("n")];
+        if(networkObj.containsKey(F("c"))) {
+            newConfig.mode = networkObj[F("c")];
         }
-        if(newConfig.mode == 1 || newConfig.mode == 2) {
-            if(networkObj.containsKey(F("ssid"))) {
-                strlcpy(newConfig.ssid, networkObj[F("ssid")], sizeof(newConfig.ssid));
-            }
-            if(networkObj.containsKey(F("psk"))) {
-                strlcpy(newConfig.psk, networkObj[F("psk")], sizeof(newConfig.psk));
-            }
-            if(networkObj.containsKey(F("power"))) {
-                newConfig.power = networkObj[F("power")];
-            }
-            if(networkObj.containsKey(F("sleep"))) {
-                newConfig.sleep = networkObj[F("sleep")];
-            }
-            if(networkObj.containsKey(F("use11b"))) {
-                newConfig.use11b = networkObj[F("use11b")];
+        if(networkObj.containsKey(F("m"))) {
+            if(strcmp_P(networkObj[F("m")], PSTR("dhcp")) == 0) {
+                newConfig.mode = 1;
+            } else if(strcmp_P(networkObj[F("m")], PSTR("static")) == 0) {
+                newConfig.mode = 2;
             }
         }
-        if(networkObj.containsKey(F("ip"))) {
-            strlcpy(newConfig.ip, networkObj[F("ip")], sizeof(newConfig.ip));
+
+        if(networkObj.containsKey(F("i"))) {
+            strlcpy(newConfig.ip, networkObj[F("i")], sizeof(newConfig.ip));
         }
-        if(networkObj.containsKey(F("gateway"))) {
-            strlcpy(newConfig.gateway, networkObj[F("gateway")], sizeof(newConfig.gateway));
+        if(networkObj.containsKey(F("s"))) {
+            strlcpy(newConfig.subnet, networkObj[F("s")], sizeof(newConfig.subnet));
         }
-        if(networkObj.containsKey(F("subnet"))) {
-            strlcpy(newConfig.subnet, networkObj[F("subnet")], sizeof(newConfig.subnet));
+        if(networkObj.containsKey(F("g"))) {
+            strlcpy(newConfig.gateway, networkObj[F("g")], sizeof(newConfig.gateway));
         }
-        if(networkObj.containsKey(F("dns1"))) {
-            strlcpy(newConfig.dns1, networkObj[F("dns1")], sizeof(newConfig.dns1));
+        if(networkObj.containsKey(F("d1"))) {
+            strlcpy(newConfig.dns1, networkObj[F("d1")], sizeof(newConfig.dns1));
         }
-        if(networkObj.containsKey(F("dns2"))) {
-            strlcpy(newConfig.dns2, networkObj[F("dns2")], sizeof(newConfig.dns2));
+        if(networkObj.containsKey(F("d2"))) {
+            strlcpy(newConfig.dns2, networkObj[F("d2")], sizeof(newConfig.dns2));
         }
-        if(networkObj.containsKey(F("mdns"))) {
-            newConfig.mdns = networkObj[F("mdns")];
+        if(networkObj.containsKey(F("d"))) {
+            newConfig.mdns = networkObj[F("d")];
         }
-        if(networkObj.containsKey(F("ipv6"))) {
-            newConfig.ipv6 = networkObj[F("ipv6")];
+        if(networkObj.containsKey(F("x"))) {
+            newConfig.ipv6 = networkObj[F("x")];
         }
         config->setNetworkConfig(newConfig);
+
+        NtpConfig ntpConfig;
+        config->getNtpConfig(ntpConfig);
+        if(networkObj.containsKey(F("n1"))) {
+            strlcpy(ntpConfig.server, networkObj[F("n1")], sizeof(ntpConfig.server));
+            config->setNtpConfig(ntpConfig);
+        }
+        if(networkObj.containsKey(F("h"))) {
+            ntpConfig.dhcp = networkObj[F("h")];
+            config->setNtpConfig(ntpConfig);
+        }
+        config->getNtpConfig(ntpConfig);
     }
 
-    if(configObj.containsKey(F("meter"))) {
-        MeterConfig newConfig;
-        config->getMeterConfig(newConfig);
+    // WiFi
+    if(configObj.containsKey(F("w"))) {
+        NetworkConfig newConfig;
+        config->getNetworkConfig(newConfig);
 
-        JsonObject meterObj = configObj[F("meter")];
-        if(meterObj.containsKey(F("baud"))) {
-            newConfig.baud = meterObj[F("baud")];
-        }
-        if(meterObj.containsKey(F("parity"))) {
-            newConfig.parity = meterObj[F("parity")];
-        }
-        if(meterObj.containsKey(F("invert"))) {
-            newConfig.invert = meterObj[F("invert")];
-        }
-        if(meterObj.containsKey(F("distributionSystem"))) {
-            newConfig.distributionSystem = meterObj[F("distributionSystem")];
-        }
-        if(meterObj.containsKey(F("mainFuse"))) {
-            newConfig.mainFuse = meterObj[F("mainFuse")];
-        }
-        if(meterObj.containsKey(F("productionCapacity"))) {
-            newConfig.productionCapacity = meterObj[F("productionCapacity")];
-        }
-        if(meterObj.containsKey(F("wattageMultiplier"))) {
-            newConfig.wattageMultiplier = meterObj[F("wattageMultiplier")];
-        }
-        if(meterObj.containsKey(F("voltageMultiplier"))) {
-            newConfig.voltageMultiplier = meterObj[F("voltageMultiplier")];
-        }
-        if(meterObj.containsKey(F("amperageMultiplier"))) {
-            newConfig.amperageMultiplier = meterObj[F("amperageMultiplier")];
-        }
-        if(meterObj.containsKey(F("accumulatedMultiplier"))) {
-            newConfig.accumulatedMultiplier = meterObj[F("accumulatedMultiplier")];
-        }
-        if(meterObj.containsKey(F("parser"))) {
-            newConfig.parser = meterObj[F("parser")];
-        }
-        if(meterObj.containsKey(F("bufferSize"))) {
-            newConfig.bufferSize = meterObj[F("bufferSize")];
-        }
-        if(meterObj.containsKey(F("rxPin"))) {
-            newConfig.rxPin = meterObj[F("rxPin")];
-        }
-        if(meterObj.containsKey(F("rxPinPullup"))) {
-            newConfig.rxPinPullup = meterObj[F("rxPinPullup")];
-        }
-        if(meterObj.containsKey(F("txPin"))) {
-            newConfig.txPin = meterObj[F("txPin")];
+        if(newConfig.mode == 1 || newConfig.mode == 2) {
+            JsonObject wifiObj = configObj[F("w")];
+            if(wifiObj.containsKey(F("s"))) {
+                strlcpy(newConfig.ssid, wifiObj[F("s")], sizeof(newConfig.ssid));
+            }
+            // Check if PSK is provided and that it is not empty and is not equal *** (which is used in the UI to indicate that the password is set but not shown)
+            if(wifiObj.containsKey(F("p")) && strlen(wifiObj[F("p")]) > 0 && strcmp(wifiObj[F("p")], "***") != 0) {
+                strlcpy(newConfig.psk, wifiObj[F("p")], sizeof(newConfig.psk));
+            }
+            if(wifiObj.containsKey(F("w"))) {
+                newConfig.power = wifiObj[F("w")];
+            }
+            if(wifiObj.containsKey(F("z"))) {
+                newConfig.sleep = wifiObj[F("z")];
+            }
+            if(wifiObj.containsKey(F("b"))) {
+                newConfig.use11b = wifiObj[F("b")];
+            }
+            config->setNetworkConfig(newConfig);
         }
     }
 
-    if(configObj.containsKey(F("mqtt"))) {
+    // MQTT
+    if(configObj.containsKey(F("q"))) {
+        JsonObject mqttObj = configObj[F("q")];
         MqttConfig newConfig;
         config->getMqttConfig(newConfig);
-
-        JsonObject mqttObj = configObj[F("mqtt")];
-        if(mqttObj.containsKey(F("host"))) {
-            strlcpy(newConfig.host, mqttObj[F("host")], sizeof(newConfig.host));
+        if(mqttObj.containsKey(F("p"))) {
+            newConfig.port = mqttObj[F("p")];
         }
-        if(mqttObj.containsKey(F("port"))) {
-            newConfig.port = mqttObj[F("port")];
+        if(mqttObj.containsKey(F("u"))) {
+            strlcpy(newConfig.username, mqttObj[F("u")], sizeof(newConfig.username));
         }
-        if(mqttObj.containsKey(F("clientId"))) {
-            strlcpy(newConfig.clientId, mqttObj[F("clientId")], sizeof(newConfig.clientId));
+        // Check if password is provided and that it is not empty and is not equal *** (which is used in the UI to indicate that the password is set but not shown)
+        if(mqttObj.containsKey(F("a")) && strlen(mqttObj[F("a")]) > 0 && strcmp(mqttObj[F("a")], "***") != 0) {
+            strlcpy(newConfig.password, mqttObj[F("a")], sizeof(newConfig.password));
         }
-        if(mqttObj.containsKey(F("publishTopic"))) {
-            strlcpy(newConfig.publishTopic, mqttObj[F("publishTopic")], sizeof(newConfig.publishTopic));
+        if(mqttObj.containsKey(F("c"))) {
+            strlcpy(newConfig.clientId, mqttObj[F("c")], sizeof(newConfig.clientId));
         }
-        if(mqttObj.containsKey(F("subscribeTopic"))) {
-            strlcpy(newConfig.subscribeTopic, mqttObj[F("subscribeTopic")], sizeof(newConfig.subscribeTopic));
+        if(mqttObj.containsKey(F("b"))) {
+            strlcpy(newConfig.publishTopic, mqttObj[F("b")], sizeof(newConfig.publishTopic));
         }
-        if(mqttObj.containsKey(F("username"))) {
-            strlcpy(newConfig.username, mqttObj[F("username")], sizeof(newConfig.username));
+        if(mqttObj.containsKey(F("r"))) {
+            strlcpy(newConfig.subscribeTopic, mqttObj[F("r")], sizeof(newConfig.subscribeTopic));
         }
-        if(mqttObj.containsKey(F("password"))) {
-            strlcpy(newConfig.password, mqttObj[F("password")], sizeof(newConfig.password));
+        if(mqttObj.containsKey(F("m"))) {
+            newConfig.payloadFormat = mqttObj[F("m")];
         }
-        if(mqttObj.containsKey(F("payloadFormat"))) {
-            newConfig.payloadFormat = mqttObj[F("payloadFormat")];
+        if(mqttObj.containsKey(F("t"))) {
+            newConfig.stateUpdate = mqttObj[F("s")];
         }
-        if(mqttObj.containsKey(F("ssl"))) {
-            newConfig.ssl = mqttObj[F("ssl")];
+        if(mqttObj.containsKey(F("d"))) {
+            newConfig.stateUpdateInterval = mqttObj[F("d")];
         }
-        if(mqttObj.containsKey(F("stateUpdate"))) {
-            newConfig.stateUpdate = mqttObj[F("stateUpdate")];
+        if(mqttObj.containsKey(F("i"))) {
+            newConfig.timeout = mqttObj[F("i")];
         }
-        if(mqttObj.containsKey(F("stateUpdateInterval"))) {
-            newConfig.stateUpdateInterval = mqttObj[F("stateUpdateInterval")];
+        if(mqttObj.containsKey(F("k"))) {
+            newConfig.keepalive = mqttObj[F("k")];
         }
-        if(mqttObj.containsKey(F("timeout"))) {
-            newConfig.timeout = mqttObj[F("timeout")];
-        }
-        if(mqttObj.containsKey(F("keepalive"))) {
-            newConfig.keepalive = mqttObj[F("keepalive")];
-        }
-        if(mqttObj.containsKey(F("rebootMinutes"))) {
-            newConfig.rebootMinutes = mqttObj[F("rebootMinutes")];
+        if(mqttObj.containsKey(F("e"))) {
+            newConfig.rebootMinutes = mqttObj[F("e")];
         }
         config->setMqttConfig(newConfig);
 
-        if(mqttObj.containsKey(F("domoticz"))) {
-            DomoticzConfig newConfig;
-            config->getDomoticzConfig(newConfig);
-            JsonObject domoticzObj = mqttObj[F("domoticz")];
-            if(domoticzObj.containsKey(F("elidx"))) {
-                newConfig.elidx = domoticzObj[F("elidx")];
+        if(newConfig.payloadFormat == 3) { // Domiticz
+            if(configObj.containsKey(F("o"))) {
+                JsonObject domoticzObj = configObj[F("o")];
+                DomoticzConfig domoticzConfig;
+                config->getDomoticzConfig(domoticzConfig);
+                if(domoticzObj.containsKey(F("e"))) {
+                    domoticzConfig.elidx = domoticzObj[F("e")];
+                }
+                if(domoticzObj.containsKey(F("c"))) {
+                    domoticzConfig.cl1idx = domoticzObj[F("c")];
+                }
+                if(domoticzObj.containsKey(F("u1"))) {
+                    domoticzConfig.vl1idx = domoticzObj[F("u1")];
+                }
+                if(domoticzObj.containsKey(F("u2"))) {
+                    domoticzConfig.vl2idx = domoticzObj[F("u2")];
+                }
+                if(domoticzObj.containsKey(F("u3"))) {
+                    domoticzConfig.vl3idx = domoticzObj[F("u3")];
+                }
+                config->setDomoticzConfig(domoticzConfig);
             }
-            if(domoticzObj.containsKey(F("vl1idx"))) {
-                newConfig.vl1idx = domoticzObj[F("vl1idx")];
+        } else if(newConfig.payloadFormat == 4) { // Home Assistant
+            if(configObj.containsKey(F("h"))) {
+                JsonObject haObj = configObj[F("h")];
+                HomeAssistantConfig haConfig;
+                config->getHomeAssistantConfig(haConfig);
+                if(haObj.containsKey(F("t"))) {
+                    strlcpy(haConfig.discoveryPrefix, haObj[F("t")], sizeof(haConfig.discoveryPrefix));
+                }
+                if(haObj.containsKey(F("h"))) {
+                    strlcpy(haConfig.discoveryHostname, haObj[F("h")], sizeof(haConfig.discoveryHostname));
+                }
+                if(haObj.containsKey(F("n"))) {
+                    strlcpy(haConfig.discoveryNameTag, haObj[F("n")], sizeof(haConfig.discoveryNameTag));
+                }
+                config->setHomeAssistantConfig(haConfig);
             }
-            if(domoticzObj.containsKey(F("vl2idx"))) {
-                newConfig.vl2idx = domoticzObj[F("vl2idx")];
-            }
-            if(domoticzObj.containsKey(F("vl3idx"))) {
-                newConfig.vl3idx = domoticzObj[F("vl3idx")];
-            }
-            if(domoticzObj.containsKey(F("cl1idx"))) {
-                newConfig.cl1idx = domoticzObj[F("cl1idx")];
-            }
-            config->setDomoticzConfig(newConfig);
-        }
-
-        if(mqttObj.containsKey(F("homeAssistant"))) {
-            HomeAssistantConfig newConfig;
-            config->getHomeAssistantConfig(newConfig);
-            JsonObject haObj = mqttObj[F("homeAssistant")];
-            if(haObj.containsKey(F("discoveryPrefix"))) {
-                strlcpy(newConfig.discoveryPrefix, haObj[F("discoveryPrefix")], sizeof(newConfig.discoveryPrefix));
-            }
-            if(haObj.containsKey(F("discoveryHostname"))) {
-                strlcpy(newConfig.discoveryHostname, haObj[F("discoveryHostname")], sizeof(newConfig.discoveryHostname));
-            }
-            if(haObj.containsKey(F("discoveryNameTag"))) {
-                strlcpy(newConfig.discoveryNameTag, haObj[F("discoveryNameTag")], sizeof(newConfig.discoveryNameTag));
-            }
-            config->setHomeAssistantConfig(newConfig);
         }
     }
 
-    if(configObj.containsKey(F("debug"))) {
-        DebugConfig newConfig;
-        config->getDebugConfig(newConfig);
-
-        JsonObject debugObj = configObj[F("debug")];
-        if(debugObj.containsKey(F("telnet"))) {
-            newConfig.telnet = debugObj[F("telnet")];
-        }
-        if(debugObj.containsKey(F("serial"))) {
-            newConfig.serial = debugObj[F("serial")];
-        }
-        if(debugObj.containsKey(F("level"))) {
-            newConfig.level = debugObj[F("level")];
-        }
-        config->setDebugConfig(newConfig);
-    }
-
-    if(configObj.containsKey(F("gpio"))) {
-        GpioConfig newConfig;
-        config->getGpioConfig(newConfig);
-
-        JsonObject gpioObj = configObj[F("gpio")];
-        if(gpioObj.containsKey(F("apPin"))) {
-            newConfig.apPin = gpioObj[F("apPin")];
-        }
-        if(gpioObj.containsKey(F("ledPin"))) {
-            newConfig.ledPin = gpioObj[F("ledPin")];
-        }
-        if(gpioObj.containsKey(F("ledInverted"))) {
-            newConfig.ledInverted = gpioObj[F("ledInverted")];
-        }
-        if(gpioObj.containsKey(F("ledPinRed"))) {
-            newConfig.ledPinRed = gpioObj[F("ledPinRed")];
-        }
-        if(gpioObj.containsKey(F("ledPinGreen"))) {
-            newConfig.ledPinGreen = gpioObj[F("ledPinGreen")];
-        }
-        if(gpioObj.containsKey(F("ledPinBlue"))) {
-            newConfig.ledPinBlue = gpioObj[F("ledPinBlue")];
-        }
-        if(gpioObj.containsKey(F("ledRgbInverted"))) {
-            newConfig.ledRgbInverted = gpioObj[F("ledRgbInverted")];
-        }
-        if(gpioObj.containsKey(F("tempSensorPin"))) {
-            newConfig.tempSensorPin = gpioObj[F("tempSensorPin")];
-        }
-        if(gpioObj.containsKey(F("tempAnalogSensorPin"))) {
-            newConfig.tempAnalogSensorPin = gpioObj[F("tempAnalogSensorPin")];
-        }
-        if(gpioObj.containsKey(F("vccPin"))) {
-            newConfig.vccPin = gpioObj[F("vccPin")];
-        }
-        if(gpioObj.containsKey(F("vccOffset"))) {
-            newConfig.vccOffset = gpioObj[F("vccOffset")];
-        }
-        if(gpioObj.containsKey(F("vccMultiplier"))) {
-            newConfig.vccMultiplier = gpioObj[F("vccMultiplier")];
-        }
-        if(gpioObj.containsKey(F("vccBootLimit"))) {
-            newConfig.vccBootLimit = gpioObj[F("vccBootLimit")];
-        }
-        if(gpioObj.containsKey(F("vccResistorGnd"))) {
-            newConfig.vccResistorGnd = gpioObj[F("vccResistorGnd")];
-        }
-        if(gpioObj.containsKey(F("vccResistorVcc"))) {
-            newConfig.vccResistorVcc = gpioObj[F("vccResistorVcc")];
-        }
-        if(gpioObj.containsKey(F("ledDisablePin"))) {
-            newConfig.ledDisablePin = gpioObj[F("ledDisablePin")];
-        }
-        if(gpioObj.containsKey(F("ledBehaviour"))) {
-            newConfig.ledBehaviour = gpioObj[F("ledBehaviour")];
-        }
-        config->setGpioConfig(newConfig);
-    }
-
-    if(configObj.containsKey(F("ntp"))) {
-        NtpConfig newConfig;
-        config->getNtpConfig(newConfig);
-
-        JsonObject ntpObj = configObj[F("ntp")];
-        if(ntpObj.containsKey(F("enable"))) {
-            newConfig.enable = ntpObj[F("enable")];
-        }
-        if(ntpObj.containsKey(F("dhcp"))) {
-            newConfig.dhcp = ntpObj[F("dhcp")];
-        }
-        if(ntpObj.containsKey(F("server"))) {
-            strlcpy(newConfig.server, ntpObj[F("server")], sizeof(newConfig.server));
-        }
-        config->setNtpConfig(newConfig);
-    }
-
-    if(configObj.containsKey(F("priceService"))) {
+    // Price service
+    if(configObj.containsKey(F("p"))) {
         PriceServiceConfig newConfig;
         config->getPriceServiceConfig(newConfig);
-        JsonObject priceServiceObj = configObj[F("priceService")];
-        if(priceServiceObj.containsKey(F("area"))) {
-            strlcpy(newConfig.area, priceServiceObj[F("area")], sizeof(newConfig.area));
+        JsonObject priceServiceObj = configObj[F("p")];
+        if(priceServiceObj.containsKey(F("e"))) {
+            newConfig.enabled = priceServiceObj[F("e")];
         }
-        if(priceServiceObj.containsKey(F("currency"))) {
-            strlcpy(newConfig.currency, priceServiceObj[F("currency")], sizeof(newConfig.currency));
+        if(priceServiceObj.containsKey(F("r"))) {
+            strlcpy(newConfig.area, priceServiceObj[F("r")], sizeof(newConfig.area));
         }
-        if(priceServiceObj.containsKey(F("resolutionInMinutes"))) {
-            newConfig.resolutionInMinutes = priceServiceObj[F("resolutionInMinutes")];
+        if(priceServiceObj.containsKey(F("c"))) {
+            strlcpy(newConfig.currency, priceServiceObj[F("c")], sizeof(newConfig.currency));
         }
-        if(priceServiceObj.containsKey(F("enabled"))) {
-            newConfig.enabled = priceServiceObj[F("enabled")];
+        if(priceServiceObj.containsKey(F("m"))) {
+            newConfig.resolutionInMinutes = priceServiceObj[F("m")];
         }
         config->setPriceServiceConfig(newConfig);
     }
 
-    if(configObj.containsKey(F("cloud"))) {
-        JsonObject cloudObj = configObj[F("cloud")];
-
-        if(cloudObj.containsKey(F("amsleser"))) {
-            CloudConfig newConfig;
-            config->getCloudConfig(newConfig);
-
-            JsonObject amsCloudObj = cloudObj[F("amsleser")];
-            if(amsCloudObj.containsKey(F("enabled"))) {
-                newConfig.enabled = amsCloudObj[F("enabled")];
-            }
-            if(amsCloudObj.containsKey(F("interval"))) {
-                newConfig.interval = amsCloudObj[F("interval")];
-            }
-            if(amsCloudObj.containsKey(F("hostname"))) {
-                strlcpy(newConfig.hostname, amsCloudObj[F("hostname")], sizeof(newConfig.hostname));
-            }
-            if(amsCloudObj.containsKey(F("port"))) {
-                newConfig.port = amsCloudObj[F("port")];
-            }
-            if(amsCloudObj.containsKey(F("clientId"))) {
-                strlcpy((char*)newConfig.clientId, amsCloudObj[F("clientId")], sizeof(newConfig.clientId));
-            }
-            if(amsCloudObj.containsKey(F("proto"))) {
-                newConfig.proto = amsCloudObj[F("proto")];
-            }
-            config->setCloudConfig(newConfig);
+    // Thresholds
+    if(configObj.containsKey(F("t"))) {
+        EnergyAccountingConfig newConfig;
+        config->getEnergyAccountingConfig(newConfig);
+        JsonObject thresholdObj = configObj[F("t")];
+        if(thresholdObj.containsKey(F("h"))) {
+            newConfig.hours = thresholdObj[F("h")];
         }
-
-        if(cloudObj.containsKey(F("zmartcharge"))) {
-            ZmartChargeConfig newConfig;
-            config->getZmartChargeConfig(newConfig);
-            JsonObject zmartChargeObj = cloudObj[F("zmartcharge")];
-            if(zmartChargeObj.containsKey(F("enabled"))) {
-                newConfig.enabled = zmartChargeObj[F("enabled")];
+        if(thresholdObj.containsKey(F("t"))) {
+            JsonArray thresholdsArray = thresholdObj[F("t")].as<JsonArray>();
+            for(size_t i = 0; i < thresholdsArray.size(); i++) {
+                newConfig.thresholds[i] = thresholdsArray[i];
             }
-            if(zmartChargeObj.containsKey(F("token"))) {
-                strlcpy(newConfig.token, zmartChargeObj[F("token")], sizeof(newConfig.token));
-            }
-            if(zmartChargeObj.containsKey(F("baseUrl"))) {
-                strlcpy(newConfig.baseUrl, zmartChargeObj[F("baseUrl")], sizeof(newConfig.baseUrl));
-            }
-            config->setZmartChargeConfig(newConfig);
         }
+        config->setEnergyAccountingConfig(newConfig);
+    }   
 
-        if(cloudObj.containsKey(F("energyspeedometer"))) {
-            SystemConfig newConfig;
-            config->getSystemConfig(newConfig);
-            JsonObject speedometerObj = cloudObj[F("energyspeedometer")];
-            if(speedometerObj.containsKey(F("enabled"))) {
-                newConfig.energyspeedometer = speedometerObj[F("enabled")];
+    // Debug
+    if(configObj.containsKey(F("d"))) {
+        DebugConfig newConfig;
+        config->getDebugConfig(newConfig);
+
+        JsonObject debugObj = configObj[F("d")];
+        if(debugObj.containsKey(F("s"))) {
+            newConfig.serial = debugObj[F("s")];
+        }
+        if(debugObj.containsKey(F("t"))) {
+            newConfig.telnet = debugObj[F("t")];
+        }
+        if(debugObj.containsKey(F("l"))) {
+            newConfig.level = debugObj[F("l")];
+        }
+        config->setDebugConfig(newConfig);
+    }
+
+    // Cloud
+    if(configObj.containsKey(F("c"))) {
+        CloudConfig newConfig;
+        config->getCloudConfig(newConfig);
+
+        JsonObject cloudObj = configObj[F("c")];
+        if(cloudObj.containsKey(F("e"))) {
+            newConfig.enabled = cloudObj[F("e")];
+        }
+        if(cloudObj.containsKey(F("p"))) {
+            newConfig.proto = cloudObj[F("p")];
+        }
+        config->setCloudConfig(newConfig);
+
+        if(cloudObj.containsKey(F("es"))) {
+            SystemConfig sysConfig;
+            config->getSystemConfig(sysConfig);
+            sysConfig.energyspeedometer = cloudObj[F("es")];
+            config->setSystemConfig(sysConfig);
+        }
+        if(cloudObj.containsKey(F("ze"))) {
+            ZmartChargeConfig zmartConfig;
+            config->getZmartChargeConfig(zmartConfig);
+            zmartConfig.enabled = cloudObj[F("ze")];
+            if(cloudObj.containsKey(F("zt"))) {
+                strlcpy(zmartConfig.token, cloudObj[F("zt")], sizeof(zmartConfig.token));
             }
-            config->setSystemConfig(newConfig);
+            if(cloudObj.containsKey(F("zu"))) {
+                strlcpy(zmartConfig.baseUrl, cloudObj[F("zu")], sizeof(zmartConfig.baseUrl));
+            }
+            config->setZmartChargeConfig(zmartConfig);
+        }
+    }
+
+    // UI
+    if(configObj.containsKey(F("u"))) {
+        UiConfig newConfig;
+        config->getUiConfig(newConfig);
+        JsonObject uiObj = configObj[F("u")];
+        if(uiObj.containsKey(F("i"))) {
+            newConfig.showImport = uiObj[F("i")];
+        }
+        if(uiObj.containsKey(F("e"))) {
+            newConfig.showExport = uiObj[F("e")];
+        }
+        if(uiObj.containsKey(F("v"))) {
+            newConfig.showVoltage = uiObj[F("v")];
+        }
+        if(uiObj.containsKey(F("a"))) {
+            newConfig.showAmperage = uiObj[F("a")];
+        }
+        if(uiObj.containsKey(F("r"))) {
+            newConfig.showReactive = uiObj[F("r")];
+        }
+        if(uiObj.containsKey(F("c"))) {
+            newConfig.showRealtime = uiObj[F("c")];
+        }
+        if(uiObj.containsKey(F("t"))) {
+            newConfig.showPeaks = uiObj[F("t")];
+        }
+        if(uiObj.containsKey(F("p"))) {
+            newConfig.showPricePlot = uiObj[F("p")];
+        }
+        if(uiObj.containsKey(F("d"))) {
+            newConfig.showDayPlot = uiObj[F("d")];
+        }
+        if(uiObj.containsKey(F("m"))) {
+            newConfig.showMonthPlot = uiObj[F("m")];
+        }
+        if(uiObj.containsKey(F("s"))) {
+            newConfig.showTemperaturePlot = uiObj[F("s")];
+        }
+        if(uiObj.containsKey(F("l"))) {
+            newConfig.showRealtimePlot = uiObj[F("l")];
+        }
+        if(uiObj.containsKey(F("h"))) {
+            newConfig.showPerPhasePower = uiObj[F("h")];
+        }
+        if(uiObj.containsKey(F("f"))) {
+            newConfig.showPowerFactor = uiObj[F("f")];
+        }
+        if(uiObj.containsKey(F("k"))) {
+            newConfig.darkMode = uiObj[F("k")];
+        }
+        if(uiObj.containsKey(F("lang"))) {
+            strlcpy(newConfig.language, uiObj[F("lang")], sizeof(newConfig.language));
+        }
+        config->setUiConfig(newConfig);
+    }
+
+    // System
+    if(configObj.containsKey(F("s"))) {
+        SystemConfig sysConfig;
+        config->getSystemConfig(sysConfig);
+        JsonObject sysObj = configObj[F("s")];
+        if(sysObj.containsKey(F("b"))) {
+            sysConfig.boardType = sysObj[F("b")];
+        }
+        if(sysObj.containsKey(F("v"))) {
+            sysConfig.vendorConfigured = sysObj[F("v")];
+        }
+        if(sysObj.containsKey(F("u"))) {
+            sysConfig.userConfigured = sysObj[F("u")];
+        }
+        if(sysObj.containsKey(F("d"))) {
+            sysConfig.dataCollectionConsent = sysObj[F("d")];
+        }
+        if(sysObj.containsKey(F("o"))) {
+            strlcpy(sysConfig.country, sysObj[F("o")], sizeof(sysConfig.country));
+        }
+        if(sysObj.containsKey(F("c"))) {
+            sysConfig.firmwareChannel = sysObj[F("c")];
+        }
+        config->setSystemConfig(sysConfig);
+    }
+
+    // GPIO
+    if(configObj.containsKey(F("i"))) {
+        JsonObject gpioObj = configObj[F("i")];
+        GpioConfig newConfig;
+        config->getGpioConfig(newConfig);
+        if(gpioObj.containsKey(F("a"))) {
+            newConfig.apPin = gpioObj[F("a")];
+        }
+        if(gpioObj.containsKey(F("l"))) {
+            JsonObject ledObj = gpioObj[F("l")];
+            if(ledObj.containsKey(F("p"))) {
+                newConfig.ledPin = ledObj[F("p")];
+            }
+            if(ledObj.containsKey(F("i"))) {
+                newConfig.ledInverted = ledObj[F("i")];
+            }
+        }
+        if(gpioObj.containsKey(F("r"))) {
+            JsonObject rgbLedObj = gpioObj[F("r")];
+            if(rgbLedObj.containsKey(F("r"))) {
+                newConfig.ledPinRed = rgbLedObj[F("r")];
+            }
+            if(rgbLedObj.containsKey(F("g"))) {
+                newConfig.ledPinGreen = rgbLedObj[F("g")];
+            }
+            if(rgbLedObj.containsKey(F("b"))) {
+                newConfig.ledPinBlue = rgbLedObj[F("b")];
+            }
+            if(rgbLedObj.containsKey(F("i"))) {
+                newConfig.ledRgbInverted = rgbLedObj[F("i")];
+            }
+        }
+        if(gpioObj.containsKey(F("d"))) {
+            JsonObject ledDisableObj = gpioObj[F("d")];
+            if(ledDisableObj.containsKey(F("d"))) {
+                newConfig.ledDisablePin = ledDisableObj[F("d")];
+            }
+            if(ledDisableObj.containsKey(F("b"))) {
+                newConfig.ledBehaviour = ledDisableObj[F("b")];
+            }
+        }
+        if(gpioObj.containsKey(F("t"))) {
+            JsonObject tempSensorObj = gpioObj[F("t")];
+            if(tempSensorObj.containsKey(F("d"))) {
+                newConfig.tempSensorPin = tempSensorObj[F("d")];
+            }
+            if(tempSensorObj.containsKey(F("a"))) {
+                newConfig.tempAnalogSensorPin = tempSensorObj[F("a")];
+            }
+        }
+        if(gpioObj.containsKey(F("v"))) {
+            JsonObject vccObj = gpioObj[F("v")];
+            if(vccObj.containsKey(F("p"))) {
+                newConfig.vccPin = vccObj[F("p")];
+            }
+            if(vccObj.containsKey(F("o"))) {
+                newConfig.vccOffset = vccObj[F("o")];
+            }
+            if(vccObj.containsKey(F("m"))) {
+                newConfig.vccMultiplier = vccObj[F("m")];
+            }
+            if(vccObj.containsKey(F("d"))) {
+                JsonObject vccDividerObj = vccObj[F("d")];
+                if(vccDividerObj.containsKey(F("v"))) {
+                    newConfig.vccResistorVcc = vccDividerObj[F("v")];
+                }
+                if(vccDividerObj.containsKey(F("g"))) {
+                    newConfig.vccResistorGnd = vccDividerObj[F("g")];
+                }
+            }
+        }
+        config->setGpioConfig(newConfig);
+
+        if(gpioObj.containsKey(F("h"))) {
+            JsonObject hwObj = gpioObj[F("h")];
+            MeterConfig meterConfig;
+            config->getMeterConfig(meterConfig);
+            if(hwObj.containsKey(F("p"))) {
+                meterConfig.rxPin = hwObj[F("p")];
+            }
+            if(hwObj.containsKey(F("u"))) {
+                meterConfig.rxPinPullup = hwObj[F("u")];
+            }
+            if(hwObj.containsKey(F("t"))) {
+                meterConfig.txPin = hwObj[F("t")];
+            }
+            config->setMeterConfig(meterConfig);
         }
     }
 }

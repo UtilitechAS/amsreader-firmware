@@ -104,8 +104,7 @@ private:
 	String customFirmwareUrl;
 	#endif
 
-    static const uint16_t BufferSize = 2048;
-    char* buf;
+	char* buf;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;

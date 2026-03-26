@@ -11,16 +11,14 @@
 #endif
 
 bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
-	EEPROM.begin(EEPROM_SIZE);
 	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
 	EEPROM.get(CONFIG_SYSTEM_START, config);
-	EEPROM.end();
 
 	if(config.firmwareChannel > 3) {
 		config.firmwareChannel = 0;
 	}
 
-	if(configVersion == EEPROM_CHECK_SUM) {
+	if(configVersion == EEPROM_EXPECTED_VERSION) {
 		return true;
 	} else {
 		if(configVersion == EEPROM_CLEARED_INDICATOR && config.boardType > 0 && config.boardType < 250) {
@@ -52,12 +50,9 @@ bool AmsConfiguration::setSystemConfig(SystemConfig& config) {
 	} else {
 		sysChanged = true;
 	}
-	EEPROM.begin(EEPROM_SIZE);
 	stripNonAscii((uint8_t*) config.country, 2);
 	EEPROM.put(CONFIG_SYSTEM_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return sysChanged;
 }
 
 bool AmsConfiguration::isSystemConfigChanged() {
@@ -70,10 +65,8 @@ void AmsConfiguration::ackSystemConfigChanged() {
 
 bool AmsConfiguration::getNetworkConfig(NetworkConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_NETWORK_START, config);
-		EEPROM.end();
-		if(config.sleep > 2) config.sleep = 1;
+			EEPROM.get(CONFIG_NETWORK_START, config);
+			if(config.sleep > 2) config.sleep = 1;
 		return true;
 	} else {
 		clearNetworkConfig(config);
@@ -113,11 +106,8 @@ bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 	stripNonAscii((uint8_t*) config.dns2, 16);
 	stripNonAscii((uint8_t*) config.hostname, 32);
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_NETWORK_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return networkChanged;
 }
 
 void AmsConfiguration::clearNetworkConfig(NetworkConfig& config) {
@@ -158,10 +148,8 @@ void AmsConfiguration::ackNetworkConfigChange() {
 
 bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_MQTT_START, config);
-		EEPROM.end();
-		if(config.magic != 0xA5) { // New magic for 2.4.11
+			EEPROM.get(CONFIG_MQTT_START, config);
+			if(config.magic != 0xA5) { // New magic for 2.4.11
 			if(config.magic != 0x9C) {
 				if(config.magic != 0x7B) {
 					config.stateUpdate = false;
@@ -213,11 +201,8 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 	if(config.keepalive > 240) config.keepalive = 60;
 	if(config.rebootMinutes > 240) config.rebootMinutes = 0;
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_MQTT_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return mqttChanged;
 }
 
 void AmsConfiguration::clearMqtt(MqttConfig& config) {
@@ -253,10 +238,8 @@ void AmsConfiguration::ackMqttChange() {
 
 bool AmsConfiguration::getWebConfig(WebConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_WEB_START, config);
-		EEPROM.end();
-		return true;
+			EEPROM.get(CONFIG_WEB_START, config);
+			return true;
 	} else {
 		clearWebConfig(config);
 		return false;
@@ -277,11 +260,8 @@ bool AmsConfiguration::setWebConfig(WebConfig& config) {
 	stripNonAscii((uint8_t*) config.password, 37, false, false);
 	stripNonAscii((uint8_t*) config.context, 37);
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_WEB_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return webChanged;
 }
 
 void AmsConfiguration::clearWebConfig(WebConfig& config) {
@@ -300,12 +280,10 @@ void AmsConfiguration::ackWebChange() {
 }
 
 bool AmsConfiguration::getMeterConfig(MeterConfig& config) {
-	EEPROM.begin(EEPROM_SIZE);
 	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
-	if(configVersion == EEPROM_CHECK_SUM || configVersion == EEPROM_CLEARED_INDICATOR) {
+	if(configVersion == EEPROM_EXPECTED_VERSION || configVersion == EEPROM_CLEARED_INDICATOR) {
 		EEPROM.get(CONFIG_METER_START, config);
-		EEPROM.end();
-		if(config.bufferSize < 1 || config.bufferSize > 64) {
+			if(config.bufferSize < 1 || config.bufferSize > 64) {
 			#if defined(ESP32)
 				config.bufferSize = 2;
 			#else
@@ -346,11 +324,8 @@ bool AmsConfiguration::setMeterConfig(MeterConfig& config) {
 	} else {
 		meterChanged = true;
 	}
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_METER_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return meterChanged;
 }
 
 void AmsConfiguration::clearMeter(MeterConfig& config) {
@@ -388,10 +363,8 @@ void AmsConfiguration::setMeterChanged() {
 
 bool AmsConfiguration::getDebugConfig(DebugConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_DEBUG_START, config);
-		EEPROM.end();
-		return true;
+			EEPROM.get(CONFIG_DEBUG_START, config);
+			return true;
 	} else {
 		clearDebug(config);
 		return false;
@@ -401,11 +374,8 @@ bool AmsConfiguration::getDebugConfig(DebugConfig& config) {
 bool AmsConfiguration::setDebugConfig(DebugConfig& config) {
 	if(!config.serial && !config.telnet)
 		config.level = 4; // Force warning level when debug is disabled
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_DEBUG_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return true;
 }
 
 void AmsConfiguration::clearDebug(DebugConfig& config) {
@@ -416,10 +386,8 @@ void AmsConfiguration::clearDebug(DebugConfig& config) {
 
 bool AmsConfiguration::getDomoticzConfig(DomoticzConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_DOMOTICZ_START, config);
-		EEPROM.end();
-		return true;
+			EEPROM.get(CONFIG_DOMOTICZ_START, config);
+			return true;
 	} else {
 		clearDomo(config);
 		return false;
@@ -437,11 +405,8 @@ bool AmsConfiguration::setDomoticzConfig(DomoticzConfig& config) {
 	} else {
 		mqttChanged = true;
 	}
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_DOMOTICZ_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return mqttChanged;
 }
 
 void AmsConfiguration::clearDomo(DomoticzConfig& config) {
@@ -454,10 +419,8 @@ void AmsConfiguration::clearDomo(DomoticzConfig& config) {
 
 bool AmsConfiguration::getHomeAssistantConfig(HomeAssistantConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_HA_START, config);
-		EEPROM.end();
-		if(stripNonAscii((uint8_t*) config.discoveryPrefix, 64) || stripNonAscii((uint8_t*) config.discoveryHostname, 64) || stripNonAscii((uint8_t*) config.discoveryNameTag, 16)) {
+			EEPROM.get(CONFIG_HA_START, config);
+			if(stripNonAscii((uint8_t*) config.discoveryPrefix, 64) || stripNonAscii((uint8_t*) config.discoveryHostname, 64) || stripNonAscii((uint8_t*) config.discoveryNameTag, 16)) {
 			clearHomeAssistantConfig(config);
 			return false;
 		}
@@ -482,11 +445,8 @@ bool AmsConfiguration::setHomeAssistantConfig(HomeAssistantConfig& config) {
 	stripNonAscii((uint8_t*) config.discoveryHostname, 64);
 	stripNonAscii((uint8_t*) config.discoveryNameTag, 16);
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_HA_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return mqttChanged;
 }
 
 void AmsConfiguration::clearHomeAssistantConfig(HomeAssistantConfig& config) {
@@ -512,12 +472,10 @@ bool AmsConfiguration::pinUsed(uint8_t pin, GpioConfig& config) {
 }
 
 bool AmsConfiguration::getGpioConfig(GpioConfig& config) {
-	EEPROM.begin(EEPROM_SIZE);
 	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
-	if(configVersion == EEPROM_CHECK_SUM || configVersion == EEPROM_CLEARED_INDICATOR) {
+	if(configVersion == EEPROM_EXPECTED_VERSION || configVersion == EEPROM_CLEARED_INDICATOR) {
 		EEPROM.get(CONFIG_GPIO_START, config);
-		EEPROM.end();
-		if(config.powersaving > 4) config.powersaving = 0;
+			if(config.powersaving > 4) config.powersaving = 0;
 		return true;
 	} else {
 		clearGpio(config);
@@ -572,11 +530,8 @@ bool AmsConfiguration::setGpioConfig(GpioConfig& config) {
 	if(config.apPin >= 0)
 		pinMode(config.apPin, INPUT_PULLUP);
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_GPIO_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return true;
 }
 
 void AmsConfiguration::clearGpio(GpioConfig& config, bool all) {
@@ -605,10 +560,8 @@ void AmsConfiguration::clearGpio(GpioConfig& config, bool all) {
 
 bool AmsConfiguration::getNtpConfig(NtpConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_NTP_START, config);
-		EEPROM.end();
-		return true;
+			EEPROM.get(CONFIG_NTP_START, config);
+			return true;
 	} else {
 		clearNtp(config);
 		return false;
@@ -635,11 +588,8 @@ bool AmsConfiguration::setNtpConfig(NtpConfig& config) {
 	stripNonAscii((uint8_t*) config.server, 64);
 	stripNonAscii((uint8_t*) config.timezone, 32);
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_NTP_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return ntpChanged;
 }
 
 bool AmsConfiguration::isNtpChanged() {
@@ -659,10 +609,8 @@ void AmsConfiguration::clearNtp(NtpConfig& config) {
 
 bool AmsConfiguration::getPriceServiceConfig(PriceServiceConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_PRICE_START, config);
-		EEPROM.end();
-		if(strlen(config.entsoeToken) != 0 && strlen(config.entsoeToken) != 36) {
+			EEPROM.get(CONFIG_PRICE_START, config);
+			if(strlen(config.entsoeToken) != 0 && strlen(config.entsoeToken) != 36) {
 			clearPriceServiceConfig(config);
 			return false;
 		}
@@ -692,11 +640,8 @@ bool AmsConfiguration::setPriceServiceConfig(PriceServiceConfig& config) {
 	stripNonAscii((uint8_t*) config.area, 17);
 	stripNonAscii((uint8_t*) config.currency, 4);
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_PRICE_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return priceChanged;
 }
 
 void AmsConfiguration::clearPriceServiceConfig(PriceServiceConfig& config) {
@@ -718,10 +663,8 @@ void AmsConfiguration::ackPriceServiceChange() {
 
 bool AmsConfiguration::getEnergyAccountingConfig(EnergyAccountingConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_ENERGYACCOUNTING_START, config);
-		EEPROM.end();
-		if(config.thresholds[9] != 0xFFFF) {
+			EEPROM.get(CONFIG_ENERGYACCOUNTING_START, config);
+			if(config.thresholds[9] != 0xFFFF) {
 			clearEnergyAccountingConfig(config);
 			return false;
 		}
@@ -747,11 +690,8 @@ bool AmsConfiguration::setEnergyAccountingConfig(EnergyAccountingConfig& config)
 	} else {
 		energyAccountingChanged = true;
 	}
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_ENERGYACCOUNTING_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return energyAccountingChanged;
 }
 
 void AmsConfiguration::clearEnergyAccountingConfig(EnergyAccountingConfig& config) {
@@ -778,11 +718,9 @@ void AmsConfiguration::ackEnergyAccountingChange() {
 
 bool AmsConfiguration::getUiConfig(UiConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_UI_START, config);
+			EEPROM.get(CONFIG_UI_START, config);
 		if(config.showImport > 2) clearUiConfig(config); // Must be wrong
-		EEPROM.end();
-		return true;
+			return true;
 	} else {
 		clearUiConfig(config);
 		return false;
@@ -796,11 +734,8 @@ bool AmsConfiguration::setUiConfig(UiConfig& config) {
 	} else {
 		uiLanguageChanged = true;
 	}
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_UI_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return uiLanguageChanged;
 }
 
 void AmsConfiguration::clearUiConfig(UiConfig& config) {
@@ -835,19 +770,14 @@ bool AmsConfiguration::setUpgradeInformation(UpgradeInformation& upinfo) {
 	stripNonAscii((uint8_t*) upinfo.fromVersion, 16);
 	stripNonAscii((uint8_t*) upinfo.toVersion, 16);
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_UPGRADE_INFO_START, upinfo);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return true;
 }
 
 bool AmsConfiguration::getUpgradeInformation(UpgradeInformation& upinfo) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_UPGRADE_INFO_START, upinfo);
-		EEPROM.end();
-		if(stripNonAscii((uint8_t*) upinfo.fromVersion, 16) || stripNonAscii((uint8_t*) upinfo.toVersion, 16)) {
+			EEPROM.get(CONFIG_UPGRADE_INFO_START, upinfo);
+			if(stripNonAscii((uint8_t*) upinfo.fromVersion, 16) || stripNonAscii((uint8_t*) upinfo.toVersion, 16)) {
 			clearUpgradeInformation(upinfo);
 			return false;
 		}
@@ -870,10 +800,8 @@ void AmsConfiguration::clearUpgradeInformation(UpgradeInformation& upinfo) {
 
 bool AmsConfiguration::getCloudConfig(CloudConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_CLOUD_START, config);
-		EEPROM.end();
-		if(config.proto > 2) config.proto = 0;
+			EEPROM.get(CONFIG_CLOUD_START, config);
+			if(config.proto > 2) config.proto = 0;
 		return true;
 	} else {
 		clearCloudConfig(config);
@@ -896,11 +824,8 @@ bool AmsConfiguration::setCloudConfig(CloudConfig& config) {
 
 	stripNonAscii((uint8_t*) config.hostname, 64);
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_CLOUD_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return cloudChanged;
 }
 
 void AmsConfiguration::clearCloudConfig(CloudConfig& config) {
@@ -922,11 +847,9 @@ void AmsConfiguration::ackCloudConfig() {
 
 bool AmsConfiguration::getZmartChargeConfig(ZmartChargeConfig& config) {
 	if(hasConfig()) {
-		EEPROM.begin(EEPROM_SIZE);
-		EEPROM.get(CONFIG_ZC_START, config);
-		EEPROM.end();
-		stripNonAscii((uint8_t*) config.token, 21);
-		stripNonAscii((uint8_t*) config.baseUrl, 64);
+			EEPROM.get(CONFIG_ZC_START, config);
+			stripNonAscii((uint8_t*) config.token, 21);
+			stripNonAscii((uint8_t*) config.baseUrl, 64);
 		if(strlen(config.token) != 20 || !config.enabled) {
 			config.enabled = false;
 			memset(config.token, 0, 64);
@@ -959,11 +882,8 @@ bool AmsConfiguration::setZmartChargeConfig(ZmartChargeConfig& config) {
 		memset(config.baseUrl, 0, 64);
 	}
 
-	EEPROM.begin(EEPROM_SIZE);
 	EEPROM.put(CONFIG_ZC_START, config);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return zcChanged;
 }
 
 void AmsConfiguration::clearZmartChargeConfig(ZmartChargeConfig& config) {
@@ -984,8 +904,6 @@ void AmsConfiguration::setUiLanguageChanged() {
 }
 
 void AmsConfiguration::clear() {
-	EEPROM.begin(EEPROM_SIZE);
-
 	SystemConfig sys;
 	EEPROM.get(CONFIG_SYSTEM_START, sys);
 	sys.userConfigured = false;
@@ -1053,18 +971,16 @@ void AmsConfiguration::clear() {
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CLEARED_INDICATOR);
 	EEPROM.commit();
-	EEPROM.end();
 }
 
-bool AmsConfiguration::hasConfig() {
+bool AmsConfiguration::load() {
+	EEPROM.begin(EEPROM_SIZE);
 	if(configVersion == 0) {
-		EEPROM.begin(EEPROM_SIZE);
 		configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
-		EEPROM.end();
 	}
-	if(configVersion > EEPROM_CHECK_SUM) {
-		if(loadFromFs(EEPROM_CHECK_SUM)) {
-			configVersion = EEPROM_CHECK_SUM;
+	if(configVersion > EEPROM_EXPECTED_VERSION) {
+		if(loadFromFs(EEPROM_EXPECTED_VERSION)) {
+			configVersion = EEPROM_EXPECTED_VERSION;
 		} else {
 			configVersion = 0;
 		}
@@ -1078,14 +994,18 @@ bool AmsConfiguration::hasConfig() {
 					configVersion = 0;
 					return false;
 				}
-			case EEPROM_CHECK_SUM:
+			case EEPROM_EXPECTED_VERSION:
 				return true;
 			default:
 				configVersion = 0;
 				return false;
 		}
 	}
-	return configVersion == EEPROM_CHECK_SUM;
+	return configVersion == EEPROM_EXPECTED_VERSION;
+}
+
+bool AmsConfiguration::hasConfig() {
+	return configVersion == EEPROM_EXPECTED_VERSION;
 }
 
 int AmsConfiguration::getConfigVersion() {
@@ -1093,8 +1013,6 @@ int AmsConfiguration::getConfigVersion() {
 }
 
 bool AmsConfiguration::relocateConfig103() {
-	EEPROM.begin(EEPROM_SIZE);
-
 	MeterConfig meter;
 	UpgradeInformation upinfo;
 	UiConfig ui;
@@ -1191,19 +1109,14 @@ bool AmsConfiguration::relocateConfig103() {
 	EEPROM.put(CONFIG_ZC_START, zcc);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 104);
-	bool ret = EEPROM.commit();
-	EEPROM.end();
-	return ret;
+	return EEPROM.commit();
 }
 
 bool AmsConfiguration::save() {
-	EEPROM.begin(EEPROM_SIZE);
 	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
-	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CHECK_SUM);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_EXPECTED_VERSION);
 	bool success = EEPROM.commit();
-	EEPROM.end();
-
-	configVersion = EEPROM_CHECK_SUM;
+	configVersion = EEPROM_EXPECTED_VERSION;
 	return success;
 }
 

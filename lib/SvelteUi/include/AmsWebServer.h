@@ -96,16 +96,15 @@ private:
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
-	String priceRegion = "";
-	String priceCurrency = "";
+	char priceRegion[8]   = {};
+	char priceCurrency[4] = {};
 	#if defined(AMS2MQTT_FIRMWARE_URL)
-	String customFirmwareUrl = AMS2MQTT_FIRMWARE_URL;
+	char customFirmwareUrl[128] = AMS2MQTT_FIRMWARE_URL;
 	#else
-	String customFirmwareUrl;
+	char customFirmwareUrl[128] = {};
 	#endif
 
-    static const uint16_t BufferSize = 2048;
-    char* buf;
+	char* buf;
 
 #if defined(ESP8266)
 	ESP8266WebServer server;

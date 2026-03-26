@@ -8,9 +8,18 @@
 #define _JSONMQTTHANDLER_H
 
 #include "AmsMqttHandler.h"
+#include "ArduinoJson.h"
 
 class JsonMqttHandler : public AmsMqttHandler {
 public:
+    #if defined(AMS_REMOTE_DEBUG)
+    JsonMqttHandler(AmsConfiguration* config, RemoteDebug* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(config, debugger, buf, updater) {
+    #else
+    JsonMqttHandler(AmsConfiguration* config, Stream* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(config, debugger, buf, updater) {
+    #endif
+        this->hw = hw;
+        this->ds = ds;
+    };
     #if defined(AMS_REMOTE_DEBUG)
     JsonMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
     #else
@@ -43,5 +52,6 @@ private:
     bool publishList4(AmsData* data, EnergyAccounting* ea);
     String getMeterModel(AmsData* data);
     void toJsonIsoTimestamp(time_t t, char* buf, size_t buflen);
+    void handleConfigMessage(JsonObject& configObj);
 };
 #endif

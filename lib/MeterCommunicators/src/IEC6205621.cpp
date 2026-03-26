@@ -16,50 +16,53 @@ IEC6205621::IEC6205621(const char* p, Timezone* tz, MeterConfig* meterConfig) {
 	String payload(p+1);
 
 	lastUpdateMillis = millis64();
-	listId = payload.substring(payload.startsWith("/") ? 1 : 0, payload.indexOf("\n"));
+	String listIdStr = payload.substring(payload.startsWith("/") ? 1 : 0, payload.indexOf("\n"));
 
-	if(listId.startsWith(F("ADN"))) {
+	if(listIdStr.startsWith(F("ADN"))) {
 		meterType = AmsTypeAidon;
-		listId = listId.substring(0,4);
-	} else if(listId.startsWith(F("KFM"))) {
+		listIdStr = listIdStr.substring(0,4);
+	} else if(listIdStr.startsWith(F("KFM"))) {
 		meterType = AmsTypeKaifa;
-		listId = listId.substring(0,4);
-	} else if(listId.startsWith(F("KMP"))) {
+		listIdStr = listIdStr.substring(0,4);
+	} else if(listIdStr.startsWith(F("KMP"))) {
 		meterType = AmsTypeKamstrup;
-		listId = listId.substring(0,4);
-	} else if(listId.startsWith(F("KAM"))) {
+		listIdStr = listIdStr.substring(0,4);
+	} else if(listIdStr.startsWith(F("KAM"))) {
 		meterType = AmsTypeKamstrup;
-		listId = listId.substring(0,4);
-	} else if(listId.startsWith(F("ISk"))) {
+		listIdStr = listIdStr.substring(0,4);
+	} else if(listIdStr.startsWith(F("ISk"))) {
 		meterType = AmsTypeIskra;
-		listId = listId.substring(0,5);
-	} else if(listId.startsWith(F("XMX"))) {
+		listIdStr = listIdStr.substring(0,5);
+	} else if(listIdStr.startsWith(F("XMX"))) {
 		meterType = AmsTypeLandisGyr;
-		listId = listId.substring(0,6);
-	} else if(listId.startsWith(F("Ene")) || listId.startsWith(F("EST"))) {
+		listIdStr = listIdStr.substring(0,6);
+	} else if(listIdStr.startsWith(F("Ene")) || listIdStr.startsWith(F("EST"))) {
 		meterType = AmsTypeSagemcom;
-		listId = listId.substring(0,4);
-	} else if(listId.startsWith(F("LGF"))) {
+		listIdStr = listIdStr.substring(0,4);
+	} else if(listIdStr.startsWith(F("LGF"))) {
 		meterType = AmsTypeLandisGyr;
-		listId = listId.substring(0,4);
+		listIdStr = listIdStr.substring(0,4);
 	} else {
 		meterType = AmsTypeUnknown;
-		listId = listId.substring(0,4);
+		listIdStr = listIdStr.substring(0,4);
 	}
-	
-	meterId = extract(payload, F("96.1.0"));
-	if(meterId.isEmpty()) {
-		meterId = extract(payload, F("0.0.5"));
-	}
+	strncpy(listId, listIdStr.c_str(), sizeof(listId) - 1);
 
-	meterModel = extract(payload, F("96.1.1"));
-	if(meterModel.isEmpty()) {
-		meterModel = extract(payload, F("96.1.7"));
-		if(meterModel.isEmpty()) {
-			meterModel = payload.substring(payload.indexOf(listId) + listId.length(), payload.indexOf(F("\n")));
-			meterModel.trim();
+	String meterIdStr = extract(payload, F("96.1.0"));
+	if(meterIdStr.isEmpty()) {
+		meterIdStr = extract(payload, F("0.0.5"));
+	}
+	strncpy(meterId, meterIdStr.c_str(), sizeof(meterId) - 1);
+
+	String meterModelStr = extract(payload, F("96.1.1"));
+	if(meterModelStr.isEmpty()) {
+		meterModelStr = extract(payload, F("96.1.7"));
+		if(meterModelStr.isEmpty()) {
+			meterModelStr = payload.substring(payload.indexOf(listIdStr) + listIdStr.length(), payload.indexOf(F("\n")));
+			meterModelStr.trim();
 		}
 	}
+	strncpy(meterModel, meterModelStr.c_str(), sizeof(meterModel) - 1);
 
 	tmElements_t tm { 0, 0, 0, 0, 0, 0, 0 };
 	String timestamp = extract(payload, F("1.0.0"));

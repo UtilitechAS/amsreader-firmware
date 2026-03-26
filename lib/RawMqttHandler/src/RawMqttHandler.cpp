@@ -400,7 +400,7 @@ bool RawMqttHandler::publishRaw(uint8_t* raw, size_t length) {
 	if(topic.isEmpty() || !connected())
 		return false;
     
-    if(length <= 0 || length > BufferSize) return false;
+    if(length <= 0 || length > BUF_SIZE_COMMON) return false;
 
     String str = toHex(raw, length);
     bool ret = mqtt.publish(topic + "/data", str);
@@ -409,7 +409,7 @@ bool RawMqttHandler::publishRaw(uint8_t* raw, size_t length) {
 }
 
 void RawMqttHandler::onMessage(String &topic, String &payload) {
-    if(topic.equals(subTopic)) {
+    if(topic == subTopic) {
         if(payload.equals("fwupgrade")) {
             if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
                 updater->setTargetVersion(updater->getNextVersion());

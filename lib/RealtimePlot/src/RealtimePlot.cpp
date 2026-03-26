@@ -5,11 +5,8 @@
  */
 
 #include "RealtimePlot.h"
-#include <stdlib.h>
 
 RealtimePlot::RealtimePlot() {
-    values = (int8_t*) malloc(REALTIME_SIZE);
-    scaling = (uint8_t*) malloc(REALTIME_SIZE);
     memset(values, 0, REALTIME_SIZE);
     memset(scaling, 0, REALTIME_SIZE);
 }

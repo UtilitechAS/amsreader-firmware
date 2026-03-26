@@ -210,13 +210,13 @@ LNG::LNG(AmsData& meterState, const char* payload, uint8_t useMeterType, MeterCo
                         char str[item->oct.length+1];
                         memcpy(str, item->oct.data, item->oct.length);
                         str[item->oct.length] = '\0';
-                        meterId = String(str);
+                        strncpy(meterId, str, sizeof(meterId) - 1);
                         listType = listType >= 2 ? listType : 2;
                     } else if(descriptor->obis[4] == 1) {
                         char str[item->oct.length+1];
                         memcpy(str, item->oct.data, item->oct.length);
                         str[item->oct.length] = '\0';
-                        meterModel = String(str);
+                        strncpy(meterModel, str, sizeof(meterModel) - 1);
                         listType = listType >= 2 ? listType : 2;
                     }
                 }

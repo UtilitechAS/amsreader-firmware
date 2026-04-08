@@ -665,7 +665,7 @@ bool HwTools::isVoltageOptimal(float range) {
         }
 		if(vcc > 3.4 || vcc < 2.8) {
             maxVcc = 0;
-			return true // Voltage is outside the operating range, we have to assume voltage is OK
+			return true; // Voltage is outside the operating range, we have to assume voltage is OK
 		} else if(vcc > maxVcc) {
 			maxVcc = vcc;
 		} else {

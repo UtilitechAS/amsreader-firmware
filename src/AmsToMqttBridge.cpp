@@ -482,6 +482,7 @@ void setup() {
 		debugW_P(PSTR("Voltage is outside optimal range (%.2fV)"), allowedDrift);
 		if(gpioConfig.apPin != 0xFF && digitalRead(gpioConfig.apPin) == LOW) {
 			debugW_P(PSTR("AP button is pressed, skipping voltage wait"));
+			break;
 		} else if(bootCycles < MAX_BOOT_CYCLES) {
 			int secs = MAX_BOOT_CYCLES - bootCycles;
 			if(deepSleep) {

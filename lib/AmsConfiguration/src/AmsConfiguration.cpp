@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -124,16 +124,12 @@ void AmsConfiguration::clearNetworkConfig(NetworkConfig& config) {
 	memset(config.ssid, 0, 32);
 	memset(config.psk, 0, 64);
 	clearNetworkConfigIp(config);
-
-	uint16_t chipId;
+	getUniqueName(config.hostname, 32);
 	#if defined(ESP32)
-		chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
 		config.power = 195;
 	#else
-		chipId = ESP.getChipId();
 		config.power = 205;
 	#endif
-	strcpy(config.hostname, (String("ams-") + String(chipId, HEX)).c_str());
 	config.mdns = true;
 	config.sleep = 0xFF;
 	config.use11b = 1;
@@ -981,6 +977,23 @@ void AmsConfiguration::ackZmartChargeConfig() {
 
 void AmsConfiguration::setUiLanguageChanged() {
 	uiLanguageChanged = true;
+}
+
+uint32_t AmsConfiguration::getChipId() {
+	uint32_t chipId;
+	#if defined(ESP32)
+		for(int i=0; i<17; i=i+8) {
+			chipId |= ((ESP.getEfuseMac() >> (40 - i)) & 0xff) << i;
+		}
+	#else
+		chipId = ESP.getChipId();
+	#endif
+	return chipId;
+}	
+
+void AmsConfiguration::getUniqueName(char* buffer, size_t length) {
+	uint32_t chipId = getChipId();
+	snprintf(buffer, length, "ams-%06x", chipId);
 }
 
 void AmsConfiguration::clear() {

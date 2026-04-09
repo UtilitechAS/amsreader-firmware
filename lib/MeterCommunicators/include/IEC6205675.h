@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -11,6 +11,7 @@
 #include "AmsConfiguration.h"
 #include "DataParser.h"
 #include "Cosem.h"
+#include "Timezone.h"
 #if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
 #endif

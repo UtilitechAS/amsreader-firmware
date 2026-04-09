@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -381,6 +381,8 @@ public:
 	bool isZmartChargeConfigChanged();
 	void ackZmartChargeConfig();
 	
+	uint32_t getChipId();
+	void getUniqueName(char* buffer, size_t length);
 
 	void clear();
 

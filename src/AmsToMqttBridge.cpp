@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source 5
  * 
  * @brief Program for ESP32 and ESP8266 to receive data from AMS electric meters and send to MQTT
@@ -30,6 +30,7 @@ ADC_MODE(ADC_VCC);
 #include "ZmartChargeCloudConnector.h"
 #endif
 
+#define MAX_BOOT_CYCLES 8
 #define WDT_TIMEOUT 120
 #if defined(SLOW_PROC_TRIGGER_MS)
 	#warning "Using predefined slow process trigger"
@@ -190,8 +191,6 @@ CloudConnector *cloud = NULL;
 #if defined(ZMART_CHARGE)
 ZmartChargeCloudConnector *zcloud = NULL;
 #endif
-
-#define MAX_BOOT_CYCLES 6
 
 #if defined(ESP32)
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
@@ -470,7 +469,7 @@ void setup() {
 	float vcc = hw.getVcc();
 	debugI_P(PSTR("Voltage: %.2fV"), vcc);
 
-	bool deepSleep = true;
+	bool deepSleep = false; // Disable for now, as it makes it difficult to debug why devices rebooted
 	#if defined(ESP32)
 	float allowedDrift = bootcount * 0.01;
 	#else
@@ -482,6 +481,7 @@ void setup() {
 		debugW_P(PSTR("Voltage is outside optimal range (%.2fV)"), allowedDrift);
 		if(gpioConfig.apPin != 0xFF && digitalRead(gpioConfig.apPin) == LOW) {
 			debugW_P(PSTR("AP button is pressed, skipping voltage wait"));
+			break;
 		} else if(bootCycles < MAX_BOOT_CYCLES) {
 			int secs = MAX_BOOT_CYCLES - bootCycles;
 			if(deepSleep) {
@@ -504,6 +504,16 @@ void setup() {
 	#if defined(ESP8266)
 	resetBootCycleCounter(deepSleep);
 	#endif
+
+	if(rdc.magic != 0x4a) {
+		rdc.last_cause = 0;
+		rdc.cause = 0;
+		rdc.magic = 0x4a;
+	} else {
+		rdc.last_cause = rdc.cause;
+		rdc.cause = 0;
+	}
+
 	hw.ledOff(LED_YELLOW);
 	hw.ledOff(LED_INTERNAL);
 
@@ -905,13 +915,7 @@ void handleEnergySpeedometer() {
 	if(sysConfig.energyspeedometer == 7) {
 		if(!meterState.getMeterId().isEmpty()) {
 			if(energySpeedometer == NULL) {
-				uint16_t chipId;
-				#if defined(ESP32)
-					chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
-				#else
-					chipId = ESP.getChipId();
-				#endif
-				strcpy(energySpeedometerConfig.clientId, (String("ams") + String(chipId, HEX)).c_str());
+				config.getUniqueName(energySpeedometerConfig.clientId, 32);
 				energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
 				energySpeedometer->setCaVerification(false);
 			}
@@ -1464,17 +1468,29 @@ void toggleSetupMode() {
 		#else
 		WiFi.beginSmartConfig();
 		#endif
-		WiFi.softAP(PSTR("AMS2MQTT"));
+
+		char ssid[32];
+		if(sysConfig.vendorConfigured) {
+			// Use the standard SSID if the vendor has configured the device
+			strcpy_P(ssid, PSTR("AMS2MQTT"));
+		} else {
+			// If not vendor configured, use a unique SSID to avoid conflicts if multiple devices are in setup mode at the same time
+			config.getUniqueName(ssid, 32);
+		}
+		uint8_t debugLevel = RemoteDebug::INFO;
+		#if defined(DEBUG_MODE)
+			debugLevel = RemoteDebug::VERBOSE;
+		#endif
+		WiFi.softAP(ssid);
+		Debug.setSerialEnabled(true);
+		Debug.begin(F("192.168.4.1"), 23, debugLevel);
+		debugI_P(PSTR("SSID: %s"), ssid);
 
 		if(dnsServer == NULL) {
 			dnsServer = new DNSServer();
 		}
 		dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
 		dnsServer->start(53, PSTR("*"), WiFi.softAPIP());
-		#if defined(DEBUG_MODE)
-			Debug.setSerialEnabled(true);
-			Debug.begin(F("192.168.4.1"), 23, RemoteDebug::VERBOSE);
-		#endif
 		setupMode = true;
 
 		hw.setBootSuccessful(false);

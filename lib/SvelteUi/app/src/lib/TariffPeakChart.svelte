@@ -38,15 +38,17 @@
         }
 
         if(tariffData && tariffData.p) {
-            for(i = 0; i < tariffData.p.length; i++) {
-                let peak = tariffData.p[i];
+            const sortedPeaks = [...tariffData.p].sort((a, b) => a.d - b.d);
+
+            for(i = 0; i < sortedPeaks.length; i++) {
+                let peak = sortedPeaks[i];
 
                 let title = "";
                 let daylabel = "-";
                 if(peak.d > 0) {
                     daylabel = zeropad(peak.d) + ".";
                     title = zeropad(peak.d) + "." + (translations.months ? translations.months?.[new Date().getMonth()] : zeropad(new Date().getMonth()+1));
-                    if(tariffData.p.length < 4) {
+                    if(sortedPeaks.length < 4) {
                         daylabel = title;
                     }
                 }
@@ -98,7 +100,7 @@
         config = {
             title: title,
             dark: document.documentElement.classList.contains('dark'),
-            padding: { top: 20, right: 20, bottom: 20, left: 20 },
+            padding: { top: 20, right: 30, bottom: 20, left: 20 },
             y: {
                 min: min,
                 max: max,

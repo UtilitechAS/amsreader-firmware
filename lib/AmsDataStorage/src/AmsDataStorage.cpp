@@ -639,25 +639,22 @@ bool AmsDataStorage::isDayHappy(time_t now) {
         return false;
     }
 
-    if(now < FirmwareVersion::BuildEpoch) return false;
-
-    if(now < day.lastMeterReadTime) {
+    // If the timestamp is before the firware was built, there is something seriously wrong..
+    if(now < FirmwareVersion::BuildEpoch) {
         return false;
     }
-    // There are cases where the meter reports before the hour. The update method will then receive the meter timestamp as reference, thus there will not be 3600s between. 
-    // Leaving a 100s buffer for these cases
-    if(now-day.lastMeterReadTime > 3500) {
+
+    // If the timestamp is before the last time we updated, there is also something wrong..
+    if(now < day.lastMeterReadTime) {
         return false;
     }
 
     tmElements_t tm, last;
     breakTime(tz->toLocal(now), tm);
     breakTime(tz->toLocal(day.lastMeterReadTime), last);
-    if(tm.Hour != last.Hour) {
-        return false;
-    }
 
-    return true;
+    // If the timestamp is at the same day and hour as last update, we are happy
+    return tm.Day == last.Day && tm.Hour == last.Hour;
 }
 
 bool AmsDataStorage::isMonthHappy(time_t now) {

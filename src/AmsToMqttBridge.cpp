@@ -2111,6 +2111,7 @@ void configFileParse() {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			strcpy(price.currency, buf+14);
 		} else if(strncmp_P(buf, PSTR("priceModifier "), 14) == 0) {
+			if(ps == NULL) ps = new PriceService(&Debug);
 			PriceConfig pc;
 			memset(&pc, 0, sizeof(PriceConfig));
 

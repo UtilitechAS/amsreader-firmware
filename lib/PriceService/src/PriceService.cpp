@@ -102,6 +102,8 @@ char* PriceService::getSource() {
         return this->today->getSource();
     } else if(tomorrow != NULL) {
         return this->tomorrow->getSource();
+    } else if(!this->config->enabled && this->priceConfig.capacity() != 0) {
+        return "FIX"; // Fixed price
     }
     return "";
 }

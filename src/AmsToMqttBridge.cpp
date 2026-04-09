@@ -470,6 +470,9 @@ void setup() {
 	#endif
 	while(!hw.isVoltageOptimal(allowedDrift)) {
 		uint8_t bootCycles = incrementBootCycleCounter(deepSleep);
+		#if defined(ESP32)
+			allowedDrift = bootCycles * 0.01;
+		#endif
 		debugW_P(PSTR("Voltage is outside optimal range (%.2fV)"), allowedDrift);
 		if(gpioConfig.apPin != 0xFF && digitalRead(gpioConfig.apPin) == LOW) {
 			debugW_P(PSTR("AP button is pressed, skipping voltage wait"));

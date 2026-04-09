@@ -1,6 +1,6 @@
 <script>
     import { translationsStore } from './TranslationService';
-    import { navigate } from 'svelte-navigator';
+    import { push } from 'svelte-spa-router';
     import Mask from './Mask.svelte'
 
     export let prefix;
@@ -59,7 +59,7 @@
         let res = (await response.json())
 
         saving = false;
-        navigate(basepath);
+        push(basepath);
 	}
 </script>
 <form on:submit|preventDefault={handleSubmit} autocomplete="off">
@@ -70,7 +70,7 @@
                 {#each importElements as el}
                 <label class="flex w-60 m-1">
                     <span class="in-pre">{el.name}</span>
-                    <input name="{el.key}" bind:value={data[el.key]} type="number" step="0.01" class="in-txt w-full text-right"/>
+                    <input name="{el.key}" bind:value={data[el.key]} type="number" step="0.001" class="in-txt w-full text-right"/>
                     <span class="in-post">kWh</span>
                 </label>
                 {/each}
@@ -82,7 +82,7 @@
                 {#each exportElements as el}
                 <label class="flex w-60 m-1">
                     <span class="in-pre">{el.name}</span>
-                    <input name="{el.key}" bind:value={data[el.key]} type="number" step="0.01" class="in-txt w-full text-right"/>
+                    <input name="{el.key}" bind:value={data[el.key]} type="number" step="0.001" class="in-txt w-full text-right"/>
                     <span class="in-post">kWh</span>
                 </label>
                 {/each}

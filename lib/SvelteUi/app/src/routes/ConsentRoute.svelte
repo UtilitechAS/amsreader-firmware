@@ -1,17 +1,18 @@
 <script>
-    import { sysinfoStore } from './DataStores.js';
-    import { translationsStore } from './TranslationService.js';
-    import Mask from './Mask.svelte'
-    import { navigate } from 'svelte-navigator';
-    import { wiki } from './Helpers';
+    import { sysinfoStore } from '../lib/DataStores.js';
+    import { translationsStore } from '../lib/TranslationService.js';
+    import Mask from '../lib/Mask.svelte'
+    import { push } from 'svelte-spa-router';
 
-    export let basepath = "/";
-    export let sysinfo = {};
+    let basepath = "/";
+    let sysinfo = {};
 
     let translations = {};
     translationsStore.subscribe(update => {
       translations = update;
     });
+
+    sysinfoStore.subscribe(v => sysinfo = v);
 
     let loadingOrSaving = false;
 
@@ -36,7 +37,7 @@
             s.booting = res.reboot;
             return s;
         });
-        navigate(basepath);
+        push(basepath);
     }
 </script>
 

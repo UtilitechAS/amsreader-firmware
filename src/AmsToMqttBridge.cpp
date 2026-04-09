@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source 5
  * 
  * @brief Program for ESP32 and ESP8266 to receive data from AMS electric meters and send to MQTT

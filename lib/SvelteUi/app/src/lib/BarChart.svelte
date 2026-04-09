@@ -14,6 +14,29 @@
     let vertSwitch = 30;
     let titleHeight = 0;
 
+    function fitText(node, maxWidth) {
+        let raf;
+        function fit(w) {
+            cancelAnimationFrame(raf);
+            node.style.fontSize = '';
+            if (!w) return;
+            raf = requestAnimationFrame(() => {
+                try {
+                    const bbox = node.getBBox();
+                    if (bbox.width > 0 && bbox.width > w) {
+                        const fs = parseFloat(getComputedStyle(node).fontSize) || 12;
+                        node.style.fontSize = (fs * w / bbox.width) + 'px';
+                    }
+                } catch(e) { /* element not in layout tree */ }
+            });
+        }
+        fit(maxWidth);
+        return {
+            update: fit,
+            destroy() { cancelAnimationFrame(raf); }
+        };
+    }
+
     $: {
         heightAvailable = height-titleHeight;
 	    let innerWidth = width - (config.padding.left + config.padding.right);
@@ -74,7 +97,7 @@
                     {#if !isNaN(xScale(i))}
                         <g class="tick" transform="translate({xScale(i)},{heightAvailable})">
                             {#if barWidth > 20 || i%2 == 0 || !config.x.ticks[i-1].label}
-                            <text x="{barWidth/2}" y="-4">{point.label}</text>
+                            <text x="{barWidth/2}" y="-4" text-anchor="middle" use:fitText={barWidth * 0.85}>{point.label}</text>
                             {/if}
                         </g>
                         {/if}
@@ -101,7 +124,7 @@
                                     text-anchor="{barWidth < vertSwitch || point.labelAngle ? 'left' : 'middle'}"
                                     fill="{yScale(point.value) > yScale(0)-labelOffset && !config.dark ? point.color : 'white'}"
                                     transform="translate({xScale(i) + barWidth/2} {yScale(point.value) > yScale(0) - labelOffset ? yScale(point.value) - labelOffset : yScale(point.value) + 10}) rotate({point.labelAngle ? point.labelAngle : barWidth < vertSwitch ? 90 : 0})"
-                                    
+                                    use:fitText={!point.labelAngle && barWidth >= vertSwitch ? barWidth * 0.95 : null}
                                 >{point.label}</text>
                             {/if}
                         {/if}
@@ -122,6 +145,7 @@
                                     text-anchor="{'middle'}"
                                     fill="{yScale(-point.value2) < yScale(0) + 15 && !config.dark ? point.color2 ? point.color2 : point.color : 'white'}"
                                     transform="translate({xScale(i) + (barWidth/2)} {yScale(-point.value2) < yScale(0) + 15 ? yScale(-point.value2) + 15 : yScale(-point.value2) - 14}) rotate({barWidth < vertSwitch ? 90 : 0})"
+                                    use:fitText={barWidth >= vertSwitch ? barWidth * 0.95 : null}
                                 >{point.label2}</text>
                                 {#if point.title2}
                                 <title>{point.title2}</title>

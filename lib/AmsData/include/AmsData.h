@@ -7,8 +7,7 @@
 #ifndef _AMSDATA_H
 #define _AMSDATA_H
 
-#include "Arduino.h"
-#include <Timezone.h>
+#include <WString.h>
 #include "OBIScodes.h"
 
 enum AmsType {
@@ -28,7 +27,7 @@ public:
     AmsData();
 
     void apply(AmsData& other);
-    void apply(const OBIS_code_t obis, double value);
+    void apply(const OBIS_code_t obis, double value, uint64_t millis64);
 
     uint64_t getLastUpdateMillis();
 

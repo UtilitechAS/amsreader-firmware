@@ -1,9 +1,10 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
 
+#include "Arduino.h"
 #include "RealtimePlot.h"
 #include <stdlib.h>
 

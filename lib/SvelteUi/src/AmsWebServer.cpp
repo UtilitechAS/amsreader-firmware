@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -61,14 +61,6 @@ AmsWebServer::AmsWebServer(uint8_t* buf, Stream* Debug, HwTools* hw, ResetDataCo
 	this->hw = hw;
 	this->buf = (char*) buf;
 	this->rdc = rdc;
-	if(rdc->magic != 0x4a) {
-		rdc->last_cause = 0;
-		rdc->cause = 0;
-		rdc->magic = 0x4a;
-	} else {
-		rdc->last_cause = rdc->cause;
-		rdc->cause = 0;
-	}
 }
 
 void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea, RealtimePlot* rtp, AmsFirmwareUpdater* updater) {
@@ -306,22 +298,14 @@ void AmsWebServer::sysinfoJson() {
 
 	SystemConfig sys;
 	config->getSystemConfig(sys);
-
-	uint32_t chipId;
-	#if defined(ESP32)
-		chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
-	#else
-		chipId = ESP.getChipId();
-	#endif
-	String chipIdStr = String(chipId, HEX);
-
-	String hostname;
+	
+	char hostname[32];
 	if(sys.userConfigured) {
 		NetworkConfig networkConfig;
 		config->getNetworkConfig(networkConfig);
-		hostname = String(networkConfig.hostname);
+		strncpy(hostname, networkConfig.hostname, 32);
 	} else {
-		hostname = "ams-"+chipIdStr;
+		config->getUniqueName(hostname, 32);
 	}
 
 	IPAddress localIp;
@@ -421,7 +405,7 @@ void AmsWebServer::sysinfoJson() {
 		#elif defined(ESP8266)
 		"esp8266",
 		#endif
-		chipIdStr.c_str(),
+		config->getChipId(),
 		cpu_freq,
 		macStr,
 		apMacStr,
@@ -429,7 +413,7 @@ void AmsWebServer::sysinfoJson() {
 		sys.vendorConfigured ? "true" : "false",
 		sys.userConfigured ? "true" : "false",
 		sys.dataCollectionConsent,
-		hostname.c_str(),
+		hostname,
 		performRestart ? "true" : "false",
 		updater->getProgress() > 0.0 && upinfo.errorCode == 0 ? "true" : "false",
 		#if defined(ESP8266)

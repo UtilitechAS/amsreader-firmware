@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2024
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */

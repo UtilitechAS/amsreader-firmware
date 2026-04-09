@@ -1,3 +1,8 @@
+/**
+ * @copyright Utilitech AS 2023-2026
+ * License: Fair Source
+ * 
+ */
 #include "AmsFirmwareUpdater.h"
 #include "AmsStorage.h"
 #include "FirmwareVersion.h"

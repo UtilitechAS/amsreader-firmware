@@ -5,7 +5,7 @@
  */
 
 #include "IEC6205675.h"
-#include "lwip/def.h"
+#include "byteorder.h"
 #include "Timezone.h"
 #include "ntohll.h"
 #include "Uptime.h"

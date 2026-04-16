@@ -8,6 +8,7 @@
 #define _MBUSPARSER_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include "DataParser.h"
 
 #define MBUS_START 0x68

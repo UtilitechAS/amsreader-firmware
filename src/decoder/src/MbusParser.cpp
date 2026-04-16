@@ -5,6 +5,8 @@
  */
 
 #include "MbusParser.h"
+#include <string.h>
+#include <stdlib.h>
 
 int8_t MBUSParser::parse(uint8_t *d, DataParserContext &ctx) {
     int len;

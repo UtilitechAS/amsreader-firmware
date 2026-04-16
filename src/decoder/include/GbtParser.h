@@ -8,6 +8,7 @@
 #define _GBTPARSER_H
 
 #include <stdint.h>
+#include <stddef.h>
 #include "DataParser.h"
 
 #define GBT_TAG 0xE0

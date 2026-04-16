@@ -7,6 +7,9 @@
 #ifndef _DATAPASERSER_H
 #define _DATAPASERSER_H
 
+#include <stdint.h>
+#include <time.h>
+
 #define DATA_TAG_NONE 0x00
 #define DATA_TAG_AUTO 0x01
 #define DATA_TAG_HDLC 0x7E

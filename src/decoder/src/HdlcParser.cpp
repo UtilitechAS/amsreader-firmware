@@ -6,6 +6,8 @@
 
 #include "HdlcParser.h"
 #include "byteorder.h"
+#include <string.h>
+#include <stdlib.h>
 #include "crc.h"
 
 int8_t HDLCParser::parse(uint8_t *d, DataParserContext &ctx) {

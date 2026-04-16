@@ -5,7 +5,8 @@
  */
 
 #include "GbtParser.h"
-#include "lwip/def.h"
+#include "byteorder.h"
+#include <string.h>
 
 int8_t GBTParser::parse(uint8_t *d, DataParserContext &ctx) {
     GBTHeader* h = (GBTHeader*) (d);

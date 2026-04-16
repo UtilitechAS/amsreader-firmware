@@ -1,0 +1,27 @@
+{
+    "action": "setconfig",
+    "config": {
+        "version": "e91ef1a9",
+        "q": {
+            "h": "192.168.21.201",
+            "p": 1883,
+            "u": "amsleser",
+            "a": "***",
+            "c": "powu",
+            "b": "amsleser",
+            "r": "",
+            "m": 0,
+            "s": {
+                "e": false,
+                "c": false,
+                "r": false,
+                "k": false
+            },
+            "t": 0,
+            "d": 0,
+            "i": 1000,
+            "k": 60,
+            "e": 1056999778
+        }
+    }
+}

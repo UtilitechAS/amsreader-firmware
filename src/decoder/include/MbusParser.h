@@ -7,7 +7,7 @@
 #ifndef _MBUSPARSER_H
 #define _MBUSPARSER_H
 
-#include "Arduino.h"
+#include <stdint.h>
 #include "DataParser.h"
 
 #define MBUS_START 0x68

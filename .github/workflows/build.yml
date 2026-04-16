@@ -4,7 +4,8 @@ on:
   push:
     paths: 
       - src/**
-      - lib/**
+      - ui/**
+      - src/**
       - scripts/**
       - web/**
       - platformio.ini
@@ -54,7 +55,7 @@ jobs:
         node-version: '19.x'
     - name: Build with node
       run: |
-        cd lib/SvelteUi/app
+        cd ui
         npm ci
         npm run build
         cd -

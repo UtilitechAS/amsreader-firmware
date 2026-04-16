@@ -7,7 +7,7 @@
 #ifndef _GBTPARSER_H
 #define _GBTPARSER_H
 
-#include "Arduino.h"
+#include <stdint.h>
 #include "DataParser.h"
 
 #define GBT_TAG 0xE0

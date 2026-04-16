@@ -7,7 +7,7 @@
 #ifndef _DSMRPARSER_H
 #define _DSMRPARSER_H
 
-#include "Arduino.h"
+#include "DebugPrint.h"
 #include "DataParser.h"
 #include "GcmParser.h"
 

@@ -7,7 +7,7 @@
 #ifndef _COSEM_H
 #define _COSEM_H
 
-#include "lwip/def.h"
+#include "byteorder.h"
 
 // Blue book, Table 2
 enum CosemType {

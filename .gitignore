@@ -9,9 +9,14 @@
 .pio
 platformio-user.ini
 /lib/FirmwareVersion/src/generated_version.h
+/src/generated_version.h
+/src/CustomDefaults.h
+/src/webserver/html/
+/src/mqtt/json/*.h
 /src/web/root
 /src/AmsToMqttBridge.ino.cpp
-/test
+/ui/dist/
+/custom/
 /web/test.html
 /sdkconfig
 /.tmp

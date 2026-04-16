@@ -5,6 +5,9 @@
  */
 
 #include "PassiveMeterCommunicator.h"
+
+const uint32_t AUTO_BAUD_RATES[] = { 2400, 9600, 115200 };
+const uint8_t AUTO_BAUD_RATES_COUNT = sizeof(AUTO_BAUD_RATES) / sizeof(AUTO_BAUD_RATES[0]);
 #include "IEC6205675.h"
 #include "IEC6205621.h"
 #include "LNG.h"

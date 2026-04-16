@@ -23,8 +23,15 @@ String toHex(uint8_t* in, uint16_t size) {
 }
 
 void fromHex(uint8_t *out, String in, uint16_t size) {
+	fromHex(out, in.c_str(), size);
+}
+
+void fromHex(uint8_t *out, const char* in, uint16_t size) {
+	char buf[3] = {0, 0, 0};
 	for(int i = 0; i < size*2; i += 2) {
-		out[i/2] = strtol(in.substring(i, i+2).c_str(), 0, 16);
+		buf[0] = in[i];
+		buf[1] = in[i+1];
+		out[i/2] = (uint8_t)strtol(buf, nullptr, 16);
 	}
 }
 
@@ -65,16 +72,14 @@ bool stripNonAscii(uint8_t* in, uint16_t size, bool extended, bool trim) {
 
 void debugPrint(uint8_t *buffer, uint16_t start, uint16_t length, Print* debugger) {
 	for (uint16_t i = start; i < start + length; i++) {
-		if (buffer[i] < 0x10)
-			debugger->print(F("0"));
-		debugger->print(buffer[i], HEX);
-		debugger->print(F(" "));
+		debugger->printf("%02X ", buffer[i]);
 		if ((i - start + 1) % 16 == 0)
-			debugger->println(F(""));
+			debugger->println();
 		else if ((i - start + 1) % 4 == 0)
-			debugger->print(F(" "));
-
-		yield(); // Let other get some resources too
+			debugger->print(" ");
+#if defined(ARDUINO)
+		yield(); // Let others get some resources too
+#endif
 	}
-	debugger->println(F(""));
+	debugger->println();
 }

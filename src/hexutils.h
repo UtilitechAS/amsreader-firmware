@@ -9,10 +9,12 @@
 
 #include <stdint.h>
 #include "Arduino.h"
+#include "decoder/include/DebugPrint.h"
 
 String toHex(uint8_t* in);
 String toHex(uint8_t* in, uint16_t size);
 void fromHex(uint8_t *out, String in, uint16_t size);
+void fromHex(uint8_t *out, const char* in, uint16_t size);
 bool stripNonAscii(uint8_t* in, uint16_t size, bool extended = false, bool trim = true);
 void debugPrint(uint8_t *buffer, uint16_t start, uint16_t length, Print* debugger);
 

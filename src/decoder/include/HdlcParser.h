@@ -7,7 +7,8 @@
 #ifndef _HDLCPARSER_H
 #define _HDLCPARSER_H
 
-#include "Arduino.h"
+#include <stdint.h>
+#include <stddef.h>
 #include "DataParser.h"
 
 #define HDLC_FLAG 0x7E

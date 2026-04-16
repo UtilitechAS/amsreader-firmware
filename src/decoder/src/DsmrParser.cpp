@@ -7,7 +7,7 @@
 #include "DsmrParser.h"
 #include "crc.h"
 #include "hexutils.h"
-#include "lwip/def.h"
+#include "byteorder.h"
 
 // verified indicates that this data was encapsulated in something else, so we know this has the correct size etc
 int8_t DSMRParser::parse(uint8_t *buf, DataParserContext &ctx, bool verified, Print* debugger) {
@@ -41,18 +41,18 @@ int8_t DSMRParser::parse(uint8_t *buf, DataParserContext &ctx, bool verified, Pr
             ctx.timestamp
         };
         if(debugger != NULL) {
-            debugger->printf_P(PSTR("DSMR wants to decrypt at position %lu, length: %d, payload:\n"), pos, gcmCtx.length);
+            debugger->printf("DSMR wants to decrypt at position %lu, length: %d, payload:\n", pos, gcmCtx.length);
             debugPrint(ptr, 0, gcmCtx.length, debugger);
         }
         int8_t gcmRet = gcmParser->parse(ptr, gcmCtx, false);
         if(gcmRet < 0) {
             if(debugger != NULL) {
-                debugger->printf_P(PSTR(" - Failed! (%d)\n"), gcmRet);
+                debugger->printf(" - Failed! (%d)\n", gcmRet);
             }
             return gcmRet;
         } else {
             if(debugger != NULL) {
-                debugger->printf_P(PSTR(" - Success! (%d)\n"), gcmRet);
+                debugger->printf(" - Success! (%d)\n", gcmRet);
             }
             ptr += gcmRet;
             for(uint16_t i = 0; i < gcmCtx.length; i++) {
@@ -71,12 +71,12 @@ int8_t DSMRParser::parse(uint8_t *buf, DataParserContext &ctx, bool verified, Pr
     } else if(crcPos > 0) {
 	    crc_calc = crc16(buf, crcPos);
         crc = 0x0000;
-        fromHex((uint8_t*) &crc, String((char*) buf+crcPos), 2);
+        fromHex((uint8_t*) &crc, (const char*)(buf+crcPos), 2);
         crc = ntohs(crc);
 
         if(crc > 0 && crc != crc_calc) {
             if(debugger != NULL) {
-                debugger->printf_P(PSTR("CRC incorrrect, %04X != %04X at position %lu\n"), crc, crc_calc, crcPos);
+                debugger->printf("CRC incorrrect, %04X != %04X at position %lu\n", crc, crc_calc, crcPos);
             }
             return DATA_PARSE_FOOTER_CHECKSUM_ERROR;
         }

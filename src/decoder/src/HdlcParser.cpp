@@ -5,7 +5,7 @@
  */
 
 #include "HdlcParser.h"
-#include "lwip/def.h"
+#include "byteorder.h"
 #include "crc.h"
 
 int8_t HDLCParser::parse(uint8_t *d, DataParserContext &ctx) {

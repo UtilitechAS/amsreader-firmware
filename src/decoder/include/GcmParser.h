@@ -7,7 +7,7 @@
 #ifndef _GCMPARSER_H
 #define _GCMPARSER_H
 
-#include "Arduino.h"
+#include <stdint.h>
 #include "DataParser.h"
 
 #define GCM_TAG 0xDB

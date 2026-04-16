@@ -7,7 +7,7 @@
 #ifndef _DLMSPARSER_H
 #define _DLMSPARSER_H
 
-#include "Arduino.h"
+#include <stdint.h>
 #include "DataParser.h"
 
 class DLMSParser {

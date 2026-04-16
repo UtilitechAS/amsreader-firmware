@@ -7,7 +7,7 @@
 #ifndef _LLCPARSER_H
 #define _LLCPARSER_H
 
-#include "Arduino.h"
+#include <stdint.h>
 #include "DataParser.h"
 
 typedef struct LLCHeader {

@@ -5,12 +5,13 @@
  */
 
 #include "GcmParser.h"
-#include "lwip/def.h"
+#include "byteorder.h"
 #if defined(ESP8266)
 #include "bearssl/bearssl.h"
 #elif defined(ESP32)
 #include "mbedtls/gcm.h"
 #endif
+#include <string.h>
 
 GCMParser::GCMParser(uint8_t *encryption_key, uint8_t *authentication_key) {
     memcpy(this->encryption_key, encryption_key, 16);
@@ -147,6 +148,9 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
             }
         }
         mbedtls_gcm_free(&m_ctx);
+    #else
+        // Native / unsupported platform: decryption not available
+        return GCM_DECRYPT_FAILED;
     #endif
 
     ctx.length -= footersize + headersize;

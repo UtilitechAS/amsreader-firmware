@@ -1,12 +1,11 @@
 <script>
-    import { sysinfoStore } from './DataStores.js';
-    import BoardTypeSelectOptions from './BoardTypeSelectOptions.svelte';
-    import UartSelectOptions from './UartSelectOptions.svelte';
-    import Mask from './Mask.svelte'
-    import { navigate } from 'svelte-navigator';
+    import { sysinfoStore } from '../lib/DataStores.js';
+    import BoardTypeSelectOptions from '../lib/BoardTypeSelectOptions.svelte';
+    import UartSelectOptions from '../lib/UartSelectOptions.svelte';
+    import Mask from '../lib/Mask.svelte'
+    import { push } from 'svelte-spa-router';
 
-    export let basepath = "/";
-    export let sysinfo = {};
+    let sysinfo = {};
 
     let loadingOrSaving = false;
     async function handleSubmit(e) {
@@ -32,7 +31,7 @@
 
             return s;
         });
-        navigate(basepath + (sysinfo.usrcfg ? "" : "setup"));
+        push(sysinfo.usrcfg ? "/" : "/setup");
 	}
 
     let cc = true;

@@ -1,48 +1,26 @@
 <script>
-  import { Router, Route, navigate } from "svelte-navigator";
-  import { getTariff, tariffStore, sysinfoStore, dataStore, importPricesStore, exportPricesStore, dayPlotStore, monthPlotStore, temperaturesStore, getSysinfo } from './lib/DataStores.js';
+  import Router from "svelte-spa-router";
+  import { push } from "svelte-spa-router";
+  import { getTariff, sysinfoStore, dataStore, getSysinfo } from './lib/DataStores.js';
   import { translationsStore, getTranslations } from "./lib/TranslationService.js";
-  import Favicon from './assets/favicon.svg'; // Need this for the build
   import Header from './lib/Header.svelte';
-  import Dashboard from './lib/Dashboard.svelte';
-  import ConfigurationPanel from './lib/ConfigurationPanel.svelte';
-  import StatusPage from './lib/StatusPage.svelte';
-  import VendorPanel from './lib/VendorPanel.svelte';
-  import SetupPanel from './lib/SetupPanel.svelte';
+  import DashboardRoute from './routes/DashboardRoute.svelte';
+  import ConfigurationRoute from './routes/ConfigurationRoute.svelte';
+  import StatusRoute from './routes/StatusRoute.svelte';
+  import PriceConfigRoute from './routes/PriceConfigRoute.svelte';
+  import MqttCaRoute from './routes/MqttCaRoute.svelte';
+  import MqttCertRoute from './routes/MqttCertRoute.svelte';
+  import MqttKeyRoute from './routes/MqttKeyRoute.svelte';
+  import ConsentRoute from './routes/ConsentRoute.svelte';
+  import SetupRoute from './routes/SetupRoute.svelte';
+  import VendorRoute from './routes/VendorRoute.svelte';
+  import EditDayRoute from './routes/EditDayRoute.svelte';
+  import EditMonthRoute from './routes/EditMonthRoute.svelte';
   import Mask from './lib/Mask.svelte';
-  import FileUploadComponent from "./lib/FileUploadComponent.svelte";
-  import ConsentComponent from "./lib/ConsentComponent.svelte";
-  import PriceConfig from "./lib/PriceConfig.svelte";
-  import DataEdit from "./lib/DataEdit.svelte";
   import { updateRealtime } from "./lib/RealtimeStore.js";
   
   let basepath = document.getElementsByTagName('base')[0].getAttribute("href");
   if(!basepath) basepath = "/";
-
-  let importPrices;
-  importPricesStore.subscribe(update => {
-      importPrices = update;
-  });
-
-  let exportPrices;
-  exportPricesStore.subscribe(update => {
-      exportPrices = update;
-  });
-
-  let dayPlot;
-  dayPlotStore.subscribe(update => {
-      dayPlot = update;
-  });
-
-  let monthPlot;
-  monthPlotStore.subscribe(update => {
-      monthPlot = update;
-  });
-
-  let temperatures;
-  temperaturesStore.subscribe(update => {
-      temperatures = update;
-  });
 
   let translations = {};
   translationsStore.subscribe(update => {
@@ -56,11 +34,11 @@
   sysinfoStore.subscribe(update => {
     sysinfo = update;
     if(sysinfo.vndcfg === false) {
-      navigate(basepath + "vendor");
+      push("/vendor");
     } else if(sysinfo.usrcfg === false) {
-      navigate(basepath + "setup");
+      push("/setup");
     } else if(sysinfo.fwconsent === 0) {
-      navigate(basepath + "consent");
+      push("/consent");
     }
 
     if(sysinfo.ui.k === 1) {
@@ -94,53 +72,26 @@
     updateRealtime(update);
   });
 
-  let tariffData = {};
-  tariffStore.subscribe(update => {
-    tariffData = update;
-  });
   getTariff();
 </script>
 
 <div class="container mx-auto m-3">
-  <Router basepath={basepath}>
-    <Header data={data} basepath={basepath}/>
-    <Route path="/">
-      <Dashboard data={data} sysinfo={sysinfo} importPrices={importPrices} exportPrices={exportPrices} dayPlot={dayPlot} monthPlot={monthPlot} temperatures={temperatures} translations={translations} tariffData={tariffData}/>
-    </Route>
-    <Route path="/configuration">
-      <ConfigurationPanel sysinfo={sysinfo} basepath={basepath} data={data}/>
-    </Route>
-    <Route path="/priceconfig">
-      <PriceConfig basepath={basepath}/>
-    </Route>
-    <Route path="/status">
-      <StatusPage sysinfo={sysinfo} data={data}/>
-    </Route>
-    <Route path="/mqtt-ca">
-      <FileUploadComponent title="CA" action="/mqtt-ca"/>
-    </Route>
-    <Route path="/mqtt-cert">
-      <FileUploadComponent title="certificate" action="/mqtt-cert"/>
-    </Route>
-    <Route path="/mqtt-key">
-      <FileUploadComponent title="private key" action="/mqtt-key"/>
-    </Route>
-    <Route path="/consent">
-      <ConsentComponent sysinfo={sysinfo} basepath={basepath}/>
-    </Route>
-    <Route path="/setup">
-      <SetupPanel sysinfo={sysinfo}/>
-    </Route>
-    <Route path="/vendor">
-      <VendorPanel sysinfo={sysinfo} basepath={basepath}/>
-    </Route>
-    <Route path="/edit-day">
-      <DataEdit prefix="UTC Hour" data={dayPlot} url="/dayplot" basepath={basepath}/>
-    </Route>
-    <Route path="/edit-month">
-      <DataEdit prefix="Day" data={monthPlot} url="/monthplot" basepath={basepath}/>
-    </Route>
-  </Router>
+  <Header data={data} basepath={basepath}/>
+  
+  <Router routes={{
+    '/': DashboardRoute,
+    '/configuration': ConfigurationRoute,
+    '/priceconfig': PriceConfigRoute,
+    '/status': StatusRoute,
+    '/mqtt-ca': MqttCaRoute,
+    '/mqtt-cert': MqttCertRoute,
+    '/mqtt-key': MqttKeyRoute,
+    '/consent': ConsentRoute,
+    '/setup': SetupRoute,
+    '/vendor': VendorRoute,
+    '/edit-day': EditDayRoute,
+    '/edit-month': EditMonthRoute,
+  }} />
 
   {#if sysinfo.booting}
     {#if sysinfo.trying}

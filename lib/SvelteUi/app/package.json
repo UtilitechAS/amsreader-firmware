@@ -19,7 +19,7 @@
     "@tailwindcss/forms": "^0.5.3",
     "autoprefixer": "^10.4.14",
     "http-proxy-middleware": "^2.0.9",
-    "postcss": "^8.4.31",
+    "postcss": "^8.5.14",
     "postcss-load-config": "^4.0.1",
     "svelte": "^4.2.19",
     "svelte-navigator": "^3.2.2",

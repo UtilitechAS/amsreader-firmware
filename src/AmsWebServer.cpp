@@ -5,6 +5,7 @@
  */
 
 #include "AmsWebServer.h"
+#include "CustomDefaults.h"
 #include "AmsWebHeaders.h"
 #include "FirmwareVersion.h"
 #include "base64.h"
@@ -208,6 +209,17 @@ void AmsWebServer::setMqttEnabled(bool enabled) {
 void AmsWebServer::setMqttHandler(AmsMqttHandler* mqttHandler) {
 	this->mqttHandler = mqttHandler;
 }
+void AmsWebServer::setCustomMqttHandler(AmsMqttHandler* customMqttHandler) {
+	this->customMqttHandler = customMqttHandler;
+}
+void AmsWebServer::setEnergySpeedometer(AmsMqttHandler* energySpeedometer) {
+	this->energySpeedometer = energySpeedometer;
+}
+#if defined(ZMART_CHARGE)
+void AmsWebServer::setZmartCharge(ZmartChargeCloudConnector* zcloud) {
+	this->zcloud = zcloud;
+}
+#endif
 
 void AmsWebServer::setConnectionHandler(ConnectionHandler* ch) {
 	this->ch = ch;
@@ -292,6 +304,201 @@ void AmsWebServer::logoSvg() {
 	String svg = String(FAVICON_SVG);
 	svg.replace("045c7c", "f3f4f6");
 	server.send(200, "image/svg+xml", svg.c_str());
+}
+
+uint8_t AmsWebServer::mqttHandlerState(AmsMqttHandler* h) {
+	if(h == NULL) return 2;
+	if(h->connected()) return 1;
+	return h->lastError() == 0 ? 2 : 3;
+}
+
+String AmsWebServer::buildServicesJson() {
+	String out = "";
+	char entry[320];
+
+	MqttConfig mqttConfig;
+	bool haveMqttConfig = config->getMqttConfig(mqttConfig);
+	if(haveMqttConfig && strlen(mqttConfig.host) > 0) {
+		uint8_t s;
+		int16_t err = 0;
+		if(!mqttEnabled) {
+			s = 0;
+		} else {
+			s = mqttHandlerState(mqttHandler);
+			if(mqttHandler != NULL) err = (int16_t) mqttHandler->lastError();
+		}
+		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"mqtt\",\"s\":%d,\"e\":%d,\"d\":\"%s\"}"),
+			s, err, mqttConfig.host);
+		if(!out.isEmpty()) out += ",";
+		out += entry;
+	}
+
+	#if defined(CUSTOM_MQTT_HOST)
+	{
+		uint8_t s = mqttHandlerState(customMqttHandler);
+		int16_t err = customMqttHandler == NULL ? 0 : (int16_t) customMqttHandler->lastError();
+		#if defined(CUSTOM_MQTT_NAME)
+		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"mqtt_c\",\"s\":%d,\"e\":%d,\"n\":\"" CUSTOM_MQTT_NAME "\",\"d\":\"" CUSTOM_MQTT_HOST "\"}"),
+			s, err);
+		#else
+		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"mqtt_c\",\"s\":%d,\"e\":%d,\"d\":\"" CUSTOM_MQTT_HOST "\"}"),
+			s, err);
+		#endif
+		if(!out.isEmpty()) out += ",";
+		out += entry;
+	}
+	#endif
+
+	#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
+	{
+		SystemConfig sys;
+		config->getSystemConfig(sys);
+		if(sys.energyspeedometer == 7) {
+			uint8_t s = mqttHandlerState(energySpeedometer);
+			int16_t err = energySpeedometer == NULL ? 0 : (int16_t) energySpeedometer->lastError();
+			snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"mqtt_es\",\"s\":%d,\"e\":%d,\"d\":\"\"}"),
+				s, err);
+			if(!out.isEmpty()) out += ",";
+			out += entry;
+		}
+	}
+	#endif
+
+	PriceServiceConfig priceCfg;
+	if(config->getPriceServiceConfig(priceCfg) && priceCfg.enabled && strlen(priceCfg.area) > 0) {
+		uint8_t s;
+		int16_t err = ps == NULL ? 0 : ps->getLastError();
+		if(ps == NULL) {
+			s = 2;
+		} else if(err != 0) {
+			s = 3;
+		} else if(ps->hasPrice()) {
+			s = 1;
+		} else {
+			s = 2;
+		}
+		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"price\",\"s\":%d,\"e\":%d,\"d\":\"%s\"}"),
+			s, err, priceCfg.area);
+		if(!out.isEmpty()) out += ",";
+		out += entry;
+	}
+
+	{
+		NtpConfig ntp;
+		if(config->getNtpConfig(ntp) && ntp.enable) {
+			const char* server = strlen(ntp.server) > 0 ? ntp.server : "pool.ntp.org";
+			uint8_t s = time(nullptr) > FirmwareVersion::BuildEpoch ? 1 : 2;
+			snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"ntp\",\"s\":%d,\"e\":0,\"d\":\"%s\"}"),
+				s, server);
+			if(!out.isEmpty()) out += ",";
+			out += entry;
+		}
+	}
+
+	#if defined(AMS_CLOUD)
+	{
+		CloudConfig cc;
+		if(config->getCloudConfig(cc) && cc.enabled) {
+			uint8_t s;
+			int16_t err = cloud == NULL ? 0 : cloud->getLastError();
+			if(cloud == NULL || !cloud->isInitialized()) {
+				s = 2;
+			} else {
+				unsigned long since = millis() - cloud->getLastUpdate();
+				uint32_t maxAge = ((uint32_t) cc.interval) * 3000;
+				s = (cloud->getLastUpdate() > 0 && since > maxAge) ? 3 : 1;
+			}
+			snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"cloud\",\"s\":%d,\"e\":%d,\"d\":\"%s\"}"),
+				s, err, cc.hostname);
+			if(!out.isEmpty()) out += ",";
+			out += entry;
+		}
+	}
+	#endif
+
+	#if defined(ZMART_CHARGE)
+	{
+		ZmartChargeConfig zc;
+		if(config->getZmartChargeConfig(zc) && zc.enabled) {
+			uint8_t s;
+			int16_t err = zcloud == NULL ? 0 : zcloud->getLastError();
+			if(zcloud == NULL || zcloud->getLastUpdate() == 0) {
+				s = 2;
+			} else {
+				s = zcloud->isLastFailed() ? 3 : 1;
+			}
+			snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"zc\",\"s\":%d,\"e\":%d,\"d\":\"%s\"}"),
+				s, err, zc.baseUrl);
+			if(!out.isEmpty()) out += ",";
+			out += entry;
+		}
+	}
+	#endif
+
+	return out;
+}
+
+uint8_t AmsWebServer::computeServicesAggregate() {
+	uint8_t worst = 0;
+	auto bump = [&worst](uint8_t s) { if(s > worst) worst = s; };
+
+	MqttConfig mqttConfig;
+	if(config->getMqttConfig(mqttConfig) && strlen(mqttConfig.host) > 0) {
+		bump(mqttEnabled ? mqttHandlerState(mqttHandler) : 0);
+	}
+
+	#if defined(CUSTOM_MQTT_HOST)
+	bump(mqttHandlerState(customMqttHandler));
+	#endif
+
+	#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
+	{
+		SystemConfig sys;
+		config->getSystemConfig(sys);
+		if(sys.energyspeedometer == 7) bump(mqttHandlerState(energySpeedometer));
+	}
+	#endif
+
+	PriceServiceConfig priceCfg;
+	if(config->getPriceServiceConfig(priceCfg) && priceCfg.enabled && strlen(priceCfg.area) > 0) {
+		if(ps == NULL) bump(2);
+		else if(ps->getLastError() != 0) bump(3);
+		else if(ps->hasPrice()) bump(1);
+		else bump(2);
+	}
+
+	{
+		NtpConfig ntp;
+		if(config->getNtpConfig(ntp) && ntp.enable) {
+			bump(time(nullptr) > FirmwareVersion::BuildEpoch ? 1 : 2);
+		}
+	}
+
+	#if defined(AMS_CLOUD)
+	{
+		CloudConfig cc;
+		if(config->getCloudConfig(cc) && cc.enabled) {
+			if(cloud == NULL || !cloud->isInitialized()) bump(2);
+			else {
+				unsigned long since = millis() - cloud->getLastUpdate();
+				uint32_t maxAge = ((uint32_t) cc.interval) * 3000;
+				bump((cloud->getLastUpdate() > 0 && since > maxAge) ? 3 : 1);
+			}
+		}
+	}
+	#endif
+
+	#if defined(ZMART_CHARGE)
+	{
+		ZmartChargeConfig zc;
+		if(config->getZmartChargeConfig(zc) && zc.enabled) {
+			if(zcloud == NULL || zcloud->getLastUpdate() == 0) bump(2);
+			else bump(zcloud->isLastFailed() ? 3 : 1);
+		}
+	}
+	#endif
+
+	return worst;
 }
 
 void AmsWebServer::sysinfoJson() {
@@ -392,6 +599,8 @@ void AmsWebServer::sysinfoJson() {
 	features += "\"zc\"";
 	#endif
 
+	String services = buildServicesJson();
+
 	int size = snprintf_P(buf, BufferSize, SYSINFO_JSON,
 		FirmwareVersion::VersionString,
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -477,7 +686,8 @@ void AmsWebServer::sysinfoJson() {
 		ea->getProducedLastMonth(),
 		ea->getIncomeLastMonth(),
 		(uint16_t) (tz == NULL ? 0 : (tz->toLocal(now)-now)/3600),
-		features.c_str()
+		features.c_str(),
+		services.c_str()
 	);
 
 	stripNonAscii((uint8_t*) buf, size+1);
@@ -632,6 +842,7 @@ void AmsWebServer::dataJson() {
 		wifiStatus,
 		mqttStatus,
 		mqttHandler == NULL ? 0 : (int) mqttHandler->lastError(),
+		computeServicesAggregate(),
 		price == PRICE_NO_VALUE ? "null" : String(price, abs(price) > 1.0 ? 2 : 4).c_str(),
 		exportPrice == PRICE_NO_VALUE ? "null" : String(exportPrice, abs(exportPrice) > 1.0 ? 2 : 4).c_str(),
 		meterState->getMeterType(),

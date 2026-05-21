@@ -1,5 +1,10 @@
 {
-  "upload": {},
+  "upload": {
+    "type": "json",
+    "files": [
+      { "pattern": "source/en.json", "file": "translations.json" }
+    ]
+  },
   "download": {
     "includeSourceLang": true,
     "folder": "./language/",

@@ -58,7 +58,11 @@
           <Badge title="ESP" text={sysinfo.booting ? (translations.header?.booting ?? "Booting") : data.v > 2.0 ? data.v.toFixed(2)+"V" : "ESP"} color={bcol(sysinfo.booting ? 2 : data.em)}/>
           <Badge title="HAN"  text="HAN"  color={bcol(sysinfo.booting ? 9 : data.hm)}/>
           <Badge title="WiFi" text={data.r ? data.r.toFixed(0)+"dBm" : "WiFi"} color={bcol(sysinfo.booting ? 9 : data.wm)}/>
-          <Badge title="MQTT" text="MQTT" color={bcol(sysinfo.booting ? 9 : data.mm)}/>
+          <a href="#/status" title={translations.header?.services ?? "Services"}>
+            <Badge title={translations.header?.services ?? "Services"}
+                   text={translations.header?.services ?? "Services"}
+                   color={bcol(sysinfo.booting ? 9 : data.sa)}/>
+          </a>
         </div>
         {#if data.he < 0 || data.he > 0}
         <div class="bd-red">{ (translations.header?.han ?? "HAN") + ': ' + (translations.errors?.han?.[data.he] ?? data.he) }</div>

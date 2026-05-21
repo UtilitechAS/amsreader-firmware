@@ -118,10 +118,35 @@ Config is EEPROM-backed with fixed byte offsets defined in `src/AmsConfiguration
 ### Build Customization
 
 Copy `custom-example/` to `custom/` (gitignored) to override defaults:
-- `custom/config.h` — `#define DEFAULT_AP_SSID`, `FIRMWARE_UPGRADE_URL`, `DEFAULT_LANGUAGE`
+- `custom/config.h` — `#define DEFAULT_AP_SSID`, `FIRMWARE_UPGRADE_URL`, `DEFAULT_LANGUAGE`, plus optional `CUSTOM_MQTT_*` overrides for the second MQTT connector (see `custom-example/config.h` for the full list)
 - `custom/baudrates.h` — replace the autodetect baud/parity list
 - `custom/lang/default.json` — embedded default language file
 - `custom/ui/` — alternative Svelte app (`custom/ui/dist/` takes precedence over `ui/dist/`)
+
+`scripts/generate_includes.py` emits `src/CustomDefaults.h` before each build — empty if `custom/config.h` is absent, otherwise a wrapper that includes it. Source files include `CustomDefaults.h` to pick up the `#define`s.
+
+### Translations
+
+Translations are managed externally in [Localazy](https://localazy.com/p/amsleser). The repo does not embed translated text; the device serves `translations.json?lang=XX` from LittleFS (`/translations-XX.json`), which are produced from Localazy and distributed via S3 by `.github/workflows/localazy.yml`.
+
+```
+localazy/
+  localazy.json          — tracked: upload + download config
+  localazy-keys.json     — gitignored: { writeKey, readKey }
+  source/en.json         — tracked: canonical English source-of-truth (single file)
+  language/              — gitignored: build output of `localazy download`
+```
+
+**To add a new UI string:**
+1. Edit `localazy/source/en.json` in the PR that introduces the string. Use proper nested objects — never flat-dotted keys at the root (`"errors.mqtt.-1"` was a historical mistake; the UI lookup `translations.errors?.mqtt?.[code]` only sees nested entries).
+2. After merge, push to Localazy: `cd localazy && localazy upload -k localazy-keys.json -w $LOCALAZY_WRITE_KEY`
+3. Translators do the rest on Localazy. The next CI run of `.github/workflows/localazy.yml` propagates translations to S3 → device.
+
+**Critical upload-config rules** (learned the hard way):
+- Each entry in `upload.files` MUST set `"file": "translations.json"`. Default is `${autodetectFileWithFallback}` which creates a parallel `file.json` keyset and **doubles every key**.
+- Use the array form with explicit `pattern` — `"files": "source/en.json"` works but `pattern` is required when using the object form.
+- Never set `deprecateMissing: true` in the tracked `localazy.json`. If you need a one-time cleanup, use a temp config file (`-c /tmp/cleanup.json`) so it can't be triggered accidentally.
+- Only English (`source/en.json`) is uploaded from this repo. Non-English translations belong on Localazy and must NOT be pushed from here — uploading without a per-entry `lang` field would interpret the file as a new English source.
 
 ### Local Dev Overrides
 

@@ -67,5 +67,6 @@
         "i" : %.2f
     },
     "clock_offset": %d,
-    "features": [%s]
+    "features": [%s],
+    "services": [%s]
 }

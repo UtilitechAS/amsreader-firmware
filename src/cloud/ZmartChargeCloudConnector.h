@@ -37,6 +37,9 @@ public:
     void ackConfigChanged();
 
     const char* getBaseUrl();
+    bool isLastFailed() { return lastFailed; }
+    uint64_t getLastUpdate() { return lastUpdate; }
+    int16_t getLastError() { return lastError; }
 
 private:
     RemoteDebug* debugger;
@@ -48,6 +51,7 @@ private:
     bool configChanged = false;
 
     bool lastFailed = false;
+    int16_t lastError = 0;
     uint64_t lastUpdate = 0;
     HTTPClient* http = NULL;
 

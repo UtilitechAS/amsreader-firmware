@@ -61,6 +61,11 @@ public:
     bool setup(CloudConfig& config, MeterConfig& meter, SystemConfig& system, NtpConfig& ntp, HwTools* hw, ResetDataContainer* rdc, PriceService* ps);
     void setMqttHandler(AmsMqttHandler* mqttHandler);
     void update(AmsData& data, EnergyAccounting& ea);
+    bool isInitialized() { return initialized; }
+    unsigned long getLastUpdate() { return lastUpdate; }
+    uint16_t getInterval() { return config.interval; }
+    const char* getHostname() { return config.hostname; }
+    int16_t getLastError() { return lastError; }
     void setPriceConfig(PriceServiceConfig&);
     void setEnergyAccountingConfig(EnergyAccountingConfig&);
     void forceUpdate();
@@ -95,6 +100,7 @@ private:
 
     String uuid;
     bool initialized = false;
+    int16_t lastError = 0;
     unsigned long lastUpdate = 0;
     char mac[18];
     char apmac[18];

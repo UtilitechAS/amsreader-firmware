@@ -751,6 +751,7 @@ void loop() {
 					delete zcloud;
 					zcloud = NULL;
 				}
+				ws.setZmartCharge(zcloud);
 				config.ackZmartChargeConfig();
 			}
 			if(zcloud != NULL) {
@@ -907,6 +908,7 @@ void handleEnergySpeedometer() {
 				config.getUniqueName(energySpeedometerConfig.clientId, 32);
 				energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
 				energySpeedometer->setCaVerification(false);
+				ws.setEnergySpeedometer(energySpeedometer);
 			}
 			if(!energySpeedometer->connected()) {
 				lwmqtt_err_t err = energySpeedometer->lastError();
@@ -925,6 +927,7 @@ void handleEnergySpeedometer() {
 		} else {
 			delete energySpeedometer;
 			energySpeedometer = NULL;
+			ws.setEnergySpeedometer(NULL);
 		}
 	}
 }

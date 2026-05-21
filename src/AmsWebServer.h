@@ -42,6 +42,9 @@
 #if defined(AMS_CLOUD)
 #include "CloudConnector.h"
 #endif
+#if defined(ZMART_CHARGE)
+#include "ZmartChargeCloudConnector.h"
+#endif
 
 #include "LittleFS.h"
 
@@ -59,12 +62,17 @@ public:
 	#if defined(_CLOUDCONNECTOR_H)
 	void setCloud(CloudConnector* cloud);
 	#endif
+	#if defined(ZMART_CHARGE)
+	void setZmartCharge(ZmartChargeCloudConnector* zcloud);
+	#endif
 	void setTimezone(Timezone* tz);
 	void setMqttEnabled(bool);
 	void setPriceService(PriceService* ps);
 	void setPriceSettings(String region, String currency);
 	void setMeterConfig(uint8_t distributionSystem, uint16_t mainFuse, uint16_t productionCapacity);
 	void setMqttHandler(AmsMqttHandler* mqttHandler);
+	void setCustomMqttHandler(AmsMqttHandler* customMqttHandler);
+	void setEnergySpeedometer(AmsMqttHandler* energySpeedometer);
 	void setConnectionHandler(ConnectionHandler* ch);
 
 private:
@@ -91,9 +99,14 @@ private:
 	RealtimePlot* rtp = NULL;
 	AmsFirmwareUpdater* updater = NULL;
 	AmsMqttHandler* mqttHandler = NULL;
+	AmsMqttHandler* customMqttHandler = NULL;
+	AmsMqttHandler* energySpeedometer = NULL;
 	ConnectionHandler* ch = NULL;
 	#if defined(_CLOUDCONNECTOR_H)
 	CloudConnector* cloud = NULL;
+	#endif
+	#if defined(ZMART_CHARGE)
+	ZmartChargeCloudConnector* zcloud = NULL;
 	#endif
 	bool uploading = false;
 	File file;
@@ -120,6 +133,10 @@ private:
 	uint8_t wifiTestStatusCode = 0;
 
 	bool checkSecurity(byte level, bool send401 = true);
+
+	String buildServicesJson();
+	uint8_t computeServicesAggregate();
+	uint8_t mqttHandlerState(AmsMqttHandler* h);
 
 	void indexHtml();
 	void indexJs();

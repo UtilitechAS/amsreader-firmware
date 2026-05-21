@@ -6,10 +6,12 @@ Asset sources (in priority order — custom/ overrides defaults):
   UI dist:         custom/ui/dist/   or  ui/dist/
   Webserver JSON:  custom/ui/json/   or  src/webserver/json/
   MQTT JSON:       src/mqtt/json/
+  Custom defines:  custom/config.h   (optional — empty header if missing)
 
 Generated headers:
   src/webserver/html/*.h   — gzip-compressed UI JS/CSS; raw others
   src/mqtt/json/*.h        — MQTT handler JSON templates (raw string literals)
+  src/CustomDefaults.h     — wrapper that includes custom/config.h when present
 """
 
 import os
@@ -139,7 +141,20 @@ else:
     print(f"WARN: UI dist not found at '{ui_dist}' — skipping UI header generation. Run 'npm run build' in ui/")
 
 # ---------------------------------------------------------------------------
-# 2. MQTT handler JSON templates (raw string literals, no compression)
+# 2. CustomDefaults.h — bridge for the custom/ overlay's config.h
+# ---------------------------------------------------------------------------
+
+custom_defaults_out = "src/CustomDefaults.h"
+custom_config_src   = "custom/config.h"
+with open(custom_defaults_out, "w") as f:
+    f.write("#ifndef _CUSTOMDEFAULTS_H\n")
+    f.write("#define _CUSTOMDEFAULTS_H\n")
+    if os.path.exists(custom_config_src):
+        f.write('#include "../custom/config.h"\n')
+    f.write("#endif\n")
+
+# ---------------------------------------------------------------------------
+# 3. MQTT handler JSON templates (raw string literals, no compression)
 # ---------------------------------------------------------------------------
 
 mqtt_json_src = "src/mqtt/json"

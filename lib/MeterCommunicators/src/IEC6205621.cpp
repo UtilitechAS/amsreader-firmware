@@ -132,6 +132,10 @@ IEC6205621::IEC6205621(const char* p, Timezone* tz, MeterConfig* meterConfig) {
 
 	double val = 0.0;
 	
+	double it1 = extractDouble(payload, F("1.8.1"));
+	double it2 = extractDouble(payload, F("1.8.2"));
+	if(it1 > 0) activeImportCounterTariff1 = it1 / 1000;
+	if(it2 > 0) activeImportCounterTariff2 = it2 / 1000;
 	val = extractDouble(payload, F("1.8.0"));
 	if(val == 0) {
 		for(int i = 1; i < 9; i++) {
@@ -140,6 +144,10 @@ IEC6205621::IEC6205621(const char* p, Timezone* tz, MeterConfig* meterConfig) {
 	}
 	if(val > 0) activeImportCounter = val / 1000;
 
+	double et1 = extractDouble(payload, F("2.8.1"));
+	double et2 = extractDouble(payload, F("2.8.2"));
+	if(et1 > 0) activeExportCounterTariff1 = et1 / 1000;
+	if(et2 > 0) activeExportCounterTariff2 = et2 / 1000;
 	val = extractDouble(payload, F("2.8.0"));
 	if(val == 0) {
 		for(int i = 1; i < 9; i++) {
@@ -188,7 +196,11 @@ IEC6205621::IEC6205621(const char* p, Timezone* tz, MeterConfig* meterConfig) {
     }
     if(meterConfig->accumulatedMultiplier > 0) {
         activeImportCounter = activeImportCounter > 0 ? activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeImportCounterTariff1 = activeImportCounterTariff1 > 0 ? activeImportCounterTariff1 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeImportCounterTariff2 = activeImportCounterTariff2 > 0 ? activeImportCounterTariff2 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         activeExportCounter = activeExportCounter > 0 ? activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeExportCounterTariff1 = activeExportCounterTariff1 > 0 ? activeExportCounterTariff1 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeExportCounterTariff2 = activeExportCounterTariff2 > 0 ? activeExportCounterTariff2 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         reactiveImportCounter = reactiveImportCounter > 0 ? reactiveImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         reactiveExportCounter = reactiveExportCounter > 0 ? reactiveExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
     }

@@ -10,6 +10,8 @@
 #include "bearssl/bearssl.h"
 #elif defined(ESP32)
 #include "mbedtls/gcm.h"
+#elif defined(NATIVE_TEST) && defined(HAVE_MBEDTLS)
+#include "mbedtls/gcm.h"   // host (native tests) — system mbedTLS 3.x
 #endif
 #include <string.h>
 
@@ -143,6 +145,41 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
             }
             success = mbedtls_gcm_update(&m_ctx, sizeof(cipher_text), cipher_text, (unsigned char*)(ptr));
             if (0 != success) {
+                mbedtls_gcm_free(&m_ctx);
+                return GCM_DECRYPT_FAILED;
+            }
+        }
+        mbedtls_gcm_free(&m_ctx);
+    #elif defined(NATIVE_TEST) && defined(HAVE_MBEDTLS)
+        // Native host tests with system mbedTLS (3.x API).
+        uint8_t cipher_text[len - authkeylen - 5];
+        memcpy(cipher_text, ptr, len - authkeylen - 5);
+
+        mbedtls_gcm_context m_ctx;
+        mbedtls_gcm_init(&m_ctx);
+        if (mbedtls_gcm_setkey(&m_ctx, MBEDTLS_CIPHER_ID_AES, encryption_key, 128) != 0) {
+            mbedtls_gcm_free(&m_ctx);
+            return GCM_ENCRYPTION_KEY_FAILED;
+        }
+        if (authenticate) {
+            int rc = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text),
+                initialization_vector, sizeof(initialization_vector),
+                additional_authenticated_data, aadlen,
+                authentication_tag, authkeylen,
+                cipher_text, (unsigned char*)(ptr));
+            if (authkeylen > 0 && rc == MBEDTLS_ERR_GCM_AUTH_FAILED) {
+                mbedtls_gcm_free(&m_ctx);
+                return GCM_AUTH_FAILED;
+            } else if (rc != 0) {
+                mbedtls_gcm_free(&m_ctx);
+                return GCM_DECRYPT_FAILED;
+            }
+        } else {
+            size_t olen = 0;
+            if (mbedtls_gcm_starts(&m_ctx, MBEDTLS_GCM_DECRYPT,
+                    initialization_vector, sizeof(initialization_vector)) != 0 ||
+                mbedtls_gcm_update(&m_ctx, cipher_text, sizeof(cipher_text),
+                    (unsigned char*)(ptr), sizeof(cipher_text), &olen) != 0) {
                 mbedtls_gcm_free(&m_ctx);
                 return GCM_DECRYPT_FAILED;
             }

@@ -26,3 +26,4 @@ node_modules
 /scripts/*dev
 localazy-keys.json
 localazy/language
+/test/payloads/keys/keys.local.json

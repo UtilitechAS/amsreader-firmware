@@ -9,28 +9,22 @@
     "build": "vite build",
     "preview": "vite preview"
   },
-  "overrides": {
-    "svelte-navigator": {
-      "svelte": ">=4.x"
-    }
-  },
   "devDependencies": {
-    "@sveltejs/vite-plugin-svelte": "^2.1.0",
+    "@sveltejs/vite-plugin-svelte": "^5.0.2",
     "@tailwindcss/forms": "^0.5.3",
     "autoprefixer": "^10.4.14",
     "http-proxy-middleware": "^2.0.9",
     "postcss": "^8.4.31",
     "postcss-load-config": "^4.0.1",
-    "svelte": "^4.2.19",
-    "svelte-navigator": "^3.2.2",
-    "svelte-preprocess": "^5.0.3",
+    "svelte": "^5.17.0",
+    "svelte-spa-router": "^4.0.1",
+    "svelte-preprocess": "^6.0.3",
     "svelte-qrcode": "^1.0.0",
     "tailwindcss": "^3.3.1",
-    "vite": "^4.5.14"
+    "vite": "^6.0.7"
   },
   "dependencies": {
     "cssnano": "^5.1.15",
-    "esbuild": ">=0.25.0",
-    "ipaddr.js": "^2.3.0"
+    "esbuild": ">=0.25.0"
   }
 }

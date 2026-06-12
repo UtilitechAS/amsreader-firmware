@@ -1,16 +1,70 @@
 <script>
-    import { metertype, boardtype, isBusPowered, getBaseChip, wiki } from './Helpers.js';
-    import { getSysinfo, sysinfoStore } from './DataStores.js';
-    import { upgrade, upgradeWarningText } from './UpgradeHelper';
-    import { translationsStore } from './TranslationService.js';
-    import { Link } from 'svelte-navigator';
-    import Clock from './Clock.svelte';
-    import Mask from './Mask.svelte';
-    import { scanForDevice } from './Helpers.js';
-    import ipaddr from 'ipaddr.js';
+    import { metertype, boardtype, isBusPowered, getBaseChip, wiki } from '../lib/Helpers.js';
+    import { getSysinfo, sysinfoStore, dataStore } from '../lib/DataStores.js';
+    import { upgrade, upgradeWarningText } from '../lib/UpgradeHelper';
+    import { translationsStore } from '../lib/TranslationService.js';
+    import Clock from '../lib/Clock.svelte';
+    import Mask from '../lib/Mask.svelte';
+    import { scanForDevice } from '../lib/Helpers.js';
   
-    export let data;
-    export let sysinfo;
+    let data;
+    let sysinfo;
+
+    dataStore.subscribe(v => data = v);
+    sysinfoStore.subscribe(v => sysinfo = v);
+
+    // Format IPv6 address to compact form (RFC 5952)
+    const formatIPv6 = (addr) => {
+        if (!addr) return addr;
+        
+        // Split into groups
+        const groups = addr.toLowerCase().split(':');
+        
+        // Remove leading zeros from each group
+        const normalized = groups.map(g => g.replace(/^0+/, '') || '0');
+        
+        // Find longest sequence of consecutive zeros
+        let maxStart = -1, maxLen = 0;
+        let currStart = -1, currLen = 0;
+        
+        for (let i = 0; i < normalized.length; i++) {
+            if (normalized[i] === '0') {
+                if (currStart === -1) currStart = i;
+                currLen++;
+            } else {
+                if (currLen > maxLen) {
+                    maxStart = currStart;
+                    maxLen = currLen;
+                }
+                currStart = -1;
+                currLen = 0;
+            }
+        }
+        
+        // Check final sequence
+        if (currLen > maxLen) {
+            maxStart = currStart;
+            maxLen = currLen;
+        }
+        
+        // Only compress if we have 2 or more consecutive zeros
+        if (maxLen > 1) {
+            const before = normalized.slice(0, maxStart);
+            const after = normalized.slice(maxStart + maxLen);
+            
+            if (before.length === 0 && after.length === 0) {
+                return '::';
+            } else if (before.length === 0) {
+                return '::' + after.join(':');
+            } else if (after.length === 0) {
+                return before.join(':') + '::';
+            } else {
+                return before.join(':') + '::' + after.join(':');
+            }
+        }
+        
+        return normalized.join(':');
+    };
 
     let cfgItems = [{
         name: 'WiFi',
@@ -73,11 +127,11 @@
     }
 
     let firmwareFileInput;
-    let firmwareFiles = [];
+    let firmwareFiles = null;
     let firmwareUploading = false;
 
     let configFileInput;
-    let configFiles = [];
+    let configFiles = null;
     let configUploading = false;
 
     getSysinfo();
@@ -119,7 +173,7 @@
     };
 
     $: {
-        if(configFiles.length == 1) {
+        if(configFiles && configFiles.length == 1) {
             let file = configFiles[0];
             let reader = new FileReader();
             let parseConfigFile = ( e ) => {
@@ -146,7 +200,7 @@
             {translations.status?.device?.chip ?? "Chip"}: {sysinfo.chip} {#if sysinfo.cpu}({sysinfo.cpu}MHz){/if}
         </div>
         <div class="my-2">
-            {translations.status?.device?.device ?? "Device"}: <Link to="/vendor">{boardtype(sysinfo.chip, sysinfo.board)}</Link>
+            {translations.status?.device?.device ?? "Device"}: <a href="#/vendor">{boardtype(sysinfo.chip, sysinfo.board)}</a>
         </div>
         <div class="my-2">
             {translations.status?.device?.mac ?? "MAC"}: {sysinfo.mac}
@@ -169,9 +223,9 @@
         {/if}
         {#if data?.a}
         <div class="my-2">
-            <Link to="/consent">
+            <a href="#/consent">
                 <span class="btn-pri-sm">{translations.status?.device?.btn_consents ?? "Consents"}</span>
-            </Link>
+            </a>
             <button on:click={askReboot} class="btn-yellow-sm float-right">{translations.btn?.reboot ?? "Reboot"}</button>
         </div>
         {/if}
@@ -208,11 +262,11 @@
         </div>
         {#if sysinfo.net.ipv6}
             <div class="my-2">
-                IPv6: <span style="font-size: 14px;">{ipaddr.parse(sysinfo.net.ipv6)}</span>
+                IPv6: <span style="font-size: 14px;">{formatIPv6(sysinfo.net.ipv6)}</span>
             </div>
             <div class="my-2">
-                {#if sysinfo.net.dns1v6}DNSv6: <span style="font-size: 14px;">{ipaddr.parse(sysinfo.net.dns1v6)}</span>{/if}
-                {#if sysinfo.net.dns2v6}DNSv6: <span style="font-size: 14px;">{ipaddr.parse(sysinfo.net.dns2v6)}</span>{/if}
+                {#if sysinfo.net.dns1v6}DNSv6: <span style="font-size: 14px;">{formatIPv6(sysinfo.net.dns1v6)}</span>{/if}
+                {#if sysinfo.net.dns2v6}DNSv6: <span style="font-size: 14px;">{formatIPv6(sysinfo.net.dns2v6)}</span>{/if}
             </div>
         {/if}
     </div>
@@ -267,7 +321,7 @@
             <div class="my-2 flex">
                 <form action="firmware" enctype="multipart/form-data" method="post" on:submit={() => firmwareUploading=true} autocomplete="off">
                     <input style="display:none" name="file" type="file" accept=".bin" bind:this={firmwareFileInput} bind:files={firmwareFiles}>
-                    {#if firmwareFiles.length == 0}
+                    {#if !firmwareFiles || firmwareFiles.length == 0}
                     <button type="button" on:click={()=>{firmwareFileInput.click();}} class="btn-pri-sm float-right">{translations.status?.firmware?.btn_select_file ?? "Select file"}</button>
                     {:else}
                     {firmwareFiles[0].name}
@@ -287,13 +341,13 @@
                 {/each}
                 <label class="my-1 mx-3 col-span-2"><input type="checkbox" class="rounded" name="ic" value="true"/> {translations.status?.backup?.secrets ?? "Include secrets"}<br/><small>{translations.status?.backup?.secrets_desc ?? ""}</small></label>
             </div>
-            {#if configFiles.length == 0}
+            {#if !configFiles || configFiles.length == 0}
             <button type="submit" class="btn-pri-sm float-right">{translations.status?.backup?.btn_download ?? "Download"}</button>
             {/if}
         </form>
         <form on:submit|preventDefault={uploadConfigFile} autocomplete="off">
             <input style="display:none" name="file" type="file" accept=".cfg" bind:this={configFileInput} bind:files={configFiles}>
-            {#if configFiles.length == 0}
+            {#if !configFiles || configFiles.length == 0}
             <button type="button" on:click={()=>{configFileInput.click();}} class="btn-pri-sm">{translations.status?.backup?.btn_select_file ?? "Select file"}</button>
             {:else}
             {configFiles[0].name}

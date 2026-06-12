@@ -1,9 +1,9 @@
 <script>
-    import { sysinfoStore, networksStore } from './DataStores.js';
-    import { translationsStore } from './TranslationService.js';
-    import Mask from './Mask.svelte'
-    import SubnetOptions from './SubnetOptions.svelte';
-    import { scanForDevice, charAndNumPattern, asciiPatternExt, ipPattern } from './Helpers.js';
+    import { sysinfoStore, networksStore } from '../lib/DataStores.js';
+    import { translationsStore } from '../lib/TranslationService.js';
+    import Mask from '../lib/Mask.svelte'
+    import SubnetOptions from '../lib/SubnetOptions.svelte';
+    import { scanForDevice, charAndNumPattern, asciiPatternExt, ipPattern } from '../lib/Helpers.js';
 
     let translations = {};
     translationsStore.subscribe(update => {
@@ -21,7 +21,8 @@
         ssid = update?.n[0]?.s ?? '';
     });
 
-    export let sysinfo = {}
+    let sysinfo = {}
+    sysinfoStore.subscribe(v => sysinfo = v);
 
     let staticIp = false;
     let connectionMode = 1;

@@ -1,5 +1,4 @@
 <script>
-    import { Link } from "svelte-navigator";
     import { sysinfoStore } from './DataStores.js';
     import { upgrade, upgradeWarningText } from './UpgradeHelper';
     import { boardtype, isBusPowered, wiki, bcol } from './Helpers.js';
@@ -46,7 +45,7 @@
 <nav class="hdr">
       <div class="flex flex-wrap space-x-4 text-sm text-gray-300">
         <div class="flex text-lg text-gray-100 p-2">
-          <Link to="/">AMS reader <span>{sysinfo.version}</span></Link>
+          <a href={basepath}>AMS reader <span>{sysinfo.version}</span></a>
         </div>
         <div class="flex-none my-auto p-2 flex space-x-4">
           <div class="flex-none my-auto"><Uptime epoch={data.u}/></div>
@@ -79,10 +78,10 @@
           </div>
           {#if sysinfo.vndcfg && sysinfo.usrcfg}
           <div class="flex-none px-1 mt-1" title={translations.header?.config ?? ""}>
-            <Link to="/configuration"><GearIcon/></Link>
+            <a href="#/configuration"><GearIcon/></a>
           </div>
           <div class="flex-none px-1 mt-1" title={translations.header?.status ?? ""}>
-            <Link to="/status"><InfoIcon/></Link>
+            <a href="#/status"><InfoIcon/></a>
           </div>
           {/if}
           <div class="flex-none px-1 mt-1" title={translations.header?.doc ?? ""}>

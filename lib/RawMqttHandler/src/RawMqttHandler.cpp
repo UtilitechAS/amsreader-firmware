@@ -113,8 +113,12 @@ bool RawMqttHandler::publishList3(AmsData* data, AmsData* meterState) {
     mqtt.publish(topic + "/meter/clock", String(data->getMeterTimestamp()));
     mqtt.publish(topic + "/meter/import/reactive/accumulated", String(data->getReactiveImportCounter(), 3), true, 0);
     mqtt.publish(topic + "/meter/import/active/accumulated", String(data->getActiveImportCounter(), 3), true, 0);
+    mqtt.publish(topic + "/meter/import/active/accumulated/tariff1", String(data->getActiveImportCounterTariff1(), 3), true, 0);
+    mqtt.publish(topic + "/meter/import/active/accumulated/tariff2", String(data->getActiveImportCounterTariff2(), 3), true, 0);
     mqtt.publish(topic + "/meter/export/reactive/accumulated", String(data->getReactiveExportCounter(), 3), true, 0);
     mqtt.publish(topic + "/meter/export/active/accumulated", String(data->getActiveExportCounter(), 3), true, 0);
+    mqtt.publish(topic + "/meter/export/active/accumulated/tariff1", String(data->getActiveExportCounterTariff1(), 3), true, 0);
+    mqtt.publish(topic + "/meter/export/active/accumulated/tariff2", String(data->getActiveExportCounterTariff2(), 3), true, 0);
     return true;
 }
 

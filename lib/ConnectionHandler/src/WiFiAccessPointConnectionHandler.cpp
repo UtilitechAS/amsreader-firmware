@@ -19,6 +19,7 @@ bool WiFiAccessPointConnectionHandler::connect(NetworkConfig config, SystemConfi
 		//wifi_softap_set_dhcps_offer_option(OFFER_ROUTER, 0); // Disable default gw
 
 		WiFi.mode(WIFI_AP);
+		WiFi.persistent(false);
 		WiFi.softAP(config.ssid, config.psk);
 
 		dnsServer.setErrorReplyCode(DNSReplyCode::NoError);

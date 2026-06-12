@@ -300,18 +300,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 		}
 		case ARDUINO_EVENT_ETH_DISCONNECTED:
 		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
-			if(WiFi.getMode() == WIFI_STA) {
-				wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
-				switch(reason) {
-					case WIFI_REASON_AUTH_FAIL:
-					case WIFI_REASON_NO_AP_FOUND:
-						if(sysConfig.dataCollectionConsent == 0) {
-							debugI_P(PSTR("Unable to connect to configured AP, swapping to AP mode"));
-							toggleSetupMode();
-						}
-						break;
-				}
-			}
+			debugW_P(PSTR("Disconnected from network"));
 			break;
 		}
 		case ARDUINO_EVENT_SC_FOUND_CHANNEL:
@@ -319,6 +308,9 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			break;
 		case ARDUINO_EVENT_SC_GOT_SSID_PSWD:
 			debugI_P(PSTR("SmartConfig got config"));
+			break;
+		default:
+			debugD_P(PSTR("WiFi event: %s"), WiFi.eventName(event));
 			break;
 	}
 }
@@ -478,6 +470,9 @@ void setup() {
 	#endif
 	while(!hw.isVoltageOptimal(allowedDrift)) {
 		uint8_t bootCycles = incrementBootCycleCounter(deepSleep);
+		#if defined(ESP32)
+			allowedDrift = bootCycles * 0.01;
+		#endif
 		debugW_P(PSTR("Voltage is outside optimal range (%.2fV)"), allowedDrift);
 		if(gpioConfig.apPin != 0xFF && digitalRead(gpioConfig.apPin) == LOW) {
 			debugW_P(PSTR("AP button is pressed, skipping voltage wait"));
@@ -540,9 +535,6 @@ void setup() {
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
-	#if defined(ESP32)
-	WiFi.onEvent(WiFiEvent);
-	#endif
 
 	UpgradeInformation upinfo;
 	if(config.getUpgradeInformation(upinfo)) {
@@ -1222,7 +1214,7 @@ void handleSystem(unsigned long now) {
 	unsigned long start, end;
 	if(now - lastSysupdate > 60000) {
 		start = millis();
-		if(WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED) {
+		if(WiFi.getMode() == WIFI_STA && WiFi.status() == WL_CONNECTED) {
 			if(mqttHandler != NULL) {
 				mqttHandler->publishSystem(&hw, ps, &ea);
 				mqttHandler->publishFirmware();
@@ -1258,7 +1250,7 @@ void handleTemperature(unsigned long now) {
 		if(hw.updateTemperatures()) {
 			lastTemperatureRead = now;
 
-			if(mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED) {
+			if(mqttHandler != NULL && WiFi.getMode() == WIFI_STA && WiFi.status() == WL_CONNECTED) {
 				mqttHandler->publishTemperatures(&config, &hw);
 			}
 		}

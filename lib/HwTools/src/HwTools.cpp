@@ -419,7 +419,6 @@ float HwTools::getVcc() {
             }
             volts = (x * 3.3) / 10.0 / analogRange;
         #endif
-    } else {
     }
     if(volts == 0.0) {
         #if defined(ESP8266)
@@ -429,8 +428,11 @@ float HwTools::getVcc() {
         #endif
     }
 
-    if(vccGnd_r > 0 && vccVcc_r > 0)
-        volts *= ((float) (vccGnd_r + vccVcc_r) / vccGnd_r);
+    if(vccPin != 0xFF) {
+        if(vccGnd_r > 0 && vccVcc_r > 0) {
+            volts *= ((float) (vccGnd_r + vccVcc_r) / vccGnd_r);
+        }
+    }
     if(vccOffset != 0.0)
         volts += vccOffset;
     if(vccMultiplier != 0.0)

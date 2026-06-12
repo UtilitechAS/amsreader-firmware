@@ -106,10 +106,15 @@ static int16_t unwrap(uint8_t* buf, DataParserContext& ctx, MeterConfig* cfg,
     uint8_t tag = *buf;
     uint8_t lastTag = DATA_TAG_NONE;
 
+    uint8_t* hdlcStart = NULL;   // start of the current HDLC frame (for GBT reassembly)
+    int16_t hdlcLen = 0;
     while (tag != DATA_TAG_NONE) {
         int8_t res = 0;
         switch (tag) {
-            case DATA_TAG_HDLC: res = hdlc.parse(buf, ctx); if (ctx.length < 3) doRet = true; break;
+            case DATA_TAG_HDLC:
+                hdlcStart = buf;
+                hdlcLen = (int16_t)((((buf[1] << 8) | buf[2]) & 0x7FF) + 2);
+                res = hdlc.parse(buf, ctx); if (ctx.length < 3) doRet = true; break;
             case DATA_TAG_MBUS: res = mbus.parse(buf, ctx); break;
             case DATA_TAG_GBT:  res = gbt.parse(buf, ctx); break;
             case DATA_TAG_LLC:  res = llc.parse(buf, ctx); break;
@@ -148,6 +153,25 @@ static int16_t unwrap(uint8_t* buf, DataParserContext& ctx, MeterConfig* cfg,
             mbus.write(buf, ctx);     // assembles into buf, sets ctx.length
             end = (int16_t)ctx.length;
             tag = *buf;               // continue parsing the assembled payload
+            continue;
+        }
+
+        // Multi-frame GBT (General Block Transfer): each block sits inside its
+        // own HDLC frame and the parser accumulates them. Jump to the next HDLC
+        // frame (firmware gets each in a separate read); the final block returns
+        // OK with the reassembled DLMS in place.
+        if (tag == DATA_TAG_GBT && res == DATA_PARSE_INTERMEDIATE_SEGMENT) {
+            if (!hdlcStart) { delete gcm; delete dsmr; return DATA_PARSE_FAIL; }
+            int16_t delta = (int16_t)((hdlcStart + hdlcLen) - buf);
+            if (delta <= 0 || delta >= end) { delete gcm; delete dsmr; return DATA_PARSE_INCOMPLETE; }
+            buf += delta; end -= delta; ret += delta;
+            ctx.length = (uint16_t)end;   // next frame's per-read budget (mirrors a fresh serial read)
+            tag = *buf;
+            continue;
+        }
+        if (tag == DATA_TAG_GBT && res == DATA_PARSE_OK) {
+            end = (int16_t)ctx.length;   // reassembled DLMS now at buf
+            tag = *buf;
             continue;
         }
 

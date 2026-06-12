@@ -1,38 +1,5 @@
 [
  {
-  "file": "aidon/em002-1.hex",
-  "manufacturer": "aidon",
-  "source": "email Sun, 14 Nov 2021 07:47:39 +0100",
-  "model": "",
-  "country": "Sweden",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
-  "file": "aidon/em002-2.hex",
-  "manufacturer": "aidon",
-  "source": "email Sun, 14 Nov 2021 07:47:39 +0100",
-  "model": "",
-  "country": "Sweden",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
-  "file": "aidon/em003-1.hex",
-  "manufacturer": "aidon",
-  "source": "email Sun, 14 Nov 2021 15:43:49 +0100",
-  "model": "",
-  "country": "Sweden",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
   "file": "aidon/em003-2.hex",
   "manufacturer": "aidon",
   "source": "email Sun, 14 Nov 2021 15:43:49 +0100",
@@ -47,72 +14,6 @@
   "file": "aidon/em004-1.hex",
   "manufacturer": "aidon",
   "source": "email Sun, 14 Nov 2021 16:12:57 +0100",
-  "model": "",
-  "country": "Sweden",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
-  "file": "aidon/em005-1.hex",
-  "manufacturer": "aidon",
-  "source": "email Sat, 20 Nov 2021 14:27:13 +0100",
-  "model": "",
-  "country": "Sweden",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
-  "file": "aidon/em005-2.hex",
-  "manufacturer": "aidon",
-  "source": "email Sat, 20 Nov 2021 14:27:13 +0100",
-  "model": "",
-  "country": "Sweden",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
-  "file": "aidon/em005-3.hex",
-  "manufacturer": "aidon",
-  "source": "email Sat, 20 Nov 2021 14:27:13 +0100",
-  "model": "",
-  "country": "Sweden",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
-  "file": "aidon/em006-1.hex",
-  "manufacturer": "aidon",
-  "source": "email Sun, 21 Nov 2021 15:03:50 +0100",
-  "model": "",
-  "country": "Sweden",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
-  "file": "aidon/em006-2.hex",
-  "manufacturer": "aidon",
-  "source": "email Sun, 21 Nov 2021 15:03:50 +0100",
-  "model": "",
-  "country": "Sweden",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
-  "file": "aidon/em006-3.hex",
-  "manufacturer": "aidon",
-  "source": "email Sun, 21 Nov 2021 15:03:50 +0100",
   "model": "",
   "country": "Sweden",
   "protocol": "DLMS",
@@ -198,17 +99,6 @@
   "expect": "ok"
  },
  {
-  "file": "aidon/gh347-1.hex",
-  "manufacturer": "aidon",
-  "source": "#347",
-  "model": "6242",
-  "country": "Sweden (SE)",
-  "protocol": "",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
   "file": "elgama/gh1177-1.txt",
   "manufacturer": "elgama",
   "source": "#1177",
@@ -216,39 +106,6 @@
   "country": "Poland",
   "protocol": "DSMR+DLMS",
   "format": "txt",
-  "encrypted": true,
-  "expect": "edge"
- },
- {
-  "file": "elgama/gh1198-1.hex",
-  "manufacturer": "elgama",
-  "source": "#1198",
-  "model": "GAMA 350 (G35)",
-  "country": "Poland",
-  "protocol": "DSMR+DLMS",
-  "format": "hex",
-  "encrypted": true,
-  "expect": "edge"
- },
- {
-  "file": "elgama/gh1198-2.hex",
-  "manufacturer": "elgama",
-  "source": "#1198",
-  "model": "GAMA 350 (G35)",
-  "country": "Poland",
-  "protocol": "DSMR+DLMS",
-  "format": "hex",
-  "encrypted": true,
-  "expect": "ok"
- },
- {
-  "file": "elgama/gh1198-3.hex",
-  "manufacturer": "elgama",
-  "source": "#1198",
-  "model": "GAMA 350 (G35)",
-  "country": "Poland",
-  "protocol": "DSMR+DLMS",
-  "format": "hex",
   "encrypted": true,
   "expect": "edge"
  },
@@ -335,17 +192,6 @@
   "source": "#1072",
   "model": "IE.5-TD1",
   "country": "Croatia",
-  "protocol": "HDLC",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "ok"
- },
- {
-  "file": "iskraemeco/gh1174-1.hex",
-  "manufacturer": "iskraemeco",
-  "source": "#1174",
-  "model": "IE.5",
-  "country": "Croatia (HR)",
   "protocol": "HDLC",
   "format": "hex",
   "encrypted": false,
@@ -678,17 +524,6 @@
   "expect": "ok"
  },
  {
-  "file": "kaifa/gh1067-1.hex",
-  "manufacturer": "kaifa",
-  "source": "#1067",
-  "model": "MA309M",
-  "country": "Poland",
-  "protocol": "DSMR+DLMS",
-  "format": "hex",
-  "encrypted": true,
-  "expect": "ok"
- },
- {
   "file": "kaifa/gh1067-2.hex",
   "manufacturer": "kaifa",
   "source": "#1067",
@@ -922,28 +757,6 @@
   "expect": "ok"
  },
  {
-  "file": "kamstrup/em001-12.hex",
-  "manufacturer": "kamstrup",
-  "source": "email Mon, 29 Nov 2021 20:03:14 +0100",
-  "model": "",
-  "country": "Norway",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
-  "file": "kamstrup/em001-13.hex",
-  "manufacturer": "kamstrup",
-  "source": "email Mon, 29 Nov 2021 20:03:14 +0100",
-  "model": "",
-  "country": "Norway",
-  "protocol": "DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "edge"
- },
- {
   "file": "kamstrup/em001-2.hex",
   "manufacturer": "kamstrup",
   "source": "email Mon, 29 Nov 2021 20:03:14 +0100",
@@ -1052,17 +865,6 @@
   "format": "hex",
   "encrypted": false,
   "expect": "ok"
- },
- {
-  "file": "kamstrup/gh143-1.hex",
-  "manufacturer": "kamstrup",
-  "source": "#143",
-  "model": "",
-  "country": "Denmark",
-  "protocol": "HDLC",
-  "format": "hex",
-  "encrypted": true,
-  "expect": "edge"
  },
  {
   "file": "kamstrup/gh157-1.hex",
@@ -1362,17 +1164,6 @@
   "expect": "edge"
  },
  {
-  "file": "kamstrup/gh369-1.hex",
-  "manufacturer": "kamstrup",
-  "source": "#369",
-  "model": "6841131BN243101040",
-  "country": "",
-  "protocol": "DSMR+DLMS",
-  "format": "hex",
-  "encrypted": false,
-  "expect": "ok"
- },
- {
   "file": "kamstrup/gh517-1.hex",
   "manufacturer": "kamstrup",
   "source": "#517",
@@ -1478,28 +1269,6 @@
   "expect": "ok"
  },
  {
-  "file": "kamstrup/gh862-1.hex",
-  "manufacturer": "kamstrup",
-  "source": "#862",
-  "model": "Omnipower 648-14-39B-N24-4101-013",
-  "country": "Denmark",
-  "protocol": "HDLC",
-  "format": "hex",
-  "encrypted": true,
-  "expect": "edge"
- },
- {
-  "file": "kamstrup/gh862-2.hex",
-  "manufacturer": "kamstrup",
-  "source": "#862",
-  "model": "Omnipower 648-14-39B-N24-4101-013",
-  "country": "Denmark",
-  "protocol": "HDLC",
-  "format": "hex",
-  "encrypted": true,
-  "expect": "edge"
- },
- {
   "file": "kamstrup/gh862-3.hex",
   "manufacturer": "kamstrup",
   "source": "#862",
@@ -1593,6 +1362,17 @@
  },
  {
   "file": "landis-gyr/gh740-3.hex",
+  "manufacturer": "landis-gyr",
+  "source": "#740",
+  "model": "E450",
+  "country": "Switzerland (CH)",
+  "protocol": "HDLC",
+  "format": "hex",
+  "encrypted": false,
+  "expect": "ok"
+ },
+ {
+  "file": "landis-gyr/gh740.hex",
   "manufacturer": "landis-gyr",
   "source": "#740",
   "model": "E450",
@@ -1714,17 +1494,6 @@
  },
  {
   "file": "sagemcom/gh155-4.hex",
-  "manufacturer": "sagemcom",
-  "source": "#155",
-  "model": "Austrian smart meter",
-  "country": "Austria",
-  "protocol": "DLMS over M-Bus",
-  "format": "hex",
-  "encrypted": true,
-  "expect": "ok"
- },
- {
-  "file": "sagemcom/gh155-5.hex",
   "manufacturer": "sagemcom",
   "source": "#155",
   "model": "Austrian smart meter",

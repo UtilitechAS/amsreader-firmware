@@ -2,7 +2,7 @@
 
 Sagemcom T210-D (mainly Austria). DLMS carried over M-Bus long frames (`68 LL LL 68 ... 16`), usually GCM encrypted (system title `SAGY...`), security byte `0x20` (encrypt-only) or `0x30`.
 
-**15 payload file(s)** — 13 encrypted.
+**14 payload file(s)** — 12 encrypted.
 
 | File | Source | Model | Country | Protocol | Enc | Notes |
 |------|--------|-------|---------|----------|-----|-------|
@@ -11,7 +11,6 @@ Sagemcom T210-D (mainly Austria). DLMS carried over M-Bus long frames (`68 LL LL
 | `gh155-2.hex` | [#155](https://github.com/UtilitechAS/amsreader-firmware/issues/155) | Austrian smart meter | Austria | DLMS over M-Bus | 🔒 | Encrypted segmented M-Bus telegram (553 bytes: first segment 68 01 01 68 53 FF 00 + final + reassembled data frame). SAGY system title 5341475905E6D9FD, DLMS 0xDB security 0x20 (encrypt-only, 2400 8E1). Key NOT posted publicly (shared by email). From telnet log 'log220128' (https://github.com/gskjold/AmsToMqttBridge/files/7987671/ams2mqtt_220128_log.txt). |
 | `gh155-3.hex` | [#155](https://github.com/UtilitechAS/amsreader-firmware/issues/155) | Austrian smart meter | Austria | DLMS over M-Bus | 🔒 | PARTIAL encrypted M-Bus capture (254 bytes), starts mid-telegram (68 01 01 68 53 FF 10). SAGY system title 5341475905E6D9FD. Key NOT posted. From telnet log 'austria1' (https://github.com/gskjold/AmsToMqttBridge/files/7774595/ams2mqttAustria.txt). |
 | `gh155-4.hex` | [#155](https://github.com/UtilitechAS/amsreader-firmware/issues/155) | Austrian smart meter | Austria | DLMS over M-Bus | 🔒 | Raw binary M-Bus capture (2820 bytes, multiple concatenated segmented telegrams) from attachment Sagemcom.txt (https://github.com/gskjold/AmsToMqttBridge/files/7656632/Sagemcom.txt). SAGY system title 5341475905E6D9FD, DLMS 0xDB security 0x20 encrypt-only. Still ENCRYPTED. Key NOT posted publicly. |
-| `gh155-5.hex` | [#155](https://github.com/UtilitechAS/amsreader-firmware/issues/155) | Austrian smart meter | Austria | DLMS over M-Bus | 🔒 | Inline capture from comment 2 (gskjold): 19-byte M-Bus frame (68 0D 0D 68 53 FF 11) + 263-byte first segment (68 01 01 68 53 FF 00 67 DB 08 SAGY). SAGY system title 5341475905E6D9FD, security 0x20 encrypt-only, ENCRYPTED, no key. 283 bytes. |
 | `gh155-6.hex` | [#155](https://github.com/UtilitechAS/amsreader-firmware/issues/155) | Austrian smart meter | Austria | DLMS over M-Bus | 🔒 | Inline capture from comment 41 (manfi001): segmented M-Bus SAGY telegram (553 bytes). System title 5341475905E6D9FD frame counter 0004153C, security 0x20 encrypt-only. ENCRYPTED, no key posted. |
 | `gh248-1.hex` | [#248](https://github.com/UtilitechAS/amsreader-firmware/issues/248) |  |  | DLMS over M-Bus | 🔒 | ESP32 decrypt-failed capture A. SAGY system title 5341475905EA7A8E. M-Bus segmented (intermediate 263b + final 19b + reassembled 271b). Security byte 0x20 (encrypt only, no auth). No key posted. Firmware 2.0.11. |
 | `gh248-2.hex` | [#248](https://github.com/UtilitechAS/amsreader-firmware/issues/248) |  |  | DLMS over M-Bus | 🔒 | ESP32 decrypt-failed capture B. SAGY system title 5341475905EA7A8E. M-Bus segmented (intermediate 263b + final 19b + reassembled 271b). Security byte 0x20 (encrypt only, no auth). No key posted. Firmware 2.0.11. |

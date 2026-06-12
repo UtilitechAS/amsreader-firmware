@@ -154,3 +154,4 @@ void test_encrypted_kaifa_905(void) {
     TEST_ASSERT_EQUAL_STRING("1KFM0200169986", d->getMeterId().c_str());
     delete d;
 }
+

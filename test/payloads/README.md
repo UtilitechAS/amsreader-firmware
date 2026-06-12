@@ -48,14 +48,18 @@ byte). See `keys/` for the keys we have.
 
 | Manufacturer | Files | Notes |
 |--------------|------:|-------|
-| Kamstrup     | 57 | Omnipower/Omnia — NO unencrypted, DK/SE/CH encrypted; decrypt/plaintext pairs |
-| Iskraemeco   | 37 | AM550 + IE.5 — SI/AT/CH/HR, several proprietary non-OBIS formats |
-| Kaifa        | 19 | MA304/MA309 — NO plain, AT/PL M-Bus encrypted |
-| Sagemcom     | 15 | T210-D — AT, DLMS over M-Bus, mostly encrypted |
-| Landis+Gyr   | 12 | E360/E450 — CH/AT/SE/DK, GBT pushes + encrypted |
-| Aidon        | 19 | NO/SE — incl. deliberately mis-sampled negative fixtures |
-| Elgama (GAMA)| 4  | PL — DSMR header + encrypted DLMS, oversized for ESP8266 |
+| Kamstrup     | 51 | Omnipower/Omnia — NO unencrypted, DK/SE/CH encrypted; decrypt/plaintext pairs |
+| Iskraemeco   | 36 | AM550 + IE.5 — SI/AT/CH/HR, several proprietary non-OBIS formats |
+| Kaifa        | 18 | MA304/MA309 — NO plain, AT/PL M-Bus encrypted |
+| Sagemcom     | 14 | T210-D — AT, DLMS over M-Bus, mostly encrypted |
+| Landis+Gyr   | 13 | E360/E450 — CH/AT/SE/DK, GBT pushes (`gh740*` reassembled) + encrypted |
+| Aidon        | 9  | NO/SE |
+| Elgama (GAMA)| 1  | PL — DSMR header + encrypted DLMS |
 | NES          | 1  | DK — DSMR/P1, `NES5` id |
+
+Total: 143 fixtures. Frames that began mid-stream (no frame boundary at byte 0)
+were removed; multi-frame GBT (`landis-gyr/gh740-1/2/3`) is also provided
+pre-concatenated as `landis-gyr/gh740.hex`, which the decoder reassembles.
 
 ## Decryption keys
 

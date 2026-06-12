@@ -2,11 +2,10 @@
 
 Kaifa MA304/MA309 meters. Norwegian units unencrypted; Austrian/Polish units (Netz NÖ, Stoen) are M-Bus-wrapped and AES-128-GCM encrypted (system title `KFM...`).
 
-**19 payload file(s)** — 7 encrypted, 1 with a known decryption key (see [`../keys/`](../keys/README.md)).
+**18 payload file(s)** — 6 encrypted, 1 with a known decryption key (see [`../keys/`](../keys/README.md)).
 
 | File | Source | Model | Country | Protocol | Enc | Notes |
 |------|--------|-------|---------|----------|-----|-------|
-| `gh1067-1.hex` | [#1067](https://github.com/UtilitechAS/amsreader-firmware/issues/1067) | MA309M | Poland | DSMR+DLMS | 🔒 | Encrypted DLMS block (659 bytes), the 'payload' the firmware decrypts at position 20 (length 659). Starts 00 82 02 8F long-form length, then 30 (security byte) 00000000 frame counter 944694607... User reports it decrypts successfully (key configured in device, NOT posted in issue). Decrypted result is gh1067-2. |
 | `gh1067-2.hex` | [#1067](https://github.com/UtilitechAS/amsreader-firmware/issues/1067) | MA309M | Poland | DSMR+DLMS | — | DECRYPTED DSMR/P1 telegram (685 bytes) as hex (the cleartext of gh1067-1). ASCII '/KFM5KAIFA-METER' ident, OBIS codes 1-0:1.8.0 etc, ends '!D770' CRC + padding zeros. Good clean fixture for KFM5 Kaifa P1 ASCII parsing. Note: reports 1.7.0/2.7.0 power and per-phase voltage but no per-phase current/power (zeros). |
 | `gh180-1.hex` | [#180](https://github.com/UtilitechAS/amsreader-firmware/issues/180) | MA304H3E | Norway | HDLC | — | Complete 41-byte HDLC frame 7E A0 27 ... 7E, plaintext DLMS (0F 40 00 00). Short list-1 (timestamp-only) frame. Model MA304H3E / KFM_001 identified in the companion 123-byte frame gh180-2. |
 | `gh180-2.hex` | [#180](https://github.com/UtilitechAS/amsreader-firmware/issues/180) | MA304H3E | Norway | HDLC | — | Complete 123-byte HDLC frame 7E A0 79 ... 7E, plaintext DLMS. Contains list-2 with KFM_001 / meter id 6970631403275928 / model MA304H3E. Norwegian NVE Kaifa meter. |

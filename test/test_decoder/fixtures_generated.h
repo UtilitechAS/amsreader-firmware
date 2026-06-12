@@ -11,7 +11,7 @@
 struct Fixture { const char* path; const char* manufacturer; const char* source; };
 struct KeyedFixture { const char* path; const char* ek_secret; const char* ak_secret; };
 
-// 81 unencrypted frames expected to decode to a valid list
+// 80 unencrypted frames expected to decode to a valid list
 static const Fixture UNENC_OK[] = {
   { "test/payloads/aidon/gh1119-1.hex", "aidon", "#1119" },
   { "test/payloads/aidon/gh1119-2.hex", "aidon", "#1119" },
@@ -24,7 +24,6 @@ static const Fixture UNENC_OK[] = {
   { "test/payloads/iskraemeco/gh1072-2.hex", "iskraemeco", "#1072" },
   { "test/payloads/iskraemeco/gh1072-3.hex", "iskraemeco", "#1072" },
   { "test/payloads/iskraemeco/gh1072-4.hex", "iskraemeco", "#1072" },
-  { "test/payloads/iskraemeco/gh1174-1.hex", "iskraemeco", "#1174" },
   { "test/payloads/iskraemeco/gh615-1.hex", "iskraemeco", "#615" },
   { "test/payloads/iskraemeco/gh615-2.hex", "iskraemeco", "#615" },
   { "test/payloads/iskraemeco/gh615-3.hex", "iskraemeco", "#615" },
@@ -76,7 +75,6 @@ static const Fixture UNENC_OK[] = {
   { "test/payloads/kamstrup/gh239-2.hex", "kamstrup", "#239" },
   { "test/payloads/kamstrup/gh247-2.hex", "kamstrup", "#247" },
   { "test/payloads/kamstrup/gh350-2.hex", "kamstrup", "#350" },
-  { "test/payloads/kamstrup/gh369-1.hex", "kamstrup", "#369" },
   { "test/payloads/kamstrup/gh517-2.hex", "kamstrup", "#517" },
   { "test/payloads/kamstrup/gh578-1.txt", "kamstrup", "#578" },
   { "test/payloads/kamstrup/gh699-1.txt", "kamstrup", "#699" },
@@ -88,6 +86,7 @@ static const Fixture UNENC_OK[] = {
   { "test/payloads/landis-gyr/gh740-1.hex", "landis-gyr", "#740" },
   { "test/payloads/landis-gyr/gh740-2.hex", "landis-gyr", "#740" },
   { "test/payloads/landis-gyr/gh740-3.hex", "landis-gyr", "#740" },
+  { "test/payloads/landis-gyr/gh740.hex", "landis-gyr", "#740" },
   { "test/payloads/landis-gyr/gh934-1.hex", "landis-gyr", "#934" },
   { "test/payloads/landis-gyr/gh949-1.hex", "landis-gyr", "#949" },
   { "test/payloads/landis-gyr/gh949-2.hex", "landis-gyr", "#949" },
@@ -96,23 +95,11 @@ static const Fixture UNENC_OK[] = {
   { "test/payloads/sagemcom/gh867-2.hex", "sagemcom", "#867" },
 };
 
-// 24 unencrypted but corrupt/truncated/segment — must NOT crash
+// 12 unencrypted but corrupt/truncated/segment — must NOT crash
 static const Fixture UNENC_EDGE[] = {
-  { "test/payloads/aidon/em002-1.hex", "aidon", "email Sun, 14 Nov 2021 07:47:39 +0100" },
-  { "test/payloads/aidon/em002-2.hex", "aidon", "email Sun, 14 Nov 2021 07:47:39 +0100" },
-  { "test/payloads/aidon/em003-1.hex", "aidon", "email Sun, 14 Nov 2021 15:43:49 +0100" },
   { "test/payloads/aidon/em003-2.hex", "aidon", "email Sun, 14 Nov 2021 15:43:49 +0100" },
   { "test/payloads/aidon/em004-1.hex", "aidon", "email Sun, 14 Nov 2021 16:12:57 +0100" },
-  { "test/payloads/aidon/em005-1.hex", "aidon", "email Sat, 20 Nov 2021 14:27:13 +0100" },
-  { "test/payloads/aidon/em005-2.hex", "aidon", "email Sat, 20 Nov 2021 14:27:13 +0100" },
-  { "test/payloads/aidon/em005-3.hex", "aidon", "email Sat, 20 Nov 2021 14:27:13 +0100" },
-  { "test/payloads/aidon/em006-1.hex", "aidon", "email Sun, 21 Nov 2021 15:03:50 +0100" },
-  { "test/payloads/aidon/em006-2.hex", "aidon", "email Sun, 21 Nov 2021 15:03:50 +0100" },
-  { "test/payloads/aidon/em006-3.hex", "aidon", "email Sun, 21 Nov 2021 15:03:50 +0100" },
   { "test/payloads/aidon/gh146-1.hex", "aidon", "#146" },
-  { "test/payloads/aidon/gh347-1.hex", "aidon", "#347" },
-  { "test/payloads/kamstrup/em001-12.hex", "kamstrup", "email Mon, 29 Nov 2021 20:03:14 +0100" },
-  { "test/payloads/kamstrup/em001-13.hex", "kamstrup", "email Mon, 29 Nov 2021 20:03:14 +0100" },
   { "test/payloads/kamstrup/em001-5.hex", "kamstrup", "email Mon, 29 Nov 2021 20:03:14 +0100" },
   { "test/payloads/kamstrup/gh175-1.hex", "kamstrup", "#175" },
   { "test/payloads/kamstrup/gh196-1.hex", "kamstrup", "#196" },

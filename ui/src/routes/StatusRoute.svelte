@@ -5,7 +5,9 @@
     import { translationsStore } from '../lib/TranslationService.js';
     import Clock from '../lib/Clock.svelte';
     import Mask from '../lib/Mask.svelte';
+    import ServicesTile from '../lib/ServicesTile.svelte';
     import { scanForDevice } from '../lib/Helpers.js';
+    import { onMount, onDestroy } from 'svelte';
   
     let data;
     let sysinfo;
@@ -96,7 +98,21 @@
     translationsStore.subscribe(update => {
       translations = update;
     });
- 
+
+    let sysinfoRefresh;
+    onMount(() => {
+      sysinfoRefresh = setInterval(getSysinfo, 10000);
+    });
+    onDestroy(() => {
+      if(sysinfoRefresh) clearInterval(sysinfoRefresh);
+    });
+
+    let lastSa;
+    $: if(data && data.sa !== undefined && data.sa !== lastSa) {
+        if(lastSa !== undefined) getSysinfo();
+        lastSa = data.sa;
+    }
+
     function askUpgrade() {
         if(confirm((translations.header?.upgrade ?? "Upgrade to {0}?").replace('{0}',sysinfo.upgrade.n))) {
             upgrade(sysinfo.upgrade.n);
@@ -244,6 +260,7 @@
         </div>
     </div>
     {/if}
+    <ServicesTile services={sysinfo.services} {translations}/>
     {#if sysinfo.net}
     <div class="cnt">
         <strong class="text-sm">{translations.status?.network?.title ?? "Network"}</strong>

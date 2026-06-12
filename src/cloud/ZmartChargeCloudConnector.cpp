@@ -62,8 +62,10 @@ void ZmartChargeCloudConnector::update(AmsData& data) {
         if(http->begin(url)) {
             if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(ZmartCharge) Sending data: %s\n"), json);
             int status = http->POST(json);
+            lastError = (int16_t) status;
             if(status == 200) {
                 lastFailed = false;
+                lastError = 0;
                 JsonDocument doc;
                 String body = http->getString();
                 if(debugger->isActive(RemoteDebug::VERBOSE)) debugger->printf_P(PSTR("(ZmartCharge) Received data: %s\n"), body.c_str());
@@ -98,6 +100,7 @@ void ZmartChargeCloudConnector::update(AmsData& data) {
                 http->end();
             }
         } else {
+            lastError = -1;
             if(debugger->isActive(RemoteDebug::ERROR)) debugger->printf_P(PSTR("(ZmartCharge) Unable to establish connection with cloud\n"));
         }
         lastUpdate = now;

@@ -37,6 +37,7 @@
 
 //#define CUSTOM_MQTT_HOST "mqtt.example.com"
 //#define CUSTOM_MQTT_PORT 1883
+//#define CUSTOM_MQTT_NAME "My broker"     // shown in the status-page services tile
 //#define CUSTOM_MQTT_USERNAME ""
 //#define CUSTOM_MQTT_PASSWORD ""
 //#define CUSTOM_MQTT_PUBLISH_TOPIC "ams"

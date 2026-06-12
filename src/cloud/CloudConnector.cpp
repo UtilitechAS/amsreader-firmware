@@ -102,6 +102,7 @@ bool CloudConnector::init() {
         if(http.begin(clearBuffer)) {
         #endif
             int status = http.GET();
+            lastError = (int16_t) status;
 
             #if defined(ESP32)
                 esp_task_wdt_reset();
@@ -110,6 +111,7 @@ bool CloudConnector::init() {
             #endif
 
             if(status == HTTP_CODE_OK) {
+                lastError = 0;
                 String pub = http.getString();
                 http.end();
 
@@ -573,6 +575,7 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
     } else if(config.proto == 2) {
         http.addHeader("Content-Type", "application/octet-stream");
         int status = http.POST(httpBuffer, sendBytes);
+        lastError = status == 200 ? 0 : (int16_t) status;
         if(status != 200) {
             #if defined(AMS_REMOTE_DEBUG)
             if (debugger->isActive(RemoteDebug::ERROR))

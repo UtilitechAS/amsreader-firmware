@@ -11,7 +11,7 @@
 struct Fixture { const char* path; const char* manufacturer; const char* source; };
 struct KeyedFixture { const char* path; const char* ek_secret; const char* ak_secret; };
 
-// 80 unencrypted frames expected to decode to a valid list
+// 81 unencrypted frames expected to decode to a valid list
 static const Fixture UNENC_OK[] = {
   { "test/payloads/aidon/gh1119-1.hex", "aidon", "#1119" },
   { "test/payloads/aidon/gh1119-2.hex", "aidon", "#1119" },
@@ -19,6 +19,7 @@ static const Fixture UNENC_OK[] = {
   { "test/payloads/aidon/gh1119-4.hex", "aidon", "#1119" },
   { "test/payloads/aidon/gh143-2.hex", "aidon", "#143" },
   { "test/payloads/aidon/gh156-1.hex", "aidon", "#156" },
+  { "test/payloads/elgama/gh1177-1.txt", "elgama", "#1177" },
   { "test/payloads/iskraemeco/gh1037-1.txt", "iskraemeco", "#1037" },
   { "test/payloads/iskraemeco/gh1072-1.hex", "iskraemeco", "#1072" },
   { "test/payloads/iskraemeco/gh1072-2.hex", "iskraemeco", "#1072" },
@@ -128,6 +129,45 @@ static const KeyedFixture ENC_KEYED[] = {
   { "test/payloads/kamstrup/gh73-3.hex", "AMS_TEST_KEY_EM20200710_EK", "AMS_TEST_KEY_EM20200710_AK" },
   { "test/payloads/landis-gyr/gh501-1.hex", "AMS_TEST_KEY_GH501_EK", "AMS_TEST_KEY_GH501_AK" },
   { "test/payloads/landis-gyr/gh501-2.hex", "AMS_TEST_KEY_GH501_EK", "AMS_TEST_KEY_GH501_AK" },
+};
+
+// 35 encrypted frames with no key — framing/GCM-header coverage only
+static const Fixture ENC_NOKEY[] = {
+  { "test/payloads/iskraemeco/gh1001-1.hex", "iskraemeco", "#1001" },
+  { "test/payloads/iskraemeco/gh1001-2.hex", "iskraemeco", "#1001" },
+  { "test/payloads/iskraemeco/gh1001-3.hex", "iskraemeco", "#1001" },
+  { "test/payloads/iskraemeco/gh615-7.hex", "iskraemeco", "#615" },
+  { "test/payloads/kaifa/gh433-1.hex", "kaifa", "#433" },
+  { "test/payloads/kaifa/gh433-2.hex", "kaifa", "#433" },
+  { "test/payloads/kaifa/gh539-1.hex", "kaifa", "#539" },
+  { "test/payloads/kaifa/gh539-2.hex", "kaifa", "#539" },
+  { "test/payloads/kaifa/gh986-1.hex", "kaifa", "#986" },
+  { "test/payloads/kamstrup/gh111-1.hex", "kamstrup", "#111" },
+  { "test/payloads/kamstrup/gh157-1.hex", "kamstrup", "#157" },
+  { "test/payloads/kamstrup/gh194-2.hex", "kamstrup", "#194" },
+  { "test/payloads/kamstrup/gh244-1.hex", "kamstrup", "#244" },
+  { "test/payloads/kamstrup/gh244-2.hex", "kamstrup", "#244" },
+  { "test/payloads/kamstrup/gh244-3.hex", "kamstrup", "#244" },
+  { "test/payloads/kamstrup/gh244-4.hex", "kamstrup", "#244" },
+  { "test/payloads/kamstrup/gh244-5.hex", "kamstrup", "#244" },
+  { "test/payloads/kamstrup/gh247-3.hex", "kamstrup", "#247" },
+  { "test/payloads/kamstrup/gh339-1.hex", "kamstrup", "#339" },
+  { "test/payloads/kamstrup/gh350-1.hex", "kamstrup", "#350" },
+  { "test/payloads/kamstrup/gh517-1.hex", "kamstrup", "#517" },
+  { "test/payloads/landis-gyr/em-ct623-1.hex", "landis-gyr", "email 2023-11-26" },
+  { "test/payloads/landis-gyr/em-ct623-2.hex", "landis-gyr", "email 2023-11-26" },
+  { "test/payloads/sagemcom/gh143-3.hex", "sagemcom", "#143" },
+  { "test/payloads/sagemcom/gh155-1.hex", "sagemcom", "#155" },
+  { "test/payloads/sagemcom/gh155-2.hex", "sagemcom", "#155" },
+  { "test/payloads/sagemcom/gh155-3.hex", "sagemcom", "#155" },
+  { "test/payloads/sagemcom/gh155-4.hex", "sagemcom", "#155" },
+  { "test/payloads/sagemcom/gh155-6.hex", "sagemcom", "#155" },
+  { "test/payloads/sagemcom/gh248-1.hex", "sagemcom", "#248" },
+  { "test/payloads/sagemcom/gh248-2.hex", "sagemcom", "#248" },
+  { "test/payloads/sagemcom/gh248-3.hex", "sagemcom", "#248" },
+  { "test/payloads/sagemcom/gh264-2.txt", "sagemcom", "#264" },
+  { "test/payloads/sagemcom/gh301-1.hex", "sagemcom", "#301" },
+  { "test/payloads/sagemcom/gh867-1.hex", "sagemcom", "#867" },
 };
 
 #endif

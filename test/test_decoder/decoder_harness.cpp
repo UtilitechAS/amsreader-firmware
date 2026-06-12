@@ -83,7 +83,8 @@ static void unmute_stdout() {}
 // Mirror of PassiveMeterCommunicator::unwrapData (sans debug/MQTT). Returns the
 // offset to the payload start (>=0) with ctx.type/length set, or <0 on failure.
 static int16_t unwrap(uint8_t* buf, DataParserContext& ctx, MeterConfig* cfg,
-                      const uint8_t* enc_key, const uint8_t* auth_key) {
+                      const uint8_t* enc_key, const uint8_t* auth_key,
+                      bool* reachedGcm = NULL, bool stopAfterGcm = false) {
     HDLCParser hdlc;
     MBUSParser mbus;
     GBTParser gbt;
@@ -119,8 +120,13 @@ static int16_t unwrap(uint8_t* buf, DataParserContext& ctx, MeterConfig* cfg,
             case DATA_TAG_GBT:  res = gbt.parse(buf, ctx); break;
             case DATA_TAG_LLC:  res = llc.parse(buf, ctx); break;
             case DATA_TAG_GCM:
+                if (reachedGcm) *reachedGcm = true;
                 if (!gcm) { delete dsmr; return DATA_PARSE_UNKNOWN_DATA; }
                 res = gcm->parse(buf, ctx);
+                // Probe mode: the GCM header (incl. system title) is now parsed;
+                // stop before decoding the plaintext (which, with a dummy key, is
+                // garbage and not worth parsing).
+                if (stopAfterGcm) { delete gcm; delete dsmr; return res; }
                 break;
             case DATA_TAG_DLMS: res = dlms.parse(buf, ctx); if (res >= 0) doRet = true; break;
             case DATA_TAG_DSMR:
@@ -231,4 +237,31 @@ AmsData* harness_decode_fixture(const char* path) {
     MeterConfig cfg;
     memset(&cfg, 0, sizeof(cfg));   // multipliers 0 == x1 (matches clearMeterConfig)
     return harness_decode(buf, (uint16_t)n, &cfg, NULL, NULL);
+}
+
+void harness_probe_fixture(const char* path, HarnessProbe* out) {
+    out->reached_gcm = false;
+    memset(out->system_title, 0, sizeof(out->system_title));
+    out->unwrap_result = DATA_PARSE_FAIL;
+
+    static uint8_t buf[4096];
+    int n = harness_load_fixture(path, buf, sizeof(buf));
+    if (n <= 0) return;
+
+    // Dummy key: the GCM header (incl. system title) is parsed before any
+    // decryption, so framing/header coverage works without the real key.
+    uint8_t zero[16];
+    memset(zero, 0, sizeof(zero));
+    DataParserContext ctx;
+    ctx.type = buf[0];
+    ctx.length = (uint16_t)n;
+    ctx.timestamp = 0;
+    memset(ctx.system_title, 0, sizeof(ctx.system_title));
+
+    bool reached = false;
+    mute_stdout();
+    out->unwrap_result = unwrap(buf, ctx, NULL, zero, zero, &reached, /*stopAfterGcm=*/true);
+    unmute_stdout();
+    out->reached_gcm = reached;
+    memcpy(out->system_title, ctx.system_title, sizeof(out->system_title));
 }

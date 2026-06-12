@@ -15,6 +15,7 @@ def emit(rows):
 unenc_ok   = [r for r in rows if not r["encrypted"] and r["expect"] == "ok"]
 unenc_edge = [r for r in rows if not r["encrypted"] and r["expect"] == "edge"]
 enc_keyed  = [r for r in rows if r["encrypted"] and r.get("ek_secret")]
+enc_nokey  = [r for r in rows if r["encrypted"] and not r.get("ek_secret")]
 
 h = []
 h.append("/**")
@@ -48,7 +49,12 @@ for r in enc_keyed:
         ak=('"%s"' % r["ak_secret"]) if r.get("ak_secret") else "nullptr"))
 h.append("};")
 h.append("")
+h.append(f"// {len(enc_nokey)} encrypted frames with no key — framing/GCM-header coverage only")
+h.append("static const Fixture ENC_NOKEY[] = {")
+h.append(emit(enc_nokey))
+h.append("};")
+h.append("")
 h.append("#endif")
 OUT = os.path.join(os.path.dirname(BASE), "test_decoder", "fixtures_generated.h")
 open(OUT, "w").write("\n".join(h) + "\n")
-print(f"wrote fixtures_generated.h: {len(unenc_ok)} ok, {len(unenc_edge)} edge, {len(enc_keyed)} keyed")
+print(f"wrote fixtures_generated.h: {len(unenc_ok)} ok, {len(unenc_edge)} edge, {len(enc_keyed)} keyed, {len(enc_nokey)} nokey")

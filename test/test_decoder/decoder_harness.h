@@ -45,4 +45,15 @@ AmsData* harness_decode(uint8_t* buf, uint16_t len, MeterConfig* cfg,
 // Convenience: load + decode a fixture (unencrypted). Returns NULL on failure.
 AmsData* harness_decode_fixture(const char* path);
 
+// Framing probe for encrypted frames we have no key for: runs the unwrap with a
+// dummy key so the GCM header is still parsed, and reports how far it got. Lets
+// tests assert that the transport framing (HDLC/M-Bus/LLC) and GCM header parse
+// reach the decrypt step and extract a system title, without crashing.
+struct HarnessProbe {
+    bool reached_gcm;          // unwrap dispatched the GCM layer
+    uint8_t system_title[8];   // extracted from the GCM header (0 if none)
+    int16_t unwrap_result;     // raw unwrap return (>=0 payload offset, <0 error)
+};
+void harness_probe_fixture(const char* path, HarnessProbe* out);
+
 #endif

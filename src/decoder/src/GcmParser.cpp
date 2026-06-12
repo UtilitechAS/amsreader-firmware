@@ -99,6 +99,9 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
     uint8_t authentication_tag[12];
     uint8_t authkeylen = 0, aadlen = 0;
     if((sec & 0x10) == 0x10) {
+        // Need at least the 12-byte auth tag plus the 5 security/frame-counter
+        // bytes; otherwise the tag memcpy and ciphertext length underflow.
+        if(len < 17) return GCM_DECRYPT_FAILED;
         authkeylen = 12;
         aadlen = 17;
         footersize += authkeylen;
@@ -106,6 +109,10 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
         memcpy(authentication_tag, ptr + len - footersize - 5, authkeylen);
         for(uint8_t i = 0; i < 16; i++) authenticate |= authentication_key[i] > 0;
     }
+
+    // Guard the ciphertext length (len - authkeylen - 5) against underflow so a
+    // short/garbage length can't blow the stack via the cipher_text buffer.
+    if(len < (uint32_t)authkeylen + 5) return GCM_DECRYPT_FAILED;
 
     #if defined(ESP8266)
         br_gcm_context gcmCtx;

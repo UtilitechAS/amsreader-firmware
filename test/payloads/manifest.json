@@ -106,8 +106,8 @@
   "country": "Poland",
   "protocol": "DSMR+DLMS",
   "format": "txt",
-  "encrypted": true,
-  "expect": "edge"
+  "encrypted": false,
+  "expect": "ok"
  },
  {
   "file": "iskraemeco/gh1001-1.hex",

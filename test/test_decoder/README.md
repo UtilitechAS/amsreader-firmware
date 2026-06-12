@@ -61,3 +61,12 @@ name — from the environment first (GitHub Actions secrets in CI), then from th
 gitignored `test/payloads/keys/keys.local.json` for local runs. Set the secrets
 listed in `test/payloads/keys/README.md` (e.g. `AMS_TEST_KEY_GH787_EK`) to run
 the decrypt tests in CI; without them those tests are skipped, not failed.
+
+### Encrypted frames without a key
+
+The encrypted fixtures we hold no key for (`ENC_NOKEY`) can't be decrypted, but
+`test_encrypted_framing_no_key` still exercises them: it probes each through the
+framing (HDLC / M-Bus / LLC) and the GCM-header parse with a dummy key (the
+system title is read before any decryption), asserting the decoder never crashes
+and that every frame reaching the GCM layer yields a system title. This is what
+caught the `GcmParser` ciphertext-length underflow. It needs no mbedTLS.

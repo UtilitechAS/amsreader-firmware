@@ -155,3 +155,27 @@ void test_encrypted_kaifa_905(void) {
     delete d;
 }
 
+
+
+// Framing / GCM-header coverage for encrypted frames we have no key for.
+// Does not (cannot) test decryption — instead it guards that the transport
+// framing and GCM-header parse never crash on real-world encrypted bytes, and
+// that every frame which reaches the GCM layer yields a system title. (This is
+// what surfaced — and now guards against — the GcmParser ciphertext-length
+// underflow.) Runs without mbedTLS: the system title is read before decryption.
+void test_encrypted_framing_no_key(void) {
+    size_t n = sizeof(ENC_NOKEY) / sizeof(ENC_NOKEY[0]);
+    int reached = 0, missing_title = 0;
+    for (size_t i = 0; i < n; i++) {
+        HarnessProbe p;
+        harness_probe_fixture(ENC_NOKEY[i].path, &p);   // must not crash
+        if (!p.reached_gcm) continue;
+        reached++;
+        bool nonzero = false;
+        for (int k = 0; k < 8; k++) nonzero |= (p.system_title[k] != 0);
+        if (!nonzero) { printf("  no system title: %s\n", ENC_NOKEY[i].path); missing_title++; }
+    }
+    printf("encrypted-no-key: %d/%zu reached GCM header\n", reached, n);
+    TEST_ASSERT_EQUAL_MESSAGE(0, missing_title, "frame reached GCM but extracted no system title");
+    TEST_ASSERT_GREATER_THAN_MESSAGE(0, reached, "no encrypted frame reached the GCM layer");
+}

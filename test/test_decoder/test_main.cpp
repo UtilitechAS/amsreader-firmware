@@ -62,6 +62,7 @@ void test_encrypted_iskra_787(void);
 void test_encrypted_landisgyr_501(void);
 void test_encrypted_kaifa_905(void);
 void test_encrypted_kamstrup_73(void);
+void test_encrypted_framing_no_key(void);
 
 int main(int argc, char** argv) {
     if (argc > 1 && strcmp(argv[1], "gen") == 0) {
@@ -82,5 +83,6 @@ int main(int argc, char** argv) {
     RUN_TEST(test_encrypted_landisgyr_501);
     RUN_TEST(test_encrypted_kaifa_905);
     RUN_TEST(test_encrypted_kamstrup_73);
+    RUN_TEST(test_encrypted_framing_no_key);
     return UNITY_END();
 }

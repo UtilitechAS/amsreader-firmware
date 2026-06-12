@@ -45,7 +45,7 @@
 <nav class="hdr">
       <div class="flex flex-wrap space-x-4 text-sm text-gray-300">
         <div class="flex text-lg text-gray-100 p-2">
-          <a href="#/">AMS reader <span>{sysinfo.version}</span></a>
+          <a href={basepath}>AMS reader <span>{sysinfo.version}</span></a>
         </div>
         <div class="flex-none my-auto p-2 flex space-x-4">
           <div class="flex-none my-auto"><Uptime epoch={data.u}/></div>

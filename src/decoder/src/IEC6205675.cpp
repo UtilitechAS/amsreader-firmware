@@ -386,6 +386,8 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     double obis182 = ntohl(data->dlu.data) / 1000.0;
 
+                    activeImportCounterTariff1 = obis181;
+                    activeImportCounterTariff2 = obis182;
                     if(activeImportCounter < obis181 + obis182)
                         activeImportCounter = obis181 + obis182;
 
@@ -397,6 +399,8 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     double obis282 = ntohl(data->dlu.data) / 1000.0;
 
+                    activeExportCounterTariff1 = obis281;
+                    activeExportCounterTariff2 = obis282;
                     if(activeExportCounter < obis281 + obis282)
                         activeExportCounter = obis281 + obis282;
 
@@ -467,6 +471,8 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     double obis282 = ntohl(data->dlu.data) / 1000.0;
 
+                    activeExportCounterTariff1 = obis281;
+                    activeExportCounterTariff2 = obis282;
                     activeExportCounter = obis281 + obis282;
 
                     lastUpdateMillis = millis64();
@@ -599,6 +605,83 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 // 13.7.0
                 data = getCosemDataAt(idx++, ((char *) (d)));
                 powerFactor= ntohl(data->dlu.data) / 1000.0;
+
+                // 21.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1activeImportPower = ntohl(data->dlu.data);
+
+                // 41.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2activeImportPower = ntohl(data->dlu.data);
+
+                // 61.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3activeImportPower = ntohl(data->dlu.data);
+
+                // 22.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1activeExportPower = ntohl(data->dlu.data);
+
+                // 42.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2activeExportPower = ntohl(data->dlu.data);
+
+                // 62.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3activeExportPower = ntohl(data->dlu.data);
+
+                // 32.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1voltage = ntohs(data->lu.data) / 10.0;
+
+                // 52.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2voltage = ntohs(data->lu.data) / 10.0;
+
+                // 72.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3voltage = ntohs(data->lu.data) / 10.0;
+
+                // 31.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1current = ntohs(data->lu.data) / 100.0;
+
+                // 51.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2current = ntohs(data->lu.data) / 100.0;
+
+                // 71.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3current = ntohs(data->lu.data) / 100.0;
+
+                listType = 4;
+                lastUpdateMillis = millis64();
+            } else if(data->base.length == 0x1C) {
+                idx = 4;
+
+                // 1.8.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                // 1.8.1
+                // 1.8.2
+                idx += 2;
+                
+                // 2.8.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                // 2.8.1
+                // 2.8.2
+                idx += 2;
+
+                // 1.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportPower = ntohl(data->dlu.data);
+
+                // 2.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportPower = ntohl(data->dlu.data);
 
                 // 21.7.0
                 data = getCosemDataAt(idx++, ((char *) (d)));
@@ -875,10 +958,30 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
             listType = 3;
             activeImportCounter = val / 1000.0;
         }
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_COUNT_T1, sizeof(AMS_OBIS_ACTIVE_IMPORT_COUNT_T1), ((char *) (d)));
+        if(val != NOVALUE) {
+            listType = 3;
+            activeImportCounterTariff1 = val / 1000.0;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_COUNT_T2, sizeof(AMS_OBIS_ACTIVE_IMPORT_COUNT_T2), ((char *) (d)));
+        if(val != NOVALUE) {
+            listType = 3;
+            activeImportCounterTariff2 = val / 1000.0;
+        }
         val = getNumber(AMS_OBIS_ACTIVE_EXPORT_COUNT, sizeof(AMS_OBIS_ACTIVE_EXPORT_COUNT), ((char *) (d)));
         if(val != NOVALUE) {
             listType = 3;
             activeExportCounter = val / 1000.0;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_COUNT_T1, sizeof(AMS_OBIS_ACTIVE_EXPORT_COUNT_T1), ((char *) (d)));
+        if(val != NOVALUE) {
+            listType = 3;
+            activeExportCounterTariff1 = val / 1000.0;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_COUNT_T2, sizeof(AMS_OBIS_ACTIVE_EXPORT_COUNT_T2), ((char *) (d)));
+        if(val != NOVALUE) {
+            listType = 3;
+            activeExportCounterTariff2 = val / 1000.0;
         }
         val = getNumber(AMS_OBIS_REACTIVE_IMPORT_COUNT, sizeof(AMS_OBIS_REACTIVE_IMPORT_COUNT), ((char *) (d)));
         if(val != NOVALUE) {
@@ -1091,7 +1194,11 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
     }
     if(meterConfig->accumulatedMultiplier > 0) {
         activeImportCounter = activeImportCounter > 0 ? activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeImportCounterTariff1 = activeImportCounterTariff1 > 0 ? activeImportCounterTariff1 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeImportCounterTariff2 = activeImportCounterTariff2 > 0 ? activeImportCounterTariff2 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         activeExportCounter = activeExportCounter > 0 ? activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeExportCounterTariff1 = activeExportCounterTariff1 > 0 ? activeExportCounterTariff1 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeExportCounterTariff2 = activeExportCounterTariff2 > 0 ? activeExportCounterTariff2 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         reactiveImportCounter = reactiveImportCounter > 0 ? reactiveImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         reactiveExportCounter = reactiveExportCounter > 0 ? reactiveExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         l1activeImportCounter = l1activeImportCounter > 0 ? l1activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;

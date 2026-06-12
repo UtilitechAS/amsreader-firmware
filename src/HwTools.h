@@ -13,9 +13,6 @@
 #include <ESP8266WiFi.h>
 #elif defined(ESP32)
 #include <WiFi.h>
-#include <driver/adc.h>
-#include <esp_adc_cal.h>
-#include <soc/adc_channel.h>
 #endif
 
 #include <DallasTemperature.h>
@@ -35,11 +32,6 @@ struct TempSensorData {
     bool changed;
 };
 
-struct AdcConfig {
-    uint8_t unit;
-    uint8_t channel;
-};
-
 class HwTools {
 public:
     bool applyBoardConfig(uint8_t boardType, GpioConfig& gpioConfig, MeterConfig& meterConfig, uint8_t hanPin);
@@ -55,7 +47,10 @@ public:
     int getWifiRssi();
     bool ledOn(uint8_t color);
     bool ledOff(uint8_t color);
-    bool ledBlink(uint8_t color, uint8_t blink);
+    bool ledFlash(uint8_t color, uint8_t count, bool fast = true, bool suppressMeterLed = false);
+    bool ledFlashBlocking(uint8_t color, uint8_t count, bool fast = true);
+    void ledLoop();
+    bool ledBusy();
     void setBootSuccessful(bool value);
     bool isVoltageOptimal(float range = 0.4);
     uint8_t getBoardType();
@@ -64,7 +59,7 @@ public:
 private:
     uint8_t boardType;
     uint8_t ledPin, redPin, greenPin, bluePin, tempPin, atempPin;
-    uint8_t ledDisablePin, ledBehaviour;
+    uint8_t ledDisablePin = 0xFF, ledBehaviour;
     bool ledInvert, rgbInvert;
     uint8_t vccPin, vccGnd_r, vccVcc_r;
     float vccOffset, vccMultiplier;
@@ -73,10 +68,6 @@ private:
     unsigned long lastVccRead = 0;
 
     uint16_t analogRange = 1024;
-    AdcConfig voltAdc, tempAdc;
-    #if defined(ESP32)
-        esp_adc_cal_characteristics_t* voltAdcChar, tempAdcChar;
-    #endif
     bool tempSensorInit;
     OneWire *oneWire = NULL;
     DallasTemperature *sensorApi = NULL;
@@ -85,9 +76,18 @@ private:
 
     bool bootSuccessful = false;
 
+    // Non-blocking flash sequence state (see ledFlash/ledLoop)
+    uint8_t flashColor = 0;
+    uint8_t flashLeft = 0;          // on-phases remaining
+    bool flashOn = false;           // LED currently lit
+    uint16_t flashOnMs = 200, flashOffMs = 350;
+    unsigned long flashAt = 0;      // millis() of last transition
+    bool flashSuppressHw = false;   // hold the meter-activity LED off during this burst
+
     bool writeLedPin(uint8_t color, uint8_t state);
+    void applyLedDisablePin();
+    bool ledColorAvailable(uint8_t color);
     bool isSensorAddressEqual(uint8_t a[8], uint8_t b[8]);
-    void getAdcChannel(uint8_t pin, AdcConfig&);
 };
 
 #endif

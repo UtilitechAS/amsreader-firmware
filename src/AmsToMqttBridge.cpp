@@ -22,6 +22,10 @@ ADC_MODE(ADC_VCC);
 #include <ESP32SSDP.h>
 #include <esp_task_wdt.h>
 #include <lwip/dns.h>
+#if defined(BOARD_HAS_PSRAM)
+#include <esp_heap_caps.h>
+#include <mbedtls/platform.h>
+#endif
 #endif
 #if defined(AMS_CLOUD)
 #include "CloudConnector.h"
@@ -86,6 +90,8 @@ ADC_MODE(ADC_VCC);
 #include "DomoticzMqttHandler.h"
 #include "HomeAssistantMqttHandler.h"
 #include "PassthroughMqttHandler.h"
+
+#include "CustomDefaults.h"
 
 #include "MeterCommunicator.h"
 #include "PassiveMeterCommunicator.h"
@@ -169,6 +175,63 @@ MqttConfig energySpeedometerConfig = {
 };
 #endif
 
+#if defined(CUSTOM_MQTT_HOST)
+#ifndef CUSTOM_MQTT_PORT
+#define CUSTOM_MQTT_PORT 1883
+#endif
+#ifndef CUSTOM_MQTT_USERNAME
+#define CUSTOM_MQTT_USERNAME ""
+#endif
+#ifndef CUSTOM_MQTT_PASSWORD
+#define CUSTOM_MQTT_PASSWORD ""
+#endif
+#ifndef CUSTOM_MQTT_PUBLISH_TOPIC
+#define CUSTOM_MQTT_PUBLISH_TOPIC "ams"
+#endif
+#ifndef CUSTOM_MQTT_SUBSCRIBE_TOPIC
+#define CUSTOM_MQTT_SUBSCRIBE_TOPIC ""
+#endif
+#ifndef CUSTOM_MQTT_PAYLOAD_FORMAT
+#define CUSTOM_MQTT_PAYLOAD_FORMAT 0
+#endif
+#ifndef CUSTOM_MQTT_SSL
+#define CUSTOM_MQTT_SSL false
+#endif
+#ifndef CUSTOM_MQTT_CA_VERIFY
+#define CUSTOM_MQTT_CA_VERIFY false
+#endif
+#ifndef CUSTOM_MQTT_KEEPALIVE
+#define CUSTOM_MQTT_KEEPALIVE 60
+#endif
+#ifndef CUSTOM_MQTT_TIMEOUT
+#define CUSTOM_MQTT_TIMEOUT 1000
+#endif
+#ifndef CUSTOM_MQTT_STATE_UPDATE
+#define CUSTOM_MQTT_STATE_UPDATE false
+#endif
+#ifndef CUSTOM_MQTT_STATE_UPDATE_INTERVAL
+#define CUSTOM_MQTT_STATE_UPDATE_INTERVAL 10
+#endif
+AmsMqttHandler* customMqttHandler = NULL;
+MqttConfig customMqttConfig = {
+	CUSTOM_MQTT_HOST,
+	CUSTOM_MQTT_PORT,
+	"",  // clientId — filled at runtime from chip-derived unique name
+	CUSTOM_MQTT_PUBLISH_TOPIC,
+	CUSTOM_MQTT_SUBSCRIBE_TOPIC,
+	CUSTOM_MQTT_USERNAME,
+	CUSTOM_MQTT_PASSWORD,
+	CUSTOM_MQTT_PAYLOAD_FORMAT,
+	CUSTOM_MQTT_SSL,
+	0,                                       // magic
+	CUSTOM_MQTT_STATE_UPDATE,
+	CUSTOM_MQTT_STATE_UPDATE_INTERVAL,
+	CUSTOM_MQTT_TIMEOUT,
+	CUSTOM_MQTT_KEEPALIVE,
+	0                                        // rebootMinutes — managed by primary handler only
+};
+#endif
+
 Stream *hanSerial;
 HardwareSerial *hwSerial = NULL;
 uint8_t rxBufferErrors = 0;
@@ -238,6 +301,9 @@ void handleMdns();
 #endif
 #if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 void handleEnergySpeedometer();
+#endif
+#if defined(CUSTOM_MQTT_HOST)
+void handleCustomMqtt();
 #endif
 #if defined(AMS_CLOUD)
 void handleCloud();
@@ -348,8 +414,30 @@ void resetBootCycleCounter(bool deepSleep) {
 	#endif
 }
 
+#if defined(ESP32) && defined(BOARD_HAS_PSRAM)
+// mbedTLS in Tasmota's libs is built with CONFIG_MBEDTLS_INTERNAL_MEM_ALLOC=1,
+// which forces every TLS allocation into internal SRAM and ignores PSRAM.
+// Override the calloc/free hooks at runtime so the 16 KB SSL record buffers
+// (and BIGNUM workspace during cert verify) land in PSRAM instead.
+// Falls back to internal RAM if PSRAM is exhausted or absent.
+static void *psaware_calloc(size_t n, size_t size) {
+	void *p = heap_caps_calloc(n, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+	if(!p) p = heap_caps_calloc(n, size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+	return p;
+}
+static void psaware_free(void *p) {
+	heap_caps_free(p);
+}
+#endif
+
 void setup() {
 	Serial.begin(115200);
+
+	#if defined(ESP32) && defined(BOARD_HAS_PSRAM)
+	if(ESP.getPsramSize() > 0) {
+		mbedtls_platform_set_calloc_free(psaware_calloc, psaware_free);
+	}
+	#endif
 
 	config.hasConfig(); // Need to run this to make sure all configuration have been migrated before we load GPIO config
 
@@ -383,7 +471,7 @@ void setup() {
 		delay(1000);
 		if(digitalRead(gpioConfig.apPin) == LOW) {
 			if(!hw.ledOn(LED_RED)) {
-				hw.ledBlink(LED_INTERNAL, 4);
+				hw.ledFlashBlocking(LED_INTERNAL, 4);
 			}
 			delay(2000);
 			if(digitalRead(gpioConfig.apPin) == LOW) {
@@ -393,8 +481,8 @@ void setup() {
 				delay(2000);
 				if(digitalRead(gpioConfig.apPin) == HIGH) {
 					config.clear();
-					if(!hw.ledBlink(LED_RED, 6)) {
-						hw.ledBlink(LED_INTERNAL, 6);
+					if(!hw.ledFlashBlocking(LED_RED, 6)) {
+						hw.ledFlashBlocking(LED_INTERNAL, 6);
 					}
 					rdc.cause = REBOOT_CAUSE_BTN_FACTORY_RESET;
 					delay(250);
@@ -523,11 +611,11 @@ void setup() {
 	hw.ledOff(LED_GREEN);
 	hw.ledOff(LED_INTERNAL);
 
-	hw.ledBlink(LED_INTERNAL, 1);
-	hw.ledBlink(LED_RED, 1);
-	hw.ledBlink(LED_YELLOW, 1);
-	hw.ledBlink(LED_GREEN, 1);
-	hw.ledBlink(LED_BLUE, 1);
+	hw.ledFlashBlocking(LED_INTERNAL, 1);
+	hw.ledFlashBlocking(LED_RED, 1);
+	hw.ledFlashBlocking(LED_YELLOW, 1);
+	hw.ledFlashBlocking(LED_GREEN, 1);
+	hw.ledFlashBlocking(LED_BLUE, 1);
 
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
@@ -661,7 +749,8 @@ void loop() {
 
 	handleButton(now);
 
-	if(now > 10000 && now - lastErrorBlink > 3000) {
+	hw.ledLoop();
+	if(now > 10000 && !hw.ledBusy() && now - lastErrorBlink > 3000) {
 		errorBlink();
 	}
 
@@ -677,6 +766,11 @@ void loop() {
 				if(mqttHandler != NULL) {
 					mqttHandler->disconnect();
 				}
+				#if defined(CUSTOM_MQTT_HOST)
+				if(customMqttHandler != NULL) {
+					customMqttHandler->disconnect();
+				}
+				#endif
 			}
 			networkConnected = false;
 			connectToNetwork();
@@ -695,6 +789,9 @@ void loop() {
 					#if defined(ENERGY_SPEEDOMETER_PASS)
 						handleEnergySpeedometer();
 					#endif
+				#endif
+				#if defined(CUSTOM_MQTT_HOST)
+					handleCustomMqtt();
 				#endif
 
 				// In case of BUS powered meters, we need to be sure voltage is stable before fetching prices. But we refuse to wait forever, so max 30 seconds
@@ -842,7 +939,11 @@ void handleUpdater() {
 		updater.ackUpgradeInformationChanged();
 		if(mqttHandler != NULL)
 			mqttHandler->publishFirmware();
-		
+		#if defined(CUSTOM_MQTT_HOST)
+		if(customMqttHandler != NULL)
+			customMqttHandler->publishFirmware();
+		#endif
+
 		if(upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_SIGNAL) {
 			debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);
 			upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
@@ -930,6 +1031,37 @@ void handleEnergySpeedometer() {
 			ws.setEnergySpeedometer(NULL);
 		}
 	}
+}
+#endif
+
+#if defined(CUSTOM_MQTT_HOST)
+void handleCustomMqtt() {
+	if(meterState.getMeterId().isEmpty()) return;
+	if(customMqttHandler == NULL) {
+		config.getUniqueName(customMqttConfig.clientId, 32);
+		switch(CUSTOM_MQTT_PAYLOAD_FORMAT) {
+			case 1:
+			case 2:
+				customMqttHandler = new RawMqttHandler(customMqttConfig, &Debug, (char*) commonBuffer, &updater);
+				break;
+			default:
+				customMqttHandler = new JsonMqttHandler(customMqttConfig, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
+				break;
+		}
+		customMqttHandler->setCaVerification(CUSTOM_MQTT_CA_VERIFY);
+	}
+	if(!customMqttHandler->connected()) {
+		lwmqtt_err_t err = customMqttHandler->lastError();
+		if(err > 0)
+			debugE_P(PSTR("Custom MQTT connector reporting error (%d)"), err);
+		customMqttHandler->connect();
+		customMqttHandler->publishSystem(&hw, ps, &ea);
+		if(ps != NULL && ps->hasPrice()) {
+			customMqttHandler->publishPrices(ps);
+		}
+	}
+	customMqttHandler->loop();
+	delay(10);
 }
 #endif
 
@@ -1224,6 +1356,12 @@ void handleSystem(unsigned long now) {
 				energySpeedometer->publishSystem(&hw, ps, &ea);
 			}
 			#endif
+			#if defined(CUSTOM_MQTT_HOST)
+			if(customMqttHandler != NULL) {
+				customMqttHandler->publishSystem(&hw, ps, &ea);
+				customMqttHandler->publishFirmware();
+			}
+			#endif
 		}
 		lastSysupdate = now;
 		end = millis();
@@ -1253,6 +1391,11 @@ void handleTemperature(unsigned long now) {
 			if(mqttHandler != NULL && WiFi.getMode() == WIFI_STA && WiFi.status() == WL_CONNECTED) {
 				mqttHandler->publishTemperatures(&config, &hw);
 			}
+			#if defined(CUSTOM_MQTT_HOST)
+			if(customMqttHandler != NULL && WiFi.getMode() == WIFI_STA && WiFi.status() == WL_CONNECTED) {
+				customMqttHandler->publishTemperatures(&config, &hw);
+			}
+			#endif
 		}
 		end = millis();
 		if(end - start > SLOW_PROC_TRIGGER_MS) {
@@ -1266,14 +1409,21 @@ void handlePriceService(unsigned long now) {
 		unsigned long start, end;
 		if(ps != NULL && ntpEnabled) {
 			start = millis();
-			if(ps->loop() && mqttHandler != NULL) {
+			if(ps->loop()) {
 				end = millis();
 				if(end - start > SLOW_PROC_TRIGGER_MS) {
 					debugW_P(PSTR("Used %dms to update prices"), end-start);
 				}
-	
+
 				start = millis();
-				mqttHandler->publishPrices(ps);
+				if(mqttHandler != NULL) {
+					mqttHandler->publishPrices(ps);
+				}
+				#if defined(CUSTOM_MQTT_HOST)
+				if(customMqttHandler != NULL) {
+					customMqttHandler->publishPrices(ps);
+				}
+				#endif
 				end = millis();
 				if(end - start > SLOW_PROC_TRIGGER_MS) {
 					debugW_P(PSTR("Used %dms to publish prices to MQTT"), end-start);
@@ -1351,7 +1501,7 @@ void errorBlink() {
 			case 0:
 				if(lastErrorBlink - meterState.getLastUpdateMillis() > 30000) {
 					debugW_P(PSTR("No HAN data received last 30s, single blink"));
-					hw.ledBlink(LED_RED, 1); // If no message received from AMS in 30 sec, blink once
+					hw.ledFlash(LED_RED, 1, false, true); // If no message received from AMS in 30 sec, slow blink once
 					if(meterState.getLastError() == 0) meterState.setLastError(METER_ERROR_NO_DATA);
 					return;
 				}
@@ -1359,14 +1509,14 @@ void errorBlink() {
 			case 1:
 				if(mqttHandler != NULL && mqttHandler->lastError() != 0) {
 					debugW_P(PSTR("MQTT connection not available, double blink"));
-					hw.ledBlink(LED_RED, 2); // If MQTT error, blink twice
+					hw.ledFlash(LED_RED, 2, false, true); // If MQTT error, slow blink twice
 					return;
 				}
 				break;
 			case 2:
 				if(WiFi.getMode() == WIFI_STA && WiFi.status() != WL_CONNECTED) {
 					debugW_P(PSTR("WiFi not connected, tripe blink"));
-					hw.ledBlink(LED_RED, 3); // If WiFi not connected, blink three times
+					hw.ledFlash(LED_RED, 3, false, true); // If WiFi not connected, slow blink three times
 					return;
 				}
 				break;
@@ -1545,8 +1695,8 @@ bool readHanPort() {
 }
 
 void handleDataSuccess(AmsData* data) {
-	if(!setupMode && !hw.ledBlink(LED_GREEN, 1))
-		hw.ledBlink(LED_INTERNAL, 1);
+	if(!setupMode && !hw.ledFlash(LED_GREEN, 1))
+		hw.ledFlash(LED_INTERNAL, 1);
 
 	if(mqttHandler != NULL && checkVoltageIfNeeded(0.2)) {
 		#if defined(ESP32)
@@ -1560,6 +1710,11 @@ void handleDataSuccess(AmsData* data) {
 	#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 	if(energySpeedometer != NULL && checkVoltageIfNeeded(0.1)) {
 		energySpeedometer->publish(&meterState, &meterState, &ea, ps);
+	}
+	#endif
+	#if defined(CUSTOM_MQTT_HOST)
+	if(customMqttHandler != NULL && checkVoltageIfNeeded(0.1)) {
+		customMqttHandler->publish(data, &meterState, &ea, ps);
 	}
 	#endif
 

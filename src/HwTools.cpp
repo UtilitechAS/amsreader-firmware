@@ -175,38 +175,14 @@ void HwTools::setup(SystemConfig* sys, GpioConfig* config) {
     #endif
     if(config->vccPin > 0 && config->vccPin < 40) {
         #if defined(CONFIG_IDF_TARGET_ESP32S2)
-            getAdcChannel(config->vccPin, voltAdc);
-            if(voltAdc.unit != 0xFF) {
-                if(voltAdc.unit == ADC_UNIT_1) {
-                    voltAdcChar = (esp_adc_cal_characteristics_t*) calloc(1, sizeof(esp_adc_cal_characteristics_t));
-                    esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_13, 1100, voltAdcChar);
-                    adc1_config_channel_atten((adc1_channel_t) voltAdc.channel, ADC_ATTEN_DB_11);
-                } else if(voltAdc.unit == ADC_UNIT_2) {
-                    voltAdcChar = (esp_adc_cal_characteristics_t*) calloc(1, sizeof(esp_adc_cal_characteristics_t));
-                    esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_11, ADC_WIDTH_BIT_13, 1100, voltAdcChar);
-                    adc2_config_channel_atten((adc2_channel_t) voltAdc.channel, ADC_ATTEN_DB_11);
-                }
-            }
+            analogSetPinAttenuation(config->vccPin, ADC_11db);
         #elif defined(ESP32)
-            getAdcChannel(config->vccPin, voltAdc);
-            if(voltAdc.unit != 0xFF) {
-                if(voltAdc.unit == ADC_UNIT_1) {
-                    voltAdcChar = (esp_adc_cal_characteristics_t*) calloc(1, sizeof(esp_adc_cal_characteristics_t));
-                    esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_6, ADC_WIDTH_BIT_12, 1100, voltAdcChar);
-                    adc1_config_channel_atten((adc1_channel_t) voltAdc.channel, ADC_ATTEN_DB_6);
-                } else if(voltAdc.unit == ADC_UNIT_2) {
-                    voltAdcChar = (esp_adc_cal_characteristics_t*) calloc(1, sizeof(esp_adc_cal_characteristics_t));
-                    esp_adc_cal_value_t adcVal = esp_adc_cal_characterize((adc_unit_t) voltAdc.unit, ADC_ATTEN_DB_6, ADC_WIDTH_BIT_12, 1100, voltAdcChar);
-                    adc2_config_channel_atten((adc2_channel_t) voltAdc.channel, ADC_ATTEN_DB_6);
-                }
-            }
+            analogSetPinAttenuation(config->vccPin, ADC_6db);
         #else
             pinMode(config->vccPin, INPUT);
         #endif
         vccPin = config->vccPin;
     } else {
-        voltAdc.unit = 0xFF;
-        voltAdc.channel = 0xFF;
         vccPin = config->vccPin = 0xFF;
     }
     vccOffset = config->vccOffset / 100.0;
@@ -264,154 +240,16 @@ void HwTools::setup(SystemConfig* sys, GpioConfig* config) {
     }
 }
 
-void HwTools::getAdcChannel(uint8_t pin, AdcConfig& config) {
-    config.unit = 0xFF;
-    config.channel = 0xFF;
-    #if defined(ESP32)
-        switch(pin) {
-            case ADC1_CHANNEL_0_GPIO_NUM:
-                config.unit = ADC_UNIT_1;
-                config.channel = ADC1_CHANNEL_0;
-                break;
-            case ADC1_CHANNEL_1_GPIO_NUM:
-                config.unit = ADC_UNIT_1;
-                config.channel = ADC1_CHANNEL_1;
-                break;
-            case ADC1_CHANNEL_2_GPIO_NUM:
-                config.unit = ADC_UNIT_1;
-                config.channel = ADC1_CHANNEL_2;
-                break;
-            case ADC1_CHANNEL_3_GPIO_NUM:
-                config.unit = ADC_UNIT_1;
-                config.channel = ADC1_CHANNEL_3;
-                break;
-            case ADC1_CHANNEL_4_GPIO_NUM:
-                config.unit = ADC_UNIT_1;
-                config.channel = ADC1_CHANNEL_4;
-                break;
-            #if defined(ADC1_CHANNEL_5_GPIO_NUM)
-            case ADC1_CHANNEL_5_GPIO_NUM:
-                config.unit = ADC_UNIT_1;
-                config.channel = ADC1_CHANNEL_5;
-                break;
-            #endif
-            #if defined(ADC1_CHANNEL_6_GPIO_NUM)
-            case ADC1_CHANNEL_6_GPIO_NUM:
-                config.unit = ADC_UNIT_1;
-                config.channel = ADC1_CHANNEL_6;
-                break;
-            #endif
-            #if defined(ADC1_CHANNEL_7_GPIO_NUM)
-            case ADC1_CHANNEL_7_GPIO_NUM:
-                config.unit = ADC_UNIT_1;
-                config.channel = ADC1_CHANNEL_7;
-                break;
-            #endif
-            #if defined(ADC1_CHANNEL_8_GPIO_NUM)
-            case ADC1_CHANNEL_8_GPIO_NUM:
-                config.unit = ADC_UNIT_1;
-                config.channel = ADC1_CHANNEL_8;
-                break;
-            #endif
-            #if defined(ADC1_CHANNEL_9_GPIO_NUM)
-            case ADC1_CHANNEL_9_GPIO_NUM:
-                config.unit = ADC_UNIT_1;
-                config.channel = ADC1_CHANNEL_9;
-                break;
-            #endif
-            #if defined(ADC2_CHANNEL_0_GPIO_NUM)
-            case ADC2_CHANNEL_0_GPIO_NUM:
-                config.unit = ADC_UNIT_2;
-                config.channel = ADC2_CHANNEL_0;
-                break;
-            #endif
-            #if defined(ADC2_CHANNEL_1_GPIO_NUM)
-            case ADC2_CHANNEL_1_GPIO_NUM:
-                config.unit = ADC_UNIT_2;
-                config.channel = ADC2_CHANNEL_1;
-                break;
-            #endif
-            #if defined(ADC2_CHANNEL_2_GPIO_NUM)
-            case ADC2_CHANNEL_2_GPIO_NUM:
-                config.unit = ADC_UNIT_2;
-                config.channel = ADC2_CHANNEL_2;
-                break;
-            #endif
-            #if defined(ADC2_CHANNEL_3_GPIO_NUM)
-            case ADC2_CHANNEL_3_GPIO_NUM:
-                config.unit = ADC_UNIT_2;
-                config.channel = ADC2_CHANNEL_3;
-                break;
-            #endif
-            #if defined(ADC2_CHANNEL_4_GPIO_NUM)
-            case ADC2_CHANNEL_4_GPIO_NUM:
-                config.unit = ADC_UNIT_2;
-                config.channel = ADC2_CHANNEL_4;
-                break;
-            #endif
-            #if defined(ADC2_CHANNEL_5_GPIO_NUM)
-            case ADC2_CHANNEL_5_GPIO_NUM:
-                config.unit = ADC_UNIT_2;
-                config.channel = ADC2_CHANNEL_5;
-                break;
-            #endif
-            #if defined(ADC2_CHANNEL_6_GPIO_NUM)
-            case ADC2_CHANNEL_6_GPIO_NUM:
-                config.unit = ADC_UNIT_2;
-                config.channel = ADC2_CHANNEL_6;
-                break;
-            #endif
-            #if defined(ADC2_CHANNEL_7_GPIO_NUM)
-            case ADC2_CHANNEL_7_GPIO_NUM:
-                config.unit = ADC_UNIT_2;
-                config.channel = ADC2_CHANNEL_7;
-                break;
-            #endif
-            #if defined(ADC2_CHANNEL_8_GPIO_NUM)
-            case ADC2_CHANNEL_8_GPIO_NUM:
-                config.unit = ADC_UNIT_2;
-                config.channel = ADC2_CHANNEL_8;
-                break;
-            #endif
-            #if defined(ADC2_CHANNEL_9_GPIO_NUM)
-            case ADC2_CHANNEL_9_GPIO_NUM:
-                config.unit = ADC_UNIT_2;
-                config.channel = ADC2_CHANNEL_9;
-                break;
-            #endif
-        }
-    #endif
-}
 
 float HwTools::getVcc() {
     float volts = 0.0;
     if(vccPin != 0xFF) {
         #if defined(ESP32)
-            if(voltAdc.unit != 0xFF) {
-                uint32_t x = 0;
-                for (int i = 0; i < 10; i++) {
-                    if(voltAdc.unit == ADC_UNIT_1) {
-                        x +=  adc1_get_raw((adc1_channel_t) voltAdc.channel);
-                    } else if(voltAdc.unit == ADC_UNIT_2) {
-                        int v = 0;
-                        #if defined(CONFIG_IDF_TARGET_ESP32S2)
-                        adc2_get_raw((adc2_channel_t) voltAdc.channel, ADC_WIDTH_BIT_13, &v);
-                        #elif defined(CONFIG_IDF_TARGET_ESP32)
-                        adc2_get_raw((adc2_channel_t) voltAdc.channel, ADC_WIDTH_BIT_12, &v);
-                        #endif
-                        x += v;
-                    }
-                }
-                x = x / 10;
-                uint32_t voltage = esp_adc_cal_raw_to_voltage(x, voltAdcChar);
-                volts = voltage / 1000.0;
-            } else {
-                uint32_t x = 0;
-                for (int i = 0; i < 10; i++) {
-                    x += analogRead(vccPin);
-                }
-                volts = (x * 3.3) / 10.0 / analogRange;
+            uint32_t x = 0;
+            for (int i = 0; i < 10; i++) {
+                x += analogReadMilliVolts(vccPin);
             }
+            volts = x / 10.0 / 1000.0;
         #else
             uint32_t x = 0;
             for (int i = 0; i < 10; i++) {
@@ -554,26 +392,27 @@ int HwTools::getWifiRssi() {
     return isnan(rssi) ? -100.0 : rssi;
 }
 
+// Drive the LED-disable pin to its normal state for the current behaviour.
+// LOW disables the hardwired (meter-activity) LED, HIGH enables it.
+void HwTools::applyLedDisablePin() {
+    if(ledDisablePin == 0 || ledDisablePin >= 40) return;
+    switch(ledBehaviour) {
+        case LED_BEHAVIOUR_ERROR_ONLY:
+        case LED_BEHAVIOUR_OFF:
+            digitalWrite(ledDisablePin, LOW);
+            break;
+        case LED_BEHAVIOUR_BOOT:
+            digitalWrite(ledDisablePin, bootSuccessful ? LOW : HIGH);
+            break;
+        default:
+            digitalWrite(ledDisablePin, HIGH);
+    }
+}
+
 void HwTools::setBootSuccessful(bool value) {
     if(bootSuccessful && value) return;
     bootSuccessful = value;
-    if(ledDisablePin > 0 && ledDisablePin < 40) {
-        switch(ledBehaviour) {
-            case LED_BEHAVIOUR_ERROR_ONLY:
-            case LED_BEHAVIOUR_OFF:
-                digitalWrite(ledDisablePin, LOW);
-                break;
-            case LED_BEHAVIOUR_BOOT:
-                if(bootSuccessful) {
-                    digitalWrite(ledDisablePin, LOW);
-                } else {
-                    digitalWrite(ledDisablePin, HIGH);
-                }
-                break;
-            default:
-                digitalWrite(ledDisablePin, HIGH);
-        }
-    }
+    applyLedDisablePin();
 }
 
 bool HwTools::ledOn(uint8_t color) {
@@ -596,14 +435,86 @@ bool HwTools::ledOff(uint8_t color) {
     }
 }
 
-bool HwTools::ledBlink(uint8_t color, uint8_t blink) {
-    for(int i = 0; i < blink; i++) {
-        if(!ledOn(color)) return false;
-        delay(75);
-        ledOff(color);
-        if(i != blink) delay(75);
+// Slow timing is used for error codes so flashes are easy to count;
+// fast timing is used for everything else (boot self-test, data-received blip).
+#define LED_FLASH_FAST_ON 80
+#define LED_FLASH_FAST_OFF 160
+#define LED_FLASH_SLOW_ON 250
+#define LED_FLASH_SLOW_OFF 400
+
+bool HwTools::ledColorAvailable(uint8_t color) {
+    if(ledBehaviour == LED_BEHAVIOUR_OFF) return false;
+    if(ledBehaviour == LED_BEHAVIOUR_ERROR_ONLY && color != LED_RED) return false;
+    if(ledBehaviour == LED_BEHAVIOUR_BOOT && color != LED_RED && bootSuccessful) return false;
+    switch(color) {
+        case LED_INTERNAL: return ledPin != 0xFF;
+        case LED_RED: return redPin != 0xFF;
+        case LED_GREEN: return greenPin != 0xFF;
+        case LED_BLUE: return bluePin != 0xFF;
+        case LED_YELLOW: return redPin != 0xFF && greenPin != 0xFF;
+    }
+    return false;
+}
+
+// Arm a non-blocking flash sequence. Ignored if one is already playing, so
+// callers can simply re-arm every loop without resetting an in-progress burst.
+// Returns false (and arms nothing) when the color can't be shown, so callers
+// can fall back to another color.
+bool HwTools::ledFlash(uint8_t color, uint8_t count, bool fast, bool suppressMeterLed) {
+    if(count == 0 || !ledColorAvailable(color)) return false;
+    if(flashLeft > 0) return true;
+    flashColor = color;
+    flashLeft = count;
+    flashOnMs = fast ? LED_FLASH_FAST_ON : LED_FLASH_SLOW_ON;
+    flashOffMs = fast ? LED_FLASH_FAST_OFF : LED_FLASH_SLOW_OFF;
+    flashOn = false;
+    flashAt = 0; // ledLoop lights the first pulse immediately
+    // Force the hardwired meter-activity LED off for the duration of the burst
+    // so it doesn't blink alongside the error code. Restored when the burst ends.
+    flashSuppressHw = suppressMeterLed;
+    if(flashSuppressHw && ledDisablePin > 0 && ledDisablePin < 40) {
+        digitalWrite(ledDisablePin, LOW);
     }
     return true;
+}
+
+// Blocking variant: arm then pump to completion. For boot-time / pre-restart
+// code that runs before loop() is driving ledLoop().
+bool HwTools::ledFlashBlocking(uint8_t color, uint8_t count, bool fast) {
+    bool armed = ledFlash(color, count, fast);
+    while(flashLeft > 0) {
+        ledLoop();
+        delay(5);
+    }
+    return armed;
+}
+
+// Advance the flash state machine. Cheap to call every loop(); does nothing
+// while idle and only touches the pin on a timed transition.
+void HwTools::ledLoop() {
+    if(flashLeft == 0) return;
+    unsigned long now = millis();
+    if(flashOn) {
+        if(now - flashAt < flashOnMs) return;
+        ledOff(flashColor);
+        flashOn = false;
+        flashAt = now;
+        flashLeft--;
+        if(flashLeft == 0 && flashSuppressHw) {
+            applyLedDisablePin(); // restore the meter-activity LED to its normal state
+            flashSuppressHw = false;
+        }
+    } else {
+        if(flashAt != 0 && now - flashAt < flashOffMs) return;
+        if(flashLeft == 0) return;
+        ledOn(flashColor);
+        flashOn = true;
+        flashAt = now;
+    }
+}
+
+bool HwTools::ledBusy() {
+    return flashLeft > 0;
 }
 
 bool HwTools::writeLedPin(uint8_t color, uint8_t state) {

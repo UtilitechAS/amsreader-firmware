@@ -1,0 +1,2 @@
+# Captured meter payloads are byte-exact wire data — never normalize line endings.
+* -text

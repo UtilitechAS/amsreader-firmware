@@ -14,17 +14,17 @@ int8_t DSMRParser::parse(uint8_t *buf, DataParserContext &ctx, bool verified, Pr
     uint16_t lenBefore = ctx.length;
     uint16_t crcPos = 0;
     bool reachedEnd = verified;
-    uint8_t lastByte = 0x00;
     for(uint16_t pos = 0; pos < ctx.length; pos++) {
         uint8_t b = *(buf+pos);
         if(pos == 0 && b != '/') return DATA_PARSE_BOUNDARY_FLAG_MISSING;
         if(pos > 0 && b == '!') crcPos = pos+1;
-        if(crcPos > 0 && b == 0x0A && lastByte == 0x0D) {
+        // End of telegram is the first LF after the CRC line. Accept both
+        // CRLF (\r\n, the P1 standard) and bare LF (\n) line endings.
+        if(crcPos > 0 && b == 0x0A) {
             reachedEnd = true;
             ctx.length = pos;
             break;
         }
-        lastByte = b;
     }
     if(!reachedEnd) return DATA_PARSE_INCOMPLETE;
     buf[ctx.length+1] = '\0';

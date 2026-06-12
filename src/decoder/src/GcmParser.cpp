@@ -10,6 +10,13 @@
 #include "bearssl/bearssl.h"
 #elif defined(ESP32)
 #include "mbedtls/gcm.h"
+#elif defined(NATIVE_TEST) && defined(HAVE_MBEDTLS)
+#include "mbedtls/gcm.h"   // host (native tests) — system mbedTLS (2.x or 3.x)
+#if defined(__has_include) && __has_include("mbedtls/build_info.h")
+#include "mbedtls/build_info.h"   // 3.x defines MBEDTLS_VERSION_MAJOR here
+#elif defined(__has_include) && __has_include("mbedtls/version.h")
+#include "mbedtls/version.h"      // 2.x defines it here
+#endif
 #endif
 #include <string.h>
 
@@ -92,6 +99,9 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
     uint8_t authentication_tag[12];
     uint8_t authkeylen = 0, aadlen = 0;
     if((sec & 0x10) == 0x10) {
+        // Need at least the 12-byte auth tag plus the 5 security/frame-counter
+        // bytes; otherwise the tag memcpy and ciphertext length underflow.
+        if(len < 17) return GCM_DECRYPT_FAILED;
         authkeylen = 12;
         aadlen = 17;
         footersize += authkeylen;
@@ -99,6 +109,10 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
         memcpy(authentication_tag, ptr + len - footersize - 5, authkeylen);
         for(uint8_t i = 0; i < 16; i++) authenticate |= authentication_key[i] > 0;
     }
+
+    // Guard the ciphertext length (len - authkeylen - 5) against underflow so a
+    // short/garbage length can't blow the stack via the cipher_text buffer.
+    if(len < (uint32_t)authkeylen + 5) return GCM_DECRYPT_FAILED;
 
     #if defined(ESP8266)
         br_gcm_context gcmCtx;
@@ -146,6 +160,51 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
                 mbedtls_gcm_free(&m_ctx);
                 return GCM_DECRYPT_FAILED;
             }
+        }
+        mbedtls_gcm_free(&m_ctx);
+    #elif defined(NATIVE_TEST) && defined(HAVE_MBEDTLS)
+        // Native host tests with system mbedTLS (3.x API).
+        uint8_t cipher_text[len - authkeylen - 5];
+        memcpy(cipher_text, ptr, len - authkeylen - 5);
+
+        mbedtls_gcm_context m_ctx;
+        mbedtls_gcm_init(&m_ctx);
+        if (mbedtls_gcm_setkey(&m_ctx, MBEDTLS_CIPHER_ID_AES, encryption_key, 128) != 0) {
+            mbedtls_gcm_free(&m_ctx);
+            return GCM_ENCRYPTION_KEY_FAILED;
+        }
+        if (authenticate) {
+            int rc = mbedtls_gcm_auth_decrypt(&m_ctx, sizeof(cipher_text),
+                initialization_vector, sizeof(initialization_vector),
+                additional_authenticated_data, aadlen,
+                authentication_tag, authkeylen,
+                cipher_text, (unsigned char*)(ptr));
+            if (authkeylen > 0 && rc == MBEDTLS_ERR_GCM_AUTH_FAILED) {
+                mbedtls_gcm_free(&m_ctx);
+                return GCM_AUTH_FAILED;
+            } else if (rc != 0) {
+                mbedtls_gcm_free(&m_ctx);
+                return GCM_DECRYPT_FAILED;
+            }
+        } else {
+        #if defined(MBEDTLS_VERSION_MAJOR) && MBEDTLS_VERSION_MAJOR >= 3
+            size_t olen = 0;
+            if (mbedtls_gcm_starts(&m_ctx, MBEDTLS_GCM_DECRYPT,
+                    initialization_vector, sizeof(initialization_vector)) != 0 ||
+                mbedtls_gcm_update(&m_ctx, cipher_text, sizeof(cipher_text),
+                    (unsigned char*)(ptr), sizeof(cipher_text), &olen) != 0) {
+                mbedtls_gcm_free(&m_ctx);
+                return GCM_DECRYPT_FAILED;
+            }
+        #else   // mbedTLS 2.x (e.g. Ubuntu libmbedtls-dev) — older API
+            if (mbedtls_gcm_starts(&m_ctx, MBEDTLS_GCM_DECRYPT,
+                    initialization_vector, sizeof(initialization_vector), NULL, 0) != 0 ||
+                mbedtls_gcm_update(&m_ctx, sizeof(cipher_text),
+                    cipher_text, (unsigned char*)(ptr)) != 0) {
+                mbedtls_gcm_free(&m_ctx);
+                return GCM_DECRYPT_FAILED;
+            }
+        #endif
         }
         mbedtls_gcm_free(&m_ctx);
     #else

@@ -1,0 +1,77 @@
+[
+  {
+    "payload": "landis-gyr/gh501-1.hex",
+    "ek_secret": "AMS_TEST_KEY_GH501_EK",
+    "ak_secret": "AMS_TEST_KEY_GH501_AK"
+  },
+  {
+    "payload": "landis-gyr/gh501-2.hex",
+    "ek_secret": "AMS_TEST_KEY_GH501_EK",
+    "ak_secret": "AMS_TEST_KEY_GH501_AK"
+  },
+  {
+    "payload": "kaifa/gh905-1.hex",
+    "ek_secret": "AMS_TEST_KEY_GH905_EK",
+    "ak_secret": null
+  },
+  {
+    "payload": "iskraemeco/gh787-1.hex",
+    "ek_secret": "AMS_TEST_KEY_GH787_EK",
+    "ak_secret": null
+  },
+  {
+    "payload": "iskraemeco/gh787-2.hex",
+    "ek_secret": "AMS_TEST_KEY_GH787_EK",
+    "ak_secret": null
+  },
+  {
+    "payload": "iskraemeco/gh787-3.hex",
+    "ek_secret": "AMS_TEST_KEY_GH787_EK",
+    "ak_secret": null
+  },
+  {
+    "payload": "iskraemeco/gh787-4.hex",
+    "ek_secret": "AMS_TEST_KEY_GH787_EK",
+    "ak_secret": null
+  },
+  {
+    "payload": "iskraemeco/gh787-5.hex",
+    "ek_secret": "AMS_TEST_KEY_GH787_EK",
+    "ak_secret": null
+  },
+  {
+    "payload": "iskraemeco/gh787-6.hex",
+    "ek_secret": "AMS_TEST_KEY_GH787_EK",
+    "ak_secret": null
+  },
+  {
+    "payload": "iskraemeco/gh787-7.hex",
+    "ek_secret": "AMS_TEST_KEY_GH787_EK",
+    "ak_secret": null
+  },
+  {
+    "payload": "iskraemeco/gh787-8.hex",
+    "ek_secret": "AMS_TEST_KEY_GH787_EK",
+    "ak_secret": null
+  },
+  {
+    "payload": "iskraemeco/gh787-9.hex",
+    "ek_secret": "AMS_TEST_KEY_GH787_EK",
+    "ak_secret": null
+  },
+  {
+    "payload": "kamstrup/gh73-1.hex",
+    "ek_secret": "AMS_TEST_KEY_EM20200710_EK",
+    "ak_secret": "AMS_TEST_KEY_EM20200710_AK"
+  },
+  {
+    "payload": "kamstrup/gh73-2.hex",
+    "ek_secret": "AMS_TEST_KEY_EM20200710_EK",
+    "ak_secret": "AMS_TEST_KEY_EM20200710_AK"
+  },
+  {
+    "payload": "kamstrup/gh73-3.hex",
+    "ek_secret": "AMS_TEST_KEY_EM20200710_EK",
+    "ak_secret": "AMS_TEST_KEY_EM20200710_AK"
+  }
+]

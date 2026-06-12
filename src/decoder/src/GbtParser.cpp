@@ -7,6 +7,7 @@
 #include "GbtParser.h"
 #include "byteorder.h"
 #include <string.h>
+#include <stdlib.h>   // malloc/free (was relying on a transitive include)
 
 int8_t GBTParser::parse(uint8_t *d, DataParserContext &ctx) {
     GBTHeader* h = (GBTHeader*) (d);

@@ -11,7 +11,12 @@
 #elif defined(ESP32)
 #include "mbedtls/gcm.h"
 #elif defined(NATIVE_TEST) && defined(HAVE_MBEDTLS)
-#include "mbedtls/gcm.h"   // host (native tests) — system mbedTLS 3.x
+#include "mbedtls/gcm.h"   // host (native tests) — system mbedTLS (2.x or 3.x)
+#if defined(__has_include) && __has_include("mbedtls/build_info.h")
+#include "mbedtls/build_info.h"   // 3.x defines MBEDTLS_VERSION_MAJOR here
+#elif defined(__has_include) && __has_include("mbedtls/version.h")
+#include "mbedtls/version.h"      // 2.x defines it here
+#endif
 #endif
 #include <string.h>
 
@@ -175,6 +180,7 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
                 return GCM_DECRYPT_FAILED;
             }
         } else {
+        #if defined(MBEDTLS_VERSION_MAJOR) && MBEDTLS_VERSION_MAJOR >= 3
             size_t olen = 0;
             if (mbedtls_gcm_starts(&m_ctx, MBEDTLS_GCM_DECRYPT,
                     initialization_vector, sizeof(initialization_vector)) != 0 ||
@@ -183,6 +189,15 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
                 mbedtls_gcm_free(&m_ctx);
                 return GCM_DECRYPT_FAILED;
             }
+        #else   // mbedTLS 2.x (e.g. Ubuntu libmbedtls-dev) — older API
+            if (mbedtls_gcm_starts(&m_ctx, MBEDTLS_GCM_DECRYPT,
+                    initialization_vector, sizeof(initialization_vector), NULL, 0) != 0 ||
+                mbedtls_gcm_update(&m_ctx, sizeof(cipher_text),
+                    cipher_text, (unsigned char*)(ptr)) != 0) {
+                mbedtls_gcm_free(&m_ctx);
+                return GCM_DECRYPT_FAILED;
+            }
+        #endif
         }
         mbedtls_gcm_free(&m_ctx);
     #else

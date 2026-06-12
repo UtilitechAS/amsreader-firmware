@@ -17,7 +17,7 @@ tests via **GitHub Actions secrets** using the suggested names below. Run `tools
 - Encryption key (EK) → secret `AMS_TEST_KEY_GH787_EK`
 - No AK: frames use security byte `0x20` (encrypt-only, no GCM auth), so only the EK is needed.
 - ✅ Verified: EK decrypts all 9 frames to valid DLMS (data-notification, 2024-05-07).
-- Source: emailed to the maintainer by the reporter (Andreas Wiesbauer, 2024-06-01) — the issue
+- Source: emailed to the maintainer by the reporter (2024-06-01) — the issue
   itself says the key was sent privately. Found in the maintainer's Thunderbird mailbox.
 
 ### Kamstrup Omnipower — Denmark ([#126](https://github.com/UtilitechAS/amsreader-firmware/issues/126))
@@ -40,17 +40,16 @@ tests via **GitHub Actions secrets** using the suggested names below. Run `tools
 - Encryption key (EK) → secret `AMS_TEST_KEY_GH905_EK`
 - ✅ Verified: EK decrypts the payload to valid DLMS.
 
-### Kamstrup Omnipower — Denmark (email, Mikkel Hansen, 2020-07-10)
+### Kamstrup Omnipower — Denmark (email, 2020-07-10)
 
 - Decrypts: `kamstrup/gh73-1.hex`, `gh73-2.hex`, `gh73-3.hex`
 - Encryption key (EK / Kamstrup obj 64 GUEK) → secret `AMS_TEST_KEY_EM20200710_EK`
 - Authentication key (AK / Kamstrup obj 65 GAK) → secret `AMS_TEST_KEY_EM20200710_AK`
 - ✅ Verified: decrypts + authenticates to valid DLMS (data-notification, 2020-05-12).
-- This is the project's **first encrypted meter**: the keys were emailed by Mikkel
-  Hansen (issue [#73](https://github.com/UtilitechAS/amsreader-firmware/issues/73),
+- This is the project's **first encrypted meter**: the keys were emailed by the reporter (issue [#73](https://github.com/UtilitechAS/amsreader-firmware/issues/73),
   "Add support for encrypted meters"); the frames are from that issue's comment 12.
 
-### Kamstrup Omnipower — Denmark (email, Christian S. Nielsen, 2023-10-25)
+### Kamstrup Omnipower — Denmark (email, 2023-10-25)
 
 - Decrypts: an HDLC frame **inlined as text** in the email (system title `4B414D45013535D4`).
   ✅ Confirmed: this EK decrypts it to valid DLMS (data-notification dated 2023-10-25).
@@ -62,7 +61,7 @@ tests via **GitHub Actions secrets** using the suggested names below. Run `tools
 - Authentication key (AK / obj 65) → secret `AMS_TEST_KEY_EM20231025_AK`
 - Reporter confirmed "the encryption keys are working". Found in Thunderbird mailbox.
 
-### Kamstrup Omnipower — Denmark (email, Klar Energi A/S, 2025-04-04)
+### Kamstrup Omnipower — Denmark (email, 2025-04-04)
 
 - Decrypts: _(no clean payload frame in-thread)_
 - Encryption key (EK) → secret `AMS_TEST_KEY_EM20250404_EK`

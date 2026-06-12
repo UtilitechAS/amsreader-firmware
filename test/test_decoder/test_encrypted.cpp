@@ -120,7 +120,7 @@ void test_encrypted_iskra_787(void) {
 }
 
 // #73 Kamstrup Omnipower (Denmark) — the project's first encrypted meter.
-// Mikkel Hansen's emailed EK+AK decrypt + authenticate (sec 0x30) to a valid
+// The reporter's emailed EK+AK decrypt + authenticate (sec 0x30) to a valid
 // Kamstrup list (data-notification dated 2020-05-12).
 void test_encrypted_kamstrup_73(void) {
     AmsData* d = decrypt_or_ignore("test/payloads/kamstrup/gh73-1.hex",

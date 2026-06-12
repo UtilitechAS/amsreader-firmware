@@ -11,7 +11,7 @@ on:
       - platformio.ini
       - .github/workflows/**
     branches:
-      - '*'
+      - main
     tags:
       - '*'
       - '!v*.*.*'

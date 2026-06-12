@@ -42,7 +42,7 @@
                 max: 260,
                 ticks: [
                     { value: 207, label: '-10%' },
-                    { value: 230, label: '230v' },
+                    { value: 230, label: '230V' },
                     { value: 253, label: '+10%' }
                 ]
             },

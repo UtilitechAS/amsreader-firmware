@@ -22,6 +22,10 @@ ADC_MODE(ADC_VCC);
 #include <ESP32SSDP.h>
 #include <esp_task_wdt.h>
 #include <lwip/dns.h>
+#if defined(BOARD_HAS_PSRAM)
+#include <esp_heap_caps.h>
+#include <mbedtls/platform.h>
+#endif
 #endif
 #if defined(AMS_CLOUD)
 #include "CloudConnector.h"
@@ -348,8 +352,30 @@ void resetBootCycleCounter(bool deepSleep) {
 	#endif
 }
 
+#if defined(ESP32) && defined(BOARD_HAS_PSRAM)
+// mbedTLS in Tasmota's libs is built with CONFIG_MBEDTLS_INTERNAL_MEM_ALLOC=1,
+// which forces every TLS allocation into internal SRAM and ignores PSRAM.
+// Override the calloc/free hooks at runtime so the 16 KB SSL record buffers
+// (and BIGNUM workspace during cert verify) land in PSRAM instead.
+// Falls back to internal RAM if PSRAM is exhausted or absent.
+static void *psaware_calloc(size_t n, size_t size) {
+	void *p = heap_caps_calloc(n, size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+	if(!p) p = heap_caps_calloc(n, size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+	return p;
+}
+static void psaware_free(void *p) {
+	heap_caps_free(p);
+}
+#endif
+
 void setup() {
 	Serial.begin(115200);
+
+	#if defined(ESP32) && defined(BOARD_HAS_PSRAM)
+	if(ESP.getPsramSize() > 0) {
+		mbedtls_platform_set_calloc_free(psaware_calloc, psaware_free);
+	}
+	#endif
 
 	config.hasConfig(); // Need to run this to make sure all configuration have been migrated before we load GPIO config
 

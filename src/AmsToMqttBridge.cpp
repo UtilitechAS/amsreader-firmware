@@ -1049,6 +1049,7 @@ void handleCustomMqtt() {
 				break;
 		}
 		customMqttHandler->setCaVerification(CUSTOM_MQTT_CA_VERIFY);
+		ws.setCustomMqttHandler(customMqttHandler);
 	}
 	if(!customMqttHandler->connected()) {
 		lwmqtt_err_t err = customMqttHandler->lastError();

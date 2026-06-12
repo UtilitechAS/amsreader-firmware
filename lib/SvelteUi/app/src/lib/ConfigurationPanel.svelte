@@ -16,6 +16,7 @@
     export let sysinfo = {};
     export let data;
   
+    let form;
     let translations = {};
     translationsStore.subscribe(update => {
       translations = update;
@@ -248,9 +249,34 @@
     _global.bindToCloud = function() {
         console.log("BIND CALLED");
     }
+
+    async function toggleShowWifiPass() {
+        const input = form.querySelector('input[name="wp"]');
+        toggleShowPass.call(this, input);
+    }
+
+    async function toggleShowMqttPass() {
+        const input = form.querySelector('input[name="qa"]');
+        toggleShowPass.call(this, input);
+    }
+
+    async function toggleShowWebPass() {
+        const input = form.querySelector('input[name="gp"]');
+        toggleShowPass.call(this, input);
+    }
+
+    async function toggleShowPass(input) {
+        if(input.type === 'password') {
+            input.type = 'text';
+            this.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            this.textContent = '👁️';
+        }
+    }
 </script>
 
-<form on:submit|preventDefault={handleSubmit} autocomplete="off">
+<form bind:this={form} on:submit|preventDefault={handleSubmit} autocomplete="off">
     <div class="grid xl:grid-cols-4 lg:grid-cols-2 md:grid-cols-2">
         {#if configuration?.g}
         <div class="cnt">
@@ -360,7 +386,10 @@
             </div>
             <div class="my-1">
                 {translations.conf?.general?.security?.password ?? "Password"}<br/>
-                <input name="gp" bind:value={configuration.g.p} type="password" class="in-s" maxlength="36" pattern={asciiPattern}/>
+                <div class="flex">
+                    <input name="gp" bind:value={configuration.g.p} type="password" class="in-f w-full" maxlength="36" pattern={asciiPattern}/>
+                    <span on:click={toggleShowWebPass} class="in-post link">👁️</span>
+                </div>
             </div>
             {/if}
             <div class="my-1">
@@ -512,7 +541,10 @@
                 </div>
                 <div class="my-1">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>
-                    <input name="wp" bind:value={configuration.w.p} type="password" class="in-s" pattern={asciiPatternExt}/>
+                    <div class="flex">
+                        <input name="wp" bind:value={configuration.w.p} type="password" class="in-f w-full" pattern={asciiPatternExt}/>
+                        <span on:click={toggleShowWifiPass} class="in-post link">👁️</span>
+                    </div>
                 </div>
                 <div class="my-1 flex">
                     <div class="w-1/2">
@@ -635,7 +667,10 @@
             </div>
             <div class="my-1">
                 {translations.conf?.mqtt?.pass ?? "Password"}<br/>
-                <input name="qa" bind:value={configuration.q.a} type="password" class="in-s" pattern={asciiPatternExt}/>
+                <div class="flex">
+                    <input name="qa" bind:value={configuration.q.a} type="password" class="in-f w-full" pattern={asciiPatternExt}/>
+                    <span on:click={toggleShowMqttPass} class="in-post link">👁️</span>
+                </div>
             </div>
             <div class="my-1 flex">
                 <div>

@@ -97,6 +97,16 @@
         configuration.o = arr
     };
 
+    function daysInMonth(month) {
+        if (month === 0) return 31;
+        return new Date(2024, month, 0).getDate();
+    }
+
+    function clampDay(dateObj, month) {
+        const max = daysInMonth(month);
+        if (dateObj.d > max) dateObj.d = max;
+    }
+
     let moveDown = function(rn) {
         let arr = configuration.o;
         if(rn >= arr.length-1) return;
@@ -163,11 +173,11 @@
                     <div class="flex flex-wrap mr-3">
                         <select name="rsd" class="in-f" bind:value={c.s.d}>
                             <option value={0}>-</option>
-                            {#each {length: 31} as _,i}
+                            {#each {length: daysInMonth(c.s.m)} as _,i}
                                 <option value={i+1}>{i+1}</option>
                             {/each}
                         </select>
-                        <select name="rsm" class="in-m" bind:value={c.s.m}>
+                        <select name="rsm" class="in-m" bind:value={c.s.m} on:change={() => clampDay(c.s, c.s.m)}>
                             <option value={0}>-</option>
                             {#each {length: 12} as _,i}
                                 <option value={i+1}>{translations.months ? translations.months?.[i] : zeropad(i+1)}</option>
@@ -176,11 +186,11 @@
                         <input class="in-m" disabled value="to" style="width: 20px;color:#888;"/>
                         <select name="red" class="in-m" bind:value={c.e.d}>
                             <option value={0}>-</option>
-                            {#each {length: 31} as _,i}
+                            {#each {length: daysInMonth(c.e.m)} as _,i}
                                 <option value={i+1}>{i+1}</option>
                             {/each}
                         </select>
-                        <select name="rem" class="in-l" bind:value={c.e.m}>
+                        <select name="rem" class="in-l" bind:value={c.e.m} on:change={() => clampDay(c.e, c.e.m)}>
                             <option value={0}>-</option>
                             {#each {length: 12} as _,i}
                                 <option value={i+1}>{translations.months ? translations.months?.[i] : zeropad(i+1)}</option>

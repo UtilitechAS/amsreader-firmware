@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -44,6 +44,8 @@
 #endif
 
 #include "LittleFS.h"
+
+#define WIFI_TEST_TIMEOUT 30000
 
 class AmsWebServer {
 public:
@@ -113,6 +115,10 @@ private:
 	WebServer server;
 #endif
 
+	bool wifiTestInProgress = false;
+	unsigned long wifiTestStarted = 0;
+	uint8_t wifiTestStatusCode = 0;
+
 	bool checkSecurity(byte level, bool send401 = true);
 
 	void indexHtml();
@@ -137,6 +143,8 @@ private:
 	void cloudkeyJson();
 
 	void wifiScan();
+	void wifiTestStart();
+	void wifiTestStatus();
 
 	void configurationJson();
 	void handleSave();

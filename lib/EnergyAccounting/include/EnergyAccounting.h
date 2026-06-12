@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -7,8 +7,6 @@
 #ifndef _ENERGYACCOUNTING_H
 #define _ENERGYACCOUNTING_H
 
-#include "Arduino.h"
-#include "AmsData.h"
 #include "AmsDataStorage.h"
 #include "PriceService.h"
 
@@ -83,7 +81,7 @@ public:
     void setPriceService(PriceService *ps);
     void setTimezone(Timezone*);
     EnergyAccountingConfig* getConfig();
-    bool update(AmsData* amsData);
+    bool update(time_t now, uint64_t lastUpdatedMillis, uint8_t listType, uint32_t activeImportPower, uint32_t activeExportPower);
     bool load();
     bool save();
     bool isInitialized();

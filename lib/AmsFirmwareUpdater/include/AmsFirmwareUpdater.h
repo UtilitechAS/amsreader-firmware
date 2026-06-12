@@ -1,3 +1,8 @@
+/**
+ * @copyright Utilitech AS 2023-2026
+ * License: Fair Source
+ * 
+ */
 #pragma once
 #include <stdint.h>
 #include <Print.h>
@@ -39,6 +44,8 @@
 #define AMS_UPDATE_ERR_SUCCESS_CONFIRMED 123
 
 #define UPDATE_BUF_SIZE 4096
+#define UPDATE_MAX_BLOCK_RETRY 25
+#define UPDATE_MAX_REBOOT_RETRY 12
 
 class AmsFirmwareUpdater {
 public:

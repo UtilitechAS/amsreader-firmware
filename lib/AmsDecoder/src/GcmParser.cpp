@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -96,7 +96,7 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
         footersize += authkeylen;
         memcpy(additional_authenticated_data + 1, authentication_key, 16);
         memcpy(authentication_tag, ptr + len - footersize - 5, authkeylen);
-        for(uint8_t i; i < 16; i++) authenticate |= authentication_key[i] > 0;
+        for(uint8_t i = 0; i < 16; i++) authenticate |= authentication_key[i] > 0;
     }
 
     #if defined(ESP8266)

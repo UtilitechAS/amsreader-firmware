@@ -1,3 +1,8 @@
+/**
+ * @copyright Utilitech AS 2023-2026
+ * License: Fair Source
+ * 
+ */
 #include "AmsFirmwareUpdater.h"
 #include "AmsStorage.h"
 #include "FirmwareVersion.h"
@@ -74,7 +79,7 @@ void AmsFirmwareUpdater::setUpgradeInformation(UpgradeInformation& upinfo) {
         #endif
         debugger->printf_P(PSTR("Resuming uprade to %s\n"), updateStatus.toVersion);
 
-        if(updateStatus.reboot_count++ < 8) {
+        if(updateStatus.reboot_count++ < UPDATE_MAX_REBOOT_RETRY) {
             updateStatus.errorCode = AMS_UPDATE_ERR_OK;
         } else {
             updateStatus.errorCode = AMS_UPDATE_ERR_REBOOT;
@@ -129,7 +134,7 @@ void AmsFirmwareUpdater::loop() {
             HTTPClient http;
             start = millis();
             if(!fetchFirmwareChunk(http)) {
-                if(updateStatus.retry_count++ == 3) {
+                if(updateStatus.retry_count++ > UPDATE_MAX_BLOCK_RETRY) {
                     updateStatus.errorCode = AMS_UPDATE_ERR_FETCH;
                     updateStatusChanged = true;
                 }

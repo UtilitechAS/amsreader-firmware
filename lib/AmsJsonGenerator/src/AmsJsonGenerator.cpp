@@ -1,3 +1,8 @@
+/**
+ * @copyright Utilitech AS 2023-2026
+ * License: Fair Source
+ * 
+ */
 #include "AmsJsonGenerator.h"
 
 void AmsJsonGenerator::generateDayPlotJson(AmsDataStorage* ds, char* buf, size_t bufSize) {

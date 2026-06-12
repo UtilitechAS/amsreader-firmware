@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -7,7 +7,6 @@
 #ifndef _REALTIMEPLOT_H
 #define _REALTIMEPLOT_H
 
-#include <stdint.h>
 #include "AmsData.h"
 
 #define REALTIME_SAMPLE 10000

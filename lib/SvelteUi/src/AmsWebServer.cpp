@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -61,14 +61,6 @@ AmsWebServer::AmsWebServer(uint8_t* buf, Stream* Debug, HwTools* hw, ResetDataCo
 	this->hw = hw;
 	this->buf = (char*) buf;
 	this->rdc = rdc;
-	if(rdc->magic != 0x4a) {
-		rdc->last_cause = 0;
-		rdc->cause = 0;
-		rdc->magic = 0x4a;
-	} else {
-		rdc->last_cause = rdc->cause;
-		rdc->cause = 0;
-	}
 }
 
 void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsData* meterState, AmsDataStorage* ds, EnergyAccounting* ea, RealtimePlot* rtp, AmsFirmwareUpdater* updater) {
@@ -137,6 +129,8 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/cloudkey.json"), HTTP_GET, std::bind(&AmsWebServer::cloudkeyJson, this));
 
 	server.on(context + F("/wifiscan.json"), HTTP_GET, std::bind(&AmsWebServer::wifiScan, this));
+	server.on(context + F("/wifitest.json"), HTTP_POST, std::bind(&AmsWebServer::wifiTestStart, this));
+	server.on(context + F("/wifitest.json"), HTTP_GET, std::bind(&AmsWebServer::wifiTestStatus, this));
 
 	server.on(context + F("/configuration.json"), HTTP_GET, std::bind(&AmsWebServer::configurationJson, this));
 	server.on(context + F("/save"), HTTP_POST, std::bind(&AmsWebServer::handleSave, this));
@@ -306,22 +300,14 @@ void AmsWebServer::sysinfoJson() {
 
 	SystemConfig sys;
 	config->getSystemConfig(sys);
-
-	uint32_t chipId;
-	#if defined(ESP32)
-		chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
-	#else
-		chipId = ESP.getChipId();
-	#endif
-	String chipIdStr = String(chipId, HEX);
-
-	String hostname;
+	
+	char hostname[32];
 	if(sys.userConfigured) {
 		NetworkConfig networkConfig;
 		config->getNetworkConfig(networkConfig);
-		hostname = String(networkConfig.hostname);
+		strncpy(hostname, networkConfig.hostname, 32);
 	} else {
-		hostname = "ams-"+chipIdStr;
+		config->getUniqueName(hostname, 32);
 	}
 
 	IPAddress localIp;
@@ -421,7 +407,7 @@ void AmsWebServer::sysinfoJson() {
 		#elif defined(ESP8266)
 		"esp8266",
 		#endif
-		chipIdStr.c_str(),
+		config->getChipId(),
 		cpu_freq,
 		macStr,
 		apMacStr,
@@ -429,7 +415,7 @@ void AmsWebServer::sysinfoJson() {
 		sys.vendorConfigured ? "true" : "false",
 		sys.userConfigured ? "true" : "false",
 		sys.dataCollectionConsent,
-		hostname.c_str(),
+		hostname,
 		performRestart ? "true" : "false",
 		updater->getProgress() > 0.0 && upinfo.errorCode == 0 ? "true" : "false",
 		#if defined(ESP8266)
@@ -1393,10 +1379,10 @@ void AmsWebServer::handleSave() {
 			memset(meterConfig.authenticationKey, 0, 16);
 		}
 
-		meterConfig.wattageMultiplier = server.arg(F("mmw")).toFloat() * 1000;
-		meterConfig.voltageMultiplier = server.arg(F("mmv")).toFloat() * 1000;
-		meterConfig.amperageMultiplier = server.arg(F("mma")).toFloat() * 1000;
-		meterConfig.accumulatedMultiplier = server.arg(F("mmc")).toFloat() * 1000;
+		meterConfig.wattageMultiplier = server.arg(F("mmw")).toDouble() * 1000.0;
+		meterConfig.voltageMultiplier = server.arg(F("mmv")).toDouble() * 1000.0;
+		meterConfig.amperageMultiplier = server.arg(F("mma")).toDouble() * 1000.0;
+		meterConfig.accumulatedMultiplier = server.arg(F("mmc")).toDouble() * 1000.0;
 		config->setMeterConfig(meterConfig);
 	}
 
@@ -1412,7 +1398,7 @@ void AmsWebServer::handleSave() {
 				if(!psk.equals("***")) {
 					strcpy(network.psk, psk.c_str());
 				}
-				network.power = server.arg(F("ww")).toFloat() * 10;
+				network.power = server.arg(F("ww")).toDouble() * 10.0;
 				network.sleep = server.arg(F("wz")).toInt();
 				network.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
 			}
@@ -1573,9 +1559,9 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("iv")) && server.arg(F("iv")) == F("true")) {
-		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toFloat() * 100 : 0;
-		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toFloat() * 1000 : 1000;
-		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? server.arg(F("ivb")).toFloat() * 10 : 0;
+		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toDouble() * 100.0 : 0;
+		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toDouble() * 1000.0 : 1000;
+		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? server.arg(F("ivb")).toDouble() * 10.0 : 0;
 		config->setGpioConfig(*gpioConfig);
 	}
 
@@ -1690,7 +1676,7 @@ void AmsWebServer::handleSave() {
 				snprintf_P(buf, BufferSize, PSTR("rd%d"), i);
 				pc.direction = server.arg(buf).toInt();
 				snprintf_P(buf, BufferSize, PSTR("rv%d"), i);
-				pc.value = server.arg(buf).toFloat() * 10000;
+				pc.value = server.arg(buf).toDouble() * 10000.0;
 				snprintf_P(buf, BufferSize, PSTR("rn%d"), i);
 				String name = server.arg(buf);
 				strcpy(pc.name, name.c_str());
@@ -2926,6 +2912,52 @@ void AmsWebServer::wifiScan() {
 	pos += snprintf_P(buf+pos, BufferSize-pos, PSTR("]}"));
 	WiFi.scanDelete();
 
+	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
+	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
+
+	server.setContentLength(strlen(buf));
+	server.send(200, MIME_JSON, buf);
+}
+
+void AmsWebServer::wifiTestStart() {
+	if(!checkSecurity(1))
+		return;
+	
+	if(WiFi.getMode() == WIFI_AP_STA) {
+		wifiTestStarted = millis();
+		String ssid = server.arg(F("ssid"));
+		String psk = server.arg(F("psk"));
+		WiFi.begin(ssid, psk);
+		wifiTestInProgress = true;
+		wifiTestStatusCode = 0;
+	}
+	wifiTestStatus();
+}
+
+void AmsWebServer::wifiTestStatus() {
+	if(!checkSecurity(1))
+		return;
+	
+	if(wifiTestInProgress) {
+		wifiTestStatusCode = WiFi.status();
+		if(wifiTestStatusCode == WL_DISCONNECTED) { // Still trying to connect
+			if(millis() - wifiTestStarted > WIFI_TEST_TIMEOUT) {
+				wifiTestInProgress = false;
+				wifiTestStatusCode = 99; // Custom code for timeout
+			}
+		} else {
+			wifiTestInProgress = false;
+		}
+	}
+
+	#if defined(ESP32)
+		wifi_config_t conf;
+		esp_wifi_get_config((wifi_interface_t)ESP_IF_WIFI_STA, &conf);
+		snprintf_P(buf, BufferSize, PSTR("{\"ssid\":\"%s\",\"status\":%d,\"time\":%lu,\"ip\":\"%s\"}"), conf.sta.ssid, wifiTestStatusCode, wifiTestInProgress ? millis() - wifiTestStarted : 0, WiFi.localIP().toString().c_str());
+	#else
+		snprintf_P(buf, BufferSize, PSTR("{\"ssid\":\"%s\",\"status\":%d,\"time\":%lu,\"ip\":\"%s\"}"), WiFi.SSID().c_str(), wifiTestStatusCode, wifiTestInProgress ? millis() - wifiTestStarted : 0, WiFi.localIP().toString().c_str());
+	#endif
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);

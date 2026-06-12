@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -100,6 +100,7 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 			}
 		#endif
 		WiFi.setAutoReconnect(true);
+		WiFi.persistent(false);
         this->config = config;
 		#if defined(ESP32)
 		if(begin(config.ssid, config.psk)) {

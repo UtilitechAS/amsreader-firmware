@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source 5
  * 
  * @brief Program for ESP32 and ESP8266 to receive data from AMS electric meters and send to MQTT
@@ -30,6 +30,7 @@ ADC_MODE(ADC_VCC);
 #include "ZmartChargeCloudConnector.h"
 #endif
 
+#define MAX_BOOT_CYCLES 8
 #define WDT_TIMEOUT 120
 #if defined(SLOW_PROC_TRIGGER_MS)
 	#warning "Using predefined slow process trigger"
@@ -190,10 +191,13 @@ CloudConnector *cloud = NULL;
 #if defined(ZMART_CHARGE)
 ZmartChargeCloudConnector *zcloud = NULL;
 #endif
+
 #if defined(ESP32)
 __NOINIT_ATTR EnergyAccountingRealtimeData rtd;
+RTC_DATA_ATTR uint8_t bootcount = 0;
 #else
 EnergyAccountingRealtimeData rtd;
+uint32_t bootcount = 0;
 #endif
 EnergyAccounting ea(&Debug, &rtd);
 
@@ -296,18 +300,7 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 		}
 		case ARDUINO_EVENT_ETH_DISCONNECTED:
 		case ARDUINO_EVENT_WIFI_STA_DISCONNECTED: {
-			if(WiFi.getMode() == WIFI_STA) {
-				wifi_err_reason_t reason = (wifi_err_reason_t) info.wifi_sta_disconnected.reason;
-				switch(reason) {
-					case WIFI_REASON_AUTH_FAIL:
-					case WIFI_REASON_NO_AP_FOUND:
-						if(sysConfig.dataCollectionConsent == 0) {
-							debugI_P(PSTR("Unable to connect to configured AP, swapping to AP mode"));
-							toggleSetupMode();
-						}
-						break;
-				}
-			}
+			debugW_P(PSTR("Disconnected from network"));
 			break;
 		}
 		case ARDUINO_EVENT_SC_FOUND_CHANNEL:
@@ -315,6 +308,9 @@ void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 			break;
 		case ARDUINO_EVENT_SC_GOT_SSID_PSWD:
 			debugI_P(PSTR("SmartConfig got config"));
+			break;
+		default:
+			debugD_P(PSTR("WiFi event: %s"), WiFi.eventName(event));
 			break;
 	}
 }
@@ -326,6 +322,31 @@ void rxerr(int err) {
 }
 #endif
 
+uint8_t incrementBootCycleCounter(bool deepSleep) {
+	#if defined(ESP8266)
+		if(deepSleep) {
+			if(ESP.rtcUserMemoryRead(0, &bootcount, sizeof(bootcount))) {
+				bootcount++;
+				ESP.rtcUserMemoryWrite(0, &bootcount, sizeof(bootcount));
+			}
+			return bootcount;
+		} else {
+			return ++bootcount;
+		}
+	#else
+		return ++bootcount;
+	#endif
+}
+void resetBootCycleCounter(bool deepSleep) {
+	#if defined(ESP8266)
+		bootcount = 0;
+		if(deepSleep) {
+			ESP.rtcUserMemoryWrite(0, &bootcount, sizeof(bootcount));
+		}
+	#else
+		bootcount = 0;
+	#endif
+}
 
 void setup() {
 	Serial.begin(115200);
@@ -348,6 +369,10 @@ void setup() {
 
 	delay(1);
 	hw.setup(&sysConfig, &gpioConfig);
+	hw.ledOff(LED_INTERNAL);
+	hw.ledOff(LED_RED);
+	hw.ledOff(LED_GREEN);
+	hw.ledOff(LED_BLUE);
 
 	if(gpioConfig.apPin >= 0) {
 		pinMode(gpioConfig.apPin, INPUT_PULLUP);
@@ -380,20 +405,6 @@ void setup() {
 		}
 	}
 
-	hw.ledBlink(LED_INTERNAL, 1);
-	hw.ledBlink(LED_RED, 1);
-	hw.ledBlink(LED_YELLOW, 1);
-	hw.ledBlink(LED_GREEN, 1);
-	hw.ledBlink(LED_BLUE, 1);
-
-	PriceServiceConfig price;
-	if(config.getPriceServiceConfig(price)) {
-		ps = new PriceService(&Debug);
-		ps->setup(price);
-		ws.setPriceService(ps);
-	}
-	ws.setPriceSettings(price.area, price.currency);
-	ea.setCurrency(price.currency);
 	bool shared = false;
 	Serial.flush();
 	Serial.end();
@@ -441,22 +452,65 @@ void setup() {
 	yield();
 	#endif
 
-	float vcc = hw.getVcc();
 
+	if(!hw.ledOn(LED_YELLOW)) {
+		hw.ledOn(LED_INTERNAL);
+	}
 	debugI_P(PSTR("AMS reader %s started"), FirmwareVersion::VersionString);
 	debugI_P(PSTR("Configuration version: %d, board type: %d"), config.getConfigVersion(), sysConfig.boardType);
+	float vcc = hw.getVcc();
 	debugI_P(PSTR("Voltage: %.2fV"), vcc);
 
-	float vccBootLimit = gpioConfig.vccBootLimit == 0 ? 0 : min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure it is never above 3.3v
-	if(vcc > 2.5 && vccBootLimit > 2.5 && vccBootLimit < 3.3 && (gpioConfig.apPin == 0xFF || digitalRead(gpioConfig.apPin) == HIGH)) { // Skip if user is holding AP button while booting (HIGH = button is released)
-		if (vcc < vccBootLimit) {
-			{
-				Debug.printf_P(PSTR("(setup) Voltage is too low (%.2f < %.2f), sleeping\n"), vcc, vccBootLimit);
+	bool deepSleep = false; // Disable for now, as it makes it difficult to debug why devices rebooted
+	#if defined(ESP32)
+	float allowedDrift = bootcount * 0.01;
+	#else
+	float allowedDrift = gpioConfig.vccBootLimit == 0 ? 0.05 : 3.3 - min(3.29, gpioConfig.vccBootLimit / 10.0); // Make sure boot limit is never above 3.3v
+	deepSleep = gpioConfig.vccBootLimit > 0; // If a boot limit is set, we are assume the hardware has been configured for deep sleep (Hint: GPIO16)
+	#endif
+	while(!hw.isVoltageOptimal(allowedDrift)) {
+		uint8_t bootCycles = incrementBootCycleCounter(deepSleep);
+		#if defined(ESP32)
+			allowedDrift = bootCycles * 0.01;
+		#endif
+		debugW_P(PSTR("Voltage is outside optimal range (%.2fV)"), allowedDrift);
+		if(gpioConfig.apPin != 0xFF && digitalRead(gpioConfig.apPin) == LOW) {
+			debugW_P(PSTR("AP button is pressed, skipping voltage wait"));
+			break;
+		} else if(bootCycles < MAX_BOOT_CYCLES) {
+			int secs = MAX_BOOT_CYCLES - bootCycles;
+			if(deepSleep) {
+				debugI_P(PSTR("Sleeping for %d seconds to allow capacitor charge (%d.cycle)"), secs, bootCycles);
 				Serial.flush();
+				ESP.deepSleep(secs * 1000000); // Deep sleep to allow output cap to charge up
+				return;
+			} else {
+				debugI_P(PSTR("Waiting (no sleep) for %d seconds to allow capacitor charge (%d.cycle)"), secs, bootCycles);
+				delay(secs * 1000); // Just delay to allow output cap to charge up
+				vcc = hw.getVcc();
+				debugI_P(PSTR("Voltage: %.2fV"), vcc);
 			}
-			ESP.deepSleep(10000000);    //Deep sleep to allow output cap to charge up
-		}  
+		} else {
+			debugE_P(PSTR("Voltage not reaching optimal level after multiple attempts, continuing boot"));
+			hw.setMaxVcc(vcc); // Since we had to sleep, set max Vcc to current level because this is probably the highest we will get
+			break;
+		}
 	}
+	#if defined(ESP8266)
+	resetBootCycleCounter(deepSleep);
+	#endif
+
+	if(rdc.magic != 0x4a) {
+		rdc.last_cause = 0;
+		rdc.cause = 0;
+		rdc.magic = 0x4a;
+	} else {
+		rdc.last_cause = rdc.cause;
+		rdc.cause = 0;
+	}
+
+	hw.ledOff(LED_YELLOW);
+	hw.ledOff(LED_INTERNAL);
 
 	if(!hw.ledOn(LED_GREEN)) {
 		hw.ledOn(LED_INTERNAL);
@@ -472,12 +526,15 @@ void setup() {
 	hw.ledOff(LED_GREEN);
 	hw.ledOff(LED_INTERNAL);
 
+	hw.ledBlink(LED_INTERNAL, 1);
+	hw.ledBlink(LED_RED, 1);
+	hw.ledBlink(LED_YELLOW, 1);
+	hw.ledBlink(LED_GREEN, 1);
+	hw.ledBlink(LED_BLUE, 1);
+
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
 	WiFi.mode(WIFI_OFF);
-	#if defined(ESP32)
-	WiFi.onEvent(WiFiEvent);
-	#endif
 
 	UpgradeInformation upinfo;
 	if(config.getUpgradeInformation(upinfo)) {
@@ -536,6 +593,15 @@ void setup() {
 		debugI_P(PSTR("No configuration, booting AP"));
 		toggleSetupMode();
 	}
+
+	PriceServiceConfig price;
+	if(config.getPriceServiceConfig(price)) {
+		ps = new PriceService(&Debug);
+		ps->setup(price);
+		ws.setPriceService(ps);
+	}
+	ws.setPriceSettings(price.area, price.currency);
+	ea.setCurrency(price.currency);
 
 	EnergyAccountingConfig *eac = new EnergyAccountingConfig();
 	if(!config.getEnergyAccountingConfig(*eac)) {
@@ -633,7 +699,12 @@ void loop() {
 						handleEnergySpeedometer();
 					#endif
 				#endif
-				handlePriceService(now);
+
+				// In case of BUS powered meters, we need to be sure voltage is stable before fetching prices. But we refuse to wait forever, so max 30 seconds
+				if(now > 30000 || hw.isVoltageOptimal(0.01)) {
+					handlePriceService(now);
+				}
+
 				#if defined(AMS_CLOUD)
 					handleCloud();
 				#endif
@@ -836,13 +907,7 @@ void handleEnergySpeedometer() {
 	if(sysConfig.energyspeedometer == 7) {
 		if(!meterState.getMeterId().isEmpty()) {
 			if(energySpeedometer == NULL) {
-				uint16_t chipId;
-				#if defined(ESP32)
-					chipId = ( ESP.getEfuseMac() >> 32 ) % 0xFFFFFFFF;
-				#else
-					chipId = ESP.getChipId();
-				#endif
-				strcpy(energySpeedometerConfig.clientId, (String("ams") + String(chipId, HEX)).c_str());
+				config.getUniqueName(energySpeedometerConfig.clientId, 32);
 				energySpeedometer = new JsonMqttHandler(energySpeedometerConfig, &Debug, (char*) commonBuffer, &hw, &ds, &updater);
 				energySpeedometer->setCaVerification(false);
 			}
@@ -1149,7 +1214,7 @@ void handleSystem(unsigned long now) {
 	unsigned long start, end;
 	if(now - lastSysupdate > 60000) {
 		start = millis();
-		if(WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED) {
+		if(WiFi.getMode() == WIFI_STA && WiFi.status() == WL_CONNECTED) {
 			if(mqttHandler != NULL) {
 				mqttHandler->publishSystem(&hw, ps, &ea);
 				mqttHandler->publishFirmware();
@@ -1185,7 +1250,7 @@ void handleTemperature(unsigned long now) {
 		if(hw.updateTemperatures()) {
 			lastTemperatureRead = now;
 
-			if(mqttHandler != NULL && WiFi.getMode() != WIFI_AP && WiFi.status() == WL_CONNECTED) {
+			if(mqttHandler != NULL && WiFi.getMode() == WIFI_STA && WiFi.status() == WL_CONNECTED) {
 				mqttHandler->publishTemperatures(&config, &hw);
 			}
 		}
@@ -1395,17 +1460,29 @@ void toggleSetupMode() {
 		#else
 		WiFi.beginSmartConfig();
 		#endif
-		WiFi.softAP(PSTR("AMS2MQTT"));
+
+		char ssid[32];
+		if(sysConfig.vendorConfigured) {
+			// Use the standard SSID if the vendor has configured the device
+			strcpy_P(ssid, PSTR("AMS2MQTT"));
+		} else {
+			// If not vendor configured, use a unique SSID to avoid conflicts if multiple devices are in setup mode at the same time
+			config.getUniqueName(ssid, 32);
+		}
+		uint8_t debugLevel = RemoteDebug::INFO;
+		#if defined(DEBUG_MODE)
+			debugLevel = RemoteDebug::VERBOSE;
+		#endif
+		WiFi.softAP(ssid);
+		Debug.setSerialEnabled(true);
+		Debug.begin(F("192.168.4.1"), 23, debugLevel);
+		debugI_P(PSTR("SSID: %s"), ssid);
 
 		if(dnsServer == NULL) {
 			dnsServer = new DNSServer();
 		}
 		dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
 		dnsServer->start(53, PSTR("*"), WiFi.softAPIP());
-		#if defined(DEBUG_MODE)
-			Debug.setSerialEnabled(true);
-			Debug.begin(F("192.168.4.1"), 23, RemoteDebug::VERBOSE);
-		#endif
 		setupMode = true;
 
 		hw.setBootSuccessful(false);
@@ -1508,6 +1585,7 @@ void handleDataSuccess(AmsData* data) {
 
 	time_t dataUpdateTime = now;
 	if(abs(now - meterTime) < 300) {
+		// If the meter timestamp is close to our internal clock, use meter timestamp, because that is best for data tracking
 		dataUpdateTime = meterTime;
 	}
 
@@ -1520,14 +1598,14 @@ void handleDataSuccess(AmsData* data) {
 		debugD_P(PSTR("READY to update (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d, list type %d, est: %d, using clock: %d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second, data->getListType(), wasCounterEstimated, dataUpdateTime == now);
 		tmElements_t dtm;
 		breakTime(dataUpdateTime, dtm);
-		if(dtm.Minute < 2 && data->getListType() >= 3) {
+		if(dtm.Minute < 1 && data->getListType() >= 3) {
 			debugD_P(PSTR("Updating data storage using actual data"));
 			saveData = ds.update(data, dataUpdateTime);
 
 			#if defined(_CLOUDCONNECTOR_H)
 			if(saveData && cloud != NULL) cloud->forceUpdate();
 			#endif
-		} else if(dtm.Minute == 2) {
+		} else if(dtm.Minute == 1) {
 			debugW_P(PSTR("Did not receive necessary data for previous hour, clearing"));
 			AmsData nullData;
 			saveData = ds.update(&nullData, dataUpdateTime);
@@ -1542,7 +1620,7 @@ void handleDataSuccess(AmsData* data) {
 		debugD_P(PSTR("NOT Ready to update (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d, list type %d, est: %d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second, data->getListType(), wasCounterEstimated);
 	}
 
-	if(ea.update(data)) {
+	if(ea.update(dataUpdateTime, data->getLastUpdateMillis(), data->getListType(), data->getActiveImportPower(), data->getActiveExportPower())) {
 		debugI_P(PSTR("Saving energy accounting"));
 		if(!ea.save()) {
 			debugW_P(PSTR("Unable to save energy accounting"));
@@ -2026,6 +2104,7 @@ void configFileParse() {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			strcpy(price.currency, buf+14);
 		} else if(strncmp_P(buf, PSTR("priceModifier "), 14) == 0) {
+			if(ps == NULL) ps = new PriceService(&Debug);
 			PriceConfig pc;
 			memset(&pc, 0, sizeof(PriceConfig));
 

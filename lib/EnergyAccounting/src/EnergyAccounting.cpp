@@ -1,5 +1,5 @@
 /**
- * @copyright Utilitech AS 2023
+ * @copyright Utilitech AS 2023-2026
  * License: Fair Source
  * 
  */
@@ -54,9 +54,8 @@ bool EnergyAccounting::isInitialized() {
     return this->init;
 }
 
-bool EnergyAccounting::update(AmsData* amsData) {
+bool EnergyAccounting::update(time_t now, uint64_t lastUpdatedMillis, uint8_t listType, uint32_t activeImportPower, uint32_t activeExportPower) {
     if(config == NULL) return false;
-    time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return false;
     if(tz == NULL) {
         return false;
@@ -90,7 +89,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
         calcDayCost();
     }
 
-    if(local.Hour != realtimeData->currentHour && (amsData->getListType() >= 3 || local.Minute == 1)) {
+    if(local.Hour != realtimeData->currentHour && (listType >= 3 || local.Minute == 1)) {
         tmElements_t oneHrAgo, oneHrAgoLocal;
         breakTime(now-3600, oneHrAgo);
         uint16_t val = round(ds->getHourImport(oneHrAgo.Hour) / 10.0);
@@ -156,9 +155,9 @@ bool EnergyAccounting::update(AmsData* amsData) {
         }
     }
 
-    if(realtimeData->lastImportUpdateMillis < amsData->getLastUpdateMillis()) {
-        unsigned long ms = amsData->getLastUpdateMillis() - realtimeData->lastImportUpdateMillis;
-        float kwhi = (amsData->getActiveImportPower() * (((float) ms) / 3600000.0)) / 1000.0;
+    if(realtimeData->lastImportUpdateMillis < lastUpdatedMillis) {
+        unsigned long ms = lastUpdatedMillis - realtimeData->lastImportUpdateMillis;
+        float kwhi = (activeImportPower * (((float) ms) / 3600000.0)) / 1000.0;
         if(kwhi > 0) {
             realtimeData->use += kwhi;
             float importPrice = ps == NULL ? PRICE_NO_VALUE : ps->getCurrentPrice(PRICE_DIRECTION_IMPORT);
@@ -168,12 +167,12 @@ bool EnergyAccounting::update(AmsData* amsData) {
                 realtimeData->costDay += cost;
             }
         }
-        realtimeData->lastImportUpdateMillis = amsData->getLastUpdateMillis();
+        realtimeData->lastImportUpdateMillis = lastUpdatedMillis;
     }
 
-    if(amsData->getListType() > 1 && realtimeData->lastExportUpdateMillis < amsData->getLastUpdateMillis()) {
-        unsigned long ms = amsData->getLastUpdateMillis() - realtimeData->lastExportUpdateMillis;
-        float kwhe = (amsData->getActiveExportPower() * (((float) ms) / 3600000.0)) / 1000.0;
+    if(listType > 1 && realtimeData->lastExportUpdateMillis < lastUpdatedMillis) {
+        unsigned long ms = lastUpdatedMillis - realtimeData->lastExportUpdateMillis;
+        float kwhe = (activeExportPower * (((float) ms) / 3600000.0)) / 1000.0;
         if(kwhe > 0) {
             realtimeData->produce += kwhe;
             float exportPrice = ps == NULL ? PRICE_NO_VALUE : ps->getCurrentPrice(PRICE_DIRECTION_EXPORT);
@@ -183,7 +182,7 @@ bool EnergyAccounting::update(AmsData* amsData) {
                 realtimeData->incomeDay += income;
             }
         }
-        realtimeData->lastExportUpdateMillis = amsData->getLastUpdateMillis();
+        realtimeData->lastExportUpdateMillis = lastUpdatedMillis;
     }
 
     if(config != NULL) {

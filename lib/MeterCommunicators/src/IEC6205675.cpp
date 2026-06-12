@@ -471,6 +471,8 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     double obis282 = ntohl(data->dlu.data) / 1000.0;
 
+                    activeExportCounterTariff1 = obis281;
+                    activeExportCounterTariff2 = obis282;
                     activeExportCounter = obis281 + obis282;
 
                     lastUpdateMillis = millis64();
@@ -879,10 +881,30 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
             listType = 3;
             activeImportCounter = val / 1000.0;
         }
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_COUNT_T1, sizeof(AMS_OBIS_ACTIVE_IMPORT_COUNT_T1), ((char *) (d)));
+        if(val != NOVALUE) {
+            listType = 3;
+            activeImportCounterTariff1 = val / 1000.0;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_IMPORT_COUNT_T2, sizeof(AMS_OBIS_ACTIVE_IMPORT_COUNT_T2), ((char *) (d)));
+        if(val != NOVALUE) {
+            listType = 3;
+            activeImportCounterTariff2 = val / 1000.0;
+        }
         val = getNumber(AMS_OBIS_ACTIVE_EXPORT_COUNT, sizeof(AMS_OBIS_ACTIVE_EXPORT_COUNT), ((char *) (d)));
         if(val != NOVALUE) {
             listType = 3;
             activeExportCounter = val / 1000.0;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_COUNT_T1, sizeof(AMS_OBIS_ACTIVE_EXPORT_COUNT_T1), ((char *) (d)));
+        if(val != NOVALUE) {
+            listType = 3;
+            activeExportCounterTariff1 = val / 1000.0;
+        }
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_COUNT_T2, sizeof(AMS_OBIS_ACTIVE_EXPORT_COUNT_T2), ((char *) (d)));
+        if(val != NOVALUE) {
+            listType = 3;
+            activeExportCounterTariff2 = val / 1000.0;
         }
         val = getNumber(AMS_OBIS_REACTIVE_IMPORT_COUNT, sizeof(AMS_OBIS_REACTIVE_IMPORT_COUNT), ((char *) (d)));
         if(val != NOVALUE) {
@@ -1095,7 +1117,11 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
     }
     if(meterConfig->accumulatedMultiplier > 0) {
         activeImportCounter = activeImportCounter > 0 ? activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeImportCounterTariff1 = activeImportCounterTariff1 > 0 ? activeImportCounterTariff1 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeImportCounterTariff2 = activeImportCounterTariff2 > 0 ? activeImportCounterTariff2 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         activeExportCounter = activeExportCounter > 0 ? activeExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeExportCounterTariff1 = activeExportCounterTariff1 > 0 ? activeExportCounterTariff1 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
+        activeExportCounterTariff2 = activeExportCounterTariff2 > 0 ? activeExportCounterTariff2 * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         reactiveImportCounter = reactiveImportCounter > 0 ? reactiveImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         reactiveExportCounter = reactiveExportCounter > 0 ? reactiveExportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;
         l1activeImportCounter = l1activeImportCounter > 0 ? l1activeImportCounter * (meterConfig->accumulatedMultiplier / 1000.0) : 0;

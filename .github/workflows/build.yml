@@ -4,7 +4,8 @@ on:
   push:
     paths: 
       - src/**
-      - lib/**
+      - ui/**
+      - src/**
       - scripts/**
       - web/**
       - platformio.ini
@@ -54,7 +55,7 @@ jobs:
         node-version: '22.x'
     - name: Build with node
       run: |
-        cd lib/SvelteUi/app
+        cd ui
         npm ci
         npm run build
         cd -
@@ -63,4 +64,6 @@ jobs:
     - name: PlatformIO lib install
       run: pio pkg install
     - name: PlatformIO run
-      run: pio run
+      # Device firmware envs only. The 'native' unit-test env is built via
+      # `pio test -e native`, not `pio run` (added in the native-test follow-up).
+      run: pio run -e esp8266 -e esp32 -e esp32s2 -e esp32solo -e esp32c3 -e esp32s3

@@ -406,10 +406,10 @@ void setup() {
 	}
 
 	bool shared = false;
-	Serial.flush();
-	Serial.end();
 	if(meterConfig.rxPin == 3) {
 		shared = true;
+		Serial.flush();
+		Serial.end();
 		#if defined(ESP8266)
 			SerialConfig serialConfig;
 		#elif defined(ESP32)
@@ -443,9 +443,6 @@ void setup() {
 		#endif
 	}
 
- 	if(!shared) {
-		Serial.begin(115200);
-	}
 
 	#if defined(AMS_REMOTE_DEBUG)
 	Debug.setSerialEnabled(true);

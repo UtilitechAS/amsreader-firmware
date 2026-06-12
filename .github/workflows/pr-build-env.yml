@@ -57,7 +57,7 @@ jobs:
 
       - name: Build with node
         run: |
-          cd lib/SvelteUi/app
+          cd ui
           npm ci
           npm run build
           cd -

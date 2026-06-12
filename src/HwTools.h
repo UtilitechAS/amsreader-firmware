@@ -13,9 +13,6 @@
 #include <ESP8266WiFi.h>
 #elif defined(ESP32)
 #include <WiFi.h>
-#include <driver/adc.h>
-#include <esp_adc_cal.h>
-#include <soc/adc_channel.h>
 #endif
 
 #include <DallasTemperature.h>
@@ -33,11 +30,6 @@ struct TempSensorData {
     float lastRead;
     float lastValidRead;
     bool changed;
-};
-
-struct AdcConfig {
-    uint8_t unit;
-    uint8_t channel;
 };
 
 class HwTools {
@@ -76,10 +68,6 @@ private:
     unsigned long lastVccRead = 0;
 
     uint16_t analogRange = 1024;
-    AdcConfig voltAdc, tempAdc;
-    #if defined(ESP32)
-        esp_adc_cal_characteristics_t* voltAdcChar, tempAdcChar;
-    #endif
     bool tempSensorInit;
     OneWire *oneWire = NULL;
     DallasTemperature *sensorApi = NULL;
@@ -100,7 +88,6 @@ private:
     void applyLedDisablePin();
     bool ledColorAvailable(uint8_t color);
     bool isSensorAddressEqual(uint8_t a[8], uint8_t b[8]);
-    void getAdcChannel(uint8_t pin, AdcConfig&);
 };
 
 #endif

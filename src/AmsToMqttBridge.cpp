@@ -383,7 +383,7 @@ void setup() {
 		delay(1000);
 		if(digitalRead(gpioConfig.apPin) == LOW) {
 			if(!hw.ledOn(LED_RED)) {
-				hw.ledBlink(LED_INTERNAL, 4);
+				hw.ledFlashBlocking(LED_INTERNAL, 4);
 			}
 			delay(2000);
 			if(digitalRead(gpioConfig.apPin) == LOW) {
@@ -393,8 +393,8 @@ void setup() {
 				delay(2000);
 				if(digitalRead(gpioConfig.apPin) == HIGH) {
 					config.clear();
-					if(!hw.ledBlink(LED_RED, 6)) {
-						hw.ledBlink(LED_INTERNAL, 6);
+					if(!hw.ledFlashBlocking(LED_RED, 6)) {
+						hw.ledFlashBlocking(LED_INTERNAL, 6);
 					}
 					rdc.cause = REBOOT_CAUSE_BTN_FACTORY_RESET;
 					delay(250);
@@ -523,11 +523,11 @@ void setup() {
 	hw.ledOff(LED_GREEN);
 	hw.ledOff(LED_INTERNAL);
 
-	hw.ledBlink(LED_INTERNAL, 1);
-	hw.ledBlink(LED_RED, 1);
-	hw.ledBlink(LED_YELLOW, 1);
-	hw.ledBlink(LED_GREEN, 1);
-	hw.ledBlink(LED_BLUE, 1);
+	hw.ledFlashBlocking(LED_INTERNAL, 1);
+	hw.ledFlashBlocking(LED_RED, 1);
+	hw.ledFlashBlocking(LED_YELLOW, 1);
+	hw.ledFlashBlocking(LED_GREEN, 1);
+	hw.ledFlashBlocking(LED_BLUE, 1);
 
 	WiFi.disconnect(true);
 	WiFi.softAPdisconnect(true);
@@ -661,7 +661,8 @@ void loop() {
 
 	handleButton(now);
 
-	if(now > 10000 && now - lastErrorBlink > 3000) {
+	hw.ledLoop();
+	if(now > 10000 && !hw.ledBusy() && now - lastErrorBlink > 3000) {
 		errorBlink();
 	}
 
@@ -1348,7 +1349,7 @@ void errorBlink() {
 			case 0:
 				if(lastErrorBlink - meterState.getLastUpdateMillis() > 30000) {
 					debugW_P(PSTR("No HAN data received last 30s, single blink"));
-					hw.ledBlink(LED_RED, 1); // If no message received from AMS in 30 sec, blink once
+					hw.ledFlash(LED_RED, 1, false, true); // If no message received from AMS in 30 sec, slow blink once
 					if(meterState.getLastError() == 0) meterState.setLastError(METER_ERROR_NO_DATA);
 					return;
 				}
@@ -1356,14 +1357,14 @@ void errorBlink() {
 			case 1:
 				if(mqttHandler != NULL && mqttHandler->lastError() != 0) {
 					debugW_P(PSTR("MQTT connection not available, double blink"));
-					hw.ledBlink(LED_RED, 2); // If MQTT error, blink twice
+					hw.ledFlash(LED_RED, 2, false, true); // If MQTT error, slow blink twice
 					return;
 				}
 				break;
 			case 2:
 				if(WiFi.getMode() == WIFI_STA && WiFi.status() != WL_CONNECTED) {
 					debugW_P(PSTR("WiFi not connected, tripe blink"));
-					hw.ledBlink(LED_RED, 3); // If WiFi not connected, blink three times
+					hw.ledFlash(LED_RED, 3, false, true); // If WiFi not connected, slow blink three times
 					return;
 				}
 				break;
@@ -1542,8 +1543,8 @@ bool readHanPort() {
 }
 
 void handleDataSuccess(AmsData* data) {
-	if(!setupMode && !hw.ledBlink(LED_GREEN, 1))
-		hw.ledBlink(LED_INTERNAL, 1);
+	if(!setupMode && !hw.ledFlash(LED_GREEN, 1))
+		hw.ledFlash(LED_INTERNAL, 1);
 
 	if(mqttHandler != NULL && checkVoltageIfNeeded(0.2)) {
 		#if defined(ESP32)

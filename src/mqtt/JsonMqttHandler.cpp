@@ -573,7 +573,21 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
                     } else if(strcmp_P(action, PSTR("setconfig")) == 0 && obj.containsKey(F("config"))) {
                         JsonObject configObj = obj[F("config")];
                         handleConfigMessage(configObj);
-                        config->save(); // Persist to flash so changes survive a reboot
+                        if(config->save()) { // Persist to flash so changes survive a reboot
+                            // Mirror the web server save: network/web changes need a reboot to take
+                            // effect; anything else can be applied to the running hardware in place.
+                            if(config->isNetworkConfigChanged() || config->isWebChanged()) {
+                                if(ds != NULL) ds->save();
+                                delay(1000);
+                                ESP.restart();
+                            } else {
+                                SystemConfig sys;
+                                config->getSystemConfig(sys);
+                                GpioConfig gpio;
+                                config->getGpioConfig(gpio);
+                                hw->setup(&sys, &gpio);
+                            }
+                        }
                     #endif
                     }
                 }

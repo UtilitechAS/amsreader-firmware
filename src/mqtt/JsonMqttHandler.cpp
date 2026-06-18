@@ -573,6 +573,7 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
                     } else if(strcmp_P(action, PSTR("setconfig")) == 0 && obj.containsKey(F("config"))) {
                         JsonObject configObj = obj[F("config")];
                         handleConfigMessage(configObj);
+                        config->save(); // Persist to flash so changes survive a reboot
                     #endif
                     }
                 }

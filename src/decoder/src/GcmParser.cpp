@@ -42,6 +42,13 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
     ptr++;
     headersize++;
 
+    // The system title is at most 8 bytes (DLMS). A larger value means this is
+    // not a GCM frame at all — e.g. a plaintext DSMR telegram routed here only
+    // because an encryption key is configured. Reject it before the memcpy
+    // below overflows ctx.system_title[8] / initialization_vector[12] and
+    // crashes the device in a reboot loop.
+    if(systemTitleLength > 8) return GCM_DECRYPT_FAILED;
+
     uint8_t initialization_vector[12];
     memset(ctx.system_title, 0, 8);
     memset(initialization_vector, 0, 12);

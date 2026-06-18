@@ -39,6 +39,19 @@
 #include "esp32s3/rom/rtc.h"
 #endif
 
+// JSON sink that streams each chunk straight to the HTTP response via chunked
+// transfer encoding, so the response body is never fully buffered in RAM.
+template<typename T>
+class WebServerJsonSink : public JsonSink {
+public:
+	WebServerJsonSink(T& server) : server(server) {}
+	void write(const char* data, size_t len) override {
+		if(len > 0) server.sendContent(data, len);
+	}
+private:
+	T& server;
+};
+
 #if defined(AMS_REMOTE_DEBUG)
 AmsWebServer::AmsWebServer(uint8_t* buf, RemoteDebug* Debug, HwTools* hw, ResetDataContainer* rdc) {
 #else
@@ -1085,8 +1098,9 @@ void AmsWebServer::configurationJson() {
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);
 
 	server.setContentLength(CONTENT_LENGTH_UNKNOWN);
-	AmsJsonGenerator::generateConfigurationJson(config, buf, BUF_SIZE_COMMON);
-	server.send(200, MIME_JSON, buf);
+	server.send(200, MIME_JSON, "");
+	WebServerJsonSink<decltype(server)> sink(server);
+	AmsJsonGenerator::generateConfigurationJson(config, sink);
 }
 
 void AmsWebServer::priceConfigJson() {

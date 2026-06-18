@@ -25,8 +25,19 @@ void AmsJsonGenerator::generateMonthPlotJson(AmsDataStorage* ds, char* buf, size
 		snprintf_P(buf+pos, bufSize-pos, PSTR("}"));
 }
 
-void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char* buf, size_t bufSize) {
-	uint16_t pos = snprintf_P(buf, bufSize, PSTR("{\"version\":\"%s\""), FirmwareVersion::VersionString);
+void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, JsonSink& sink) {
+	// Scratch for one section at a time; sized for the largest (MQTT host + credentials).
+	// Lives on the stack so it costs no heap, and is flushed to the sink per section so
+	// the total document size is bounded by the sink, not by this buffer.
+	char chunk[768];
+	#define EMIT(...) do { \
+			int _n = snprintf_P(chunk, sizeof(chunk), __VA_ARGS__); \
+			if(_n < 0) _n = 0; \
+			else if((size_t)_n >= sizeof(chunk)) _n = sizeof(chunk) - 1; \
+			sink.write(chunk, (size_t)_n); \
+		} while(0)
+
+	EMIT(PSTR("{\"version\":\"%s\""), FirmwareVersion::VersionString);
 
 	SystemConfig sysConfig;
 	config->getSystemConfig(sysConfig);
@@ -74,7 +85,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 	config->getZmartChargeConfig(zcc);
 
 	// General
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"g\":{\"t\":\"%s\",\"h\":\"%s\",\"s\":%d,\"u\":\"%s\",\"p\":\"%s\",\"c\":\"%s\"}"),
+	EMIT(PSTR(",\"g\":{\"t\":\"%s\",\"h\":\"%s\",\"s\":%d,\"u\":\"%s\",\"p\":\"%s\",\"c\":\"%s\"}"),
 		ntpConfig.timezone,
 		networkConfig.hostname,
 		webConfig.security,
@@ -84,7 +95,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 	);
 
 	// Meter
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"m\":{\"o\":%d,\"a\":%d,\"b\":%d,\"p\":%d,\"i\":%s,\"s\":%d,\"d\":%d,\"f\":%d,\"r\":%d"),
+	EMIT(PSTR(",\"m\":{\"o\":%d,\"a\":%d,\"b\":%d,\"p\":%d,\"i\":%s,\"s\":%d,\"d\":%d,\"f\":%d,\"r\":%d"),
 		meterConfig.source,
 		meterConfig.parser,
 		meterConfig.baud,
@@ -102,7 +113,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 			encen = true;
 		}
 	}
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"e\":{\"e\":%s,\"k\":\"%s\",\"a\":\"%s\"}"),
+	EMIT(PSTR(",\"e\":{\"e\":%s,\"k\":\"%s\",\"a\":\"%s\"}"),
 		encen ? "true" : "false",
 		toHex(meterConfig.encryptionKey, 16).c_str(),
 		toHex(meterConfig.authenticationKey, 16).c_str()
@@ -117,7 +128,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 		multEnable = true;
 	if(meterConfig.accumulatedMultiplier != 1.0 && meterConfig.accumulatedMultiplier != 0.0)
 		multEnable = true;
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"m\":{\"e\":%s,\"w\":%.3f,\"v\":%.3f,\"a\":%.3f,\"c\":%.3f}"),
+	EMIT(PSTR(",\"m\":{\"e\":%s,\"w\":%.3f,\"v\":%.3f,\"a\":%.3f,\"c\":%.3f}"),
 		multEnable ? "true" : "false",
 		meterConfig.wattageMultiplier == 0.0 ? 1.0 : meterConfig.wattageMultiplier / 1000.0,
 		meterConfig.voltageMultiplier == 0.0 ? 1.0 : meterConfig.voltageMultiplier / 1000.0,
@@ -125,10 +136,10 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 		meterConfig.accumulatedMultiplier == 0.0 ? 1.0 : meterConfig.accumulatedMultiplier / 1000.0
 	);
 
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR("}")); // End of meter
+	EMIT(PSTR("}")); // End of meter
 
 	// Thresholds
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"t\":{\"t\":[%d,%d,%d,%d,%d,%d,%d,%d,%d,%d],\"h\":%d}"),
+	EMIT(PSTR(",\"t\":{\"t\":[%d,%d,%d,%d,%d,%d,%d,%d,%d,%d],\"h\":%d}"),
 		eac.thresholds[0],
 		eac.thresholds[1],
 		eac.thresholds[2],
@@ -143,7 +154,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 	);
 
 	// WiFi
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"w\":{\"s\":\"%s\",\"p\":\"%s\",\"w\":%.1f,\"z\":%d,\"b\":%s}"),
+	EMIT(PSTR(",\"w\":{\"s\":\"%s\",\"p\":\"%s\",\"w\":%.1f,\"z\":%d,\"b\":%s}"),
 		networkConfig.ssid,
 		strlen(networkConfig.psk) > 0 ? "***" : "",
 		networkConfig.power / 10.0,
@@ -152,7 +163,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 	);
 
 	// Network
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"n\":{\"c\":%d,\"m\":\"%s\",\"i\":\"%s\",\"s\":\"%s\",\"g\":\"%s\",\"d1\":\"%s\",\"d2\":\"%s\",\"d\":%s,\"n1\":\"%s\",\"h\":%s,\"x\":%s}"),
+	EMIT(PSTR(",\"n\":{\"c\":%d,\"m\":\"%s\",\"i\":\"%s\",\"s\":\"%s\",\"g\":\"%s\",\"d1\":\"%s\",\"d2\":\"%s\",\"d\":%s,\"n1\":\"%s\",\"h\":%s,\"x\":%s}"),
 		networkConfig.mode,
 		strlen(networkConfig.ip) > 0 ? "static" : "dhcp",
 		networkConfig.ip,
@@ -175,7 +186,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 		qsr = LittleFS.exists(FILE_MQTT_CERT);
 		qsk = LittleFS.exists(FILE_MQTT_KEY);
 	}
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"q\":{\"h\":\"%s\",\"p\":%d,\"u\":\"%s\",\"a\":\"%s\",\"c\":\"%s\",\"b\":\"%s\",\"r\":\"%s\",\"m\":%d,\"s\":{\"e\":%s,\"c\":%s,\"r\":%s,\"k\":%s},\"t\":%d,\"d\":%d,\"i\":%d,\"k\":%d,\"e\":%s}"),
+	EMIT(PSTR(",\"q\":{\"h\":\"%s\",\"p\":%d,\"u\":\"%s\",\"a\":\"%s\",\"c\":\"%s\",\"b\":\"%s\",\"r\":\"%s\",\"m\":%d,\"s\":{\"e\":%s,\"c\":%s,\"r\":%s,\"k\":%s},\"t\":%d,\"d\":%d,\"i\":%d,\"k\":%d,\"e\":%s}"),
 		mqttConfig.host,
 		mqttConfig.port,
 		mqttConfig.username,
@@ -196,7 +207,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 	);
 
 	// Price
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"p\":{\"e\":%s,\"t\":\"%s\",\"r\":\"%s\",\"c\":\"%s\",\"m\":%d}"),
+	EMIT(PSTR(",\"p\":{\"e\":%s,\"t\":\"%s\",\"r\":\"%s\",\"c\":\"%s\",\"m\":%d}"),
 		price.enabled ? "true" : "false",
 		price.entsoeToken,
 		price.area,
@@ -205,14 +216,14 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 	);
 
 	// Debug
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"d\":{\"s\":%s,\"t\":%s,\"l\":%d}"),
+	EMIT(PSTR(",\"d\":{\"s\":%s,\"t\":%s,\"l\":%d}"),
 		debugConfig.serial ? "true" : "false",
 		debugConfig.telnet ? "true" : "false",
 		debugConfig.level
 	);
 
 	// GPIO
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"i\":{\"h\":{\"p\":%s,\"u\":%s,\"t\":%s},\"a\":%s,\"l\":{\"p\":%s,\"i\":%s},\"r\":{\"r\":%s,\"g\":%s,\"b\":%s,\"i\":%s},\"d\":{\"d\":%s,\"b\":%d},\"t\":{\"d\":%s,\"a\":%s},\"v\":{\"p\":%s,\"o\":%.2f,\"m\":%.3f,\"d\":{\"v\":%d,\"g\":%d},\"b\":%.1f},\"p\":%d}"),
+	EMIT(PSTR(",\"i\":{\"h\":{\"p\":%s,\"u\":%s,\"t\":%s},\"a\":%s,\"l\":{\"p\":%s,\"i\":%s},\"r\":{\"r\":%s,\"g\":%s,\"b\":%s,\"i\":%s},\"d\":{\"d\":%s,\"b\":%d},\"t\":{\"d\":%s,\"a\":%s},\"v\":{\"p\":%s,\"o\":%.2f,\"m\":%.3f,\"d\":{\"v\":%d,\"g\":%d},\"b\":%.1f},\"p\":%d}"),
 		meterConfig.rxPin == 0xff ? "null" : String(meterConfig.rxPin, 10).c_str(),
 		meterConfig.rxPinPullup ? "true" : "false",
 		meterConfig.txPin == 0xff ? "null" : String(meterConfig.txPin, 10).c_str(),
@@ -237,7 +248,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 	);
 
 	// UI
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"u\":{\"i\":%d,\"e\":%d,\"v\":%d,\"a\":%d,\"r\":%d,\"c\":%d,\"t\":%d,\"p\":%d,\"d\":%d,\"m\":%d,\"s\":%d,\"l\":%d,\"h\":%d,\"f\":%d,\"k\":%d,\"lang\":\"%s\"}"),
+	EMIT(PSTR(",\"u\":{\"i\":%d,\"e\":%d,\"v\":%d,\"a\":%d,\"r\":%d,\"c\":%d,\"t\":%d,\"p\":%d,\"d\":%d,\"m\":%d,\"s\":%d,\"l\":%d,\"h\":%d,\"f\":%d,\"k\":%d,\"lang\":\"%s\"}"),
 		ui.showImport,
 		ui.showExport,
 		ui.showVoltage,
@@ -257,7 +268,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 	);
 
 	// Domoticz
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"o\":{\"e\":%d,\"c\":%d,\"u1\":%d,\"u2\":%d,\"u3\":%d}"),
+	EMIT(PSTR(",\"o\":{\"e\":%d,\"c\":%d,\"u1\":%d,\"u2\":%d,\"u3\":%d}"),
 		domo.elidx,
 		domo.cl1idx,
 		domo.vl1idx,
@@ -266,14 +277,14 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 	);
 
 	// Home-Assistant
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"h\":{\"t\":\"%s\",\"h\":\"%s\",\"n\":\"%s\"}"),
+	EMIT(PSTR(",\"h\":{\"t\":\"%s\",\"h\":\"%s\",\"n\":\"%s\"}"),
 		haconf.discoveryPrefix,
 		haconf.discoveryHostname,
 		haconf.discoveryNameTag
 	);
 
 	// Cloud
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR(",\"c\":{\"e\":%s,\"p\":%d,\"es\":%s,\"ze\":%s,\"zt\":\"%s\"}"),
+	EMIT(PSTR(",\"c\":{\"e\":%s,\"p\":%d,\"es\":%s,\"ze\":%s,\"zt\":\"%s\"}"),
 		cloud.enabled ? "true" : "false",
 		cloud.proto,
 		#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
@@ -285,5 +296,11 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char*
 		zcc.token
 	);
 
-	pos += snprintf_P(buf+pos, bufSize-pos, PSTR("}")); // End of config
+	EMIT(PSTR("}")); // End of config
+	#undef EMIT
+}
+
+void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, char* buf, size_t bufSize) {
+	BufferJsonSink sink(buf, bufSize);
+	generateConfigurationJson(config, sink);
 }

@@ -147,6 +147,7 @@
         "tag": "Name tag",
         "title": "Home-Assistant"
       },
+      "allowdestructive": "Allow destructive commands (reboot, factory reset)",
       "id": "Client ID",
       "interval": "Interval",
       "keepalive": "Keep-alive",

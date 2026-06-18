@@ -170,8 +170,14 @@ MqttConfig energySpeedometerConfig = {
 	#else
 	"",
 	#endif
-	0,
-	true
+	0,        // payloadFormat
+	true,     // ssl
+	0,        // magic
+	false,    // stateUpdate
+	0,        // stateUpdateInterval
+	1000,     // timeout (ms)
+	60,       // keepalive (s)
+	0         // rebootMinutes
 };
 #endif
 

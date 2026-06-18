@@ -9,6 +9,7 @@
 #include "AmsStorage.h"
 #include "LittleFS.h"
 #include "Uptime.h"
+#include "AmsJsonGenerator.h"
 #include <ArduinoJson.h>
 
 void AmsMqttHandler::setCaVerification(bool caVerification) {
@@ -261,6 +262,24 @@ bool AmsMqttHandler::handleCommand(String &topic, String &payload) {
 		const char* target = version.length() > 0 ? version.c_str() : updater->getNextVersion();
 		if(strlen(target) > 0 && strcmp(target, FirmwareVersion::VersionString) != 0) {
 			updater->setTargetVersion(target);
+		}
+		return true;
+	} else if(strcmp_P(action, PSTR("dayplot")) == 0) {
+		if(ds != NULL) {
+			char plotTopic[80];
+			snprintf_P(plotTopic, sizeof(plotTopic), PSTR("%s/dayplot"), pubTopic);
+			AmsJsonGenerator::generateDayPlotJson(ds, json, BUF_SIZE_COMMON);
+			mqtt.publish(plotTopic, json);
+			loop();
+		}
+		return true;
+	} else if(strcmp_P(action, PSTR("monthplot")) == 0) {
+		if(ds != NULL) {
+			char plotTopic[80];
+			snprintf_P(plotTopic, sizeof(plotTopic), PSTR("%s/monthplot"), pubTopic);
+			AmsJsonGenerator::generateMonthPlotJson(ds, json, BUF_SIZE_COMMON);
+			mqtt.publish(plotTopic, json);
+			loop();
 		}
 		return true;
 	} else if(strcmp_P(action, PSTR("reboot")) == 0) {

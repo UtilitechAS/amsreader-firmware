@@ -10,6 +10,7 @@
 #include "Arduino.h"
 #include <MQTT.h>
 #include "AmsData.h"
+#include "AmsDataStorage.h"
 #include "AmsConfiguration.h"
 #include "EnergyAccounting.h"
 #include "HwTools.h"
@@ -44,6 +45,7 @@ public:
     void setCaVerification(bool);
     void setConfig(MqttConfig& mqttConfig);
     void setResetDataContainer(ResetDataContainer* rdc) { this->rdc = rdc; }
+    void setDataStorage(AmsDataStorage* ds) { this->ds = ds; }
 
     bool connect();
     bool defaultSubscribe();
@@ -105,6 +107,7 @@ protected:
     AmsFirmwareUpdater* updater = NULL;
     bool rebootSuggested = false;
     ResetDataContainer* rdc = NULL;
+    AmsDataStorage* ds = NULL;
 
     // Generic device commands shared by all payload handlers (fwupgrade / reboot /
     // factoryreset). Returns true if the message was a recognised command.

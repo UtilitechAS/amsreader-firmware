@@ -52,6 +52,8 @@ private:
     bool publishList4(AmsData* data, EnergyAccounting* ea);
     String getMeterModel(AmsData* data);
     void toJsonIsoTimestamp(time_t t, char* buf, size_t buflen);
-    void handleConfigMessage(JsonObject& configObj);
+    #if defined(ESP32)
+    void handleConfigMessage(JsonObject& configObj); // Configuration via MQTT is ESP32-only
+    #endif
 };
 #endif

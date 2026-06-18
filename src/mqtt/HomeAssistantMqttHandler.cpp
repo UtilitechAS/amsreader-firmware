@@ -867,12 +867,8 @@ void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
             priceImportInit = 0;
             priceExportInit = 0;
         }
-    } else if(topic == subTopic) {
-        if(payload.equals("fwupgrade")) {
-            if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
-                updater->setTargetVersion(updater->getNextVersion());
-            }
-        }
+    } else {
+        handleCommand(topic, payload); // fwupgrade / reboot / factoryreset
     }
 }
 

@@ -43,6 +43,7 @@ public:
 
     void setCaVerification(bool);
     void setConfig(MqttConfig& mqttConfig);
+    void setResetDataContainer(ResetDataContainer* rdc) { this->rdc = rdc; }
 
     bool connect();
     bool defaultSubscribe();
@@ -103,6 +104,12 @@ protected:
 
     AmsFirmwareUpdater* updater = NULL;
     bool rebootSuggested = false;
+    ResetDataContainer* rdc = NULL;
+
+    // Generic device commands shared by all payload handlers (fwupgrade / reboot /
+    // factoryreset). Returns true if the message was a recognised command.
+    bool handleCommand(String &topic, String &payload);
+    void rebootDevice(uint8_t cause);
 
 private:
     #if defined(AMS_REMOTE_DEBUG)

@@ -9,6 +9,7 @@
 #include "AmsStorage.h"
 #include "LittleFS.h"
 #include "Uptime.h"
+#include <ArduinoJson.h>
 
 void AmsMqttHandler::setCaVerification(bool caVerification) {
 	this->caVerification = caVerification;
@@ -221,4 +222,67 @@ bool AmsMqttHandler::loop() {
 
 bool AmsMqttHandler::isRebootSuggested() {
 	return rebootSuggested;
+}
+
+void AmsMqttHandler::rebootDevice(uint8_t cause) {
+	if(rdc != NULL) rdc->cause = cause;
+	#if defined(AMS_REMOTE_DEBUG)
+	if (debugger->isActive(RemoteDebug::INFO))
+	#endif
+	debugger->printf_P(PSTR("Rebooting (MQTT command)\n"));
+	debugger->flush();
+	delay(1000);
+	ESP.restart();
+}
+
+// Generic commands available to every payload handler. Accepts either a plain
+// payload ("reboot") or a JSON object ({"action":"reboot"}). Destructive actions
+// (reboot, factoryreset) require MqttConfig.allowDestructiveCommands; factoryreset
+// additionally requires "confirm":true.
+bool AmsMqttHandler::handleCommand(String &topic, String &payload) {
+	if(strcmp(topic.c_str(), subTopic) != 0) return false;
+
+	char action[24] = {0};
+	bool confirm = false;
+	String version;
+	if(payload.startsWith("{")) {
+		DynamicJsonDocument doc(512);
+		if(deserializeJson(doc, payload)) return false;
+		JsonObject obj = doc.as<JsonObject>();
+		if(!obj.containsKey(F("action"))) return false;
+		strncpy(action, obj[F("action")] | "", sizeof(action) - 1);
+		confirm = obj[F("confirm")] | false;
+		if(obj.containsKey(F("version"))) version = (const char*) (obj[F("version")] | "");
+	} else {
+		strncpy(action, payload.c_str(), sizeof(action) - 1);
+	}
+
+	if(strcmp_P(action, PSTR("fwupgrade")) == 0) {
+		const char* target = version.length() > 0 ? version.c_str() : updater->getNextVersion();
+		if(strlen(target) > 0 && strcmp(target, FirmwareVersion::VersionString) != 0) {
+			updater->setTargetVersion(target);
+		}
+		return true;
+	} else if(strcmp_P(action, PSTR("reboot")) == 0) {
+		if(!mqttConfig.allowDestructiveCommands) {
+			debugger->printf_P(PSTR("Ignoring MQTT reboot: destructive commands disabled\n"));
+			return true;
+		}
+		rebootDevice(REBOOT_CAUSE_MQTT_REBOOT);
+		return true;
+	} else if(strcmp_P(action, PSTR("factoryreset")) == 0) {
+		if(!mqttConfig.allowDestructiveCommands) {
+			debugger->printf_P(PSTR("Ignoring MQTT factoryreset: destructive commands disabled\n"));
+			return true;
+		}
+		if(!confirm) {
+			debugger->printf_P(PSTR("Ignoring MQTT factoryreset: missing \"confirm\":true\n"));
+			return true;
+		}
+		LittleFS.format();
+		config->clear();
+		rebootDevice(REBOOT_CAUSE_MQTT_FACTORY_RESET);
+		return true;
+	}
+	return false;
 }

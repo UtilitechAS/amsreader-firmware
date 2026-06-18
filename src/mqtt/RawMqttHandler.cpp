@@ -413,11 +413,5 @@ bool RawMqttHandler::publishRaw(uint8_t* raw, size_t length) {
 }
 
 void RawMqttHandler::onMessage(String &topic, String &payload) {
-    if(topic == subTopic) {
-        if(payload.equals("fwupgrade")) {
-            if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
-                updater->setTargetVersion(updater->getNextVersion());
-            }
-        }
-    }
+    handleCommand(topic, payload); // fwupgrade / reboot / factoryreset
 }

@@ -1950,6 +1950,7 @@ void MQTT_connect() {
 	}
 
 	if(mqttHandler != NULL) {
+		mqttHandler->setResetDataContainer(&rdc);
 		mqttHandler->connect();
 		mqttHandler->publishSystem(&hw, ps, &ea);
 		if(ps != NULL && ps->hasPrice()) {

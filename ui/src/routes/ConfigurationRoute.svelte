@@ -726,7 +726,7 @@
                 </div>
             </div>
             <div class="my-1">
-                <label><input type="checkbox" name="qdc" value="true" bind:checked={configuration.q.dc} class="rounded mb-1"/> {translations.conf?.mqtt?.allowdestructive ?? "Allow destructive MQTT commands (reboot, factory reset)"}</label>
+                <label><input type="checkbox" name="qdc" value="true" bind:checked={configuration.q.dc} class="rounded mb-1"/> {translations.conf?.mqtt?.allowdestructive ?? "Allow destructive commands"}</label>
             </div>
         </div>
         {/if}

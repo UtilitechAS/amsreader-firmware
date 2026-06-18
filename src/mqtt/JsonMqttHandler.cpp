@@ -855,6 +855,9 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
         if(mqttObj.containsKey(F("e"))) {
             newConfig.rebootMinutes = mqttObj[F("e")];
         }
+        if(mqttObj.containsKey(F("dc"))) {
+            newConfig.allowDestructiveCommands = mqttObj[F("dc")];
+        }
         config->setMqttConfig(newConfig);
 
         if(newConfig.payloadFormat == 3) { // Domiticz

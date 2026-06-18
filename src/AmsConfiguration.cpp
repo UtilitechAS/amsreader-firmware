@@ -145,6 +145,7 @@ void AmsConfiguration::ackNetworkConfigChange() {
 bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
 	if(hasConfig()) {
 			EEPROM.get(CONFIG_MQTT_START, config);
+			if(config.magic != 0xB6) {
 			if(config.magic != 0xA5) { // New magic for 2.4.11
 			if(config.magic != 0x9C) {
 				if(config.magic != 0x7B) {
@@ -156,6 +157,9 @@ bool AmsConfiguration::getMqttConfig(MqttConfig& config) {
 			}
 			config.rebootMinutes = config.ssl ? 5 : 0;
 			config.magic = 0xA5;
+			}
+			config.allowDestructiveCommands = false;
+			config.magic = 0xB6;
 		}
 		return true;
 	} else {
@@ -181,6 +185,7 @@ bool AmsConfiguration::setMqttConfig(MqttConfig& config) {
 		mqttChanged |= config.timeout != existing.timeout;
 		mqttChanged |= config.keepalive != existing.keepalive;
 		mqttChanged |= config.rebootMinutes != existing.rebootMinutes;
+		mqttChanged |= config.allowDestructiveCommands != existing.allowDestructiveCommands;
 	} else {
 		mqttChanged = true;
 	}
@@ -218,6 +223,7 @@ void AmsConfiguration::clearMqtt(MqttConfig& config) {
 	config.timeout = 1000;
 	config.keepalive = 60;
 	config.rebootMinutes = 0;
+	config.allowDestructiveCommands = false;
 }
 
 void AmsConfiguration::setMqttChanged() {

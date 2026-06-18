@@ -186,7 +186,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, JsonS
 		qsr = LittleFS.exists(FILE_MQTT_CERT);
 		qsk = LittleFS.exists(FILE_MQTT_KEY);
 	}
-	EMIT(PSTR(",\"q\":{\"h\":\"%s\",\"p\":%d,\"u\":\"%s\",\"a\":\"%s\",\"c\":\"%s\",\"b\":\"%s\",\"r\":\"%s\",\"m\":%d,\"s\":{\"e\":%s,\"c\":%s,\"r\":%s,\"k\":%s},\"t\":%d,\"d\":%d,\"i\":%d,\"k\":%d,\"e\":%s}"),
+	EMIT(PSTR(",\"q\":{\"h\":\"%s\",\"p\":%d,\"u\":\"%s\",\"a\":\"%s\",\"c\":\"%s\",\"b\":\"%s\",\"r\":\"%s\",\"m\":%d,\"s\":{\"e\":%s,\"c\":%s,\"r\":%s,\"k\":%s},\"t\":%d,\"d\":%d,\"i\":%d,\"k\":%d,\"e\":%s,\"dc\":%s}"),
 		mqttConfig.host,
 		mqttConfig.port,
 		mqttConfig.username,
@@ -203,7 +203,8 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, JsonS
 		mqttConfig.stateUpdateInterval,
 		mqttConfig.timeout,
 		mqttConfig.keepalive,
-		mqttConfig.rebootMinutes == 0 ? "null" : String(mqttConfig.rebootMinutes, 10).c_str()
+		mqttConfig.rebootMinutes == 0 ? "null" : String(mqttConfig.rebootMinutes, 10).c_str(),
+		mqttConfig.allowDestructiveCommands ? "true" : "false"
 	);
 
 	// Price

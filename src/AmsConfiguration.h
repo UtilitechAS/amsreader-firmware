@@ -71,6 +71,9 @@
 #define REBOOT_CAUSE_FIRMWARE_UPDATE 8
 #define REBOOT_CAUSE_MQTT_DISCONNECTED 9
 #define REBOOT_CAUSE_SMART_CONFIG 10
+#define REBOOT_CAUSE_MQTT_REBOOT 11
+#define REBOOT_CAUSE_MQTT_FACTORY_RESET 12
+#define REBOOT_CAUSE_MQTT_FIRMWARE_UPGRADE 13
 
 struct ResetDataContainer {
 	uint8_t cause;
@@ -121,7 +124,8 @@ struct MqttConfig {
 	uint16_t timeout;
 	uint8_t keepalive;
 	uint8_t rebootMinutes;
-}; // 684
+	bool allowDestructiveCommands; // appended; gated by MqttConfig.magic migration
+}; // 685
 
 struct WebConfig {
 	uint8_t security;

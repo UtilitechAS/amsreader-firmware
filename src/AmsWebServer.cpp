@@ -1445,6 +1445,7 @@ void AmsWebServer::handleSave() {
 			mqtt.timeout = server.arg(F("qi")).toInt();
 			mqtt.keepalive = server.arg(F("qk")).toInt();
 			mqtt.rebootMinutes = server.arg(F("qe")).toInt();
+			mqtt.allowDestructiveCommands = server.arg(F("qdc")) == F("true");
 		} else {
 			config->clearMqtt(mqtt);
 		}

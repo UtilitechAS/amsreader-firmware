@@ -7,7 +7,7 @@
     const defaultLabels = {
         mqtt: "MQTT",
         mqtt_c: "MQTT (custom)",
-        mqtt_es: "Energy speedometer",
+        mqtt_es: "Flexpartner.Energy",
         price: "Price service",
         ntp: "NTP",
         cloud: "Cloud",

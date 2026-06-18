@@ -348,7 +348,7 @@
                             <option value="10Y1001A1001A39I">Estonia</option>
                             <option value="10YFI-1--------U">Finland</option>
                             <option value="10YFR-RTE------C">France</option>
-                            <option value="10Y1001A1001A82H">Germany</option>
+                            <option value="10Y1001A1001A82H">Germany / Luxembourg</option>
                             <option value="10YGR-HTSO-----Y">Greece</option>
                             <option value="10YHU-MAVIR----U">Hungary</option>
                             <option value="10Y1001A1001A59C">Ireland</option>

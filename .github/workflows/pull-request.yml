@@ -47,6 +47,34 @@ jobs:
       env: esp8266
       is_esp32: false
 
+  test:
+    name: Decoder unit tests (native)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code from repo
+        uses: actions/checkout@v4
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U platformio
+      - name: Install mbedTLS (native decrypt tests)
+        run: sudo apt-get update && sudo apt-get install -y libmbedtls-dev
+      - name: Run decoder tests
+        # Encrypted-fixture tests read keys from these secrets; absent (e.g. on
+        # fork PRs) they self-skip, while unencrypted + golden tests still run.
+        env:
+          AMS_TEST_KEY_GH501_EK: ${{ secrets.AMS_TEST_KEY_GH501_EK }}
+          AMS_TEST_KEY_GH501_AK: ${{ secrets.AMS_TEST_KEY_GH501_AK }}
+          AMS_TEST_KEY_GH787_EK: ${{ secrets.AMS_TEST_KEY_GH787_EK }}
+          AMS_TEST_KEY_GH905_EK: ${{ secrets.AMS_TEST_KEY_GH905_EK }}
+          AMS_TEST_KEY_EM20200710_EK: ${{ secrets.AMS_TEST_KEY_EM20200710_EK }}
+          AMS_TEST_KEY_EM20200710_AK: ${{ secrets.AMS_TEST_KEY_EM20200710_AK }}
+        run: pio test -e native
+
   comment:
     needs:
       - build-esp32s2

@@ -1,0 +1,30 @@
+/**
+ * @copyright Utilitech AS 2023-2026
+ * License: Fair Source
+ * 
+ */
+
+#ifndef _REALTIMEPLOT_H
+#define _REALTIMEPLOT_H
+
+#include "AmsData.h"
+
+#define REALTIME_SAMPLE 10000
+#define REALTIME_SIZE 360
+
+class RealtimePlot {
+public:
+    RealtimePlot();
+    void update(AmsData& data);
+    int32_t getValue(uint16_t req);
+    int16_t getSize();
+
+private:
+    int8_t  values[REALTIME_SIZE];
+    uint8_t scaling[REALTIME_SIZE];
+
+    unsigned long lastMillis = 0;
+    double lastReading = 0;
+    uint16_t lastPos = 0;
+};
+#endif

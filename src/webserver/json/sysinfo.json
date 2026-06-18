@@ -1,0 +1,72 @@
+{
+    "version": "%s",
+    "chip": "%s",
+    "chipId": "%06x",
+    "cpu": %d,
+    "mac": "%s",
+    "apmac": "%s",
+    "board": %d,
+    "vndcfg": %s,
+    "usrcfg": %s,
+    "fwconsent": %d,
+    "hostname": "%s",
+    "booting": %s,
+    "upgrading": %s,
+    "net": {
+        "ip": "%s",
+        "mask": "%s",
+        "gw": "%s",
+        "dns1": "%s",
+        "dns2": "%s",
+        "ipv6": "%s",
+        "dns1v6": "%s",
+        "dns2v6": "%s"
+    },
+    "if": {
+        "eth": %s
+    },
+    "meter": {
+        "mfg": %d,
+        "model": "%s",
+        "id": "%s"
+    },
+    "ui": {
+        "i": %d,
+        "e": %d,
+        "v": %d,
+        "a": %d,
+        "r": %d,
+        "c": %d,
+        "t": %d,
+        "p": %d,
+        "d": %d,
+        "m": %d,
+        "s": %d,
+        "l": %d,
+        "h": %d,
+        "f": %d,
+        "k": %d,
+        "lang": "%s"
+    },
+    "security": %d,
+    "context": "%s",
+    "boot_reason": %d,
+    "ex_cause": %d,
+    "upgrade": {
+        "c": %d,
+        "e": %d,
+        "f": "%s",
+        "t": "%s",
+        "n": "%s",
+        "p": %.1f
+    },
+    "last_month": {
+        "u" : %.2f,
+        "c" : %.2f,
+        "p" : %.2f,
+        "i" : %.2f
+    },
+    "clock_offset": %d,
+    "features": [%s],
+    "services": [%s]
+}

@@ -1,0 +1,18 @@
+/**
+ * @copyright Utilitech AS 2023-2026
+ * License: Fair Source
+ * 
+ */
+
+#ifndef _DLMSPARSER_H
+#define _DLMSPARSER_H
+
+#include <stdint.h>
+#include "DataParser.h"
+
+class DLMSParser {
+public:
+    int8_t parse(uint8_t *buf, DataParserContext &ctx);
+};
+
+#endif

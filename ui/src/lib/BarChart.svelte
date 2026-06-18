@@ -1,0 +1,160 @@
+<script>
+	import { tooltip } from './tooltip';
+
+    export let config;
+
+    let width;
+    let height;
+    let barWidth;
+    let xScale;
+    let yScale;
+    let heightAvailable;
+    let labelOffset;
+    let vertSwitch = 30;
+    let titleHeight = 0;
+
+    function fitText(node, maxWidth) {
+        let raf;
+        function fit(w) {
+            cancelAnimationFrame(raf);
+            node.style.fontSize = '';
+            if (!w) return;
+            raf = requestAnimationFrame(() => {
+                try {
+                    const bbox = node.getBBox();
+                    if (bbox.width > 0 && bbox.width > w) {
+                        const fs = parseFloat(getComputedStyle(node).fontSize) || 12;
+                        node.style.fontSize = (fs * w / bbox.width) + 'px';
+                    }
+                } catch(e) { /* element not in layout tree */ }
+            });
+        }
+        fit(maxWidth);
+        return {
+            update: fit,
+            destroy() { cancelAnimationFrame(raf); }
+        };
+    }
+
+    $: {
+        heightAvailable = height-titleHeight;
+	    let innerWidth = width - (config.padding.left + config.padding.right);
+	    barWidth = innerWidth / config.points.length;
+        labelOffset = barWidth < vertSwitch ? 30 : 15;
+
+        let yPerUnit = (heightAvailable-config.padding.top-config.padding.bottom)/(config.y.max-config.y.min);
+
+        xScale = function(i) {
+            return (i*barWidth)+config.padding.left;
+        };
+        yScale = function(i) {
+            let ret = 0;
+            if(i > config.y.max) 
+                ret = config.padding.bottom;
+            else if(i < config.y.min)
+                ret = heightAvailable-config.padding.bottom;
+            else 
+                ret = heightAvailable-config.padding.bottom-((i-config.y.min)*yPerUnit);
+            return ret > heightAvailable || ret < 0.0 ? 0.0 : ret;
+        };
+    };
+</script>
+<div class="chart" bind:clientWidth={width} bind:clientHeight={height}>
+    {#if config.x.ticks && config.points && heightAvailable}
+    {#if config.title || config.link}
+        <div class="grid grid-cols-2">
+            {#if config.title}
+                <div class="text-sm font-bold" bind:clientHeight={titleHeight}>{config.title}</div>
+            {/if}
+            {#if config.link}
+                <div class="text-xs text-right">
+                    {#if config.link.route}
+                        <a href={"#" + config.link.url}>{config.link.text}</a>
+                    {:else}
+                        <a href={config.link.url} target={config.link.target}>{config.link.text}</a>
+                    {/if}
+                </div>
+            {/if}
+        </div>
+    {/if}
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width} {heightAvailable}">
+            <!-- y axis -->
+            <g class="axis y-axis">
+                {#each config.y.ticks as tick}
+                    {#if !isNaN(yScale(tick.value))}
+                        <g class="tick tick-{tick.value} tick-{tick.color}" transform="translate(0, {yScale(tick.value)})">
+                            <line x2="100%"></line>
+                            <text y="-4" x={tick.align == 'right' ? '90%' : ''}>{tick.label}</text>
+                        </g>
+                        {/if}
+                {/each}
+            </g>
+
+            <!-- x axis -->
+            <g class="axis x-axis">
+                {#each config.x.ticks as point, i}
+                    {#if !isNaN(xScale(i))}
+                        <g class="tick" transform="translate({xScale(i)},{heightAvailable})">
+                            {#if barWidth > 20 || i%2 == 0 || !config.x.ticks[i-1].label}
+                            <text x="{barWidth/2}" y="-4" text-anchor="middle" use:fitText={barWidth * 0.85}>{point.label}</text>
+                            {/if}
+                        </g>
+                        {/if}
+                {/each}
+            </g>
+
+            <g class='bars'>
+                {#each config.points as point, i}
+                    {#if !isNaN(xScale(i)) && !isNaN(yScale(point.value))}
+                        <g data-title="{point.title}" use:tooltip>
+                        {#if point.value !== undefined}
+                            <rect
+                                x="{xScale(i) + 2}"
+                                y="{yScale(point.value)}"
+                                width="{barWidth * 0.95}"
+                                height="{yScale(config.y.min) - yScale(Math.min(config.y.min, 0) + point.value)}"
+                                fill="{point.color}"
+                            />
+
+                            {#if barWidth > 15}
+                                <text 
+                                    width="{barWidth * 0.95}"
+                                    dominant-baseline="middle"
+                                    text-anchor="{barWidth < vertSwitch || point.labelAngle ? 'left' : 'middle'}"
+                                    fill="{yScale(point.value) > yScale(0)-labelOffset && !config.dark ? point.color : 'white'}"
+                                    transform="translate({xScale(i) + barWidth/2} {yScale(point.value) > yScale(0) - labelOffset ? yScale(point.value) - labelOffset : yScale(point.value) + 10}) rotate({point.labelAngle ? point.labelAngle : barWidth < vertSwitch ? 90 : 0})"
+                                    use:fitText={!point.labelAngle && barWidth >= vertSwitch ? barWidth * 0.95 : null}
+                                >{point.label}</text>
+                            {/if}
+                        {/if}
+                        </g>
+                        <g>
+                        {#if point.value2 > 0.0001}
+                            <rect
+                                x="{xScale(i) + 2}"
+                                y="{yScale(0)}"
+                                width="{barWidth * 0.95}"
+                                height="{yScale(config.y.min) - yScale(config.y.min + point.value2)}"
+                                fill="{point.color2 ? point.color2 : point.color}"
+                            />
+                            {#if barWidth > 15}
+                                <text 
+                                    width="{barWidth * 0.95}"
+                                    dominant-baseline="middle"
+                                    text-anchor="{'middle'}"
+                                    fill="{yScale(-point.value2) < yScale(0) + 15 && !config.dark ? point.color2 ? point.color2 : point.color : 'white'}"
+                                    transform="translate({xScale(i) + (barWidth/2)} {yScale(-point.value2) < yScale(0) + 15 ? yScale(-point.value2) + 15 : yScale(-point.value2) - 14}) rotate({barWidth < vertSwitch ? 90 : 0})"
+                                    use:fitText={barWidth >= vertSwitch ? barWidth * 0.95 : null}
+                                >{point.label2}</text>
+                                {#if point.title2}
+                                <title>{point.title2}</title>
+                                {/if}
+                            {/if}
+                        {/if}
+                        </g>
+                    {/if}
+                {/each}
+            </g>
+        </svg>
+    {/if}
+</div>

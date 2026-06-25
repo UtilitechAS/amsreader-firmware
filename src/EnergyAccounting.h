@@ -67,6 +67,7 @@ struct EnergyAccountingRealtimeData {
     float incomeDay;
     unsigned long lastImportUpdateMillis;
     unsigned long lastExportUpdateMillis;
+    uint16_t crc;
 };
 
 
@@ -134,6 +135,7 @@ private:
 
     void calcDayCost();
     bool updateMax(uint16_t val, uint8_t day, uint8_t hour);
+    void updateRealtimeCrc();
 };
 
 #endif

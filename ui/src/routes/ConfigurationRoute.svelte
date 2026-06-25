@@ -10,6 +10,7 @@
     import CountrySelectOptions from '../lib/CountrySelectOptions.svelte';
     import { push } from 'svelte-spa-router';
     import SubnetOptions from '../lib/SubnetOptions.svelte';
+    import UiFeatureToggle from '../lib/UiFeatureToggle.svelte';
     import QrCode from 'svelte-qrcode';
 
     let basepath = "/";
@@ -870,14 +871,7 @@
             <input type="hidden" name="u" value="true"/>
             <div class="flex flex-wrap">
                 {#each uiElements as el}
-                    <div class="w-1/2">
-                        {translations.conf?.ui?.[el.key] ?? el.name}<br/>
-                        <select name="u{el.key}" bind:value={configuration.u[el.key]} class="in-s">
-                            <option value={0}>{translations.conf?.ui?.disabled ?? "Disabled"}</option>
-                            <option value={1}>{translations.conf?.ui?.enabled ?? "Enabled"}</option>
-                            <option value={2}>{translations.conf?.ui?.auto ?? "Auto"}</option>
-                        </select>
-                    </div>
+                    <UiFeatureToggle cfg={configuration.u} item={el} {translations} />
                 {/each}
                 <div class="w-1/2">
                     {translations.conf?.ui?.lang ?? "Language"}

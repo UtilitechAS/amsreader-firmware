@@ -145,7 +145,8 @@
         "discovery": "Discovery topic prefix",
         "hostname": "Hostname for URL",
         "tag": "Name tag",
-        "title": "Home-Assistant"
+        "title": "Home-Assistant",
+        "nodeid": "Nest sensors under a node level"
       },
       "id": "Client ID",
       "interval": "Interval",

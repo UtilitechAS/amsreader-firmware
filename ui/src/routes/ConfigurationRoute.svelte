@@ -791,6 +791,9 @@
                     {translations.conf?.mqtt?.ha?.tag ?? "Name tag"}<br/>
                     <input name="hn" bind:value={configuration.h.n} type="text" class="in-s" pattern={asciiPattern}/>
                 </div>
+                <div class="my-1">
+                    <label><input type="checkbox" name="hi" value="true" bind:checked={configuration.h.i} class="rounded mb-1"/> {translations.conf?.mqtt?.ha?.nodeid ?? "Nest sensors under a node level"}</label>
+                </div>
             </div>
         {/if}
         {#if configuration?.c}

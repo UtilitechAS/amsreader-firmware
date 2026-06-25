@@ -36,6 +36,13 @@ void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config
     manufacturer = boardManufacturerToString(boardType);
 
     deviceUid = String(hostname); // Maybe configurable in the future?
+    // When nodeId is set, nest sensors under a node level:
+    //   <prefix>/sensor/<deviceUid>/<uid>/config   instead of
+    //   <prefix>/sensor/<deviceUid>_<uid>/config
+    // uniq_id is unaffected (still <deviceUid>_<uid>), so HA entities are
+    // not duplicated. Note: toggling leaves the old retained config topics
+    // orphaned on the broker until manually cleared.
+    objectIdSep = config.nodeId ? "/" : "_";
     #if defined(AMS_REMOTE_DEBUG)
     if (debugger->isActive(RemoteDebug::INFO))
     #endif
@@ -527,7 +534,7 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor sensor) {
         strlen_P(sensor.uom) > 0 ? "\"" : ""
     );
 
-    mqtt.publish(sensorTopic + "/" + deviceUid + "_" + uid + "/config", json, true, 0);
+    mqtt.publish(sensorTopic + "/" + deviceUid + objectIdSep + uid + "/config", json, true, 0);
     loop();
 }
 

@@ -50,6 +50,7 @@ private:
     String sensorTopic;
     String updateTopic;
     String sensorNamePrefix;
+    String objectIdSep; // "_" (flat) or "/" (nested under node) for sensor config topics
 
     bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit, rInit, fInit, dInit;
     bool tInit[32] = {false};

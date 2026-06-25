@@ -470,6 +470,7 @@ bool AmsConfiguration::setHomeAssistantConfig(HomeAssistantConfig& config) {
 		mqttChanged |= strcmp(config.discoveryPrefix, existing.discoveryPrefix) != 0;
 		mqttChanged |= strcmp(config.discoveryHostname, existing.discoveryHostname) != 0;
 		mqttChanged |= strcmp(config.discoveryNameTag, existing.discoveryNameTag) != 0;
+		mqttChanged |= config.nodeId != existing.nodeId;
 	} else {
 		mqttChanged = true;
 	}
@@ -489,6 +490,7 @@ void AmsConfiguration::clearHomeAssistantConfig(HomeAssistantConfig& config) {
 	memset(config.discoveryPrefix, 0, 64);
 	memset(config.discoveryHostname, 0, 64);
 	memset(config.discoveryNameTag, 0, 16);
+	config.nodeId = false;
 }
 
 bool AmsConfiguration::pinUsed(uint8_t pin, GpioConfig& config) {
@@ -1091,6 +1093,14 @@ bool AmsConfiguration::hasConfig() {
 					configVersion = 0;
 					return false;
 				}
+			case 104:
+				configVersion = -1; // Prevent loop
+				if(relocateConfig104()) {
+					configVersion = 105;
+				} else {
+					configVersion = 0;
+					return false;
+				}
 			case EEPROM_CHECK_SUM:
 				return true;
 			default:
@@ -1204,6 +1214,20 @@ bool AmsConfiguration::relocateConfig103() {
 	EEPROM.put(CONFIG_ZC_START, zcc);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 104);
+	bool ret = EEPROM.commit();
+	EEPROM.end();
+	return ret;
+}
+
+bool AmsConfiguration::relocateConfig104() {
+	// HomeAssistantConfig gained a trailing nodeId byte in previously-unused
+	// space; no offsets moved, so just default the new flag and re-stamp.
+	EEPROM.begin(EEPROM_SIZE);
+	HomeAssistantConfig ha;
+	EEPROM.get(CONFIG_HA_START, ha);
+	ha.nodeId = false; // keep flat topic for existing installs
+	EEPROM.put(CONFIG_HA_START, ha);
+	EEPROM.put(EEPROM_CONFIG_ADDRESS, 105);
 	bool ret = EEPROM.commit();
 	EEPROM.end();
 	return ret;

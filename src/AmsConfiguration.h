@@ -10,7 +10,7 @@
 #include "Arduino.h"
 
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 104 // Used to check if config is stored. Change if structure changes
+#define EEPROM_CHECK_SUM 105 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CLEARED_INDICATOR 0xFC
 #define EEPROM_CONFIG_ADDRESS 0
 
@@ -212,7 +212,8 @@ struct HomeAssistantConfig {
 	char discoveryPrefix[64];
 	char discoveryHostname[64];
 	char discoveryNameTag[16];
-}; // 145
+	bool nodeId; // Nest sensors under a node level: <prefix>/sensor/<deviceUid>/<uid>/config
+}; // 146
 
 struct NtpConfig {
 	bool enable;
@@ -394,6 +395,7 @@ private:
 	bool sysChanged = false, networkChanged = false, mqttChanged = false, webChanged = false, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false, zcChanged = true;
 
 	bool relocateConfig103(); // 2.2.12, until, but not including 2.3
+	bool relocateConfig104(); // adds HomeAssistantConfig.nodeId
 
 	void saveToFs();
 	bool loadFromFs(uint8_t version);

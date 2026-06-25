@@ -1315,7 +1315,8 @@ void AmsWebServer::configurationJson() {
 	snprintf_P(buf, BufferSize, CONF_HA_JSON,
 		haconf.discoveryPrefix,
 		haconf.discoveryHostname,
-		haconf.discoveryNameTag
+		haconf.discoveryNameTag,
+		haconf.nodeId ? "true" : "false"
 	);
 	server.sendContent(buf);
 	snprintf_P(buf, BufferSize, CONF_CLOUD_JSON,
@@ -1698,6 +1699,7 @@ void AmsWebServer::handleSave() {
 		strcpy(haconf.discoveryPrefix, server.arg(F("ht")).c_str());
 		strcpy(haconf.discoveryHostname, server.arg(F("hh")).c_str());
 		strcpy(haconf.discoveryNameTag, server.arg(F("hn")).c_str());
+		haconf.nodeId = server.arg(F("hi")) == F("true");
 		config->setHomeAssistantConfig(haconf);
 	}
 
@@ -2548,6 +2550,7 @@ void AmsWebServer::configFileDownload() {
 				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("homeAssistantDiscoveryPrefix %s\n"), haconf.discoveryPrefix));
 				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("homeAssistantDiscoveryHostname %s\n"), haconf.discoveryHostname));
 				server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("homeAssistantDiscoveryNameTag %s\n"), haconf.discoveryNameTag));
+					server.sendContent(buf, snprintf_P(buf, BufferSize, PSTR("homeAssistantDiscoveryNodeId %s\n"), haconf.nodeId ? "true" : "false"));
 			}
 		}
 	}

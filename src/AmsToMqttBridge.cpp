@@ -101,6 +101,7 @@ ADC_MODE(ADC_VCC);
 #include "PulseMeterCommunicator.h"
 
 #include "Uptime.h"
+#include "NtpStatus.h"
 
 #if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
@@ -698,6 +699,8 @@ void setup() {
 	ea.load();
 	ea.setPriceService(ps);
 	ws.setup(&config, &gpioConfig, &meterState, &ds, &ea, &rtp, &updater);
+
+	ntpRegisterSyncCallback();
 
 	UiConfig ui;
 	if(config.getUiConfig(ui)) {

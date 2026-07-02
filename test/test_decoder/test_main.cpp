@@ -65,6 +65,7 @@ void test_unencrypted_golden(void);
 void test_iskra_am550_slovenia(void);
 void test_aidon_norway_list2(void);
 void test_kamstrup_norway(void);
+void test_kamstrup_timezone(void);
 void test_dsmr_accepts_lf_and_crlf(void);
 // defined in test_encrypted.cpp
 void test_encrypted_decode(void);
@@ -88,6 +89,7 @@ int main(int argc, char** argv) {
     RUN_TEST(test_iskra_am550_slovenia);
     RUN_TEST(test_aidon_norway_list2);
     RUN_TEST(test_kamstrup_norway);
+    RUN_TEST(test_kamstrup_timezone);
     RUN_TEST(test_dsmr_accepts_lf_and_crlf);
     RUN_TEST(test_unencrypted_golden);
     RUN_TEST(test_encrypted_decode);

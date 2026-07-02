@@ -1398,15 +1398,30 @@ time_t IEC6205675::getTimestamp(uint8_t* obis, int matchlength, const char* ptr)
     return 0;
 }
 
-time_t IEC6205675::adjustForKnownIssues(CosemDateTime dt, Timezone* tz, uint8_t meterType) {    
+time_t IEC6205675::adjustForKnownIssues(CosemDateTime dt, Timezone* tz, uint8_t meterType) {
     time_t ts = decodeCosemDateTime(dt);
     int16_t deviation = ntohs(dt.deviation);
     if(deviation < -720 || deviation > 720) {
-        // Time zone not specified
-        if(meterType == AmsTypeAidon || meterType == AmsTypeKamstrup) {
-            // Special known case
+        // Deviation (UTC offset) not specified by the meter.
+        if(meterType == AmsTypeKamstrup) {
+            // Kamstrup reports its clock in local STANDARD time all year — it
+            // does not spring forward for DST (verified against captures in
+            // both CET and CEST). So convert by treating the wall-clock fields
+            // as the zone's standard local time and subtracting the zone's
+            // standard UTC offset. The DST status bit is intentionally ignored.
+            // Previously a hardcoded -3600, correct only for CET and an hour (or
+            // more) off for other zones such as Finland/EET. (#1191)
+            tmElements_t w;
+            w.Year = ntohs(dt.year) - 1970;
+            w.Month = dt.month;
+            w.Day = dt.dayOfMonth;
+            w.Hour = dt.hour;
+            w.Minute = dt.minute;
+            w.Second = dt.second;
+            w.Wday = 0;
+            ts = makeTime(w) - standardOffset(tz, ntohs(dt.year));
+        } else if(meterType == AmsTypeAidon) {
             // 21.09.24, the clock is now correct for Aidon
-            // 23.10.25, the clock is now correct for Kamstrup
             ts -= 3600;
         } else if(tz != NULL) {
             // Adjust from localtime to UTC
@@ -1416,5 +1431,22 @@ time_t IEC6205675::adjustForKnownIssues(CosemDateTime dt, Timezone* tz, uint8_t 
         // 21.09.24, the clock is now correct for Aidon
         ts -= 3600;
     }
-    return ts;  
+    return ts;
+}
+
+// Standard-time UTC offset (seconds) of the configured zone, probed at a
+// mid-winter date so DST is not in effect (northern-hemisphere zones). Falls
+// back to CET (+3600) when no timezone is configured.
+int IEC6205675::standardOffset(Timezone* tz, uint16_t year) {
+    if(tz == NULL) return 3600;
+    tmElements_t jan;
+    jan.Year = year - 1970;
+    jan.Month = 1;
+    jan.Day = 15;
+    jan.Hour = 12;
+    jan.Minute = 0;
+    jan.Second = 0;
+    jan.Wday = 0;
+    time_t janUtc = makeTime(jan);
+    return (int)(tz->toLocal(janUtc) - janUtc);
 }

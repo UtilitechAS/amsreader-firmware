@@ -971,7 +971,12 @@ void handleNtp() {
 			} else {
 				memset(ntpServerName, 0, 64);
 			}
-			configTime(tz->toLocal(0), tz->toLocal(JULY1970)-JULY1970, ntpServerName, "", "");
+			// configTime's 2nd arg is the *incremental* DST shift, not the total
+			// summer offset. toLocal(JULY1970)-JULY1970 is the summer offset and
+			// toLocal(0) is the standard (winter) offset, so their difference is
+			// the DST delta (3600 s in Europe). Passing the full summer offset
+			// here double-counted the base offset during DST.
+			configTime(tz->toLocal(0), (tz->toLocal(JULY1970)-JULY1970) - tz->toLocal(0), ntpServerName, "", "");
 			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0); // Not implemented on ESP32?
 			ntpEnabled = ntp.enable;
 
@@ -1719,9 +1724,15 @@ void handleDataSuccess(AmsData* data) {
 	}
 	#endif
 
+	// Seed the system clock from the meter only ONCE, at boot before NTP has
+	// synced. Without this guard, if time() ever regresses below BuildEpoch
+	// again mid-uptime (e.g. RAM corruption), the meter timestamp — which for
+	// some meters is decoded with a known offset error — would permanently
+	// overwrite a good clock and corrupt day/hour accounting until reboot.
+	static bool clockSeededFromMeter = false;
 	time_t now = time(nullptr);
 	time_t meterTime = data->getMeterTimestamp();
-	if(now < FirmwareVersion::BuildEpoch && data->getListType() >= 3) {
+	if(!clockSeededFromMeter && now < FirmwareVersion::BuildEpoch && data->getListType() >= 3) {
 		if(meterTime > FirmwareVersion::BuildEpoch) {
 			debugI_P(PSTR("Using timestamp from meter"));
 			now = meterTime;
@@ -1732,6 +1743,7 @@ void handleDataSuccess(AmsData* data) {
 		if(now > FirmwareVersion::BuildEpoch) {
 			timeval tv { now, 0};
 			settimeofday(&tv, nullptr);
+			clockSeededFromMeter = true;
 		}
 	}
 

@@ -186,7 +186,9 @@ bool EnergyAccounting::update(time_t now, uint64_t lastUpdatedMillis, uint8_t li
     }
 
     if(config != NULL) {
-        while(getMonthMax() > config->thresholds[realtimeData->currentThresholdIdx] && realtimeData->currentThresholdIdx < 10) realtimeData->currentThresholdIdx++;
+        // Bound check first: thresholds has 10 entries (0..9). Testing the array
+        // before the index bound would read thresholds[10] once the index hits 10.
+        while(realtimeData->currentThresholdIdx < 10 && getMonthMax() > config->thresholds[realtimeData->currentThresholdIdx]) realtimeData->currentThresholdIdx++;
     }
 
     return ret;
@@ -341,7 +343,10 @@ float EnergyAccounting::getIncomeLastMonth() {
 uint8_t EnergyAccounting::getCurrentThreshold() {
     if(config == NULL)
         return 0;
-    return config->thresholds[realtimeData->currentThresholdIdx];
+    // currentThresholdIdx reaches 10 when the month max exceeds every threshold;
+    // clamp to the last valid entry (0..9) to avoid reading thresholds[10].
+    uint8_t idx = realtimeData->currentThresholdIdx < 10 ? realtimeData->currentThresholdIdx : 9;
+    return config->thresholds[idx];
 }
 
 float EnergyAccounting::getMonthMax() {

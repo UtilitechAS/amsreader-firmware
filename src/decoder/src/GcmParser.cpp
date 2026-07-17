@@ -42,6 +42,13 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
     ptr++;
     headersize++;
 
+    // The system title is at most 8 bytes (DLMS). A larger value means this is
+    // not a GCM frame at all — e.g. a plaintext DSMR telegram routed here only
+    // because an encryption key is configured. Reject it before the memcpy
+    // below overflows ctx.system_title[8] / initialization_vector[12] and
+    // crashes the device in a reboot loop.
+    if(systemTitleLength > 8) return GCM_DECRYPT_FAILED;
+
     uint8_t initialization_vector[12];
     memset(ctx.system_title, 0, 8);
     memset(initialization_vector, 0, 12);
@@ -125,7 +132,10 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
         }
         br_gcm_flip(&gcmCtx);
         br_gcm_run(&gcmCtx, 0, (void*) (ptr), len - authkeylen - 5); // 5 == security tag and frame counter
-        if(authkeylen > 0 && br_gcm_check_tag_trunc(&gcmCtx, authentication_tag, authkeylen) != 1) {
+        // Only enforce the tag when an authentication key is configured, matching the
+        // ESP32/native paths. With a blank AK we decrypt without verifying integrity,
+        // which lets meters that don't use standard SC+AK authentication be read.
+        if(authenticate && br_gcm_check_tag_trunc(&gcmCtx, authentication_tag, authkeylen) != 1) {
             return GCM_AUTH_FAILED;
         }
     #elif defined(ESP32)

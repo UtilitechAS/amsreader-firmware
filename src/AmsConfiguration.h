@@ -9,8 +9,14 @@
 #include <EEPROM.h>
 #include "Arduino.h"
 
+#if defined(ESP8266)
+#define BUF_SIZE_COMMON 2048
+#else
+#define BUF_SIZE_COMMON 4096
+#endif
+
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 104 // Used to check if config is stored. Change if structure changes
+#define EEPROM_EXPECTED_VERSION 104 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CLEARED_INDICATOR 0xFC
 #define EEPROM_CONFIG_ADDRESS 0
 
@@ -65,6 +71,9 @@
 #define REBOOT_CAUSE_FIRMWARE_UPDATE 8
 #define REBOOT_CAUSE_MQTT_DISCONNECTED 9
 #define REBOOT_CAUSE_SMART_CONFIG 10
+#define REBOOT_CAUSE_MQTT_REBOOT 11
+#define REBOOT_CAUSE_MQTT_FACTORY_RESET 12
+#define REBOOT_CAUSE_MQTT_FIRMWARE_UPGRADE 13
 
 struct ResetDataContainer {
 	uint8_t cause;
@@ -115,7 +124,8 @@ struct MqttConfig {
 	uint16_t timeout;
 	uint8_t keepalive;
 	uint8_t rebootMinutes;
-}; // 684
+	bool allowDestructiveCommands; // appended; gated by MqttConfig.magic migration
+}; // 685
 
 struct WebConfig {
 	uint8_t security;
@@ -283,10 +293,11 @@ struct ZmartChargeConfig {
 
 class AmsConfiguration {
 public:
+	bool load();
+	bool save();
+
 	bool hasConfig();
 	int getConfigVersion();
-
-	bool save();
 
 	bool getSystemConfig(SystemConfig&);
 	bool setSystemConfig(SystemConfig&);

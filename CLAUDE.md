@@ -9,7 +9,7 @@ AMS Reader (`ams2mqtt`) is PlatformIO/Arduino firmware for ESP8266 and ESP32 dev
 ## Prerequisites
 
 - Python 3.9+ with `platformio` and `css_html_js_minify` (`pip install -U platformio css_html_js_minify`)
-- Node.js 19.x (for Svelte UI)
+- Node.js 19.x (for Svelte 5 UI)
 
 ## Setup (first time)
 
@@ -27,7 +27,7 @@ pio pkg install
 ## Build Commands
 
 ```bash
-pio run -e esp32s2            # Build for a specific target (esp8266, esp32, esp32s2, esp32s3, esp32c3, esp32solo)
+pio run -e esp32s2            # Build for a specific target (esp8266, esp32, esp32s2, esp32s2psram, esp32s3, esp32c3, esp32solo)
 pio run                       # Build all envs defined in platformio-user.ini default_envs
 pio run -e esp32s2 -t upload  # Build and flash to connected device
 pio device monitor            # Serial monitor at 115200 baud
@@ -51,11 +51,12 @@ src/                  — all firmware C++ (flat)
   mqtt/               — all MQTT handler variants + json/ templates
   cloud/              — CloudConnector, ZmartCharge (ESP32 only, AMS_CLOUD flag)
   webserver/json/     — REST API JSON response templates
-ui/                   — Svelte 4 app (built output embedded in firmware)
+ui/                   — Svelte 5 app (built output embedded in firmware; uses mount()/unmount(), not `new Component()`)
 custom-example/       — template for build customization (copy to custom/)
 test/
   stubs/              — minimal native shims (lwip/def.h, Timezone.h)
-  test_decoder/       — Unity tests for the decoder module
+  payloads/           — real meter payload corpus (per-vendor dirs + manifest.json, decryption keys)
+  test_decoder/       — Unity tests for the decoder module (encrypted/unencrypted/plaintext-with-key)
 scripts/
   addversion.py       — writes src/generated_version.h before compile
   generate_includes.py — embeds ui/dist + json templates as C PROGMEM arrays
@@ -91,6 +92,19 @@ Smart Meter (UART/HAN)
 - `scripts/addversion.py` — writes `src/generated_version.h` from git hash or `$GITHUB_TAG`
 - `scripts/generate_includes.py` — unified script replacing three old per-library scripts
 
+### Decoder Test Fixtures
+
+`test/test_decoder/` runs the real captured frames in `test/payloads/` through the decoder. After adding or changing a fixture, regenerate the generated headers (see `test/test_decoder/README.md` for full detail):
+
+```bash
+python3 scripts/build_payload_manifest.py     # rebuild manifest.json from per-vendor README tables
+python3 scripts/gen_fixtures_header.py         # regenerate fixtures_generated.h
+pio test -e native                             # run; review any golden-master diff
+.pio/build/native/program gen > test/test_decoder/expected_unencrypted.h   # refresh golden snapshot
+```
+
+`test_unencrypted_golden` is a golden-master sweep: any change in how a real frame decodes flips the test for review in the diff. Encrypted fixtures need `libmbedtls-dev` installed, else they self-ignore.
+
 ## Key Conventions
 
 ### Decoder Module is Arduino-Free
@@ -98,7 +112,7 @@ Smart Meter (UART/HAN)
 `src/decoder/` compiles on native (Linux/macOS) without Arduino. This is what enables `pio test -e native`. Key portability files:
 - `src/decoder/include/byteorder.h` — portable `ntohl`/`ntohs` (`lwip/def.h` on device, `arpa/inet.h` on native)
 - `src/decoder/include/DebugPrint.h` — portable `Print`/`Stream` (`#if ARDUINO` uses real class, else minimal stub)
-- `GcmParser.cpp` has `#else return GCM_DECRYPT_FAILED` for native builds (no crypto library available)
+- `GcmParser.cpp` decrypts with the ESP crypto lib on device; on native it uses system **mbedTLS** (2.x or 3.x) when `NATIVE_TEST` + `HAVE_MBEDTLS` are set (so encrypted fixtures can be tested), else falls back to `return GCM_DECRYPT_FAILED`. `scripts/native_crypto.py` probes for the mbedTLS headers and sets the flags/links `libmbedcrypto` automatically
 
 ### Platform Abstraction
 

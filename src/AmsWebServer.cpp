@@ -1249,6 +1249,7 @@ void AmsWebServer::handleSave() {
 	config->getSystemConfig(sys);
 
 	bool success = true;
+	if(server.arg(F("s")) == F("true") && server.arg(F("sc")).toInt() != 3 && server.arg(F("ss")).isEmpty()) success = false;
 	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
 		int boardType = server.arg(F("vb")).toInt();
 		int hanPin = server.arg(F("vh")).toInt();
@@ -1267,7 +1268,7 @@ void AmsWebServer::handleSave() {
 		}
 	}
 
-	if(server.hasArg(F("s")) && server.arg(F("s")) == F("true")) {
+	if(success && server.hasArg(F("s")) && server.arg(F("s")) == F("true")) {
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
 
@@ -1748,9 +1749,9 @@ void AmsWebServer::handleSave() {
 	debugger->printf_P(PSTR("Saving configuration now...\n"));
 
 	// If vendor page and clear all config is selected
-	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true") && server.hasArg(F("vr")) && server.arg(F("vr")) == F("true")) {
+	if(success && server.hasArg(F("v")) && server.arg(F("v")) == F("true") && server.hasArg(F("vr")) && server.arg(F("vr")) == F("true")) {
 		config->clear();
-	} else if(config->save()) {
+	} else if(success && config->save()) {
 		#if defined(AMS_REMOTE_DEBUG)
 		if (debugger->isActive(RemoteDebug::INFO))
 		#endif

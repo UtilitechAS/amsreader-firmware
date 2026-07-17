@@ -1581,6 +1581,11 @@ void connectToNetwork() {
 	NetworkConfig network;
 	if(config.getNetworkConfig(network)) {
 		if(network.mode == 0 || network.mode > 3) network.mode = NETWORK_MODE_WIFI_CLIENT;
+		if(network.mode != NETWORK_MODE_ETH_CLIENT && strlen(network.ssid) == 0) {
+			setupMode = false;
+			toggleSetupMode();
+			return;
+		}
 		if(ch != NULL && ch->getMode() != network.mode) {
 			delete ch;
 			ch = NULL;

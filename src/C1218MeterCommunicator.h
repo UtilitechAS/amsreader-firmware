@@ -31,6 +31,11 @@ public:
 private:
     static const size_t FRAME_CAPACITY = 160;
     static const size_t MESSAGE_CAPACITY = 192;
+    static const uint32_t RESPONSE_TIMEOUT = 2000;
+
+    enum Stage : uint8_t { WAIT_POLL, IDENT, NEGOTIATE, LOGON, SECURITY, TABLE0, TABLE28, TABLE23, LOGOFF, TERMINATE };
+    enum IoState : uint8_t { IO_IDLE, WAIT_ACK, WAIT_START, READ_FRAME };
+    enum RequestStatus : uint8_t { PENDING, COMPLETE, FAILED };
 
 #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
@@ -54,19 +59,26 @@ private:
     int32_t table23[2] = {};
     int32_t table28[26] = {};
     size_t table28Values = 0;
+    Stage stage = WAIT_POLL;
+    IoState ioState = IO_IDLE;
+    uint8_t attempts = 0;
+    uint8_t packets = 0;
+    uint8_t txFrame[FRAME_CAPACITY] = {};
+    size_t txLength = 0;
+    uint8_t rxFrame[FRAME_CAPACITY] = {};
+    size_t rxLength = 0;
+    size_t rxExpected = 0;
+    uint8_t response[MESSAGE_CAPACITY] = {};
+    size_t responseLength = 0;
+    uint64_t deadline = 0;
 
     void resetSerial();
-    bool openSession();
-    void closeSession();
-    bool poll();
-    bool request(const uint8_t* payload, size_t length, uint8_t* response, size_t& responseLength);
-    bool sendFrame(const uint8_t* payload, size_t length);
-    bool receiveMessage(uint8_t* response, size_t& responseLength);
-    bool receiveFrame(uint8_t* payload, size_t& payloadLength, uint8_t& control, uint8_t& sequence);
-    bool readTable(uint16_t table, uint8_t* response, size_t& responseLength);
-    bool readPartialTable(uint16_t table, uint16_t length, uint8_t* response, size_t& responseLength);
-    bool waitByte(uint8_t& value, uint32_t timeout = 2000);
-    bool readExact(uint8_t* target, size_t length, uint32_t timeout = 2000);
+    void startStage();
+    bool finishStage(uint64_t now);
+    void beginRequest(const uint8_t* payload, size_t length);
+    void transmit(uint64_t now);
+    RequestStatus serviceRequest(uint64_t now);
+    void abortCycle(uint64_t now);
     void discardInput();
     void fail(const __FlashStringHelper* message);
     int32_t readInt32(const uint8_t* value) const;

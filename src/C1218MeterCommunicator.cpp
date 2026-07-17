@@ -23,7 +23,6 @@ C1218MeterCommunicator::C1218MeterCommunicator(Stream* debugger, AmsConfiguratio
     : debugger(debugger), config(config) {}
 
 C1218MeterCommunicator::~C1218MeterCommunicator() {
-    closeSession();
     serial->end();
 }
 
@@ -33,9 +32,12 @@ void C1218MeterCommunicator::configure(MeterConfig& meterConfig, Timezone*) {
     resetSerial();
     initialized = true;
     sessionOpen = updated = bigEndian = toggle = false;
-    failures = 0;
+    failures = attempts = packets = 0;
     lastError = 0;
     nextPoll = 0;
+    stage = WAIT_POLL;
+    ioState = IO_IDLE;
+    responseLength = rxLength = rxExpected = 0;
 }
 
 void C1218MeterCommunicator::resetSerial() {
@@ -47,24 +49,24 @@ void C1218MeterCommunicator::resetSerial() {
 
 bool C1218MeterCommunicator::loop() {
     uint64_t now = millis64();
-    if(!initialized || now < nextPoll) return false;
-    nextPoll = now + 2000;
+    if(!initialized) return false;
 
-    if(sessionOpen && now - sessionStarted >= 300000) closeSession();
-    if((!sessionOpen && !openSession()) || !poll()) {
-        closeSession();
-        lastError = 97;
-        if(++failures >= 3) {
-            resetSerial();
-            failures = 0;
+    if(ioState != IO_IDLE) {
+        RequestStatus status = serviceRequest(now);
+        if(status == PENDING) return false;
+        if(status == FAILED) {
+            abortCycle(now);
+            return false;
         }
-        return false;
+        return finishStage(now);
     }
 
-    failures = 0;
-    lastError = 0;
-    updated = true;
-    return true;
+    if(stage == WAIT_POLL) {
+        if(now < nextPoll) return false;
+        stage = sessionOpen && now - sessionStarted >= 300000 ? LOGOFF : sessionOpen ? TABLE28 : IDENT;
+    }
+    startStage();
+    return false;
 }
 
 AmsData* C1218MeterCommunicator::getData(AmsData&) {
@@ -100,177 +102,227 @@ void C1218MeterCommunicator::ackConfigChanged() {}
 void C1218MeterCommunicator::getCurrentConfig(MeterConfig& config) { config = meterConfig; }
 HardwareSerial* C1218MeterCommunicator::getHwSerial() { return serial; }
 
-bool C1218MeterCommunicator::openSession() {
-    discardInput();
-    toggle = false;
-    uint8_t response[MESSAGE_CAPACITY];
-    size_t length;
-
-    const uint8_t ident[] = {0x20};
-    length = sizeof(response);
-    if(!request(ident, sizeof(ident), response, length)) { fail(F("C12.18 IDENT failed")); return false; }
-
-    const uint8_t negotiate[] = {0x61, 0x00, 0x40, 0x02, 0x06};
-    length = sizeof(response);
-    if(!request(negotiate, sizeof(negotiate), response, length)) { fail(F("C12.18 NEGOTIATE failed")); return false; }
-
-    uint8_t logon[13];
-    memset(logon, ' ', sizeof(logon));
-    logon[0] = 0x50;
-    logon[1] = c1218Config.userId >> 8;
-    logon[2] = c1218Config.userId;
-    memcpy(logon + 3, c1218Config.username, strnlen(c1218Config.username, 10));
-    length = sizeof(response);
-    if(!request(logon, sizeof(logon), response, length)) { fail(F("C12.18 LOGON failed")); return false; }
-
-    uint8_t security[21] = {0x51};
-    memcpy(security + 1, c1218Config.password, strnlen(c1218Config.password, 20));
-    length = sizeof(response);
-    if(!request(security, sizeof(security), response, length)) { fail(F("C12.18 SECURITY failed")); return false; }
-
-    length = sizeof(response);
-    if(!readTable(0, response, length) || length < 3) { fail(F("C12.18 table 0 read failed")); return false; }
-    uint16_t tableLength = (response[0] << 8) | response[1];
-    if(tableLength + 2 > length) { fail(F("C12.18 table 0 is incomplete")); return false; }
-    bigEndian = (response[2] & 0x01) != 0;
-
-    sessionOpen = true;
-    sessionStarted = millis64();
-    return true;
-}
-
-void C1218MeterCommunicator::closeSession() {
-    if(!sessionOpen) return;
-    uint8_t response[8];
-    size_t length = sizeof(response);
-    const uint8_t logoff[] = {0x52};
-    request(logoff, sizeof(logoff), response, length);
-    length = sizeof(response);
-    const uint8_t terminate[] = {0x21};
-    request(terminate, sizeof(terminate), response, length);
-    sessionOpen = false;
-}
-
-bool C1218MeterCommunicator::poll() {
-    uint8_t response[MESSAGE_CAPACITY];
-    size_t length = sizeof(response);
-    const size_t values = c1218Config.extendedTable28 ? 26 : 10;
-    if(!readPartialTable(28, values * 4, response, length) || !parseTable(response, length, table28, values)) {
-        fail(F("C12.18 table 28 read failed"));
-        return false;
+void C1218MeterCommunicator::startStage() {
+    switch(stage) {
+        case IDENT: {
+            toggle = false;
+            const uint8_t payload[] = {0x20};
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case NEGOTIATE: {
+            const uint8_t payload[] = {0x61, 0x00, 0x40, 0x02, 0x06};
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case LOGON: {
+            uint8_t payload[13];
+            memset(payload, ' ', sizeof(payload));
+            payload[0] = 0x50;
+            payload[1] = c1218Config.userId >> 8;
+            payload[2] = c1218Config.userId;
+            memcpy(payload + 3, c1218Config.username, strnlen(c1218Config.username, 10));
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case SECURITY: {
+            uint8_t payload[21] = {0x51};
+            memcpy(payload + 1, c1218Config.password, strnlen(c1218Config.password, 20));
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case TABLE0: {
+            const uint8_t payload[] = {0x30, 0, 0};
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case TABLE28: {
+            uint16_t bytes = (c1218Config.extendedTable28 ? 26 : 10) * 4;
+            const uint8_t payload[] = {0x3F, 0, 28, 0, 0, 0, (uint8_t) (bytes >> 8), (uint8_t) bytes};
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case TABLE23: {
+            const uint8_t payload[] = {0x3F, 0, 23, 0, 0, 0, 0, 8};
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case LOGOFF: {
+            const uint8_t payload[] = {0x52};
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case TERMINATE: {
+            const uint8_t payload[] = {0x21};
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        default:
+            break;
     }
-    table28Values = values;
+}
 
-    length = sizeof(response);
-    if(!readPartialTable(23, 8, response, length) || !parseTable(response, length, table23, 2)) {
-        fail(F("C12.18 table 23 read failed"));
-        return false;
+bool C1218MeterCommunicator::finishStage(uint64_t now) {
+    switch(stage) {
+        case IDENT: stage = NEGOTIATE; break;
+        case NEGOTIATE: stage = LOGON; break;
+        case LOGON: stage = SECURITY; break;
+        case SECURITY: stage = TABLE0; break;
+        case TABLE0: {
+            if(responseLength < 3 || ((response[0] << 8) | response[1]) + 2 > responseLength) {
+                fail(F("C12.18 table 0 is incomplete"));
+                abortCycle(now);
+                return false;
+            }
+            bigEndian = (response[2] & 0x01) != 0;
+            sessionOpen = true;
+            sessionStarted = now;
+            stage = TABLE28;
+            break;
+        }
+        case TABLE28: {
+            size_t values = c1218Config.extendedTable28 ? 26 : 10;
+            if(!parseTable(response, responseLength, table28, values)) {
+                fail(F("C12.18 table 28 read failed"));
+                abortCycle(now);
+                return false;
+            }
+            table28Values = values;
+            stage = TABLE23;
+            break;
+        }
+        case TABLE23:
+            if(!parseTable(response, responseLength, table23, 2)) {
+                fail(F("C12.18 table 23 read failed"));
+                abortCycle(now);
+                return false;
+            }
+            failures = 0;
+            lastError = 0;
+            updated = true;
+            nextPoll = now + 2000;
+            stage = WAIT_POLL;
+            return true;
+        case LOGOFF: stage = TERMINATE; break;
+        case TERMINATE:
+            sessionOpen = false;
+            stage = IDENT;
+            break;
+        default:
+            break;
     }
-    return true;
+    return false;
 }
 
-bool C1218MeterCommunicator::readTable(uint16_t table, uint8_t* response, size_t& responseLength) {
-    const uint8_t payload[] = {0x30, (uint8_t) (table >> 8), (uint8_t) table};
-    return request(payload, sizeof(payload), response, responseLength);
-}
-
-bool C1218MeterCommunicator::readPartialTable(uint16_t table, uint16_t bytes, uint8_t* response, size_t& responseLength) {
-    const uint8_t payload[] = {0x3F, (uint8_t) (table >> 8), (uint8_t) table, 0, 0, 0,
-        (uint8_t) (bytes >> 8), (uint8_t) bytes};
-    return request(payload, sizeof(payload), response, responseLength);
-}
-
-bool C1218MeterCommunicator::request(const uint8_t* payload, size_t length, uint8_t* response, size_t& responseLength) {
-    if(!sendFrame(payload, length)) return false;
-    if(!receiveMessage(response, responseLength) || responseLength < 1 || response[0] != C1218_OK) return false;
-    memmove(response, response + 1, --responseLength);
-    return true;
-}
-
-bool C1218MeterCommunicator::sendFrame(const uint8_t* payload, size_t length) {
-    if(length + 8 > FRAME_CAPACITY) return false;
-    uint8_t frame[FRAME_CAPACITY];
-    frame[0] = C1218_START;
-    frame[1] = 0;
-    frame[2] = toggle ? 0x20 : 0;
-    frame[3] = 0;
-    frame[4] = length >> 8;
-    frame[5] = length;
-    memcpy(frame + 6, payload, length);
-    uint16_t crc = crc16_x25(frame, length + 6);
-    frame[length + 6] = crc >> 8;
-    frame[length + 7] = crc;
+void C1218MeterCommunicator::beginRequest(const uint8_t* payload, size_t length) {
+    txFrame[0] = C1218_START;
+    txFrame[1] = 0;
+    txFrame[2] = toggle ? 0x20 : 0;
+    txFrame[3] = 0;
+    txFrame[4] = length >> 8;
+    txFrame[5] = length;
+    memcpy(txFrame + 6, payload, length);
+    uint16_t crc = crc16_x25(txFrame, length + 6);
+    txFrame[length + 6] = crc >> 8;
+    txFrame[length + 7] = crc;
+    txLength = length + 8;
     toggle = !toggle;
-
-    for(uint8_t attempt = 0; attempt < 3; attempt++) {
-        discardInput();
-        serial->write(frame, length + 8);
-        serial->flush();
-        uint8_t reply = 0;
-        if(waitByte(reply) && reply == C1218_ACK) return true;
-        if(reply != C1218_NACK) delay(20);
-    }
-    return false;
-}
-
-bool C1218MeterCommunicator::receiveMessage(uint8_t* response, size_t& responseLength) {
-    size_t capacity = responseLength;
+    attempts = packets = 0;
     responseLength = 0;
-    for(uint8_t packet = 0; packet < 16; packet++) {
-        uint8_t payload[FRAME_CAPACITY], control, sequence;
-        size_t length = sizeof(payload);
-        if(!receiveFrame(payload, length, control, sequence) || responseLength + length > capacity) return false;
-        memcpy(response + responseLength, payload, length);
-        responseLength += length;
-        if(!(control & 0x80) || sequence == 0) return true;
-    }
-    return false;
+    transmit(millis64());
 }
 
-bool C1218MeterCommunicator::receiveFrame(uint8_t* payload, size_t& payloadLength, uint8_t& control, uint8_t& sequence) {
-    uint8_t value;
-    do {
-        if(!waitByte(value)) return false;
-    } while(value != C1218_START);
+void C1218MeterCommunicator::transmit(uint64_t now) {
+    discardInput();
+    serial->write(txFrame, txLength);
+    attempts++;
+    ioState = WAIT_ACK;
+    deadline = now + RESPONSE_TIMEOUT;
+}
 
-    uint8_t frame[FRAME_CAPACITY];
-    frame[0] = value;
-    if(!readExact(frame + 1, 5)) return false;
-    control = frame[2];
-    sequence = frame[3];
-    uint16_t length = (frame[4] << 8) | frame[5];
-    if(length > payloadLength || length + 8 > sizeof(frame)) { serial->write(C1218_NACK); return false; }
-    if(!readExact(frame + 6, length + 2)) { serial->write(C1218_NACK); return false; }
-    uint16_t crc = crc16_x25(frame, length + 6);
-    if(frame[length + 6] != (uint8_t) (crc >> 8) || frame[length + 7] != (uint8_t) crc) {
+C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::serviceRequest(uint64_t now) {
+    if(ioState == WAIT_ACK) {
+        if(serial->available()) {
+            uint8_t reply = serial->read();
+            if(reply == C1218_ACK) {
+                ioState = WAIT_START;
+                deadline = now + RESPONSE_TIMEOUT;
+            } else if(attempts < 3) {
+                transmit(now);
+            } else {
+                return FAILED;
+            }
+        } else if(now >= deadline) {
+            if(attempts < 3) transmit(now);
+            else return FAILED;
+        }
+        return PENDING;
+    }
+
+    if(ioState == WAIT_START) {
+        while(serial->available()) {
+            if(serial->read() == C1218_START) {
+                rxFrame[0] = C1218_START;
+                rxLength = 1;
+                rxExpected = 6;
+                ioState = READ_FRAME;
+                deadline = now + RESPONSE_TIMEOUT;
+                break;
+            }
+        }
+        if(ioState == WAIT_START) return now >= deadline ? FAILED : PENDING;
+    }
+
+    while(serial->available() && rxLength < rxExpected) rxFrame[rxLength++] = serial->read();
+    if(rxLength < rxExpected) return now >= deadline ? FAILED : PENDING;
+
+    uint16_t length = (rxFrame[4] << 8) | rxFrame[5];
+    if(rxExpected == 6) {
+        if(length + 8 > FRAME_CAPACITY || responseLength + length > MESSAGE_CAPACITY) {
+            serial->write(C1218_NACK);
+            return FAILED;
+        }
+        rxExpected = length + 8;
+        deadline = now + RESPONSE_TIMEOUT;
+        while(serial->available() && rxLength < rxExpected) rxFrame[rxLength++] = serial->read();
+        if(rxLength < rxExpected) return PENDING;
+    }
+
+    uint16_t crc = crc16_x25(rxFrame, length + 6);
+    if(rxFrame[length + 6] != (uint8_t) (crc >> 8) || rxFrame[length + 7] != (uint8_t) crc) {
         serial->write(C1218_NACK);
-        return false;
+        return FAILED;
     }
-    memcpy(payload, frame + 6, length);
-    payloadLength = length;
+
+    memcpy(response + responseLength, rxFrame + 6, length);
+    responseLength += length;
     serial->write(C1218_ACK);
-    serial->flush();
-    return true;
+    packets++;
+    if((rxFrame[2] & 0x80) && rxFrame[3] != 0) {
+        if(packets >= 16) return FAILED;
+        ioState = WAIT_START;
+        deadline = now + RESPONSE_TIMEOUT;
+        return PENDING;
+    }
+
+    ioState = IO_IDLE;
+    if(responseLength < 1 || response[0] != C1218_OK) return FAILED;
+    memmove(response, response + 1, --responseLength);
+    return COMPLETE;
 }
 
-bool C1218MeterCommunicator::waitByte(uint8_t& value, uint32_t timeout) {
-    uint32_t start = millis();
-    while(millis() - start < timeout) {
-        if(serial->available()) { value = serial->read(); return true; }
-        yield();
-        delay(1);
+void C1218MeterCommunicator::abortCycle(uint64_t now) {
+    fail(F("C12.18 request failed"));
+    sessionOpen = false;
+    toggle = false;
+    ioState = IO_IDLE;
+    stage = WAIT_POLL;
+    nextPoll = now + 2000;
+    lastError = 97;
+    if(++failures >= 3) {
+        resetSerial();
+        failures = 0;
     }
-    return false;
-}
-
-bool C1218MeterCommunicator::readExact(uint8_t* target, size_t length, uint32_t timeout) {
-    size_t offset = 0;
-    uint32_t start = millis();
-    while(offset < length && millis() - start < timeout) {
-        while(serial->available() && offset < length) target[offset++] = serial->read();
-        if(offset < length) { yield(); delay(1); }
-    }
-    return offset == length;
 }
 
 void C1218MeterCommunicator::discardInput() {

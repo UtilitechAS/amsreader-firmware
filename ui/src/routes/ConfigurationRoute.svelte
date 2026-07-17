@@ -819,7 +819,7 @@
                 </div>
                 {/if}
                 <div class="my-1">
-                    <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> {translations.conf?.cloud?.es ?? "Energy Speedometer"}</label>
+                    <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> Flexpartner.Energy
                     {#if configuration?.c?.es}
                         <div class="pl-5">MAC: {sysinfo.mac}</div>
                         <div class="pl-5">Meter ID: {sysinfo.meter.id ? sysinfo.meter.id : "missing, required"}</div>

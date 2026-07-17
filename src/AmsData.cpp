@@ -6,6 +6,7 @@
 
 #include "AmsData.h"
 #include <algorithm>
+#include <cstring>
 
 AmsData::AmsData() {}
 
@@ -96,10 +97,10 @@ void AmsData::apply(AmsData& other) {
             }
             this->counterEstimated = false;
         case 2:
-            this->listId = other.getListId();
-            this->meterId = other.getMeterId();
+            strncpy(this->listId, other.listId, sizeof(this->listId) - 1);
+            strncpy(this->meterId, other.meterId, sizeof(this->meterId) - 1);
             this->meterType = other.getMeterType();
-            this->meterModel = other.getMeterModel();
+            strncpy(this->meterModel, other.meterModel, sizeof(this->meterModel) - 1);
             this->reactiveImportPower = other.getReactiveImportPower();
             this->reactiveExportPower = other.getReactiveExportPower();
             this->l1current = other.getL1Current();
@@ -127,7 +128,7 @@ void AmsData::apply(OBIS_code_t obis, double value, uint64_t millis64) {
     if(obis.gr == 1) {
         if(obis.sensor == 96) {
             if(obis.tariff == 0) {
-                meterId = String((long) value, 10);
+                snprintf(meterId, sizeof(meterId), "%ld", (long) value);
                 return;
             } else if(obis.tariff == 1) {
                 return;
@@ -301,11 +302,11 @@ uint8_t AmsData::getListType() {
 }
 
 String AmsData::getListId() {
-    return this->listId;
+    return String(this->listId);
 }
 
 String AmsData::getMeterId() {
-    return this->meterId;
+    return String(this->meterId);
 }
 
 uint8_t AmsData::getMeterType() {
@@ -313,7 +314,7 @@ uint8_t AmsData::getMeterType() {
 }
 
 String AmsData::getMeterModel() {
-    return this->meterModel;
+    return String(this->meterModel);
 }
 
 time_t AmsData::getMeterTimestamp() {

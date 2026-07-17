@@ -31,7 +31,7 @@ LNG2::LNG2(AmsData& meterState, const char* payload, uint8_t useMeterType, Meter
         char str[64];
         uint8_t str_len = getString((CosemData*) &d->meterId, str);
         if(str_len > 0) {
-            this->meterId = String(str);
+            strncpy(this->meterId, str, sizeof(this->meterId) - 1);
         }
         listType = 3;
         lastUpdateMillis = millis64();
@@ -57,7 +57,7 @@ LNG2::LNG2(AmsData& meterState, const char* payload, uint8_t useMeterType, Meter
         char str[64];
         uint8_t str_len = getString((CosemData*) &d->meterId, str);
         if(str_len > 0) {
-            this->meterId = String(str);
+            strncpy(this->meterId, str, sizeof(this->meterId) - 1);
         }
         listType = 3;
         lastUpdateMillis = millis64();

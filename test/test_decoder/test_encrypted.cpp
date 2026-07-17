@@ -179,3 +179,40 @@ void test_encrypted_framing_no_key(void) {
     TEST_ASSERT_EQUAL_MESSAGE(0, missing_title, "frame reached GCM but extracted no system title");
     TEST_ASSERT_GREATER_THAN_MESSAGE(0, reached, "no encrypted frame reached the GCM layer");
 }
+
+// Decoding an authenticated frame (one issued with an AK) using only the encryption
+// key — AK omitted — must still decode: a blank authentication key skips GCM tag
+// verification rather than failing. This locks the cross-platform contract that the
+// ESP8266 BearSSL path now matches (the ESP32/native mbedTLS paths already behaved
+// this way). Exercises the native mbedTLS path; the ESP8266 br_gcm path is identical
+// in intent but only compiles on-device.
+void test_encrypted_decode_without_authkey(void) {
+#if !defined(HAVE_MBEDTLS)
+    TEST_IGNORE_MESSAGE("native mbedTLS not available (install libmbedtls-dev) — skipping");
+#else
+    int tested = 0, failures = 0;
+    for (size_t i = 0; i < COUNT(ENC_KEYED); i++) {
+        const KeyedFixture& k = ENC_KEYED[i];
+        if (k.ak_secret == nullptr) continue;          // only authenticated fixtures are meaningful here
+        uint8_t ek[16];
+        if (!load_key(k.ek_secret, ek)) continue;      // need the encryption key
+
+        static uint8_t buf[4096];
+        int len = harness_load_fixture(k.path, buf, sizeof(buf));
+        if (len <= 0) { printf("  load FAIL %s\n", k.path); failures++; continue; }
+        MeterConfig cfg; memset(&cfg, 0, sizeof(cfg));
+        // EK only, AK deliberately omitted -> auth must be skipped, frame still decodes
+        AmsData* d = harness_decode(buf, (uint16_t)len, &cfg, ek, NULL);
+        tested++;
+        if (!d || d->getListType() < 1) { printf("  DECODE FAIL (no-AK) %s\n", k.path); failures++; }
+        if (d) delete d;
+    }
+    if (tested == 0) {
+        TEST_IGNORE_MESSAGE("no authenticated fixtures with keys available");
+    } else {
+        char msg[96];
+        snprintf(msg, sizeof(msg), "%d/%d authenticated fixtures failed to decode with AK omitted", failures, tested);
+        TEST_ASSERT_EQUAL_MESSAGE(0, failures, msg);
+    }
+#endif
+}

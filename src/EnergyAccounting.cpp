@@ -8,6 +8,15 @@
 #include "LittleFS.h"
 #include "AmsStorage.h"
 #include "FirmwareVersion.h"
+#include "crc.h"
+#include <cmath>
+#include <cstddef>
+
+// Clamp NaN/Inf to 0 so corrupt floats never leak into JSON/MQTT output
+static float sanitize(float v) {
+    if(std::isnan(v) || std::isinf(v)) return 0.0;
+    return v;
+}
 
 #if defined(AMS_REMOTE_DEBUG)
 EnergyAccounting::EnergyAccounting(RemoteDebug* debugger, EnergyAccountingRealtimeData* rtd) {
@@ -16,7 +25,13 @@ EnergyAccounting::EnergyAccounting(Stream* Stream, EnergyAccountingRealtimeData*
 #endif
     data.version = 1;
     this->debugger = debugger;
-    if(rtd->magic != 0x6A) {
+    realtimeData = rtd;
+    // The realtime struct lives in non-initialized RAM on ESP32 so it survives a
+    // reboot. A single magic byte is not enough to tell valid data from garbage left
+    // by a previous firmware (a layout change can shift fields while the byte still
+    // matches), which produced NaN/Inf values in the API. Validate with a CRC too.
+    uint16_t crc = crc16((uint8_t*) rtd, offsetof(EnergyAccountingRealtimeData, crc));
+    if(rtd->magic != 0x6A || rtd->crc != crc) {
         rtd->magic = 0x6A;
         rtd->currentHour = 0;
         rtd->currentDay = 0;
@@ -29,8 +44,12 @@ EnergyAccounting::EnergyAccounting(Stream* Stream, EnergyAccountingRealtimeData*
         rtd->incomeDay = 0;
         rtd->lastImportUpdateMillis = 0;
         rtd->lastExportUpdateMillis = 0;
+        updateRealtimeCrc();
     }
-    realtimeData = rtd;
+}
+
+void EnergyAccounting::updateRealtimeCrc() {
+    realtimeData->crc = crc16((uint8_t*) realtimeData, offsetof(EnergyAccountingRealtimeData, crc));
 }
 
 void EnergyAccounting::setup(AmsDataStorage *ds, EnergyAccountingConfig *config) {
@@ -186,9 +205,12 @@ bool EnergyAccounting::update(time_t now, uint64_t lastUpdatedMillis, uint8_t li
     }
 
     if(config != NULL) {
-        while(getMonthMax() > config->thresholds[realtimeData->currentThresholdIdx] && realtimeData->currentThresholdIdx < 10) realtimeData->currentThresholdIdx++;
+        // Bound check first: thresholds has 10 entries (0..9). Testing the array
+        // before the index bound would read thresholds[10] once the index hits 10.
+        while(realtimeData->currentThresholdIdx < 10 && getMonthMax() > config->thresholds[realtimeData->currentThresholdIdx]) realtimeData->currentThresholdIdx++;
     }
 
+    updateRealtimeCrc();
     return ret;
 }
 
@@ -231,7 +253,7 @@ void EnergyAccounting::calcDayCost() {
 }
 
 float EnergyAccounting::getUseThisHour() {
-    return realtimeData->use;
+    return sanitize(realtimeData->use);
 }
 
 float EnergyAccounting::getUseToday() {
@@ -265,7 +287,7 @@ float EnergyAccounting::getUseLastMonth() {
 }
 
 float EnergyAccounting::getProducedThisHour() {
-    return realtimeData->produce;
+    return sanitize(realtimeData->produce);
 }
 
 float EnergyAccounting::getProducedToday() {
@@ -299,11 +321,11 @@ float EnergyAccounting::getProducedLastMonth() {
 }
 
 float EnergyAccounting::getCostThisHour() {
-    return realtimeData->costHour;
+    return sanitize(realtimeData->costHour);
 }
 
 float EnergyAccounting::getCostToday() {
-    return realtimeData->costDay;
+    return sanitize(realtimeData->costDay);
 }
 
 float EnergyAccounting::getCostYesterday() {
@@ -319,11 +341,11 @@ float EnergyAccounting::getCostLastMonth() {
 }
 
 float EnergyAccounting::getIncomeThisHour() {
-    return realtimeData->incomeHour;
+    return sanitize(realtimeData->incomeHour);
 }
 
 float EnergyAccounting::getIncomeToday() {
-    return realtimeData->incomeDay;
+    return sanitize(realtimeData->incomeDay);
 }
 
 float EnergyAccounting::getIncomeYesterday() {
@@ -341,7 +363,10 @@ float EnergyAccounting::getIncomeLastMonth() {
 uint8_t EnergyAccounting::getCurrentThreshold() {
     if(config == NULL)
         return 0;
-    return config->thresholds[realtimeData->currentThresholdIdx];
+    // currentThresholdIdx reaches 10 when the month max exceeds every threshold;
+    // clamp to the last valid entry (0..9) to avoid reading thresholds[10].
+    uint8_t idx = realtimeData->currentThresholdIdx < 10 ? realtimeData->currentThresholdIdx : 9;
+    return config->thresholds[idx];
 }
 
 float EnergyAccounting::getMonthMax() {

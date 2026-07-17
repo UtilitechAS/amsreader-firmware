@@ -23,6 +23,7 @@
 #include "AmsData.h"
 #include "decoder_harness.h"
 #include "fixtures_generated.h"
+#include "Timezone.h"
 #include "crc.h"
 
 #define COUNT(a) (sizeof(a) / sizeof((a)[0]))
@@ -163,4 +164,43 @@ void test_kamstrup_norway(void) {
     TEST_ASSERT_GREATER_OR_EQUAL(1, d->getListType());
     TEST_ASSERT_FLOAT_WITHIN(5.0, 236.0, d->getL1Voltage());
     delete d;
+}
+
+// Expected UTC epoch from a broken-down UTC time (makeTime treats fields as UTC).
+static time_t utc_epoch(int y, int mo, int da, int h, int mi, int se) {
+    tmElements_t t;
+    t.Year = y - 1970; t.Month = mo; t.Day = da;
+    t.Hour = h; t.Minute = mi; t.Second = se; t.Wday = 0;
+    return makeTime(t);
+}
+
+void test_kamstrup_timezone(void) {
+    // Kamstrup reports its clock in local STANDARD time year-round (no DST
+    // spring) with the UTC deviation left unspecified. The decoder must convert
+    // to UTC by subtracting the configured zone's STANDARD offset, NOT a
+    // hardcoded -3600 (which was only right for CET). See issue #1191.
+    TimeChangeRule cetDst = {"CEST",0,0,3,2,120}, cetStd = {"CET",0,0,10,3,60};
+    TimeChangeRule eetDst = {"EEST",0,0,3,3,180}, eetStd = {"EET",0,0,10,4,120};
+    Timezone cet(cetDst, cetStd);   // standard offset +60 min
+    Timezone eet(eetDst, eetStd);   // standard offset +120 min
+
+    struct Case { const char* path; Timezone* tz; time_t expected; const char* note; };
+    Case cases[] = {
+        // Norway/CET, winter frame (wall 2021-11-25 23:00:55) -> -1h
+        {"test/payloads/kamstrup/em001-1.hex", &cet, utc_epoch(2021,11,25,22,0,55), "Norway CET winter"},
+        // Denmark/CEST, summer frame (wall 2023-04-06 13:49:50) -> still -1h (clock is CET all year)
+        {"test/payloads/kamstrup/gh517-2.hex", &cet, utc_epoch(2023,4,6,12,49,50), "Denmark CEST summer"},
+        // Finland/EET, summer hourly frame (wall 2026-05-25 17:00:55) -> -2h (standard EET offset)
+        {"test/payloads/kamstrup/gh1191-1.hex", &eet, utc_epoch(2026,5,25,15,0,55), "Finland EET (#1191)"},
+    };
+    for (size_t i = 0; i < COUNT(cases); i++) {
+        AmsData* d = harness_decode_fixture_tz(cases[i].path, cases[i].tz);
+        TEST_ASSERT_NOT_NULL_MESSAGE(d, cases[i].path);
+        TEST_ASSERT_EQUAL(AmsTypeKamstrup, d->getMeterType());
+        time_t got = d->getMeterTimestamp();
+        printf("  %-22s got=%ld expected=%ld (%+ld s)\n",
+               cases[i].note, (long)got, (long)cases[i].expected, (long)(got - cases[i].expected));
+        TEST_ASSERT_EQUAL_MESSAGE(cases[i].expected, got, cases[i].note);
+        delete d;
+    }
 }

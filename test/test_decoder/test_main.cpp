@@ -74,6 +74,7 @@ void test_encrypted_landisgyr_501(void);
 void test_encrypted_kaifa_905(void);
 void test_encrypted_kamstrup_73(void);
 void test_encrypted_framing_no_key(void);
+void test_encrypted_decode_without_authkey(void);
 // defined in test_plaintext_with_key.cpp
 void test_plaintext_dsmr_with_key_does_not_overflow(void);
 
@@ -98,6 +99,7 @@ int main(int argc, char** argv) {
     RUN_TEST(test_encrypted_kaifa_905);
     RUN_TEST(test_encrypted_kamstrup_73);
     RUN_TEST(test_encrypted_framing_no_key);
+    RUN_TEST(test_encrypted_decode_without_authkey);
     RUN_TEST(test_plaintext_dsmr_with_key_does_not_overflow);
     return UNITY_END();
 }

@@ -148,7 +148,7 @@
                             {/if}
                         {/if}
                         </g>
-                        <g>
+                        <g data-title="{point.title2}" use:tooltip>
                         {#if point.value2 > 0.0001}
                             <rect
                                 x="{xScale(i) + 2}"
@@ -166,9 +166,6 @@
                                     transform="translate({xScale(i) + (barWidth/2)} {expLabelY(yScale(-point.value2), yScale(0), labelOffset, barWidth < vertSwitch)}) rotate({barWidth < vertSwitch ? 90 : 0})"
                                     use:fitText={barWidth >= vertSwitch ? barWidth * 0.95 : null}
                                 >{point.label2}</text>
-                                {#if point.title2}
-                                <title>{point.title2}</title>
-                                {/if}
                             {/if}
                         {/if}
                         </g>

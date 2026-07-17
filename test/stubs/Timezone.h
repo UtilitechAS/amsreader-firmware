@@ -29,8 +29,27 @@ static inline time_t makeTime(const tmElements_t& te) {
     return timegm(&t);
 }
 
+/* Arduino Timezone TimeChangeRule (offset in minutes from UTC). */
+struct TimeChangeRule {
+    char abbrev[6];
+    uint8_t week;
+    uint8_t dow;
+    uint8_t month;
+    uint8_t hour;
+    int offset;
+};
+
+/* Minimal Timezone: applies a single (standard) offset and ignores DST. That is
+ * enough for the decoder tests, which only probe the standard offset (at a
+ * winter date) — and Kamstrup meters report standard time year-round anyway.
+ * Default construction is identity (UTC), so existing fixtures/golden decode
+ * unchanged. */
 class Timezone {
+    int stdOffsetMin = 0;
 public:
-    time_t toUTC(time_t t) { return t; }
-    time_t toLocal(time_t t) { return t; }
+    Timezone() {}
+    Timezone(TimeChangeRule dstStart, TimeChangeRule stdStart) : stdOffsetMin(stdStart.offset) {}
+    Timezone(TimeChangeRule stdTime) : stdOffsetMin(stdTime.offset) {}
+    time_t toUTC(time_t t) { return t - (time_t)stdOffsetMin * 60; }
+    time_t toLocal(time_t t) { return t + (time_t)stdOffsetMin * 60; }
 };

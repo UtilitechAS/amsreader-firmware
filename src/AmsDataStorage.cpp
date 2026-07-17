@@ -314,7 +314,7 @@ bool AmsDataStorage::update(AmsData* data, time_t now) {
 }
 
 void AmsDataStorage::setHourImport(uint8_t hour, uint32_t val) {
-    if(hour < 0 || hour > 24) return;
+    if(hour >= 24) return;
     
     uint8_t accuracy = day.accuracy;
     uint32_t update = val / pow(10, accuracy);
@@ -348,12 +348,12 @@ void AmsDataStorage::setHourImport(uint8_t hour, uint32_t val) {
 }
 
 uint32_t AmsDataStorage::getHourImport(uint8_t hour) {
-    if(hour < 0 || hour > 24) return 0;
+    if(hour >= 24) return 0;
     return day.hImport[hour] * pow(10, day.accuracy);
 }
 
 void AmsDataStorage::setHourExport(uint8_t hour, uint32_t val) {
-    if(hour < 0 || hour > 24) return;
+    if(hour >= 24) return;
     
     uint8_t accuracy = day.accuracy;
     uint32_t update = val / pow(10, accuracy);
@@ -387,7 +387,7 @@ void AmsDataStorage::setHourExport(uint8_t hour, uint32_t val) {
 }
 
 uint32_t AmsDataStorage::getHourExport(uint8_t hour) {
-    if(hour < 0 || hour > 24) return 0;
+    if(hour >= 24) return 0;
     return day.hExport[hour] * pow(10, day.accuracy);
 }
 

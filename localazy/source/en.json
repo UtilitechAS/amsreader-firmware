@@ -23,7 +23,6 @@
     "btn_reset": "Factory reset",
     "cloud": {
       "ams": "AMS reader cloud",
-      "es": "Energy Speedometer",
       "title": "Cloud connections"
     },
     "common": {
@@ -147,6 +146,7 @@
         "tag": "Name tag",
         "title": "Home-Assistant"
       },
+      "allowdestructive": "Allow destructive commands",
       "id": "Client ID",
       "interval": "Interval",
       "keepalive": "Keep-alive",
@@ -465,7 +465,6 @@
       "cloud": "Cloud",
       "mqtt": "MQTT",
       "mqtt_c": "MQTT (custom)",
-      "mqtt_es": "Energy speedometer",
       "none": "No services configured",
       "ntp": "NTP",
       "price": "Price service",

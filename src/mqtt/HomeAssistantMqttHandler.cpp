@@ -420,6 +420,7 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 
     uint8_t currentPricePointIndex = ps->getCurrentPricePointIndex();
 	uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
+	uint8_t emitted = 0;
 	for(int i = currentPricePointIndex; i < numberOfPoints; i++) {
 		float val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, i);
         if(val == PRICE_NO_VALUE) {
@@ -427,10 +428,18 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
         } else {
             pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
         }
+        emitted++;
 	}
+    // Pad with null up to the number of discovery sensors created (high-water mark),
+    // so HA sensors past the end of the current data render as unknown instead of
+    // freezing on their last value (IndexError keeps the previous state otherwise).
+    for(; emitted <= priceImportInit; emitted++) {
+        pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
+    }
     if(rteInit && ps->isExportPricesDifferentFromImport()) {
         pos--;
         pos += snprintf_P(json+pos, BufferSize-pos, PSTR("],\"export\":["));
+        emitted = 0;
         for(int i = currentPricePointIndex; i < numberOfPoints; i++) {
             float val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, i);
             if(val == PRICE_NO_VALUE) {
@@ -438,6 +447,10 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
             } else {
                 pos += snprintf_P(json+pos, BufferSize-pos, PSTR("%.4f,"), val);
             }
+            emitted++;
+        }
+        for(; emitted <= priceExportInit; emitted++) {
+            pos += snprintf_P(json+pos, BufferSize-pos, PSTR("null,"));
         }
     }
 

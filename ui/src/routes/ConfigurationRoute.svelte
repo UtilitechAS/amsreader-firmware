@@ -747,6 +747,9 @@
                     <input name="qe" bind:value={configuration.q.e} type="number" min="0" max="240" class="in-l tr w-1/2"/>
                 </div>
             </div>
+            <div class="my-1">
+                <label><input type="checkbox" name="qdc" value="true" bind:checked={configuration.q.dc} class="rounded mb-1"/> {translations.conf?.mqtt?.allowdestructive ?? "Allow destructive commands"}</label>
+            </div>
         </div>
         {/if}
         {#if configuration?.q?.m == 3}

@@ -528,6 +528,9 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
     #endif
     debugger->printf_P(PSTR("Received command [%s] to [%s]\n"), payload.c_str(), topic.c_str());
 
+    if(handleCommand(topic, payload)) // fwupgrade / reboot / factoryreset (shared across handlers)
+        return;
+
     if(topic == subTopic) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::DEBUG))
@@ -547,24 +550,8 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
                 JsonObject obj = doc.as<JsonObject>();
                 if(obj.containsKey(F("action"))) {
                     const char* action = obj[F("action")];
-                    if(strcmp_P(action, PSTR("fwupgrade")) == 0) {
-                        if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
-                            updater->setTargetVersion(updater->getNextVersion());
-                        }
-                    } else if(strcmp_P(action, PSTR("dayplot")) == 0) {
-                        char pubTopic[192];
-                        snprintf_P(pubTopic, 192, PSTR("%s/dayplot"), mqttConfig.publishTopic);
-                        AmsJsonGenerator::generateDayPlotJson(ds, json, BUF_SIZE_COMMON);
-                        bool ret = mqtt.publish(pubTopic, json);
-                        loop();
-                    } else if(strcmp_P(action, PSTR("monthplot")) == 0) {
-                        char pubTopic[192];
-                        snprintf_P(pubTopic, 192, PSTR("%s/monthplot"), mqttConfig.publishTopic);
-                        AmsJsonGenerator::generateMonthPlotJson(ds, json, BUF_SIZE_COMMON);
-                        bool ret = mqtt.publish(pubTopic, json);
-                        loop();
                     #if defined(ESP32)
-                    } else if(strcmp_P(action, PSTR("getconfig")) == 0) {
+                    if(strcmp_P(action, PSTR("getconfig")) == 0) {
                         char pubTopic[192];
                         snprintf_P(pubTopic, 192, PSTR("%s/config"), mqttConfig.publishTopic);
                         AmsJsonGenerator::generateConfigurationJson(config, json, BUF_SIZE_COMMON);
@@ -588,26 +575,10 @@ void JsonMqttHandler::onMessage(String &topic, String &payload) {
                                 hw->setup(&sys, &gpio);
                             }
                         }
-                    #endif
                     }
+                    #endif
                 }
             }
-        } else if(payload.equals(F("fwupgrade"))) {
-            if(strcmp(updater->getNextVersion(), FirmwareVersion::VersionString) != 0) {
-                updater->setTargetVersion(updater->getNextVersion());
-            }
-        } else if(payload.equals(F("dayplot"))) {
-            char pubTopic[192];
-            snprintf_P(pubTopic, 192, PSTR("%s/dayplot"), mqttConfig.publishTopic);
-            AmsJsonGenerator::generateDayPlotJson(ds, json, BUF_SIZE_COMMON);
-            bool ret = mqtt.publish(pubTopic, json);
-            loop();
-        } else if(payload.equals(F("monthplot"))) {
-            char pubTopic[192];
-            snprintf_P(pubTopic, 192, PSTR("%s/monthplot"), mqttConfig.publishTopic);
-            AmsJsonGenerator::generateMonthPlotJson(ds, json, BUF_SIZE_COMMON);
-            bool ret = mqtt.publish(pubTopic, json);
-            loop();
         }
     }
 }
@@ -854,6 +825,9 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
         }
         if(mqttObj.containsKey(F("e"))) {
             newConfig.rebootMinutes = mqttObj[F("e")];
+        }
+        if(mqttObj.containsKey(F("dc"))) {
+            newConfig.allowDestructiveCommands = mqttObj[F("dc")];
         }
         config->setMqttConfig(newConfig);
 

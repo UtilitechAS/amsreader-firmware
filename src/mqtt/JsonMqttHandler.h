@@ -42,7 +42,7 @@ public:
 private:
     HwTools* hw;
     bool hasExport = false;
-    AmsDataStorage* ds;
+    // ds is inherited from AmsMqttHandler (shared with dayplot/monthplot commands)
 
     uint16_t appendJsonHeader(AmsData* data);
     uint16_t appendJsonFooter(EnergyAccounting* ea, uint16_t pos);

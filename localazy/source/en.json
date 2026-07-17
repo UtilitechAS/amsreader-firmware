@@ -146,6 +146,7 @@
         "tag": "Name tag",
         "title": "Home-Assistant"
       },
+      "allowdestructive": "Allow destructive commands",
       "id": "Client ID",
       "interval": "Interval",
       "keepalive": "Keep-alive",

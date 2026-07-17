@@ -132,7 +132,10 @@ int8_t GCMParser::parse(uint8_t *d, DataParserContext &ctx, bool hastag) {
         }
         br_gcm_flip(&gcmCtx);
         br_gcm_run(&gcmCtx, 0, (void*) (ptr), len - authkeylen - 5); // 5 == security tag and frame counter
-        if(authkeylen > 0 && br_gcm_check_tag_trunc(&gcmCtx, authentication_tag, authkeylen) != 1) {
+        // Only enforce the tag when an authentication key is configured, matching the
+        // ESP32/native paths. With a blank AK we decrypt without verifying integrity,
+        // which lets meters that don't use standard SC+AK authentication be read.
+        if(authenticate && br_gcm_check_tag_trunc(&gcmCtx, authentication_tag, authkeylen) != 1) {
             return GCM_AUTH_FAILED;
         }
     #elif defined(ESP32)

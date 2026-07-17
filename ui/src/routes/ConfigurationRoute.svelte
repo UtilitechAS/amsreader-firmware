@@ -748,6 +748,9 @@
                     <input name="qe" bind:value={configuration.q.e} type="number" min="0" max="240" class="in-l tr w-1/2"/>
                 </div>
             </div>
+            <div class="my-1">
+                <label><input type="checkbox" name="qdc" value="true" bind:checked={configuration.q.dc} class="rounded mb-1"/> {translations.conf?.mqtt?.allowdestructive ?? "Allow destructive commands"}</label>
+            </div>
         </div>
         {/if}
         {#if configuration?.q?.m == 3}
@@ -820,7 +823,7 @@
                 </div>
                 {/if}
                 <div class="my-1">
-                    <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> {translations.conf?.cloud?.es ?? "Energy Speedometer"}</label>
+                    <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> Flexpartner.Energy
                     {#if configuration?.c?.es}
                         <div class="pl-5">MAC: {sysinfo.mac}</div>
                         <div class="pl-5">Meter ID: {sysinfo.meter.id ? sysinfo.meter.id : "missing, required"}</div>

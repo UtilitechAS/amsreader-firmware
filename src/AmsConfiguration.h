@@ -36,6 +36,9 @@
 #define CONFIG_CLOUD_START 1742
 #define CONFIG_UPGRADE_INFO_START 1934
 #define CONFIG_ZC_START 2000
+#define CONFIG_C1218_START 2096
+
+#define C1218_CONFIG_MAGIC 0x1218
 
 #define CONFIG_METER_START_103 32
 #define CONFIG_UPGRADE_INFO_START_103 216
@@ -160,6 +163,14 @@ struct MeterConfig {
 	bool rxPinPullup;
 	uint8_t txPin;
 }; // 65
+
+struct C1218Config {
+	uint16_t magic;
+	uint16_t userId;
+	char username[11];
+	char password[21];
+	bool extendedTable28;
+};
 
 struct DebugConfig {
 	bool telnet;
@@ -327,6 +338,9 @@ public:
 	bool getMeterConfig(MeterConfig&);
 	bool setMeterConfig(MeterConfig&);
 	void clearMeter(MeterConfig&);
+	bool getC1218Config(C1218Config&);
+	bool setC1218Config(C1218Config&);
+	void clearC1218Config(C1218Config&);
 	void setMeterChanged();
 	bool isMeterChanged();
 	void ackMeterChanged();
@@ -411,4 +425,3 @@ private:
 	void deleteFromFs(uint8_t version);
 };
 #endif
-

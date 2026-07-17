@@ -1380,6 +1380,17 @@ void AmsWebServer::handleSave() {
 		meterConfig.amperageMultiplier = server.arg(F("mma")).toDouble() * 1000.0;
 		meterConfig.accumulatedMultiplier = server.arg(F("mmc")).toDouble() * 1000.0;
 		config->setMeterConfig(meterConfig);
+
+		if(meterConfig.parser == 18) {
+			C1218Config c1218;
+			config->getC1218Config(c1218);
+			c1218.userId = server.arg(F("mcu")).toInt();
+			strlcpy(c1218.username, server.arg(F("mcn")).c_str(), sizeof(c1218.username));
+			String password = server.arg(F("mcp"));
+			if(password != F("***")) strlcpy(c1218.password, password.c_str(), sizeof(c1218.password));
+			c1218.extendedTable28 = server.hasArg(F("mcx")) && server.arg(F("mcx")) == F("true");
+			config->setC1218Config(c1218);
+		}
 	}
 
 	if(server.hasArg(F("w")) && server.arg(F("w")) == F("true")) {

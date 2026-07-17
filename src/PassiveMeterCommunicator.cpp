@@ -618,7 +618,7 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		#endif
 	#endif
 
-	if(rxpin == 0) {
+	if(rxpin == 0 || meterConfig.rxPin == 0xFF) {
 		#if defined(AMS_REMOTE_DEBUG)
 		if (debugger->isActive(RemoteDebug::ERROR))
 		#endif

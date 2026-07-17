@@ -330,19 +330,41 @@
                                 <option value="10YDK-1--------W">DK1</option>
                                 <option value="10YDK-2--------M">DK2</option>
                             </optgroup>
+                            <optgroup label="Italy">
+                                <option value="10Y1001A1001A73I">IT North</option>
+                                <option value="10Y1001A1001A70O">IT Centre-North</option>
+                                <option value="10Y1001A1001A71M">IT Centre-South</option>
+                                <option value="10Y1001A1001A788">IT South</option>
+                                <option value="10Y1001C--00096J">IT Calabria</option>
+                                <option value="10Y1001A1001A75E">IT Sicily</option>
+                                <option value="10Y1001A1001A74G">IT Sardinia</option>
+                            </optgroup>
+                            <option value="10YAL-KESH-----5">Albania</option>
                             <option value="10YAT-APG------L">Austria</option>
                             <option value="10YBE----------2">Belgium</option>
+                            <option value="10YCA-BULGARIA-R">Bulgaria</option>
+                            <option value="10YHR-HEP------M">Croatia</option>
                             <option value="10YCZ-CEPS-----N">Czech Republic</option>
                             <option value="10Y1001A1001A39I">Estonia</option>
                             <option value="10YFI-1--------U">Finland</option>
                             <option value="10YFR-RTE------C">France</option>
-                            <option value="10Y1001A1001A83F">Germany</option>
-                            <option value="10YGB----------A">Great Britain</option>
+                            <option value="10Y1001A1001A82H">Germany / Luxembourg</option>
+                            <option value="10YGR-HTSO-----Y">Greece</option>
+                            <option value="10YHU-MAVIR----U">Hungary</option>
+                            <option value="10Y1001A1001A59C">Ireland</option>
+                            <option value="10Y1001C--00100H">Kosovo</option>
                             <option value="10YLV-1001A00074">Latvia</option>
                             <option value="10YLT-1001A0008Q">Lithuania</option>
-                            <option value="10YNL----------L">Netherland</option>
+                            <option value="10YCS-CG-TSO---S">Montenegro</option>
+                            <option value="10YNL----------L">Netherlands</option>
+                            <option value="10YMK-MEPSO----8">North Macedonia</option>
                             <option value="10YPL-AREA-----S">Poland</option>
-			                <option value="10YSI-ELES-----O">Slovenia</option>
+                            <option value="10YPT-REN------W">Portugal</option>
+                            <option value="10YRO-TEL------P">Romania</option>
+                            <option value="10YCS-SERBIATSOV">Serbia</option>
+                            <option value="10YSK-SEPS-----K">Slovakia</option>
+                            <option value="10YSI-ELES-----O">Slovenia</option>
+                            <option value="10YES-REE------0">Spain</option>
                             <option value="10YCH-SWISSGRIDZ">Switzerland</option>
                         </select>
                     </div>
@@ -797,7 +819,7 @@
                 </div>
                 {/if}
                 <div class="my-1">
-                    <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> {translations.conf?.cloud?.es ?? "Energy Speedometer"}</label>
+                    <label><input type="checkbox" class="rounded mb-1" name="ces" value="true" bind:checked={configuration.c.es}/> Flexpartner.Energy
                     {#if configuration?.c?.es}
                         <div class="pl-5">MAC: {sysinfo.mac}</div>
                         <div class="pl-5">Meter ID: {sysinfo.meter.id ? sysinfo.meter.id : "missing, required"}</div>

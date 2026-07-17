@@ -23,7 +23,6 @@
     "btn_reset": "Factory reset",
     "cloud": {
       "ams": "AMS reader cloud",
-      "es": "Energy Speedometer",
       "title": "Cloud connections"
     },
     "common": {
@@ -465,7 +464,6 @@
       "cloud": "Cloud",
       "mqtt": "MQTT",
       "mqtt_c": "MQTT (custom)",
-      "mqtt_es": "Energy speedometer",
       "none": "No services configured",
       "ntp": "NTP",
       "price": "Price service",

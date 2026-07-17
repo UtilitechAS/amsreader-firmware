@@ -39,11 +39,16 @@ int harness_load_fixture(const char* path, uint8_t* out, int cap);
 // (caller frees). enc_key/auth_key may be NULL for unencrypted frames.
 // Returns NULL if the frame could not be unwrapped to a payload.
 class AmsData;
+class Timezone;
 AmsData* harness_decode(uint8_t* buf, uint16_t len, MeterConfig* cfg,
-                        const uint8_t* enc_key, const uint8_t* auth_key);
+                        const uint8_t* enc_key, const uint8_t* auth_key,
+                        Timezone* tz = NULL);
 
 // Convenience: load + decode a fixture (unencrypted). Returns NULL on failure.
 AmsData* harness_decode_fixture(const char* path);
+
+// Same, but decode with a specific timezone (for timestamp/zone assertions).
+AmsData* harness_decode_fixture_tz(const char* path, Timezone* tz);
 
 // Framing probe for encrypted frames we have no key for: runs the unwrap with a
 // dummy key so the GCM header is still parsed, and reports how far it got. Lets

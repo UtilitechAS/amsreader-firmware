@@ -8,6 +8,7 @@
 #include "CustomDefaults.h"
 #include "AmsWebHeaders.h"
 #include "FirmwareVersion.h"
+#include "NtpStatus.h"
 #include "base64.h"
 #include "hexutils.h"
 #include "AmsJsonGenerator.h"
@@ -311,6 +312,10 @@ uint8_t AmsWebServer::mqttHandlerState(AmsMqttHandler* h) {
 	return h->lastError() == 0 ? 2 : 3;
 }
 
+// SNTP resyncs roughly hourly; flag the NTP service as degraded if no sync has
+// landed in this long, allowing a couple of missed cycles before warning.
+#define NTP_STALE_AFTER_SECONDS 10800
+
 String AmsWebServer::buildServicesJson() {
 	String out = "";
 	char entry[320];
@@ -386,7 +391,17 @@ String AmsWebServer::buildServicesJson() {
 		NtpConfig ntp;
 		if(config->getNtpConfig(ntp) && ntp.enable) {
 			const char* server = strlen(ntp.server) > 0 ? ntp.server : "pool.ntp.org";
-			uint8_t s = time(nullptr) > FirmwareVersion::BuildEpoch ? 1 : 2;
+			// A set-but-stale clock (NTP stopped resyncing) silently corrupts
+			// day-boundary accounting, so flag staleness rather than only
+			// reporting whether the clock was ever set.
+			uint64_t lastSync = ntpLastSyncMillis();
+			uint8_t s;
+			if(lastSync == 0) {
+				s = 2; // No SNTP sync since boot yet
+			} else {
+				uint32_t ageSec = (uint32_t) ((millis64() - lastSync) / 1000);
+				s = ageSec > NTP_STALE_AFTER_SECONDS ? 2 : 1;
+			}
 			snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"ntp\",\"s\":%d,\"e\":0,\"d\":\"%s\"}"),
 				s, server);
 			if(!out.isEmpty()) out += ",";

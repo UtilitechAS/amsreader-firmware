@@ -192,7 +192,8 @@ static int16_t unwrap(uint8_t* buf, DataParserContext& ctx, MeterConfig* cfg,
 }
 
 AmsData* harness_decode(uint8_t* buf, uint16_t len, MeterConfig* cfg,
-                        const uint8_t* enc_key, const uint8_t* auth_key) {
+                        const uint8_t* enc_key, const uint8_t* auth_key,
+                        Timezone* tzArg) {
     DataParserContext ctx;
     ctx.type = *buf;
     ctx.length = len;
@@ -204,7 +205,8 @@ AmsData* harness_decode(uint8_t* buf, uint16_t len, MeterConfig* cfg,
     if (pos < 0) { unmute_stdout(); return NULL; }
 
     char* payload = ((char*)buf) + pos;
-    static Timezone tz;
+    static Timezone defaultTz;
+    Timezone& tz = tzArg ? *tzArg : defaultTz;
     static NullStream dbg;
     AmsData state;
     AmsData* data = NULL;
@@ -237,6 +239,15 @@ AmsData* harness_decode_fixture(const char* path) {
     MeterConfig cfg;
     memset(&cfg, 0, sizeof(cfg));   // multipliers 0 == x1 (matches clearMeterConfig)
     return harness_decode(buf, (uint16_t)n, &cfg, NULL, NULL);
+}
+
+AmsData* harness_decode_fixture_tz(const char* path, Timezone* tz) {
+    static uint8_t buf[4096];
+    int n = harness_load_fixture(path, buf, sizeof(buf));
+    if (n <= 0) return NULL;
+    MeterConfig cfg;
+    memset(&cfg, 0, sizeof(cfg));
+    return harness_decode(buf, (uint16_t)n, &cfg, NULL, NULL, tz);
 }
 
 void harness_probe_fixture(const char* path, HarnessProbe* out) {

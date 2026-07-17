@@ -9,8 +9,14 @@
 #include <EEPROM.h>
 #include "Arduino.h"
 
+#if defined(ESP8266)
+#define BUF_SIZE_COMMON 2048
+#else
+#define BUF_SIZE_COMMON 4096
+#endif
+
 #define EEPROM_SIZE 1024*3
-#define EEPROM_CHECK_SUM 104 // Used to check if config is stored. Change if structure changes
+#define EEPROM_EXPECTED_VERSION 104 // Used to check if config is stored. Change if structure changes
 #define EEPROM_CLEARED_INDICATOR 0xFC
 #define EEPROM_CONFIG_ADDRESS 0
 
@@ -283,10 +289,11 @@ struct ZmartChargeConfig {
 
 class AmsConfiguration {
 public:
+	bool load();
+	bool save();
+
 	bool hasConfig();
 	int getConfigVersion();
-
-	bool save();
 
 	bool getSystemConfig(SystemConfig&);
 	bool setSystemConfig(SystemConfig&);

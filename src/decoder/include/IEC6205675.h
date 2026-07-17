@@ -39,6 +39,7 @@ private:
     float getNumber(CosemData*);
     time_t getTimestamp(uint8_t* obis, int matchlength, const char* ptr);
     time_t adjustForKnownIssues(CosemDateTime dt, Timezone* tz, uint8_t meterType);
+    int standardOffset(Timezone* tz, uint16_t year);
 
     uint8_t AMS_OBIS_UNKNOWN_1[4]               = { 25, 9, 0, 255 };
 

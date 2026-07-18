@@ -14,6 +14,12 @@ static const uint8_t C1218_ACK = 0x06;
 static const uint8_t C1218_NACK = 0x15;
 static const uint8_t C1218_START = 0xEE;
 static const uint8_t C1218_OK = 0x00;
+static const uint8_t C1218_SNS = 0x02;
+
+static uint32_t c1218Baud(uint8_t code) {
+    static const uint32_t rates[] = {0, 300, 600, 1200, 2400, 4800, 9600, 14400, 19200, 28800, 38400, 57600, 115200, 128000, 256000};
+    return code < sizeof(rates) / sizeof(rates[0]) ? rates[code] : 0;
+}
 
 #if defined(AMS_REMOTE_DEBUG)
 C1218MeterCommunicator::C1218MeterCommunicator(RemoteDebug* debugger, AmsConfiguration* config)
@@ -29,21 +35,29 @@ C1218MeterCommunicator::~C1218MeterCommunicator() {
 void C1218MeterCommunicator::configure(MeterConfig& meterConfig, Timezone*) {
     this->meterConfig = meterConfig;
     config->getC1218Config(c1218Config);
+    serialBaud = 9600;
     resetSerial();
     initialized = true;
     sessionOpen = updated = bigEndian = toggle = false;
+    sessionNegotiated = false;
+    packetSize = DEFAULT_PACKET_SIZE;
+    maxPackets = DEFAULT_MAX_PACKETS;
     failures = attempts = packets = 0;
     lastError = 0;
     nextPoll = 0;
     stage = WAIT_POLL;
     ioState = IO_IDLE;
     responseLength = rxLength = rxExpected = 0;
+    intercharacterDeadline = 0;
+    rejectedPackets = 0;
+    hasLastRxPacket = false;
+    expectedRxSequence = 0;
 }
 
 void C1218MeterCommunicator::resetSerial() {
     serial->end();
     serial->setRxBufferSize(256);
-    serial->begin(9600, SERIAL_8N1, meterConfig.rxPin, meterConfig.txPin, meterConfig.invert);
+    serial->begin(serialBaud, SERIAL_8N1, meterConfig.rxPin, meterConfig.txPin, meterConfig.invert);
     discardInput();
     debugger->print(F("C12.18 UART configured: RX="));
     debugger->print(meterConfig.rxPin);
@@ -130,6 +144,10 @@ void C1218MeterCommunicator::startStage() {
             break;
         }
         case SECURITY: {
+            if(!c1218Config.password[0]) {
+                stage = TABLE0;
+                break;
+            }
             uint8_t payload[21] = {0x51};
             memcpy(payload + 1, c1218Config.password, strnlen(c1218Config.password, 20));
             beginRequest(payload, sizeof(payload));
@@ -141,7 +159,8 @@ void C1218MeterCommunicator::startStage() {
             break;
         }
         case TABLE28: {
-            uint16_t bytes = (c1218Config.extendedTable28 ? 26 : 10) * 4;
+            bool extended = c1218Config.extendedTable28 && maxPackets > 1;
+            uint16_t bytes = (extended ? 26 : 10) * 4;
             const uint8_t payload[] = {0x3F, 0, 28, 0, 0, 0, (uint8_t) (bytes >> 8), (uint8_t) bytes};
             beginRequest(payload, sizeof(payload));
             break;
@@ -169,9 +188,48 @@ void C1218MeterCommunicator::startStage() {
 bool C1218MeterCommunicator::finishStage(uint64_t now) {
     switch(stage) {
         case IDENT: stage = NEGOTIATE; break;
-        case NEGOTIATE: stage = LOGON; break;
-        case LOGON: stage = SECURITY; break;
-        case SECURITY: stage = TABLE0; break;
+        case NEGOTIATE:
+            if(responseLength == 1 && response[0] == C1218_SNS) {
+                sessionNegotiated = false;
+                packetSize = DEFAULT_PACKET_SIZE;
+                maxPackets = DEFAULT_MAX_PACKETS;
+                responseLength = 0;
+                stage = LOGON;
+                break;
+            }
+            if(responseLength < 3) {
+                requestFailed(F("invalid negotiate response"));
+                abortCycle(now);
+                return false;
+            }
+            packetSize = ((uint16_t) response[0] << 8) | response[1];
+            maxPackets = response[2];
+            if(packetSize < 32 || packetSize > FRAME_CAPACITY || maxPackets == 0) {
+                requestFailed(F("invalid negotiate values"));
+                abortCycle(now);
+                return false;
+            }
+            if(responseLength >= 4) {
+                uint32_t baud = c1218Baud(response[3]);
+                if(baud && baud != serialBaud) {
+                    serialBaud = baud;
+                    serial->updateBaudRate(baud);
+                    debugger->print(F("C12.18 negotiated baud: "));
+                    debugger->println(baud);
+                }
+            }
+            sessionNegotiated = true;
+            stage = LOGON;
+            break;
+        case LOGON:
+            sessionOpen = true;
+            sessionStarted = now;
+            stage = SECURITY;
+            break;
+        case SECURITY:
+            if(responseLength == 1 && response[0] == C1218_SNS) responseLength = 0;
+            stage = TABLE0;
+            break;
         case TABLE0: {
             if(responseLength < 3 || ((response[0] << 8) | response[1]) + 2 > responseLength) {
                 requestFailed(F("incomplete response"));
@@ -179,8 +237,6 @@ bool C1218MeterCommunicator::finishStage(uint64_t now) {
                 return false;
             }
             bigEndian = (response[2] & 0x01) != 0;
-            sessionOpen = true;
-            sessionStarted = now;
             stage = TABLE28;
             break;
         }
@@ -207,9 +263,16 @@ bool C1218MeterCommunicator::finishStage(uint64_t now) {
             nextPoll = now + 2000;
             stage = WAIT_POLL;
             return true;
-        case LOGOFF: stage = TERMINATE; break;
+        case LOGOFF:
+            sessionOpen = false;
+            stage = TERMINATE;
+            break;
         case TERMINATE:
             sessionOpen = false;
+            sessionNegotiated = false;
+            packetSize = DEFAULT_PACKET_SIZE;
+            maxPackets = DEFAULT_MAX_PACKETS;
+            serialBaud = 9600;
             stage = WAIT_POLL;
             nextPoll = now + RETRY_DELAY;
             break;
@@ -234,6 +297,9 @@ void C1218MeterCommunicator::beginRequest(const uint8_t* payload, size_t length)
     toggle = !toggle;
     attempts = packets = 0;
     responseLength = 0;
+    rejectedPackets = 0;
+    hasLastRxPacket = false;
+    expectedRxSequence = 0;
     transmit(millis64());
 }
 
@@ -245,20 +311,25 @@ void C1218MeterCommunicator::transmit(uint64_t now) {
     deadline = now + RESPONSE_TIMEOUT;
 }
 
+void C1218MeterCommunicator::sendControl(uint8_t control) {
+    delayMicroseconds(175);
+    serial->write(control);
+}
+
 C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::serviceRequest(uint64_t now) {
     if(ioState == WAIT_ACK) {
         if(serial->available()) {
             uint8_t reply = serial->read();
             if(reply == C1218_ACK) {
                 ioState = WAIT_START;
-                deadline = now + RESPONSE_TIMEOUT;
-            } else if(attempts < 3) {
+                deadline = now + CHANNEL_TIMEOUT;
+            } else if(attempts <= MAX_RETRIES) {
                 transmit(now);
             } else {
                 return requestFailed(reply == C1218_NACK ? F("NACK") : F("unexpected ACK reply"));
             }
         } else if(now >= deadline) {
-            if(attempts < 3) transmit(now);
+            if(attempts <= MAX_RETRIES) transmit(now);
             else return requestFailed(F("ACK timeout"));
         }
         return PENDING;
@@ -271,53 +342,106 @@ C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::serviceRequest(uin
                 rxLength = 1;
                 rxExpected = 6;
                 ioState = READ_FRAME;
-                deadline = now + RESPONSE_TIMEOUT;
+                intercharacterDeadline = now + INTERCHAR_TIMEOUT;
                 break;
             }
         }
         if(ioState == WAIT_START) return now >= deadline ? requestFailed(F("frame start timeout")) : PENDING;
     }
 
-    while(serial->available() && rxLength < rxExpected) rxFrame[rxLength++] = serial->read();
-    if(rxLength < rxExpected) return now >= deadline ? FAILED : PENDING;
+    while(serial->available() && rxLength < rxExpected) {
+        rxFrame[rxLength++] = serial->read();
+        intercharacterDeadline = now + INTERCHAR_TIMEOUT;
+    }
+    if(rxLength < rxExpected) return now >= intercharacterDeadline ? rejectPacket(F("inter-character timeout"), now) : PENDING;
 
     uint16_t length = (rxFrame[4] << 8) | rxFrame[5];
     if(rxExpected == 6) {
-        if(length + 8 > FRAME_CAPACITY || responseLength + length > MESSAGE_CAPACITY) {
-            serial->write(C1218_NACK);
-            return requestFailed(F("frame too large"));
+        if(length + 8 > FRAME_CAPACITY || length + 8 > packetSize || responseLength + length > MESSAGE_CAPACITY) {
+            return rejectPacket(F("frame too large"), now);
         }
         rxExpected = length + 8;
-        deadline = now + RESPONSE_TIMEOUT;
-        while(serial->available() && rxLength < rxExpected) rxFrame[rxLength++] = serial->read();
-        if(rxLength < rxExpected) return PENDING;
+        intercharacterDeadline = now + INTERCHAR_TIMEOUT;
+        while(serial->available() && rxLength < rxExpected) {
+            rxFrame[rxLength++] = serial->read();
+            intercharacterDeadline = now + INTERCHAR_TIMEOUT;
+        }
+        if(rxLength < rxExpected) return now >= intercharacterDeadline ? rejectPacket(F("inter-character timeout"), now) : PENDING;
     }
 
     uint16_t crc = crc16_x25(rxFrame, length + 6);
     if(rxFrame[length + 6] != (uint8_t) (crc >> 8) || rxFrame[length + 7] != (uint8_t) crc) {
-        serial->write(C1218_NACK);
-        return requestFailed(F("CRC mismatch"));
+        return rejectPacket(F("CRC mismatch"), now);
     }
 
+    uint8_t identity = rxFrame[1];
+    uint8_t control = rxFrame[2];
+    uint8_t sequence = rxFrame[3];
+    uint16_t wireCrc = ((uint16_t) rxFrame[length + 6] << 8) | rxFrame[length + 7];
+    if(identity == 0xFF || (control & 0x1F)) return rejectPacket(F("invalid packet control"), now);
+    if(hasLastRxPacket && identity == lastRxIdentity && control == lastRxControl && sequence == lastRxSequence && wireCrc == lastRxCrc) {
+        sendControl(C1218_ACK);
+        ioState = WAIT_START;
+        deadline = now + CHANNEL_TIMEOUT;
+        return PENDING;
+    }
+    if(packets == 0) {
+        if(control & 0x80) {
+            if(!(control & 0x40) || sequence == 0) return rejectPacket(F("invalid first sequence"), now);
+            expectedRxSequence = sequence - 1;
+        } else if((control & 0x40) || sequence != 0) {
+            return rejectPacket(F("invalid packet sequence"), now);
+        }
+    } else {
+        if(!(control & 0x80) || (control & 0x40) || sequence != expectedRxSequence || identity != lastRxIdentity || ((control & 0x20) == (lastRxControl & 0x20))) {
+            return rejectPacket(F("invalid packet sequence"), now);
+        }
+        if(expectedRxSequence > 0) expectedRxSequence--;
+    }
+    lastRxIdentity = identity;
+    lastRxControl = control;
+    lastRxSequence = sequence;
+    lastRxCrc = wireCrc;
+    hasLastRxPacket = true;
+    rejectedPackets = 0;
+
+    if(packets >= maxPackets) return rejectPacket(F("packet limit exceeded"), now);
     memcpy(response + responseLength, rxFrame + 6, length);
     responseLength += length;
-    serial->write(C1218_ACK);
+    sendControl(C1218_ACK);
     packets++;
-    if((rxFrame[2] & 0x80) && rxFrame[3] != 0) {
-        if(packets >= 16) return requestFailed(F("packet limit exceeded"));
+    if((control & 0x80) && sequence != 0) {
         ioState = WAIT_START;
-        deadline = now + RESPONSE_TIMEOUT;
+        deadline = now + CHANNEL_TIMEOUT;
         return PENDING;
     }
 
     ioState = IO_IDLE;
     if(responseLength < 1) return requestFailed(F("empty response"));
-    if(response[0] != C1218_OK) return requestFailed(F("meter status error"));
+    if(response[0] != C1218_OK) {
+        if((stage == NEGOTIATE || stage == SECURITY) && response[0] == C1218_SNS) return COMPLETE;
+        return requestFailed(F("meter status error"));
+    }
     memmove(response, response + 1, --responseLength);
     return COMPLETE;
 }
 
 C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::requestFailed(const __FlashStringHelper* reason) {
+    logFailure(reason);
+    return FAILED;
+}
+
+C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::rejectPacket(const __FlashStringHelper* reason, uint64_t now) {
+    logFailure(reason);
+    sendControl(C1218_NACK);
+    if(++rejectedPackets > MAX_RETRIES) return FAILED;
+    rxLength = rxExpected = 0;
+    ioState = WAIT_START;
+    deadline = now + CHANNEL_TIMEOUT;
+    return PENDING;
+}
+
+void C1218MeterCommunicator::logFailure(const __FlashStringHelper* reason) {
     debugger->print(F("C12.18 "));
     debugger->print(stageName());
     debugger->print(F(" failed on RX="));
@@ -326,7 +450,6 @@ C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::requestFailed(cons
     debugger->print(meterConfig.txPin);
     debugger->print(F(": "));
     debugger->println(reason);
-    return FAILED;
 }
 
 const char* C1218MeterCommunicator::stageName() const {
@@ -346,8 +469,9 @@ const char* C1218MeterCommunicator::stageName() const {
 
 void C1218MeterCommunicator::abortCycle(uint64_t now) {
     ioState = IO_IDLE;
-    if(sessionOpen && stage != LOGOFF && stage != TERMINATE) {
-        stage = LOGOFF;
+    bool sessionMayBeOpen = sessionOpen || (stage >= LOGON && stage < LOGOFF);
+    if(sessionMayBeOpen && stage != LOGOFF && stage != TERMINATE) {
+        stage = sessionOpen ? LOGOFF : TERMINATE;
     } else {
         sessionOpen = false;
         toggle = false;
@@ -357,6 +481,7 @@ void C1218MeterCommunicator::abortCycle(uint64_t now) {
     lastError = 97;
     if(++failures >= 3) {
         fail(F("C12.18 resetting UART after 3 failed cycles"));
+        serialBaud = 9600;
         resetSerial();
         failures = 0;
     }

@@ -32,7 +32,12 @@ private:
     static const size_t FRAME_CAPACITY = 160;
     static const size_t MESSAGE_CAPACITY = 192;
     static const uint32_t RESPONSE_TIMEOUT = 2000;
+    static const uint32_t CHANNEL_TIMEOUT = 6000;
+    static const uint32_t INTERCHAR_TIMEOUT = 500;
     static const uint32_t RETRY_DELAY = 5000;
+    static const uint8_t MAX_RETRIES = 3;
+    static const uint8_t DEFAULT_MAX_PACKETS = 1;
+    static const uint16_t DEFAULT_PACKET_SIZE = 64;
 
     enum Stage : uint8_t { WAIT_POLL, IDENT, NEGOTIATE, LOGON, SECURITY, TABLE0, TABLE28, TABLE23, LOGOFF, TERMINATE };
     enum IoState : uint8_t { IO_IDLE, WAIT_ACK, WAIT_START, READ_FRAME };
@@ -53,10 +58,14 @@ private:
     bool updated = false;
     bool bigEndian = false;
     bool toggle = false;
+    bool sessionNegotiated = false;
     uint8_t failures = 0;
     int lastError = 0;
     uint64_t nextPoll = 0;
     uint64_t sessionStarted = 0;
+    uint16_t packetSize = DEFAULT_PACKET_SIZE;
+    uint8_t maxPackets = DEFAULT_MAX_PACKETS;
+    uint32_t serialBaud = 9600;
     int32_t table23[2] = {};
     int32_t table28[26] = {};
     size_t table28Values = 0;
@@ -72,14 +81,25 @@ private:
     uint8_t response[MESSAGE_CAPACITY] = {};
     size_t responseLength = 0;
     uint64_t deadline = 0;
+    uint64_t intercharacterDeadline = 0;
+    uint8_t rejectedPackets = 0;
+    bool hasLastRxPacket = false;
+    uint8_t lastRxIdentity = 0;
+    uint8_t lastRxControl = 0;
+    uint8_t lastRxSequence = 0;
+    uint16_t lastRxCrc = 0;
+    uint8_t expectedRxSequence = 0;
 
     void resetSerial();
     void startStage();
     bool finishStage(uint64_t now);
     void beginRequest(const uint8_t* payload, size_t length);
     void transmit(uint64_t now);
+    void sendControl(uint8_t control);
     RequestStatus serviceRequest(uint64_t now);
     RequestStatus requestFailed(const __FlashStringHelper* reason);
+    RequestStatus rejectPacket(const __FlashStringHelper* reason, uint64_t now);
+    void logFailure(const __FlashStringHelper* reason);
     const char* stageName() const;
     void abortCycle(uint64_t now);
     void discardInput();

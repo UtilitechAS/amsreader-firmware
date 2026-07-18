@@ -45,6 +45,10 @@ void C1218MeterCommunicator::resetSerial() {
     serial->setRxBufferSize(256);
     serial->begin(9600, SERIAL_8N1, meterConfig.rxPin, meterConfig.txPin, meterConfig.invert);
     discardInput();
+    debugger->print(F("C12.18 UART configured: RX="));
+    debugger->print(meterConfig.rxPin);
+    debugger->print(F(", TX="));
+    debugger->println(meterConfig.txPin);
 }
 
 bool C1218MeterCommunicator::loop() {
@@ -170,7 +174,7 @@ bool C1218MeterCommunicator::finishStage(uint64_t now) {
         case SECURITY: stage = TABLE0; break;
         case TABLE0: {
             if(responseLength < 3 || ((response[0] << 8) | response[1]) + 2 > responseLength) {
-                fail(F("C12.18 table 0 is incomplete"));
+                requestFailed(F("incomplete response"));
                 abortCycle(now);
                 return false;
             }
@@ -183,7 +187,7 @@ bool C1218MeterCommunicator::finishStage(uint64_t now) {
         case TABLE28: {
             size_t values = c1218Config.extendedTable28 ? 26 : 10;
             if(!parseTable(response, responseLength, table28, values)) {
-                fail(F("C12.18 table 28 read failed"));
+                requestFailed(F("invalid table response"));
                 abortCycle(now);
                 return false;
             }
@@ -193,7 +197,7 @@ bool C1218MeterCommunicator::finishStage(uint64_t now) {
         }
         case TABLE23:
             if(!parseTable(response, responseLength, table23, 2)) {
-                fail(F("C12.18 table 23 read failed"));
+                requestFailed(F("invalid table response"));
                 abortCycle(now);
                 return false;
             }
@@ -206,7 +210,8 @@ bool C1218MeterCommunicator::finishStage(uint64_t now) {
         case LOGOFF: stage = TERMINATE; break;
         case TERMINATE:
             sessionOpen = false;
-            stage = IDENT;
+            stage = WAIT_POLL;
+            nextPoll = now + RETRY_DELAY;
             break;
         default:
             break;
@@ -250,11 +255,11 @@ C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::serviceRequest(uin
             } else if(attempts < 3) {
                 transmit(now);
             } else {
-                return FAILED;
+                return requestFailed(reply == C1218_NACK ? F("NACK") : F("unexpected ACK reply"));
             }
         } else if(now >= deadline) {
             if(attempts < 3) transmit(now);
-            else return FAILED;
+            else return requestFailed(F("ACK timeout"));
         }
         return PENDING;
     }
@@ -270,7 +275,7 @@ C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::serviceRequest(uin
                 break;
             }
         }
-        if(ioState == WAIT_START) return now >= deadline ? FAILED : PENDING;
+        if(ioState == WAIT_START) return now >= deadline ? requestFailed(F("frame start timeout")) : PENDING;
     }
 
     while(serial->available() && rxLength < rxExpected) rxFrame[rxLength++] = serial->read();
@@ -280,7 +285,7 @@ C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::serviceRequest(uin
     if(rxExpected == 6) {
         if(length + 8 > FRAME_CAPACITY || responseLength + length > MESSAGE_CAPACITY) {
             serial->write(C1218_NACK);
-            return FAILED;
+            return requestFailed(F("frame too large"));
         }
         rxExpected = length + 8;
         deadline = now + RESPONSE_TIMEOUT;
@@ -291,7 +296,7 @@ C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::serviceRequest(uin
     uint16_t crc = crc16_x25(rxFrame, length + 6);
     if(rxFrame[length + 6] != (uint8_t) (crc >> 8) || rxFrame[length + 7] != (uint8_t) crc) {
         serial->write(C1218_NACK);
-        return FAILED;
+        return requestFailed(F("CRC mismatch"));
     }
 
     memcpy(response + responseLength, rxFrame + 6, length);
@@ -299,27 +304,59 @@ C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::serviceRequest(uin
     serial->write(C1218_ACK);
     packets++;
     if((rxFrame[2] & 0x80) && rxFrame[3] != 0) {
-        if(packets >= 16) return FAILED;
+        if(packets >= 16) return requestFailed(F("packet limit exceeded"));
         ioState = WAIT_START;
         deadline = now + RESPONSE_TIMEOUT;
         return PENDING;
     }
 
     ioState = IO_IDLE;
-    if(responseLength < 1 || response[0] != C1218_OK) return FAILED;
+    if(responseLength < 1) return requestFailed(F("empty response"));
+    if(response[0] != C1218_OK) return requestFailed(F("meter status error"));
     memmove(response, response + 1, --responseLength);
     return COMPLETE;
 }
 
+C1218MeterCommunicator::RequestStatus C1218MeterCommunicator::requestFailed(const __FlashStringHelper* reason) {
+    debugger->print(F("C12.18 "));
+    debugger->print(stageName());
+    debugger->print(F(" failed on RX="));
+    debugger->print(meterConfig.rxPin);
+    debugger->print(F(", TX="));
+    debugger->print(meterConfig.txPin);
+    debugger->print(F(": "));
+    debugger->println(reason);
+    return FAILED;
+}
+
+const char* C1218MeterCommunicator::stageName() const {
+    switch(stage) {
+        case IDENT: return "IDENT";
+        case NEGOTIATE: return "NEGOTIATE";
+        case LOGON: return "LOGON";
+        case SECURITY: return "SECURITY";
+        case TABLE0: return "TABLE0";
+        case TABLE28: return "TABLE28";
+        case TABLE23: return "TABLE23";
+        case LOGOFF: return "LOGOFF";
+        case TERMINATE: return "TERMINATE";
+        default: return "WAIT_POLL";
+    }
+}
+
 void C1218MeterCommunicator::abortCycle(uint64_t now) {
-    fail(F("C12.18 request failed"));
-    sessionOpen = false;
-    toggle = false;
     ioState = IO_IDLE;
-    stage = WAIT_POLL;
-    nextPoll = now + 2000;
+    if(sessionOpen && stage != LOGOFF && stage != TERMINATE) {
+        stage = LOGOFF;
+    } else {
+        sessionOpen = false;
+        toggle = false;
+        stage = WAIT_POLL;
+        nextPoll = now + RETRY_DELAY;
+    }
     lastError = 97;
     if(++failures >= 3) {
+        fail(F("C12.18 resetting UART after 3 failed cycles"));
         resetSerial();
         failures = 0;
     }

@@ -32,6 +32,7 @@ private:
     static const size_t FRAME_CAPACITY = 160;
     static const size_t MESSAGE_CAPACITY = 192;
     static const uint32_t RESPONSE_TIMEOUT = 2000;
+    static const uint32_t RETRY_DELAY = 5000;
 
     enum Stage : uint8_t { WAIT_POLL, IDENT, NEGOTIATE, LOGON, SECURITY, TABLE0, TABLE28, TABLE23, LOGOFF, TERMINATE };
     enum IoState : uint8_t { IO_IDLE, WAIT_ACK, WAIT_START, READ_FRAME };
@@ -78,6 +79,8 @@ private:
     void beginRequest(const uint8_t* payload, size_t length);
     void transmit(uint64_t now);
     RequestStatus serviceRequest(uint64_t now);
+    RequestStatus requestFailed(const __FlashStringHelper* reason);
+    const char* stageName() const;
     void abortCycle(uint64_t now);
     void discardInput();
     void fail(const __FlashStringHelper* message);

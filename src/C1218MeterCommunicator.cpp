@@ -42,6 +42,8 @@ void C1218MeterCommunicator::configure(MeterConfig& meterConfig, Timezone*) {
     sessionNegotiated = false;
     packetSize = DEFAULT_PACKET_SIZE;
     maxPackets = DEFAULT_MAX_PACKETS;
+    nextExtendedTable = 0;
+    readExtendedTable = false;
     failures = attempts = packets = 0;
     lastError = 0;
     nextPoll = 0;
@@ -97,12 +99,14 @@ AmsData* C1218MeterCommunicator::getData(AmsData&) {
     data->apply(OBIS_ACTIVE_EXPORT, max((int32_t) 0, table28[1]), now);
     data->apply(OBIS_REACTIVE_IMPORT, max((int32_t) 0, table28[2]), now);
     data->apply(OBIS_REACTIVE_EXPORT, max((int32_t) 0, table28[3]), now);
-    data->apply(OBIS_CURRENT_L1, table28[4] / 1000.0, now);
-    data->apply(OBIS_CURRENT_L2, table28[5] / 1000.0, now);
-    data->apply(OBIS_CURRENT_L3, table28[6] / 1000.0, now);
-    data->apply(OBIS_VOLTAGE_L1, table28[7] / 1000.0, now);
-    data->apply(OBIS_VOLTAGE_L2, table28[8] / 1000.0, now);
-    data->apply(OBIS_VOLTAGE_L3, table28[9] / 1000.0, now);
+    if(table28Values >= 10) {
+        data->apply(OBIS_CURRENT_L1, table28[4] / 1000.0, now);
+        data->apply(OBIS_CURRENT_L2, table28[5] / 1000.0, now);
+        data->apply(OBIS_CURRENT_L3, table28[6] / 1000.0, now);
+        data->apply(OBIS_VOLTAGE_L1, table28[7] / 1000.0, now);
+        data->apply(OBIS_VOLTAGE_L2, table28[8] / 1000.0, now);
+        data->apply(OBIS_VOLTAGE_L3, table28[9] / 1000.0, now);
+    }
     if(table28Values >= 15) {
         data->apply(OBIS_POWER_FACTOR, table28[10] / 1000.0, now);
         data->apply(OBIS_POWER_FACTOR_L1, table28[10] / 1000.0, now);
@@ -159,8 +163,11 @@ void C1218MeterCommunicator::startStage() {
             break;
         }
         case TABLE28: {
-            bool extended = c1218Config.extendedTable28 && maxPackets > 1;
-            uint16_t bytes = (extended ? 26 : 10) * 4;
+            bool canReadExtended = c1218Config.extendedTable28 && maxPackets > 1;
+            bool extended = canReadExtended && millis64() >= nextExtendedTable;
+            readExtendedTable = extended;
+            uint16_t values = extended ? 26 : (canReadExtended ? 4 : 10);
+            uint16_t bytes = values * 4;
             const uint8_t payload[] = {0x3F, 0, 28, 0, 0, 0, (uint8_t) (bytes >> 8), (uint8_t) bytes};
             beginRequest(payload, sizeof(payload));
             break;
@@ -241,13 +248,14 @@ bool C1218MeterCommunicator::finishStage(uint64_t now) {
             break;
         }
         case TABLE28: {
-            size_t values = c1218Config.extendedTable28 ? 26 : 10;
+            size_t values = c1218Config.extendedTable28 && maxPackets > 1 ? (readExtendedTable ? 26 : 4) : 10;
             if(!parseTable(response, responseLength, table28, values)) {
                 requestFailed(F("invalid table response"));
                 abortCycle(now);
                 return false;
             }
-            table28Values = values;
+            if(readExtendedTable || table28Values < values) table28Values = values;
+            if(readExtendedTable) nextExtendedTable = now + EXTENDED_TABLE_INTERVAL;
             stage = TABLE23;
             break;
         }

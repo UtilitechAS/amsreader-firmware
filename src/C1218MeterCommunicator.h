@@ -35,6 +35,7 @@ private:
     static const uint32_t CHANNEL_TIMEOUT = 6000;
     static const uint32_t INTERCHAR_TIMEOUT = 500;
     static const uint32_t RETRY_DELAY = 5000;
+    static const uint32_t EXTENDED_TABLE_INTERVAL = 60000;
     static const uint8_t MAX_RETRIES = 3;
     static const uint8_t DEFAULT_MAX_PACKETS = 1;
     static const uint16_t DEFAULT_PACKET_SIZE = 64;
@@ -66,6 +67,8 @@ private:
     uint16_t packetSize = DEFAULT_PACKET_SIZE;
     uint8_t maxPackets = DEFAULT_MAX_PACKETS;
     uint32_t serialBaud = 9600;
+    uint64_t nextExtendedTable = 0;
+    bool readExtendedTable = false;
     int32_t table23[2] = {};
     int32_t table28[26] = {};
     size_t table28Values = 0;

@@ -16,6 +16,8 @@ assert "rejectPacket" in source
 assert "MAX_RETRIES" in source
 assert "CHANNEL_TIMEOUT" in source
 assert "INTERCHAR_TIMEOUT" in source
+assert "EXTENDED_TABLE_INTERVAL" in source
+assert "readExtendedTable" in source
 assert "C1218_SNS" in source
 assert "UART configured: RX=" in source
 assert "nextPoll = now + RETRY_DELAY" in source

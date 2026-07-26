@@ -354,12 +354,18 @@ void AmsConfiguration::clearMeter(MeterConfig& config) {
 bool AmsConfiguration::getC1218Config(C1218Config& config) {
 	static_assert(CONFIG_C1218_START + sizeof(C1218Config) <= EEPROM_SIZE, "C12.18 config exceeds EEPROM");
 	EEPROM.get(CONFIG_C1218_START, config);
-	if(config.magic != C1218_CONFIG_MAGIC) {
+	if(config.magic != C1218_CONFIG_MAGIC && config.magic != C1218_CONFIG_MAGIC_LEGACY && config.magic != C1218_CONFIG_MAGIC_LEGACY_V0) {
 		clearC1218Config(config);
 		return false;
 	}
 	config.username[10] = 0;
 	config.password[20] = 0;
+	if(config.magic != C1218_CONFIG_MAGIC) {
+		config.terminateSession = false;
+		config.logoffInterval = 300;
+		config.idleStartSeconds = 7800;
+		config.idleSeconds = 0;
+	}
 	return true;
 }
 
@@ -378,6 +384,8 @@ void AmsConfiguration::clearC1218Config(C1218Config& config) {
 	memset(&config, 0, sizeof(C1218Config));
 	config.userId = 1;
 	config.extendedTable28 = true;
+	config.logoffInterval = 300;
+	config.idleStartSeconds = 7800;
 }
 
 bool AmsConfiguration::isMeterChanged() {

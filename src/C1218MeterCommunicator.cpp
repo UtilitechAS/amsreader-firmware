@@ -32,8 +32,9 @@ C1218MeterCommunicator::~C1218MeterCommunicator() {
     serial->end();
 }
 
-void C1218MeterCommunicator::configure(MeterConfig& meterConfig, Timezone*) {
+void C1218MeterCommunicator::configure(MeterConfig& meterConfig, Timezone* tz) {
     this->meterConfig = meterConfig;
+    this->tz = tz;
     config->getC1218Config(c1218Config);
     serialBaud = 9600;
     resetSerial();
@@ -83,7 +84,15 @@ bool C1218MeterCommunicator::loop() {
 
     if(stage == WAIT_POLL) {
         if(now < nextPoll) return false;
-        stage = sessionOpen && now - sessionStarted >= 300000 ? LOGOFF : sessionOpen ? TABLE28 : IDENT;
+        if(isIdlePeriod()) {
+            if(!sessionOpen) {
+                nextPoll = now + 2000;
+                return false;
+            }
+            stage = LOGOFF;
+        } else {
+            stage = sessionOpen && now - sessionStarted >= c1218Config.logoffInterval * 1000ULL ? LOGOFF : sessionOpen ? TABLE28 : IDENT;
+        }
     }
     startStage();
     return false;
@@ -269,7 +278,7 @@ bool C1218MeterCommunicator::finishStage(uint64_t now) {
             lastError = 0;
             updated = true;
             nextPoll = now + 2000;
-            stage = WAIT_POLL;
+            stage = c1218Config.terminateSession ? LOGOFF : WAIT_POLL;
             return true;
         case LOGOFF:
             sessionOpen = false;
@@ -493,6 +502,16 @@ void C1218MeterCommunicator::abortCycle(uint64_t now) {
         resetSerial();
         failures = 0;
     }
+}
+
+bool C1218MeterCommunicator::isIdlePeriod() {
+    if(c1218Config.idleSeconds == 0 || tz == NULL) return false;
+    time_t now = time(nullptr);
+    if(now < 1600000000) return false;
+    tmElements_t local;
+    breakTime(tz->toLocal(now), local);
+    uint32_t seconds = local.Hour * SECS_PER_HOUR + local.Minute * SECS_PER_MIN + local.Second;
+    return (seconds + SECS_PER_DAY - c1218Config.idleStartSeconds) % SECS_PER_DAY < c1218Config.idleSeconds;
 }
 
 void C1218MeterCommunicator::discardInput() {

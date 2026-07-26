@@ -467,6 +467,12 @@
                     <input name="mcp" bind:value={configuration.m.c.p} type="password" maxlength="20" class="in-s"/>
                 </div>
                 <label><input type="checkbox" name="mcx" value="true" bind:checked={configuration.m.c.x} class="rounded mb-1"/> {translations.conf?.meter?.c1218?.extended ?? "Read extended table 28"}</label>
+                <label><input type="checkbox" name="mct" value="true" bind:checked={configuration.m.c.t} class="rounded mb-1"/> {translations.conf?.meter?.c1218?.terminate ?? "Terminate session after each read"}</label>
+                <div class="my-1 flex">
+                    <label class="w-1/2">{translations.conf?.meter?.c1218?.logoff ?? "Logoff interval (s)"}<input name="mcl" bind:value={configuration.m.c.l} type="number" min="1" max="86400" class="in-f tr w-full"/></label>
+                    <label class="w-1/2">{translations.conf?.meter?.c1218?.idle_start ?? "Daily idle start"}<input name="mci" bind:value={configuration.m.c.i} type="time" step="1" class="in-l w-full"/></label>
+                </div>
+                <label>{translations.conf?.meter?.c1218?.idle ?? "Daily idle time (s, 0 disables)"}<input name="mcd" bind:value={configuration.m.c.d} type="number" min="0" max="86400" class="in-s tr"/></label>
             {:else}
                 <div class="my-1">
                     <span class="float-right">{translations.conf?.meter?.buffer ?? "Buffer size"}</span>

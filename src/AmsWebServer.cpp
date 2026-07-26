@@ -1390,6 +1390,13 @@ void AmsWebServer::handleSave() {
 			String password = server.arg(F("mcp"));
 			if(password != F("***")) strlcpy(c1218.password, password.c_str(), sizeof(c1218.password));
 			c1218.extendedTable28 = server.hasArg(F("mcx")) && server.arg(F("mcx")) == F("true");
+			c1218.terminateSession = server.hasArg(F("mct")) && server.arg(F("mct")) == F("true");
+			c1218.logoffInterval = constrain(server.arg(F("mcl")).toInt(), 1, 86400);
+			unsigned int hour, minute, second;
+			if(sscanf(server.arg(F("mci")).c_str(), "%u:%u:%u", &hour, &minute, &second) == 3 && hour < 24 && minute < 60 && second < 60) {
+				c1218.idleStartSeconds = hour * SECS_PER_HOUR + minute * SECS_PER_MIN + second;
+			}
+			c1218.idleSeconds = constrain(server.arg(F("mcd")).toInt(), 0, 86400);
 			config->setC1218Config(c1218);
 		}
 	}

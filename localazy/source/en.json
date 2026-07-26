@@ -115,6 +115,10 @@
       },
       "c1218": {
         "extended": "Read extended table 28",
+        "idle": "Daily idle time (s, 0 disables)",
+        "idle_start": "Daily idle start",
+        "logoff": "Logoff interval (s)",
+        "terminate": "Terminate session after each read",
         "password": "Password",
         "userid": "User ID",
         "username": "Username"

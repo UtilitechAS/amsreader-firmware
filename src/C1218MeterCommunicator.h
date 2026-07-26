@@ -50,6 +50,7 @@ private:
     Stream* debugger;
 #endif
     AmsConfiguration* config;
+    Timezone* tz;
     HardwareSerial* serial = &Serial1;
     MeterConfig meterConfig = {};
     C1218Config c1218Config = {};
@@ -105,6 +106,7 @@ private:
     void logFailure(const __FlashStringHelper* reason);
     const char* stageName() const;
     void abortCycle(uint64_t now);
+    bool isIdlePeriod();
     void discardInput();
     void fail(const __FlashStringHelper* message);
     int32_t readInt32(const uint8_t* value) const;

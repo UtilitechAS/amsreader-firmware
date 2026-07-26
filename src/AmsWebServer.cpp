@@ -589,6 +589,9 @@ void AmsWebServer::sysinfoJson() {
 	String meterModel = meterState->getMeterModel();
 	if(!meterModel.isEmpty())
 		meterModel.replace(F("\\"), F("\\\\"));
+	String meterManufacturer = meterState->getMeterManufacturer();
+	if(!meterManufacturer.isEmpty())
+		meterManufacturer.replace(F("\\"), F("\\\\"));
 
 	String meterId = meterState->getMeterId();
 	if(!meterId.isEmpty())
@@ -662,6 +665,7 @@ void AmsWebServer::sysinfoJson() {
 		#endif
 		sys.boardType > 240 && sys.boardType < 250 ? "true" : "false",
 		meterState->getMeterType(),
+		meterManufacturer.c_str(),
 		meterModel.c_str(),
 		meterId.c_str(),
 		ui.showImport,

@@ -101,6 +101,7 @@ void AmsData::apply(AmsData& other) {
             strncpy(this->meterId, other.meterId, sizeof(this->meterId) - 1);
             this->meterType = other.getMeterType();
             strncpy(this->meterModel, other.meterModel, sizeof(this->meterModel) - 1);
+            strncpy(this->meterManufacturer, other.meterManufacturer, sizeof(this->meterManufacturer) - 1);
             this->reactiveImportPower = other.getReactiveImportPower();
             this->reactiveExportPower = other.getReactiveExportPower();
             this->l1current = other.getL1Current();
@@ -315,6 +316,17 @@ uint8_t AmsData::getMeterType() {
 
 String AmsData::getMeterModel() {
     return String(this->meterModel);
+}
+
+String AmsData::getMeterManufacturer() {
+    return String(this->meterManufacturer);
+}
+
+void AmsData::setMeterInfo(uint8_t type, const char* manufacturer, const char* model, const char* id) {
+    meterType = type;
+    strlcpy(meterManufacturer, manufacturer, sizeof(meterManufacturer));
+    strlcpy(meterModel, model, sizeof(meterModel));
+    strlcpy(meterId, id, sizeof(meterId));
 }
 
 time_t AmsData::getMeterTimestamp() {

@@ -40,7 +40,7 @@ private:
     static const uint8_t DEFAULT_MAX_PACKETS = 1;
     static const uint16_t DEFAULT_PACKET_SIZE = 64;
 
-    enum Stage : uint8_t { WAIT_POLL, IDENT, NEGOTIATE, LOGON, SECURITY, TABLE0, TABLE28, TABLE23, LOGOFF, TERMINATE };
+    enum Stage : uint8_t { WAIT_POLL, IDENT, NEGOTIATE, LOGON, SECURITY, TABLE0, TABLE1, TABLE6, TABLE5, TABLE28, TABLE23, LOGOFF, TERMINATE };
     enum IoState : uint8_t { IO_IDLE, WAIT_ACK, WAIT_START, READ_FRAME };
     enum RequestStatus : uint8_t { PENDING, COMPLETE, FAILED };
 
@@ -59,6 +59,7 @@ private:
     bool sessionOpen = false;
     bool updated = false;
     bool bigEndian = false;
+    bool idForm = false;
     bool toggle = false;
     bool sessionNegotiated = false;
     uint8_t failures = 0;
@@ -70,6 +71,10 @@ private:
     uint32_t serialBaud = 9600;
     uint64_t nextExtendedTable = 0;
     bool readExtendedTable = false;
+    bool meterInfoAttempted = false;
+    char meterManufacturer[5] = {};
+    char meterModel[65] = {};
+    char meterId[33] = {};
     int32_t table23[2] = {};
     int32_t table28[26] = {};
     size_t table28Values = 0;
@@ -111,6 +116,8 @@ private:
     void fail(const __FlashStringHelper* message);
     int32_t readInt32(const uint8_t* value) const;
     bool parseTable(const uint8_t* response, size_t responseLength, int32_t* values, size_t count);
+    void parseMeterInfo(const uint8_t* response, size_t responseLength);
+    void parseMeterId(const uint8_t* value, size_t length);
 };
 
 #endif

@@ -40,6 +40,7 @@ void C1218MeterCommunicator::configure(MeterConfig& meterConfig, Timezone* tz) {
     resetSerial();
     initialized = true;
     sessionOpen = updated = bigEndian = toggle = false;
+    idForm = false;
     sessionNegotiated = false;
     packetSize = DEFAULT_PACKET_SIZE;
     maxPackets = DEFAULT_MAX_PACKETS;
@@ -55,6 +56,10 @@ void C1218MeterCommunicator::configure(MeterConfig& meterConfig, Timezone* tz) {
     rejectedPackets = 0;
     hasLastRxPacket = false;
     expectedRxSequence = 0;
+    meterInfoAttempted = false;
+    meterManufacturer[0] = 0;
+    meterModel[0] = 0;
+    meterId[0] = 0;
 }
 
 void C1218MeterCommunicator::resetSerial() {
@@ -76,6 +81,15 @@ bool C1218MeterCommunicator::loop() {
         RequestStatus status = serviceRequest(now);
         if(status == PENDING) return false;
         if(status == FAILED) {
+            if(stage == TABLE1 || stage == TABLE6 || stage == TABLE5) {
+                meterInfoAttempted = true;
+                if(stage == TABLE1) stage = TABLE6;
+                else if(stage == TABLE6) stage = TABLE5;
+                else {
+                    stage = TABLE28;
+                }
+                return false;
+            }
             abortCycle(now);
             return false;
         }
@@ -103,6 +117,7 @@ AmsData* C1218MeterCommunicator::getData(AmsData&) {
     updated = false;
     uint64_t now = millis64();
     AmsData* data = new AmsData();
+    if(meterModel[0]) data->setMeterInfo(AmsTypeCustom, meterManufacturer, meterModel, meterId);
 
     data->apply(OBIS_ACTIVE_IMPORT, max((int32_t) 0, table28[0]), now);
     data->apply(OBIS_ACTIVE_EXPORT, max((int32_t) 0, table28[1]), now);
@@ -168,6 +183,21 @@ void C1218MeterCommunicator::startStage() {
         }
         case TABLE0: {
             const uint8_t payload[] = {0x30, 0, 0};
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case TABLE1: {
+            const uint8_t payload[] = {0x30, 0, 1};
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case TABLE6: {
+            const uint8_t payload[] = {0x30, 0, 6};
+            beginRequest(payload, sizeof(payload));
+            break;
+        }
+        case TABLE5: {
+            const uint8_t payload[] = {0x30, 0, 5};
             beginRequest(payload, sizeof(payload));
             break;
         }
@@ -253,9 +283,27 @@ bool C1218MeterCommunicator::finishStage(uint64_t now) {
                 return false;
             }
             bigEndian = (response[2] & 0x01) != 0;
-            stage = TABLE28;
+            idForm = responseLength >= 4 && ((response[0] << 8) | response[1]) >= 2 && (response[3] & 0x20);
+            stage = meterInfoAttempted ? TABLE28 : TABLE1;
             break;
         }
+        case TABLE1:
+            meterInfoAttempted = true;
+            parseMeterInfo(response, responseLength);
+            stage = TABLE6;
+            break;
+        case TABLE6: {
+            const size_t offset = idForm ? 70 : 100;
+            const size_t length = idForm ? 10 : 20;
+            const size_t tableLength = responseLength >= 2 ? ((size_t) response[0] << 8) | response[1] : 0;
+            if(tableLength >= offset + length && responseLength >= offset + length + 2) parseMeterId(response + 2 + offset, length);
+            stage = TABLE5;
+            break;
+        }
+        case TABLE5:
+            if(responseLength >= 3) parseMeterId(response + 2, min((size_t) responseLength - 2, (size_t) ((response[0] << 8) | response[1])));
+            stage = TABLE28;
+            break;
         case TABLE28: {
             size_t values = c1218Config.extendedTable28 && maxPackets > 1 ? (readExtendedTable ? 26 : 4) : 10;
             if(!parseTable(response, responseLength, table28, values)) {
@@ -476,6 +524,9 @@ const char* C1218MeterCommunicator::stageName() const {
         case LOGON: return "LOGON";
         case SECURITY: return "SECURITY";
         case TABLE0: return "TABLE0";
+        case TABLE1: return "TABLE1";
+        case TABLE6: return "TABLE6";
+        case TABLE5: return "TABLE5";
         case TABLE28: return "TABLE28";
         case TABLE23: return "TABLE23";
         case LOGOFF: return "LOGOFF";
@@ -535,6 +586,38 @@ bool C1218MeterCommunicator::parseTable(const uint8_t* response, size_t response
     if(length < count * 4 || responseLength < count * 4 + 2) return false;
     for(size_t i = 0; i < count; i++) values[i] = readInt32(response + 2 + i * 4);
     return true;
+}
+
+void C1218MeterCommunicator::parseMeterInfo(const uint8_t* response, size_t responseLength) {
+    if(responseLength < 18 || ((response[0] << 8) | response[1]) < 16) return;
+    char model[9] = {};
+    memcpy(meterManufacturer, response + 2, 4);
+    memcpy(model, response + 6, 8);
+    for(int i = 3; i >= 0 && meterManufacturer[i] == ' '; i--) meterManufacturer[i] = 0;
+    for(int i = 7; i >= 0 && model[i] == ' '; i--) model[i] = 0;
+    snprintf(meterModel, sizeof(meterModel), "%s (HW %u.%u, FW %u.%u)", model, response[14], response[15], response[16], response[17]);
+    size_t serialLength = idForm ? 8 : 16;
+    if(responseLength >= 18 + serialLength && ((response[0] << 8) | response[1]) >= 16 + serialLength) parseMeterId(response + 18, serialLength);
+}
+
+void C1218MeterCommunicator::parseMeterId(const uint8_t* serial, size_t serialLength) {
+    if(meterId[0]) return;
+    char id[sizeof(meterId)] = {};
+    bool text = false, bcd = true;
+    for(size_t i = 0; i < serialLength; i++) {
+        text |= serial[i] >= ' ' && serial[i] <= '~';
+        bcd &= (serial[i] >> 4) <= 9 && (serial[i] & 0x0F) <= 9;
+    }
+    if(text) {
+        memcpy(id, serial, serialLength);
+        for(int i = serialLength - 1; i >= 0 && id[i] == ' '; i--) id[i] = 0;
+    } else if(bcd) {
+        for(size_t i = 0; i < serialLength && i * 2 + 1 < sizeof(id); i++) {
+            id[i * 2] = '0' + (serial[i] >> 4);
+            id[i * 2 + 1] = '0' + (serial[i] & 0x0F);
+        }
+    }
+    for(size_t i = 0; id[i]; i++) if(id[i] != '0') { strlcpy(meterId, id, sizeof(meterId)); break; }
 }
 
 #endif

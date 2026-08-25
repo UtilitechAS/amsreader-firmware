@@ -66,10 +66,9 @@ jobs:
     - name: PlatformIO lib install
       run: pio pkg install
     - name: PlatformIO run
-      # Device firmware envs only. The 'native' unit-test env is built via
-      # `pio test -e native`, not `pio run`.
+      # Device firmware envs only. Native unit-test envs are run separately.
       run: pio run -e esp8266 -e esp32 -e esp32s2 -e esp32solo -e esp32c3 -e esp32s3
-    - name: Decoder unit tests (native)
+    - name: Native unit tests
       # Encrypted-fixture decode tests read keys from these secrets; without
       # them those tests self-skip (unencrypted + golden tests still run).
       env:
@@ -79,4 +78,6 @@ jobs:
         AMS_TEST_KEY_GH905_EK: ${{ secrets.AMS_TEST_KEY_GH905_EK }}
         AMS_TEST_KEY_EM20200710_EK: ${{ secrets.AMS_TEST_KEY_EM20200710_EK }}
         AMS_TEST_KEY_EM20200710_AK: ${{ secrets.AMS_TEST_KEY_EM20200710_AK }}
-      run: pio test -e native
+      run: |
+        pio test -e native
+        pio test -e native_config

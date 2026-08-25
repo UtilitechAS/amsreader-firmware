@@ -26,8 +26,30 @@
 #ifndef PSTR
 #define PSTR(x) (x)
 #endif
+#ifndef strcpy_P
+#define strcpy_P strcpy
+#endif
+#ifndef strncmp_P
+#define strncmp_P strncmp
+#endif
+#ifndef snprintf_P
+#define snprintf_P snprintf
+#endif
+#ifndef INPUT_PULLUP
+#define INPUT_PULLUP 0x2
+#endif
 
 typedef uint8_t byte;
 typedef bool boolean;
+
+inline void delay(unsigned long) {}
+inline void pinMode(uint8_t, uint8_t) {}
+
+class NativeESPClass {
+public:
+    uint32_t getChipId() const { return 0x123456; }
+};
+
+inline NativeESPClass ESP;
 
 #endif

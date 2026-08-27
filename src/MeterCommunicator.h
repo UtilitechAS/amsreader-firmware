@@ -22,6 +22,8 @@ public:
     virtual bool loop();
     virtual AmsData* getData(AmsData& meterState);
     virtual int getLastError();
+    // Uptime millis of the last verified frame from the meter, 0 if never or unsupported
+    virtual uint64_t getLastFrameMillis() { return 0; };
     virtual bool isConfigChanged();
     virtual void ackConfigChanged();
     virtual void getCurrentConfig(MeterConfig& meterConfig);

@@ -55,6 +55,18 @@ public:
     bool loop();
     bool isRebootSuggested();
 
+    // Service state and event announcements (#1128). Shared by every payload
+    // format: both go to sub-topics of the configured publish topic, so they sit
+    // alongside the data payload rather than replacing it. <topic>/status is
+    // already the retained online/offline availability payload backed by the
+    // last will, so the state snapshot uses <topic>/services.
+    //
+    // publishServices() is retained: a subscriber that connects late still sees
+    // the current state. publishEvent() is not - an event describes a moment,
+    // and a retained one would replay as current on every reconnect.
+    bool publishServices(const char* payload);
+    bool publishEvent(const char* event, const char* fields);
+
     virtual uint8_t getFormat() { return 0; };
 
     virtual bool postConnect() { return false; };

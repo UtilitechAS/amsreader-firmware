@@ -39,7 +39,10 @@ bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAcc
         ret = publishList2(&data, ea);
         mqtt.loop();
     } else if(data.getListType() == 3) {
-        ret = publishList3(&data, ea);
+        // List 3 is List 2 plus the accumulated registers. When the meter
+        // repeated the previous hour's registers (#1119) publish it as List 2,
+        // so the current instantaneous values still go out without the repeat.
+        ret = data.isCounterStale() ? publishList2(&data, ea) : publishList3(&data, ea);
         mqtt.loop();
     } else if(data.getListType() == 4) {
         ret = publishList4(&data, ea);

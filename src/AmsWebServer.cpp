@@ -327,17 +327,32 @@ uint8_t AmsWebServer::hanState() {
 // landed in this long, allowing a couple of missed cycles before warning.
 #define NTP_STALE_AFTER_SECONDS 10800
 
-String AmsWebServer::buildServicesJson() {
-	String out = "";
+// Formats one entry of the services array. Kept in one place so the web payload
+// and the compact MQTT payload (#1128) cannot drift apart. withDetail=false omits
+// the "d" and "n" fields, which keeps the MQTT payload inside the 256 byte packet
+// buffer used on ESP8266.
+static void appendServiceEntry(String& out, bool withDetail, const char* key, uint8_t state, int16_t err, const char* detail, const char* name) {
 	char entry[320];
+	if(withDetail) {
+		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"%s\",\"s\":%d,\"e\":%d%s%s%s,\"d\":\"%s\"}"),
+			key, state, err,
+			name != NULL ? ",\"n\":\"" : "", name != NULL ? name : "", name != NULL ? "\"" : "",
+			detail == NULL ? "" : detail);
+	} else {
+		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"%s\",\"s\":%d,\"e\":%d}"), key, state, err);
+	}
+	if(!out.isEmpty()) out += ",";
+	out += entry;
+}
+
+String AmsWebServer::buildServicesJson(bool withDetail) {
+	String out = "";
 
 	{
 		String meterModel = meterState->getMeterModel();
 		if(!meterModel.isEmpty())
 			meterModel.replace(F("\\"), F("\\\\"));
-		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"han\",\"s\":%d,\"e\":%d,\"d\":\"%s\"}"),
-			hanState(), meterState->getLastError(), meterModel.c_str());
-		out += entry;
+		appendServiceEntry(out, withDetail, "han", hanState(), meterState->getLastError(), meterModel.c_str(), NULL);
 	}
 
 	MqttConfig mqttConfig;
@@ -351,10 +366,7 @@ String AmsWebServer::buildServicesJson() {
 			s = mqttHandlerState(mqttHandler);
 			if(mqttHandler != NULL) err = (int16_t) mqttHandler->lastError();
 		}
-		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"mqtt\",\"s\":%d,\"e\":%d,\"d\":\"%s\"}"),
-			s, err, mqttConfig.host);
-		if(!out.isEmpty()) out += ",";
-		out += entry;
+		appendServiceEntry(out, withDetail, "mqtt", s, err, mqttConfig.host, NULL);
 	}
 
 	#if defined(CUSTOM_MQTT_HOST)
@@ -362,14 +374,10 @@ String AmsWebServer::buildServicesJson() {
 		uint8_t s = mqttHandlerState(customMqttHandler);
 		int16_t err = customMqttHandler == NULL ? 0 : (int16_t) customMqttHandler->lastError();
 		#if defined(CUSTOM_MQTT_NAME)
-		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"mqtt_c\",\"s\":%d,\"e\":%d,\"n\":\"" CUSTOM_MQTT_NAME "\",\"d\":\"" CUSTOM_MQTT_HOST "\"}"),
-			s, err);
+		appendServiceEntry(out, withDetail, "mqtt_c", s, err, CUSTOM_MQTT_HOST, CUSTOM_MQTT_NAME);
 		#else
-		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"mqtt_c\",\"s\":%d,\"e\":%d,\"d\":\"" CUSTOM_MQTT_HOST "\"}"),
-			s, err);
+		appendServiceEntry(out, withDetail, "mqtt_c", s, err, CUSTOM_MQTT_HOST, NULL);
 		#endif
-		if(!out.isEmpty()) out += ",";
-		out += entry;
 	}
 	#endif
 
@@ -380,10 +388,7 @@ String AmsWebServer::buildServicesJson() {
 		if(sys.energyspeedometer == 7) {
 			uint8_t s = mqttHandlerState(energySpeedometer);
 			int16_t err = energySpeedometer == NULL ? 0 : (int16_t) energySpeedometer->lastError();
-			snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"mqtt_es\",\"s\":%d,\"e\":%d,\"d\":\"\"}"),
-				s, err);
-			if(!out.isEmpty()) out += ",";
-			out += entry;
+			appendServiceEntry(out, withDetail, "mqtt_es", s, err, "", NULL);
 		}
 	}
 	#endif
@@ -401,10 +406,7 @@ String AmsWebServer::buildServicesJson() {
 		} else {
 			s = 2;
 		}
-		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"price\",\"s\":%d,\"e\":%d,\"d\":\"%s\"}"),
-			s, err, priceCfg.area);
-		if(!out.isEmpty()) out += ",";
-		out += entry;
+		appendServiceEntry(out, withDetail, "price", s, err, priceCfg.area, NULL);
 	}
 
 	{
@@ -422,10 +424,7 @@ String AmsWebServer::buildServicesJson() {
 				uint32_t ageSec = (uint32_t) ((millis64() - lastSync) / 1000);
 				s = ageSec > NTP_STALE_AFTER_SECONDS ? 2 : 1;
 			}
-			snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"ntp\",\"s\":%d,\"e\":0,\"d\":\"%s\"}"),
-				s, server);
-			if(!out.isEmpty()) out += ",";
-			out += entry;
+			appendServiceEntry(out, withDetail, "ntp", s, 0, server, NULL);
 		}
 	}
 
@@ -442,10 +441,7 @@ String AmsWebServer::buildServicesJson() {
 				uint32_t maxAge = ((uint32_t) cc.interval) * 3000;
 				s = (cloud->getLastUpdate() > 0 && since > maxAge) ? 3 : 1;
 			}
-			snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"cloud\",\"s\":%d,\"e\":%d,\"d\":\"%s\"}"),
-				s, err, cc.hostname);
-			if(!out.isEmpty()) out += ",";
-			out += entry;
+			appendServiceEntry(out, withDetail, "cloud", s, err, cc.hostname, NULL);
 		}
 	}
 	#endif
@@ -461,10 +457,7 @@ String AmsWebServer::buildServicesJson() {
 			} else {
 				s = zcloud->isLastFailed() ? 3 : 1;
 			}
-			snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"zc\",\"s\":%d,\"e\":%d,\"d\":\"%s\"}"),
-				s, err, zc.baseUrl);
-			if(!out.isEmpty()) out += ",";
-			out += entry;
+			appendServiceEntry(out, withDetail, "zc", s, err, zc.baseUrl, NULL);
 		}
 	}
 	#endif

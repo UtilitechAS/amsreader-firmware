@@ -115,11 +115,12 @@ const HomeAssistantSensor PriceSensors[PriceSensorCount] PROGMEM = {
     {"Cheapest 6hr period ahead",  "/prices",  "prices.cheapest6hr",    4000, "",     "timestamp",       "",  ""}
 };
 
-const uint8_t SystemSensorCount PROGMEM = 3;
+const uint8_t SystemSensorCount PROGMEM = 4;
 const HomeAssistantSensor SystemSensors[SystemSensorCount] PROGMEM = {
     {"Status",                     "/state",   "rssi",               180, "dBm",  "signal_strength", "measurement", ""},
     {"Supply volt",                "/state",   "vcc",                180, "V",    "voltage",         "measurement", ""},
-    {"Uptime",                     "/state",   "up",                 180, "s",    "duration",        "measurement", ""}
+    {"Uptime",                     "/state",   "up",                 180, "s",    "duration",        "measurement", ""},
+    {"HAN error",                  "/services","hanError",           300, "",     "",                "",            "hanerror"}
 };
 
 const HomeAssistantSensor TemperatureSensor PROGMEM = {"Temperature sensor %s", "/temperatures", "temperatures['%s']", 900, "°C", "temperature", "measurement", ""};

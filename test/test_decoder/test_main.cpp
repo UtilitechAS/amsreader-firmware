@@ -77,6 +77,13 @@ void test_encrypted_framing_no_key(void);
 void test_encrypted_decode_without_authkey(void);
 // defined in test_plaintext_with_key.cpp
 void test_plaintext_dsmr_with_key_does_not_overflow(void);
+// defined in test_stale_counter.cpp
+void test_stale_fixture_pair_is_identical(void);
+void test_stale_detector_flags_repeat_only(void);
+void test_stale_reading_keeps_estimate_flagged(void);
+void test_stale_detector_gives_up_after_two(void);
+void test_stale_detector_needs_hourly_cadence(void);
+void test_stale_flag_clears_on_subhour_packet(void);
 
 int main(int argc, char** argv) {
     if (argc > 1 && strcmp(argv[1], "gen") == 0) {
@@ -101,5 +108,11 @@ int main(int argc, char** argv) {
     RUN_TEST(test_encrypted_framing_no_key);
     RUN_TEST(test_encrypted_decode_without_authkey);
     RUN_TEST(test_plaintext_dsmr_with_key_does_not_overflow);
+    RUN_TEST(test_stale_fixture_pair_is_identical);
+    RUN_TEST(test_stale_detector_flags_repeat_only);
+    RUN_TEST(test_stale_reading_keeps_estimate_flagged);
+    RUN_TEST(test_stale_detector_gives_up_after_two);
+    RUN_TEST(test_stale_detector_needs_hourly_cadence);
+    RUN_TEST(test_stale_flag_clears_on_subhour_packet);
     return UNITY_END();
 }

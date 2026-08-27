@@ -75,6 +75,14 @@ public:
 	void setEnergySpeedometer(AmsMqttHandler* energySpeedometer);
 	void setConnectionHandler(ConnectionHandler* ch);
 
+	// Public so the MQTT announcements (#1128) can report the same service state
+	// as the web UI instead of deriving it a second time. This class is where all
+	// the service pointers are already gathered, so it owns the state logic.
+	// withDetail=false omits the "d" field, which keeps the payload inside the
+	// 256 byte MQTT packet buffer used on ESP8266.
+	String buildServicesJson(bool withDetail = true);
+	uint8_t hanState();
+
 private:
     #if defined(AMS_REMOTE_DEBUG)
     RemoteDebug* debugger;
@@ -133,10 +141,8 @@ private:
 
 	bool checkSecurity(byte level, bool send401 = true);
 
-	String buildServicesJson();
 	uint8_t computeServicesAggregate();
 	uint8_t mqttHandlerState(AmsMqttHandler* h);
-	uint8_t hanState();
 
 	void indexHtml();
 	void indexJs();

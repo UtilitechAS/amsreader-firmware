@@ -295,6 +295,9 @@ void handlePriceService(unsigned long now);
 void handleClear(unsigned long now);
 void handleUiLanguage();
 void handleEnergyAccounting();
+void handleAnnouncements(unsigned long now);
+void announceEvent(const char* event, const char* fields);
+void announceHourSubstituted(time_t dataUpdateTime, bool estimated);
 bool readHanPort();
 void errorBlink();
 
@@ -901,6 +904,7 @@ void loop() {
 			if(checkVoltageIfNeeded(0.1)) {
 				handleTemperature(now);
 				handleSystem(now);
+				handleAnnouncements(now);
 			}
 			hw.setBootSuccessful(true);
 		} else {
@@ -1349,6 +1353,106 @@ void handleEnergyAccounting() {
 	}
 }
 
+// --- MQTT announcements (#1128) ---------------------------------------------
+// Service state goes out as a retained snapshot on <topic>/services, and state
+// changes as one-shot events on <topic>/event. The snapshot is republished when
+// it changes or once a minute so it cannot drift; events fire on transition only.
+uint64_t lastServicesPublish = 0;
+uint32_t lastServicesSignature = 0;
+unsigned long lastServicesCheck = 0;
+int8_t lastAnnouncedHanError = 0;
+int16_t lastAnnouncedPriceError = 0;
+uint64_t lastHanEventMillis = 0;
+
+void announceEvent(const char* event, const char* fields) {
+	if(mqttHandler != NULL) mqttHandler->publishEvent(event, fields);
+	#if defined(CUSTOM_MQTT_HOST)
+	if(customMqttHandler != NULL) customMqttHandler->publishEvent(event, fields);
+	#endif
+}
+
+// The meter repeated the previous hour's registers (#1119). Report which hour was
+// affected and how it was filled in, so a subscriber does not have to
+// reverse-engineer the correction out of the history.
+void announceHourSubstituted(time_t dataUpdateTime, bool estimated) {
+	if(tz == NULL) return;
+	tmElements_t affected;
+	breakTime(tz->toLocal(dataUpdateTime) - 3600, affected);
+	char fields[96];
+	snprintf_P(fields, sizeof(fields), PSTR("\"hour\":%d,\"day\":%d,\"fill\":\"%s\""),
+		affected.Hour, affected.Day, estimated ? "estimate" : "split");
+	announceEvent("hourly_data_substituted", fields);
+}
+
+void handleAnnouncements(unsigned long now) {
+	if(mqttHandler == NULL || !mqttHandler->connected()) return;
+
+	// HAN transitions. The raw error code travels with the event rather than being
+	// mapped to a category here - the codes are already documented and translated
+	// for the UI, so a second mapping would only drift.
+	// getLastError() already debounces (three consecutive failures before it
+	// reports), but an intermittent meter could still alternate. Rate limit so a
+	// flapping port announces its latest state rather than every intermediate one.
+	int8_t hanError = meterState.getLastError();
+	if(hanError != lastAnnouncedHanError && millis64() - lastHanEventMillis > 30000) {
+		char fields[32];
+		snprintf_P(fields, sizeof(fields), PSTR("\"code\":%d"), hanError);
+		if(hanError == 0) {
+			announceEvent("han_restored", fields);
+		} else if(hanError == METER_ERROR_NO_DATA) {
+			announceEvent("han_no_data", fields);
+		} else if(hanError == METER_ERROR_UNKNOWN_DATA || hanError < 0) {
+			// Frames arrive but cannot be turned into data: a wrong encryption key,
+			// a meter config mismatch or a corrupt payload (#1241, #1245).
+			announceEvent("han_undecodable", fields);
+		} else {
+			announceEvent("han_error", fields);
+		}
+		lastAnnouncedHanError = hanError;
+		lastHanEventMillis = millis64();
+	}
+
+	// Price service transitions.
+	int16_t priceError = ps == NULL ? 0 : ps->getLastError();
+	if(priceError != lastAnnouncedPriceError) {
+		char fields[32];
+		snprintf_P(fields, sizeof(fields), PSTR("\"code\":%d"), priceError);
+		announceEvent(priceError == 0 ? "price_ok" : "price_error", fields);
+		lastAnnouncedPriceError = priceError;
+	}
+
+	// Building the snapshot allocates, so do it at most every five seconds. The
+	// transitions above are plain integer reads and stay on every call.
+	if(now - lastServicesCheck < 5000) return;
+	lastServicesCheck = now;
+
+	String services = ws.buildServicesJson(false);
+	uint32_t sig = 2166136261u; // FNV-1a, just to detect change without keeping the string
+	for(const char* c = services.c_str(); *c != '\0'; c++) {
+		sig = (sig ^ (uint8_t) *c) * 16777619u;
+	}
+
+	uint64_t ms = millis64();
+	if(sig == lastServicesSignature && ms - lastServicesPublish < 60000) return;
+
+	uint8_t han = ws.hanState();
+	char payload[384];
+	snprintf_P(payload, sizeof(payload), PSTR("{\"up\":%u,\"problem\":%d,\"han\":%d,\"hanError\":%d,\"services\":[%s]}"),
+		(uint32_t) (ms / 1000),
+		han == 3 ? 1 : 0,
+		han,
+		meterState.getLastError(),
+		services.c_str()
+	);
+	if(mqttHandler->publishServices(payload)) {
+		lastServicesSignature = sig;
+		lastServicesPublish = ms;
+	}
+	#if defined(CUSTOM_MQTT_HOST)
+	if(customMqttHandler != NULL) customMqttHandler->publishServices(payload);
+	#endif
+}
+
 void handleSystem(unsigned long now) {
 	if(config.isSystemConfigChanged()) {
 		config.getSystemConfig(sysConfig);
@@ -1719,6 +1823,14 @@ void handleDataSuccess(AmsData* data) {
 	if(!setupMode && !hw.ledFlash(LED_GREEN, 1))
 		hw.ledFlash(LED_INTERNAL, 1);
 
+	// Some meters repeat the previous whole hour's accumulated registers at the
+	// next whole hour (#1119). Decide that once, here, so the MQTT handlers and
+	// the data storage below all see the same verdict on this packet.
+	data->setCounterStale(meterState.isStaleCounter(*data));
+	if(data->isCounterStale()) {
+		debugW_P(PSTR("Meter repeated the previous hour's accumulated values"));
+	}
+
 	if(mqttHandler != NULL && checkVoltageIfNeeded(0.2)) {
 		#if defined(ESP32)
 			esp_task_wdt_reset();
@@ -1782,8 +1894,35 @@ void handleDataSuccess(AmsData* data) {
 		tmElements_t dtm;
 		breakTime(dataUpdateTime, dtm);
 		if(dtm.Minute < 1 && data->getListType() >= 3) {
-			debugD_P(PSTR("Updating data storage using actual data"));
-			saveData = ds.update(data, dataUpdateTime);
+			if(data->isCounterStale()) {
+				// The register value in this packet is a repeat of the previous
+				// hour, so it cannot be stored. Once the device has been up for
+				// an hour the integrated estimate in meterState covers the whole
+				// hour, so store that instead: the next hour's delta is then
+				// measured against the estimate, so the two-hour total still
+				// closes exactly on the meter's own register and any estimation
+				// error is absorbed by the second hour. Before that there is no
+				// reliable baseline, so store nothing and let the next whole hour
+				// fall into the storage average branch, which distributes the
+				// two-hour delta evenly across both hours.
+				//
+				// If the estimate overshoots by more than the whole of the next
+				// hour's consumption, AmsDataStorage's existing "day.activeImport
+				// > importCounter" guard catches it: that hour is stored as 0 and
+				// the counter snaps back to the meter's register. Bounded, and it
+				// heals on the following hour.
+				if(millis64() >= 3600000 && meterState.isCounterEstimated()) {
+					debugW_P(PSTR("Updating data storage using estimated data"));
+					saveData = ds.update(&meterState, dataUpdateTime);
+					announceHourSubstituted(dataUpdateTime, true);
+				} else {
+					debugW_P(PSTR("No usable estimate for this hour, leaving it to the next reading"));
+					announceHourSubstituted(dataUpdateTime, false);
+				}
+			} else {
+				debugD_P(PSTR("Updating data storage using actual data"));
+				saveData = ds.update(data, dataUpdateTime);
+			}
 
 			#if defined(_CLOUDCONNECTOR_H)
 			if(saveData && cloud != NULL) cloud->forceUpdate();

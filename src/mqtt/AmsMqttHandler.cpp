@@ -221,6 +221,37 @@ bool AmsMqttHandler::loop() {
     return ret;
 }
 
+bool AmsMqttHandler::publishServices(const char* payload) {
+	if(strlen(mqttConfig.publishTopic) == 0 || !connected())
+		return false;
+
+	char topic[80];
+	snprintf_P(topic, sizeof(topic), PSTR("%s/services"), mqttConfig.publishTopic);
+	bool ret = mqtt.publish(topic, payload, true, 0);
+	loop();
+	return ret;
+}
+
+bool AmsMqttHandler::publishEvent(const char* event, const char* fields) {
+	if(strlen(mqttConfig.publishTopic) == 0 || !connected())
+		return false;
+
+	char topic[80];
+	snprintf_P(topic, sizeof(topic), PSTR("%s/event"), mqttConfig.publishTopic);
+	char payload[256];
+	bool hasFields = fields != NULL && strlen(fields) > 0;
+	snprintf_P(payload, sizeof(payload), PSTR("{\"event\":\"%s\",\"up\":%u,\"t\":%lu%s%s}"),
+		event,
+		(uint32_t) (millis64() / 1000),
+		(unsigned long) time(nullptr),
+		hasFields ? "," : "",
+		hasFields ? fields : ""
+	);
+	bool ret = mqtt.publish(topic, payload, false, 0);
+	loop();
+	return ret;
+}
+
 bool AmsMqttHandler::isRebootSuggested() {
 	return rebootSuggested;
 }

@@ -14,6 +14,10 @@
 #define GCM_AUTH_FAILED -51
 #define GCM_DECRYPT_FAILED -52
 #define GCM_ENCRYPTION_KEY_FAILED -53
+// Decrypted to garbage while no authentication key was configured, so the GCM
+// tag was never verified. Distinct from GCM_DECRYPT_FAILED because it points at
+// the encryption key rather than at the frame.
+#define GCM_DECRYPT_UNVERIFIED -54
 
 class GCMParser {
 public:

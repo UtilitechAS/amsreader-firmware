@@ -5,6 +5,7 @@
     export let translations = {};
 
     const defaultLabels = {
+        han: "Meter",
         mqtt: "MQTT",
         mqtt_c: "MQTT (custom)",
         mqtt_es: "Flexpartner.Energy",
@@ -28,6 +29,7 @@
     }
 
     const errorNamespace = {
+        han: "han",
         mqtt: "mqtt",
         mqtt_c: "mqtt",
         mqtt_es: "mqtt",

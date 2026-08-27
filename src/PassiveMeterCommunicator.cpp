@@ -13,6 +13,7 @@ const uint8_t AUTO_BAUD_RATES_COUNT = sizeof(AUTO_BAUD_RATES) / sizeof(AUTO_BAUD
 #include "LNG.h"
 #include "LNG2.h"
 #include "hexutils.h"
+#include "Uptime.h"
 
 #if defined(ESP32)
 #include <driver/uart.h>
@@ -297,6 +298,17 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
     return data;
 }
 
+bool PassiveMeterCommunicator::hasAuthenticationKey() {
+	for(uint8_t i = 0; i < 16; i++) {
+		if(meterConfig.authenticationKey[i] > 0) return true;
+	}
+	return false;
+}
+
+uint64_t PassiveMeterCommunicator::getLastFrameMillis() {
+	return lastFrameMillis;
+}
+
 int PassiveMeterCommunicator::getLastError() {
 	#if defined ESP8266
 	if(hwSerial != NULL) {
@@ -387,6 +399,13 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				if (debugger->isActive(RemoteDebug::ERROR))
 				#endif
 				debugger->printf_P(PSTR("Ended up in default case while unwrapping...(tag %02X)\n"), tag);
+				// A blank authentication key disables the GCM tag check, so a wrong
+				// encryption key decrypts to noise and lands here with a different
+				// random tag every frame. Report that against the encryption key
+				// instead of as unknown data, which points at the meter. With an
+				// authentication key set the tag was verified, so the plaintext is
+				// genuine and unknown data really is unknown data.
+				if(lastTag == DATA_TAG_GCM && !hasAuthenticationKey()) return GCM_DECRYPT_UNVERIFIED;
 				return DATA_PARSE_UNKNOWN_DATA;
 		}
 		lastTag = tag;
@@ -486,6 +505,11 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 		if(res < 0) {
 			return res;
 		}
+		// A checksum-verified link layer frame proves the meter is transmitting, even
+		// if the payload later fails to decrypt or parse.
+		if(tag == DATA_TAG_HDLC || tag == DATA_TAG_MBUS) {
+			lastFrameMillis = millis64();
+		}
 		buf += res;
 		end -= res;
 		ret += res;
@@ -553,6 +577,12 @@ void PassiveMeterCommunicator::printHanReadError(int pos) {
 				if (debugger->isActive(RemoteDebug::WARNING))
 				#endif
 				debugger->printf_P(PSTR("Decryption failed\n"));
+				break;
+			case GCM_DECRYPT_UNVERIFIED:
+				#if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::WARNING))
+				#endif
+				debugger->printf_P(PSTR("Decryption failed, no authentication key to verify with\n"));
 				break;
 			case MBUS_FRAME_LENGTH_NOT_EQUAL:
 				#if defined(AMS_REMOTE_DEBUG)

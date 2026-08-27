@@ -1513,9 +1513,17 @@ void errorBlink() {
 		switch(lastError++) {
 			case 0:
 				if(lastErrorBlink - meterState.getLastUpdateMillis() > 30000) {
-					debugW_P(PSTR("No HAN data received last 30s, single blink"));
-					hw.ledFlash(LED_RED, 1, false, true); // If no message received from AMS in 30 sec, slow blink once
-					if(meterState.getLastError() == 0) meterState.setLastError(METER_ERROR_NO_DATA);
+					uint64_t lastFrame = mc == NULL ? 0 : mc->getLastFrameMillis();
+					if(lastFrame > 0 && lastErrorBlink - lastFrame < 30000) {
+						// Frames keep arriving, so meter and wiring are fine. Something
+						// further in (decryption, parsing) is failing instead.
+						debugW_P(PSTR("HAN frames received, but no data could be decoded, single blink"));
+						if(meterState.getLastError() == 0) meterState.setLastError(METER_ERROR_UNKNOWN_DATA);
+					} else {
+						debugW_P(PSTR("No HAN data received last 30s, single blink"));
+						if(meterState.getLastError() == 0) meterState.setLastError(METER_ERROR_NO_DATA);
+					}
+					hw.ledFlash(LED_RED, 1, false, true); // If no usable message from AMS in 30 sec, slow blink once
 					return;
 				}
 				break;

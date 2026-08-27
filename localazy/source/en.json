@@ -245,6 +245,7 @@
       "-51": "Authentication failed",
       "-52": "Decryption failed",
       "-53": "Encryption key invalid",
+      "-54": "Decryption failed and could not be verified, check encryption key",
       "-9": "Unknown data received, check meter config",
       "89": "Unrecognized data received from meter",
       "90": "No HAN data received for at least 30s",
@@ -463,6 +464,7 @@
     },
     "services": {
       "cloud": "Cloud",
+      "han": "Meter",
       "mqtt": "MQTT",
       "mqtt_c": "MQTT (custom)",
       "none": "No services configured",

@@ -34,6 +34,7 @@ public:
     bool loop();
     AmsData* getData(AmsData& meterState);
     int getLastError();
+    uint64_t getLastFrameMillis();
     bool isConfigChanged();
     void ackConfigChanged();
     void getCurrentConfig(MeterConfig& meterConfig);
@@ -76,6 +77,7 @@ protected:
     int len = 0;
     int pos = DATA_PARSE_INCOMPLETE;
     int lastError = DATA_PARSE_OK;
+    uint64_t lastFrameMillis = 0;
     bool serialInit = false;
     bool maxDetectPayloadDetectDone = false;
     uint8_t maxDetectedPayloadSize = 64;
@@ -91,6 +93,7 @@ protected:
 
     void setupHanPort(uint32_t baud, uint8_t parityOrdinal, bool invert, bool passive = true);
     int16_t unwrapData(uint8_t *buf, DataParserContext &context);
+    bool hasAuthenticationKey();
     void printHanReadError(int pos);
     void handleAutodetect(unsigned long now);
     uint8_t getNextParity(uint8_t parityOrdinal);

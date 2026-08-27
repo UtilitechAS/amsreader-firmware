@@ -48,7 +48,7 @@ jobs:
       is_esp32: false
 
   test:
-    name: Decoder unit tests (native)
+    name: Native unit tests
     runs-on: ubuntu-latest
     steps:
       - name: Check out code from repo
@@ -63,7 +63,7 @@ jobs:
           pip install -U platformio
       - name: Install mbedTLS (native decrypt tests)
         run: sudo apt-get update && sudo apt-get install -y libmbedtls-dev
-      - name: Run decoder tests
+      - name: Run native tests
         # Encrypted-fixture tests read keys from these secrets; absent (e.g. on
         # fork PRs) they self-skip, while unencrypted + golden tests still run.
         env:
@@ -73,7 +73,9 @@ jobs:
           AMS_TEST_KEY_GH905_EK: ${{ secrets.AMS_TEST_KEY_GH905_EK }}
           AMS_TEST_KEY_EM20200710_EK: ${{ secrets.AMS_TEST_KEY_EM20200710_EK }}
           AMS_TEST_KEY_EM20200710_AK: ${{ secrets.AMS_TEST_KEY_EM20200710_AK }}
-        run: pio test -e native
+        run: |
+          pio test -e native
+          pio test -e native_config
 
   comment:
     needs:

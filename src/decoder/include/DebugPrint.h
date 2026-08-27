@@ -33,6 +33,7 @@
     size_t println(const char* s = "") {
       return print(s) + print("\n");
     }
+    virtual void flush() {}
     size_t printf(const char* fmt, ...) {
       va_list args;
       va_start(args, fmt);

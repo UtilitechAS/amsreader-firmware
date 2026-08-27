@@ -89,6 +89,7 @@ bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 			networkChanged |= strcmp(config.dns2, existing.dns2) != 0;
 		}
 		networkChanged |= strcmp(config.hostname, existing.hostname) != 0;
+		networkChanged |= config.mdns != existing.mdns;
 		networkChanged |= config.power != existing.power;
 		networkChanged |= config.sleep != existing.sleep;
 		networkChanged |= config.use11b != existing.use11b;

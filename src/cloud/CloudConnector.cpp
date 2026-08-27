@@ -389,9 +389,9 @@ void CloudConnector::update(AmsData& data, EnergyAccounting& ea) {
             hanStatus = 3;
         } else if(data.getLastUpdateMillis() == 0 && now < 30000) {
             hanStatus = 0;
-        } else if(now - data.getLastUpdateMillis() < 15000) {
+        } else if(millis64() - data.getLastUpdateMillis() < 15000) {
             hanStatus = 1;
-        } else if(now - data.getLastUpdateMillis() < 30000) {
+        } else if(millis64() - data.getLastUpdateMillis() < 30000) {
             hanStatus = 2;
         } else {
             hanStatus = 3;

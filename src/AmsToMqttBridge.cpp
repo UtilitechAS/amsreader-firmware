@@ -893,7 +893,7 @@ void loop() {
 
 	try {
 		start = millis();
-		if(readHanPort() || now - meterState.getLastUpdateMillis() > 30000) {
+		if(readHanPort() || millis64() - meterState.getLastUpdateMillis() > 30000) {
 			end = millis();
 			if(end - start > SLOW_PROC_TRIGGER_MS) {
 				debugW_P(PSTR("Used %dms to read HAN port (true)"), end-start);
@@ -909,7 +909,7 @@ void loop() {
 				debugW_P(PSTR("Used %dms to read HAN port (false)"), end-start);
 			}
 		}
-		if(millis() - meterState.getLastUpdateMillis() > 1800000 && !ds.isHappy(time(nullptr))) {
+		if(millis64() - meterState.getLastUpdateMillis() > 1800000 && !ds.isHappy(time(nullptr))) {
 			handleClear(now);
 		}
 	} catch(const std::exception& e) {

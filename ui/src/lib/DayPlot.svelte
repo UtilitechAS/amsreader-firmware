@@ -1,10 +1,16 @@
 <script>
     import { zeropad, addHours, exportcol } from './Helpers.js';
     import BarChart from './BarChart.svelte';
+    import { translationsStore } from './TranslationService.js';
 
     export let title;
     export let json;
     export let sysinfo;
+
+    let translations = {};
+    translationsStore.subscribe(update => {
+        translations = update;
+    });
 
     let config = {};
     let max;
@@ -116,7 +122,7 @@
             points: points,
             link: {
                 route: true,
-                text: 'Edit data',
+                text: translations.dashboard?.edit_data ?? 'Edit data',
                 url: '/edit-day'
             }
         };

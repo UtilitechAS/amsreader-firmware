@@ -226,6 +226,7 @@
   },
   "dashboard": {
     "day": "Energy use last 24 hours",
+    "edit_data": "Edit data",
     "month": "Energy use last {0} days",
     "pf": "Power factor",
     "phase": "Phase power",

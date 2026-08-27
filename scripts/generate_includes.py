@@ -18,6 +18,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import gzip
 
 try:
@@ -138,7 +139,15 @@ if os.path.exists(ui_dist):
             else:
                 write_progmem_raw(dstfile, vname, content_bytes)
 else:
-    print(f"WARN: UI dist not found at '{ui_dist}' — skipping UI header generation. Run 'npm run build' in ui/")
+    # Skipping would leave the previously generated headers in place. They are
+    # gitignored, so they survive branch switches and cleans, and the asset URLs
+    # baked into index.html keep pointing at whatever version generated them
+    # while addversion.py stamps the current one into the route. The build then
+    # succeeds and the UI 404s.
+    sys.exit(
+        f"ERROR: UI dist not found at '{ui_dist}'. Run 'npm run build' in ui/ "
+        "before building the firmware."
+    )
 
 # ---------------------------------------------------------------------------
 # 2. CustomDefaults.h — bridge for the custom/ overlay's config.h

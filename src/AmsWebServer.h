@@ -136,6 +136,7 @@ private:
 	String buildServicesJson();
 	uint8_t computeServicesAggregate();
 	uint8_t mqttHandlerState(AmsMqttHandler* h);
+	uint8_t hanState();
 
 	void indexHtml();
 	void indexJs();

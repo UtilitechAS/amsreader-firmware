@@ -312,6 +312,17 @@ uint8_t AmsWebServer::mqttHandlerState(AmsMqttHandler* h) {
 	return h->lastError() == 0 ? 2 : 3;
 }
 
+uint8_t AmsWebServer::hanState() {
+	uint64_t millis = millis64();
+	if(meterState->getLastError() != 0) return 3;
+	// State 0 means disabled, which the HAN port never is. Waiting for the first
+	// frame after boot is the connecting state.
+	if(meterState->getLastUpdateMillis() == 0 && millis < 30000) return 2;
+	if(millis - meterState->getLastUpdateMillis() < 15000) return 1;
+	if(millis - meterState->getLastUpdateMillis() < 30000) return 2;
+	return 3;
+}
+
 // SNTP resyncs roughly hourly; flag the NTP service as degraded if no sync has
 // landed in this long, allowing a couple of missed cycles before warning.
 #define NTP_STALE_AFTER_SECONDS 10800
@@ -319,6 +330,15 @@ uint8_t AmsWebServer::mqttHandlerState(AmsMqttHandler* h) {
 String AmsWebServer::buildServicesJson() {
 	String out = "";
 	char entry[320];
+
+	{
+		String meterModel = meterState->getMeterModel();
+		if(!meterModel.isEmpty())
+			meterModel.replace(F("\\"), F("\\\\"));
+		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"han\",\"s\":%d,\"e\":%d,\"d\":\"%s\"}"),
+			hanState(), meterState->getLastError(), meterModel.c_str());
+		out += entry;
+	}
 
 	MqttConfig mqttConfig;
 	bool haveMqttConfig = config->getMqttConfig(mqttConfig);
@@ -455,6 +475,8 @@ String AmsWebServer::buildServicesJson() {
 uint8_t AmsWebServer::computeServicesAggregate() {
 	uint8_t worst = 0;
 	auto bump = [&worst](uint8_t s) { if(s > worst) worst = s; };
+
+	bump(hanState());
 
 	MqttConfig mqttConfig;
 	if(config->getMqttConfig(mqttConfig) && strlen(mqttConfig.host) > 0) {
@@ -764,18 +786,7 @@ void AmsWebServer::dataJson() {
 	}
 	#endif
 
-	uint8_t hanStatus;
-	if(meterState->getLastError() != 0) {
-		hanStatus = 3;
-	} else if(meterState->getLastUpdateMillis() == 0 && millis < 30000) {
-		hanStatus = 0;
-	} else if(millis - meterState->getLastUpdateMillis() < 15000) {
-		hanStatus = 1;
-	} else if(millis - meterState->getLastUpdateMillis() < 30000) {
-		hanStatus = 2;
-	} else {
-		hanStatus = 3;
-	}
+	uint8_t hanStatus = hanState();
 
 	uint8_t wifiStatus;
 	if(rssi > -75) {

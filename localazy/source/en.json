@@ -464,6 +464,7 @@
     },
     "services": {
       "cloud": "Cloud",
+      "han": "Meter",
       "mqtt": "MQTT",
       "mqtt_c": "MQTT (custom)",
       "none": "No services configured",

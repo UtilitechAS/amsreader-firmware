@@ -39,6 +39,8 @@ public:
     String getMeterId();
     uint8_t getMeterType();
     String getMeterModel();
+    String getMeterManufacturer();
+    void setMeterInfo(uint8_t type, const char* manufacturer, const char* model, const char* id);
 
     time_t getMeterTimestamp();
 
@@ -102,6 +104,7 @@ protected:
     char listId[32] = {};
     char meterId[32] = {};
     char meterModel[65] = {};
+    char meterManufacturer[17] = {};
     time_t meterTimestamp = 0;
     uint32_t activeImportPower = 0, reactiveImportPower = 0, activeExportPower = 0, reactiveExportPower = 0;
     float l1voltage = 0, l2voltage = 0, l3voltage = 0, l1current = 0, l2current = 0, l3current = 0;

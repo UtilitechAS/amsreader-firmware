@@ -438,6 +438,9 @@
                     {#if sysinfo?.features?.includes('kmp')}
                     <option value={9}>KMP</option>
                     {/if}
+                    {#if sysinfo?.chip != 'esp8266'}
+                    <option value={18}>ANSI C12.18</option>
+                    {/if}
                 </select>
             </div>
             {#if configuration.m.a === 2}
@@ -445,6 +448,31 @@
                     <span>{translations.conf?.meter?.pulses ?? "Pulses per kWh"}</span>
                     <input name="mb" bind:value={configuration.m.b} class="in-s tr" type="number" min={1} max={3600}/>
                 </div>
+            {:else if configuration.m.a === 18}
+                <input type="hidden" name="mb" value="9600"/>
+                <input type="hidden" name="mp" value="3"/>
+                <input type="hidden" name="ms" value="256"/>
+                <div class="my-1 flex">
+                    <div class="w-1/3">
+                        {translations.conf?.meter?.c1218?.userid ?? "User ID"}<br/>
+                        <input name="mcu" bind:value={configuration.m.c.u} type="number" min="0" max="65535" class="in-f tr w-full"/>
+                    </div>
+                    <div class="w-2/3">
+                        {translations.conf?.meter?.c1218?.username ?? "Username"}<br/>
+                        <input name="mcn" bind:value={configuration.m.c.n} type="text" maxlength="10" class="in-l w-full"/>
+                    </div>
+                </div>
+                <div class="my-1">
+                    {translations.conf?.meter?.c1218?.password ?? "Password"}<br/>
+                    <input name="mcp" bind:value={configuration.m.c.p} type="password" maxlength="20" class="in-s"/>
+                </div>
+                <label><input type="checkbox" name="mcx" value="true" bind:checked={configuration.m.c.x} class="rounded mb-1"/> {translations.conf?.meter?.c1218?.extended ?? "Read extended table 28"}</label>
+                <label><input type="checkbox" name="mct" value="true" bind:checked={configuration.m.c.t} class="rounded mb-1"/> {translations.conf?.meter?.c1218?.terminate ?? "Terminate session after each read"}</label>
+                <div class="my-1 flex">
+                    <label class="w-1/2">{translations.conf?.meter?.c1218?.logoff ?? "Logoff interval (s)"}<input name="mcl" bind:value={configuration.m.c.l} type="number" min="1" max="86400" class="in-f tr w-full"/></label>
+                    <label class="w-1/2">{translations.conf?.meter?.c1218?.idle_start ?? "Daily idle start"}<input name="mci" bind:value={configuration.m.c.i} type="time" step="1" class="in-l w-full"/></label>
+                </div>
+                <label>{translations.conf?.meter?.c1218?.idle ?? "Daily idle time (s, 0 disables)"}<input name="mcd" bind:value={configuration.m.c.d} type="number" min="0" max="86400" class="in-s tr"/></label>
             {:else}
                 <div class="my-1">
                     <span class="float-right">{translations.conf?.meter?.buffer ?? "Buffer size"}</span>
@@ -495,6 +523,7 @@
             <div class="my-1">
             </div>
             
+            {#if configuration.m.a !== 18}
             <div class="my-1">
                 <label><input type="checkbox" name="me" value="true" bind:checked={configuration.m.e.e} class="rounded mb-1"/> {translations.conf?.meter?.encrypted ?? "Encrypted"}</label>
                 {#if configuration.m.e.e}
@@ -507,7 +536,9 @@
                 <input name="mea" bind:value={configuration.m.e.a} type="text" class="in-s" pattern={hexPattern}/>
             </div>
             {/if}
+            {/if}
 
+            {#if configuration.m.a !== 18}
             <label><input type="checkbox" name="mm" value="true" bind:checked={configuration.m.m.e} class="rounded mb-1"/> {translations.conf?.meter?.multipliers?.title ?? "Multipliers"}</label>
             {#if configuration.m.m.e}
             <div class="flex my-1">
@@ -528,6 +559,7 @@
                     <input name="mmc" bind:value={configuration.m.m.c} type="number" min="0.00" max="1000" step="0.001" class="in-l tr w-full"/>
                 </div>
             </div>
+            {/if}
             {/if}
         </div>
         {/if}

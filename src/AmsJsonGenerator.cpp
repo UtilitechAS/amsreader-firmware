@@ -47,6 +47,8 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, JsonS
 
 	MeterConfig meterConfig;
 	config->getMeterConfig(meterConfig);
+	C1218Config c1218Config;
+	config->getC1218Config(c1218Config);
 
 	NetworkConfig networkConfig;
 	config->getNetworkConfig(networkConfig);
@@ -134,6 +136,18 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, JsonS
 		meterConfig.voltageMultiplier == 0.0 ? 1.0 : meterConfig.voltageMultiplier / 1000.0,
 		meterConfig.amperageMultiplier == 0.0 ? 1.0 : meterConfig.amperageMultiplier / 1000.0,
 		meterConfig.accumulatedMultiplier == 0.0 ? 1.0 : meterConfig.accumulatedMultiplier / 1000.0
+	);
+	EMIT(PSTR(",\"c\":{\"u\":%u,\"n\":\"%s\",\"p\":\"%s\",\"x\":%s,\"t\":%s,\"l\":%u,\"i\":\"%02u:%02u:%02u\",\"d\":%u}"),
+		c1218Config.userId,
+		c1218Config.username,
+		strlen(c1218Config.password) > 0 ? "***" : "",
+		c1218Config.extendedTable28 ? "true" : "false",
+		c1218Config.terminateSession ? "true" : "false",
+		c1218Config.logoffInterval,
+		c1218Config.idleStartSeconds / SECS_PER_HOUR,
+		(c1218Config.idleStartSeconds / SECS_PER_MIN) % SECS_PER_MIN,
+		c1218Config.idleStartSeconds % SECS_PER_MIN,
+		c1218Config.idleSeconds
 	);
 
 	EMIT(PSTR("}")); // End of meter

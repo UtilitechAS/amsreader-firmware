@@ -250,7 +250,7 @@
     <div class="cnt">
         <strong class="text-sm">{translations.status?.meter?.title ?? "Meter"}</strong>
         <div class="my-2">
-            {translations.status?.meter?.manufacturer ?? "Manufacturer"}: {metertype(sysinfo.meter.mfg)}
+            {translations.status?.meter?.manufacturer ?? "Manufacturer"}: {sysinfo.meter.manufacturer || metertype(sysinfo.meter.mfg)}
         </div>
         <div class="my-2">
             {translations.status?.meter?.model ?? "Model"}: {sysinfo.meter.model ? sysinfo.meter.model : "unknown"}

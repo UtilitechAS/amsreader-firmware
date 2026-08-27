@@ -50,6 +50,7 @@ ADC_MODE(ADC_VCC);
 #define METER_PARSER_PASSIVE 0
 #define METER_PARSER_PULSE 2
 #define METER_PARSER_KAMSTRUP 9
+#define METER_PARSER_C1218 18
 
 #define METER_ERROR_UNKNOWN_DATA 89
 #define METER_ERROR_NO_DATA 90
@@ -99,6 +100,9 @@ ADC_MODE(ADC_VCC);
 #include "KmpCommunicator.h"
 #endif
 #include "PulseMeterCommunicator.h"
+#if defined(ESP32)
+#include "C1218MeterCommunicator.h"
+#endif
 
 #include "Uptime.h"
 #include "NtpStatus.h"
@@ -277,6 +281,9 @@ PassiveMeterCommunicator* passiveMc = NULL;
 KmpCommunicator* kmpMc = NULL;
 #endif
 PulseMeterCommunicator* pulseMc = NULL;
+#if defined(ESP32)
+C1218MeterCommunicator* c1218Mc = NULL;
+#endif
 
 
 bool networkConnected = false;
@@ -1188,6 +1195,9 @@ void handleMeterConfig() {
 		if(meterConfig.source == METER_SOURCE_GPIO) {
 			switch(meterConfig.parser) {
 				case METER_PARSER_PASSIVE:
+					#if defined(ESP32)
+					if(c1218Mc != NULL) { delete c1218Mc; c1218Mc = NULL; }
+					#endif
 					if(pulseMc != NULL) {
 						delete pulseMc;
 						pulseMc = NULL;
@@ -1206,6 +1216,9 @@ void handleMeterConfig() {
 					mc = passiveMc;
 					break;
 				case METER_PARSER_KAMSTRUP:
+					#if defined(ESP32)
+					if(c1218Mc != NULL) { delete c1218Mc; c1218Mc = NULL; }
+					#endif
 					if(pulseMc != NULL) {
 						delete pulseMc;
 						pulseMc = NULL;
@@ -1224,6 +1237,9 @@ void handleMeterConfig() {
 					#endif
 					break;
 				case METER_PARSER_PULSE:
+					#if defined(ESP32)
+					if(c1218Mc != NULL) { delete c1218Mc; c1218Mc = NULL; }
+					#endif
 					#if defined(AMS_KMP)
 					if(kmpMc != NULL) {
 						delete(kmpMc);
@@ -1242,6 +1258,19 @@ void handleMeterConfig() {
 
 					mc = pulseMc;
 					break;
+				#if defined(ESP32)
+				case METER_PARSER_C1218:
+					if(pulseMc != NULL) { delete pulseMc; pulseMc = NULL; }
+					if(passiveMc != NULL) { delete passiveMc; passiveMc = NULL; }
+					#if defined(AMS_KMP)
+					if(kmpMc != NULL) { delete kmpMc; kmpMc = NULL; }
+					#endif
+					if(c1218Mc == NULL) c1218Mc = new C1218MeterCommunicator(&Debug, &config);
+					c1218Mc->configure(meterConfig, tz);
+					hwSerial = c1218Mc->getHwSerial();
+					mc = c1218Mc;
+					break;
+				#endif
 				default:
 					debugE_P(PSTR("Unknown meter parser selected: %d"), meterConfig.parser);
 			}
@@ -1552,6 +1581,11 @@ void connectToNetwork() {
 	NetworkConfig network;
 	if(config.getNetworkConfig(network)) {
 		if(network.mode == 0 || network.mode > 3) network.mode = NETWORK_MODE_WIFI_CLIENT;
+		if(network.mode != NETWORK_MODE_ETH_CLIENT && strlen(network.ssid) == 0) {
+			setupMode = false;
+			toggleSetupMode();
+			return;
+		}
 		if(ch != NULL && ch->getMode() != network.mode) {
 			delete ch;
 			ch = NULL;

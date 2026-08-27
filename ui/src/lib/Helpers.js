@@ -270,4 +270,3 @@ export let asciiPatternExt = "[\\x20-\\xFF]+";
 export let charAndNumPattern = "[A-Za-z0-9_\\-]+";
 export let hexPattern = "[0-9A-Fa-f]+";
 export let numPattern = "[0-9]+";
-

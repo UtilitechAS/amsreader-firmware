@@ -589,6 +589,9 @@ void AmsWebServer::sysinfoJson() {
 	String meterModel = meterState->getMeterModel();
 	if(!meterModel.isEmpty())
 		meterModel.replace(F("\\"), F("\\\\"));
+	String meterManufacturer = meterState->getMeterManufacturer();
+	if(!meterManufacturer.isEmpty())
+		meterManufacturer.replace(F("\\"), F("\\\\"));
 
 	String meterId = meterState->getMeterId();
 	if(!meterId.isEmpty())
@@ -662,6 +665,7 @@ void AmsWebServer::sysinfoJson() {
 		#endif
 		sys.boardType > 240 && sys.boardType < 250 ? "true" : "false",
 		meterState->getMeterType(),
+		meterManufacturer.c_str(),
 		meterModel.c_str(),
 		meterId.c_str(),
 		ui.showImport,
@@ -1249,6 +1253,7 @@ void AmsWebServer::handleSave() {
 	config->getSystemConfig(sys);
 
 	bool success = true;
+	if(server.arg(F("s")) == F("true") && server.arg(F("sc")).toInt() != 3 && server.arg(F("ss")).isEmpty()) success = false;
 	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true")) {
 		int boardType = server.arg(F("vb")).toInt();
 		int hanPin = server.arg(F("vh")).toInt();
@@ -1267,7 +1272,7 @@ void AmsWebServer::handleSave() {
 		}
 	}
 
-	if(server.hasArg(F("s")) && server.arg(F("s")) == F("true")) {
+	if(success && server.hasArg(F("s")) && server.arg(F("s")) == F("true")) {
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
 
@@ -1380,6 +1385,24 @@ void AmsWebServer::handleSave() {
 		meterConfig.amperageMultiplier = server.arg(F("mma")).toDouble() * 1000.0;
 		meterConfig.accumulatedMultiplier = server.arg(F("mmc")).toDouble() * 1000.0;
 		config->setMeterConfig(meterConfig);
+
+		if(meterConfig.parser == 18) {
+			C1218Config c1218;
+			config->getC1218Config(c1218);
+			c1218.userId = server.arg(F("mcu")).toInt();
+			strlcpy(c1218.username, server.arg(F("mcn")).c_str(), sizeof(c1218.username));
+			String password = server.arg(F("mcp"));
+			if(password != F("***")) strlcpy(c1218.password, password.c_str(), sizeof(c1218.password));
+			c1218.extendedTable28 = server.hasArg(F("mcx")) && server.arg(F("mcx")) == F("true");
+			c1218.terminateSession = server.hasArg(F("mct")) && server.arg(F("mct")) == F("true");
+			c1218.logoffInterval = constrain(server.arg(F("mcl")).toInt(), 1, 86400);
+			unsigned int hour, minute, second;
+			if(sscanf(server.arg(F("mci")).c_str(), "%u:%u:%u", &hour, &minute, &second) == 3 && hour < 24 && minute < 60 && second < 60) {
+				c1218.idleStartSeconds = hour * SECS_PER_HOUR + minute * SECS_PER_MIN + second;
+			}
+			c1218.idleSeconds = constrain(server.arg(F("mcd")).toInt(), 0, 86400);
+			config->setC1218Config(c1218);
+		}
 	}
 
 	if(server.hasArg(F("w")) && server.arg(F("w")) == F("true")) {
@@ -1737,9 +1760,9 @@ void AmsWebServer::handleSave() {
 	debugger->printf_P(PSTR("Saving configuration now...\n"));
 
 	// If vendor page and clear all config is selected
-	if(server.hasArg(F("v")) && server.arg(F("v")) == F("true") && server.hasArg(F("vr")) && server.arg(F("vr")) == F("true")) {
+	if(success && server.hasArg(F("v")) && server.arg(F("v")) == F("true") && server.hasArg(F("vr")) && server.arg(F("vr")) == F("true")) {
 		config->clear();
-	} else if(config->save()) {
+	} else if(success && config->save()) {
 		#if defined(AMS_REMOTE_DEBUG)
 		if (debugger->isActive(RemoteDebug::INFO))
 		#endif

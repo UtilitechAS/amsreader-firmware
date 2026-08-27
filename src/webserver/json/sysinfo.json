@@ -27,6 +27,7 @@
     },
     "meter": {
         "mfg": %d,
+        "manufacturer": "%s",
         "model": "%s",
         "id": "%s"
     },

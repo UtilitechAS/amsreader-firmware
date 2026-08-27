@@ -113,6 +113,16 @@
         "pulse": "Pulse",
         "title": "Communication"
       },
+      "c1218": {
+        "extended": "Read extended table 28",
+        "idle": "Daily idle time (s, 0 disables)",
+        "idle_start": "Daily idle start",
+        "logoff": "Logoff interval (s)",
+        "terminate": "Terminate session after each read",
+        "password": "Password",
+        "userid": "User ID",
+        "username": "Username"
+      },
       "encrypted": "Meter is encrypted",
       "fuse": "Main fuse",
       "inverted": "inverted",
@@ -254,6 +264,7 @@
       "94": "Serial frame error",
       "95": "Serial parity error",
       "96": "RX error",
+      "97": "ANSI C12.18 communication error",
       "98": "Exception in code, debugging necessary",
       "99": "Autodetection failed"
     },

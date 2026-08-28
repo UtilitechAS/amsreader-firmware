@@ -23,6 +23,7 @@
 #include "PriceService.h"
 #include "RealtimePlot.h"
 #include "ConnectionHandler.h"
+#include "AmsJsonGenerator.h"
 
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>
@@ -74,14 +75,6 @@ public:
 	void setCustomMqttHandler(AmsMqttHandler* customMqttHandler);
 	void setEnergySpeedometer(AmsMqttHandler* energySpeedometer);
 	void setConnectionHandler(ConnectionHandler* ch);
-
-	// Public so the MQTT announcements (#1128) can report the same service state
-	// as the web UI instead of deriving it a second time. This class is where all
-	// the service pointers are already gathered, so it owns the state logic.
-	// withDetail=false omits the "d" field, which keeps the payload inside the
-	// 256 byte MQTT packet buffer used on ESP8266.
-	String buildServicesJson(bool withDetail = true);
-	uint8_t hanState();
 
 private:
     #if defined(AMS_REMOTE_DEBUG)
@@ -142,7 +135,7 @@ private:
 	bool checkSecurity(byte level, bool send401 = true);
 
 	uint8_t computeServicesAggregate();
-	uint8_t mqttHandlerState(AmsMqttHandler* h);
+	ServiceStatusContext serviceStatusContext();
 
 	void indexHtml();
 	void indexJs();

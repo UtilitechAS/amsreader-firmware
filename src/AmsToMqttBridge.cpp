@@ -126,6 +126,7 @@ HardwareSerial Debug = Serial;
 #include "Timezones.h"
 
 #include "AmsFirmwareUpdater.h"
+#include "AmsJsonGenerator.h"
 
 uint8_t commonBuffer[BUF_SIZE_COMMON];
 
@@ -1426,7 +1427,25 @@ void handleAnnouncements(unsigned long now) {
 	if(now - lastServicesCheck < 5000) return;
 	lastServicesCheck = now;
 
-	String services = ws.buildServicesJson(false);
+	ServiceStatusContext svc;
+	svc.config = &config;
+	svc.meterState = &meterState;
+	svc.ps = ps;
+	svc.mqttHandler = mqttHandler;
+	svc.mqttEnabled = mqttEnabled;
+	#if defined(CUSTOM_MQTT_HOST)
+	svc.customMqttHandler = customMqttHandler;
+	#endif
+	#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
+	svc.energySpeedometer = energySpeedometer;
+	#endif
+	#if defined(AMS_CLOUD)
+	svc.cloud = cloud;
+	#endif
+	#if defined(ZMART_CHARGE)
+	svc.zcloud = zcloud;
+	#endif
+	String services = AmsJsonGenerator::generateServicesJson(svc, false);
 	uint32_t sig = 2166136261u; // FNV-1a, just to detect change without keeping the string
 	for(const char* c = services.c_str(); *c != '\0'; c++) {
 		sig = (sig ^ (uint8_t) *c) * 16777619u;
@@ -1435,7 +1454,7 @@ void handleAnnouncements(unsigned long now) {
 	uint64_t ms = millis64();
 	if(sig == lastServicesSignature && ms - lastServicesPublish < 60000) return;
 
-	uint8_t han = ws.hanState();
+	uint8_t han = AmsJsonGenerator::hanState(&meterState);
 	char payload[384];
 	snprintf_P(payload, sizeof(payload), PSTR("{\"up\":%u,\"problem\":%d,\"han\":%d,\"hanError\":%d,\"services\":[%s]}"),
 		(uint32_t) (ms / 1000),

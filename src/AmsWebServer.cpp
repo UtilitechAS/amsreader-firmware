@@ -306,185 +306,46 @@ void AmsWebServer::logoSvg() {
 	server.send(200, "image/svg+xml", svg.c_str());
 }
 
-uint8_t AmsWebServer::mqttHandlerState(AmsMqttHandler* h) {
-	if(h == NULL) return 2;
-	if(h->connected()) return 1;
-	return h->lastError() == 0 ? 2 : 3;
-}
-
-uint8_t AmsWebServer::hanState() {
-	uint64_t millis = millis64();
-	if(meterState->getLastError() != 0) return 3;
-	// State 0 means disabled, which the HAN port never is. Waiting for the first
-	// frame after boot is the connecting state.
-	if(meterState->getLastUpdateMillis() == 0 && millis < 30000) return 2;
-	if(millis - meterState->getLastUpdateMillis() < 15000) return 1;
-	if(millis - meterState->getLastUpdateMillis() < 30000) return 2;
-	return 3;
-}
-
-// SNTP resyncs roughly hourly; flag the NTP service as degraded if no sync has
-// landed in this long, allowing a couple of missed cycles before warning.
-#define NTP_STALE_AFTER_SECONDS 10800
-
-// Formats one entry of the services array. Kept in one place so the web payload
-// and the compact MQTT payload (#1128) cannot drift apart. withDetail=false omits
-// the "d" and "n" fields, which keeps the MQTT payload inside the 256 byte packet
-// buffer used on ESP8266.
-static void appendServiceEntry(String& out, bool withDetail, const char* key, uint8_t state, int16_t err, const char* detail, const char* name) {
-	char entry[320];
-	if(withDetail) {
-		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"%s\",\"s\":%d,\"e\":%d%s%s%s,\"d\":\"%s\"}"),
-			key, state, err,
-			name != NULL ? ",\"n\":\"" : "", name != NULL ? name : "", name != NULL ? "\"" : "",
-			detail == NULL ? "" : detail);
-	} else {
-		snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"%s\",\"s\":%d,\"e\":%d}"), key, state, err);
-	}
-	if(!out.isEmpty()) out += ",";
-	out += entry;
-}
-
-String AmsWebServer::buildServicesJson(bool withDetail) {
-	String out = "";
-
-	{
-		String meterModel = meterState->getMeterModel();
-		if(!meterModel.isEmpty())
-			meterModel.replace(F("\\"), F("\\\\"));
-		appendServiceEntry(out, withDetail, "han", hanState(), meterState->getLastError(), meterModel.c_str(), NULL);
-	}
-
-	MqttConfig mqttConfig;
-	bool haveMqttConfig = config->getMqttConfig(mqttConfig);
-	if(haveMqttConfig && strlen(mqttConfig.host) > 0) {
-		uint8_t s;
-		int16_t err = 0;
-		if(!mqttEnabled) {
-			s = 0;
-		} else {
-			s = mqttHandlerState(mqttHandler);
-			if(mqttHandler != NULL) err = (int16_t) mqttHandler->lastError();
-		}
-		appendServiceEntry(out, withDetail, "mqtt", s, err, mqttConfig.host, NULL);
-	}
-
-	#if defined(CUSTOM_MQTT_HOST)
-	{
-		uint8_t s = mqttHandlerState(customMqttHandler);
-		int16_t err = customMqttHandler == NULL ? 0 : (int16_t) customMqttHandler->lastError();
-		#if defined(CUSTOM_MQTT_NAME)
-		appendServiceEntry(out, withDetail, "mqtt_c", s, err, CUSTOM_MQTT_HOST, CUSTOM_MQTT_NAME);
-		#else
-		appendServiceEntry(out, withDetail, "mqtt_c", s, err, CUSTOM_MQTT_HOST, NULL);
-		#endif
-	}
-	#endif
-
-	#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
-	{
-		SystemConfig sys;
-		config->getSystemConfig(sys);
-		if(sys.energyspeedometer == 7) {
-			uint8_t s = mqttHandlerState(energySpeedometer);
-			int16_t err = energySpeedometer == NULL ? 0 : (int16_t) energySpeedometer->lastError();
-			appendServiceEntry(out, withDetail, "mqtt_es", s, err, "", NULL);
-		}
-	}
-	#endif
-
-	PriceServiceConfig priceCfg;
-	if(config->getPriceServiceConfig(priceCfg) && priceCfg.enabled && strlen(priceCfg.area) > 0) {
-		uint8_t s;
-		int16_t err = ps == NULL ? 0 : ps->getLastError();
-		if(ps == NULL) {
-			s = 2;
-		} else if(err != 0) {
-			s = 3;
-		} else if(ps->hasPrice()) {
-			s = 1;
-		} else {
-			s = 2;
-		}
-		appendServiceEntry(out, withDetail, "price", s, err, priceCfg.area, NULL);
-	}
-
-	{
-		NtpConfig ntp;
-		if(config->getNtpConfig(ntp) && ntp.enable) {
-			const char* server = strlen(ntp.server) > 0 ? ntp.server : "pool.ntp.org";
-			// A set-but-stale clock (NTP stopped resyncing) silently corrupts
-			// day-boundary accounting, so flag staleness rather than only
-			// reporting whether the clock was ever set.
-			uint64_t lastSync = ntpLastSyncMillis();
-			uint8_t s;
-			if(lastSync == 0) {
-				s = 2; // No SNTP sync since boot yet
-			} else {
-				uint32_t ageSec = (uint32_t) ((millis64() - lastSync) / 1000);
-				s = ageSec > NTP_STALE_AFTER_SECONDS ? 2 : 1;
-			}
-			appendServiceEntry(out, withDetail, "ntp", s, 0, server, NULL);
-		}
-	}
-
+// The service state that the aggregate is built from lives in AmsJsonGenerator,
+// so the badge, the services array and the MQTT announcements cannot disagree.
+ServiceStatusContext AmsWebServer::serviceStatusContext() {
+	ServiceStatusContext ctx;
+	ctx.config = config;
+	ctx.meterState = meterState;
+	ctx.ps = ps;
+	ctx.mqttHandler = mqttHandler;
+	ctx.mqttEnabled = mqttEnabled;
+	ctx.customMqttHandler = customMqttHandler;
+	ctx.energySpeedometer = energySpeedometer;
 	#if defined(AMS_CLOUD)
-	{
-		CloudConfig cc;
-		if(config->getCloudConfig(cc) && cc.enabled) {
-			uint8_t s;
-			int16_t err = cloud == NULL ? 0 : cloud->getLastError();
-			if(cloud == NULL || !cloud->isInitialized()) {
-				s = 2;
-			} else {
-				unsigned long since = millis() - cloud->getLastUpdate();
-				uint32_t maxAge = ((uint32_t) cc.interval) * 3000;
-				s = (cloud->getLastUpdate() > 0 && since > maxAge) ? 3 : 1;
-			}
-			appendServiceEntry(out, withDetail, "cloud", s, err, cc.hostname, NULL);
-		}
-	}
+	ctx.cloud = cloud;
 	#endif
-
 	#if defined(ZMART_CHARGE)
-	{
-		ZmartChargeConfig zc;
-		if(config->getZmartChargeConfig(zc) && zc.enabled) {
-			uint8_t s;
-			int16_t err = zcloud == NULL ? 0 : zcloud->getLastError();
-			if(zcloud == NULL || zcloud->getLastUpdate() == 0) {
-				s = 2;
-			} else {
-				s = zcloud->isLastFailed() ? 3 : 1;
-			}
-			appendServiceEntry(out, withDetail, "zc", s, err, zc.baseUrl, NULL);
-		}
-	}
+	ctx.zcloud = zcloud;
 	#endif
-
-	return out;
+	return ctx;
 }
 
 uint8_t AmsWebServer::computeServicesAggregate() {
 	uint8_t worst = 0;
 	auto bump = [&worst](uint8_t s) { if(s > worst) worst = s; };
 
-	bump(hanState());
+	bump(AmsJsonGenerator::hanState(meterState));
 
 	MqttConfig mqttConfig;
 	if(config->getMqttConfig(mqttConfig) && strlen(mqttConfig.host) > 0) {
-		bump(mqttEnabled ? mqttHandlerState(mqttHandler) : 0);
+		bump(mqttEnabled ? AmsJsonGenerator::mqttHandlerState(mqttHandler) : 0);
 	}
 
 	#if defined(CUSTOM_MQTT_HOST)
-	bump(mqttHandlerState(customMqttHandler));
+	bump(AmsJsonGenerator::mqttHandlerState(customMqttHandler));
 	#endif
 
 	#if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 	{
 		SystemConfig sys;
 		config->getSystemConfig(sys);
-		if(sys.energyspeedometer == 7) bump(mqttHandlerState(energySpeedometer));
+		if(sys.energyspeedometer == 7) bump(AmsJsonGenerator::mqttHandlerState(energySpeedometer));
 	}
 	#endif
 
@@ -628,7 +489,7 @@ void AmsWebServer::sysinfoJson() {
 	features += "\"zc\"";
 	#endif
 
-	String services = buildServicesJson();
+	String services = AmsJsonGenerator::generateServicesJson(serviceStatusContext());
 
 	int size = snprintf_P(buf, BUF_SIZE_COMMON, SYSINFO_JSON,
 		FirmwareVersion::VersionString,
@@ -779,7 +640,7 @@ void AmsWebServer::dataJson() {
 	}
 	#endif
 
-	uint8_t hanStatus = hanState();
+	uint8_t hanStatus = AmsJsonGenerator::hanState(meterState);
 
 	uint8_t wifiStatus;
 	if(rssi > -75) {

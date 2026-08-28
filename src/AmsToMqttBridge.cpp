@@ -1454,13 +1454,12 @@ void handleAnnouncements(unsigned long now) {
 	uint64_t ms = millis64();
 	if(sig == lastServicesSignature && ms - lastServicesPublish < 60000) return;
 
-	uint8_t han = AmsJsonGenerator::hanState(&meterState);
+	// "problem" is computed rather than duplicated: it saves every subscriber from
+	// indexing into the array by position to find out whether anything is wrong,
+	// which is also what the Home Assistant binary sensor templates on.
 	char payload[384];
-	snprintf_P(payload, sizeof(payload), PSTR("{\"up\":%u,\"problem\":%d,\"han\":%d,\"hanError\":%d,\"services\":[%s]}"),
-		(uint32_t) (ms / 1000),
-		han == 3 ? 1 : 0,
-		han,
-		meterState.getLastError(),
+	snprintf_P(payload, sizeof(payload), PSTR("{\"problem\":%d,\"services\":[%s]}"),
+		AmsJsonGenerator::hanState(&meterState) == 3 ? 1 : 0,
 		services.c_str()
 	);
 	if(mqttHandler->publishServices(payload)) {

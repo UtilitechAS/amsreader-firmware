@@ -46,6 +46,7 @@ public:
     void setConfig(MqttConfig& mqttConfig);
     void setResetDataContainer(ResetDataContainer* rdc) { this->rdc = rdc; }
     void setDataStorage(AmsDataStorage* ds) { this->ds = ds; }
+    void setMeterState(AmsData* meterState) { this->meterState = meterState; }
 
     bool connect();
     bool defaultSubscribe();
@@ -64,6 +65,10 @@ public:
     // publishServices() is retained: a subscriber that connects late still sees
     // the current state. publishEvent() is not - an event describes a moment,
     // and a retained one would replay as current on every reconnect.
+    //
+    // The event payload names its type "event_type" because that is the key the
+    // Home Assistant MQTT event platform reads natively, which saves every HA
+    // user a value_template just to rename it.
     bool publishServices(const char* payload);
     bool publishEvent(const char* event, const char* fields);
 
@@ -120,6 +125,7 @@ protected:
     bool rebootSuggested = false;
     ResetDataContainer* rdc = NULL;
     AmsDataStorage* ds = NULL;
+    AmsData* meterState = NULL;
 
     // Generic device commands shared by all payload handlers (fwupgrade / reboot /
     // factoryreset). Returns true if the message was a recognised command.

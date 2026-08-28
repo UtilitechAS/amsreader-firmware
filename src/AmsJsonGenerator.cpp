@@ -43,22 +43,18 @@ uint8_t AmsJsonGenerator::mqttHandlerState(AmsMqttHandler* h) {
 }
 
 // Formats one entry of the services array. Kept in one place so the web payload
-// and the compact MQTT payload (#1128) cannot drift apart.
-static void appendServiceEntry(String& out, bool withDetail, const char* key, uint8_t state, int16_t err, const char* detail, const char* name) {
+// and the MQTT payload (#1128) cannot drift apart.
+static void appendServiceEntry(String& out, const char* key, uint8_t state, int16_t err, const char* detail, const char* name) {
     char entry[320];
-    if(withDetail) {
-        snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"%s\",\"s\":%d,\"e\":%d%s%s%s,\"d\":\"%s\"}"),
-            key, state, err,
-            name != NULL ? ",\"n\":\"" : "", name != NULL ? name : "", name != NULL ? "\"" : "",
-            detail == NULL ? "" : detail);
-    } else {
-        snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"%s\",\"s\":%d,\"e\":%d}"), key, state, err);
-    }
+    snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"%s\",\"s\":%d,\"e\":%d%s%s%s,\"d\":\"%s\"}"),
+        key, state, err,
+        name != NULL ? ",\"n\":\"" : "", name != NULL ? name : "", name != NULL ? "\"" : "",
+        detail == NULL ? "" : detail);
     if(!out.isEmpty()) out += ",";
     out += entry;
 }
 
-String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx, bool withDetail) {
+String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx) {
     String out = "";
     if(ctx.config == NULL) return out;
 
@@ -66,7 +62,7 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx, b
         String meterModel = ctx.meterState == NULL ? String("") : String(ctx.meterState->getMeterModel());
         if(!meterModel.isEmpty())
             meterModel.replace(F("\\"), F("\\\\"));
-        appendServiceEntry(out, withDetail, "han", hanState(ctx.meterState),
+        appendServiceEntry(out, "han", hanState(ctx.meterState),
             ctx.meterState == NULL ? 0 : ctx.meterState->getLastError(), meterModel.c_str(), NULL);
     }
 
@@ -81,7 +77,7 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx, b
             s = mqttHandlerState(ctx.mqttHandler);
             if(ctx.mqttHandler != NULL) err = (int16_t) ctx.mqttHandler->lastError();
         }
-        appendServiceEntry(out, withDetail, "mqtt", s, err, mqttConfig.host, NULL);
+        appendServiceEntry(out, "mqtt", s, err, mqttConfig.host, NULL);
     }
 
     #if defined(CUSTOM_MQTT_HOST)
@@ -89,9 +85,9 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx, b
         uint8_t s = mqttHandlerState(ctx.customMqttHandler);
         int16_t err = ctx.customMqttHandler == NULL ? 0 : (int16_t) ctx.customMqttHandler->lastError();
         #if defined(CUSTOM_MQTT_NAME)
-        appendServiceEntry(out, withDetail, "mqtt_c", s, err, CUSTOM_MQTT_HOST, CUSTOM_MQTT_NAME);
+        appendServiceEntry(out, "mqtt_c", s, err, CUSTOM_MQTT_HOST, CUSTOM_MQTT_NAME);
         #else
-        appendServiceEntry(out, withDetail, "mqtt_c", s, err, CUSTOM_MQTT_HOST, NULL);
+        appendServiceEntry(out, "mqtt_c", s, err, CUSTOM_MQTT_HOST, NULL);
         #endif
     }
     #endif
@@ -103,7 +99,7 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx, b
         if(sys.energyspeedometer == 7) {
             uint8_t s = mqttHandlerState(ctx.energySpeedometer);
             int16_t err = ctx.energySpeedometer == NULL ? 0 : (int16_t) ctx.energySpeedometer->lastError();
-            appendServiceEntry(out, withDetail, "mqtt_es", s, err, "", NULL);
+            appendServiceEntry(out, "mqtt_es", s, err, "", NULL);
         }
     }
     #endif
@@ -121,7 +117,7 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx, b
         } else {
             s = 2;
         }
-        appendServiceEntry(out, withDetail, "price", s, err, priceCfg.area, NULL);
+        appendServiceEntry(out, "price", s, err, priceCfg.area, NULL);
     }
 
     {
@@ -139,7 +135,7 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx, b
                 uint32_t ageSec = (uint32_t) ((millis64() - lastSync) / 1000);
                 s = ageSec > NTP_STALE_AFTER_SECONDS ? 2 : 1;
             }
-            appendServiceEntry(out, withDetail, "ntp", s, 0, server, NULL);
+            appendServiceEntry(out, "ntp", s, 0, server, NULL);
         }
     }
 
@@ -156,7 +152,7 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx, b
                 uint32_t maxAge = ((uint32_t) cc.interval) * 3000;
                 s = (ctx.cloud->getLastUpdate() > 0 && since > maxAge) ? 3 : 1;
             }
-            appendServiceEntry(out, withDetail, "cloud", s, err, cc.hostname, NULL);
+            appendServiceEntry(out, "cloud", s, err, cc.hostname, NULL);
         }
     }
     #endif
@@ -172,7 +168,7 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx, b
             } else {
                 s = ctx.zcloud->isLastFailed() ? 3 : 1;
             }
-            appendServiceEntry(out, withDetail, "zc", s, err, zc.baseUrl, NULL);
+            appendServiceEntry(out, "zc", s, err, zc.baseUrl, NULL);
         }
     }
     #endif

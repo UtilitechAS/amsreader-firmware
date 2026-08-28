@@ -1445,7 +1445,7 @@ void handleAnnouncements(unsigned long now) {
 	#if defined(ZMART_CHARGE)
 	svc.zcloud = zcloud;
 	#endif
-	String services = AmsJsonGenerator::generateServicesJson(svc, false);
+	String services = AmsJsonGenerator::generateServicesJson(svc);
 	uint32_t sig = 2166136261u; // FNV-1a, just to detect change without keeping the string
 	for(const char* c = services.c_str(); *c != '\0'; c++) {
 		sig = (sig ^ (uint8_t) *c) * 16777619u;
@@ -1454,14 +1454,8 @@ void handleAnnouncements(unsigned long now) {
 	uint64_t ms = millis64();
 	if(sig == lastServicesSignature && ms - lastServicesPublish < 60000) return;
 
-	// "problem" is computed rather than duplicated: it saves every subscriber from
-	// indexing into the array by position to find out whether anything is wrong,
-	// which is also what the Home Assistant binary sensor templates on.
-	char payload[384];
-	snprintf_P(payload, sizeof(payload), PSTR("{\"problem\":%d,\"services\":[%s]}"),
-		AmsJsonGenerator::hanState(&meterState) == 3 ? 1 : 0,
-		services.c_str()
-	);
+	char payload[512];
+	snprintf_P(payload, sizeof(payload), PSTR("{\"services\":[%s]}"), services.c_str());
 	if(mqttHandler->publishServices(payload)) {
 		lastServicesSignature = sig;
 		lastServicesPublish = ms;
@@ -2138,6 +2132,7 @@ void MQTT_connect() {
 	if(mqttHandler != NULL) {
 		mqttHandler->setResetDataContainer(&rdc);
 		mqttHandler->setDataStorage(&ds);
+		mqttHandler->setMeterState(&meterState);
 		mqttHandler->connect();
 		mqttHandler->publishSystem(&hw, ps, &ea);
 		if(ps != NULL && ps->hasPrice()) {

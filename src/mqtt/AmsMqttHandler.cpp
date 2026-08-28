@@ -240,7 +240,7 @@ bool AmsMqttHandler::publishEvent(const char* event, const char* fields) {
 	snprintf_P(topic, sizeof(topic), PSTR("%s/event"), mqttConfig.publishTopic);
 	char payload[256];
 	bool hasFields = fields != NULL && strlen(fields) > 0;
-	snprintf_P(payload, sizeof(payload), PSTR("{\"event\":\"%s\",\"up\":%u,\"t\":%lu%s%s}"),
+	snprintf_P(payload, sizeof(payload), PSTR("{\"event_type\":\"%s\",\"up\":%u,\"t\":%lu%s%s}"),
 		event,
 		(uint32_t) (millis64() / 1000),
 		(unsigned long) time(nullptr),

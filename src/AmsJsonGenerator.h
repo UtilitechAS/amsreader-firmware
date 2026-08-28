@@ -96,11 +96,10 @@ public:
     static uint8_t mqttHandlerState(AmsMqttHandler* h);
 
     // The contents of the services array, without the enclosing brackets, since
-    // both callers embed it in a larger document. withDetail=false drops the "d"
-    // and "n" fields to fit the 256 byte MQTT packet buffer used on ESP8266.
+    // both callers embed it in a larger document.
     //
     // Returns a String rather than streaming to a JsonSink: the array is small,
     // both call sites need it as one contiguous value, and a fixed buffer would
     // risk truncating to invalid JSON when hostnames are long.
-    static String generateServicesJson(const ServiceStatusContext& ctx, bool withDetail = true);
+    static String generateServicesJson(const ServiceStatusContext& ctx);
 };

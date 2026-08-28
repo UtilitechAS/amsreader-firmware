@@ -14,13 +14,14 @@
 #include "json/ha4_json.h"
 #include "json/hadiscover_json.h"
 #include "FirmwareVersion.h"
+#include "AmsJsonGenerator.h"
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
 #endif
 
 void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config, char* hostname) {
-    l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = dInit = false;
+    l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = dInit = hpInit = eInit = false;
 
     if(strlen(config.discoveryNameTag) > 0) {
         snprintf_P(json, 128, PSTR("AMS reader (%s)"), config.discoveryNameTag);
@@ -65,6 +66,12 @@ void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config
 
     snprintf_P(json, 128, PSTR("%s/update"), config.discoveryPrefix);
     updateTopic = String(json);
+
+    snprintf_P(json, 128, PSTR("%s/binary_sensor"), config.discoveryPrefix);
+    binarySensorTopic = String(json);
+
+    snprintf_P(json, 128, PSTR("%s/event"), config.discoveryPrefix);
+    eventTopic = String(json);
     strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
 }
 
@@ -105,7 +112,10 @@ bool HomeAssistantMqttHandler::publish(AmsData* update, AmsData* previousState, 
         data = *update;
     }
 
-    if(data.getListType() >= 3 && !data.isCounterEstimated()) { // publish energy counts
+    // A repeated whole-hour register value (#1119) must not be republished as a
+    // fresh hourly reading. The instantaneous values in the same payload are
+    // current, so they still go out through the List 2 branch below.
+    if(data.getListType() >= 3 && !data.isCounterEstimated() && !data.isCounterStale()) { // publish energy counts
         publishList3(&data, ea);
         mqtt.loop();
     }
@@ -487,13 +497,15 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, Ener
 		return false;
 
     publishSystemSensors();
+    publishHanProblemSensor();
+    publishEventEntity();
     if(hw->getTemperature() > -50) publishTemperatureSensor(0, "");
 
 	time_t now = time(nullptr);
 	char pt[24];
     toJsonIsoTimestamp(now, pt, sizeof(pt));
 
-    snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\",\"t\":%s}"),
+    snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\",\"t\":%s,\"problem\":%d}"),
         WiFi.macAddress().c_str(),
         mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
@@ -501,7 +513,8 @@ bool HomeAssistantMqttHandler::publishSystem(HwTools* hw, PriceService* ps, Ener
         hw->getWifiRssi(),
         hw->getTemperature(),
         FirmwareVersion::VersionString,
-        pt
+        pt,
+        AmsJsonGenerator::hanState(meterState) == 3 ? 1 : 0
     );
     char _t[72]; snprintf(_t, sizeof(_t), "%s/state", pubTopic);
     bool ret = mqtt.publish(_t, json);
@@ -524,6 +537,7 @@ void HomeAssistantMqttHandler::publishSensor(const HomeAssistantSensor sensor) {
         sensorNamePrefix.c_str(),
         sensor.name,
         mqttConfig.publishTopic, sensor.topic,
+        mqttConfig.publishTopic,
         deviceUid.c_str(), uid.c_str(),
         deviceUid.c_str(), uid.c_str(),
         sensor.path,
@@ -788,6 +802,41 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
 }
 
 
+// A device_class:problem binary sensor is the one entity a Home Assistant
+// notification automation can trigger on directly, which is what #1120 asks for.
+// The shared discovery template is sensor-only and has no payload_on/payload_off,
+// so this entity gets its own payload the way the firmware update entity does.
+void HomeAssistantMqttHandler::publishHanProblemSensor() {
+    if(hpInit) return;
+    snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"name\":\"%sMeter problem\",\"stat_t\":\"%s/state\",\"avty_t\":\"%s/status\",\"uniq_id\":\"%s_hanproblem\",\"val_tpl\":\"{{ value_json.problem }}\",\"pl_on\":\"1\",\"pl_off\":\"0\",\"dev_cla\":\"problem\",\"ent_cat\":\"diagnostic\",\"exp_aft\":300,\"dev\":{\"ids\":[\"%s\"]}}"),
+        sensorNamePrefix.c_str(),
+        mqttConfig.publishTopic,
+        mqttConfig.publishTopic,
+        deviceUid.c_str(),
+        deviceUid.c_str()
+    );
+    hpInit = mqtt.publish(binarySensorTopic + "/" + deviceUid + "_hanproblem/config", json, true, 0);
+    loop();
+}
+
+// The event topic carries every transition the device announces (#1128). Home
+// Assistant's MQTT event platform reads "event_type" out of the payload natively
+// and turns the remaining keys into attributes, so no value_template is needed -
+// which is why publishEvent() names the field that way. Its own discovery payload
+// again, since the shared template is sensor-only.
+void HomeAssistantMqttHandler::publishEventEntity() {
+    if(eInit) return;
+    snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"name\":\"%sEvents\",\"stat_t\":\"%s/event\",\"avty_t\":\"%s/status\",\"uniq_id\":\"%s_event\",\"ent_cat\":\"diagnostic\",\"event_types\":[\"hourly_data_substituted\",\"han_no_data\",\"han_undecodable\",\"han_error\",\"han_restored\",\"price_error\",\"price_ok\"],\"dev\":{\"ids\":[\"%s\"]}}"),
+        sensorNamePrefix.c_str(),
+        mqttConfig.publishTopic,
+        mqttConfig.publishTopic,
+        deviceUid.c_str(),
+        deviceUid.c_str()
+    );
+    eInit = mqtt.publish(eventTopic + "/" + deviceUid + "_event/config", json, true, 0);
+    loop();
+}
+
 void HomeAssistantMqttHandler::publishSystemSensors() {
     if(sInit) return;
     for(uint8_t i = 0; i < SystemSensorCount; i++) {
@@ -875,7 +924,7 @@ void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
             if (debugger->isActive(RemoteDebug::INFO))
             #endif
             debugger->printf_P(PSTR("Received online status from HA, resetting sensor status\n"));
-            l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = dInit = false;
+            l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = dInit = hpInit = eInit = false;
             for(uint8_t i = 0; i < 32; i++) tInit[i] = false;
             priceImportInit = 0;
             priceExportInit = 0;

@@ -8,6 +8,173 @@
 #include "AmsStorage.h"
 #include "LittleFS.h"
 #include "FirmwareVersion.h"
+#include "AmsData.h"
+#include "PriceService.h"
+#include "NtpStatus.h"
+#include "Uptime.h"
+#include "mqtt/AmsMqttHandler.h"
+#if defined(AMS_CLOUD)
+#include "cloud/CloudConnector.h"
+#endif
+#if defined(ZMART_CHARGE)
+#include "cloud/ZmartChargeCloudConnector.h"
+#endif
+
+// SNTP resyncs roughly hourly; flag the NTP service as degraded if no sync has
+// landed in this long, allowing a couple of missed cycles before warning.
+#define NTP_STALE_AFTER_SECONDS 10800
+
+uint8_t AmsJsonGenerator::hanState(AmsData* meterState) {
+    if(meterState == NULL) return 2;
+    uint64_t millis = millis64();
+    if(meterState->getLastError() != 0) return 3;
+    // State 0 means disabled, which the HAN port never is. Waiting for the first
+    // frame after boot is the connecting state.
+    if(meterState->getLastUpdateMillis() == 0 && millis < 30000) return 2;
+    if(millis - meterState->getLastUpdateMillis() < 15000) return 1;
+    if(millis - meterState->getLastUpdateMillis() < 30000) return 2;
+    return 3;
+}
+
+uint8_t AmsJsonGenerator::mqttHandlerState(AmsMqttHandler* h) {
+    if(h == NULL) return 2;
+    if(h->connected()) return 1;
+    return h->lastError() == 0 ? 2 : 3;
+}
+
+// Formats one entry of the services array. Kept in one place so the web payload
+// and the MQTT payload (#1128) cannot drift apart.
+static void appendServiceEntry(String& out, const char* key, uint8_t state, int16_t err, const char* detail, const char* name) {
+    char entry[320];
+    snprintf_P(entry, sizeof(entry), PSTR("{\"k\":\"%s\",\"s\":%d,\"e\":%d%s%s%s,\"d\":\"%s\"}"),
+        key, state, err,
+        name != NULL ? ",\"n\":\"" : "", name != NULL ? name : "", name != NULL ? "\"" : "",
+        detail == NULL ? "" : detail);
+    if(!out.isEmpty()) out += ",";
+    out += entry;
+}
+
+String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx) {
+    String out = "";
+    if(ctx.config == NULL) return out;
+
+    {
+        String meterModel = ctx.meterState == NULL ? String("") : String(ctx.meterState->getMeterModel());
+        if(!meterModel.isEmpty())
+            meterModel.replace(F("\\"), F("\\\\"));
+        appendServiceEntry(out, "han", hanState(ctx.meterState),
+            ctx.meterState == NULL ? 0 : ctx.meterState->getLastError(), meterModel.c_str(), NULL);
+    }
+
+    MqttConfig mqttConfig;
+    bool haveMqttConfig = ctx.config->getMqttConfig(mqttConfig);
+    if(haveMqttConfig && strlen(mqttConfig.host) > 0) {
+        uint8_t s;
+        int16_t err = 0;
+        if(!ctx.mqttEnabled) {
+            s = 0;
+        } else {
+            s = mqttHandlerState(ctx.mqttHandler);
+            if(ctx.mqttHandler != NULL) err = (int16_t) ctx.mqttHandler->lastError();
+        }
+        appendServiceEntry(out, "mqtt", s, err, mqttConfig.host, NULL);
+    }
+
+    #if defined(CUSTOM_MQTT_HOST)
+    {
+        uint8_t s = mqttHandlerState(ctx.customMqttHandler);
+        int16_t err = ctx.customMqttHandler == NULL ? 0 : (int16_t) ctx.customMqttHandler->lastError();
+        #if defined(CUSTOM_MQTT_NAME)
+        appendServiceEntry(out, "mqtt_c", s, err, CUSTOM_MQTT_HOST, CUSTOM_MQTT_NAME);
+        #else
+        appendServiceEntry(out, "mqtt_c", s, err, CUSTOM_MQTT_HOST, NULL);
+        #endif
+    }
+    #endif
+
+    #if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
+    {
+        SystemConfig sys;
+        ctx.config->getSystemConfig(sys);
+        if(sys.energyspeedometer == 7) {
+            uint8_t s = mqttHandlerState(ctx.energySpeedometer);
+            int16_t err = ctx.energySpeedometer == NULL ? 0 : (int16_t) ctx.energySpeedometer->lastError();
+            appendServiceEntry(out, "mqtt_es", s, err, "", NULL);
+        }
+    }
+    #endif
+
+    PriceServiceConfig priceCfg;
+    if(ctx.config->getPriceServiceConfig(priceCfg) && priceCfg.enabled && strlen(priceCfg.area) > 0) {
+        uint8_t s;
+        int16_t err = ctx.ps == NULL ? 0 : ctx.ps->getLastError();
+        if(ctx.ps == NULL) {
+            s = 2;
+        } else if(err != 0) {
+            s = 3;
+        } else if(ctx.ps->hasPrice()) {
+            s = 1;
+        } else {
+            s = 2;
+        }
+        appendServiceEntry(out, "price", s, err, priceCfg.area, NULL);
+    }
+
+    {
+        NtpConfig ntp;
+        if(ctx.config->getNtpConfig(ntp) && ntp.enable) {
+            const char* server = strlen(ntp.server) > 0 ? ntp.server : "pool.ntp.org";
+            // A set-but-stale clock (NTP stopped resyncing) silently corrupts
+            // day-boundary accounting, so flag staleness rather than only
+            // reporting whether the clock was ever set.
+            uint64_t lastSync = ntpLastSyncMillis();
+            uint8_t s;
+            if(lastSync == 0) {
+                s = 2; // No SNTP sync since boot yet
+            } else {
+                uint32_t ageSec = (uint32_t) ((millis64() - lastSync) / 1000);
+                s = ageSec > NTP_STALE_AFTER_SECONDS ? 2 : 1;
+            }
+            appendServiceEntry(out, "ntp", s, 0, server, NULL);
+        }
+    }
+
+    #if defined(AMS_CLOUD)
+    {
+        CloudConfig cc;
+        if(ctx.config->getCloudConfig(cc) && cc.enabled) {
+            uint8_t s;
+            int16_t err = ctx.cloud == NULL ? 0 : ctx.cloud->getLastError();
+            if(ctx.cloud == NULL || !ctx.cloud->isInitialized()) {
+                s = 2;
+            } else {
+                unsigned long since = millis() - ctx.cloud->getLastUpdate();
+                uint32_t maxAge = ((uint32_t) cc.interval) * 3000;
+                s = (ctx.cloud->getLastUpdate() > 0 && since > maxAge) ? 3 : 1;
+            }
+            appendServiceEntry(out, "cloud", s, err, cc.hostname, NULL);
+        }
+    }
+    #endif
+
+    #if defined(ZMART_CHARGE)
+    {
+        ZmartChargeConfig zc;
+        if(ctx.config->getZmartChargeConfig(zc) && zc.enabled) {
+            uint8_t s;
+            int16_t err = ctx.zcloud == NULL ? 0 : ctx.zcloud->getLastError();
+            if(ctx.zcloud == NULL || ctx.zcloud->getLastUpdate() == 0) {
+                s = 2;
+            } else {
+                s = ctx.zcloud->isLastFailed() ? 3 : 1;
+            }
+            appendServiceEntry(out, "zc", s, err, zc.baseUrl, NULL);
+        }
+    }
+    #endif
+
+    return out;
+}
 
 void AmsJsonGenerator::generateDayPlotJson(AmsDataStorage* ds, char* buf, size_t bufSize) {
 		uint16_t pos = snprintf_P(buf, bufSize, PSTR("{\"unit\":\"kwh\""));

@@ -39,7 +39,10 @@ bool JsonMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAcc
         ret = publishList2(&data, ea);
         mqtt.loop();
     } else if(data.getListType() == 3) {
-        ret = publishList3(&data, ea);
+        // List 3 is List 2 plus the accumulated registers. When the meter
+        // repeated the previous hour's registers (#1119) publish it as List 2,
+        // so the current instantaneous values still go out without the repeat.
+        ret = data.isCounterStale() ? publishList2(&data, ea) : publishList3(&data, ea);
         mqtt.loop();
     } else if(data.getListType() == 4) {
         ret = publishList4(&data, ea);
@@ -464,14 +467,15 @@ bool JsonMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccount
 	if(strlen(mqttConfig.publishTopic) == 0 || !connected())
 		return false;
 
-    snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\"}"),
+    snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"id\":\"%s\",\"name\":\"%s\",\"up\":%d,\"vcc\":%.3f,\"rssi\":%d,\"temp\":%.2f,\"version\":\"%s\",\"problem\":%d}"),
         WiFi.macAddress().c_str(),
         mqttConfig.clientId,
         (uint32_t) (millis64()/1000),
         hw->getVcc(),
         hw->getWifiRssi(),
         hw->getTemperature(),
-        FirmwareVersion::VersionString
+        FirmwareVersion::VersionString,
+        AmsJsonGenerator::hanState(meterState) == 3 ? 1 : 0
     );
     bool ret = false;
     if(mqttConfig.payloadFormat == 5) {

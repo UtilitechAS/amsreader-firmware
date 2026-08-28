@@ -41,6 +41,13 @@ void AmsData::apply(AmsData& other) {
             }
             counterEstimated = true;
         }
+
+        // The flag describes the packet most recently applied. Sub-hour traffic
+        // means the stale whole-hour repeat is no longer the newest thing we know,
+        // so clear it: otherwise the state snapshots that the MQTT handlers
+        // compose from this state would inherit it for the rest of the hour and
+        // withhold counters that are perfectly good.
+        this->counterStale = false;
     }
 
     this->lastUpdateMillis = other.getLastUpdateMillis();
@@ -70,21 +77,17 @@ void AmsData::apply(AmsData& other) {
             this->l3activeExportCounter = other.getL3ActiveExportCounter();
         case 3:
             this->meterTimestamp = other.getMeterTimestamp();
-            // Aidon tends to sometime send the same counter as last hour by accident
-            if(meterType == AmsTypeAidon && counterEstimated && lastKnownCounter == other.getActiveImportCounter()-other.getActiveExportCounter()) {
-                double diff = activeImportCounter - activeExportCounter - lastKnownCounter;
-                if(diff < 1.0) { // In case a very low value have been calculated, use the new values
-                    this->activeImportCounter = other.getActiveImportCounter();
-                    this->activeImportCounterTariff1 = other.getActiveImportCounterTariff1();
-                    this->activeImportCounterTariff2 = other.getActiveImportCounterTariff2();
-                    this->activeExportCounter = other.getActiveExportCounter();
-                    this->activeExportCounterTariff1 = other.getActiveExportCounterTariff1();
-                    this->activeExportCounterTariff2 = other.getActiveExportCounterTariff2();
-                    this->reactiveImportCounter = other.getReactiveImportCounter();
-                    this->reactiveExportCounter = other.getReactiveExportCounter();
-                    this->lastKnownCounter = activeImportCounter - activeExportCounter;
-                }
+            // Some meters repeat the previous whole hour's register snapshot at the
+            // next whole hour (#1119). Keep the integrated estimate and stay flagged
+            // as estimated, so the repeat is neither stored nor published as a new
+            // hourly reading. The flag is set by the pipeline entry point via
+            // isStaleCounter() before this point, and propagates through apply().
+            if(other.isCounterStale()) {
+                this->counterStale = true;
+                if(this->staleCounterCount < 0xFF) this->staleCounterCount++;
             } else {
+                this->counterStale = false;
+                this->staleCounterCount = 0;
                 this->activeImportCounter = other.getActiveImportCounter();
                 this->activeImportCounterTariff1 = other.getActiveImportCounterTariff1();
                 this->activeImportCounterTariff2 = other.getActiveImportCounterTariff2();
@@ -94,8 +97,14 @@ void AmsData::apply(AmsData& other) {
                 this->reactiveImportCounter = other.getReactiveImportCounter();
                 this->reactiveExportCounter = other.getReactiveExportCounter();
                 this->lastKnownCounter = activeImportCounter - activeExportCounter;
+                if(other.getMeterTimestamp() != 0) {
+                    if(this->lastAcceptedMeterTimestamp != 0 && other.getMeterTimestamp() > this->lastAcceptedMeterTimestamp) {
+                        this->lastAcceptedMeterTimestampStep = (int32_t) (other.getMeterTimestamp() - this->lastAcceptedMeterTimestamp);
+                    }
+                    this->lastAcceptedMeterTimestamp = other.getMeterTimestamp();
+                }
+                this->counterEstimated = false;
             }
-            this->counterEstimated = false;
         case 2:
             strncpy(this->listId, other.listId, sizeof(this->listId) - 1);
             strncpy(this->meterId, other.meterId, sizeof(this->meterId) - 1);
@@ -467,6 +476,39 @@ bool AmsData::isTwoPhase() {
 
 bool AmsData::isCounterEstimated() {
     return this->counterEstimated;
+}
+
+bool AmsData::isStaleCounter(AmsData& other) {
+    if(other.getListType() < 3) return false;
+
+    // Never suppress more than two consecutive readings. A meter with a frozen
+    // clock must not be able to blackhole history indefinitely.
+    if(this->staleCounterCount >= 2) return false;
+
+    time_t ts = other.getMeterTimestamp();
+    if(ts == 0 || this->lastAcceptedMeterTimestamp == 0) return false; // no clock to compare against
+    if(ts != this->lastAcceptedMeterTimestamp) return false;           // clock advanced, genuine new reading
+
+    // Only meters that publish their registers on a long cycle can exhibit this.
+    // A meter sending List 3 every few seconds repeats its clock between updates
+    // as a matter of course, so require an observed hourly cadence first. The
+    // step is learned from the meter itself rather than compared against the
+    // system clock: adjustForKnownIssues() gives some meters a fixed offset that
+    // is only correct outside DST, so absolute comparison is not reliable.
+    if(this->lastAcceptedMeterTimestampStep < 1800) return false;
+
+    // Clock repeated. Require the registers to be identical too - both signals
+    // are present in every captured case, so demanding both avoids false
+    // positives on meters with an unreliable clock.
+    return this->lastKnownCounter == other.getActiveImportCounter() - other.getActiveExportCounter();
+}
+
+bool AmsData::isCounterStale() {
+    return this->counterStale;
+}
+
+void AmsData::setCounterStale(bool stale) {
+    this->counterStale = stale;
 }
 
 bool AmsData::isL2currentMissing() {

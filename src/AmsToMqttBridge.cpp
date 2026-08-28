@@ -21,7 +21,7 @@ ADC_MODE(ADC_VCC);
 #include <ESPmDNS.h>
 #include <ESP32SSDP.h>
 #include <esp_task_wdt.h>
-#include <lwip/dns.h>
+#include "DnsGuard.h"
 #if defined(BOARD_HAS_PSRAM)
 #include <esp_heap_caps.h>
 #include <mbedtls/platform.h>
@@ -332,41 +332,15 @@ bool checkVoltageIfNeeded(float range) {
 }
 
 #if defined(ESP32)
-uint8_t dnsState = 0;
-ip_addr_t dns0;
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 	if(setupMode) return; // None of this necessary in setup mode
 	if(ch != NULL) ch->eventHandler(event, info);
 	switch(event) {
-		case ARDUINO_EVENT_ETH_CONNECTED:
-		case ARDUINO_EVENT_WIFI_STA_CONNECTED: {
-			dnsState = 0;
-			if(ch != NULL) {
-				NetworkConfig conf;
-				ch->getCurrentConfig(conf);
-				if(conf.ipv6) {
-					dnsState = 2; // Never reset if IPv6 is enabled
-					debugI_P(PSTR("IPv6 enabled, not monitoring DNS poisoning"));
-				}
-			}
-			break;
-		}
 		case ARDUINO_EVENT_ETH_GOT_IP:
-		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
-			if(dnsState == 0) {
-				const ip_addr_t* dns = dns_getserver(0);
-				memcpy(&dns0, dns, sizeof(dns0));
-
-				IPAddress res;
-				int ret = WiFi.hostByName("hub.amsleser.no", res);
-				if(ret == 0) {
-					dnsState = 2;
-					debugI_P(PSTR("No DNS, probably a closed network"));
-				} else if(dnsState == 0) {
-					debugI_P(PSTR("DNS is present and working, monitoring DNS poisoning"));
-					dnsState = 1;
-				}
-			}
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+		case ARDUINO_EVENT_ETH_GOT_IP6:
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP6: {
+			dnsGuardEnforce(); // This is when the DNS table is written
 			break;
 		}
 		case ARDUINO_EVENT_ETH_DISCONNECTED:
@@ -736,6 +710,9 @@ bool longPressActive = false;
 
 unsigned long lastTemperatureRead = 0;
 unsigned long lastSysupdate = 0;
+#if defined(ESP32)
+uint32_t lastDnsRepairs = 0;
+#endif
 uint64_t lastErrorBlink = 0; 
 unsigned long lastVoltageCheck = 0;
 int lastError = 0;
@@ -785,6 +762,14 @@ void loop() {
 			if(!networkConnected) {
 				postConnect();
 			}
+
+			#if defined(ESP32)
+			dnsGuardEnforce();
+			if(dnsGuardRepairs() != lastDnsRepairs) {
+				lastDnsRepairs = dnsGuardRepairs();
+				debugI_P(PSTR("Had to restore the IPv4 DNS servers (%d)"), lastDnsRepairs);
+			}
+			#endif
 
 			// Only do these tasks if we have super-smooth voltage
 			if(checkVoltageIfNeeded(0.1)) {
@@ -1381,16 +1366,6 @@ void handleSystem(unsigned long now) {
 		if(end - start > SLOW_PROC_TRIGGER_MS) {
 			debugW_P(PSTR("Used %dms to send system update to MQTT"), end-start);
 		}
-
-		#if defined(ESP32)
-		if(dnsState == 1) {
-			const ip_addr_t* dns = dns_getserver(0);
-			if(memcmp(&dns0, dns, sizeof(dns0)) != 0) {
-					dns_setserver(0, &dns0);
-					debugI_P(PSTR("Had to reset DNS server"));
-			}
-		}
-		#endif
 	}
 }
 
@@ -1584,6 +1559,9 @@ void connectToNetwork() {
 				setupMode = false;
 				toggleSetupMode();
 		}
+		#if defined(ESP32)
+		dnsGuardSetIpv6Allowed(network.ipv6);
+		#endif
 		ch->connect(network, sysConfig);
 		ws.setConnectionHandler(ch);
 		#if defined(_CLOUDCONNECTOR_H)

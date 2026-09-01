@@ -123,17 +123,22 @@ export async function getPrices() {
     {
         const response = await fetchWithTimeout("importprice.json");
         importPrices = (await response.json())
+        importPrices.fetched = Date.now();
         importPricesStore.set(importPrices);
     }
 
     if(importPrices?.importExportPriceDifferent) {
         const response = await fetchWithTimeout("exportprice.json");
         exportprices = (await response.json())
+        exportprices.fetched = Date.now();
         exportPricesStore.set(exportprices);
     }
 
+    // The plot labels every bar from the live clock, but reads the array from
+    // the cursor in this payload, so it must be refreshed every price point
     let date = new Date();
-    priceFetchTimeout = setTimeout(getPrices, ((24-date.getHours())*3600000)+10)
+    let resolution = importPrices?.resolution ? importPrices.resolution : 60;
+    priceFetchTimeout = setTimeout(getPrices, ((resolution-(date.getMinutes()%resolution))*60000)+10)
 }
 
 let dayPlot = {};

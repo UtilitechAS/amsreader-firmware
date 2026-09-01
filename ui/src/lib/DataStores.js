@@ -123,12 +123,14 @@ export async function getPrices() {
     {
         const response = await fetchWithTimeout("importprice.json");
         importPrices = (await response.json())
+        importPrices.fetched = Date.now();
         importPricesStore.set(importPrices);
     }
 
     if(importPrices?.importExportPriceDifferent) {
         const response = await fetchWithTimeout("exportprice.json");
         exportprices = (await response.json())
+        exportprices.fetched = Date.now();
         exportPricesStore.set(exportprices);
     }
 

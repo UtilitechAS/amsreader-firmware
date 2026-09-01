@@ -10,6 +10,7 @@
  */
 
 #include <Arduino.h>
+#include <math.h>
 
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
@@ -2170,16 +2171,16 @@ void configFileParse() {
 			fromHex(meter.authenticationKey, String(buf+23), 16);
 		} else if(strncmp_P(buf, PSTR("meterWattageMultiplier "), 23) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			meter.wattageMultiplier = String(buf+23).toDouble() * 1000;
+			meter.wattageMultiplier = lround(String(buf+23).toDouble() * 1000.0);
 		} else if(strncmp_P(buf, PSTR("meterVoltageMultiplier "), 23) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			meter.voltageMultiplier = String(buf+23).toDouble() * 1000;
+			meter.voltageMultiplier = lround(String(buf+23).toDouble() * 1000.0);
 		} else if(strncmp_P(buf, PSTR("meterAmperageMultiplier "), 24) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			meter.amperageMultiplier = String(buf+24).toDouble() * 1000;
+			meter.amperageMultiplier = lround(String(buf+24).toDouble() * 1000.0);
 		} else if(strncmp_P(buf, PSTR("meterAccumulatedMultiplier "), 27) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			meter.accumulatedMultiplier = String(buf+27).toDouble() * 1000;
+			meter.accumulatedMultiplier = lround(String(buf+27).toDouble() * 1000.0);
 		} else if(strncmp_P(buf, PSTR("gpioHanPin "), 11) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.rxPin = String(buf+11).toInt();
@@ -2218,13 +2219,13 @@ void configFileParse() {
 			gpio.vccPin = String(buf+11).toInt();
 		} else if(strncmp_P(buf, PSTR("gpioVccOffset "), 14) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.vccOffset = String(buf+14).toFloat() * 100;
+			gpio.vccOffset = lround(String(buf+14).toDouble() * 100.0);
 		} else if(strncmp_P(buf, PSTR("gpioVccMultiplier "), 18) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.vccMultiplier = String(buf+18).toFloat() * 1000;
+			gpio.vccMultiplier = lround(String(buf+18).toDouble() * 1000.0);
 		} else if(strncmp_P(buf, PSTR("gpioVccBootLimit "), 17) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.vccBootLimit = String(buf+17).toFloat() * 10;
+			gpio.vccBootLimit = lround(String(buf+17).toDouble() * 10.0);
 		} else if(strncmp_P(buf, PSTR("gpioVccResistorGnd "), 19) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.vccResistorGnd = String(buf+19).toInt();
@@ -2337,7 +2338,7 @@ void configFileParse() {
 				continue;
 			}
 
-			pc.value = getSplit(rest, 2).toFloat() * 10000;
+			pc.value = lround(getSplit(rest, 2).toDouble() * 10000.0);
 
 			String days = getSplit(rest, 3);
 			if(days.equals("all")) {

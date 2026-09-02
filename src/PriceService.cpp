@@ -73,6 +73,7 @@ void PriceService::setup(PriceServiceConfig& config) {
     #endif
 
     load();
+    dynamicPriceNeedKnown = false;
 }
 
 void PriceService::setTimezone(Timezone* tz) {
@@ -102,7 +103,7 @@ char* PriceService::getSource() {
         return this->today->getSource();
     } else if(tomorrow != NULL) {
         return this->tomorrow->getSource();
-    } else if(!this->config->enabled && this->priceConfig.capacity() != 0) {
+    } else if(hasFixedPrice()) {
         return "FIX"; // Fixed price
     }
     return "";
@@ -116,6 +117,68 @@ uint8_t PriceService::getNumberOfPointsAvailable() {
     if(today == NULL) return getResolutionInMinutes() == 15 ? 192 : 48;
     if(tomorrow != NULL) return today->getNumberOfPoints() + tomorrow->getNumberOfPoints();
     return today->getNumberOfPoints();
+}
+
+bool PriceService::hasFixedPrice() {
+    for (uint8_t i = 0; i < priceConfig.size(); i++) {
+        if(priceConfig.at(i).type == PRICE_TYPE_FIXED) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool PriceService::isDynamicPriceNeeded() {
+    if(!dynamicPriceNeedKnown) {
+        dynamicPriceNeeded = calculateDynamicPriceNeed();
+        dynamicPriceNeedKnown = true;
+        #if defined(AMS_REMOTE_DEBUG)
+        if (debugger->isActive(RemoteDebug::INFO))
+        #endif
+        debugger->printf_P(PSTR("(PriceService) Dynamic price is %sneeded\n"), dynamicPriceNeeded ? "" : "not ");
+    }
+    return dynamicPriceNeeded;
+}
+
+bool PriceService::calculateDynamicPriceNeed() {
+    if(!hasFixedPrice()) return true;
+
+    time_t ts = time(nullptr);
+    tmElements_t tm;
+    breakTime(entsoeTz->toLocal(ts), tm);
+    tm.Hour = tm.Minute = tm.Second = 0;
+    time_t startOfDay = entsoeTz->toUTC(makeTime(tm));
+
+    // Fixed price periods have hour granularity, and we can be asked for any hour of
+    // today and tomorrow, so those 48 hours are the whole horizon. Anchored at the start
+    // of today rather than at the current point, as the day cost is calculated backwards
+    // from midnight.
+    for(uint8_t hour = 0; hour < 48; hour++) {
+        breakTime(tz->toLocal(startOfDay + (hour * SECS_PER_HOUR)), tm);
+        tm.Minute = tm.Second = 0;
+
+        uint8_t covered = 0;
+        for(uint8_t i = 0; i < priceConfig.size(); i++) {
+            PriceConfig pc = priceConfig.at(i);
+            if(pc.type != PRICE_TYPE_FIXED) continue;
+            if(!timeIsInPeriod(tm, pc)) continue;
+            covered |= pc.direction;
+        }
+        if((covered & PRICE_DIRECTION_BOTH) != PRICE_DIRECTION_BOTH) return true;
+    }
+    return false;
+}
+
+int16_t PriceService::getLastKnownPricePoint(uint8_t direction) {
+    // Searching backwards, as the common case is that we know the price all the way
+    // to the end of the horizon and can return on the first probe.
+    uint8_t currentPricePointIndex = getCurrentPricePointIndex();
+    for(int16_t point = getNumberOfPointsAvailable() - 1; point >= currentPricePointIndex; point--) {
+        if(getPricePoint(direction, point) != PRICE_NO_VALUE) {
+            return point;
+        }
+    }
+    return -1;
 }
 
 bool PriceService::isExportPricesDifferentFromImport() {
@@ -237,7 +300,7 @@ float PriceService::getPriceForRelativeHour(uint8_t direction, int8_t hour) {
     return valueSum / valueCount;
 }
 
-float PriceService::getFixedPrice(uint8_t direction, int8_t point) {
+float PriceService::getFixedPrice(uint8_t direction, uint8_t point) {
     time_t ts = time(nullptr);
 
     tmElements_t tm;
@@ -281,7 +344,9 @@ bool PriceService::loop() {
         #endif
         debugger->printf_P(PSTR("(PriceService) Day init\n"));
         currentDay = tm.Day;
+        dynamicPriceNeedKnown = false;
         currentPricePoint = getCurrentPricePointIndex();
+        return hasFixedPrice(); // Publish a fixed price right away, we have nothing to wait for
     }
     
     if(currentDay != tm.Day) {
@@ -295,19 +360,33 @@ bool PriceService::loop() {
             tomorrow = NULL;
         }
         currentDay = tm.Day;
+        dynamicPriceNeedKnown = false;
         currentPricePoint = getCurrentPricePointIndex();
-        return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
+        return today != NULL || hasFixedPrice(); // Only trigger MQTT publish if we have todays prices, or a fixed price to fall back on.
     } else if(currentPricePoint != getCurrentPricePointIndex()) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::INFO))
         #endif
         debugger->printf_P(PSTR("(PriceService) Price point reset\n"));
         currentPricePoint = getCurrentPricePointIndex();
-        return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
+        return today != NULL || hasFixedPrice(); // Only trigger MQTT publish if we have todays prices, or a fixed price to fall back on.
     }
 
     if(!config->enabled)
         return false;
+
+    // A fixed price covering every hour in both directions makes the dynamic price
+    // irrelevant, so do not spend requests on fetching it
+    if(!isDynamicPriceNeeded()) {
+        if(today != NULL || tomorrow != NULL) {
+            if(today != NULL) delete today;
+            if(tomorrow != NULL) delete tomorrow;
+            today = tomorrow = NULL;
+            lastTodayFetch = lastTomorrowFetch = 0;
+        }
+        lastError = 0;
+        return false;
+    }
 
     #ifndef AMS2MQTT_PRICE_KEY
     if(strlen(getToken()) == 0) {
@@ -335,7 +414,7 @@ bool PriceService::loop() {
             today = NULL;
         }
         currentPricePoint = getCurrentPricePointIndex();
-        return today != NULL && !readyToFetchForTomorrow; // Only trigger MQTT publish if we have todays prices and we are not immediately ready to fetch price for tomorrow.
+        return today != NULL; // Publish as soon as we have todays prices. Tomorrows fetch publishes again if it succeeds.
     }
 
     // Prices for next day are published at 13:00 CE(S)T, but to avoid heavy server traffic at that time, we will 
@@ -649,6 +728,7 @@ std::vector<PriceConfig>& PriceService::getPriceConfig() {
 }
 
 void PriceService::setPriceConfig(uint8_t index, PriceConfig &priceConfig) {
+    dynamicPriceNeedKnown = false;
     stripNonAscii((uint8_t*) priceConfig.name, 32, true);
 
     if(this->priceConfig.capacity() != index+1)
@@ -660,6 +740,7 @@ void PriceService::setPriceConfig(uint8_t index, PriceConfig &priceConfig) {
 }
 
 void PriceService::cropPriceConfig(uint8_t size) {
+    dynamicPriceNeedKnown = false;
     this->priceConfig.resize(size);
     this->priceConfig.shrink_to_fit();
 

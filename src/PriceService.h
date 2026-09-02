@@ -87,6 +87,10 @@ public:
     bool hasPrice() { return hasPrice(PRICE_DIRECTION_IMPORT); }
     bool hasPrice(uint8_t direction) { return getCurrentPrice(direction) != PRICE_NO_VALUE; }
     bool hasPricePoint(uint8_t direction, int8_t point) { return getPricePoint(direction, point) != PRICE_NO_VALUE; }
+    bool hasAnyPrice() { return getLastKnownPricePoint(PRICE_DIRECTION_IMPORT) > -1 || getLastKnownPricePoint(PRICE_DIRECTION_EXPORT) > -1; }
+    bool hasFixedPrice();
+    bool isDynamicPriceNeeded(); // False when a fixed price covers the whole horizon, making the dynamic price irrelevant
+    int16_t getLastKnownPricePoint(uint8_t direction); // Last point from the current one onwards that we know a price for, -1 if none
     
     float getCurrentPrice(uint8_t direction);
     float getPricePoint(uint8_t direction, uint8_t point);
@@ -132,11 +136,15 @@ private:
 
     int16_t lastError = 0;
 
+    bool dynamicPriceNeeded = true;
+    bool dynamicPriceNeedKnown = false;
+    bool calculateDynamicPriceNeed();
+
     PricesContainer* fetchPrices(time_t);
     bool retrieve(const char* url, Stream* doc);
     float getCurrencyMultiplier(const char* from, const char* to, time_t t);
     bool timeIsInPeriod(tmElements_t tm, PriceConfig pc);
-    float getFixedPrice(uint8_t direction, int8_t point);
+    float getFixedPrice(uint8_t direction, uint8_t point);
     float getEnergyPricePoint(uint8_t direction, uint8_t point);
 };
 #endif

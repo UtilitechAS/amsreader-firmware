@@ -87,6 +87,9 @@ public:
     bool hasPrice() { return hasPrice(PRICE_DIRECTION_IMPORT); }
     bool hasPrice(uint8_t direction) { return getCurrentPrice(direction) != PRICE_NO_VALUE; }
     bool hasPricePoint(uint8_t direction, int8_t point) { return getPricePoint(direction, point) != PRICE_NO_VALUE; }
+    bool hasAnyPrice() { return getLastKnownPricePoint(PRICE_DIRECTION_IMPORT) > -1 || getLastKnownPricePoint(PRICE_DIRECTION_EXPORT) > -1; }
+    bool hasFixedPrice();
+    int16_t getLastKnownPricePoint(uint8_t direction); // Last point from the current one onwards that we know a price for, -1 if none
     
     float getCurrentPrice(uint8_t direction);
     float getPricePoint(uint8_t direction, uint8_t point);

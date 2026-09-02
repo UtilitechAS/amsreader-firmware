@@ -305,7 +305,7 @@ bool JsonMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw)
 bool JsonMqttHandler::publishPrices(PriceService* ps) {
 	if(strlen(mqttConfig.publishTopic) == 0 || !connected())
 		return false;
-	if(!ps->hasPrice())
+	if(!ps->hasAnyPrice())
 		return false;
 
 	time_t now = time(nullptr);
@@ -319,7 +319,7 @@ bool JsonMqttHandler::publishPrices(PriceService* ps) {
 		float val = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i);
 		values[i] = val;
 
-		if(val == PRICE_NO_VALUE) break;
+		if(val == PRICE_NO_VALUE) continue; // A hole, the price for this hour depends on a dynamic price we do not have
 		
 		if(val < min) min = val;
 		if(val > max) max = val;

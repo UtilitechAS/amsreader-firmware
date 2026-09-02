@@ -1069,7 +1069,7 @@ void handleCustomMqtt() {
 			debugE_P(PSTR("Custom MQTT connector reporting error (%d)"), err);
 		customMqttHandler->connect();
 		customMqttHandler->publishSystem(&hw, ps, &ea);
-		if(ps != NULL && ps->hasPrice()) {
+		if(ps != NULL && ps->hasAnyPrice()) {
 			customMqttHandler->publishPrices(ps);
 		}
 	}
@@ -1451,7 +1451,7 @@ void handlePriceService(unsigned long now) {
 		
 		if(config.isPriceServiceChanged()) {
 			PriceServiceConfig price;
-			if(config.getPriceServiceConfig(price) && price.enabled && strlen(price.area) > 0) {
+			if(config.getPriceServiceConfig(price)) {
 				if(ps == NULL) {
 					ps = new PriceService(&Debug);
 					ea.setPriceService(ps);
@@ -1462,11 +1462,13 @@ void handlePriceService(unsigned long now) {
 					}
 					#endif
 				}
+				// Kept alive even when fetching is disabled, as it also holds the fixed prices
 				ps->setup(price);
 			} else if(ps != NULL) {
 				delete ps;
 				ps = NULL;
 				ws.setPriceService(NULL);
+				ea.setPriceService(NULL);
 			}
 			ws.setPriceSettings(price.area, price.currency);
 			config.ackPriceServiceChange();
@@ -1983,7 +1985,7 @@ void MQTT_connect() {
 		mqttHandler->setDataStorage(&ds);
 		mqttHandler->connect();
 		mqttHandler->publishSystem(&hw, ps, &ea);
-		if(ps != NULL && ps->hasPrice()) {
+		if(ps != NULL && ps->hasAnyPrice()) {
 			mqttHandler->publishPrices(ps);
 		}
 	}

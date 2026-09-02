@@ -102,7 +102,7 @@ char* PriceService::getSource() {
         return this->today->getSource();
     } else if(tomorrow != NULL) {
         return this->tomorrow->getSource();
-    } else if(!this->config->enabled && this->priceConfig.capacity() != 0) {
+    } else if(hasFixedPrice()) {
         return "FIX"; // Fixed price
     }
     return "";
@@ -116,6 +116,27 @@ uint8_t PriceService::getNumberOfPointsAvailable() {
     if(today == NULL) return getResolutionInMinutes() == 15 ? 192 : 48;
     if(tomorrow != NULL) return today->getNumberOfPoints() + tomorrow->getNumberOfPoints();
     return today->getNumberOfPoints();
+}
+
+bool PriceService::hasFixedPrice() {
+    for (uint8_t i = 0; i < priceConfig.size(); i++) {
+        if(priceConfig.at(i).type == PRICE_TYPE_FIXED) {
+            return true;
+        }
+    }
+    return false;
+}
+
+int16_t PriceService::getLastKnownPricePoint(uint8_t direction) {
+    // Searching backwards, as the common case is that we know the price all the way
+    // to the end of the horizon and can return on the first probe.
+    uint8_t currentPricePointIndex = getCurrentPricePointIndex();
+    for(int16_t point = getNumberOfPointsAvailable() - 1; point >= currentPricePointIndex; point--) {
+        if(getPricePoint(direction, point) != PRICE_NO_VALUE) {
+            return point;
+        }
+    }
+    return -1;
 }
 
 bool PriceService::isExportPricesDifferentFromImport() {
@@ -282,6 +303,7 @@ bool PriceService::loop() {
         debugger->printf_P(PSTR("(PriceService) Day init\n"));
         currentDay = tm.Day;
         currentPricePoint = getCurrentPricePointIndex();
+        return hasFixedPrice(); // Publish a fixed price right away, we have nothing to wait for
     }
     
     if(currentDay != tm.Day) {
@@ -296,14 +318,14 @@ bool PriceService::loop() {
         }
         currentDay = tm.Day;
         currentPricePoint = getCurrentPricePointIndex();
-        return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
+        return today != NULL || hasFixedPrice(); // Only trigger MQTT publish if we have todays prices, or a fixed price to fall back on.
     } else if(currentPricePoint != getCurrentPricePointIndex()) {
         #if defined(AMS_REMOTE_DEBUG)
         if (debugger->isActive(RemoteDebug::INFO))
         #endif
         debugger->printf_P(PSTR("(PriceService) Price point reset\n"));
         currentPricePoint = getCurrentPricePointIndex();
-        return today != NULL || (!config->enabled && priceConfig.capacity() != 0); // Only trigger MQTT publish if we have todays prices.
+        return today != NULL || hasFixedPrice(); // Only trigger MQTT publish if we have todays prices, or a fixed price to fall back on.
     }
 
     if(!config->enabled)
@@ -335,7 +357,7 @@ bool PriceService::loop() {
             today = NULL;
         }
         currentPricePoint = getCurrentPricePointIndex();
-        return today != NULL && !readyToFetchForTomorrow; // Only trigger MQTT publish if we have todays prices and we are not immediately ready to fetch price for tomorrow.
+        return today != NULL; // Publish as soon as we have todays prices. Tomorrows fetch publishes again if it succeeds.
     }
 
     // Prices for next day are published at 13:00 CE(S)T, but to avoid heavy server traffic at that time, we will 

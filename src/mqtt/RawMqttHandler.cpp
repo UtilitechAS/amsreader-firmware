@@ -243,7 +243,7 @@ bool RawMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) 
 bool RawMqttHandler::publishPrices(PriceService* ps) {
 	if(topic.isEmpty() || !connected())
 		return false;
-	if(!ps->hasPrice())
+	if(!ps->hasAnyPrice())
 		return false;
 
 	time_t now = time(nullptr);
@@ -258,7 +258,7 @@ bool RawMqttHandler::publishPrices(PriceService* ps) {
 		values[i] = val;
 
         if(i > 23) continue;
-		if(val == PRICE_NO_VALUE) break;
+		if(val == PRICE_NO_VALUE) continue; // A hole, the price for this hour depends on a dynamic price we do not have
 		
 		if(val < min) min = val;
 		if(val > max) max = val;

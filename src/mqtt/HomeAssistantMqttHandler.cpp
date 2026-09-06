@@ -331,7 +331,7 @@ bool HomeAssistantMqttHandler::publishTemperatures(AmsConfiguration* config, HwT
 bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 	if(pubTopic[0] == '\0' || !connected())
 		return false;
-	if(!ps->hasPrice())
+	if(!ps->hasAnyPrice())
 		return false;
 
     publishPriceSensors(ps);
@@ -347,7 +347,7 @@ bool HomeAssistantMqttHandler::publishPrices(PriceService* ps) {
 		float val = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i);
 		values[i] = val;
 
-		if(val == PRICE_NO_VALUE) break;
+		if(val == PRICE_NO_VALUE) continue; // A hole, the price for this hour depends on a dynamic price we do not have
 		
 		if(val < min) min = val;
 		if(val > max) max = val;
@@ -700,13 +700,14 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
     }
 
     uint8_t currentPricePointIndex = ps->getCurrentPricePointIndex();
-	uint8_t numberOfPoints = ps->getNumberOfPointsAvailable();
+    // Discover sensors all the way out to the last point we know a price for. Points in
+    // between can still be unknown, if they depend on a dynamic price we do not have.
+    int16_t lastImportPoint = ps->getLastKnownPricePoint(PRICE_DIRECTION_IMPORT);
+    int16_t lastExportPoint = ps->getLastKnownPricePoint(PRICE_DIRECTION_EXPORT);
 
-    if(priceImportInit < numberOfPoints-currentPricePointIndex) {
+    if(priceImportInit < lastImportPoint-currentPricePointIndex+1) {
         uint8_t importPriceSensorNo = 0;
-        for(int pricePointIndex = currentPricePointIndex; pricePointIndex < numberOfPoints; pricePointIndex++) {
-            float val = ps->getPricePoint(PRICE_DIRECTION_IMPORT, pricePointIndex);
-            if(val == PRICE_NO_VALUE) break;
+        for(int pricePointIndex = currentPricePointIndex; pricePointIndex <= lastImportPoint; pricePointIndex++) {
             if(importPriceSensorNo < priceImportInit) {
                 importPriceSensorNo++;
                 continue;
@@ -732,7 +733,7 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
                 importPriceSensorNo == 0 ? "Current import price" : name,
                 "/prices",
                 path,
-                resolution * 60 + 300,
+                resolution * 60 * 2 + 300,
                 uom.c_str(),
                 "monetary",
                 importPriceSensorNo == 0 ? "total" : "",
@@ -744,11 +745,9 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
         }
     }
 
-    if(priceExportInit < numberOfPoints-currentPricePointIndex) {
+    if(priceExportInit < lastExportPoint-currentPricePointIndex+1) {
         uint8_t exportPriceSensorNo = 0;
-        for(int pricePointIndex = currentPricePointIndex; pricePointIndex < numberOfPoints; pricePointIndex++) {
-            float val = ps->getPricePoint(PRICE_DIRECTION_EXPORT, pricePointIndex);
-            if(val == PRICE_NO_VALUE) break;
+        for(int pricePointIndex = currentPricePointIndex; pricePointIndex <= lastExportPoint; pricePointIndex++) {
             if(exportPriceSensorNo < priceExportInit) {
                 exportPriceSensorNo++;
                 continue;
@@ -774,7 +773,7 @@ void HomeAssistantMqttHandler::publishPriceSensors(PriceService* ps) {
                 exportPriceSensorNo == 0 ? "Current export price" : name,
                 "/prices",
                 path,
-                resolution * 60 + 300,
+                resolution * 60 * 2 + 300,
                 uom.c_str(),
                 "monetary",
                 exportPriceSensorNo == 0 ? "total" : "",

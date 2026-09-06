@@ -10,6 +10,7 @@
  */
 
 #include <Arduino.h>
+#include <math.h>
 
 #if defined(ESP8266)
 #include <ESP8266WiFi.h>
@@ -21,7 +22,7 @@ ADC_MODE(ADC_VCC);
 #include <ESPmDNS.h>
 #include <ESP32SSDP.h>
 #include <esp_task_wdt.h>
-#include <lwip/dns.h>
+#include "DnsGuard.h"
 #if defined(BOARD_HAS_PSRAM)
 #include <esp_heap_caps.h>
 #include <mbedtls/platform.h>
@@ -336,41 +337,15 @@ bool checkVoltageIfNeeded(float range) {
 }
 
 #if defined(ESP32)
-uint8_t dnsState = 0;
-ip_addr_t dns0;
 void WiFiEvent(WiFiEvent_t event, WiFiEventInfo_t info) {
 	if(setupMode) return; // None of this necessary in setup mode
 	if(ch != NULL) ch->eventHandler(event, info);
 	switch(event) {
-		case ARDUINO_EVENT_ETH_CONNECTED:
-		case ARDUINO_EVENT_WIFI_STA_CONNECTED: {
-			dnsState = 0;
-			if(ch != NULL) {
-				NetworkConfig conf;
-				ch->getCurrentConfig(conf);
-				if(conf.ipv6) {
-					dnsState = 2; // Never reset if IPv6 is enabled
-					debugI_P(PSTR("IPv6 enabled, not monitoring DNS poisoning"));
-				}
-			}
-			break;
-		}
 		case ARDUINO_EVENT_ETH_GOT_IP:
-		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
-			if(dnsState == 0) {
-				const ip_addr_t* dns = dns_getserver(0);
-				memcpy(&dns0, dns, sizeof(dns0));
-
-				IPAddress res;
-				int ret = WiFi.hostByName("hub.amsleser.no", res);
-				if(ret == 0) {
-					dnsState = 2;
-					debugI_P(PSTR("No DNS, probably a closed network"));
-				} else if(dnsState == 0) {
-					debugI_P(PSTR("DNS is present and working, monitoring DNS poisoning"));
-					dnsState = 1;
-				}
-			}
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP:
+		case ARDUINO_EVENT_ETH_GOT_IP6:
+		case ARDUINO_EVENT_WIFI_STA_GOT_IP6: {
+			dnsGuardEnforce(); // This is when the DNS table is written
 			break;
 		}
 		case ARDUINO_EVENT_ETH_DISCONNECTED:
@@ -740,6 +715,9 @@ bool longPressActive = false;
 
 unsigned long lastTemperatureRead = 0;
 unsigned long lastSysupdate = 0;
+#if defined(ESP32)
+uint32_t lastDnsRepairs = 0;
+#endif
 uint64_t lastErrorBlink = 0; 
 unsigned long lastVoltageCheck = 0;
 int lastError = 0;
@@ -789,6 +767,14 @@ void loop() {
 			if(!networkConnected) {
 				postConnect();
 			}
+
+			#if defined(ESP32)
+			dnsGuardEnforce();
+			if(dnsGuardRepairs() != lastDnsRepairs) {
+				lastDnsRepairs = dnsGuardRepairs();
+				debugI_P(PSTR("Had to restore the IPv4 DNS servers (%d)"), lastDnsRepairs);
+			}
+			#endif
 
 			// Only do these tasks if we have super-smooth voltage
 			if(checkVoltageIfNeeded(0.1)) {
@@ -1074,7 +1060,7 @@ void handleCustomMqtt() {
 			debugE_P(PSTR("Custom MQTT connector reporting error (%d)"), err);
 		customMqttHandler->connect();
 		customMqttHandler->publishSystem(&hw, ps, &ea);
-		if(ps != NULL && ps->hasPrice()) {
+		if(ps != NULL && ps->hasAnyPrice()) {
 			customMqttHandler->publishPrices(ps);
 		}
 	}
@@ -1497,16 +1483,6 @@ void handleSystem(unsigned long now) {
 		if(end - start > SLOW_PROC_TRIGGER_MS) {
 			debugW_P(PSTR("Used %dms to send system update to MQTT"), end-start);
 		}
-
-		#if defined(ESP32)
-		if(dnsState == 1) {
-			const ip_addr_t* dns = dns_getserver(0);
-			if(memcmp(&dns0, dns, sizeof(dns0)) != 0) {
-					dns_setserver(0, &dns0);
-					debugI_P(PSTR("Had to reset DNS server"));
-			}
-		}
-		#endif
 	}
 }
 
@@ -1567,7 +1543,7 @@ void handlePriceService(unsigned long now) {
 		
 		if(config.isPriceServiceChanged()) {
 			PriceServiceConfig price;
-			if(config.getPriceServiceConfig(price) && price.enabled && strlen(price.area) > 0) {
+			if(config.getPriceServiceConfig(price)) {
 				if(ps == NULL) {
 					ps = new PriceService(&Debug);
 					ea.setPriceService(ps);
@@ -1578,11 +1554,13 @@ void handlePriceService(unsigned long now) {
 					}
 					#endif
 				}
+				// Kept alive even when fetching is disabled, as it also holds the fixed prices
 				ps->setup(price);
 			} else if(ps != NULL) {
 				delete ps;
 				ps = NULL;
 				ws.setPriceService(NULL);
+				ea.setPriceService(NULL);
 			}
 			ws.setPriceSettings(price.area, price.currency);
 			config.ackPriceServiceChange();
@@ -1700,6 +1678,9 @@ void connectToNetwork() {
 				setupMode = false;
 				toggleSetupMode();
 		}
+		#if defined(ESP32)
+		dnsGuardSetIpv6Allowed(network.ipv6);
+		#endif
 		ch->connect(network, sysConfig);
 		ws.setConnectionHandler(ch);
 		#if defined(_CLOUDCONNECTOR_H)
@@ -2135,7 +2116,7 @@ void MQTT_connect() {
 		mqttHandler->setMeterState(&meterState);
 		mqttHandler->connect();
 		mqttHandler->publishSystem(&hw, ps, &ea);
-		if(ps != NULL && ps->hasPrice()) {
+		if(ps != NULL && ps->hasAnyPrice()) {
 			mqttHandler->publishPrices(ps);
 		}
 	}
@@ -2322,16 +2303,16 @@ void configFileParse() {
 			fromHex(meter.authenticationKey, String(buf+23), 16);
 		} else if(strncmp_P(buf, PSTR("meterWattageMultiplier "), 23) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			meter.wattageMultiplier = String(buf+23).toDouble() * 1000;
+			meter.wattageMultiplier = lround(String(buf+23).toDouble() * 1000.0);
 		} else if(strncmp_P(buf, PSTR("meterVoltageMultiplier "), 23) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			meter.voltageMultiplier = String(buf+23).toDouble() * 1000;
+			meter.voltageMultiplier = lround(String(buf+23).toDouble() * 1000.0);
 		} else if(strncmp_P(buf, PSTR("meterAmperageMultiplier "), 24) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			meter.amperageMultiplier = String(buf+24).toDouble() * 1000;
+			meter.amperageMultiplier = lround(String(buf+24).toDouble() * 1000.0);
 		} else if(strncmp_P(buf, PSTR("meterAccumulatedMultiplier "), 27) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			meter.accumulatedMultiplier = String(buf+27).toDouble() * 1000;
+			meter.accumulatedMultiplier = lround(String(buf+27).toDouble() * 1000.0);
 		} else if(strncmp_P(buf, PSTR("gpioHanPin "), 11) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.rxPin = String(buf+11).toInt();
@@ -2370,13 +2351,13 @@ void configFileParse() {
 			gpio.vccPin = String(buf+11).toInt();
 		} else if(strncmp_P(buf, PSTR("gpioVccOffset "), 14) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.vccOffset = String(buf+14).toFloat() * 100;
+			gpio.vccOffset = lround(String(buf+14).toDouble() * 100.0);
 		} else if(strncmp_P(buf, PSTR("gpioVccMultiplier "), 18) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.vccMultiplier = String(buf+18).toFloat() * 1000;
+			gpio.vccMultiplier = lround(String(buf+18).toDouble() * 1000.0);
 		} else if(strncmp_P(buf, PSTR("gpioVccBootLimit "), 17) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
-			gpio.vccBootLimit = String(buf+17).toFloat() * 10;
+			gpio.vccBootLimit = lround(String(buf+17).toDouble() * 10.0);
 		} else if(strncmp_P(buf, PSTR("gpioVccResistorGnd "), 19) == 0) {
 			if(!lGpio) { config.getGpioConfig(gpio); lGpio = true; };
 			gpio.vccResistorGnd = String(buf+19).toInt();
@@ -2489,7 +2470,7 @@ void configFileParse() {
 				continue;
 			}
 
-			pc.value = getSplit(rest, 2).toFloat() * 10000;
+			pc.value = lround(getSplit(rest, 2).toDouble() * 10000.0);
 
 			String days = getSplit(rest, 3);
 			if(days.equals("all")) {

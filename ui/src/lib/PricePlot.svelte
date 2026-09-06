@@ -42,6 +42,14 @@
             min = max = 0;
             addHours(cur, sysinfo.clock_offset - ((24 + cur.getHours() - cur.getUTCHours())%24));
             let i = json?.cursor ? json.cursor : 0;
+            if(json?.fetched && json?.resolution) {
+                // The cursor is from when the payload was fetched, the labels
+                // are from now, so skip the points passed since. Price points
+                // start on the whole hour in the price zone, which is a whole
+                // number of hours from UTC, so epoch boundaries line up
+                let pointMs = json.resolution * 60000;
+                i += Math.floor(Date.now()/pointMs) - Math.floor(json.fetched/pointMs);
+            }
             cur.setMinutes(Math.floor(cur.getMinutes()/json?.resolution)*json?.resolution,0,0);
             while(i < json?.prices?.length) {
                 val = json.prices[i];

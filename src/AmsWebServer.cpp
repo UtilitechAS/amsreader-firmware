@@ -5,6 +5,7 @@
  */
 
 #include "AmsWebServer.h"
+#include <math.h>
 #include "CustomDefaults.h"
 #include "AmsWebHeaders.h"
 #include "FirmwareVersion.h"
@@ -1386,10 +1387,10 @@ void AmsWebServer::handleSave() {
 			memset(meterConfig.authenticationKey, 0, 16);
 		}
 
-		meterConfig.wattageMultiplier = server.arg(F("mmw")).toDouble() * 1000.0;
-		meterConfig.voltageMultiplier = server.arg(F("mmv")).toDouble() * 1000.0;
-		meterConfig.amperageMultiplier = server.arg(F("mma")).toDouble() * 1000.0;
-		meterConfig.accumulatedMultiplier = server.arg(F("mmc")).toDouble() * 1000.0;
+		meterConfig.wattageMultiplier = lround(server.arg(F("mmw")).toDouble() * 1000.0);
+		meterConfig.voltageMultiplier = lround(server.arg(F("mmv")).toDouble() * 1000.0);
+		meterConfig.amperageMultiplier = lround(server.arg(F("mma")).toDouble() * 1000.0);
+		meterConfig.accumulatedMultiplier = lround(server.arg(F("mmc")).toDouble() * 1000.0);
 		config->setMeterConfig(meterConfig);
 	}
 
@@ -1405,7 +1406,7 @@ void AmsWebServer::handleSave() {
 				if(!psk.equals("***")) {
 					strcpy(network.psk, psk.c_str());
 				}
-				network.power = server.arg(F("ww")).toDouble() * 10.0;
+				network.power = lround(server.arg(F("ww")).toDouble() * 10.0);
 				network.sleep = server.arg(F("wz")).toInt();
 				network.use11b = server.hasArg(F("wb")) && server.arg(F("wb")) == F("true");
 			}
@@ -1567,9 +1568,9 @@ void AmsWebServer::handleSave() {
 	}
 
 	if(server.hasArg(F("iv")) && server.arg(F("iv")) == F("true")) {
-		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? server.arg(F("ivo")).toDouble() * 100.0 : 0;
-		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? server.arg(F("ivm")).toDouble() * 1000.0 : 1000;
-		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? server.arg(F("ivb")).toDouble() * 10.0 : 0;
+		gpioConfig->vccOffset = server.hasArg(F("ivo")) && !server.arg(F("ivo")).isEmpty() ? lround(server.arg(F("ivo")).toDouble() * 100.0) : 0;
+		gpioConfig->vccMultiplier = server.hasArg(F("ivm")) && !server.arg(F("ivm")).isEmpty() ? lround(server.arg(F("ivm")).toDouble() * 1000.0) : 1000;
+		gpioConfig->vccBootLimit = server.hasArg(F("ivb")) && !server.arg(F("ivb")).isEmpty() ? lround(server.arg(F("ivb")).toDouble() * 10.0) : 0;
 		config->setGpioConfig(*gpioConfig);
 	}
 
@@ -1684,7 +1685,7 @@ void AmsWebServer::handleSave() {
 				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rd%d"), i);
 				pc.direction = server.arg(buf).toInt();
 				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rv%d"), i);
-				pc.value = server.arg(buf).toDouble() * 10000.0;
+				pc.value = lround(server.arg(buf).toDouble() * 10000.0);
 				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rn%d"), i);
 				String name = server.arg(buf);
 				strcpy(pc.name, name.c_str());
@@ -2773,11 +2774,11 @@ void AmsWebServer::modifyDayPlot() {
 	for(uint8_t i = 0; i < 24; i++) {
 		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("i%02d"), i);
 		if(server.hasArg(buf)) {
-			ds->setHourImport(i, server.arg(buf).toDouble() * 1000);
+			ds->setHourImport(i, lround(server.arg(buf).toDouble() * 1000.0));
 		}
 		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("e%02d"), i);
 		if(server.hasArg(buf)) {
-			ds->setHourExport(i, server.arg(buf).toDouble() * 1000);
+			ds->setHourExport(i, lround(server.arg(buf).toDouble() * 1000.0));
 		}
 	}
 	bool ret = ds->save();
@@ -2798,11 +2799,11 @@ void AmsWebServer::modifyMonthPlot() {
 	for(uint8_t i = 1; i <= 31; i++) {
 		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("i%02d"), i);
 		if(server.hasArg(buf)) {
-			ds->setDayImport(i, server.arg(buf).toDouble() * 1000);
+			ds->setDayImport(i, lround(server.arg(buf).toDouble() * 1000.0));
 		}
 		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("e%02d"), i);
 		if(server.hasArg(buf)) {
-			ds->setDayExport(i, server.arg(buf).toDouble() * 1000);
+			ds->setDayExport(i, lround(server.arg(buf).toDouble() * 1000.0));
 		}
 	}
 	bool ret = ds->save();

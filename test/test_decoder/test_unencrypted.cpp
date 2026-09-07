@@ -204,3 +204,46 @@ void test_kamstrup_timezone(void) {
         delete d;
     }
 }
+
+// Decode the same fixture with a specific process timezone in effect.
+static time_t decode_meter_clock_under_tz(const char* path, const char* zone) {
+    setenv("TZ", zone, 1);
+    tzset();
+    AmsData* d = harness_decode_fixture(path);
+    time_t ts = (d != NULL) ? d->getMeterTimestamp() : 0;
+    delete d;
+    return ts;
+}
+
+void test_meter_clock_is_timezone_independent(void) {
+    // A COSEM date-time carries its own UTC deviation, so decoding it must not
+    // depend on the timezone the firmware happens to be configured for. The
+    // device sets TZ (Europe/Oslo etc.), and any use of a TZ-aware conversion
+    // such as mktime() applies that offset a second time on top of the
+    // deviation, putting the meter clock one whole UTC offset in the past
+    // (-2h observed on a live Aidon meter in CEST, -1h in CET).
+    //
+    // Note this is NOT covered by test_kamstrup_timezone: the Kamstrup branch
+    // of IEC6205675::adjustForKnownIssues discards decodeCosemDateTime()'s
+    // result and recomputes the epoch itself, so that test cannot reach this
+    // code path. These Aidon frames do reach it.
+    const char* zones[] = {"Europe/Oslo", "Pacific/Auckland", "America/Denver", "Asia/Kathmandu"};
+    const char* fixtures[] = {
+        "test/payloads/aidon/gh1119-1.hex",  // hourly frame, carries a meter clock
+        "test/payloads/aidon/gh1119-4.hex",
+    };
+
+    for (size_t f = 0; f < COUNT(fixtures); f++) {
+        time_t ref = decode_meter_clock_under_tz(fixtures[f], "UTC");
+        TEST_ASSERT_NOT_EQUAL_MESSAGE(0, ref, fixtures[f]);
+        for (size_t z = 0; z < COUNT(zones); z++) {
+            time_t got = decode_meter_clock_under_tz(fixtures[f], zones[z]);
+            printf("  %-32s %-17s got=%ld ref=%ld (%+ld s)\n",
+                   fixtures[f], zones[z], (long) got, (long) ref, (long) (got - ref));
+            TEST_ASSERT_EQUAL_MESSAGE(ref, got, zones[z]);
+        }
+    }
+
+    setenv("TZ", "UTC", 1);   // leave the process in a known zone for later tests
+    tzset();
+}

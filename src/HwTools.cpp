@@ -335,7 +335,20 @@ bool HwTools::updateTemperatures() {
             }
         } else {
             if(sensorCount > 0) {
-                sensorApi->requestTemperatures();
+                // A DS18B20 conversion takes up to 750 ms at 12 bit resolution.
+                // Waiting for it inline stalls loop() (and the HAN reader) once
+                // every 15 s, so request the conversion now and collect the
+                // result on a later call.
+                if(tempRequestedAt == 0) {
+                    sensorApi->setWaitForConversion(false);
+                    sensorApi->requestTemperatures();
+                    tempRequestedAt = millis();
+                    return false;
+                }
+                if(millis() - tempRequestedAt < 800) {
+                    return false;
+                }
+                tempRequestedAt = 0;
 
                 for(int x = 0; x < sensorCount; x++) {
                     TempSensorData *data = tempSensors[x];

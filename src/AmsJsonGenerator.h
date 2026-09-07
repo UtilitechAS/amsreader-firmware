@@ -50,6 +50,38 @@ private:
     bool overflowed_ = false;
 };
 
+class AmsData;
+class PriceService;
+class AmsMqttHandler;
+#if defined(AMS_CLOUD)
+class CloudConnector;
+#endif
+#if defined(ZMART_CHARGE)
+class ZmartChargeCloudConnector;
+#endif
+
+/**
+ * Everything the services array reports on. Both the web UI and the MQTT
+ * announcements render from this, so the two cannot report different state for
+ * the same device. Callers fill in whatever they have; NULL members are reported
+ * as not-yet-connected rather than skipped.
+ */
+struct ServiceStatusContext {
+    AmsConfiguration* config = NULL;
+    AmsData* meterState = NULL;
+    PriceService* ps = NULL;
+    AmsMqttHandler* mqttHandler = NULL;
+    bool mqttEnabled = false;
+    AmsMqttHandler* customMqttHandler = NULL;
+    AmsMqttHandler* energySpeedometer = NULL;
+    #if defined(AMS_CLOUD)
+    CloudConnector* cloud = NULL;
+    #endif
+    #if defined(ZMART_CHARGE)
+    ZmartChargeCloudConnector* zcloud = NULL;
+    #endif
+};
+
 class AmsJsonGenerator {
 public:
     static void generateDayPlotJson(AmsDataStorage* ds, char* buf, size_t bufSize);
@@ -58,4 +90,16 @@ public:
     static void generateConfigurationJson(AmsConfiguration* config, JsonSink& sink);
     // Convenience wrapper for callers that need the whole document in one buffer.
     static void generateConfigurationJson(AmsConfiguration* config, char* buf, size_t bufSize);
+
+    // Four-state health of a single service: 0 disabled, 1 ok, 2 connecting, 3 error.
+    static uint8_t hanState(AmsData* meterState);
+    static uint8_t mqttHandlerState(AmsMqttHandler* h);
+
+    // The contents of the services array, without the enclosing brackets, since
+    // both callers embed it in a larger document.
+    //
+    // Returns a String rather than streaming to a JsonSink: the array is small,
+    // both call sites need it as one contiguous value, and a fixed buffer would
+    // risk truncating to invalid JSON when hostnames are long.
+    static String generateServicesJson(const ServiceStatusContext& ctx);
 };

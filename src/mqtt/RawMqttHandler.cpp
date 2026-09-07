@@ -32,8 +32,12 @@ bool RawMqttHandler::publish(AmsData* update, AmsData* previousState, EnergyAcco
             publishList4(&data, previousState);
             loop();
         case 3:
-            publishList3(&data, previousState);
-            loop();
+            // Skip the accumulated registers when the meter repeated the previous
+            // hour's values (#1119); the List 2 values below are still current.
+            if(!data.isCounterStale()) {
+                publishList3(&data, previousState);
+                loop();
+            }
         case 2:
             publishList2(&data, previousState);
             loop();

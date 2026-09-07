@@ -23,6 +23,7 @@
 #include "PriceService.h"
 #include "RealtimePlot.h"
 #include "ConnectionHandler.h"
+#include "AmsJsonGenerator.h"
 
 #if defined(ESP8266)
 	#include <ESP8266WiFi.h>
@@ -133,10 +134,8 @@ private:
 
 	bool checkSecurity(byte level, bool send401 = true);
 
-	String buildServicesJson();
 	uint8_t computeServicesAggregate();
-	uint8_t mqttHandlerState(AmsMqttHandler* h);
-	uint8_t hanState();
+	ServiceStatusContext serviceStatusContext();
 
 	void indexHtml();
 	void indexJs();

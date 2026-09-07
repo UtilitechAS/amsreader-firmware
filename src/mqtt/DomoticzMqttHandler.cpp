@@ -23,7 +23,7 @@ bool DomoticzMqttHandler::publish(AmsData* update, AmsData* previousState, Energ
     }
 
     if (config.elidx > 0) {
-        if(data.getActiveImportCounter() > 1.0 && !data.isCounterEstimated()) {
+        if(data.getActiveImportCounter() > 1.0 && !data.isCounterEstimated() && !data.isCounterStale()) {
             energy = data.getActiveImportCounter();
         }
         if(energy > 0.0) {

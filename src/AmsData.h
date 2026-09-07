@@ -29,6 +29,13 @@ public:
     void apply(AmsData& other);
     void apply(const OBIS_code_t obis, double value, uint64_t millis64);
 
+    // True when other's List >= 3 accumulated registers are a verbatim repeat of
+    // the last set we accepted: same meter clock AND same counters. Some meters
+    // (confirmed on Aidon, #1119) publish the previous hour's register snapshot
+    // again at the next whole hour, which would otherwise store a zero hour
+    // followed by a double hour. Pure query - apply() does the bookkeeping.
+    bool isStaleCounter(AmsData& other);
+
     uint64_t getLastUpdateMillis();
 
     time_t getPackageTimestamp();
@@ -85,6 +92,13 @@ public:
     double getActiveExportCounterTariff2();
     double getReactiveExportCounter();
 
+    // Whether the most recently applied packet was a stale whole-hour repeat.
+    // Set from isStaleCounter() by the pipeline entry point, cleared again by the
+    // next sub-hour packet, and consulted by the MQTT handlers to withhold the
+    // repeated accumulated registers.
+    bool isCounterStale();
+    void setCounterStale(bool);
+
     bool isThreePhase();
     bool isTwoPhase();
     bool isCounterEstimated();
@@ -112,7 +126,11 @@ protected:
     float powerFactor = 0, l1PowerFactor = 0, l2PowerFactor = 0, l3PowerFactor = 0;
     double activeImportCounter = 0, activeImportCounterTariff1 = 0, activeImportCounterTariff2 = 0, reactiveImportCounter = 0, activeExportCounter = 0, activeExportCounterTariff1 = 0, activeExportCounterTariff2 = 0, reactiveExportCounter = 0;
     double lastKnownCounter = 0;
+    time_t lastAcceptedMeterTimestamp = 0;
+    int32_t lastAcceptedMeterTimestampStep = 0;
+    uint8_t staleCounterCount = 0;
     bool threePhase = false, twoPhase = false, counterEstimated = false, l2currentMissing = false;;
+    bool counterStale = false;
 
     int8_t lastError = 0x00;
     uint8_t lastErrorCount = 0;

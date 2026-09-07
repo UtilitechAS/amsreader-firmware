@@ -49,9 +49,11 @@ private:
     String statusTopic;
     String sensorTopic;
     String updateTopic;
+    String binarySensorTopic;
+    String eventTopic;
     String sensorNamePrefix;
 
-    bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit, rInit, fInit, dInit;
+    bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit, rInit, fInit, dInit, hpInit, eInit;
     bool tInit[32] = {false};
     uint8_t priceImportInit = 0, priceExportInit = 0;
     uint32_t lastThresholdPublish = 0;
@@ -78,6 +80,8 @@ private:
     void publishTemperatureSensor(uint8_t index, String id);
     void publishPriceSensors(PriceService* ps);
     void publishSystemSensors();
+    void publishHanProblemSensor();
+    void publishEventEntity();
     void publishThresholdSensors();
     void toJsonIsoTimestamp(time_t t, char* buf, size_t buflen);
 

@@ -1,6 +1,7 @@
 {
     "name" : "%s%s",
     "stat_t" : "%s%s",
+    "avty_t" : "%s/status",
     "uniq_id" : "%s_%s",
     "default_entity_id" : "sensor.%s_%s",
     "val_tpl" : "{{ value_json.%s | is_defined }}",

@@ -302,23 +302,29 @@ bool HwTools::updateTemperatures() {
             DeviceAddress addr;
             sensorApi->requestTemperatures();
             int c = sensorApi->getDeviceCount();
-            if(this->tempSensors != NULL) {
-                delete this->tempSensors;
-            }
-            this->tempSensors = new TempSensorData*[c];
+            // setup() clears tempSensorInit after every configuration save, so
+            // this block runs again with sensorCount > 0. Keep the old array
+            // alive while matching addresses, then release what is left.
+            TempSensorData** oldSensors = this->tempSensors;
+            uint8_t oldCount = sensorCount;
+            this->tempSensors = new TempSensorData*[c > 0 ? c : 1];
+            sensorCount = 0;
             for(int i = 0; i < c; i++) {
                 bool found = false;
                 sensorApi->getAddress(addr, i);
                 float t = sensorApi->getTempC(addr);
-                for(int x = 0; x < sensorCount; x++) {
-                    TempSensorData *data = tempSensors[x];
-                    if(isSensorAddressEqual(data->address, addr)) {
+                for(int x = 0; x < oldCount; x++) {
+                    TempSensorData *data = oldSensors[x];
+                    if(data != NULL && isSensorAddressEqual(data->address, addr)) {
                         found = true;
                         data->lastRead = t;
                         if(t > -85) {
                             data->changed = data->lastValidRead != t;
                             data->lastValidRead = t;
                         }
+                        tempSensors[sensorCount++] = data;
+                        oldSensors[x] = NULL;
+                        break;
                     }
                 }
                 if(!found) {
@@ -332,6 +338,12 @@ bool HwTools::updateTemperatures() {
                     tempSensors[sensorCount++] = data;
                 }
                 yield();
+            }
+            if(oldSensors != NULL) {
+                for(int x = 0; x < oldCount; x++) {
+                    if(oldSensors[x] != NULL) delete oldSensors[x];
+                }
+                delete[] oldSensors;
             }
         } else {
             if(sensorCount > 0) {

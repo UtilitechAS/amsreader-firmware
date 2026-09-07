@@ -6,6 +6,15 @@
 
 #include "PassiveMeterCommunicator.h"
 
+// Multiplier for the SoftwareSerial ISR edge buffer relative to the byte
+// buffer. 4 gives ~0.4 s of slack at 2400 baud 8E1 for 4 x 64 x 4 B = 1 kB
+// extra heap with the default 64 byte buffer. The library's own default is
+// (2 + data bits + parity), i.e. 11 for 8E1, but that costs 11 kB with a
+// 256 byte buffer, too much on ESP8266. Override with -D SWSERIAL_ISR_BUFFER_FACTOR=n.
+#ifndef SWSERIAL_ISR_BUFFER_FACTOR
+#define SWSERIAL_ISR_BUFFER_FACTOR 4
+#endif
+
 const uint32_t AUTO_BAUD_RATES[] = { 2400, 9600, 115200 };
 const uint8_t AUTO_BAUD_RATES_COUNT = sizeof(AUTO_BAUD_RATES) / sizeof(AUTO_BAUD_RATES[0]);
 #include "IEC6205675.h"
@@ -779,7 +788,12 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 			if (debugger->isActive(RemoteDebug::DEBUG))
 			#endif
 			debugger->printf_P(PSTR("Using serial buffer size %d\n"), 64 * bufferSize);
-			swSerial->begin(baud, serialConfig, rxpin, txpin, invert, meterConfig.bufferSize * 64, meterConfig.bufferSize * 64);
+			// The second capacity is the ISR edge buffer: one entry per bit
+			// transition, so up to (2 + data bits + parity) entries per byte.
+			// Sizing it equal to the byte buffer leaves room for only ~25 bytes
+			// of pending data at 8E1, which overflows as soon as loop() is held
+			// up for ~0.1 s at 2400 baud (web requests, MQTT publish, LittleFS).
+			swSerial->begin(baud, serialConfig, rxpin, txpin, invert, meterConfig.bufferSize * 64, meterConfig.bufferSize * 64 * SWSERIAL_ISR_BUFFER_FACTOR);
 			hanSerial = swSerial;
 			hwSerial = NULL;
 		#else

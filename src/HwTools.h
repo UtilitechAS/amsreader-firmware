@@ -69,6 +69,7 @@ private:
 
     uint16_t analogRange = 1024;
     bool tempSensorInit;
+    unsigned long tempRequestedAt = 0;
     OneWire *oneWire = NULL;
     DallasTemperature *sensorApi = NULL;
     uint8_t sensorCount = 0;

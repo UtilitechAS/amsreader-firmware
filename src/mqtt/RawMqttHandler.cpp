@@ -401,7 +401,8 @@ bool RawMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccounti
 }
 
 uint8_t RawMqttHandler::getFormat() {
-    return full ? 3 : 2;
+    // Raw payload formats are 1 (minimal) and 2 (full)
+    return full ? 2 : 1;
 }
 
 bool RawMqttHandler::publishRaw(uint8_t* raw, size_t length) {

@@ -117,6 +117,7 @@ protected:
     char* json;
     uint64_t lastStateUpdate = 0;
     uint64_t lastSuccessfulLoop = 0;
+    bool hadSuccessfulLoop = false;
 
     char pubTopic[64];
     char subTopic[64];

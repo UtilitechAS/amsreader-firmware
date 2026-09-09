@@ -486,7 +486,8 @@ bool JsonMqttHandler::publishSystem(HwTools* hw, PriceService* ps, EnergyAccount
 }
 
 uint8_t JsonMqttHandler::getFormat() {
-    return 0;
+    // This handler serves formats 0, 5 and 6; report the configured one
+    return format;
 }
 
 bool JsonMqttHandler::publishRaw(uint8_t* raw, size_t length) {

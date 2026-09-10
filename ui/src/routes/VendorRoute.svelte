@@ -8,6 +8,7 @@
     let sysinfo = {};
 
     let loadingOrSaving = false;
+    let failed = false;
     async function handleSubmit(e) {
         loadingOrSaving = true;
 		const formData = new FormData(e.target)
@@ -23,6 +24,9 @@
         });
         let res = (await response.json())
         loadingOrSaving = false;
+
+        failed = !res.success;
+        if(failed) return;
 
         sysinfoStore.update(s => {
             s.vndcfg = res.success;
@@ -50,6 +54,9 @@
             <strong class="text-sm">Initial configuration</strong>
             {#if sysinfo.usrcfg}
             <div class="bd-red">WARNING: Changing this configuration will affect basic configuration of your device. Only make changes here if instructed by vendor</div>
+            {/if}
+            {#if failed}
+            <div class="bd-red">Unable to apply this board type. Please select the board type matching your device</div>
             {/if}
             <div class="my-3">
                 Board type<br/>

@@ -116,6 +116,44 @@ void test_iskra_am550_slovenia(void) {
     delete d;
 }
 
+void test_landisgyr_e450_slovenia(void) {
+    // L&G E450 (IDIS 2DLM, Slovenia). Descriptor-less push with no OBIS codes:
+    // two frame shapes alternate, both led by the 12-digit meter id.
+    AmsData* totals = harness_decode_fixture("test/payloads/landis-gyr/em-si2026-1.hex");
+    TEST_ASSERT_NOT_NULL(totals);
+    TEST_ASSERT_EQUAL(AmsTypeLandisGyr, totals->getMeterType());
+    TEST_ASSERT_EQUAL(3, totals->getListType());
+    TEST_ASSERT_EQUAL_STRING("999999999999", totals->getMeterId().c_str());
+    TEST_ASSERT_EQUAL(513, totals->getActiveImportPower());
+    TEST_ASSERT_EQUAL(0, totals->getActiveExportPower());
+    TEST_ASSERT_EQUAL(60, totals->getReactiveImportPower());
+    TEST_ASSERT_EQUAL(103, totals->getReactiveExportPower());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 65138.118, totals->getActiveImportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 0.0, totals->getActiveExportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 6700.576, totals->getReactiveImportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 2833.350, totals->getReactiveExportCounter());
+    delete totals;
+
+    AmsData* phases = harness_decode_fixture("test/payloads/landis-gyr/em-si2026-2.hex");
+    TEST_ASSERT_NOT_NULL(phases);
+    TEST_ASSERT_EQUAL(AmsTypeLandisGyr, phases->getMeterType());
+    TEST_ASSERT_EQUAL(4, phases->getListType());
+    TEST_ASSERT_EQUAL_STRING("999999999999", phases->getMeterId().c_str());
+    // Whole volts on the wire — must not be scaled down to 23.7 V like the
+    // Iskra lists (the #949 bug on the sibling L&G format).
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 237.0, phases->getL1Voltage());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 236.0, phases->getL2Voltage());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 236.0, phases->getL3Voltage());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 1.05, phases->getL1Current());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 0.37, phases->getL2Current());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 1.20, phases->getL3Current());
+    // Per-phase active power sums to the 1.7.0 the meter pushes 3 s later (508 W)
+    TEST_ASSERT_EQUAL(221, phases->getL1ActiveImportPower());
+    TEST_ASSERT_EQUAL(82, phases->getL2ActiveImportPower());
+    TEST_ASSERT_EQUAL(205, phases->getL3ActiveImportPower());
+    delete phases;
+}
+
 void test_aidon_norway_list2(void) {
     // Aidon HAN-NVE hourly frame (issue #1119).
     AmsData* d = harness_decode_fixture("test/payloads/aidon/gh1119-1.hex");

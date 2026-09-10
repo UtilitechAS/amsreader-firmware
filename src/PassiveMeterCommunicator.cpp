@@ -12,6 +12,7 @@ const uint8_t AUTO_BAUD_RATES_COUNT = sizeof(AUTO_BAUD_RATES) / sizeof(AUTO_BAUD
 #include "IEC6205621.h"
 #include "LNG.h"
 #include "LNG2.h"
+#include "LNG3.h"
 #include "hexutils.h"
 #include "Uptime.h"
 
@@ -271,6 +272,17 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
 			#endif
 			debugger->printf_P(PSTR("LNG2\n"));
 			LNG2 lngData = LNG2(meterState, payload, meterState.getMeterType(), &meterConfig, ctx);
+			if(lngData.getListType() >= 1) {
+				data = new AmsData();
+				data->apply(meterState);
+				data->apply(lngData);
+			}
+		} else if(LNG3::matches(payload, ctx.length)) {
+			#if defined(AMS_REMOTE_DEBUG)
+			if (debugger->isActive(RemoteDebug::VERBOSE))
+			#endif
+			debugger->printf_P(PSTR("LNG3\n"));
+			LNG3 lngData = LNG3(meterState, payload, meterState.getMeterType(), &meterConfig, ctx);
 			if(lngData.getListType() >= 1) {
 				data = new AmsData();
 				data->apply(meterState);

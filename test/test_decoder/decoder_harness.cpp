@@ -22,6 +22,7 @@
 #include "IEC6205621.h"
 #include "LNG.h"
 #include "LNG2.h"
+#include "LNG3.h"
 #include "Uptime.h"
 #include <chrono>
 
@@ -221,6 +222,9 @@ AmsData* harness_decode(uint8_t* buf, uint16_t len, MeterConfig* cfg,
                    payload[8] == CosemTypeLongUnsigned && payload[11] == CosemTypeLongUnsigned &&
                    payload[14] == CosemTypeLongUnsigned && payload[17] == CosemTypeLongUnsigned) {
             LNG2 lng(state, payload, state.getMeterType(), cfg, ctx);
+            if (lng.getListType() >= 1) { data = new AmsData(); data->apply(state); data->apply(lng); }
+        } else if (LNG3::matches(payload, ctx.length)) {
+            LNG3 lng(state, payload, state.getMeterType(), cfg, ctx);
             if (lng.getListType() >= 1) { data = new AmsData(); data->apply(state); data->apply(lng); }
         } else {
             data = new IEC6205675(payload, &tz, state.getMeterType(), cfg, ctx, state, &dbg);

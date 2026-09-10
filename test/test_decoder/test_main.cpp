@@ -64,6 +64,7 @@ void harness_emit_golden(void);
 void test_unencrypted_golden(void);
 void test_iskra_am550_slovenia(void);
 void test_aidon_norway_list2(void);
+void test_landisgyr_e450_slovenia(void);
 void test_kamstrup_norway(void);
 void test_kamstrup_timezone(void);
 void test_meter_clock_is_timezone_independent(void);
@@ -97,6 +98,7 @@ int main(int argc, char** argv) {
     RUN_TEST(test_decode_iskra_gh956);
     RUN_TEST(test_iskra_am550_slovenia);
     RUN_TEST(test_aidon_norway_list2);
+    RUN_TEST(test_landisgyr_e450_slovenia);
     RUN_TEST(test_kamstrup_norway);
     RUN_TEST(test_kamstrup_timezone);
     RUN_TEST(test_meter_clock_is_timezone_independent);

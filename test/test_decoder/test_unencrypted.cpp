@@ -118,7 +118,8 @@ void test_iskra_am550_slovenia(void) {
 
 void test_landisgyr_e450_slovenia(void) {
     // L&G E450 (IDIS 2DLM, Slovenia). Descriptor-less push with no OBIS codes:
-    // two frame shapes alternate, both led by the 12-digit meter id.
+    // two frame shapes alternate, each led by a different serial register.
+    // Registers per the push object lists supplied by the DSO.
     AmsData* totals = harness_decode_fixture("test/payloads/landis-gyr/em-si2026-1.hex");
     TEST_ASSERT_NOT_NULL(totals);
     TEST_ASSERT_EQUAL(AmsTypeLandisGyr, totals->getMeterType());
@@ -132,13 +133,15 @@ void test_landisgyr_e450_slovenia(void) {
     TEST_ASSERT_FLOAT_WITHIN(0.01, 0.0, totals->getActiveExportCounter());
     TEST_ASSERT_FLOAT_WITHIN(0.01, 6700.576, totals->getReactiveImportCounter());
     TEST_ASSERT_FLOAT_WITHIN(0.01, 2833.350, totals->getReactiveExportCounter());
-    delete totals;
 
     AmsData* phases = harness_decode_fixture("test/payloads/landis-gyr/em-si2026-2.hex");
     TEST_ASSERT_NOT_NULL(phases);
     TEST_ASSERT_EQUAL(AmsTypeLandisGyr, phases->getMeterType());
     TEST_ASSERT_EQUAL(4, phases->getListType());
-    TEST_ASSERT_EQUAL_STRING("999999999999", phases->getMeterId().c_str());
+    // Led by 96.1.1 (utility serial), a different register from the 96.1.0 in
+    // the other frame, so this frame must not touch meterId: taking both would
+    // flip the id every couple of seconds wherever the two registers differ.
+    TEST_ASSERT_EQUAL_STRING("", phases->getMeterId().c_str());
     // Whole volts on the wire — must not be scaled down to 23.7 V like the
     // Iskra lists (the #949 bug on the sibling L&G format).
     TEST_ASSERT_FLOAT_WITHIN(0.01, 237.0, phases->getL1Voltage());
@@ -151,7 +154,22 @@ void test_landisgyr_e450_slovenia(void) {
     TEST_ASSERT_EQUAL(221, phases->getL1ActiveImportPower());
     TEST_ASSERT_EQUAL(82, phases->getL2ActiveImportPower());
     TEST_ASSERT_EQUAL(205, phases->getL3ActiveImportPower());
+
+    delete totals;
     delete phases;
+
+    // Fed through the pipeline in the order the meter sends them: the
+    // alternating pair adds up to one complete picture, and the id from the
+    // totals frame survives the phases frame that follows it.
+    AmsData state;
+    delete harness_decode_fixture_seq("test/payloads/landis-gyr/em-si2026-1.hex", state);
+    delete harness_decode_fixture_seq("test/payloads/landis-gyr/em-si2026-2.hex", state);
+    TEST_ASSERT_EQUAL_STRING("999999999999", state.getMeterId().c_str());
+    TEST_ASSERT_EQUAL(4, state.getListType());
+    TEST_ASSERT_EQUAL(513, state.getActiveImportPower());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 65138.118, state.getActiveImportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 237.0, state.getL1Voltage());
+    TEST_ASSERT_EQUAL(221, state.getL1ActiveImportPower());
 }
 
 void test_aidon_norway_list2(void) {

@@ -69,12 +69,17 @@ LNG3::LNG3(AmsData& meterState, const char* payload, uint8_t useMeterType, Meter
     meterType = AmsTypeLandisGyr;
     this->packageTimestamp = ctx.timestamp;
 
-    CosemString* id = (CosemString*) (payload + sizeof(CosemBasic));
-    uint8_t idLength = id->length < sizeof(meterId) - 1 ? id->length : sizeof(meterId) - 1;
-    memcpy(meterId, id->data, idLength);
-    meterId[idLength] = '\0';
-
     if(((uint8_t) payload[1]) == LNG3_TOTALS_ITEMS) {
+        // 96.1.0, the manufacturer serial. The other frame leads with 96.1.1,
+        // a separate register the utility assigns, so only this one may set
+        // meterId -- taking both would flip the id (and the MQTT topic and
+        // Home Assistant entity) every couple of seconds wherever the two
+        // registers differ. apply() above carries the id into the other frame.
+        CosemString* id = (CosemString*) (payload + sizeof(CosemBasic));
+        uint8_t idLength = id->length < sizeof(meterId) - 1 ? id->length : sizeof(meterId) - 1;
+        memcpy(meterId, id->data, idLength);
+        meterId[idLength] = '\0';
+
         Lng3Totals* d = (Lng3Totals*) (payload + body);
 
         activeImportPower = ntohl(d->activeImportPower.data);

@@ -81,7 +81,7 @@ static const Golden GOLDEN[] = {
   { "test/payloads/landis-gyr/gh949-1.hex", 0, 0,0, 0,0, 0,0,0, 0,0,0, 0, "" },
   { "test/payloads/landis-gyr/gh949-2.hex", 0, 0,0, 0,0, 0,0,0, 0,0,0, 0, "" },
   { "test/payloads/landis-gyr/em-si2026-1.hex", 1, 3,9, 513,0, 0.00,0.00,0.00, 0.00,0.00,0.00, 65138.118, "999999999999" },
-  { "test/payloads/landis-gyr/em-si2026-2.hex", 1, 4,9, 0,0, 237.00,236.00,236.00, 1.05,0.37,1.20, 0.000, "999999999999" },
+  { "test/payloads/landis-gyr/em-si2026-2.hex", 1, 4,9, 0,0, 237.00,236.00,236.00, 1.05,0.37,1.20, 0.000, "" },
   { "test/payloads/nes/gh712-1.hex", 1, 4,255, 193,0, 237.20,238.70,238.50, 1.30,0.00,0.00, 36.273, "" },
   { "test/payloads/sagemcom/gh264-1.txt", 0, 0,0, 0,0, 0,0,0, 0,0,0, 0, "" },
   { "test/payloads/sagemcom/gh867-2.hex", 1, 4,255, 0,9, 233.40,232.50,232.10, 0.02,0.48,0.83, 4752.026, "" },

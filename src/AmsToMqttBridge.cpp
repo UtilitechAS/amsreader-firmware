@@ -446,7 +446,7 @@ void setup() {
 	hw.ledOff(LED_GREEN);
 	hw.ledOff(LED_BLUE);
 
-	if(gpioConfig.apPin >= 0) {
+	if(gpioConfig.apPin != 0xFF) {
 		pinMode(gpioConfig.apPin, INPUT_PULLUP);
 
 		if(!hw.ledOn(LED_GREEN)) {

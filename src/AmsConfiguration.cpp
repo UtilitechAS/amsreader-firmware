@@ -934,7 +934,15 @@ void AmsConfiguration::clear() {
 	EEPROM.put(CONFIG_SYSTEM_START, sys);
 
 	MeterConfig meter;
+	getMeterConfig(meter);
+	// The pins are dictated by the board type, which is kept, so keep them too
+	uint8_t rxPin = meter.rxPin;
+	uint8_t txPin = meter.txPin;
+	bool rxPinPullup = meter.rxPinPullup;
 	clearMeter(meter);
+	meter.rxPin = rxPin;
+	meter.txPin = txPin;
+	meter.rxPinPullup = rxPinPullup;
 	EEPROM.put(CONFIG_METER_START, meter);
 
 	NetworkConfig network;

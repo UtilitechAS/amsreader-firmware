@@ -1121,14 +1121,16 @@ void AmsWebServer::handleSave() {
 
 		MeterConfig meterConfig;
 		config->getMeterConfig(meterConfig);
-		config->clearGpio(*gpioConfig);
-		hw->applyBoardConfig(boardType, *gpioConfig, meterConfig, hanPin);
+		GpioConfig boardGpio;
+		config->clearGpio(boardGpio);
+		success = hw->applyBoardConfig(boardType, boardGpio, meterConfig, hanPin);
 		if(success) {
+			*gpioConfig = boardGpio;
 			config->setGpioConfig(*gpioConfig);
 			config->setMeterConfig(meterConfig);
 
-			sys.boardType = success ? boardType : 0xFF;
-			sys.vendorConfigured = success;
+			sys.boardType = boardType;
+			sys.vendorConfigured = true;
 			config->setSystemConfig(sys);
 		}
 	}

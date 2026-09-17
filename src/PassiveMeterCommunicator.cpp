@@ -17,6 +17,7 @@ const uint8_t AUTO_BAUD_RATES_COUNT = sizeof(AUTO_BAUD_RATES) / sizeof(AUTO_BAUD
 
 #if defined(ESP32)
 #include <driver/uart.h>
+#include <driver/gpio.h>
 #endif
 
 #if defined(AMS_REMOTE_DEBUG)
@@ -648,7 +649,12 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 		#endif
 	#endif
 
-	if(rxpin == 0 || meterConfig.rxPin == 0xFF) {
+	bool invalidPin = rxpin == 0 || meterConfig.rxPin == 0xFF;
+	#if defined(ESP32)
+		// A pin the SoC does not have would abort inside the UART driver
+		if(!invalidPin && (rxpin < 0 || !GPIO_IS_VALID_GPIO(rxpin))) invalidPin = true;
+	#endif
+	if(invalidPin) {
 		#if defined(AMS_REMOTE_DEBUG)
 		if (debugger->isActive(RemoteDebug::ERROR))
 		#endif
@@ -691,7 +697,11 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 
 		hwSerial->setRxBufferSize(64 * meterConfig.bufferSize);
 		#if defined(ESP32)
-			hwSerial->begin(baud, serialConfig, -1, -1, invert);
+			// The pins must be given to begin(), not left to uart_set_pin() below. With
+			// -1/-1 the core falls back to the default UART1 pins, GPIO 9 and 10, which
+			// are the SPI flash lines on ESP32. Muxing them away from the flash stops
+			// code fetch and panics the device before the pins can be corrected (#1270).
+			hwSerial->begin(baud, serialConfig, rxpin, txpin, invert);
 			uart_set_pin(uart_num, txpin, rxpin, -1, -1);
 		#else
 			hwSerial->begin(baud, serialConfig, SERIAL_FULL, 1, invert);

@@ -112,7 +112,7 @@ private:
 	bool uploading = false;
 	File file;
 	bool performRestart = false;
-	char priceRegion[8]   = {};
+	char priceRegion[17]  = {};
 	char priceCurrency[4] = {};
 	#if defined(AMS2MQTT_FIRMWARE_URL)
 	char customFirmwareUrl[128] = AMS2MQTT_FIRMWARE_URL;

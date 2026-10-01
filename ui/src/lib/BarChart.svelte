@@ -38,7 +38,8 @@
 
     // Vertical placement of a value label.
     // top/bot: bar edge (yScale of the value); base: yScale(0); off: labelOffset; rot: label is rotated.
-    // Rotated labels read along the bar, so they keep the existing (validated) clamp.
+    // Rotated labels read along the bar and are anchored at the end nearest the baseline, so a
+    // label that does not fit inside a short bar is moved fully outside it instead of straddling the edge.
     // Non-rotated labels are centered (dominant-baseline:middle), so they sit flush to the bar's
     // outer edge when they fit, and float just outside the bar when it is too short to contain them.
     function impLabelY(top, base, off, rot) {
@@ -49,11 +50,11 @@
         return rot ? top > base - off : (base - top) < off;
     }
     function expLabelY(bot, base, off, rot) {
-        if (rot) return bot < base + 15 ? bot + 15 : bot - 14;
+        if (rot) return (bot - base) < off ? bot + off : Math.max(bot - 10, base + off);
         return (bot - base) >= off ? bot - off / 2 : bot + off / 2;
     }
-    function expLabelOutside(bot, base, off, rot) {
-        return rot ? bot < base + 15 : (bot - base) < off;
+    function expLabelOutside(bot, base, off) {
+        return (bot - base) < off;
     }
 
     $: {
@@ -161,8 +162,8 @@
                                 <text
                                     width="{barWidth * 0.95}"
                                     dominant-baseline="middle"
-                                    text-anchor="{'middle'}"
-                                    fill="{expLabelOutside(yScale(-point.value2), yScale(0), labelOffset, barWidth < vertSwitch) && !config.dark ? point.color2 ? point.color2 : point.color : 'white'}"
+                                    text-anchor="{barWidth < vertSwitch ? 'end' : 'middle'}"
+                                    fill="{expLabelOutside(yScale(-point.value2), yScale(0), labelOffset) && !config.dark ? point.color2 ? point.color2 : point.color : 'white'}"
                                     transform="translate({xScale(i) + (barWidth/2)} {expLabelY(yScale(-point.value2), yScale(0), labelOffset, barWidth < vertSwitch)}) rotate({barWidth < vertSwitch ? 90 : 0})"
                                     use:fitText={barWidth >= vertSwitch ? barWidth * 0.95 : null}
                                 >{point.label2}</text>

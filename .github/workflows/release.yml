@@ -11,11 +11,17 @@ jobs:
     steps:
       - name: Check out code from repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Get release version for filenames
         id: release_tag
         env:
           GITHUB_REF: ${{ github.ref }}
         run: echo ::set-output name=tag::$(echo ${GITHUB_REF:11})
+
+      - name: Find previous stable tag
+        id: prev_tag
+        run: echo "tag=$(git describe --tags --abbrev=0 --exclude='*-rc*' HEAD^)" >> "$GITHUB_OUTPUT"
 
       - name: Create release with release notes
         id: create_release
@@ -23,6 +29,7 @@ jobs:
         with:
           name: Release v${{ steps.release_tag.outputs.tag }}
           generateReleaseNotes: true
+          generateReleaseNotesPreviousTag: ${{ steps.prev_tag.outputs.tag }}
 
     outputs:
       version: ${{ steps.release_tag.outputs.tag }}

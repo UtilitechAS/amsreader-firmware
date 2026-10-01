@@ -11,7 +11,7 @@
 struct Fixture { const char* path; const char* manufacturer; const char* source; };
 struct KeyedFixture { const char* path; const char* ek_secret; const char* ak_secret; };
 
-// 81 unencrypted frames expected to decode to a valid list
+// 84 unencrypted frames expected to decode to a valid list
 static const Fixture UNENC_OK[] = {
   { "test/payloads/aidon/gh1119-1.hex", "aidon", "#1119" },
   { "test/payloads/aidon/gh1119-2.hex", "aidon", "#1119" },
@@ -66,6 +66,7 @@ static const Fixture UNENC_OK[] = {
   { "test/payloads/kamstrup/em001-8.hex", "kamstrup", "email Mon, 29 Nov 2021 20:03:14 +0100" },
   { "test/payloads/kamstrup/em001-9.hex", "kamstrup", "email Mon, 29 Nov 2021 20:03:14 +0100" },
   { "test/payloads/kamstrup/gh111-2.hex", "kamstrup", "#111" },
+  { "test/payloads/kamstrup/gh1191-1.hex", "kamstrup", "#1191" },
   { "test/payloads/kamstrup/gh175-2.hex", "kamstrup", "#175" },
   { "test/payloads/kamstrup/gh175-3.hex", "kamstrup", "#175" },
   { "test/payloads/kamstrup/gh194-1.hex", "kamstrup", "#194" },
@@ -91,6 +92,8 @@ static const Fixture UNENC_OK[] = {
   { "test/payloads/landis-gyr/gh934-1.hex", "landis-gyr", "#934" },
   { "test/payloads/landis-gyr/gh949-1.hex", "landis-gyr", "#949" },
   { "test/payloads/landis-gyr/gh949-2.hex", "landis-gyr", "#949" },
+  { "test/payloads/landis-gyr/em-si2026-1.hex", "landis-gyr", "email 2026-09-08" },
+  { "test/payloads/landis-gyr/em-si2026-2.hex", "landis-gyr", "email 2026-09-08" },
   { "test/payloads/nes/gh712-1.hex", "nes", "#712" },
   { "test/payloads/sagemcom/gh264-1.txt", "sagemcom", "#264" },
   { "test/payloads/sagemcom/gh867-2.hex", "sagemcom", "#867" },

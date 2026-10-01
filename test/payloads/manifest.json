@@ -867,6 +867,17 @@
   "expect": "ok"
  },
  {
+  "file": "kamstrup/gh1191-1.hex",
+  "manufacturer": "kamstrup",
+  "source": "#1191",
+  "model": "Omnipower (Kamstrup_V0001)",
+  "country": "Finland",
+  "protocol": "HDLC",
+  "format": "hex",
+  "encrypted": false,
+  "expect": "ok"
+ },
+ {
   "file": "kamstrup/gh157-1.hex",
   "manufacturer": "kamstrup",
   "source": "#157",
@@ -1410,6 +1421,28 @@
   "source": "#949",
   "model": "E450",
   "country": "Switzerland",
+  "protocol": "HDLC",
+  "format": "hex",
+  "encrypted": false,
+  "expect": "ok"
+ },
+ {
+  "file": "landis-gyr/em-si2026-1.hex",
+  "manufacturer": "landis-gyr",
+  "source": "email 2026-09-08",
+  "model": "E450 (ZMXi3, IDIS 2DLM)",
+  "country": "Slovenia",
+  "protocol": "HDLC",
+  "format": "hex",
+  "encrypted": false,
+  "expect": "ok"
+ },
+ {
+  "file": "landis-gyr/em-si2026-2.hex",
+  "manufacturer": "landis-gyr",
+  "source": "email 2026-09-08",
+  "model": "E450 (ZMXi3, IDIS 2DLM)",
+  "country": "Slovenia",
   "protocol": "HDLC",
   "format": "hex",
   "encrypted": false,

@@ -22,6 +22,7 @@
 #include "IEC6205621.h"
 #include "LNG.h"
 #include "LNG2.h"
+#include "LNG3.h"
 #include "Uptime.h"
 #include <chrono>
 
@@ -193,7 +194,7 @@ static int16_t unwrap(uint8_t* buf, DataParserContext& ctx, MeterConfig* cfg,
 
 AmsData* harness_decode(uint8_t* buf, uint16_t len, MeterConfig* cfg,
                         const uint8_t* enc_key, const uint8_t* auth_key,
-                        Timezone* tzArg) {
+                        Timezone* tzArg, AmsData* stateArg) {
     DataParserContext ctx;
     ctx.type = *buf;
     ctx.length = len;
@@ -208,7 +209,8 @@ AmsData* harness_decode(uint8_t* buf, uint16_t len, MeterConfig* cfg,
     static Timezone defaultTz;
     Timezone& tz = tzArg ? *tzArg : defaultTz;
     static NullStream dbg;
-    AmsData state;
+    AmsData emptyState;
+    AmsData& state = stateArg ? *stateArg : emptyState;
     AmsData* data = NULL;
 
     if (ctx.type == DATA_TAG_DLMS) {
@@ -221,6 +223,9 @@ AmsData* harness_decode(uint8_t* buf, uint16_t len, MeterConfig* cfg,
                    payload[8] == CosemTypeLongUnsigned && payload[11] == CosemTypeLongUnsigned &&
                    payload[14] == CosemTypeLongUnsigned && payload[17] == CosemTypeLongUnsigned) {
             LNG2 lng(state, payload, state.getMeterType(), cfg, ctx);
+            if (lng.getListType() >= 1) { data = new AmsData(); data->apply(state); data->apply(lng); }
+        } else if (LNG3::matches(payload, ctx.length)) {
+            LNG3 lng(state, payload, state.getMeterType(), cfg, ctx);
             if (lng.getListType() >= 1) { data = new AmsData(); data->apply(state); data->apply(lng); }
         } else {
             data = new IEC6205675(payload, &tz, state.getMeterType(), cfg, ctx, state, &dbg);
@@ -239,6 +244,17 @@ AmsData* harness_decode_fixture(const char* path) {
     MeterConfig cfg;
     memset(&cfg, 0, sizeof(cfg));   // multipliers 0 == x1 (matches clearMeterConfig)
     return harness_decode(buf, (uint16_t)n, &cfg, NULL, NULL);
+}
+
+AmsData* harness_decode_fixture_seq(const char* path, AmsData& state) {
+    static uint8_t buf[4096];
+    int n = harness_load_fixture(path, buf, sizeof(buf));
+    if (n <= 0) return NULL;
+    MeterConfig cfg;
+    memset(&cfg, 0, sizeof(cfg));
+    AmsData* d = harness_decode(buf, (uint16_t)n, &cfg, NULL, NULL, NULL, &state);
+    if (d) state.apply(*d);   // mirrors handleDataSuccess()
+    return d;
 }
 
 AmsData* harness_decode_fixture_tz(const char* path, Timezone* tz) {

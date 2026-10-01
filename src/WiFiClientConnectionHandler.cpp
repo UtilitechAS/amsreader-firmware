@@ -32,6 +32,28 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 		}
 
 		if(WiFi.getMode() != WIFI_OFF) {
+			if(lastChannel > 0) {
+				// Connection was lost. Retry the last AP on its channel with the radio still on,
+				// as restarting WiFi and scanning all channels is costly on bus powered devices.
+				// That AP is the one the last full scan picked as the strongest.
+				uint8_t channel = lastChannel;
+				lastChannel = 0;
+				timeout = CONNECTION_TIMEOUT;
+
+				#if defined(AMS_REMOTE_DEBUG)
+				if (debugger->isActive(RemoteDebug::INFO))
+				#endif
+				debugger->printf_P(PSTR("Reconnecting to WiFi network: %s (channel %d, AP %02X:%02X:%02X:%02X:%02X:%02X)\n"), config.ssid, channel, lastBssid[0], lastBssid[1], lastBssid[2], lastBssid[3], lastBssid[4], lastBssid[5]);
+
+				#if defined(ESP32)
+				esp_wifi_disconnect();
+				begin(config.ssid, config.psk, channel, lastBssid);
+				#else
+				WiFi.begin(config.ssid, config.psk, channel, lastBssid);
+				#endif
+				return true;
+			}
+
 			#if defined(AMS_REMOTE_DEBUG)
 			if (debugger->isActive(RemoteDebug::INFO))
 			#endif
@@ -67,6 +89,7 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 			}
 		#endif
 		WiFi.mode(WIFI_STA);
+		applyTxPower(config);
 
 		if(strlen(config.ip) > 0) {
 			IPAddress ip, gw, sn(255,255,255,0), dns1, dns2;
@@ -103,7 +126,7 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 		WiFi.persistent(false);
         this->config = config;
 		#if defined(ESP32)
-		if(begin(config.ssid, config.psk)) {
+		if(begin(config.ssid, config.psk, 0, NULL)) {
 		#else
 		if(WiFi.begin(config.ssid, config.psk)) {
 		#endif
@@ -133,7 +156,7 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 }
 
 #if defined(ESP32)
-wl_status_t WiFiClientConnectionHandler::begin(const char* ssid, const char* passphrase) {
+wl_status_t WiFiClientConnectionHandler::begin(const char* ssid, const char* passphrase, uint8_t channel, const uint8_t* bssid) {
    if(!WiFi.enableSTA(true)) {
         log_e("STA enable failed!");
         return WL_CONNECT_FAILED;
@@ -152,7 +175,7 @@ wl_status_t WiFiClientConnectionHandler::begin(const char* ssid, const char* pas
     wifi_config_t conf;
     memset(&conf, 0, sizeof(wifi_config_t));
 
-    wifi_sta_config(&conf, ssid, passphrase, NULL, 0, WIFI_AUTH_WPA2_PSK, WIFI_ALL_CHANNEL_SCAN, WIFI_CONNECT_AP_BY_SIGNAL);
+    wifi_sta_config(&conf, ssid, passphrase, bssid, channel, WIFI_AUTH_WPA2_PSK, channel > 0 ? WIFI_FAST_SCAN : WIFI_ALL_CHANNEL_SCAN, WIFI_CONNECT_AP_BY_SIGNAL);
 
     wifi_config_t current_conf;
     if(esp_wifi_get_config((wifi_interface_t)ESP_IF_WIFI_STA, &current_conf) != ESP_OK){
@@ -236,10 +259,51 @@ void WiFiClientConnectionHandler::disconnect(unsigned long reconnectDelay) {
 	WiFi.mode(WIFI_OFF);
 	yield();
 	timeout = reconnectDelay;
+	lastChannel = 0;
 }
 
 bool WiFiClientConnectionHandler::isConnected() {
-    return WiFi.status() == WL_CONNECTED;
+	if(WiFi.status() != WL_CONNECTED) {
+		return false;
+	}
+	// Remembered so a lost connection can be retried without scanning all channels
+	uint8_t* bssid = WiFi.BSSID();
+	if(bssid != NULL) {
+		memcpy(lastBssid, bssid, 6);
+		lastChannel = WiFi.channel();
+	}
+	return true;
+}
+
+void WiFiClientConnectionHandler::applyTxPower(NetworkConfig& config) {
+	#if defined(ESP32)
+		if(config.power >= 195)
+			WiFi.setTxPower(WIFI_POWER_19_5dBm);
+		else if(config.power >= 190)
+			WiFi.setTxPower(WIFI_POWER_19dBm);
+		else if(config.power >= 185)
+			WiFi.setTxPower(WIFI_POWER_18_5dBm);
+		else if(config.power >= 170)
+			WiFi.setTxPower(WIFI_POWER_17dBm);
+		else if(config.power >= 150)
+			WiFi.setTxPower(WIFI_POWER_15dBm);
+		else if(config.power >= 130)
+			WiFi.setTxPower(WIFI_POWER_13dBm);
+		else if(config.power >= 110)
+			WiFi.setTxPower(WIFI_POWER_11dBm);
+		else if(config.power >= 85)
+			WiFi.setTxPower(WIFI_POWER_8_5dBm);
+		else if(config.power >= 70)
+			WiFi.setTxPower(WIFI_POWER_7dBm);
+		else if(config.power >= 50)
+			WiFi.setTxPower(WIFI_POWER_5dBm);
+		else if(config.power >= 20)
+			WiFi.setTxPower(WIFI_POWER_2dBm);
+		else
+			WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
+	#elif defined(ESP8266)
+		WiFi.setOutputPower(config.power / 10.0);
+	#endif
 }
 
 #if defined(ESP32)
@@ -278,32 +342,7 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
 					}
 				}
 
-                if(config.power >= 195)
-                    WiFi.setTxPower(WIFI_POWER_19_5dBm);
-                else if(config.power >= 190)
-                    WiFi.setTxPower(WIFI_POWER_19dBm);
-                else if(config.power >= 185)
-                    WiFi.setTxPower(WIFI_POWER_18_5dBm);
-                else if(config.power >= 170)
-                    WiFi.setTxPower(WIFI_POWER_17dBm);
-                else if(config.power >= 150)
-                    WiFi.setTxPower(WIFI_POWER_15dBm);
-                else if(config.power >= 130)
-                    WiFi.setTxPower(WIFI_POWER_13dBm);
-                else if(config.power >= 110)
-                    WiFi.setTxPower(WIFI_POWER_11dBm);
-                else if(config.power >= 85)
-                    WiFi.setTxPower(WIFI_POWER_8_5dBm);
-                else if(config.power >= 70)
-                    WiFi.setTxPower(WIFI_POWER_7dBm);
-                else if(config.power >= 50)
-                    WiFi.setTxPower(WIFI_POWER_5dBm);
-                else if(config.power >= 20)
-                    WiFi.setTxPower(WIFI_POWER_2dBm);
-                else
-                    WiFi.setTxPower(WIFI_POWER_MINUS_1dBm);
-            #elif defined(ESP8266)
-                WiFi.setOutputPower(config.power / 10.0);
+                applyTxPower(config);
             #endif
 			break;
 		case ARDUINO_EVENT_WIFI_STA_GOT_IP: {
@@ -361,7 +400,6 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
 						{
 							debugger->printf_P(PSTR("WiFi disconnected, reason %s\n"), descr);
 						}
-						disconnect(RECONNECT_TIMEOUT);
 					}
 			}
 			break;

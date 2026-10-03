@@ -27,8 +27,8 @@ bool DomoticzMqttHandler::publish(AmsData* update, AmsData* previousState, Energ
             energy = data.getActiveImportCounter();
         }
         if(energy > 0.0) {
-            char val[16];
-            snprintf_P(val, 16, PSTR("%.1f;%.1f"), (data.getActiveImportPower()/1.0), energy*1000.0);
+            char val[32];
+            snprintf_P(val, sizeof(val), PSTR("%.1f;%.1f"), (data.getActiveImportPower()/1.0), energy*1000.0);
             snprintf_P(json, BUF_SIZE_COMMON, DOMOTICZ_JSON,
                 config.elidx,
                 val
@@ -43,7 +43,7 @@ bool DomoticzMqttHandler::publish(AmsData* update, AmsData* previousState, Energ
 
     if (config.vl1idx > 0){				
         char val[16];
-        snprintf_P(val, 16, PSTR("%.2f"), data.getL1Voltage());
+        snprintf_P(val, sizeof(val), PSTR("%.2f"), data.getL1Voltage());
         snprintf_P(json, BUF_SIZE_COMMON, DOMOTICZ_JSON,
             config.vl1idx,
             val
@@ -54,7 +54,7 @@ bool DomoticzMqttHandler::publish(AmsData* update, AmsData* previousState, Energ
 
     if (config.vl2idx > 0){				
         char val[16];
-        snprintf_P(val, 16, PSTR("%.2f"), data.getL2Voltage());
+        snprintf_P(val, sizeof(val), PSTR("%.2f"), data.getL2Voltage());
         snprintf_P(json, BUF_SIZE_COMMON, DOMOTICZ_JSON,
             config.vl2idx,
             val
@@ -65,7 +65,7 @@ bool DomoticzMqttHandler::publish(AmsData* update, AmsData* previousState, Energ
 
     if (config.vl3idx > 0){				
         char val[16];
-        snprintf(val, 16, "%.2f", data.getL3Voltage());
+        snprintf(val, sizeof(val), "%.2f", data.getL3Voltage());
         snprintf_P(json, BUF_SIZE_COMMON, DOMOTICZ_JSON,
             config.vl3idx,
             val
@@ -75,8 +75,8 @@ bool DomoticzMqttHandler::publish(AmsData* update, AmsData* previousState, Energ
     }
 
     if (config.cl1idx > 0){				
-        char val[16];
-        snprintf(val, 16, "%.1f;%.1f;%.1f", data.getL1Current(), data.getL2Current(), data.getL3Current());
+        char val[32];
+        snprintf(val, sizeof(val), "%.1f;%.1f;%.1f", data.getL1Current(), data.getL2Current(), data.getL3Current());
         snprintf_P(json, BUF_SIZE_COMMON, DOMOTICZ_JSON,
             config.cl1idx,
             val

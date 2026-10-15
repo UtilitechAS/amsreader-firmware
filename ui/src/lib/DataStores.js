@@ -213,6 +213,7 @@ export async function getNetworks() {
     const response = await fetchWithTimeout("wifiscan.json", { timeout: 30000 });
     let res = (await response.json())
     let addedSsid = [];
+    res.n.sort((a, b) => b.r - a.r); // Strongest first, also keeps the strongest of duplicates
     networks.c = 0;
     networks.n = [];
     for (let i = 0; i < res.n.length; i++) {

@@ -170,16 +170,16 @@ void AmsWebServer::setup(AmsConfiguration* config, GpioConfig* gpioConfig, AmsDa
 	server.on(context + F("/cloudkey.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
 	server.on(context + F("/configuration.json"), HTTP_OPTIONS, std::bind(&AmsWebServer::optionsGet, this));
 
-	/* These trigger captive portal. Only problem is that after you have "signed in", the portal is closed and the user has no idea how to reach the device
-	server.on(context + F("/generate_204"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Android captive portal check: http://connectivitycheck.gstatic.com/generate_204
-	server.on(context + F("/ncsi.txt"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check: http://www.msftncsi.com/ncsi.txt 
-	server.on(context + F("/fwlink"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Microsoft connectivity check
-	server.on(context + F("/library/test/success.html"), HTTP_GET, std::bind(&AmsWebServer::redirectToMain, this)); // Apple connectivity check: http://www.apple.com/library/test/success.html
-	*/
-
 	server.on("/ssdp/schema.xml", HTTP_GET, std::bind(&AmsWebServer::ssdpSchema, this));
 
 	server.onNotFound(std::bind(&AmsWebServer::notFound, this));
+
+	#if defined(ESP32)
+	// Kept so the setup connection test can tell a rejected password from a missing network
+	WiFi.onEvent([this](WiFiEvent_t event, WiFiEventInfo_t info) {
+		wifiTestReason = info.wifi_sta_disconnected.reason;
+	}, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
+	#endif
 	
 	#if defined(ESP32)
 	const char * headerkeys[] = {HEADER_AUTHORIZATION, HEADER_ORIGIN, HEADER_REFERER, HEADER_ACCESS_CONTROL_REQUEST_PRIVATE_NETWORK} ;
@@ -284,6 +284,17 @@ debugger->printf_P(PSTR("Unsuccessful login: '%s'\n"), providedPwd.c_str());
 }
 
 void AmsWebServer::notFound() {
+	// In setup mode our DNS server answers every name with our own address. A request
+	// for another host is the phone checking for internet (captive.apple.com,
+	// connectivitycheck.gstatic.com, msftconnecttest.com ...). Redirecting it makes
+	// the phone open the setup page as a captive portal.
+	if(WiFi.getMode() == WIFI_AP_STA && server.hostHeader() != WiFi.softAPIP().toString()) {
+		server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
+		server.sendHeader(HEADER_LOCATION, "http://" + WiFi.softAPIP().toString() + "/");
+		server.send(302);
+		return;
+	}
+
 	#if defined(AMS_REMOTE_DEBUG)
 if (debugger->isActive(RemoteDebug::WARNING))
 #endif
@@ -1200,6 +1211,12 @@ void AmsWebServer::handleSave() {
 			sys.dataCollectionConsent = 0;
 			sys.firmwareChannel = 0;
 			config->setSystemConfig(sys);
+
+			// Lets the device return to setup mode if it never manages to join this network
+			if(LittleFS.begin()) {
+				File file = LittleFS.open(FILE_SETUP_PENDING, "w");
+				file.close();
+			}
 
 			performRestart = true;
 		}
@@ -2794,6 +2811,14 @@ void AmsWebServer::wifiTestStart() {
 		wifiTestStarted = millis();
 		String ssid = server.arg(F("ssid"));
 		String psk = server.arg(F("psk"));
+		if(WiFi.status() == WL_CONNECTED) {
+			// Still joined from an earlier test, don't let that count as the result of this one
+			WiFi.disconnect();
+			delay(100);
+		}
+		#if defined(ESP32)
+		wifiTestReason = 0;
+		#endif
 		WiFi.begin(ssid, psk);
 		wifiTestInProgress = true;
 		wifiTestStatusCode = 0;
@@ -2804,26 +2829,59 @@ void AmsWebServer::wifiTestStart() {
 void AmsWebServer::wifiTestStatus() {
 	if(!checkSecurity(1))
 		return;
-	
+
 	if(wifiTestInProgress) {
 		wifiTestStatusCode = WiFi.status();
-		if(wifiTestStatusCode == WL_DISCONNECTED) { // Still trying to connect
-			if(millis() - wifiTestStarted > WIFI_TEST_TIMEOUT) {
-				wifiTestInProgress = false;
-				wifiTestStatusCode = 99; // Custom code for timeout
-			}
-		} else {
+		#if defined(ESP32)
+		switch(wifiTestReason) {
+			case WIFI_REASON_NO_AP_FOUND:
+				wifiTestStatusCode = WL_NO_SSID_AVAIL;
+				break;
+			case WIFI_REASON_AUTH_FAIL:
+			case WIFI_REASON_MIC_FAILURE:
+			case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT:
+			case WIFI_REASON_HANDSHAKE_TIMEOUT:
+				wifiTestStatusCode = WIFI_TEST_WRONG_PASSWORD;
+				break;
+		}
+		#else
+		if(wifiTestStatusCode == WL_WRONG_PASSWORD) wifiTestStatusCode = WIFI_TEST_WRONG_PASSWORD;
+		#endif
+
+		if(wifiTestStatusCode == WL_CONNECTED) {
 			wifiTestInProgress = false;
+		} else {
+			bool failed = wifiTestStatusCode == WL_NO_SSID_AVAIL || wifiTestStatusCode == WL_CONNECT_FAILED || wifiTestStatusCode == WIFI_TEST_WRONG_PASSWORD;
+			if(!failed && millis() - wifiTestStarted > WIFI_TEST_TIMEOUT) {
+				failed = true;
+				wifiTestStatusCode = WIFI_TEST_TIMED_OUT;
+			}
+			if(failed) {
+				wifiTestInProgress = false;
+				// Stop retrying. Reconnect attempts scan every channel, and the access point the phone is on has to follow along
+				WiFi.disconnect();
+			}
+			// Anything else (idle, disconnected, lost while retrying) means the station is still trying
 		}
 	}
 
 	#if defined(ESP32)
 		wifi_config_t conf;
 		esp_wifi_get_config((wifi_interface_t)ESP_IF_WIFI_STA, &conf);
-		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("{\"ssid\":\"%s\",\"status\":%d,\"time\":%lu,\"ip\":\"%s\"}"), conf.sta.ssid, wifiTestStatusCode, wifiTestInProgress ? millis() - wifiTestStarted : 0, WiFi.localIP().toString().c_str());
+		const char* ssid = (const char*) conf.sta.ssid;
 	#else
-		snprintf_P(buf, BUF_SIZE_COMMON, PSTR("{\"ssid\":\"%s\",\"status\":%d,\"time\":%lu,\"ip\":\"%s\"}"), WiFi.SSID().c_str(), wifiTestStatusCode, wifiTestInProgress ? millis() - wifiTestStarted : 0, WiFi.localIP().toString().c_str());
+		String ssidStr = WiFi.SSID();
+		const char* ssid = ssidStr.c_str();
 	#endif
+	snprintf_P(buf, BUF_SIZE_COMMON, PSTR("{\"ssid\":\"%s\",\"status\":%d,\"time\":%lu,\"ip\":\"%s\",\"gw\":\"%s\",\"mask\":\"%s\",\"dns\":\"%s\"}"),
+		ssid,
+		wifiTestStatusCode,
+		wifiTestInProgress ? millis() - wifiTestStarted : 0,
+		WiFi.localIP().toString().c_str(),
+		WiFi.gatewayIP().toString().c_str(),
+		WiFi.subnetMask().toString().c_str(),
+		WiFi.dnsIP().toString().c_str()
+	);
 	server.sendHeader(HEADER_CACHE_CONTROL, CACHE_CONTROL_NO_CACHE);
 	server.sendHeader(HEADER_PRAGMA, PRAGMA_NO_CACHE);
 	server.sendHeader(HEADER_EXPIRES, EXPIRES_OFF);

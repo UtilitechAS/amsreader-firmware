@@ -20,4 +20,7 @@
 #define FILE_CFG "/configfile.cfg"
 #define FILE_PRICE_CONF "/priceconf.bin"
 
+// Present from the setup save until the device first joins the configured network
+#define FILE_SETUP_PENDING "/setuppending"
+
 #endif

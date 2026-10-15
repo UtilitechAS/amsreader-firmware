@@ -2053,7 +2053,7 @@ void MQTT_connect() {
 				case 3: {
 					DomoticzConfig domo;
 					config.getDomoticzConfig(domo);
-					DomoticzMqttHandler* dmh = (DomoticzMqttHandler*) &mqttHandler;
+					DomoticzMqttHandler* dmh = (DomoticzMqttHandler*) mqttHandler;
 					dmh->setDomoticzConfig(domo);
 					break;
 				}
@@ -2062,7 +2062,7 @@ void MQTT_connect() {
 					config.getHomeAssistantConfig(haconf);
 					NetworkConfig network;
 					config.getNetworkConfig(network);
-					HomeAssistantMqttHandler* hamh = (HomeAssistantMqttHandler*) &mqttHandler;
+					HomeAssistantMqttHandler* hamh = (HomeAssistantMqttHandler*) mqttHandler;
 					hamh->setHomeAssistantConfig(haconf, network.hostname);
 					break;
 				}

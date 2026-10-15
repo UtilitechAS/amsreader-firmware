@@ -935,6 +935,7 @@ void handleUpdater() {
 		UpgradeInformation upinfo;
 		updater.getUpgradeInformation(upinfo);
 		config.setUpgradeInformation(upinfo);
+		config.save();
 		updater.ackUpgradeInformationChanged();
 		if(mqttHandler != NULL)
 			mqttHandler->publishFirmware();

@@ -323,13 +323,6 @@
       "6": "Firmware verification failed, incorrect checksum",
       "64": "Too many reboots",
       "7": "Unable to activate new firmware"
-    },
-    "wifi": {
-      "1": "SSID not found",
-      "4": "Connect failed",
-      "5": "Connection lost",
-      "6": "Disconnected",
-      "99": "Timeout"
     }
   },
   "esp32": {
@@ -406,13 +399,94 @@
     "title": "Real time calculations"
   },
   "setup": {
-    "forcesave": "Force save",
+    "ap_intro": "The meter reader will make its own Wi-Fi network \"{0}\". Join it with your password, then open:",
+    "ap_psk": "At least 8 characters. You need this to join the meter reader's network.",
+    "ap_title": "Create a Wi-Fi network",
+    "back": "Back",
+    "connect": "Connect",
+    "continue": "Continue",
+    "copied": "Copied",
+    "copy": "Copy",
+    "done_ap": "The meter reader is restarting with its own Wi-Fi network.",
+    "done_eth": "The meter reader is restarting and connecting through the network cable.",
+    "done_fallback": "If it can't connect within 5 minutes, it goes back to setup. Join \"{0}\" again to fix the settings.",
+    "done_force": "The meter reader is restarting and will try to join \"{0}\".",
+    "done_join": "Connect your phone to \"{0}\" again, if it does not happen by itself",
+    "done_join_ap": "Join the Wi-Fi network \"{0}\"",
+    "done_join_eth": "Connect your phone to the same network as the meter reader",
+    "done_ok": "The meter reader is restarting and joining \"{0}\".",
+    "done_open": "Open this address:",
+    "done_router": "If the name does not work, look for \"{0}\" in your router's list of connected devices.",
+    "done_title": "Settings saved",
+    "eap_hint": "Enterprise networks (WPA2-EAP) are not supported.",
+    "eth_intro": "Plug in the network cable. The meter reader gets its address from your router.",
+    "eth_title": "Use the network cable",
+    "fail": {
+      "-1": {
+        "h": "Your phone left the meter reader's network \"{0}\" during the test. Join it again, then try once more.",
+        "t": "Lost contact with the meter reader"
+      },
+      "1": {
+        "h": "The meter reader can't see this network from where it is. Check the name, and move the meter reader or the router closer. 5 GHz-only networks are not supported.",
+        "t": "Can't find \"{0}\""
+      },
+      "4": {
+        "h": "The router refused the connection. Check the password, and that the router allows new devices.",
+        "t": "Could not connect to \"{0}\""
+      },
+      "98": {
+        "h": "\"{0}\" did not accept the password. Passwords are case-sensitive, tap the eye to check what you typed.",
+        "t": "Wrong password"
+      },
+      "99": {
+        "h": "The meter reader did not get connected within 30 seconds. This is usually a weak signal or a wrong password. Some routers also block new devices until you allow them.",
+        "t": "No answer from \"{0}\""
+      }
+    },
+    "find_at": "After setup, you will find the meter reader at:",
+    "finish": "Finish setup",
+    "force_ack": "I understand that the meter reader may not connect",
+    "force_intro": "The meter reader could not connect to \"{0}\" during the test. If you save anyway:",
+    "force_link": "Still not working? Save without a confirmed connection",
+    "force_save": "Save anyway",
+    "force_title": "The connection is not confirmed",
+    "from_list": "Choose from list",
+    "ip": "IP address",
+    "ip_unknown": "unknown until the meter reader is connected",
     "mask": "Saving your configuration to the device",
-    "static": "Static IP",
-    "testconn": "Testing connection",
-    "testfail": "Connection failed",
-    "testok": "Connection successful",
-    "title": "Setup"
+    "more": "Other ways to connect",
+    "name": "Device name",
+    "network": "Network name",
+    "not_listed": "Not listed?",
+    "noted": "I have saved the address",
+    "ok_title": "Connected to \"{0}\"",
+    "or": "or",
+    "password": "Password",
+    "rescan": "Scan again",
+    "retry": "Try again",
+    "save_failed": "Could not save. Make sure your phone is still on the meter reader's network \"{0}\" and try again.",
+    "scanning": "Looking for networks...",
+    "screenshot": "Take a screenshot or write it down. This page closes when your phone leaves the meter reader's network.",
+    "searching": "Looking for the meter reader. This page opens it when found.",
+    "show": "Show password",
+    "signal": {
+      "1": "Weak signal",
+      "2": "Fair signal",
+      "3": "Good signal",
+      "4": "Excellent signal"
+    },
+    "static_hint": "Reserving the address in your router is usually the better choice.",
+    "static_keep": "Always use the same IP address (static IP)",
+    "steps": {
+      "wifi": "Wi-Fi",
+      "address": "Address",
+      "done": "Done"
+    },
+    "testing": "Connecting to \"{0}\"...",
+    "testing_hint": "This takes up to 30 seconds. Your phone may lose contact with the meter reader for a moment, stay on this page.",
+    "weak_hint": "The connection may be unreliable. If you can, move the meter reader or the router closer to each other.",
+    "wifi_intro": "Choose the network the meter reader should use. It only works with 2.4 GHz networks.",
+    "wifi_title": "Connect to your Wi-Fi"
   },
   "status": {
     "backup": {

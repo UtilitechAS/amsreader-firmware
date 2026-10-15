@@ -283,10 +283,21 @@ PulseMeterCommunicator* pulseMc = NULL;
 
 bool networkConnected = false;
 bool setupMode = false;
+// Set until the device has joined the network chosen in setup. If that doesn't happen
+// in time we return to setup mode, so a wrong password doesn't leave the device unreachable.
+bool setupPending = false;
+unsigned long setupIdleSince = 0;
+char setupSsid[32];
+uint8_t setupChannel = 1;
+bool smartConfigPaused = false; // While someone uses the setup page, see loop()
+#define SMARTCONFIG_RESUME_DELAY 60000 // Rides out short drops, like the phone reconnecting during the WiFi test
+#define SETUP_PENDING_CONNECT_TIMEOUT 300000 // How long to try the new network before returning to setup mode
+#define SETUP_PENDING_IDLE_RESTART 600000 // How long setup mode waits for a phone before trying the network again
 
 void configFileParse();
 void connectToNetwork();
 void toggleSetupMode();
+void startSmartConfig();
 void postConnect();
 void MQTT_connect();
 void handleDataSuccess(AmsData* data);
@@ -657,6 +668,7 @@ void setup() {
 
 	if(config.hasConfig()) {
 		config.print(&Debug);
+		setupPending = hasFs && LittleFS.exists(FILE_SETUP_PENDING);
 		connectToNetwork();
 		ds.load();
 	} else {
@@ -763,6 +775,17 @@ void loop() {
 				#endif
 			}
 			networkConnected = false;
+			if(setupPending && now > SETUP_PENDING_CONNECT_TIMEOUT) {
+				debugW_P(PSTR("Unable to join the network from setup, returning to setup mode"));
+				SystemConfig sys;
+				config.getSystemConfig(sys);
+				sys.userConfigured = false; // Opens the setup page instead of the dashboard
+				config.setSystemConfig(sys);
+				config.save();
+				toggleSetupMode();
+				setupIdleSince = now;
+				return;
+			}
 			connectToNetwork();
 		} else {
 			if(!networkConnected) {
@@ -877,6 +900,24 @@ void loop() {
 			dnsServer->processNextRequest();
 		}
 		ws.loop();
+		// The network may just have been down. If nobody comes to fix the settings, try it again.
+		if(WiFi.softAPgetStationNum() > 0) {
+			setupIdleSince = now;
+			if(!smartConfigPaused) {
+				// SmartConfig listens for the app by hopping between channels, dragging the access
+				// point along and dropping the phone's traffic. A phone that joined is using the setup page.
+				WiFi.stopSmartConfig();
+				smartConfigPaused = true;
+			}
+		} else if(smartConfigPaused && now - setupIdleSince > SMARTCONFIG_RESUME_DELAY) {
+			debugI_P(PSTR("Nobody on the setup page, listening for SmartConfig again"));
+			startSmartConfig();
+			smartConfigPaused = false;
+		} else if(setupPending && now - setupIdleSince > SETUP_PENDING_IDLE_RESTART) {
+			debugI_P(PSTR("Nobody connected to setup, restarting to try the network again"));
+			delay(250);
+			ESP.restart();
+		}
 	}
 
 	handleMeterConfig();
@@ -1726,33 +1767,49 @@ void toggleSetupMode() {
 		*/
 
 		WiFi.mode(WIFI_AP_STA);
-		#if defined(ESP32) && defined(AMS2MQTT_SC_KEY)
-		WiFi.beginSmartConfig(SC_TYPE_ESPTOUCH_V2, AMS2MQTT_SC_KEY);
-		#else
-		WiFi.beginSmartConfig();
-		#endif
 
-		char ssid[32];
+		// The radio can only be on one channel. When the setup connection test joins the
+		// router, the access point moves to the router's channel and the phone drops off.
+		// Start on the channel of the strongest network, most likely the one being chosen.
+		uint8_t channel = 1;
+		int32_t strongest = INT32_MIN;
+		int16_t count = WiFi.scanNetworks();
+		for(int16_t i = 0; i < count; i++) {
+			if(WiFi.RSSI(i) > strongest) {
+				strongest = WiFi.RSSI(i);
+				channel = WiFi.channel(i);
+			}
+		}
+		WiFi.scanDelete();
+		setupChannel = channel;
+
 		if(sysConfig.vendorConfigured) {
 			// Use the standard SSID if the vendor has configured the device
-			strcpy_P(ssid, PSTR("AMS2MQTT"));
+			strcpy_P(setupSsid, PSTR("AMS2MQTT"));
 		} else {
 			// If not vendor configured, use a unique SSID to avoid conflicts if multiple devices are in setup mode at the same time
-			config.getUniqueName(ssid, 32);
+			config.getUniqueName(setupSsid, 32);
 		}
 		uint8_t debugLevel = RemoteDebug::INFO;
 		#if defined(DEBUG_MODE)
 			debugLevel = RemoteDebug::VERBOSE;
 		#endif
-		WiFi.softAP(ssid);
+		startSmartConfig();
+		smartConfigPaused = false;
 		Debug.setSerialEnabled(true);
 		Debug.begin(F("192.168.4.1"), 23, debugLevel);
-		debugI_P(PSTR("SSID: %s"), ssid);
+		debugI_P(PSTR("SSID: %s, channel %d"), setupSsid, channel);
 
 		if(dnsServer == NULL) {
 			dnsServer = new DNSServer();
 		}
+		#if defined(ESP32)
+		// The ESP32 DNS server can't answer EDNS queries (Android sends them unless Private DNS is off).
+		// FormError makes the resolver retry without EDNS, any other code leaves it without an address.
+		dnsServer->setErrorReplyCode(DNSReplyCode::FormError);
+		#else
 		dnsServer->setErrorReplyCode(DNSReplyCode::NoError);
+		#endif
 		dnsServer->start(53, PSTR("*"), WiFi.softAPIP());
 		setupMode = true;
 
@@ -1774,6 +1831,16 @@ void toggleSetupMode() {
 		}
 		hw.setBootSuccessful(true);
 	}
+}
+
+// Starts the setup access point too, as beginSmartConfig() turns it off on ESP32
+void startSmartConfig() {
+	#if defined(ESP32) && defined(AMS2MQTT_SC_KEY)
+	WiFi.beginSmartConfig(SC_TYPE_ESPTOUCH_V2, AMS2MQTT_SC_KEY);
+	#else
+	WiFi.beginSmartConfig();
+	#endif
+	WiFi.softAP(setupSsid, NULL, setupChannel);
 }
 
 bool readHanPort() {
@@ -1948,6 +2015,18 @@ void handleDataSuccess(AmsData* data) {
 
 void postConnect() {
 	networkConnected = true;
+
+	if(setupPending) {
+		setupPending = false;
+		LittleFS.remove(FILE_SETUP_PENDING);
+		SystemConfig sys;
+		config.getSystemConfig(sys);
+		if(!sys.userConfigured) { // We returned to setup mode earlier, but the network works now
+			sys.userConfigured = true;
+			config.setSystemConfig(sys);
+			config.save();
+		}
+	}
 
 	NetworkConfig network;
 	ch->getCurrentConfig(network);

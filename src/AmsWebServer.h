@@ -50,6 +50,8 @@
 #include "LittleFS.h"
 
 #define WIFI_TEST_TIMEOUT 30000
+#define WIFI_TEST_WRONG_PASSWORD 98
+#define WIFI_TEST_TIMED_OUT 99
 
 class AmsWebServer {
 public:
@@ -131,6 +133,9 @@ private:
 	bool wifiTestInProgress = false;
 	unsigned long wifiTestStarted = 0;
 	uint8_t wifiTestStatusCode = 0;
+#if defined(ESP32)
+	uint8_t wifiTestReason = 0;
+#endif
 
 	bool checkSecurity(byte level, bool send401 = true);
 

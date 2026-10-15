@@ -22,7 +22,13 @@ bool WiFiAccessPointConnectionHandler::connect(NetworkConfig config, SystemConfi
 		WiFi.persistent(false);
 		WiFi.softAP(config.ssid, config.psk);
 
+		#if defined(ESP32)
+		// The ESP32 DNS server can't answer EDNS queries (Android sends them unless Private DNS is off).
+		// FormError makes the resolver retry without EDNS, any other code leaves it without an address.
+		dnsServer.setErrorReplyCode(DNSReplyCode::FormError);
+		#else
 		dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+		#endif
 		dnsServer.start(53, PSTR("*"), WiFi.softAPIP());
         connected = true;
 

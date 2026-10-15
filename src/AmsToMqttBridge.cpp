@@ -609,6 +609,7 @@ void setup() {
 	if(config.getUpgradeInformation(upinfo)) {
 		updater.setUpgradeInformation(upinfo);
 	}
+	updater.setFirmwareChannel(sysConfig.firmwareChannel);
 	yield();
 
 	bool hasFs = false;
@@ -934,6 +935,7 @@ void handleUpdater() {
 		UpgradeInformation upinfo;
 		updater.getUpgradeInformation(upinfo);
 		config.setUpgradeInformation(upinfo);
+		config.save();
 		updater.ackUpgradeInformationChanged();
 		if(mqttHandler != NULL)
 			mqttHandler->publishFirmware();
@@ -944,8 +946,9 @@ void handleUpdater() {
 
 		if(upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_SIGNAL) {
 			debugW_P(PSTR("Rebooting to firmware version %s"), upinfo.toVersion);
-			upinfo.errorCode == AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
+			upinfo.errorCode = AMS_UPDATE_ERR_SUCCESS_CONFIRMED;
 			config.setUpgradeInformation(upinfo);
+			config.save();
 			rdc.cause = REBOOT_CAUSE_FIRMWARE_UPDATE;
 			delay(250);
 			ESP.restart();

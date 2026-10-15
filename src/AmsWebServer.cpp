@@ -1891,6 +1891,7 @@ void AmsWebServer::fwchannel() {
 	config->getSystemConfig(sys);
 	sys.firmwareChannel = server.arg(F("channel")).toInt();
 	config->setSystemConfig(sys);
+	config->save();
 	server.send(200);
 }
 

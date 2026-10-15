@@ -42,10 +42,18 @@ class AmsData;
 class Timezone;
 AmsData* harness_decode(uint8_t* buf, uint16_t len, MeterConfig* cfg,
                         const uint8_t* enc_key, const uint8_t* auth_key,
-                        Timezone* tz = NULL);
+                        Timezone* tz = NULL, AmsData* state = NULL);
 
 // Convenience: load + decode a fixture (unencrypted). Returns NULL on failure.
+// The parser sees an empty meter state, so a frame that only carries part of a
+// meter's list decodes standalone with the rest unset.
 AmsData* harness_decode_fixture(const char* path);
+
+// Decode a fixture as a step in a sequence, the way the firmware pipeline does:
+// the parser is given the running state (so a partial frame can carry values
+// forward from earlier ones), and the packet is applied back into it. Returns
+// the packet (caller frees); state holds the merged view.
+AmsData* harness_decode_fixture_seq(const char* path, AmsData& state);
 
 // Same, but decode with a specific timezone (for timestamp/zone assertions).
 AmsData* harness_decode_fixture_tz(const char* path, Timezone* tz);

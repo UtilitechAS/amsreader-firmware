@@ -19,6 +19,7 @@ public:
     #endif
         this->hw = hw;
         this->ds = ds;
+        this->format = mqttConfig.payloadFormat;
     };
     #if defined(AMS_REMOTE_DEBUG)
     JsonMqttHandler(MqttConfig& mqttConfig, RemoteDebug* debugger, char* buf, HwTools* hw, AmsDataStorage* ds, AmsFirmwareUpdater* updater) : AmsMqttHandler(mqttConfig, debugger, buf, updater) {
@@ -27,6 +28,7 @@ public:
     #endif
         this->hw = hw;
         this->ds = ds;
+        this->format = mqttConfig.payloadFormat;
     };
     bool publish(AmsData* data, AmsData* previousState, EnergyAccounting* ea, PriceService* ps);
     bool publishTemperatures(AmsConfiguration*, HwTools*);
@@ -40,6 +42,7 @@ public:
     uint8_t getFormat();
 
 private:
+    uint8_t format = 0;
     HwTools* hw;
     bool hasExport = false;
     // ds is inherited from AmsMqttHandler (shared with dayplot/monthplot commands)

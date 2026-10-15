@@ -201,8 +201,15 @@ bool AmsMqttHandler::loop() {
     bool ret = connected() && mqtt.loop();
 	if(ret) {
 		lastSuccessfulLoop = now;
+		hadSuccessfulLoop = true;
 	} else if(mqttConfig.rebootMinutes > 0) {
-		if(now - lastSuccessfulLoop > (uint64_t) mqttConfig.rebootMinutes * 60000) {
+		// Until the first successful loop there is nothing to measure from;
+		// start the grace period now instead of treating boot as the last
+		// success, which would reboot immediately once uptime passes the limit.
+		if(!hadSuccessfulLoop) {
+			lastSuccessfulLoop = now;
+			hadSuccessfulLoop = true;
+		} else if(now - lastSuccessfulLoop > (uint64_t) mqttConfig.rebootMinutes * 60000) {
 			// Reboot the device if the MQTT connection is lost for too long
 			#if defined(AMS_REMOTE_DEBUG)
 			if (debugger->isActive(RemoteDebug::WARNING))

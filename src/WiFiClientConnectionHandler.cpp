@@ -307,10 +307,14 @@ void WiFiClientConnectionHandler::applyTxPower(NetworkConfig& config) {
 }
 
 #if defined(ESP32)
+void WiFiClientConnectionHandler::allow11b() {
+	force11b = true;
+}
+
 void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_t info) {
     switch(event) {
 		case ARDUINO_EVENT_WIFI_READY:
-			if (!config.use11b) {
+			if (!config.use11b && !force11b) {
 				esp_wifi_config_11b_rate(WIFI_IF_AP, true);
 				esp_wifi_config_11b_rate(WIFI_IF_STA, true);
 			}

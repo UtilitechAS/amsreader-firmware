@@ -78,6 +78,8 @@ ADC_MODE(ADC_VCC);
 
 #include "ConnectionHandler.h"
 #include "WiFiClientConnectionHandler.h"
+#include "NetworkWatchdog.h"
+#include "GatewayPing.h"
 #include "WiFiAccessPointConnectionHandler.h"
 #include "EthernetConnectionHandler.h"
 #include "PriceService.h"
@@ -149,6 +151,8 @@ __NOINIT_ATTR ResetDataContainer rdc;
 ResetDataContainer rdc;
 #endif
 AmsWebServer ws(commonBuffer, &Debug, &hw, &rdc);
+NetworkWatchdog networkWatchdog(&rdc);
+GatewayPing gatewayPing;
 
 bool mqttEnabled = false;
 AmsMqttHandler* mqttHandler = NULL;
@@ -322,6 +326,7 @@ unsigned long handleMqtt();
 unsigned long handleWebserver();
 void handleSmartConfig();
 void handleMeterConfig();
+void handleNetworkWatchdog();
 
 uint8_t pulses = 0;
 void onPulse();
@@ -569,10 +574,9 @@ void setup() {
 	resetBootCycleCounter(deepSleep);
 	#endif
 
-	if(rdc.magic != 0x4a) {
-		rdc.last_cause = 0;
-		rdc.cause = 0;
-		rdc.magic = 0x4a;
+	if(rdc.magic != 0x4b) { // Bump when ResetDataContainer changes, as it survives reboots
+		memset(&rdc, 0, sizeof(rdc));
+		rdc.magic = 0x4b;
 	} else {
 		rdc.last_cause = rdc.cause;
 		rdc.cause = 0;
@@ -871,6 +875,7 @@ void loop() {
 				debugW_P(PSTR("Used %dms to handle language update"), end-start);
 			}
 		}
+		handleNetworkWatchdog();
 	} else {
 		handleSmartConfig();
 		if(dnsServer != NULL) {
@@ -1149,6 +1154,59 @@ unsigned long handleWebserver() {
 		debugW_P(PSTR("Used %dms to handle web"), end-start);
 	}
 	return end-start;
+}
+
+void handleNetworkWatchdog() {
+	if(ch == NULL || ch->getMode() != NETWORK_MODE_WIFI_CLIENT || updater.getProgress() > 0) {
+		return;
+	}
+	uint64_t now = millis64();
+
+	bool replied;
+	if(gatewayPing.finished(replied)) {
+		bool wasArmed = networkWatchdog.isArmed();
+		uint8_t failedBefore = networkWatchdog.getFailedProbes();
+		networkWatchdog.probeFinished(now, replied);
+		if(replied && !wasArmed) {
+			debugI_P(PSTR("Gateway answers ping, network watchdog is active"));
+		} else if(replied && failedBefore > 0) {
+			debugI_P(PSTR("Gateway answers ping again"));
+		} else if(!replied && wasArmed) {
+			debugW_P(PSTR("Gateway did not answer ping (%d in a row)"), networkWatchdog.getFailedProbes());
+			if(networkWatchdog.getFailedProbes() == 1 && ch->isConnected()) {
+				// Remember where we were when it went quiet, for later diagnostics
+				uint8_t* bssid = WiFi.BSSID();
+				if(bssid != NULL) memcpy(rdc.wdBssid, bssid, 6);
+				rdc.wdChannel = WiFi.channel();
+				rdc.wdRssi = WiFi.RSSI();
+			}
+		}
+	}
+
+	if(networkConnected && networkWatchdog.isProbeDue(now)) {
+		networkWatchdog.probeStarted(now);
+		IPAddress gateway = ch->getGateway();
+		if((uint32_t) gateway != 0) {
+			gatewayPing.start(gateway);
+		}
+	}
+
+	switch(networkWatchdog.check(now)) {
+		case NETWORK_WATCHDOG_ACTION_RESTART_WIFI:
+			debugW_P(PSTR("Gateway has not answered for a while, restarting WiFi"));
+			#if defined(ESP32)
+			((WiFiClientConnectionHandler*) ch)->allow11b(); // More robust on a marginal link
+			#endif
+			ch->disconnect(RECONNECT_TIMEOUT);
+			break;
+		case NETWORK_WATCHDOG_ACTION_REBOOT:
+			debugE_P(PSTR("Gateway has not answered for an hour, rebooting"));
+			ds.save();
+			rdc.cause = REBOOT_CAUSE_NETWORK_UNREACHABLE;
+			delay(250);
+			ESP.restart();
+			break;
+	}
 }
 
 void handleSmartConfig() {

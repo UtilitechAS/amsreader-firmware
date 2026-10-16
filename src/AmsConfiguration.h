@@ -74,11 +74,18 @@
 #define REBOOT_CAUSE_MQTT_REBOOT 11
 #define REBOOT_CAUSE_MQTT_FACTORY_RESET 12
 #define REBOOT_CAUSE_MQTT_FIRMWARE_UPGRADE 13
+#define REBOOT_CAUSE_NETWORK_UNREACHABLE 14
 
 struct ResetDataContainer {
 	uint8_t cause;
 	uint8_t last_cause;
 	uint8_t magic;
+	// Network watchdog statistics, kept across software reboots on ESP32
+	uint16_t wdRestarts;
+	uint32_t wdLongestOutage;
+	uint8_t wdBssid[6];
+	uint8_t wdChannel;
+	int8_t wdRssi;
 };
 
 struct SystemConfig {

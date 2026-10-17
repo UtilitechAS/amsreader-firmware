@@ -41,6 +41,8 @@ public:
     IPv6Address getIPv6();
     IPv6Address getDNSv6(uint8_t idx);
     void eventHandler(WiFiEvent_t event, WiFiEventInfo_t info);
+    /** Allow 802.11b rates from the next connect until reboot, regardless of configuration */
+    void allow11b();
     #endif
 
 private:
@@ -58,6 +60,7 @@ private:
     unsigned long lastRetry = 0;
     uint8_t lastChannel = 0;
     uint8_t lastBssid[6] = {0};
+    bool force11b = false;
 
     void applyTxPower(NetworkConfig& config);
     wl_status_t begin(const char* ssid, const char* psk, uint8_t channel, const uint8_t* bssid);

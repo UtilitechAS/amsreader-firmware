@@ -68,5 +68,16 @@
     },
     "clock_offset": %d,
     "features": [%s],
-    "services": [%s]
+    "services": [%s],
+    "wifi": {
+        "bssid": "%s",
+        "ch": %d,
+        "wd": {
+            "r": %u,
+            "lo": %lu,
+            "fb": "%s",
+            "fc": %d,
+            "fr": %d
+        }
+    }
 }

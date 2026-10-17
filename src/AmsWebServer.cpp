@@ -492,6 +492,20 @@ void AmsWebServer::sysinfoJson() {
 
 	String services = AmsJsonGenerator::generateServicesJson(serviceStatusContext());
 
+	char bssidStr[18] = { 0 };
+	uint8_t channel = 0;
+	if(ch != NULL && ch->getMode() == NETWORK_MODE_WIFI_CLIENT && WiFi.status() == WL_CONNECTED) {
+		uint8_t* bssid = WiFi.BSSID();
+		if(bssid != NULL) {
+			sprintf(bssidStr, "%02X:%02X:%02X:%02X:%02X:%02X", bssid[0], bssid[1], bssid[2], bssid[3], bssid[4], bssid[5]);
+		}
+		channel = WiFi.channel();
+	}
+	char wdBssidStr[18] = { 0 };
+	if(rdc->wdChannel > 0) {
+		sprintf(wdBssidStr, "%02X:%02X:%02X:%02X:%02X:%02X", rdc->wdBssid[0], rdc->wdBssid[1], rdc->wdBssid[2], rdc->wdBssid[3], rdc->wdBssid[4], rdc->wdBssid[5]);
+	}
+
 	int size = snprintf_P(buf, BUF_SIZE_COMMON, SYSINFO_JSON,
 		FirmwareVersion::VersionString,
 		#if defined(CONFIG_IDF_TARGET_ESP32S2)
@@ -578,7 +592,14 @@ void AmsWebServer::sysinfoJson() {
 		ea->getIncomeLastMonth(),
 		(uint16_t) (tz == NULL ? 0 : (tz->toLocal(now)-now)/3600),
 		features.c_str(),
-		services.c_str()
+		services.c_str(),
+		bssidStr,
+		channel,
+		rdc->wdRestarts,
+		(unsigned long) rdc->wdLongestOutage,
+		wdBssidStr,
+		rdc->wdChannel,
+		rdc->wdRssi
 	);
 
 	stripNonAscii((uint8_t*) buf, size+1);

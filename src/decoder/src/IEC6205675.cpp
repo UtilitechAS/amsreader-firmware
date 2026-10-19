@@ -602,9 +602,13 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 data = getCosemDataAt(idx++, ((char *) (d)));
                 activeExportPower = ntohl(data->dlu.data);
 
-                // 13.7.0
+                // 13.7.0 (LongUnsigned on IE.5, see #1072)
                 data = getCosemDataAt(idx++, ((char *) (d)));
-                powerFactor= ntohl(data->dlu.data) / 1000.0;
+                if(data->base.type == CosemTypeLongUnsigned) {
+                    powerFactor = ntohs(data->lu.data) / 1000.0;
+                } else {
+                    powerFactor = ntohl(data->dlu.data) / 1000.0;
+                }
 
                 // 21.7.0
                 data = getCosemDataAt(idx++, ((char *) (d)));

@@ -106,10 +106,10 @@ IEC6205621::IEC6205621(const char* p, Timezone* tz, MeterConfig* meterConfig) {
 		if(tz != NULL) meterTimestamp = tz->toUTC(meterTimestamp);
 	}
 
-	activeImportPower = (uint16_t) (extractDouble(payload, F("1.7.0")));
-	activeExportPower = (uint16_t) (extractDouble(payload, F("2.7.0")));
-	reactiveImportPower = (uint16_t) (extractDouble(payload, F("3.7.0")));
-	reactiveExportPower = (uint16_t) (extractDouble(payload, F("4.7.0")));
+	activeImportPower = (uint32_t) (extractDouble(payload, F("1.7.0")));
+	activeExportPower = (uint32_t) (extractDouble(payload, F("2.7.0")));
+	reactiveImportPower = (uint32_t) (extractDouble(payload, F("3.7.0")));
+	reactiveExportPower = (uint32_t) (extractDouble(payload, F("4.7.0")));
 
 	if(activeImportPower > 0)
 		listType = 1;

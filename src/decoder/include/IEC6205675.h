@@ -33,6 +33,7 @@ public:
 
 private:
     CosemData* getCosemDataAt(uint8_t index, const char* ptr);
+    CosemData* getLastElement(const char* ptr, uint16_t length);
     CosemData* findObis(uint8_t* obis, int matchlength, const char* ptr);
     uint8_t getString(uint8_t* obis, int matchlength, const char* ptr, char* target);
     float getNumber(uint8_t* obis, int matchlength, const char* ptr);

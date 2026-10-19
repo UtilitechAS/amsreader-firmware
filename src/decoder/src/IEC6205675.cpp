@@ -1105,6 +1105,28 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
 
 
 
+        // Kaifa KFM_001 sent with OBIS codes (seen in Sweden, #242, #558, #629)
+        // carries no scaler, so voltage and current arrive in 0.1 V and 0.001 A,
+        // the same units the positional KFM_001 list uses. Austrian Kaifa sends
+        // a scaler and no KFM_001 list id, so it is not affected. Scaling is only
+        // applied when the user has not set a multiplier, so installations that
+        // already compensate with multipliers keep their readings.
+        if(meterType == AmsTypeKaifa && strncmp(listId, "KFM_001", 7) == 0) {
+            CosemData* u1 = findObis(AMS_OBIS_VOLTAGE_L1, sizeof(AMS_OBIS_VOLTAGE_L1), ((char *) (d)));
+            if(u1 != NULL && !hasScaler(u1)) {
+                if(meterConfig->voltageMultiplier == 0) {
+                    l1voltage /= 10.0;
+                    l2voltage /= 10.0;
+                    l3voltage /= 10.0;
+                }
+                if(meterConfig->amperageMultiplier == 0) {
+                    l1current /= 1000.0;
+                    l2current /= 1000.0;
+                    l3current /= 1000.0;
+                }
+            }
+        }
+
         if(meterType == AmsTypeKamstrup) {
             if(listType >= 3) {
                 activeImportCounter *= 10;
@@ -1329,6 +1351,28 @@ uint8_t IEC6205675::getString(uint8_t* obis, int matchlength, const char* ptr, c
         }
     }
     return 0;
+}
+
+bool IEC6205675::hasScaler(CosemData* item) {
+    if(item == NULL) return false;
+    char* pos = ((char*) item);
+    switch(item->base.type) {
+        case CosemTypeLongSigned:
+        case CosemTypeLongUnsigned:
+            pos += 3;
+            break;
+        case CosemTypeDLongSigned:
+        case CosemTypeDLongUnsigned:
+            pos += 5;
+            break;
+        case CosemTypeLong64Signed:
+        case CosemTypeLong64Unsigned:
+            pos += 9;
+            break;
+        default:
+            return false;
+    }
+    return pos[0] == 0x02 && pos[1] == 0x02;
 }
 
 float IEC6205675::getNumber(uint8_t* obis, int matchlength, const char* ptr) {

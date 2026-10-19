@@ -50,7 +50,7 @@ byte). See `keys/` for the keys we have.
 |--------------|------:|-------|
 | Kamstrup     | 51 | Omnipower/Omnia — NO unencrypted, DK/SE/CH encrypted; decrypt/plaintext pairs |
 | Iskraemeco   | 36 | AM550 + IE.5 — SI/AT/CH/HR, several proprietary non-OBIS formats |
-| Kaifa        | 18 | MA304/MA309 — NO plain, AT/PL M-Bus encrypted |
+| Kaifa        | 18 | MA304/MA309 — NO plain, AT M-Bus encrypted, PL P1 encrypted |
 | Sagemcom     | 14 | T210-D — AT, DLMS over M-Bus, mostly encrypted |
 | Landis+Gyr   | 13 | E360/E450 — CH/AT/SE/DK, GBT pushes (`gh740*` reassembled) + encrypted |
 | Aidon        | 9  | NO/SE |

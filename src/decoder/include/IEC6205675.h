@@ -37,6 +37,7 @@ private:
     uint8_t getString(uint8_t* obis, int matchlength, const char* ptr, char* target);
     float getNumber(uint8_t* obis, int matchlength, const char* ptr);
     float getNumber(CosemData*);
+    bool hasScaler(CosemData*);
     time_t getTimestamp(uint8_t* obis, int matchlength, const char* ptr);
     time_t adjustForKnownIssues(CosemDateTime dt, Timezone* tz, uint8_t meterType);
     int standardOffset(Timezone* tz, uint16_t year);

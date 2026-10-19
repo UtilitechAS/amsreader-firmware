@@ -34,7 +34,7 @@ tests via **GitHub Actions secrets** using the suggested names below. Run `tools
 - Authentication key (AK) → secret `AMS_TEST_KEY_GH501_AK`
 - ✅ Verified: EK decrypts the payload to valid DLMS.
 
-### Kaifa MA309 (serial 1KFM0200169986/169990) — Poland ([#905](https://github.com/UtilitechAS/amsreader-firmware/issues/905))
+### Kaifa MA309 (serial 1KFM0200169986/169990) ([#905](https://github.com/UtilitechAS/amsreader-firmware/issues/905))
 
 - Decrypts: `gh905-1.hex`
 - Encryption key (EK) → secret `AMS_TEST_KEY_GH905_EK`

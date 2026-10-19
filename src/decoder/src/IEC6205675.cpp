@@ -897,6 +897,11 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 }
             } 
         }
+        // Sagemcom T210-D carries no list id; it is only known by its system
+        // title. Identify it here so the Sagemcom handling below is reached.
+        if(meterType == AmsTypeUnknown && memcmp(ctx.system_title, "SAGY", 4) == 0) {
+            meterType = AmsTypeSagemcom;
+        }
 
         uint8_t str_len = 0;
         str_len = getString(AMS_OBIS_VERSION, sizeof(AMS_OBIS_VERSION), ((char *) (d)), str);
@@ -1133,14 +1138,15 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
             if(l3PowerFactor != 0)
                 l3PowerFactor /= 100;
         } else if(meterType == AmsTypeSagemcom) {
+            // First element is the clock (no OBIS code)
             CosemData* meterTs = getCosemDataAt(1, ((char *) (d)));
-            if(meterTs != NULL) {
+            if(meterTs != NULL && meterTs->base.type == CosemTypeOctetString && meterTs->oct.length == 0x0C) {
                 AmsOctetTimestamp* amst = (AmsOctetTimestamp*) meterTs;
-                time_t ts = decodeCosemDateTime(amst->dt);
-                meterTimestamp = ts;
+                meterTimestamp = adjustForKnownIssues(amst->dt, tz, meterType);
             }
 
-            CosemData* mid = getCosemDataAt(58, ((char *) (d))); // TODO: Get last item
+            // Last element is the meter serial number
+            CosemData* mid = getLastElement(((char *) (d)), ctx.length);
             if(mid != NULL) {
                 switch(mid->base.type) {
                     case CosemTypeString:
@@ -1227,6 +1233,65 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
             meterId[--len] = '\0';
         }
     }
+}
+
+// Size in bytes of the COSEM element at pos, nested structures included.
+// Returns 0 if it would run past end.
+static uint16_t cosemElementSize(const uint8_t* pos, const uint8_t* end) {
+    if(pos >= end) return 0;
+    uint16_t size;
+    switch(pos[0]) {
+        case CosemTypeArray:
+        case CosemTypeStructure: {
+            if(pos + 1 >= end) return 0;
+            uint8_t count = pos[1];
+            size = 2;
+            for(uint8_t i = 0; i < count; i++) {
+                uint16_t s = cosemElementSize(pos + size, end);
+                if(s == 0) return 0;
+                size += s;
+            }
+            return size;
+        }
+        case CosemTypeOctetString:
+        case CosemTypeString:
+            if(pos + 1 >= end) return 0;
+            size = 2 + pos[1];
+            break;
+        case CosemTypeLongSigned:
+        case CosemTypeLongUnsigned:
+            size = 3;
+            break;
+        case CosemTypeDLongSigned:
+        case CosemTypeDLongUnsigned:
+            size = 5;
+            break;
+        case CosemTypeLong64Signed:
+        case CosemTypeLong64Unsigned:
+            size = 9;
+            break;
+        case CosemTypeNull:
+            size = 1;
+            break;
+        default:
+            size = 2;
+    }
+    return pos + size <= end ? size : 0;
+}
+
+CosemData* IEC6205675::getLastElement(const char* ptr, uint16_t length) {
+    const uint8_t* pos = (const uint8_t*) ptr;
+    const uint8_t* end = pos + length;
+    if(length < 2 || (pos[0] != CosemTypeStructure && pos[0] != CosemTypeArray)) return NULL;
+    uint8_t count = pos[1];
+    if(count == 0) return NULL;
+    pos += 2;
+    for(uint8_t i = 0; i < count - 1; i++) {
+        uint16_t s = cosemElementSize(pos, end);
+        if(s == 0) return NULL;
+        pos += s;
+    }
+    return cosemElementSize(pos, end) == 0 ? NULL : (CosemData*) pos;
 }
 
 CosemData* IEC6205675::getCosemDataAt(uint8_t index, const char* ptr) {

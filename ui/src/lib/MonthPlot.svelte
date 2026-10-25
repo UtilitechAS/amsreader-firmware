@@ -29,7 +29,7 @@
         lm.setDate(0);
         lm.setHours(12);
 
-        let clock_adjust = ((lm.getHours() - lm.getUTCHours())%24) - sysinfo.clock_offset;
+        let clock_adjust = -cur.getTimezoneOffset()/60 - sysinfo.clock_offset;
         addHours(cur, -clock_adjust);
         addHours(lm, -clock_adjust);
 

@@ -25,10 +25,7 @@
         let points = [];
         min = max = 0;
         let cur = new Date();
-        let lm = new Date();
-        lm.setDate(0);
-        lm.setHours(12);
-        let clock_adjust = ((lm.getHours() - lm.getUTCHours())%24) - sysinfo.clock_offset;
+        let clock_adjust = -cur.getTimezoneOffset()/60 - sysinfo.clock_offset;
         let currentHour = cur.getUTCHours();
         addHours(cur, -clock_adjust-24);
         for(i = currentHour; i<24; i++) {

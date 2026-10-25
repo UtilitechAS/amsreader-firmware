@@ -590,7 +590,7 @@ void AmsWebServer::sysinfoJson() {
 		ea->getCostLastMonth(),
 		ea->getProducedLastMonth(),
 		ea->getIncomeLastMonth(),
-		(uint16_t) (tz == NULL ? 0 : (tz->toLocal(now)-now)/3600),
+		(int16_t) (tz == NULL ? 0 : (tz->toLocal(now)-now)/3600),
 		features.c_str(),
 		services.c_str(),
 		bssidStr,

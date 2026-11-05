@@ -6,10 +6,6 @@
 
 #include "hexutils.h"
 
-String toHex(uint8_t* in) {
-	return toHex(in, sizeof(in)*2);
-}
-
 String toHex(uint8_t* in, uint16_t size) {
 	String hex;
 	for(int i = 0; i < size; i++) {

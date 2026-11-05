@@ -1097,7 +1097,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
             listType = 4;
             l2activeExportCounter = val/1000;
         }
-        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_L2_COUNT, sizeof(AMS_OBIS_ACTIVE_EXPORT_L2_COUNT), ((char *) (d)));
+        val = getNumber(AMS_OBIS_ACTIVE_EXPORT_L3_COUNT, sizeof(AMS_OBIS_ACTIVE_EXPORT_L3_COUNT), ((char *) (d)));
         if (val != NOVALUE) {
             listType = 4;
             l3activeExportCounter = val/1000;

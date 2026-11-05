@@ -666,14 +666,14 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
                 if(enabled) {
                     if(encryptionObj.containsKey(F("k"))) {
                         String encryptionKeyHex = encryptionObj[F("k")];
-                        if(encryptionKeyHex.length() == 16) {
-                           fromHex(newConfig.encryptionKey, encryptionKeyHex, 16);
+                        if(encryptionKeyHex.length() == sizeof(newConfig.encryptionKey) * 2) {
+                            fromHex(newConfig.encryptionKey, encryptionKeyHex, sizeof(newConfig.encryptionKey));
                         }
                     }
                     if(encryptionObj.containsKey(F("a"))) {
                         String authenticationKeyHex = encryptionObj[F("a")];
-                        if(authenticationKeyHex.length() == 16) {
-                            fromHex(newConfig.authenticationKey, authenticationKeyHex, 16);
+                        if(authenticationKeyHex.length() == sizeof(newConfig.authenticationKey) * 2) {
+                            fromHex(newConfig.authenticationKey, authenticationKeyHex, sizeof(newConfig.authenticationKey));
                         }
                     }
                 } else {

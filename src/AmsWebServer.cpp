@@ -1247,7 +1247,9 @@ void AmsWebServer::handleSave() {
 			String encryptionKeyHex = server.arg(F("mek"));
 			if(!encryptionKeyHex.isEmpty()) {
 				encryptionKeyHex.replace(F("0x"), F(""));
-				fromHex(meterConfig.encryptionKey, encryptionKeyHex, 16);
+				if(encryptionKeyHex.length() == sizeof(meterConfig.encryptionKey) * 2) {
+					fromHex(meterConfig.encryptionKey, encryptionKeyHex, sizeof(meterConfig.encryptionKey));
+				}
 			} else {
 				memset(meterConfig.encryptionKey, 0, 16);
 			}
@@ -1255,7 +1257,9 @@ void AmsWebServer::handleSave() {
 			String authenticationKeyHex = server.arg(F("mea"));
 			if(!authenticationKeyHex.isEmpty()) {
 				authenticationKeyHex.replace(F("0x"), F(""));
-				fromHex(meterConfig.authenticationKey, authenticationKeyHex, 16);
+				if(authenticationKeyHex.length() == sizeof(meterConfig.authenticationKey) * 2) {
+					fromHex(meterConfig.authenticationKey, authenticationKeyHex, sizeof(meterConfig.authenticationKey));
+				}
 			} else {
 				memset(meterConfig.authenticationKey, 0, 16);
 			}

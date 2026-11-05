@@ -9,6 +9,7 @@
 #include "AmsStorage.h"
 #include "FirmwareVersion.h"
 #include "crc.h"
+#include "LocalDay.h"
 #include <cmath>
 #include <cstddef>
 
@@ -83,11 +84,13 @@ bool EnergyAccounting::update(time_t now, uint64_t lastUpdatedMillis, uint8_t li
     bool ret = false;
     tmElements_t local;
     breakTime(tz->toLocal(now), local);
+    // Not local.Hour: that repeats when DST ends, and the repeated hour would never be closed
+    uint8_t hourOfDay = hoursSinceLocalMidnight(tz, now);
 
     if(!init) {
         realtimeData->lastImportUpdateMillis = 0;
         realtimeData->lastExportUpdateMillis = 0;
-        realtimeData->currentHour = local.Hour;
+        realtimeData->currentHour = hourOfDay;
         realtimeData->currentDay = local.Day;
         if(!load()) {
             data = { 7, local.Month, 
@@ -108,7 +111,7 @@ bool EnergyAccounting::update(time_t now, uint64_t lastUpdatedMillis, uint8_t li
         calcDayCost();
     }
 
-    if(local.Hour != realtimeData->currentHour && (listType >= 3 || local.Minute == 1)) {
+    if(hourOfDay != realtimeData->currentHour && (listType >= 3 || local.Minute == 1)) {
         tmElements_t oneHrAgo, oneHrAgoLocal;
         breakTime(now-3600, oneHrAgo);
         uint16_t val = round(ds->getHourImport(oneHrAgo.Hour) / 10.0);
@@ -116,7 +119,7 @@ bool EnergyAccounting::update(time_t now, uint64_t lastUpdatedMillis, uint8_t li
         breakTime(tz->toLocal(now-3600), oneHrAgoLocal);
         ret |= updateMax(val, oneHrAgoLocal.Day, oneHrAgoLocal.Hour);
 
-        realtimeData->currentHour = local.Hour; // Need to be defined here so that day cost is correctly calculated
+        realtimeData->currentHour = hourOfDay; // Need to be defined here so that day cost is correctly calculated
 
         realtimeData->use = 0;
         realtimeData->produce = 0;
@@ -233,16 +236,18 @@ void EnergyAccounting::calcDayCost() {
             realtimeData->incomeDay = data.incomeToday / 100.0;
             calcFromHour = lastUpdateUtc.Hour;
         }
+        time_t midnight = localMidnightUtc(tz, now);
+        uint8_t hourOfDay = hoursSinceLocalMidnight(tz, now);
         for(uint8_t i = calcFromHour; i < realtimeData->currentHour; i++) {
-            breakTime(now - ((local.Hour - i) * 3600), utc);
+            breakTime(midnight + (i * 3600), utc);
 
-            float priceIn = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i - local.Hour);
+            float priceIn = ps->getPriceForRelativeHour(PRICE_DIRECTION_IMPORT, i - hourOfDay);
             if(priceIn != PRICE_NO_VALUE) {
                 int16_t wh = ds->getHourImport(utc.Hour);
                 realtimeData->costDay += priceIn * (wh / 1000.0);
             }
 
-            float priceOut = ps->getPriceForRelativeHour(PRICE_DIRECTION_EXPORT, i - local.Hour);
+            float priceOut = ps->getPriceForRelativeHour(PRICE_DIRECTION_EXPORT, i - hourOfDay);
             if(priceOut != PRICE_NO_VALUE) {
                 int16_t wh = ds->getHourExport(utc.Hour);
                 realtimeData->incomeDay += priceOut * (wh / 1000.0);
@@ -261,10 +266,10 @@ float EnergyAccounting::getUseToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
-    tmElements_t utc, local;
-    breakTime(tz->toLocal(now), local);
+    tmElements_t utc;
+    time_t midnight = localMidnightUtc(tz, now);
     for(uint8_t i = 0; i < realtimeData->currentHour; i++) {
-        breakTime(now - ((local.Hour - i) * 3600), utc);
+        breakTime(midnight + (i * 3600), utc);
         ret += ds->getHourImport(utc.Hour) / 1000.0;
     }
     return ret + getUseThisHour();
@@ -295,10 +300,10 @@ float EnergyAccounting::getProducedToday() {
     float ret = 0.0;
     time_t now = time(nullptr);
     if(now < FirmwareVersion::BuildEpoch) return 0.0;
-    tmElements_t utc, local;
-    breakTime(tz->toLocal(now), local);
+    tmElements_t utc;
+    time_t midnight = localMidnightUtc(tz, now);
     for(uint8_t i = 0; i < realtimeData->currentHour; i++) {
-        breakTime(now - ((local.Hour - i) * 3600), utc);
+        breakTime(midnight + (i * 3600), utc);
         ret += ds->getHourExport(utc.Hour) / 1000.0;
     }
     return ret + getProducedThisHour();

@@ -34,6 +34,7 @@ pio device monitor            # Serial monitor at 115200 baud
 pio test -e native            # Decoder unit tests on host (no device needed)
 pio test -e native_config     # AmsConfiguration tests against the stub EEPROM
 pio test -e native_watchdog   # NetworkWatchdog policy tests
+pio test -e native_localday   # LocalDay hour/price-point positions on DST change days
 ```
 
 ### Svelte UI local development
@@ -62,6 +63,7 @@ test/
   test_decoder/       — Unity tests for the decoder module (encrypted/unencrypted/plaintext-with-key)
   test_configuration/ — Unity tests for AmsConfiguration (env native_config)
   test_network_watchdog/ — Unity tests for NetworkWatchdog (env native_watchdog)
+  test_local_day/     — Unity tests for LocalDay.h on 25 and 23 hour days (env native_localday)
 scripts/
   addversion.py       — writes src/generated_version.h before compile
   generate_includes.py — embeds ui/dist + json templates as C PROGMEM arrays
@@ -211,6 +213,10 @@ Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`; `vX.Y.Z-rcN` runs `
 ### ESP8266 vs ESP32 Differences
 
 `src/cloud/` (CloudConnector, ZmartCharge) is excluded from ESP8266 builds via `build_src_filter = -<cloud/>` — these use mbedTLS headers that don't exist on ESP8266. KmpTalker (Kamstrup protocol) is ESP32-only, requires precompiled `.a` in `precompiled/<env>/`. Configuration over MQTT (`getconfig`/`setconfig`) and `DnsGuard` are `#if defined(ESP32)` only.
+
+### Positions Within a Local Day
+
+A local day has 25 hours when DST ends and 23 when it starts. Hour of day and price point indexes are counted from local midnight in elapsed time with `src/LocalDay.h` (`localMidnightUtc()`, `hoursSinceLocalMidnight()`), never from the wall clock's `tm.Hour`, which repeats or skips an hour. `EnergyAccounting`'s `currentHour` and `PriceService`'s price point index follow this.
 
 ### 64-bit Uptime
 

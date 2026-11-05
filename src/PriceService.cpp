@@ -13,6 +13,7 @@
 #include <LittleFS.h>
 #include "AmsStorage.h"
 #include "hexutils.h"
+#include "LocalDay.h"
 
 #include "GcmParser.h"
 
@@ -269,12 +270,9 @@ float PriceService::getEnergyPricePoint(uint8_t direction, uint8_t point) {
 
 float PriceService::getPriceForRelativeHour(uint8_t direction, int8_t hour) {
     time_t ts = time(nullptr);
-    tmElements_t tm;
 
-    breakTime(entsoeTz->toLocal(ts), tm);
-    uint8_t targetHour = tm.Hour + hour;
-    tm.Hour = tm.Minute = tm.Second = 0;
-    time_t startOfDay = entsoeTz->toUTC(makeTime(tm));
+    time_t startOfDay = localMidnightUtc(entsoeTz, ts);
+    uint8_t targetHour = hoursSinceLocalMidnight(entsoeTz, ts) + hour;
 
     if((ts + (hour * SECS_PER_HOUR)) < startOfDay) {
         return PRICE_NO_VALUE;
@@ -551,8 +549,8 @@ PricesContainer* PriceService::fetchPrices(time_t t) {
     if(strlen(getToken()) > 0) {
         tmElements_t tm;
         breakTime(entsoeTz->toLocal(t), tm);
-        time_t e1 = t - (tm.Hour * 3600) - (tm.Minute * 60) - tm.Second; // Local midnight
-        time_t e2 = e1 + SECS_PER_DAY;
+        time_t e1 = localMidnightUtc(entsoeTz, t);
+        time_t e2 = nextLocalMidnightUtc(entsoeTz, t);
         tmElements_t d1, d2;
         breakTime(e1, d1);
         breakTime(e2, d2);
@@ -844,7 +842,5 @@ bool PriceService::timeIsInPeriod(tmElements_t tm, PriceConfig pc) {
 
 uint8_t PriceService::getCurrentPricePointIndex() {
     time_t ts = time(nullptr);
-    tmElements_t tm;
-    breakTime(entsoeTz->toLocal(ts), tm);
-    return ((tm.Hour * 60) + tm.Minute) / getResolutionInMinutes();
+    return (ts - localMidnightUtc(entsoeTz, ts)) / (getResolutionInMinutes() * SECS_PER_MIN);
 }

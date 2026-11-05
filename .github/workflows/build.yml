@@ -82,3 +82,4 @@ jobs:
         pio test -e native
         pio test -e native_config
         pio test -e native_watchdog
+        pio test -e native_localday

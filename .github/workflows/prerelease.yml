@@ -19,9 +19,12 @@ jobs:
         GITHUB_REF: ${{ github.ref }}
       run: echo ::set-output name=tag::$(echo ${GITHUB_REF:11})
 
-    - name: Find previous stable tag
+    # Previous tag of any kind: rc1 compares against the last stable release,
+    # later RCs only against the RC before them. release.yml compares the final
+    # release against the last stable tag, so it still lists every change.
+    - name: Find previous tag
       id: prev_tag
-      run: echo "tag=$(git describe --tags --abbrev=0 --exclude='*-rc*' HEAD^)" >> "$GITHUB_OUTPUT"
+      run: echo "tag=$(git describe --tags --abbrev=0 HEAD^)" >> "$GITHUB_OUTPUT"
 
     - name: Create release with release notes
       id: create_release

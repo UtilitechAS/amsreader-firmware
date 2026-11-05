@@ -9,7 +9,7 @@ AMS Reader (`ams2mqtt`) is PlatformIO/Arduino firmware for ESP8266 and ESP32 dev
 ## Prerequisites
 
 - Python 3.9+ with `platformio` and `css_html_js_minify` (`pip install -U platformio css_html_js_minify`)
-- Node.js 19.x (for Svelte 5 UI)
+- Node.js 22.x (for Svelte 5 UI; CI uses 22.x, Vite 8 needs ≥ 20.19)
 
 ## Setup (first time)
 
@@ -17,7 +17,7 @@ AMS Reader (`ams2mqtt`) is PlatformIO/Arduino firmware for ESP8266 and ESP32 dev
 # Required: copy and customize local build config
 cp platformio-user.ini-example platformio-user.ini
 
-# Build Svelte frontend FIRST (must exist before firmware build)
+# Build Svelte frontend FIRST (the firmware build aborts if ui/dist is missing)
 cd ui && npm ci && npm run build && cd -
 
 # Install PlatformIO library dependencies
@@ -31,13 +31,16 @@ pio run -e esp32s2            # Build for a specific target (esp8266, esp32, esp
 pio run                       # Build all envs defined in platformio-user.ini default_envs
 pio run -e esp32s2 -t upload  # Build and flash to connected device
 pio device monitor            # Serial monitor at 115200 baud
-pio test -e native            # Run decoder unit tests on host (no device needed)
+pio test -e native            # Decoder unit tests on host (no device needed)
+pio test -e native_config     # AmsConfiguration tests against the stub EEPROM
+pio test -e native_watchdog   # NetworkWatchdog policy tests
 ```
 
 ### Svelte UI local development
 
 ```bash
 cd ui
+cp vite.config.local.example.js vite.config.local.js   # once; gitignored, set your device's address
 npm run local   # Vite dev server with proxy to a real device (vite.config.local.js)
 ```
 
@@ -50,13 +53,15 @@ src/                  — all firmware C++ (flat)
     src/              — corresponding .cpp files
   mqtt/               — all MQTT handler variants + json/ templates
   cloud/              — CloudConnector, ZmartCharge (ESP32 only, AMS_CLOUD flag)
-  webserver/json/     — REST API JSON response templates
+  webserver/json/     — REST API JSON response templates (data, sysinfo, tariff, response; configuration JSON is generated in code, see below)
 ui/                   — Svelte 5 app (built output embedded in firmware; uses mount()/unmount(), not `new Component()`)
 custom-example/       — template for build customization (copy to custom/)
 test/
-  stubs/              — minimal native shims (lwip/def.h, Timezone.h)
-  payloads/           — real meter payload corpus (per-vendor dirs + manifest.json, decryption keys)
+  stubs/              — minimal native shims (Arduino.h, EEPROM.h, WString.h, Timezone.h, lwip/def.h)
+  payloads/           — real meter payload corpus (per-vendor dirs + manifest.json; keys/ maps fixtures to key names, key values are not in git)
   test_decoder/       — Unity tests for the decoder module (encrypted/unencrypted/plaintext-with-key)
+  test_configuration/ — Unity tests for AmsConfiguration (env native_config)
+  test_network_watchdog/ — Unity tests for NetworkWatchdog (env native_watchdog)
 scripts/
   addversion.py       — writes src/generated_version.h before compile
   generate_includes.py — embeds ui/dist + json templates as C PROGMEM arrays
@@ -69,8 +74,8 @@ scripts/
 ```
 Smart Meter (UART/HAN)
   --> MeterCommunicator (Passive/KMP/Pulse)
-      --> AmsDecoder (HDLC -> LLC -> GCM decrypt -> DLMS/DSMR/COSEM parse)
-          --> IEC6205675 / IEC6205621 (extract AmsData fields)
+      --> PassiveMeterCommunicator::unwrapData (tag-driven src/decoder chain: HDLC/M-Bus/GBT -> GCM decrypt -> LLC -> DLMS/DSMR)
+          --> IEC6205675 / IEC6205621, or LNG / LNG2 / LNG3 (src/) for Landis+Gyr proprietary push formats (extract AmsData fields)
           --> AmsData (in-memory state)
               --> AmsDataStorage (LittleFS hourly/daily history)
               --> EnergyAccounting (peak tracking + cost calc via PriceService)
@@ -87,10 +92,33 @@ Smart Meter (UART/HAN)
 
 `scripts/generate_includes.py` (pre-build) minifies + gzip-compresses `ui/dist/` and embeds it as C PROGMEM byte arrays in `src/webserver/html/*.h`. The web server serves these directly — LittleFS is not used for UI assets. If `custom/ui/dist/` exists it is used instead of `ui/dist/`.
 
+If the dist directory is missing the script exits with an error instead of skipping: the generated headers are gitignored and would otherwise survive from an older build, so the firmware would build but the UI would 404 on stale asset URLs.
+
+`ui/dist/` is committed (force-added despite `.gitignore`). PRs that change `ui/src/` rebuild it with `npm run build` and commit the result alongside.
+
 ### Pre-build Scripts
 
 - `scripts/addversion.py` — writes `src/generated_version.h` from git hash or `$GITHUB_TAG`
 - `scripts/generate_includes.py` — unified script replacing three old per-library scripts
+
+### Configuration JSON and MQTT Control
+
+`/configuration.json` and the MQTT `getconfig` reply are both produced by `AmsJsonGenerator::generateConfigurationJson()`, which emits section by section into a `JsonSink` (HTTP streams it with chunked transfer; MQTT collects it in a `BufferJsonSink`). There are no `conf_*.json` templates any more. A new config field has to be added in the generator (output), `AmsWebServer::handleSave()` (web form input), `JsonMqttHandler::handleConfigMessage()` (MQTT input, same short keys as the JSON output) and the UI.
+
+Commands arrive on the subscribe topic (`<publish topic>/command` when none is configured), as a plain string or `{"action":...}`. `AmsMqttHandler::handleCommand()` is shared by the JSON, Home Assistant and Raw handlers (Domoticz and Passthrough ignore incoming messages):
+- `fwupgrade` — optional `"version"` pins the target, otherwise the updater's next version
+- `dayplot` / `monthplot` — publish plot JSON to `<publish topic>/dayplot|monthplot`
+- `reboot`, `factoryreset` — only when `MqttConfig.allowDestructiveCommands` is set (default off; `q.dc` in the config JSON); `factoryreset` also needs `"confirm":true`
+
+`JsonMqttHandler` additionally handles `{"action":"getconfig"}` (publishes to `<publish topic>/config`) and `{"action":"setconfig","config":{...}}`, which applies, calls `config->save()`, and reboots if network or web config changed. Both are ESP32-only.
+
+The services array (HAN, MQTT, price, NTP, cloud, …) comes from `AmsJsonGenerator::generateServicesJson()` for both `sysinfo.json` and the MQTT services announcement, so the two cannot disagree.
+
+### Network Resilience
+
+- `NetworkWatchdog` (policy only, native-testable) + `GatewayPing` (non-blocking ICMP), driven by `handleNetworkWatchdog()` in `AmsToMqttBridge.cpp`, WiFi client mode only. Pings the gateway every 60 s; arms only after the gateway has answered once. Without replies it restarts WiFi after 3 min with doubling backoff (max 24 min) and reboots after 1 h (`REBOOT_CAUSE_NETWORK_UNREACHABLE`). Outage stats live in `ResetDataContainer`.
+- `DnsGuard` (ESP32 only) keeps lwIP's shared DNS table from losing the DHCP IPv4 servers to IPv6 RDNSS/DHCPv6 entries. It intercepts `dns_setserver` via the linker: `[esp32] build_flags` in `platformio.ini` (`-Wl,--wrap=dns_setserver`, `-D AMS_WRAP_DNS_SETSERVER`) must be included in every ESP32 env.
+- `NtpStatus` records the last SNTP sync (`ntpLastSyncMillis()`); the services array reports NTP as state 2 (connecting) when no sync has happened since boot or the last one is older than 3 h (`NTP_STALE_AFTER_SECONDS`).
 
 ### Decoder Test Fixtures
 
@@ -103,7 +131,7 @@ pio test -e native                             # run; review any golden-master d
 .pio/build/native/program gen > test/test_decoder/expected_unencrypted.h   # refresh golden snapshot
 ```
 
-`test_unencrypted_golden` is a golden-master sweep: any change in how a real frame decodes flips the test for review in the diff. Encrypted fixtures need `libmbedtls-dev` installed, else they self-ignore.
+`test_unencrypted_golden` is a golden-master sweep: any change in how a real frame decodes flips the test for review in the diff. Encrypted fixtures need `libmbedtls-dev` installed and their keys (`AMS_TEST_KEY_*` environment variables, or the gitignored `test/payloads/keys/keys.local.json`), else they are skipped.
 
 ## Key Conventions
 
@@ -127,7 +155,9 @@ Debug output is gated throughout the codebase:
 
 ### Configuration Layout
 
-Config is EEPROM-backed with fixed byte offsets defined in `src/AmsConfiguration.h`. The constant `EEPROM_CHECK_SUM = 104` must be incremented whenever any config struct layout changes. Migration from older config versions is handled in `AmsConfiguration.cpp`.
+Config is EEPROM-backed with fixed byte offsets (`CONFIG_*_START`) defined in `src/AmsConfiguration.h`. `EEPROM_EXPECTED_VERSION = 104` (formerly `EEPROM_CHECK_SUM`) identifies the stored layout; changing it needs a relocation path in `AmsConfiguration::load()` (see `relocateConfig103()`). Fields appended to an existing struct are instead migrated in its getter using the struct's `magic` byte (see `getMqttConfig()`).
+
+`EEPROM.begin()` is called once in `load()`. The `setXxxConfig()` setters only write the RAM buffer and set change flags; nothing is persisted until `config.save()` commits.
 
 ### Build Customization
 
@@ -154,13 +184,19 @@ localazy/
 **To add a new UI string:**
 1. Edit `localazy/source/en.json` in the PR that introduces the string. Use proper nested objects — never flat-dotted keys at the root (`"errors.mqtt.-1"` was a historical mistake; the UI lookup `translations.errors?.mqtt?.[code]` only sees nested entries).
 2. After merge, push to Localazy: `cd localazy && localazy upload -k localazy-keys.json -w $LOCALAZY_WRITE_KEY`
-3. Translators do the rest on Localazy. The next CI run of `.github/workflows/localazy.yml` propagates translations to S3 → device.
+3. Translators do the rest on Localazy. The next run of `.github/workflows/localazy.yml` (manual `workflow_dispatch`) propagates translations to S3 → device.
 
 **Critical upload-config rules** (learned the hard way):
 - Each entry in `upload.files` MUST set `"file": "translations.json"`. Default is `${autodetectFileWithFallback}` which creates a parallel `file.json` keyset and **doubles every key**.
 - Use the array form with explicit `pattern` — `"files": "source/en.json"` works but `pattern` is required when using the object form.
 - Never set `deprecateMissing: true` in the tracked `localazy.json`. If you need a one-time cleanup, use a temp config file (`-c /tmp/cleanup.json`) so it can't be triggered accidentally.
 - Only English (`source/en.json`) is uploaded from this repo. Non-English translations belong on Localazy and must NOT be pushed from here — uploading without a per-entry `lang` field would interpret the file as a new English source.
+
+### Releases
+
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`; `vX.Y.Z-rcN` runs `prerelease.yml`. Both generate GitHub release notes and need the full history (`fetch-depth: 0` on checkout):
+- A final release compares against the previous *stable* tag (`git describe --tags --abbrev=0 --exclude='*-rc*' HEAD^`), so it lists everything since the last non-RC release.
+- An RC compares against the previous tag of any kind (`git describe --tags --abbrev=0 HEAD^`): `rc1` against the last stable release, later RCs only against the RC before them.
 
 ### Local Dev Overrides
 
@@ -170,9 +206,11 @@ localazy/
 
 `platformio.ini` contains `NO_*` placeholder values for API keys. CI injects real keys via `sed` at build time. Do not add real keys to tracked files.
 
+`ENERGY_SPEEDOMETER_USER`/`_PASS` are the credentials for the Flexpartner.Energy MQTT connector (ESP32 only, compiled in only when the password is defined). The code still calls it `energySpeedometer`; the UI shows the brand name hardcoded, not through a translation key.
+
 ### ESP8266 vs ESP32 Differences
 
-`src/cloud/` (CloudConnector, ZmartCharge) is excluded from ESP8266 builds via `build_src_filter = -<cloud/>` — these use mbedTLS headers that don't exist on ESP8266. KmpTalker (Kamstrup protocol) is ESP32-only, requires precompiled `.a` in `precompiled/<env>/`.
+`src/cloud/` (CloudConnector, ZmartCharge) is excluded from ESP8266 builds via `build_src_filter = -<cloud/>` — these use mbedTLS headers that don't exist on ESP8266. KmpTalker (Kamstrup protocol) is ESP32-only, requires precompiled `.a` in `precompiled/<env>/`. Configuration over MQTT (`getconfig`/`setconfig`) and `DnsGuard` are `#if defined(ESP32)` only.
 
 ### 64-bit Uptime
 

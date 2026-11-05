@@ -235,7 +235,7 @@ bool RawMqttHandler::publishTemperatures(AmsConfiguration* config, HwTools* hw) 
         TempSensorData* data = hw->getTempSensorData(i);
         if(data != NULL && data->lastValidRead > -85) {
             if(data->changed || full) {
-                mqtt.publish(topic + "/temperature/" + toHex(data->address), String(data->lastValidRead, 2));
+                mqtt.publish(topic + "/temperature/" + toHex(data->address, 8), String(data->lastValidRead, 2));
                 mqtt.loop();
                 data->changed = false;
             }

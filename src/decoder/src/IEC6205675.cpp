@@ -220,18 +220,22 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 lastUpdateMillis = millis64();
             } else if(data->base.length == 0x0C) {
                 CosemData* no3 = getCosemDataAt(3, ((char *) (d)));
-                if(no3->base.type == CosemTypeBoolean) {
+                if(no3->base.type == CosemTypeBoolean || no3->base.type == CosemTypeEnum) {
                     apply(state);
                     listType = state.getListType() > 3 ? state.getListType() : 3;
 
                     // 42.0.0 COSEM logical device name
                     idx++;
 
-                    // 96.1.3 Device ID 4
+                    // 96.1.3 Device ID 4. The 1 s frame leads with 96.1.2, a different
+                    // register, so only use this one when no id is known yet. Taking
+                    // both would flip the meter id (MQTT topic, HA entity) every frame.
                     data = getCosemDataAt(idx++, ((char *) (d)));
-                    memcpy(str, data->oct.data, data->oct.length);
-                    str[data->oct.length] = 0x00;
-                    strncpy(meterId, str, sizeof(meterId) - 1);
+                    if(meterId[0] == '\0') {
+                        memcpy(str, data->oct.data, data->oct.length);
+                        str[data->oct.length] = 0x00;
+                        strncpy(meterId, str, sizeof(meterId) - 1);
+                    }
 
                     // 96.3.10 Disconnect control
                     // 96.14.0 Currently acrive energy tariff

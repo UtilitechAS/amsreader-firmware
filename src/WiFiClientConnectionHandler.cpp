@@ -266,11 +266,15 @@ bool WiFiClientConnectionHandler::isConnected() {
 	if(WiFi.status() != WL_CONNECTED) {
 		return false;
 	}
-	// Remembered so a lost connection can be retried without scanning all channels
-	uint8_t* bssid = WiFi.BSSID();
-	if(bssid != NULL) {
-		memcpy(lastBssid, bssid, 6);
-		lastChannel = WiFi.channel();
+	// Remembered so a lost connection can be retried without scanning all channels.
+	// Only once per connection: querying the driver on every call wakes the radio from
+	// modem sleep, and this is called from every loop()
+	if(lastChannel == 0) {
+		uint8_t* bssid = WiFi.BSSID();
+		if(bssid != NULL) {
+			memcpy(lastBssid, bssid, 6);
+			lastChannel = WiFi.channel();
+		}
 	}
 	return true;
 }

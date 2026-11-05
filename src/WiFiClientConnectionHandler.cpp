@@ -122,7 +122,13 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 				wifi_set_user_limit_rate_mask(LIMIT_RATE_MASK_ALL);
 			}
 		#endif
+		#if defined(ESP32)
+		// The core would retry back to back on every failure, keeping the radio busy, which a
+		// bus powered device can not sustain. Retries are paced by connect() and eventHandler()
+		WiFi.setAutoReconnect(false);
+		#else
 		WiFi.setAutoReconnect(true);
+		#endif
 		WiFi.persistent(false);
         this->config = config;
 		#if defined(ESP32)
@@ -260,6 +266,7 @@ void WiFiClientConnectionHandler::disconnect(unsigned long reconnectDelay) {
 	yield();
 	timeout = reconnectDelay;
 	lastChannel = 0;
+	linkUp = false;
 }
 
 bool WiFiClientConnectionHandler::isConnected() {
@@ -324,6 +331,7 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
 			}
 			break;
 		case ARDUINO_EVENT_WIFI_STA_CONNECTED:
+			linkUp = true;
             #if defined(AMS_REMOTE_DEBUG)
 			if (debugger->isActive(RemoteDebug::INFO))
 			#endif
@@ -407,6 +415,13 @@ void WiFiClientConnectionHandler::eventHandler(WiFiEvent_t event, WiFiEventInfo_
 						#endif
 						{
 							debugger->printf_P(PSTR("WiFi disconnected, reason %s\n"), descr);
+						}
+						if(linkUp) {
+							// Lost an established connection, connect() retries the same AP with the radio still on
+							linkUp = false;
+						} else {
+							// A connection attempt failed, rest the radio before the next one
+							disconnect(RECONNECT_TIMEOUT);
 						}
 					}
 			}

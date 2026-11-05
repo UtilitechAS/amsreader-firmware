@@ -268,6 +268,6 @@ export let ipPattern = "((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}";
 export let asciiPattern = "[\\x20-\\x7E]+";
 export let asciiPatternExt = "[\\x20-\\xFF]+";
 export let charAndNumPattern = "[A-Za-z0-9_\\-]+";
-export let hexPattern = "[0-9A-Fa-f]+";
+export let meterKeyPattern = "[0-9A-Fa-f]{32}";
 export let numPattern = "[0-9]+";
 

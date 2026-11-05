@@ -3,7 +3,7 @@
     import { sysinfoStore, networksStore, dataStore } from '../lib/DataStores.js';
     import fetchWithTimeout from '../lib/fetchWithTimeout';
     import { translationsStore } from '../lib/TranslationService';
-    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, hexPattern, numPattern, isBusPowered } from '../lib/Helpers.js';
+    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, meterKeyPattern, numPattern, isBusPowered } from '../lib/Helpers.js';
     import UartSelectOptions from '../lib/UartSelectOptions.svelte';
     import Mask from '../lib/Mask.svelte'
     import Badge from '../lib/Badge.svelte';
@@ -498,13 +498,13 @@
             <div class="my-1">
                 <label><input type="checkbox" name="me" value="true" bind:checked={configuration.m.e.e} class="rounded mb-1"/> {translations.conf?.meter?.encrypted ?? "Encrypted"}</label>
                 {#if configuration.m.e.e}
-                <br/><input name="mek" bind:value={configuration.m.e.k} type="text" class="in-s" pattern={hexPattern}/>
+                <br/><input name="mek" bind:value={configuration.m.e.k} type="text" class="in-s" pattern={meterKeyPattern}/>
                 {/if}
             </div>
             {#if configuration.m.e.e}
             <div class="my-1">
                 {translations.conf?.meter?.authkey ?? "Authentication key"}<br/>
-                <input name="mea" bind:value={configuration.m.e.a} type="text" class="in-s" pattern={hexPattern}/>
+                <input name="mea" bind:value={configuration.m.e.a} type="text" class="in-s" pattern={meterKeyPattern}/>
             </div>
             {/if}
 

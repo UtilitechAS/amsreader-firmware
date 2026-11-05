@@ -2358,10 +2358,14 @@ void configFileParse() {
 			meter.productionCapacity = String(buf+24).toInt();
 		} else if(strncmp_P(buf, PSTR("meterEncryptionKey "), 19) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			fromHex(meter.encryptionKey, String(buf+19), 16);
+			if(size == 19 + sizeof(meter.encryptionKey) * 2) {
+				fromHex(meter.encryptionKey, buf+19, sizeof(meter.encryptionKey));
+			}
 		} else if(strncmp_P(buf, PSTR("meterAuthenticationKey "), 23) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
-			fromHex(meter.authenticationKey, String(buf+23), 16);
+			if(size == 23 + sizeof(meter.authenticationKey) * 2) {
+				fromHex(meter.authenticationKey, buf+23, sizeof(meter.authenticationKey));
+			}
 		} else if(strncmp_P(buf, PSTR("meterWattageMultiplier "), 23) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.wattageMultiplier = lround(String(buf+23).toDouble() * 1000.0);

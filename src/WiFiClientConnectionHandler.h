@@ -61,6 +61,7 @@ private:
     uint8_t lastChannel = 0;
     uint8_t lastBssid[6] = {0};
     bool force11b = false;
+    bool linkUp = false;
 
     void applyTxPower(NetworkConfig& config);
     wl_status_t begin(const char* ssid, const char* psk, uint8_t channel, const uint8_t* bssid);

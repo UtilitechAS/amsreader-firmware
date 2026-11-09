@@ -1,5 +1,5 @@
 <script>
-    import { zeropad, addHours, exportcol } from './Helpers.js';
+    import { zeropad, addHours, exportcol, niceAxis } from './Helpers.js';
     import BarChart from './BarChart.svelte';
     import { translationsStore } from './TranslationService.js';
 
@@ -79,31 +79,10 @@
         }
 
         min *= -1;
-        let range = Math.max(max, Math.abs(min));
-
-        if(min < 0) {
-            min = Math.min((range/4)*-1, min);
-            let yTicksNum = Math.ceil((Math.abs(min)/range) * 4);
-            let yTickDistDown = min/yTicksNum;
-            for(i = 1; i < yTicksNum+1; i++) {
-                let val = (yTickDistDown*i);
-                yTicks.push({
-                    value: val,
-                    label: val.toFixed(0)
-                });
-            }
-        }
-
-        max = Math.max((range/4), max);
-        let xTicksNum = Math.ceil((max/range) * 4);
-        let yTickDistUp = max/xTicksNum;
-        for(i = 0; i < xTicksNum+1; i++) {
-            let val = (yTickDistUp*i);
-            yTicks.push({
-                value: val,
-                label: val.toFixed(0)
-            });
-        }
+        let axis = niceAxis(min, max, 1);
+        min = axis.min;
+        max = axis.max;
+        yTicks = axis.ticks;
 
         config = {
             title: title.replace('{0}', lm.getDate().toFixed(0)) + " (kWh)",

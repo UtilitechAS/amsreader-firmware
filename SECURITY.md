@@ -8,6 +8,7 @@ This policy covers:
 
 - The amsreader firmware in this repository
 - Utilitech hardware products running this firmware: Pow-K, Pow-U and Pow-P1 HAN port readers
+- The amsleser.cloud service (https://www.amsleser.cloud)
 
 Not covered: third-party forks or modified builds of the firmware, and third-party hardware not sold by Utilitech AS.
 
@@ -20,6 +21,8 @@ Security fixes are provided in new releases of the firmware. We recommend always
 | Latest stable release | Yes |
 | Release candidates (-rc) | Fixes are included in the next release |
 | Older releases | No; please upgrade |
+
+The amsleser.cloud service is always kept at its current version; fixes are deployed directly to the service.
 
 ## Reporting a vulnerability
 

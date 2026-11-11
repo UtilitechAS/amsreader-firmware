@@ -32,7 +32,7 @@ Report vulnerabilities privately through GitHub:
 
 Direct link: https://github.com/UtilitechAS/amsreader-firmware/security/advisories/new
 
-If you cannot use GitHub, you may instead send an e-mail to post@amsleser.no with the subject "Security vulnerability".
+If you cannot use GitHub, you may instead send an e-mail to post (at) amsleser.no with the subject "Security vulnerability".
 
 Please include as much as possible of the following:
 

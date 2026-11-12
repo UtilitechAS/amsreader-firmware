@@ -1,5 +1,5 @@
 <script>
-    import { zeropad, addHours, addMinutes, getPriceSourceName, getPriceSourceUrl, formatCurrency } from './Helpers.js';
+    import { zeropad, addHours, addMinutes, getPriceSourceName, getPriceSourceUrl, formatCurrency, niceAxis } from './Helpers.js';
     import BarChart from './BarChart.svelte';
     import { onMount } from 'svelte';
 
@@ -89,31 +89,10 @@
                     color: dark ? '#5c2da5' : '#7c3aed'
                 });
             }
-            let range = Math.max(max, Math.abs(min));
-
-            if(min < 0) {
-                min = Math.min((range/4)*-1, min);
-                let yTicksNum = Math.ceil((Math.abs(min)/range) * 4);
-                let yTickDistDown = min/yTicksNum;
-                for(i = 1; i < yTicksNum+1; i++) {
-                    let val = (yTickDistDown*i);
-                    yTicks.push({
-                        value: val,
-                        label: (val/100).toFixed(2)
-                    });
-                }
-            }
-
-            max = Math.max((range/4), max);
-            let xTicksNum = Math.ceil((max/range) * 4);
-            let yTickDistUp = max/xTicksNum;
-            for(i = 0; i < xTicksNum+1; i++) {
-                let val = (yTickDistUp*i);
-                yTicks.push({
-                    value: val,
-                    label: (val/100).toFixed(2)
-                });
-            }
+            let axis = niceAxis(min / 100, max / 100, 100);
+            min = axis.min;
+            max = axis.max;
+            yTicks = axis.ticks;
 
             config = {
                 title: title + " (" + currency + ")",

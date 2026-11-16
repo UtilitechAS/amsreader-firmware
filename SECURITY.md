@@ -45,6 +45,8 @@ Please include as much as possible of the following:
 - Whether the vulnerability is known to be actively exploited
 - Whether you wish to be credited, and under which name
 
+Note: the GitHub form requires a proof of concept of at least 150 characters.
+
 Reports may be written in English or Norwegian.
 
 ## What happens next

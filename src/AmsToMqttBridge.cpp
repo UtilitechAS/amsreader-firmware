@@ -1877,12 +1877,12 @@ void handleDataSuccess(AmsData* data) {
 	if(!setupMode && !hw.ledFlash(LED_GREEN, 1))
 		hw.ledFlash(LED_INTERNAL, 1);
 
-	// Some meters repeat the previous whole hour's accumulated registers at the
-	// next whole hour (#1119). Decide that once, here, so the MQTT handlers and
-	// the data storage below all see the same verdict on this packet.
+	// Some meters publish a stale accumulated register at the whole hour
+	// (#1119). Decide that once, here, so the MQTT handlers and the data
+	// storage below all see the same verdict on this packet.
 	data->setCounterStale(meterState.isStaleCounter(*data));
 	if(data->isCounterStale()) {
-		debugW_P(PSTR("Meter repeated the previous hour's accumulated values"));
+		debugW_P(PSTR("Meter energy register did not advance although power was measured"));
 	}
 
 	if(mqttHandler != NULL && checkVoltageIfNeeded(0.2)) {

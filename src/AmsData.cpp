@@ -77,10 +77,10 @@ void AmsData::apply(AmsData& other) {
             this->l3activeExportCounter = other.getL3ActiveExportCounter();
         case 3:
             this->meterTimestamp = other.getMeterTimestamp();
-            // Some meters repeat the previous whole hour's register snapshot at the
-            // next whole hour (#1119). Keep the integrated estimate and stay flagged
-            // as estimated, so the repeat is neither stored nor published as a new
-            // hourly reading. The flag is set by the pipeline entry point via
+            // Some meters publish a stale register snapshot at the whole hour
+            // (#1119). Keep the integrated estimate and stay flagged as estimated,
+            // so the stale value is neither stored nor published as a new hourly
+            // reading. The flag is set by the pipeline entry point via
             // isStaleCounter() before this point, and propagates through apply().
             if(other.isCounterStale()) {
                 this->counterStale = true;
@@ -96,7 +96,8 @@ void AmsData::apply(AmsData& other) {
                 this->activeExportCounterTariff2 = other.getActiveExportCounterTariff2();
                 this->reactiveImportCounter = other.getReactiveImportCounter();
                 this->reactiveExportCounter = other.getReactiveExportCounter();
-                this->lastKnownCounter = activeImportCounter - activeExportCounter;
+                this->lastAcceptedImportCounter = activeImportCounter;
+                this->lastAcceptedExportCounter = activeExportCounter;
                 if(other.getMeterTimestamp() != 0) {
                     if(this->lastAcceptedMeterTimestamp != 0 && other.getMeterTimestamp() > this->lastAcceptedMeterTimestamp) {
                         this->lastAcceptedMeterTimestampStep = (int32_t) (other.getMeterTimestamp() - this->lastAcceptedMeterTimestamp);
@@ -485,22 +486,32 @@ bool AmsData::isStaleCounter(AmsData& other) {
     // clock must not be able to blackhole history indefinitely.
     if(this->staleCounterCount >= 2) return false;
 
-    time_t ts = other.getMeterTimestamp();
-    if(ts == 0 || this->lastAcceptedMeterTimestamp == 0) return false; // no clock to compare against
-    if(ts != this->lastAcceptedMeterTimestamp) return false;           // clock advanced, genuine new reading
-
-    // Only meters that publish their registers on a long cycle can exhibit this.
-    // A meter sending List 3 every few seconds repeats its clock between updates
-    // as a matter of course, so require an observed hourly cadence first. The
-    // step is learned from the meter itself rather than compared against the
-    // system clock: adjustForKnownIssues() gives some meters a fixed offset that
-    // is only correct outside DST, so absolute comparison is not reliable.
+    // Only meters that publish their registers on a long cycle can exhibit this,
+    // and only for them is the integrated estimate over a whole cycle large
+    // enough to judge the register by. So require an observed cadence of at
+    // least half an hour, learned from the meter clock of accepted readings.
+    // The step is learned rather than compared against the system clock:
+    // adjustForKnownIssues() gives some meters a fixed offset that is only
+    // correct outside DST, so absolute comparison is not reliable.
+    if(this->lastAcceptedMeterTimestamp == 0) return false;
     if(this->lastAcceptedMeterTimestampStep < 1800) return false;
 
-    // Clock repeated. Require the registers to be identical too - both signals
-    // are present in every captured case, so demanding both avoids false
-    // positives on meters with an unreliable clock.
-    return this->lastKnownCounter == other.getActiveImportCounter() - other.getActiveExportCounter();
+    // The evidence is the power integrated from sub-hour traffic since the last
+    // accepted reading. Without it there is nothing to judge the register by.
+    if(!this->counterEstimated) return false;
+
+    // A register that did not move although the meter itself reported enough
+    // power to move it several steps is stale. Each direction is judged on its
+    // own: a stale snapshot does not always freeze every register (#1119 has
+    // captures where active import stood still while reactive moved), and a
+    // prosumer can have a genuinely idle direction in any hour. The meter clock
+    // is deliberately not consulted - in some captures it repeats together with
+    // the registers, in most it is current.
+    double importEstimate = this->activeImportCounter - this->lastAcceptedImportCounter;
+    double exportEstimate = this->activeExportCounter - this->lastAcceptedExportCounter;
+    bool importStale = other.getActiveImportCounter() == this->lastAcceptedImportCounter && importEstimate >= STALE_COUNTER_MIN_ESTIMATE_KWH;
+    bool exportStale = other.getActiveExportCounter() == this->lastAcceptedExportCounter && exportEstimate >= STALE_COUNTER_MIN_ESTIMATE_KWH;
+    return importStale || exportStale;
 }
 
 bool AmsData::isCounterStale() {

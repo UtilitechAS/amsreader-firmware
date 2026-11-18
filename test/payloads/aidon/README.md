@@ -4,6 +4,8 @@ Aidon meters (Norway, Sweden). Unencrypted DLMS over HDLC (HAN-NVE list formats)
 
 **9 payload file(s)** — 0 encrypted.
 
+`gh1119-history/` holds a year of stale whole-hour readings from one Aidon 6534 (#1119) with the readings around them, replayed by `test_stale_history_replay`. It is not part of the per-file fixture sweep. Its README describes the findings.
+
 | File | Source | Model | Country | Protocol | Enc | Notes |
 |------|--------|-------|---------|----------|-----|-------|
 | `em003-2.hex` | email Sun, 14 Nov 2021 15:43:49 +0100 |  | Sweden | DLMS | — | Swedish Aidon HAN capture (115200 8N1 inverted) via AMS reader telnet 'Frame dump'. Begins with a valid HDLC header (7E A2 A8 21 B0 A2 D8 CF ...) but the second half degrades into mis-sampled bytes (recurring F0 EC 60 pattern); firmware reported Invalid HDLC. Partially-valid frame, good edge-case fixture. |

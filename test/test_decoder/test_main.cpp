@@ -86,6 +86,11 @@ void test_stale_reading_keeps_estimate_flagged(void);
 void test_stale_detector_gives_up_after_two(void);
 void test_stale_detector_needs_hourly_cadence(void);
 void test_stale_flag_clears_on_subhour_packet(void);
+void test_stale_detector_needs_integrated_evidence(void);
+void test_stale_detector_ignores_small_estimate(void);
+void test_stale_detector_flags_register_repeat_with_current_clock(void);
+void test_stale_detector_flags_partial_repeat(void);
+void test_stale_history_replay(void);
 
 int main(int argc, char** argv) {
     if (argc > 1 && strcmp(argv[1], "gen") == 0) {
@@ -118,5 +123,10 @@ int main(int argc, char** argv) {
     RUN_TEST(test_stale_detector_gives_up_after_two);
     RUN_TEST(test_stale_detector_needs_hourly_cadence);
     RUN_TEST(test_stale_flag_clears_on_subhour_packet);
+    RUN_TEST(test_stale_detector_needs_integrated_evidence);
+    RUN_TEST(test_stale_detector_ignores_small_estimate);
+    RUN_TEST(test_stale_detector_flags_register_repeat_with_current_clock);
+    RUN_TEST(test_stale_detector_flags_partial_repeat);
+    RUN_TEST(test_stale_history_replay);
     return UNITY_END();
 }

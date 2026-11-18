@@ -90,6 +90,16 @@ bool EnergyAccounting::update(time_t now, uint64_t lastUpdatedMillis, uint8_t li
     if(!init) {
         realtimeData->lastImportUpdateMillis = 0;
         realtimeData->lastExportUpdateMillis = 0;
+        // The realtime struct survives a soft reboot. Its hour accumulators are
+        // only worth keeping when they belong to the hour we are in now; then
+        // calcDayCost() adds them to the day, which it otherwise rebuilds from
+        // completed hours only.
+        if(realtimeData->currentDay != local.Day || realtimeData->currentHour != hourOfDay) {
+            realtimeData->use = 0;
+            realtimeData->produce = 0;
+            realtimeData->costHour = 0;
+            realtimeData->incomeHour = 0;
+        }
         realtimeData->currentHour = hourOfDay;
         realtimeData->currentDay = local.Day;
         if(!load()) {
@@ -219,25 +229,28 @@ bool EnergyAccounting::update(time_t now, uint64_t lastUpdatedMillis, uint8_t li
 
 void EnergyAccounting::calcDayCost() {
     time_t now = time(nullptr);
-    tmElements_t local, utc, lastUpdateUtc;
+    tmElements_t utc;
     if(tz == NULL) return;
-    breakTime(tz->toLocal(now), local);
     if(ps == NULL) return;
 
     if(ps->hasPrice()) {
-        breakTime(data.lastUpdated, lastUpdateUtc);
+        time_t midnight = localMidnightUtc(tz, now);
+        uint8_t hourOfDay = hoursSinceLocalMidnight(tz, now);
+
+        // costToday was saved at an hour rollover and covers the local hours
+        // before the one lastUpdated falls in. Both the day test and the hour
+        // must be local: comparing the UTC hour recounted one hour (two in
+        // summer) that costToday already held.
         uint8_t calcFromHour = 0;
-        if(lastUpdateUtc.Day != local.Day || lastUpdateUtc.Month != local.Month || lastUpdateUtc.Year != local.Year) {
+        if(data.lastUpdated < midnight || data.lastUpdated > now) {
             realtimeData->costDay = 0;
             realtimeData->incomeDay = 0;
             calcFromHour = 0;
         } else {
             realtimeData->costDay = data.costToday / 100.0;
             realtimeData->incomeDay = data.incomeToday / 100.0;
-            calcFromHour = lastUpdateUtc.Hour;
+            calcFromHour = hoursSinceLocalMidnight(tz, data.lastUpdated);
         }
-        time_t midnight = localMidnightUtc(tz, now);
-        uint8_t hourOfDay = hoursSinceLocalMidnight(tz, now);
         for(uint8_t i = calcFromHour; i < realtimeData->currentHour; i++) {
             breakTime(midnight + (i * 3600), utc);
 
@@ -253,6 +266,11 @@ void EnergyAccounting::calcDayCost() {
                 realtimeData->incomeDay += priceOut * (wh / 1000.0);
             }
         }
+        // The hour in progress is not in the day plot yet. Its cost so far is in
+        // the hour accumulators, which survive a soft reboot when they belong to
+        // this hour (see the init block in update()).
+        realtimeData->costDay += realtimeData->costHour;
+        realtimeData->incomeDay += realtimeData->incomeHour;
         initPrice = true;
     }
 }
@@ -533,6 +551,7 @@ bool EnergyAccounting::updateMax(uint16_t val, uint8_t day, uint8_t hour) {
     if(idx < 5) {
         data.peaks[idx].value = val;
         data.peaks[idx].day = day;
+        data.peaks[idx].hour = hour;
         return true;
     }
     return false;

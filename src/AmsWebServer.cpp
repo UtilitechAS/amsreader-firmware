@@ -2576,10 +2576,14 @@ void AmsWebServer::configFileDownload() {
 			ead.version,
 			ead.month,
 			ea->getCostYesterday(),
-			ea->getCostThisMonth(),
+			// The stored month total, without today: getCostThisMonth() adds the
+			// running day, and the import stores this field as the month total,
+			// so a round trip would count today twice. Today is recomputed from
+			// the day plot after the import.
+			ead.costThisMonth / 100.0,
 			ea->getCostLastMonth(),
 			ea->getIncomeYesterday(),
-			ea->getIncomeThisMonth(),
+			ead.incomeThisMonth / 100.0,
 			ea->getIncomeLastMonth(),
 			ead.peaks[0].day,
 			ead.peaks[0].hour,

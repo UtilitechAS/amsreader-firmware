@@ -80,9 +80,10 @@ void test_stale_fixture_pair_is_identical(void) {
     TEST_ASSERT_EQUAL_UINT32(12633, d3->getActiveImportPower());
 
     // The meter skips the hour entirely: the next clock is two hours on, and its
-    // delta covers both hours.
+    // delta covers both hours (805 register steps of 10 Wh; this read 8.056
+    // while counters were decoded as float).
     TEST_ASSERT_EQUAL_INT32(7200, (int32_t) (d4->getMeterTimestamp() - d2->getMeterTimestamp()));
-    TEST_ASSERT_FLOAT_WITHIN(0.001, 8.056, (float) (d4->getActiveImportCounter() - d2->getActiveImportCounter()));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 8.050, (float) (d4->getActiveImportCounter() - d2->getActiveImportCounter()));
 
     delete d1; delete d2; delete d3; delete d4;
 }
@@ -115,7 +116,7 @@ void test_stale_detector_flags_repeat_only(void) {
     AmsData* d4 = harness_decode_fixture(F4);
     TEST_ASSERT_FALSE(feed(state, d4));
     TEST_ASSERT_FALSE(state.isCounterStale());
-    TEST_ASSERT_FLOAT_WITHIN(0.001, 8.056, (float) (state.getActiveImportCounter() - c2));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 8.050, (float) (state.getActiveImportCounter() - c2));
 
     delete d1; delete d2; delete d3; delete d4;
 }

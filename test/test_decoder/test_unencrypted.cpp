@@ -182,6 +182,20 @@ void test_aidon_norway_list2(void) {
     delete d;
 }
 
+// Energy registers are decoded at full resolution. getNumber() used to return
+// float, which has 24 bits of mantissa: a register of 125,674,700 Wh came out as
+// 125,674,704 Wh, and hourly deltas taken from such values were off by up to
+// 8 Wh. gh1119-2 carries A+ = 0x00A72A8A x 10 Wh = 109554.020 kWh and
+// R- = 0x0017605A x 10 Wh = 15319.940 kVArh.
+void test_energy_register_full_resolution(void) {
+    AmsData* d = harness_decode_fixture("test/payloads/aidon/gh1119-2.hex");
+    TEST_ASSERT_NOT_NULL(d);
+    TEST_ASSERT_EQUAL(3, d->getListType());
+    TEST_ASSERT_TRUE(fabs(d->getActiveImportCounter() - 109554.020) < 0.0005);
+    TEST_ASSERT_TRUE(fabs(d->getReactiveExportCounter() - 15319.940) < 0.0005);
+    delete d;
+}
+
 void test_dsmr_accepts_lf_and_crlf(void) {
     // A DSMR/P1 telegram must decode identically whether it uses CRLF (the P1
     // standard) or bare LF line endings.

@@ -271,3 +271,35 @@ export let charAndNumPattern = "[A-Za-z0-9_\\-]+";
 export let meterKeyPattern = "[0-9A-Fa-f]{32}";
 export let numPattern = "[0-9]+";
 
+
+// Y axis with gridlines at round intervals (1, 2, 2.5 or 5 x 10^n), see #1313.
+// lo/hi are the data extremes in display units (lo <= 0 <= hi), scale converts
+// display units to the chart's value units. The step is the smallest one giving
+// at most maxSteps intervals on the larger side of zero, so that side gets 4 to 7
+// gridlines and the top gridline is at most one step above the highest value.
+// All-zero data gives an axis from 0 to minSpan.
+// Returns min/max in chart units and ticks from min to max inclusive.
+export function niceAxis(lo, hi, scale = 1, maxSteps = 7, minSpan = 1) {
+    let span = Math.max(hi, -lo);
+    if(!(span > 0)) {
+        span = minSpan;
+        hi = minSpan;
+    }
+    let mag = Math.pow(10, Math.floor(Math.log10(span / maxSteps)));
+    let step = mag;
+    for(const f of [1, 2, 2.5, 5, 10]) {
+        if(f == 2.5 && mag < 1) continue; // 0.25, 0.025 etc. give too wide labels
+        step = f * mag;
+        if(span / step <= maxSteps + 1e-9) break;
+    }
+    let up = Math.max(1, Math.ceil(hi / step - 1e-9));
+    let down = lo < 0 ? Math.ceil(-lo / step - 1e-9) : 0;
+    let decimals = 0;
+    while(decimals < 6 && Math.abs(Math.round(step * Math.pow(10, decimals)) - step * Math.pow(10, decimals)) > 1e-6) decimals++;
+    let ticks = [];
+    for(let k = -down; k <= up; k++) {
+        let v = k * step;
+        ticks.push({ value: v * scale, label: v.toFixed(decimals) });
+    }
+    return { min: -down * step * scale, max: up * step * scale, ticks: ticks };
+}

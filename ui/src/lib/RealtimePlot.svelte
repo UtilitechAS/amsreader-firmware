@@ -1,5 +1,6 @@
 <script>
     import { realtimeStore, getRealtime, isRealtimeFullyLoaded } from './RealtimeStore.js';
+    import { niceAxis } from './Helpers.js';
 
     export let title;
 
@@ -46,21 +47,17 @@
             for(let p in realtime.data) {
                 let val = realtime.data[p];
                 if(isNaN(val)) val = 0;
-                max = Math.max(Math.ceil(val/1000.0)*1000, max);
-                min = Math.min(Math.floor(val/1000.0)*1000, min);
+                max = Math.max(val, max);
+                min = Math.min(val, min);
             }
-            let range = max - min;
 
-            unit = max > 2500 ? 'kW' : 'W';
-            
-            yTicks = [];
-            for(let i = min; i < max; i+= range/5) {
-                yTicks.push({
-                    value: i,
-                    label: max > 2500 ? (i / 1000).toFixed(1) : i
-                });
-                if(yTicks.length > 6) break;
-            }
+            unit = Math.max(max, -min) > 2500 ? 'kW' : 'W';
+            let div = unit == 'kW' ? 1000 : 1;
+            let axis = niceAxis(min / div, max / div, div, 7, 1000 / div);
+            min = axis.min;
+            max = axis.max;
+            // The top gridline would be drawn above the plot area, leave it out as before
+            yTicks = axis.ticks.filter(t => t.value < max);
 
             xTicks = [];
             for(let i = 0; i < realtime.size; i+=Math.round(realtime.size/Math.round(widthAvailable / 120))) {

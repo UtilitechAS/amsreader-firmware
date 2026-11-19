@@ -54,6 +54,7 @@ static inline bool capacityUpdatePeaks(EnergyAccountingPeak peaks[5], uint16_t v
     if(idx < 5) {
         peaks[idx].value = val;
         peaks[idx].day = day;
+        peaks[idx].hour = hour;
         return true;
     }
     return false;

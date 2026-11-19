@@ -39,6 +39,17 @@ static void test_month_max_averages_top_hours(void) {
     TEST_ASSERT_EQUAL_UINT32(300, capacityMonthMax(peaks, 5));
 }
 
+static void test_replaced_peak_gets_its_hour(void) {
+    EnergyAccountingPeak peaks[5];
+    const uint16_t v[5] = { 500, 450, 300, 350, 400 };
+    setPeaks(peaks, v); // days 1-5 at hour 12, all slots taken
+    TEST_ASSERT_TRUE(capacityUpdatePeaks(peaks, 420, 6, 18));
+    // The lowest peak (day 3) makes room for day 6
+    TEST_ASSERT_EQUAL_UINT8(6, peaks[2].day);
+    TEST_ASSERT_EQUAL_UINT8(18, peaks[2].hour);
+    TEST_ASSERT_EQUAL_UINT16(420, peaks[2].value);
+}
+
 static void test_first_day_of_month_budget_is_threshold(void) {
     EnergyAccountingPeak peaks[5];
     const uint16_t v[5] = { 0, 0, 0, 0, 0 };
@@ -138,6 +149,7 @@ static void test_status(void) {
 int main(int argc, char** argv) {
     UNITY_BEGIN();
     RUN_TEST(test_month_max_averages_top_hours);
+    RUN_TEST(test_replaced_peak_gets_its_hour);
     RUN_TEST(test_first_day_of_month_budget_is_threshold);
     RUN_TEST(test_second_day_shares_average_with_first);
     RUN_TEST(test_mid_month_budget);

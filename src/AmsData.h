@@ -22,6 +22,12 @@ enum AmsType {
     AmsTypeUnknown = 0xFF
 };
 
+// Integrated energy (kWh) that must have accrued since the last accepted
+// reading before an unmoved register is called stale (#1119). Ten steps of the
+// coarsest register resolution seen (10 Wh), and a third of the smallest stale
+// hour in a year of captures (0.31 kWh).
+#define STALE_COUNTER_MIN_ESTIMATE_KWH 0.1
+
 class AmsData {
 public:
     AmsData();
@@ -29,11 +35,13 @@ public:
     void apply(AmsData& other);
     void apply(const OBIS_code_t obis, double value, uint64_t millis64);
 
-    // True when other's List >= 3 accumulated registers are a verbatim repeat of
-    // the last set we accepted: same meter clock AND same counters. Some meters
-    // (confirmed on Aidon, #1119) publish the previous hour's register snapshot
-    // again at the next whole hour, which would otherwise store a zero hour
-    // followed by a double hour. Pure query - apply() does the bookkeeping.
+    // True when other's List >= 3 active energy register (import or export) has
+    // not moved since the last reading we accepted, although the power
+    // integrated in the meantime says it should have. Some meters (confirmed on
+    // Aidon, #1119) publish a stale register snapshot at the whole hour, which
+    // would otherwise store a zero hour followed by a double hour. The meter
+    // clock is not consulted: it is sometimes repeated along with the
+    // registers and sometimes current. Pure query - apply() does the bookkeeping.
     bool isStaleCounter(AmsData& other);
 
     uint64_t getLastUpdateMillis();
@@ -125,7 +133,7 @@ protected:
     double l1activeExportCounter = 0, l2activeExportCounter = 0, l3activeExportCounter = 0;
     float powerFactor = 0, l1PowerFactor = 0, l2PowerFactor = 0, l3PowerFactor = 0;
     double activeImportCounter = 0, activeImportCounterTariff1 = 0, activeImportCounterTariff2 = 0, reactiveImportCounter = 0, activeExportCounter = 0, activeExportCounterTariff1 = 0, activeExportCounterTariff2 = 0, reactiveExportCounter = 0;
-    double lastKnownCounter = 0;
+    double lastAcceptedImportCounter = 0, lastAcceptedExportCounter = 0;
     time_t lastAcceptedMeterTimestamp = 0;
     int32_t lastAcceptedMeterTimestampStep = 0;
     uint8_t staleCounterCount = 0;

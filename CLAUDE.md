@@ -35,6 +35,7 @@ pio test -e native            # Decoder unit tests on host (no device needed)
 pio test -e native_config     # AmsConfiguration tests against the stub EEPROM
 pio test -e native_watchdog   # NetworkWatchdog policy tests
 pio test -e native_localday   # LocalDay hour/price-point positions on DST change days
+pio test -e native_capacity   # Capacity tariff hour budget, headroom and status (CapacityBudget.h)
 ```
 
 ### Svelte UI local development
@@ -64,6 +65,7 @@ test/
   test_configuration/ — Unity tests for AmsConfiguration (env native_config)
   test_network_watchdog/ — Unity tests for NetworkWatchdog (env native_watchdog)
   test_local_day/     — Unity tests for LocalDay.h on 25 and 23 hour days (env native_localday)
+  test_capacity_budget/ — Unity tests for CapacityBudget.h (env native_capacity)
 scripts/
   addversion.py       — writes src/generated_version.h before compile
   generate_includes.py — embeds ui/dist + json templates as C PROGMEM arrays

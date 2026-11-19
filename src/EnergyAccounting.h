@@ -9,12 +9,7 @@
 
 #include "AmsDataStorage.h"
 #include "PriceService.h"
-
-struct EnergyAccountingPeak {
-    uint8_t day;
-    uint8_t hour;
-    uint16_t value;
-};
+#include "CapacityBudget.h"
 
 struct EnergyAccountingPeak6 {
     uint8_t day;
@@ -113,6 +108,12 @@ public:
     uint8_t getCurrentThreshold();
     EnergyAccountingPeak getPeak(uint8_t);
 
+    uint16_t getSecondsLeftThisHour();
+    float getProjectedThisHour();
+    float getBudgetThisHour();
+    float getHeadroom();
+    uint8_t getCapacityStatus();
+
     EnergyAccountingData getData();
     void setData(EnergyAccountingData&);
 
@@ -132,6 +133,7 @@ private:
     EnergyAccountingData data = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     EnergyAccountingRealtimeData* realtimeData = NULL;
     String currency = "";
+    uint32_t lastImportPower = 0;
 
     void calcDayCost();
     bool updateMax(uint16_t val, uint8_t day, uint8_t hour);

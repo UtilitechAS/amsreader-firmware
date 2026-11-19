@@ -89,7 +89,7 @@ uint16_t JsonMqttHandler::appendJsonFooter(EnergyAccounting* ea, uint16_t pos) {
         peaks += String(ea->getPeak(i).value / 100.0, 2);
     }
     
-    return snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("%s\"%sh\":%.3f,\"%sd\":%.2f,\"%sm\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.3f,\"%sde\":%.2f,\"%sme\":%.1f,\"peaks\":[%s]%s"),
+    return snprintf_P(json+pos, BUF_SIZE_COMMON-pos, PSTR("%s\"%sh\":%.3f,\"%sd\":%.2f,\"%sm\":%.1f,\"%st\":%d,\"%sx\":%.2f,\"%she\":%.3f,\"%sde\":%.2f,\"%sme\":%.1f,\"%shl\":%u,\"%shp\":%.3f,\"%shb\":%.2f,\"%shh\":%.2f,\"%shs\":\"%s\",\"peaks\":[%s]%s"),
         strlen(pf) == 0 ? "},\"realtime\":{" : ",",
         pf,
         ea->getUseThisHour(),
@@ -107,6 +107,16 @@ uint16_t JsonMqttHandler::appendJsonFooter(EnergyAccounting* ea, uint16_t pos) {
         ea->getProducedToday(),
         pf,
         ea->getProducedThisMonth(),
+        pf,
+        ea->getSecondsLeftThisHour(),
+        pf,
+        ea->getProjectedThisHour(),
+        pf,
+        ea->getBudgetThisHour(),
+        pf,
+        ea->getHeadroom(),
+        pf,
+        capacityStatusName(ea->getCapacityStatus()),
         peaks.c_str(),
         strlen(pf) == 0 ? "}" : ""
     );

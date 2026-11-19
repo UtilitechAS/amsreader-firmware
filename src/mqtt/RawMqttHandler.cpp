@@ -211,6 +211,16 @@ bool RawMqttHandler::publishRealtime(EnergyAccounting* ea) {
     mqtt.loop();
     mqtt.publish(topic + "/realtime/import/monthmax", String(ea->getMonthMax(), 3), true, 0);
     mqtt.loop();
+    mqtt.publish(topic + "/realtime/capacity/left", String(ea->getSecondsLeftThisHour(), 10));
+    mqtt.loop();
+    mqtt.publish(topic + "/realtime/capacity/projected", String(ea->getProjectedThisHour(), 3));
+    mqtt.loop();
+    mqtt.publish(topic + "/realtime/capacity/budget", String(ea->getBudgetThisHour(), 2));
+    mqtt.loop();
+    mqtt.publish(topic + "/realtime/capacity/headroom", String(ea->getHeadroom(), 2));
+    mqtt.loop();
+    mqtt.publish(topic + "/realtime/capacity/status", capacityStatusName(ea->getCapacityStatus()));
+    mqtt.loop();
     mqtt.publish(topic + "/realtime/export/hour", String(ea->getProducedThisHour(), 3));
     mqtt.loop();
     mqtt.publish(topic + "/realtime/export/day", String(ea->getProducedToday(), 2));

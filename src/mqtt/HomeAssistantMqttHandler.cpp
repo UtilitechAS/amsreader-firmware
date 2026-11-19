@@ -260,7 +260,7 @@ bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* 
         if(!peaks.isEmpty()) peaks += ",";
         peaks += String(ea->getPeak(i).value / 100.0, 2);
     }
-    uint16_t pos = snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"max\":%.1f,\"peaks\":[%s],\"threshold\":%d,\"hour\":{\"use\":%.2f,\"cost\":%.2f,\"produced\":%.2f,\"income\":%.2f},\"day\":{\"use\":%.2f,\"cost\":%.2f,\"produced\":%.2f,\"income\":%.2f},\"month\":{\"use\":%.2f,\"cost\":%.2f,\"produced\":%.2f,\"income\":%.2f}"),
+    uint16_t pos = snprintf_P(json, BUF_SIZE_COMMON, PSTR("{\"max\":%.1f,\"peaks\":[%s],\"threshold\":%d,\"hour\":{\"use\":%.2f,\"cost\":%.2f,\"produced\":%.2f,\"income\":%.2f},\"day\":{\"use\":%.2f,\"cost\":%.2f,\"produced\":%.2f,\"income\":%.2f},\"month\":{\"use\":%.2f,\"cost\":%.2f,\"produced\":%.2f,\"income\":%.2f},\"capacity\":{\"left\":%u,\"projected\":%.2f,\"budget\":%.2f,\"headroom\":%.2f,\"status\":\"%s\"}"),
         ea->getMonthMax(),
         peaks.c_str(),
         ea->getCurrentThreshold(),
@@ -275,7 +275,12 @@ bool HomeAssistantMqttHandler::publishRealtime(AmsData* data, EnergyAccounting* 
         ea->getUseThisMonth(),
         ea->getCostThisMonth(),
         ea->getProducedThisMonth(),
-        ea->getIncomeThisMonth()
+        ea->getIncomeThisMonth(),
+        ea->getSecondsLeftThisHour(),
+        ea->getProjectedThisHour(),
+        ea->getBudgetThisHour(),
+        ea->getHeadroom(),
+        capacityStatusName(ea->getCapacityStatus())
     );
     uint32_t ms = millis();
     if(lastThresholdPublish == 0 || ms-lastThresholdPublish > 3600000) {

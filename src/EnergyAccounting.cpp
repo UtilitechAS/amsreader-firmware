@@ -82,6 +82,7 @@ bool EnergyAccounting::update(time_t now, uint64_t lastUpdatedMillis, uint8_t li
     }
 
     bool ret = false;
+    lastImportPower = activeImportPower;
     tmElements_t local;
     breakTime(tz->toLocal(now), local);
     // Not local.Hour: that repeats when DST ends, and the repeated hour would never be closed
@@ -395,32 +396,33 @@ uint8_t EnergyAccounting::getCurrentThreshold() {
 float EnergyAccounting::getMonthMax() {
     if(config == NULL)
         return 0.0;
-    uint8_t count = 0;
-    uint32_t maxHour = 0.0;
-    bool included[5] = { false, false, false, false, false };
+    return capacityMonthMax(data.peaks, config->hours) / 100.0;
+}
 
-    for(uint8_t x = 0;x < min((uint8_t) 5, config->hours); x++) {
-        uint8_t maxIdx = 0;
-        uint16_t maxVal = 0;
-        for(uint8_t i = 0; i < 5; i++) {
-            if(included[i]) continue;
-            if(data.peaks[i].day == 0) continue;
-            if(data.peaks[i].value > maxVal) {
-                maxVal = data.peaks[i].value;
-                maxIdx = i;
-            }
-        }
-        if(maxVal > 0) {
-            included[maxIdx] = true;
-            count++;
-        }
-    }
+uint16_t EnergyAccounting::getSecondsLeftThisHour() {
+    time_t now = time(nullptr);
+    if(tz != NULL) now = tz->toLocal(now);
+    return 3600 - (now % 3600);
+}
 
-    for(uint8_t i = 0; i < 5; i++) {
-        if(!included[i]) continue;
-        maxHour += data.peaks[i].value;
-    }
-    return maxHour > 0 ? maxHour / count / 100.0 : 0.0;
+float EnergyAccounting::getProjectedThisHour() {
+    return getUseThisHour() + (lastImportPower / 1000.0) * (getSecondsLeftThisHour() / 3600.0);
+}
+
+float EnergyAccounting::getBudgetThisHour() {
+    if(config == NULL)
+        return 0.0;
+    // Same index clamp as getCurrentThreshold(), without its truncation to 8 bits
+    uint8_t idx = realtimeData->currentThresholdIdx < 10 ? realtimeData->currentThresholdIdx : 9;
+    return capacityHourBudget(data.peaks, config->hours, realtimeData->currentDay, config->thresholds[idx]) / 100.0;
+}
+
+float EnergyAccounting::getHeadroom() {
+    return capacityHeadroom(getBudgetThisHour(), getUseThisHour(), lastImportPower / 1000.0, getSecondsLeftThisHour());
+}
+
+uint8_t EnergyAccounting::getCapacityStatus() {
+    return capacityStatus(getBudgetThisHour(), getProjectedThisHour());
 }
 
 EnergyAccountingPeak EnergyAccounting::getPeak(uint8_t num) {
@@ -527,34 +529,7 @@ void EnergyAccounting::setData(EnergyAccountingData& data) {
 }
 
 bool EnergyAccounting::updateMax(uint16_t val, uint8_t day, uint8_t hour) {
-    for(uint8_t i = 0; i < 5; i++) {
-        if(data.peaks[i].day == day || data.peaks[i].day == 0) {
-            if(val > data.peaks[i].value) {
-                data.peaks[i].day = day;
-                data.peaks[i].hour = hour;
-                data.peaks[i].value = val;
-                return true;
-            }
-            return false;
-        }
-    }
-    uint16_t test = val;
-    uint8_t idx = 255;
-    for(uint8_t i = 0; i < 5; i++) {
-        if(val > data.peaks[i].value) {
-            if(test > data.peaks[i].value) {
-                test = data.peaks[i].value;
-                idx = i;
-            }
-        }
-    }
-    if(idx < 5) {
-        data.peaks[idx].value = val;
-        data.peaks[idx].day = day;
-        data.peaks[idx].hour = hour;
-        return true;
-    }
-    return false;
+    return capacityUpdatePeaks(data.peaks, val, day, hour);
 }
 
 void EnergyAccounting::setCurrency(String currency) {

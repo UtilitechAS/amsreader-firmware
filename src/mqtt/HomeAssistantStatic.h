@@ -81,7 +81,7 @@ const HomeAssistantSensor List4ExportSensors[List4ExportSensorCount] PROGMEM = {
     {"L3 accumulated active export","/power",   "tPO3",                30, "kWh",  "energy",          "total_increasing", ""}
 };
 
-const uint8_t RealtimeSensorCount PROGMEM = 8;
+const uint8_t RealtimeSensorCount PROGMEM = 13;
 const HomeAssistantSensor RealtimeSensors[RealtimeSensorCount] PROGMEM = {
     {"Month max",                  "/realtime","max",                120, "kWh",  "energy",          "",  ""},
     {"Tariff threshold",           "/realtime","threshold",          120, "kWh",  "energy",          "",  ""},
@@ -90,7 +90,12 @@ const HomeAssistantSensor RealtimeSensors[RealtimeSensorCount] PROGMEM = {
     {"Current day used",           "/realtime","day.use",            120, "kWh",  "energy",          "total_increasing", ""},
     {"Current day cost",           "/realtime","day.cost",           120, "",     "monetary",        "",  ""},
     {"Current month used",         "/realtime","month.use",          120, "kWh",  "energy",          "total_increasing", ""},
-    {"Current month cost",         "/realtime","month.cost",         120, "",     "monetary",        "",  ""}
+    {"Current month cost",         "/realtime","month.cost",         120, "",     "monetary",        "",  ""},
+    {"Capacity hour time left",    "/realtime","capacity.left",      120, "s",    "duration",        "measurement", ""},
+    {"Capacity hour projected",    "/realtime","capacity.projected", 120, "kWh",  "energy",          "",  ""},
+    {"Capacity hour budget",       "/realtime","capacity.budget",    120, "kWh",  "energy",          "",  ""},
+    {"Capacity headroom",          "/realtime","capacity.headroom",  120, "kW",   "power",           "measurement", ""},
+    {"Capacity status",            "/realtime","capacity.status",    120, "",     "",                "",  ""}
 };
 
 const uint8_t RealtimeExportSensorCount PROGMEM = 6;

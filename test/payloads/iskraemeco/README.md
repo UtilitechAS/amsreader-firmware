@@ -2,7 +2,7 @@
 
 Iskraemeco AM550 and IE.5 meters. Common across Slovenia, Austria, Switzerland and Croatia. Several proprietary non-OBIS application formats per distributor; both plaintext and GCM-encrypted variants appear.
 
-**36 payload file(s)** — 13 encrypted, 9 with a known decryption key (see [`../keys/`](../keys/README.md)).
+**37 payload file(s)** — 13 encrypted, 9 with a known decryption key (see [`../keys/`](../keys/README.md)).
 
 > **`gh787-1.hex` … `gh787-9.hex` are now decryptable.** The reporter emailed the encryption
 > key `F9897984D43D3108AAFC4DE19DA85713` (recovered from the maintainer's mailbox). These frames use
@@ -18,6 +18,7 @@ Iskraemeco AM550 and IE.5 meters. Common across Slovenia, Austria, Switzerland a
 | `gh1072-2.hex` | [#1072](https://github.com/UtilitechAS/amsreader-firmware/issues/1072) | IE.5-TD1 | Croatia | HDLC | — | Full reconstructed multi-frame DLMS payload, same timestamp as gh1072-1. Note: contains an internal 7E (frame merge boundary), not a true frame end. Note L2 current likely missing (32 of 33 params). |
 | `gh1072-3.hex` | [#1072](https://github.com/UtilitechAS/amsreader-firmware/issues/1072) | IE.5-TD1 | Croatia | HDLC | — | Complete DLMS frame (no HDLC header), DateTime 2025-12-03 15:53:30, all 33 params present. Decoded XML provided in issue comment 24. Starts with 0F LongInvokeId. |
 | `gh1072-4.hex` | [#1072](https://github.com/UtilitechAS/amsreader-firmware/issues/1072) | IE.5-TD1 | Croatia | HDLC | — | Complete DLMS frame captured on Pow-P1, DateTime 2025-12-19 23:55:40, 33 params. Decoded XML in comment 43. Scaling per comment 27: W/Wh/varh, voltage *10, current *100. |
+| `gh1174-1.hex` | [#1174](https://github.com/UtilitechAS/amsreader-firmware/issues/1174) | IE.5 | Croatia | DLMS | — | Complete DLMS frame (no HDLC header) from the debug log in the issue (meter serial masked to 99999999), HEP Elektroistra, DateTime 2026-04-07 15:00:40. Compact Iskra format, 28 (0x1C) params, no OBIS codes: like gh1072 but without reactive energy and power factor. 1.8.0 = 4052.883 kWh = 1.8.1 2527.544 + 1.8.2 1525.339; export all zero. |
 | `gh615-1.hex` | [#615](https://github.com/UtilitechAS/amsreader-firmware/issues/615) | AM550 | Slovenia | HDLC | — | Unencrypted Slovenian Iskra AM550 5-second instantaneous frame, Elektro Ljubljana (TRIROG). struct qty 18, P/Q/voltage/current values. |
 | `gh615-2.hex` | [#615](https://github.com/UtilitechAS/amsreader-firmware/issues/615) | AM550 | Slovenia | HDLC | — | Unencrypted Slovenian Iskra AM550 15-minute accumulated-energy frame, Elektro Ljubljana (TRIROG). struct qty 12, OBIS 1.8/2.8/3.8/4.8. |
 | `gh615-3.hex` | [#615](https://github.com/UtilitechAS/amsreader-firmware/issues/615) | AM550 | Slovenia | HDLC | — | Unencrypted Slovenian Iskra AM550 5-second instantaneous frame, Elektro Ljubljana (TRIROG). struct qty 18, P/Q/voltage/current values. |

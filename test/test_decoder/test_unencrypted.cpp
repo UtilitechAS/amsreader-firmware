@@ -116,6 +116,37 @@ void test_iskra_am550_slovenia(void) {
     delete d;
 }
 
+void test_iskra_ie5_croatia_tariffs(void) {
+    // Compact Iskra IE.5 frames from Croatia: no OBIS codes, fields by
+    // position. The first frame only identifies the meter as Iskra; the
+    // positional decode runs from the second frame on, as on a device.
+    // 1.8.1/1.8.2 and 2.8.1/2.8.2 must land in the tariff counters.
+
+    // 28 (0x1C) params, no reactive/power factor (issue #1174)
+    AmsData s1174;
+    delete harness_decode_fixture_seq("test/payloads/iskraemeco/gh1174-1.hex", s1174);
+    delete harness_decode_fixture_seq("test/payloads/iskraemeco/gh1174-1.hex", s1174);
+    TEST_ASSERT_EQUAL(AmsTypeIskra, s1174.getMeterType());
+    TEST_ASSERT_EQUAL(4, s1174.getListType());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 4052.883, s1174.getActiveImportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 2527.544, s1174.getActiveImportCounterTariff1());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 1525.339, s1174.getActiveImportCounterTariff2());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 0.0, s1174.getActiveExportCounterTariff1());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 0.0, s1174.getActiveExportCounterTariff2());
+    TEST_ASSERT_EQUAL(576, s1174.getActiveImportPower());
+
+    // 33 (0x21) params (issue #1072)
+    AmsData s1072;
+    delete harness_decode_fixture_seq("test/payloads/iskraemeco/gh1072-3.hex", s1072);
+    delete harness_decode_fixture_seq("test/payloads/iskraemeco/gh1072-3.hex", s1072);
+    TEST_ASSERT_EQUAL(4, s1072.getListType());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 6844.432, s1072.getActiveImportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 4770.804, s1072.getActiveImportCounterTariff1());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 2073.628, s1072.getActiveImportCounterTariff2());
+    TEST_ASSERT_FLOAT_WITHIN(0.002, s1072.getActiveExportCounter(),
+        s1072.getActiveExportCounterTariff1() + s1072.getActiveExportCounterTariff2());
+}
+
 void test_landisgyr_e450_slovenia(void) {
     // L&G E450 (IDIS 2DLM, Slovenia). Descriptor-less push with no OBIS codes:
     // two frame shapes alternate, each led by a different serial register.

@@ -11,7 +11,7 @@
 struct Fixture { const char* path; const char* manufacturer; const char* source; };
 struct KeyedFixture { const char* path; const char* ek_secret; const char* ak_secret; };
 
-// 84 unencrypted frames expected to decode to a valid list
+// 85 unencrypted frames expected to decode to a valid list
 static const Fixture UNENC_OK[] = {
   { "test/payloads/aidon/gh1119-1.hex", "aidon", "#1119" },
   { "test/payloads/aidon/gh1119-2.hex", "aidon", "#1119" },
@@ -25,6 +25,7 @@ static const Fixture UNENC_OK[] = {
   { "test/payloads/iskraemeco/gh1072-2.hex", "iskraemeco", "#1072" },
   { "test/payloads/iskraemeco/gh1072-3.hex", "iskraemeco", "#1072" },
   { "test/payloads/iskraemeco/gh1072-4.hex", "iskraemeco", "#1072" },
+  { "test/payloads/iskraemeco/gh1174-1.hex", "iskraemeco", "#1174" },
   { "test/payloads/iskraemeco/gh615-1.hex", "iskraemeco", "#615" },
   { "test/payloads/iskraemeco/gh615-2.hex", "iskraemeco", "#615" },
   { "test/payloads/iskraemeco/gh615-3.hex", "iskraemeco", "#615" },

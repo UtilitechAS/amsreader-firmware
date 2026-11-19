@@ -36,6 +36,7 @@ pio test -e native_config     # AmsConfiguration tests against the stub EEPROM
 pio test -e native_watchdog   # NetworkWatchdog policy tests
 pio test -e native_localday   # LocalDay hour/price-point positions on DST change days
 pio test -e native_capacity   # Capacity tariff hour budget, headroom and status (CapacityBudget.h)
+pio test -e native_boundedsend # boundedSend() deadline against real sockets
 ```
 
 ### Svelte UI local development
@@ -66,6 +67,7 @@ test/
   test_network_watchdog/ — Unity tests for NetworkWatchdog (env native_watchdog)
   test_local_day/     — Unity tests for LocalDay.h on 25 and 23 hour days (env native_localday)
   test_capacity_budget/ — Unity tests for CapacityBudget.h (env native_capacity)
+  test_bounded_send/  — Unity tests for boundedSend() on socket pairs (env native_boundedsend)
 scripts/
   addversion.py       — writes src/generated_version.h before compile
   generate_includes.py — embeds ui/dist + json templates as C PROGMEM arrays
@@ -122,6 +124,8 @@ The services array (HAN, MQTT, price, NTP, cloud, …) comes from `AmsJsonGenera
 
 - `NetworkWatchdog` (policy only, native-testable) + `GatewayPing` (non-blocking ICMP), driven by `handleNetworkWatchdog()` in `AmsToMqttBridge.cpp`, WiFi client mode only. Pings the gateway every 60 s; arms only after the gateway has answered once. Without replies it restarts WiFi after 3 min with doubling backoff (max 24 min) and reboots after 1 h (`REBOOT_CAUSE_NETWORK_UNREACHABLE`). Outage stats live in `ResetDataContainer`.
 - `DnsGuard` (ESP32 only) keeps lwIP's shared DNS table from losing the DHCP IPv4 servers to IPv6 RDNSS/DHCPv6 entries. It intercepts `dns_setserver` via the linker: `[esp32] build_flags` in `platformio.ini` (`-Wl,--wrap=dns_setserver`, `-D AMS_WRAP_DNS_SETSERVER`) must be included in every ESP32 env.
+- On ESP32, plain-TCP MQTT writes never block longer than the MQTT timeout: the client is `BoundedWiFiClient`, whose `write()` uses `boundedSend()` with one overall deadline and closes the socket when it is missed. The core's `WiFiClient::write()` waits up to 10 x 1 s and restarts that count on every partial send, and the main loop does not read the HAN port while it waits. TLS (`WiFiClientSecure`) and ESP8266 are not wrapped.
+- Raw frames for MQTT debugging (`<publish topic>/data`, debug level Debug or Verbose) are queued by `PassiveMeterCommunicator::queueDebugFrame()` and published by `publishDebugFrames()` after the frame has been handled, never from inside `unwrapData()`.
 - `NtpStatus` records the last SNTP sync (`ntpLastSyncMillis()`); the services array reports NTP as state 2 (connecting) when no sync has happened since boot or the last one is older than 3 h (`NTP_STALE_AFTER_SECONDS`).
 
 ### Decoder Test Fixtures

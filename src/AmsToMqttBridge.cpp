@@ -1869,6 +1869,8 @@ bool readHanPort() {
 		}
 		delete data;
 	}
+	// After the data has been handled, not while the frame was read and decoded
+	mc->publishDebugFrames();
 	yield();
 	return true;
 }

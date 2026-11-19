@@ -38,6 +38,8 @@ public:
     bool isConfigChanged();
     void ackConfigChanged();
     void getCurrentConfig(MeterConfig& meterConfig);
+    void setMqttHandlerForDebugging(AmsMqttHandler* mqttHandler);
+    void publishDebugFrames();
     void setTimezone(Timezone* tz) {
         this->tz = tz;
     };
@@ -57,6 +59,10 @@ protected:
 
     uint8_t *hanBuffer = NULL;
     uint16_t hanBufferSize = 0;
+    // Raw frames waiting for publishDebugFrames(), each as a 2 byte length and
+    // the bytes. A copy, because decryption rewrites hanBuffer in place.
+    uint8_t *debugFrames = NULL;
+    uint16_t debugFramesLen = 0;
     Stream *hanSerial;
     #if defined(ESP8266)
     SoftwareSerial *swSerial = NULL;
@@ -95,6 +101,7 @@ protected:
     int16_t unwrapData(uint8_t *buf, DataParserContext &context);
     bool hasAuthenticationKey();
     void printHanReadError(int pos);
+    void queueDebugFrame(uint8_t* buf, uint16_t length);
     void handleAutodetect(unsigned long now);
     uint8_t getNextParity(uint8_t parityOrdinal);
 };

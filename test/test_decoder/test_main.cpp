@@ -65,6 +65,7 @@ void test_unencrypted_golden(void);
 void test_iskra_am550_slovenia(void);
 void test_iskra_ie5_croatia_tariffs(void);
 void test_aidon_norway_list2(void);
+void test_energy_register_full_resolution(void);
 void test_landisgyr_e450_slovenia(void);
 void test_kamstrup_norway(void);
 void test_kamstrup_timezone(void);
@@ -105,6 +106,7 @@ int main(int argc, char** argv) {
     RUN_TEST(test_kamstrup_timezone);
     RUN_TEST(test_meter_clock_is_timezone_independent);
     RUN_TEST(test_dsmr_accepts_lf_and_crlf);
+    RUN_TEST(test_energy_register_full_resolution);
     RUN_TEST(test_unencrypted_golden);
     RUN_TEST(test_encrypted_decode);
     RUN_TEST(test_encrypted_iskra_787);

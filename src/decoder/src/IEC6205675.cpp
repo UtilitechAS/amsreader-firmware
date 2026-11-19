@@ -16,7 +16,7 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
 #else
 IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterConfig* meterConfig, DataParserContext &ctx, AmsData &state, Stream* debugger) {
 #endif
-    float val;
+    double val;
     char str[64];
 
     this->packageTimestamp = time(nullptr); // ctx.timestamp is mostly garbage, so we use current time as package timestamp
@@ -1464,14 +1464,14 @@ bool IEC6205675::hasScaler(CosemData* item) {
     return pos[0] == 0x02 && pos[1] == 0x02;
 }
 
-float IEC6205675::getNumber(uint8_t* obis, int matchlength, const char* ptr) {
+double IEC6205675::getNumber(uint8_t* obis, int matchlength, const char* ptr) {
     CosemData* item = findObis(obis, matchlength, ptr);
     return getNumber(item);
 }
 
-float IEC6205675::getNumber(CosemData* item) {
+double IEC6205675::getNumber(CosemData* item) {
     if(item != NULL) {
-        float ret = 0.0;
+        double ret = 0.0;
         char* pos = ((char*) item);
         switch(item->base.type) {
             case CosemTypeLongSigned: {

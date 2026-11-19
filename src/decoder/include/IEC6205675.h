@@ -36,8 +36,8 @@ private:
     CosemData* getLastElement(const char* ptr, uint16_t length);
     CosemData* findObis(uint8_t* obis, int matchlength, const char* ptr);
     uint8_t getString(uint8_t* obis, int matchlength, const char* ptr, char* target);
-    float getNumber(uint8_t* obis, int matchlength, const char* ptr);
-    float getNumber(CosemData*);
+    double getNumber(uint8_t* obis, int matchlength, const char* ptr);
+    double getNumber(CosemData*);
     bool hasScaler(CosemData*);
     time_t getTimestamp(uint8_t* obis, int matchlength, const char* ptr);
     time_t adjustForKnownIssues(CosemDateTime dt, Timezone* tz, uint8_t meterType);

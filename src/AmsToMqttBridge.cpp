@@ -2606,13 +2606,13 @@ void configFileParse() {
 					if(i == 1) {
 						day.lastMeterReadTime = val;
 					} else if(i == 2) {
-						day.activeImport = day.version > 5 ? val * 1000 : val;
+						day.activeImport = llround(day.version > 5 ? val * 1000 : val);
 					} else if(i == 3) {
 						day.accuracy = val;
 					} else if(i > 3 && i < 28) {
 						day.hImport[i-4] = val / pow(10, day.accuracy);
 					} else if(i == 28) {
-						day.activeExport = day.version > 5 ? val * 1000 : val;
+						day.activeExport = llround(day.version > 5 ? val * 1000 : val);
 					} else if(i > 28 && i < 53) {
 						day.hExport[i-29] = val / pow(10, day.accuracy);
 					}
@@ -2647,13 +2647,13 @@ void configFileParse() {
 					if(i == 1) {
 						month.lastMeterReadTime = val;
 					} else if(i == 2) {
-						month.activeImport = month.version > 6 ? val * 1000 : val;
+						month.activeImport = llround(month.version > 6 ? val * 1000 : val);
 					} else if(i == 3) {
 						month.accuracy = val;
 					} else if(i > 3 && i < 35) {
 						month.dImport[i-4] = val / pow(10, month.accuracy);
 					} else if(i == 35) {
-						month.activeExport = month.version > 6 ? val * 1000 : val;
+						month.activeExport = llround(month.version > 6 ? val * 1000 : val);
 					} else if(i > 35 && i < 67) {
 						month.dExport[i-36] = val / pow(10, month.accuracy);
 					}
@@ -2689,17 +2689,17 @@ void configFileParse() {
 					} else if(i == 2) {
 						float val = String(pch).toFloat();
 						if(val > 0.0) {
-							ead.peaks[0] = { 1, 0, (uint16_t) (val*100) };
+							ead.peaks[0] = { 1, 0, (uint16_t) lround(val*100) };
 						}
 					} else if(i == 3) {
 						float val = String(pch).toFloat();
-						ead.costYesterday = val * 100;
+						ead.costYesterday = lround(val * 100);
 					} else if(i == 4) {
 						float val = String(pch).toFloat();
-						ead.costThisMonth = val * 100;
+						ead.costThisMonth = lround(val * 100);
 					} else if(i == 5) {
 						float val = String(pch).toFloat();
-						ead.costLastMonth = val * 100;
+						ead.costLastMonth = lround(val * 100);
 					} else if(i >= 6 && i < 18) {
 						{			
 							long val = String(pch).toInt();
@@ -2709,7 +2709,7 @@ void configFileParse() {
 						i++;
 						{
 							float val = String(pch).toFloat();
-							ead.peaks[peak].value = val * 100;
+							ead.peaks[peak].value = lround(val * 100);
 						}
 						peak++;
 					}
@@ -2719,22 +2719,22 @@ void configFileParse() {
 						ead.month = val;
 					} else if(i == 2) {
 						float val = String(pch).toFloat();
-						ead.costYesterday = val * 100;
+						ead.costYesterday = lround(val * 100);
 					} else if(i == 3) {
 						float val = String(pch).toFloat();
-						ead.costThisMonth = val * 100;
+						ead.costThisMonth = lround(val * 100);
 					} else if(i == 4) {
 						float val = String(pch).toFloat();
-						ead.costLastMonth = val * 100;
+						ead.costLastMonth = lround(val * 100);
 					} else if(i == 5) {
 						float val = String(pch).toFloat();
-						ead.incomeYesterday= val * 100;
+						ead.incomeYesterday= lround(val * 100);
 					} else if(i == 6) {
 						float val = String(pch).toFloat();
-						ead.incomeThisMonth = val * 100;
+						ead.incomeThisMonth = lround(val * 100);
 					} else if(i == 7) {
 						float val = String(pch).toFloat();
-						ead.incomeLastMonth = val * 100;
+						ead.incomeLastMonth = lround(val * 100);
 					} else if(i >= 8 && i < 18) {
 						{			
 							long val = String(pch).toInt();
@@ -2744,15 +2744,15 @@ void configFileParse() {
 						i++;
 						{
 							float val = String(pch).toFloat();
-							ead.peaks[peak].value = val * 100;
+							ead.peaks[peak].value = lround(val * 100);
 						}
 						peak++;
 					} else if(i == 18) {
 						float val = String(pch).toFloat();
-						totalImport = val * 1000;
+						totalImport = llround(val * 1000);
 					} else if(i == 19) {
 						float val = String(pch).toFloat();
-						totalExport = val * 1000;
+						totalExport = llround(val * 1000);
 					}
 				} else {
 					if(i == 1) {
@@ -2760,22 +2760,22 @@ void configFileParse() {
 						ead.month = val;
 					} else if(i == 2) {
 						float val = String(pch).toFloat();
-						ead.costYesterday = val * 100;
+						ead.costYesterday = lround(val * 100);
 					} else if(i == 3) {
 						float val = String(pch).toFloat();
-						ead.costThisMonth = val * 100;
+						ead.costThisMonth = lround(val * 100);
 					} else if(i == 4) {
 						float val = String(pch).toFloat();
-						ead.costLastMonth = val * 100;
+						ead.costLastMonth = lround(val * 100);
 					} else if(i == 5) {
 						float val = String(pch).toFloat();
-						ead.incomeYesterday= val * 100;
+						ead.incomeYesterday= lround(val * 100);
 					} else if(i == 6) {
 						float val = String(pch).toFloat();
-						ead.incomeThisMonth = val * 100;
+						ead.incomeThisMonth = lround(val * 100);
 					} else if(i == 7) {
 						float val = String(pch).toFloat();
-						ead.incomeLastMonth = val * 100;
+						ead.incomeLastMonth = lround(val * 100);
 					} else if(i >= 8 && i < 23) {
 						{			
 							long val = String(pch).toInt();
@@ -2791,15 +2791,15 @@ void configFileParse() {
 						i++;
 						{
 							float val = String(pch).toFloat();
-							ead.peaks[peak].value = val * 100;
+							ead.peaks[peak].value = lround(val * 100);
 						}
 						peak++;
-					} else if(i == 18) {
+					} else if(i == 23) {
 						float val = String(pch).toFloat();
-						totalImport = val * 1000;
-					} else if(i == 19) {
+						totalImport = llround(val * 1000);
+					} else if(i == 24) {
 						float val = String(pch).toFloat();
-						totalExport = val * 1000;
+						totalExport = llround(val * 1000);
 					}
 				}
 				pch = strtok (NULL, " ");

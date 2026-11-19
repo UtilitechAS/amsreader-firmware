@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 
 // Peak bookkeeping for the capacity tariff, kept free of Arduino so it can be tested on
 // native. EnergyAccounting stores the highest hour of up to 5 days this month; the month
@@ -98,8 +99,10 @@ static inline uint32_t capacityMonthMax(const EnergyAccountingPeak peaks[5], uin
 }
 
 // The most the current hour of `day` can use (10 Wh units) without lifting the month max
-// above `threshold` (kWh). When the month max is already above every step, the limit is
-// the month max itself: the hour should not make it worse.
+// above `threshold` (kWh), and never more than the threshold itself. It is lower than the
+// threshold only when peaks of other days above it leave less room in the average. When
+// the month max is already above every step, the limit is the month max itself: the hour
+// should not make it worse.
 static inline uint16_t capacityHourBudget(const EnergyAccountingPeak peaks[5], uint8_t hours, uint8_t day, uint16_t threshold) {
     uint32_t limit = capacityMonthMax(peaks, hours);
     if(threshold != CAPACITY_NO_THRESHOLD && threshold * 100UL > limit) limit = threshold * 100UL;
@@ -117,17 +120,29 @@ static inline uint16_t capacityHourBudget(const EnergyAccountingPeak peaks[5], u
             hi = mid - 1;
         }
     }
+    if(threshold != CAPACITY_NO_THRESHOLD && lo > threshold * 100UL) lo = threshold * 100UL;
     return lo;
 }
 
 // Average power (kW) that can be added for the rest of the hour and still stay within
 // `budget`; negative is how much has to be shed. Above the budget, all of the current
 // power is reported as to be shed. The time is floored at 30 s so the value does not
-// explode in the last seconds of the hour.
-static inline float capacityHeadroom(float budget, float used, float powerKw, uint16_t secondsLeft) {
+// explode in the last seconds of the hour. The total is never more than the main fuse
+// allows (`maxKw`, 0 when unknown).
+static inline float capacityHeadroom(float budget, float used, float powerKw, uint16_t secondsLeft, float maxKw) {
     float left = budget - used;
     if(left < 0) left = 0;
-    return (left * 3600.0f / (secondsLeft < 30 ? 30 : secondsLeft)) - powerKw;
+    float allowed = left * 3600.0f / (secondsLeft < 30 ? 30 : secondsLeft);
+    if(maxKw > 0 && allowed > maxKw) allowed = maxKw;
+    return allowed - powerKw;
+}
+
+// Power (W) the main fuse allows. distributionSystem is 1 for IT 230 V, 2 for TN 400 V.
+static inline uint32_t fuseCapacityW(uint8_t distributionSystem, uint16_t mainFuse, bool threePhase, bool twoPhase) {
+    int voltage = distributionSystem == 2 ? 400 : 230;
+    if(threePhase) return mainFuse * sqrt(3) * voltage;
+    if(twoPhase) return mainFuse * voltage;
+    return mainFuse * 230;
 }
 
 // Alarm when the hour is projected to go over the budget, warning within 10% of it

@@ -418,7 +418,11 @@ float EnergyAccounting::getBudgetThisHour() {
 }
 
 float EnergyAccounting::getHeadroom() {
-    return capacityHeadroom(getBudgetThisHour(), getUseThisHour(), lastImportPower / 1000.0, getSecondsLeftThisHour());
+    return capacityHeadroom(getBudgetThisHour(), getUseThisHour(), lastImportPower / 1000.0, getSecondsLeftThisHour(), maxPower / 1000.0);
+}
+
+void EnergyAccounting::setMaxPower(uint32_t watts) {
+    maxPower = watts;
 }
 
 uint8_t EnergyAccounting::getCapacityStatus() {

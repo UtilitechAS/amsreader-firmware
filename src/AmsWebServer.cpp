@@ -241,14 +241,7 @@ void AmsWebServer::loop() {
 	server.handleClient();
 
 	if(maxPwr == 0 && meterState->getListType() > 1 && mainFuse > 0 && distributionSystem > 0) {
-		int voltage = distributionSystem == 2 ? 400 : 230;
-		if(meterState->isThreePhase()) {
-			maxPwr = mainFuse * sqrt(3) * voltage;
-		} else if(meterState->isTwoPhase()) {
-			maxPwr = mainFuse * voltage;
-		} else {
-			maxPwr = mainFuse * 230;
-		}
+		maxPwr = fuseCapacityW(distributionSystem, mainFuse, meterState->isThreePhase(), meterState->isTwoPhase());
 	}
 }
 

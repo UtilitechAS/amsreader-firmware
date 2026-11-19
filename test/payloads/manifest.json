@@ -198,6 +198,17 @@
   "expect": "ok"
  },
  {
+  "file": "iskraemeco/gh1174-1.hex",
+  "manufacturer": "iskraemeco",
+  "source": "#1174",
+  "model": "IE.5",
+  "country": "Croatia",
+  "protocol": "DLMS",
+  "format": "hex",
+  "encrypted": false,
+  "expect": "ok"
+ },
+ {
   "file": "iskraemeco/gh615-1.hex",
   "manufacturer": "iskraemeco",
   "source": "#615",

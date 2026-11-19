@@ -581,16 +581,24 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 activeImportCounter = ntohl(data->dlu.data) / 1000.0;
 
                 // 1.8.1
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportCounterTariff1 = ntohl(data->dlu.data) / 1000.0;
+
                 // 1.8.2
-                idx += 2;
-                
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportCounterTariff2 = ntohl(data->dlu.data) / 1000.0;
+
                 // 2.8.0
                 data = getCosemDataAt(idx++, ((char *) (d)));
                 activeExportCounter = ntohl(data->dlu.data) / 1000.0;
 
                 // 2.8.1
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportCounterTariff1 = ntohl(data->dlu.data) / 1000.0;
+
                 // 2.8.2
-                idx += 2;
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportCounterTariff2 = ntohl(data->dlu.data) / 1000.0;
 
                 // 5.8.0
                 // 6.8.0
@@ -672,16 +680,24 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 activeImportCounter = ntohl(data->dlu.data) / 1000.0;
 
                 // 1.8.1
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportCounterTariff1 = ntohl(data->dlu.data) / 1000.0;
+
                 // 1.8.2
-                idx += 2;
-                
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportCounterTariff2 = ntohl(data->dlu.data) / 1000.0;
+
                 // 2.8.0
                 data = getCosemDataAt(idx++, ((char *) (d)));
                 activeExportCounter = ntohl(data->dlu.data) / 1000.0;
 
                 // 2.8.1
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportCounterTariff1 = ntohl(data->dlu.data) / 1000.0;
+
                 // 2.8.2
-                idx += 2;
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportCounterTariff2 = ntohl(data->dlu.data) / 1000.0;
 
                 // 1.7.0
                 data = getCosemDataAt(idx++, ((char *) (d)));

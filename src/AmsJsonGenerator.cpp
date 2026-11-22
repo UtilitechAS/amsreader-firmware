@@ -19,6 +19,10 @@
 #if defined(ZMART_CHARGE)
 #include "cloud/ZmartChargeCloudConnector.h"
 #endif
+#if defined(ESP32)
+#include <WiFi.h>
+#include <lwip/netif.h>
+#endif
 
 // SNTP resyncs roughly hourly; flag the NTP service as degraded if no sync has
 // landed in this long, allowing a couple of missed cycles before warning.
@@ -41,6 +45,47 @@ uint8_t AmsJsonGenerator::mqttHandlerState(AmsMqttHandler* h) {
     if(h->connected()) return 1;
     return h->lastError() == 0 ? 2 : 3;
 }
+
+#if defined(ESP32)
+uint8_t AmsJsonGenerator::wireGuardState(AmsConfiguration* config, const char** detail) {
+    if(detail != NULL) *detail = "";
+    if(config == NULL) return 0;
+
+    WireGuardConfig wireGuard;
+    if(!config->getWireGuardConfig(wireGuard) || !wireGuard.enabled) return 0;
+
+    NetworkConfig network;
+    if(!config->getNetworkConfig(network)
+        || network.mode != NETWORK_MODE_WIFI_CLIENT
+        || network.ipv6) {
+        if(detail != NULL) *detail = "requirements";
+        return 3;
+    }
+
+    IPAddress address;
+    if(!address.fromString(wireGuard.address)
+        || strlen(wireGuard.privateKey) != 44
+        || strlen(wireGuard.peerPublicKey) != 44
+        || strlen(wireGuard.endpoint) == 0
+        || wireGuard.port == 0) {
+        if(detail != NULL) *detail = "configuration";
+        return 3;
+    }
+
+    if(netif_default == NULL || netif_default->name[0] != 'w' || netif_default->name[1] != 'g') {
+        if(detail != NULL) *detail = "waiting_route";
+        return 2;
+    }
+
+    if(!netif_is_link_up(netif_default)) {
+        if(detail != NULL) *detail = "waiting_handshake";
+        return 2;
+    }
+
+    if(detail != NULL) *detail = "handshake_active";
+    return 1;
+}
+#endif
 
 // Formats one entry of the services array. Kept in one place so the web payload
 // and the MQTT payload (#1128) cannot drift apart.
@@ -119,6 +164,14 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx) {
         }
         appendServiceEntry(out, "price", s, err, priceCfg.area, NULL);
     }
+
+    #if defined(ESP32)
+    {
+        const char* detail;
+        uint8_t s = wireGuardState(ctx.config, &detail);
+        if(s != 0) appendServiceEntry(out, "wireguard", s, 0, detail, NULL);
+    }
+    #endif
 
     {
         NtpConfig ntp;
@@ -343,6 +396,19 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, JsonS
 		ntpConfig.dhcp ? "true" : "false",
 		networkConfig.ipv6 ? "true" : "false"
 	);
+
+#if defined(ESP32)
+	WireGuardConfig wireGuardConfig;
+	config->getWireGuardConfig(wireGuardConfig);
+	EMIT(PSTR(",\"wg\":{\"e\":%s,\"a\":\"%s\",\"k\":\"%s\",\"p\":\"%s\",\"h\":\"%s\",\"o\":%u}"),
+		wireGuardConfig.enabled ? "true" : "false",
+		wireGuardConfig.address,
+		strlen(wireGuardConfig.privateKey) > 0 ? "***" : "",
+		strlen(wireGuardConfig.peerPublicKey) > 0 ? "***" : "",
+		wireGuardConfig.endpoint,
+		wireGuardConfig.port
+	);
+#endif
 
 	// MQTT
 	bool qsc = false;

@@ -10,6 +10,7 @@
         mqtt_c: "MQTT (custom)",
         mqtt_es: "Flexpartner.Energy",
         price: "Price service",
+        wireguard: "WireGuard",
         ntp: "NTP",
         cloud: "Cloud",
         zc: "ZmartCharge",
@@ -26,6 +27,13 @@
     function stateLabel(s) {
         return translations.status?.services?.state?.[s]
             ?? ({ 0: "Disabled", 1: "OK", 2: "Connecting", 3: "Error" }[s] ?? s);
+    }
+
+    function detailLabel(svc) {
+        if(svc.k === "wireguard") {
+            return translations.status?.services?.wireguard_detail?.[svc.d] ?? svc.d;
+        }
+        return svc.d;
     }
 
     const errorNamespace = {
@@ -55,7 +63,7 @@
                 <span class="bd-{bcol(svc.s)} mr-2 flex-none">&nbsp;</span>
                 <span class="flex-1 flex items-baseline min-w-0">
                     <strong class="flex-none">{label(svc)}</strong>
-                    {#if svc.d}<span class="text-gray-400 ml-2 text-xs truncate" title={svc.d}>{svc.d}</span>{/if}
+                    {#if svc.d}<span class="text-gray-400 ml-2 text-xs truncate" title={detailLabel(svc)}>{detailLabel(svc)}</span>{/if}
                 </span>
                 <span class="text-xs ml-2 flex-none">{stateLabel(svc.s)}</span>
                 {#if svc.e}<span class="bd-red ml-2 text-xs flex-none" title={svc.e}>{errorLabel(svc)}</span>{/if}

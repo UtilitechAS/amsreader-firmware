@@ -176,6 +176,16 @@
       "tick_ntp_dhcp": "obtain from DHCP",
       "title": "Network"
     },
+    "wireguard": {
+      "address": "Tunnel IPv4 address",
+      "enabled": "Enable full-tunnel VPN",
+      "endpoint": "Peer endpoint host",
+      "note": "Routes IPv4 application traffic through WireGuard. IPv6 must be disabled; directly connected Wi-Fi subnet traffic may stay local. Application services stay offline until the tunnel route is active; Wi-Fi DNS/NTP is needed to establish the tunnel.",
+      "peer_public_key": "Peer public key",
+      "port": "Peer endpoint port",
+      "private_key": "Device private key",
+      "title": "WireGuard VPN"
+    },
     "price": {
       "api_key_placeholder": "ENTSO-E API key, optional, read docs",
       "both": "Both",
@@ -427,7 +437,7 @@
       "it": "Meter",
       "iw": "Wi-Fi",
       "secrets": "Include secrets",
-      "secrets_desc": "(SSID, PSK, passwords and tokens)",
+      "secrets_desc": "(SSID, PSK, passwords, tokens and WireGuard keys)",
       "title": "Backup & restore"
     },
     "device": {
@@ -471,6 +481,14 @@
       "none": "No services configured",
       "ntp": "NTP",
       "price": "Price service",
+      "wireguard": "WireGuard",
+      "wireguard_detail": {
+        "configuration": "WireGuard configuration is incomplete",
+        "handshake_active": "Handshake active",
+        "requirements": "Requires Wi-Fi client mode with IPv6 disabled",
+        "waiting_handshake": "Waiting for WireGuard handshake",
+        "waiting_route": "Waiting for tunnel route"
+      },
       "state": {
         "0": "Disabled",
         "1": "OK",

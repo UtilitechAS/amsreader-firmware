@@ -539,9 +539,9 @@
             <div class="my-1">
                 <select name="nc" class="in-s" bind:value={configuration.n.c}>
                     <option value={1}>{translations.conf?.connection?.wifi ?? "WiFi"}</option>
-                    <option value={2}>{translations.conf?.connection?.ap ?? "AP"}</option>
+                    <option value={2} disabled={configuration?.wg?.e}>{translations.conf?.connection?.ap ?? "AP"}</option>
                     {#if sysinfo.if && sysinfo.if.eth}
-                    <option value={3}>{translations.conf?.connection?.eth ?? "Ethernet"}</option>
+                    <option value={3} disabled={configuration?.wg?.e}>{translations.conf?.connection?.eth ?? "Ethernet"}</option>
                     {/if}
                 </select>
             </div>
@@ -594,6 +594,36 @@
                     <label><input type="checkbox" name="wb" value="true" bind:checked={configuration.w.b} class="rounded mb-1"/> {translations.conf?.connection?.tick_11b ?? "802.11b"}</label>
                 </div>
             {/if}
+        </div>
+        {/if}
+        {#if configuration?.wg && configuration.n.c == 1}
+        <div class="cnt">
+            <strong class="text-sm">{translations.conf?.wireguard?.title ?? "WireGuard VPN"}</strong>
+            <input type="hidden" name="wg" value="true"/>
+            <div class="my-1">
+                <label><input type="checkbox" name="wge" value="true" bind:checked={configuration.wg.e} class="rounded mb-1"/> {translations.conf?.wireguard?.enabled ?? "Enable full-tunnel VPN"}</label>
+            </div>
+            <div class="my-1">
+                {translations.conf?.wireguard?.address ?? "Tunnel IPv4 address"}<br/>
+                <input name="wga" bind:value={configuration.wg.a} type="text" class="in-s" pattern={ipPattern} required={configuration.wg.e}/>
+            </div>
+            <div class="my-1">
+                {translations.conf?.wireguard?.private_key ?? "Device private key"}<br/>
+                <input name="wgk" bind:value={configuration.wg.k} type="password" class="in-s" maxlength="44" required={configuration.wg.e}/>
+            </div>
+            <div class="my-1">
+                {translations.conf?.wireguard?.peer_public_key ?? "Peer public key"}<br/>
+                <input name="wgp" bind:value={configuration.wg.p} type="password" class="in-s" maxlength="44" required={configuration.wg.e}/>
+            </div>
+            <div class="my-1">
+                {translations.conf?.wireguard?.endpoint ?? "Peer endpoint host"}<br/>
+                <input name="wgh" bind:value={configuration.wg.h} type="text" class="in-s" maxlength="63" pattern="[A-Za-z0-9.-]+" required={configuration.wg.e}/>
+            </div>
+            <div class="my-1">
+                {translations.conf?.wireguard?.port ?? "Peer endpoint port"}<br/>
+                <input name="wgo" bind:value={configuration.wg.o} type="number" min="1" max="65535" class="in-s" required={configuration.wg.e}/>
+            </div>
+            <small>{translations.conf?.wireguard?.note ?? "Routes application traffic through WireGuard. Application services stay offline until the tunnel route is active; Wi-Fi DNS/NTP is needed to establish the tunnel."}</small>
         </div>
         {/if}
         {#if configuration?.n}

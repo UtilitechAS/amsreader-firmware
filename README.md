@@ -32,6 +32,12 @@ It is recommended to use Visual Studio Code with the PlatformIO plugin for devel
 
 For development purposes, copy the ```platformio-user.ini-example``` to ```platformio-user.ini``` and customize to your preference. The code will adapt to the platform and board set in your profile.
 
+## WireGuard VPN (ESP32)
+
+ESP32 Wi-Fi client builds can use WireGuard as an IPv4 full-tunnel VPN. Configure the tunnel under **Configuration → WireGuard VPN** with the device tunnel address, device private key, peer public key, endpoint host, and endpoint port. The tunnel becomes the IPv4 default route, and application services remain offline until that route is installed. If the peer later becomes unreachable, traffic does not fall back to the Wi-Fi default route. Because WireGuard-ESP32 does not tunnel IPv6, the firmware refuses to connect while IPv6 is enabled. More-specific routes for the directly connected Wi-Fi subnet (for example, a local web UI or MQTT broker) may still use Wi-Fi directly.
+
+Wi-Fi DNS is used to resolve the peer endpoint and NTP should be enabled so the WireGuard handshake has an accurate system clock. These are bootstrap requirements before the tunnel is established. WireGuard settings are included with Wi-Fi settings in configuration backups; private keys are only exported when **Include secrets** is selected.
+
 ## Licensing
 Initially, this project began as a hobby, consuming countless hours of our spare time. However, the time required to support this project has expanded beyond the scope of a hobby. As a result, we established ‘Utilitech’, a company dedicated to maintaining the software and hardware for this project as part of our regular work.
 

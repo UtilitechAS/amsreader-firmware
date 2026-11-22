@@ -9,6 +9,9 @@
 
 #include "ConnectionHandler.h"
 #include <Arduino.h>
+#if defined(ESP32)
+#include <WireGuard-ESP32.h>
+#endif
 #if defined(AMS_REMOTE_DEBUG)
 #include "RemoteDebug.h"
 #endif
@@ -41,6 +44,7 @@ public:
     IPv6Address getIPv6();
     IPv6Address getDNSv6(uint8_t idx);
     void eventHandler(WiFiEvent_t event, WiFiEventInfo_t info);
+    void setWireGuardConfig(const WireGuardConfig& config);
     /** Allow 802.11b rates from the next connect until reboot, regardless of configuration */
     void allow11b();
     #endif
@@ -62,12 +66,17 @@ private:
     uint8_t lastBssid[6] = {0};
     bool force11b = false;
     bool linkUp = false;
+#if defined(ESP32)
+    WireGuardConfig wireGuardConfig = {};
+    WireGuard wireGuard;
+#endif
 
     void applyTxPower(NetworkConfig& config);
     wl_status_t begin(const char* ssid, const char* psk, uint8_t channel, const uint8_t* bssid);
-    #if defined(ESP32)
+#if defined(ESP32)
+    bool startWireGuard();
     void wifi_sta_config(wifi_config_t * wifi_config, const char * ssid=NULL, const char * password=NULL, const uint8_t * bssid=NULL, uint8_t channel=0, wifi_auth_mode_t min_security=WIFI_AUTH_WPA2_PSK, wifi_scan_method_t scan_method=WIFI_ALL_CHANNEL_SCAN, wifi_sort_method_t sort_method=WIFI_CONNECT_AP_BY_SIGNAL, uint16_t listen_interval=0, bool pmf_required=false);
-    #endif
+#endif
 };
 
 #endif

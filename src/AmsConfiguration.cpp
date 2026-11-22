@@ -10,6 +10,27 @@
 #include "ESPRandom.h"
 #endif
 
+static const uint8_t WIREGUARD_CONFIG_MAGIC = 0xD4;
+static_assert(CONFIG_WIREGUARD_START >= CONFIG_ZC_START + sizeof(ZmartChargeConfig), "WireGuard config overlaps ZmartCharge config");
+static_assert(CONFIG_WIREGUARD_START + sizeof(WireGuardConfig) <= EEPROM_SIZE, "WireGuard config exceeds EEPROM storage");
+
+static void sanitizeWireGuardValue(char* value, size_t size, const char* allowed) {
+	value[size - 1] = 0;
+	for(size_t i = 0; value[i] != 0; i++) {
+		if(strchr(allowed, value[i]) == NULL) {
+			value[i] = 0;
+			break;
+		}
+	}
+}
+
+static void sanitizeWireGuardConfig(WireGuardConfig& config) {
+	sanitizeWireGuardValue(config.address, sizeof(config.address), "0123456789.");
+	sanitizeWireGuardValue(config.privateKey, sizeof(config.privateKey), "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=");
+	sanitizeWireGuardValue(config.peerPublicKey, sizeof(config.peerPublicKey), "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=");
+	sanitizeWireGuardValue(config.endpoint, sizeof(config.endpoint), "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.-");
+}
+
 bool AmsConfiguration::getSystemConfig(SystemConfig& config) {
 	uint8_t configVersion = EEPROM.read(EEPROM_CONFIG_ADDRESS);
 	EEPROM.get(CONFIG_SYSTEM_START, config);
@@ -902,6 +923,62 @@ void AmsConfiguration::ackZmartChargeConfig() {
 	zcChanged = false;
 }
 
+bool AmsConfiguration::getWireGuardConfig(WireGuardConfig& config) {
+	if(!hasConfig()) {
+		clearWireGuardConfig(config);
+		return false;
+	}
+
+	EEPROM.get(CONFIG_WIREGUARD_START, config);
+	if(config.magic != WIREGUARD_CONFIG_MAGIC) {
+		clearWireGuardConfig(config);
+		return false;
+	}
+
+	sanitizeWireGuardConfig(config);
+	if(config.port == 0) {
+		config.port = 51820;
+	}
+	return true;
+}
+
+bool AmsConfiguration::setWireGuardConfig(WireGuardConfig& config) {
+	sanitizeWireGuardConfig(config);
+
+	WireGuardConfig existing;
+	if(getWireGuardConfig(existing)) {
+		wireGuardChanged |= config.enabled != existing.enabled;
+		wireGuardChanged |= strcmp(config.address, existing.address) != 0;
+		wireGuardChanged |= strcmp(config.privateKey, existing.privateKey) != 0;
+		wireGuardChanged |= strcmp(config.peerPublicKey, existing.peerPublicKey) != 0;
+		wireGuardChanged |= strcmp(config.endpoint, existing.endpoint) != 0;
+		wireGuardChanged |= config.port != existing.port;
+	} else {
+		wireGuardChanged = true;
+	}
+
+	if(config.port == 0) {
+		config.port = 51820;
+	}
+	config.magic = WIREGUARD_CONFIG_MAGIC;
+	EEPROM.put(CONFIG_WIREGUARD_START, config);
+	return wireGuardChanged;
+}
+
+void AmsConfiguration::clearWireGuardConfig(WireGuardConfig& config) {
+	memset(&config, 0, sizeof(config));
+	config.port = 51820;
+	config.magic = WIREGUARD_CONFIG_MAGIC;
+}
+
+bool AmsConfiguration::isWireGuardConfigChanged() {
+	return wireGuardChanged;
+}
+
+void AmsConfiguration::ackWireGuardConfigChange() {
+	wireGuardChanged = false;
+}
+
 void AmsConfiguration::setUiLanguageChanged() {
 	uiLanguageChanged = true;
 }
@@ -996,6 +1073,10 @@ void AmsConfiguration::clear() {
 	ZmartChargeConfig zc;
 	clearZmartChargeConfig(zc);
 	EEPROM.put(CONFIG_ZC_START, zc);
+
+	WireGuardConfig wireGuard;
+	clearWireGuardConfig(wireGuard);
+	EEPROM.put(CONFIG_WIREGUARD_START, wireGuard);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, EEPROM_CLEARED_INDICATOR);
 	EEPROM.commit();
@@ -1135,6 +1216,10 @@ bool AmsConfiguration::relocateConfig103() {
 	ZmartChargeConfig zcc;
 	clearZmartChargeConfig(zcc);
 	EEPROM.put(CONFIG_ZC_START, zcc);
+
+	WireGuardConfig wireGuard;
+	clearWireGuardConfig(wireGuard);
+	EEPROM.put(CONFIG_WIREGUARD_START, wireGuard);
 
 	EEPROM.put(EEPROM_CONFIG_ADDRESS, 104);
 	return EEPROM.commit();

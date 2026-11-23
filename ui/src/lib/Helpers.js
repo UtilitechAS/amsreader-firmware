@@ -267,6 +267,8 @@ export function formatCurrency(val, currency) {
 export let ipPattern = "((25[0-5]|(2[0-4]|1\\d|[1-9]|)\\d)\\.?\\b){4}";
 export let asciiPattern = "[\\x20-\\x7E]+";
 export let asciiPatternExt = "[\\x20-\\xFF]+";
+// NetworkConfig.psk holds 63 characters; the device refuses a longer WiFi password
+export let wifiPskPattern = "[\\x20-\\xFF]{1,63}";
 export let charAndNumPattern = "[A-Za-z0-9_\\-]+";
 export let meterKeyPattern = "[0-9A-Fa-f]{32}";
 export let numPattern = "[0-9]+";

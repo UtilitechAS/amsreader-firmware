@@ -1125,6 +1125,15 @@ void AmsWebServer::handleSave() {
 	}
 	#endif
 
+	// NetworkConfig holds at most 63 PSK characters. A longer key (a 64 digit hex PSK)
+	// would be cut short and the device would drop off WiFi after the reboot, so refuse it.
+	if(server.arg(F("sp")).length() >= sizeof(NetworkConfig::psk) || server.arg(F("wp")).length() >= sizeof(NetworkConfig::psk)) {
+		snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON, "false", "WiFi password is too long", "false");
+		server.setContentLength(strlen(buf));
+		server.send(200, MIME_JSON, buf);
+		return;
+	}
+
 	SystemConfig sys;
 	config->getSystemConfig(sys);
 
@@ -1158,25 +1167,25 @@ void AmsWebServer::handleSave() {
 		NetworkConfig network;
 		config->clearNetworkConfig(network);
 
-		strcpy(network.ssid, server.arg(F("ss")).c_str());
+		strlcpy(network.ssid, server.arg(F("ss")).c_str(), sizeof(network.ssid));
 
 		String psk = server.arg(F("sp"));
 		if(!psk.equals("***")) {
-			strcpy(network.psk, psk.c_str());
+			strlcpy(network.psk, psk.c_str(), sizeof(network.psk));
 		}
 		network.mode = server.arg(F("sc")).toInt();
 		if(network.mode > 3 || network.mode == 0) network.mode = 1; // WiFi Client
 
 		if(network.mode == 3 || strlen(network.ssid) > 0) {
 			if(server.hasArg(F("sm")) && server.arg(F("sm")) == "static") {
-				strcpy(network.ip, server.arg(F("si")).c_str());
-				strcpy(network.gateway, server.arg(F("sg")).c_str());
-				strcpy(network.subnet, server.arg(F("su")).c_str());
-				strcpy(network.dns1, server.arg(F("sd")).c_str());
+				strlcpy(network.ip, server.arg(F("si")).c_str(), sizeof(network.ip));
+				strlcpy(network.gateway, server.arg(F("sg")).c_str(), sizeof(network.gateway));
+				strlcpy(network.subnet, server.arg(F("su")).c_str(), sizeof(network.subnet));
+				strlcpy(network.dns1, server.arg(F("sd")).c_str(), sizeof(network.dns1));
 			}
 
 			if(server.hasArg(F("sh")) && !server.arg(F("sh")).isEmpty()) {
-				strcpy(network.hostname, server.arg(F("sh")).c_str());
+				strlcpy(network.hostname, server.arg(F("sh")).c_str(), sizeof(network.hostname));
 				network.mdns = true;
 			} else {
 				network.mdns = false;
@@ -1275,10 +1284,10 @@ void AmsWebServer::handleSave() {
 			config->getNetworkConfig(network);
 			network.mode = mode;
 			if(mode < 3) {
-				strcpy(network.ssid, server.arg(F("ws")).c_str());
+				strlcpy(network.ssid, server.arg(F("ws")).c_str(), sizeof(network.ssid));
 				String psk = server.arg(F("wp"));
 				if(!psk.equals("***")) {
-					strcpy(network.psk, psk.c_str());
+					strlcpy(network.psk, psk.c_str(), sizeof(network.psk));
 				}
 				network.power = lround(server.arg(F("ww")).toDouble() * 10.0);
 				network.sleep = server.arg(F("wz")).toInt();
@@ -1287,11 +1296,11 @@ void AmsWebServer::handleSave() {
 
 			if(server.hasArg(F("nm"))) {
 				if(server.arg(F("nm")) == "static") {
-					strcpy(network.ip, server.arg(F("ni")).c_str());
-					strcpy(network.gateway, server.arg(F("ng")).c_str());
-					strcpy(network.subnet, server.arg(F("ns")).c_str());
-					strcpy(network.dns1, server.arg(F("nd1")).c_str());
-					strcpy(network.dns2, server.arg(F("nd2")).c_str());
+					strlcpy(network.ip, server.arg(F("ni")).c_str(), sizeof(network.ip));
+					strlcpy(network.gateway, server.arg(F("ng")).c_str(), sizeof(network.gateway));
+					strlcpy(network.subnet, server.arg(F("ns")).c_str(), sizeof(network.subnet));
+					strlcpy(network.dns1, server.arg(F("nd1")).c_str(), sizeof(network.dns1));
+					strlcpy(network.dns2, server.arg(F("nd2")).c_str(), sizeof(network.dns2));
 				} else if(server.arg(F("nm")) == "dhcp") {
 					strcpy(network.ip, "");
 					strcpy(network.gateway, "");
@@ -1312,7 +1321,7 @@ void AmsWebServer::handleSave() {
 		config->getNtpConfig(ntp);
 		ntp.enable = true;
 		ntp.dhcp = server.hasArg(F("ntpd")) && server.arg(F("ntpd")) == F("true");
-		strcpy(ntp.server, server.arg(F("ntph")).c_str());
+		strlcpy(ntp.server, server.arg(F("ntph")).c_str(), sizeof(ntp.server));
 		config->setNtpConfig(ntp);
 	}
 
@@ -1320,14 +1329,14 @@ void AmsWebServer::handleSave() {
 		MqttConfig mqtt;
 		config->getMqttConfig(mqtt);
 		if(server.hasArg(F("qh")) && !server.arg(F("qh")).isEmpty()) {
-			strcpy(mqtt.host, server.arg(F("qh")).c_str());
-			strcpy(mqtt.clientId, server.arg(F("qc")).c_str());
-			strcpy(mqtt.publishTopic, server.arg(F("qb")).c_str());
-			strcpy(mqtt.subscribeTopic, server.arg(F("qr")).c_str());
-			strcpy(mqtt.username, server.arg(F("qu")).c_str());
+			strlcpy(mqtt.host, server.arg(F("qh")).c_str(), sizeof(mqtt.host));
+			strlcpy(mqtt.clientId, server.arg(F("qc")).c_str(), sizeof(mqtt.clientId));
+			strlcpy(mqtt.publishTopic, server.arg(F("qb")).c_str(), sizeof(mqtt.publishTopic));
+			strlcpy(mqtt.subscribeTopic, server.arg(F("qr")).c_str(), sizeof(mqtt.subscribeTopic));
+			strlcpy(mqtt.username, server.arg(F("qu")).c_str(), sizeof(mqtt.username));
 			String pass = server.arg(F("qa"));
 			if(!pass.equals("***")) {
-				strcpy(mqtt.password, pass.c_str());
+				strlcpy(mqtt.password, pass.c_str(), sizeof(mqtt.password));
 			}
 			mqtt.payloadFormat = server.arg(F("qm")).toInt();
 			#if defined(ESP8266)
@@ -1367,19 +1376,19 @@ void AmsWebServer::handleSave() {
 	if(server.hasArg(F("h")) && server.arg(F("h")) == F("true")) {
 		HomeAssistantConfig haconf;
 		config->getHomeAssistantConfig(haconf);
-		strcpy(haconf.discoveryPrefix, server.arg(F("ht")).c_str());
-		strcpy(haconf.discoveryHostname, server.arg(F("hh")).c_str());
-		strcpy(haconf.discoveryNameTag, server.arg(F("hn")).c_str());
+		strlcpy(haconf.discoveryPrefix, server.arg(F("ht")).c_str(), sizeof(haconf.discoveryPrefix));
+		strlcpy(haconf.discoveryHostname, server.arg(F("hh")).c_str(), sizeof(haconf.discoveryHostname));
+		strlcpy(haconf.discoveryNameTag, server.arg(F("hn")).c_str(), sizeof(haconf.discoveryNameTag));
 		config->setHomeAssistantConfig(haconf);
 	}
 
 	if(server.hasArg(F("g")) && server.arg(F("g")) == F("true")) {
 		webConfig.security = server.arg(F("gs")).toInt();
 		if(webConfig.security > 0) {
-			strcpy(webConfig.username, server.arg(F("gu")).c_str());
+			strlcpy(webConfig.username, server.arg(F("gu")).c_str(), sizeof(webConfig.username));
 			String pass = server.arg(F("gp"));
 			if(!pass.equals("***")) {
-				strcpy(webConfig.password, pass.c_str());
+				strlcpy(webConfig.password, pass.c_str(), sizeof(webConfig.password));
 			}
 			#if defined(AMS_REMOTE_DEBUG)
 			debugger->setPassword(webConfig.password);
@@ -1391,19 +1400,19 @@ void AmsWebServer::handleSave() {
 			debugger->setPassword(F(""));
 			#endif
 		}
-		strcpy(webConfig.context, server.arg(F("gc")).c_str());
+		strlcpy(webConfig.context, server.arg(F("gc")).c_str(), sizeof(webConfig.context));
 		config->setWebConfig(webConfig);
 
 		NetworkConfig network;
 		config->getNetworkConfig(network);
 		if(server.hasArg(F("gh")) && !server.arg(F("gh")).isEmpty()) {
-			strcpy(network.hostname, server.arg(F("gh")).c_str());
+			strlcpy(network.hostname, server.arg(F("gh")).c_str(), sizeof(network.hostname));
 		}
 		config->setNetworkConfig(network);
 
 		NtpConfig ntp;
 		config->getNtpConfig(ntp);
-		strcpy(ntp.timezone, server.arg(F("gt")).c_str());
+		strlcpy(ntp.timezone, server.arg(F("gt")).c_str(), sizeof(ntp.timezone));
 		config->setNtpConfig(ntp);
 	}
 
@@ -1497,7 +1506,7 @@ void AmsWebServer::handleSave() {
 		ui.showPerPhasePower = server.arg(F("uh")).toInt();
 		ui.showPowerFactor = server.arg(F("uf")).toInt();
 		ui.darkMode = server.arg(F("uk")).toInt();
-		strcpy(ui.language, server.arg(F("ulang")).c_str());
+		strlcpy(ui.language, server.arg(F("ulang")).c_str(), sizeof(ui.language));
 		config->setUiConfig(ui);
 	}
 
@@ -1506,9 +1515,9 @@ void AmsWebServer::handleSave() {
 
 		PriceServiceConfig price;
 		price.enabled = server.hasArg(F("pe")) && server.arg(F("pe")) == F("true");
-		strcpy(price.entsoeToken, server.arg(F("pt")).c_str());
-		strcpy(price.area, priceRegion);
-		strcpy(price.currency, server.arg(F("pc")).c_str());
+		strlcpy(price.entsoeToken, server.arg(F("pt")).c_str(), sizeof(price.entsoeToken));
+		strlcpy(price.area, priceRegion, sizeof(price.area));
+		strlcpy(price.currency, server.arg(F("pc")).c_str(), sizeof(price.currency));
 		price.resolutionInMinutes = server.arg(F("pm")).toInt();
 		config->setPriceServiceConfig(price);
 	}
@@ -1542,9 +1551,9 @@ void AmsWebServer::handleSave() {
 		config->getZmartChargeConfig(zcc);
 		zcc.enabled = server.hasArg(F("cze")) && server.arg(F("cze")) == F("true");
 		String token = server.arg(F("czt"));
-		strcpy(zcc.token, token.c_str());
+		strlcpy(zcc.token, token.c_str(), sizeof(zcc.token));
 		if(server.hasArg(F("czu")) && server.arg(F("czu")).startsWith(F("https"))) {
-			strcpy(zcc.baseUrl, server.arg(F("czu")).c_str());
+			strlcpy(zcc.baseUrl, server.arg(F("czu")).c_str(), sizeof(zcc.baseUrl));
 		}
 		config->setZmartChargeConfig(zcc);
 	}
@@ -1562,7 +1571,7 @@ void AmsWebServer::handleSave() {
 				pc.value = lround(server.arg(buf).toDouble() * 10000.0);
 				snprintf_P(buf, BUF_SIZE_COMMON, PSTR("rn%d"), i);
 				String name = server.arg(buf);
-				strcpy(pc.name, name.c_str());
+				strlcpy(pc.name, name.c_str(), sizeof(pc.name));
 
 				int d = 0;
 				pc.days = 0x00;

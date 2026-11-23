@@ -72,7 +72,7 @@ void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config
 
     snprintf_P(json, 128, PSTR("%s/event"), config.discoveryPrefix);
     eventTopic = String(json);
-    strcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str());
+    strlcpy(this->mqttConfig.subscribeTopic, statusTopic.c_str(), sizeof(this->mqttConfig.subscribeTopic));
 }
 
 bool HomeAssistantMqttHandler::postConnect() {

@@ -971,7 +971,7 @@ void handleNtp() {
 		if(config.getNtpConfig(ntp)) {
 			tz = resolveTimezone(ntp.timezone);
 			if(ntp.enable && strlen(ntp.server) > 0) {
-				strcpy(ntpServerName, ntp.server);
+				strlcpy(ntpServerName, ntp.server, sizeof(ntpServerName));
 			} else if(ntp.enable) {
 				strcpy(ntpServerName, "pool.ntp.org");
 			} else {
@@ -1215,8 +1215,8 @@ void handleSmartConfig() {
 
 		NetworkConfig network;
 		config.getNetworkConfig(network);
-		strcpy(network.ssid, WiFi.SSID().c_str());
-		strcpy(network.psk, WiFi.psk().c_str());
+		strlcpy(network.ssid, WiFi.SSID().c_str(), sizeof(network.ssid));
+		strlcpy(network.psk, WiFi.psk().c_str(), sizeof(network.psk));
 		network.mode = 1;
 		network.mdns = true;
 		config.setNetworkConfig(network);
@@ -2248,7 +2248,8 @@ void configFileParse() {
 	size_t size;
 	char* buf = (char*) commonBuffer;
 	memset(buf, 0, BUF_SIZE_COMMON);
-	while((size = file.readBytesUntil('\n', buf, BUF_SIZE_COMMON)) > 0) {
+	while((size = file.readBytesUntil('\n', buf, BUF_SIZE_COMMON - 1)) > 0) {
+		buf[size] = '\0';
 		for(uint16_t i = 0; i < size; i++) {
 			if(buf[i] < 32 || buf[i] > 126) {
 				memset(buf+i, 0, size-i);
@@ -2267,28 +2268,28 @@ void configFileParse() {
 			network.mode = String(buf+8).toInt();
 		} else if(strncmp_P(buf, PSTR("ssid "), 5) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
-			strcpy(network.ssid, buf+5);
+			strlcpy(network.ssid, buf+5, sizeof(network.ssid));
 		} else if(strncmp_P(buf, PSTR("psk "), 4) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
-			strcpy(network.psk, buf+4);
+			strlcpy(network.psk, buf+4, sizeof(network.psk));
 		} else if(strncmp_P(buf, PSTR("ip "), 3) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
-			strcpy(network.ip, buf+3);
+			strlcpy(network.ip, buf+3, sizeof(network.ip));
 		} else if(strncmp_P(buf, PSTR("gateway "), 8) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
-			strcpy(network.gateway, buf+8);
+			strlcpy(network.gateway, buf+8, sizeof(network.gateway));
 		} else if(strncmp_P(buf, PSTR("subnet "), 7) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
-			strcpy(network.subnet, buf+7);
+			strlcpy(network.subnet, buf+7, sizeof(network.subnet));
 		} else if(strncmp_P(buf, PSTR("dns1 "), 5) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
-			strcpy(network.dns1, buf+5);
+			strlcpy(network.dns1, buf+5, sizeof(network.dns1));
 		} else if(strncmp_P(buf, PSTR("dns2 "), 5) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
-			strcpy(network.dns2, buf+5);
+			strlcpy(network.dns2, buf+5, sizeof(network.dns2));
 		} else if(strncmp_P(buf, PSTR("hostname "), 9) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
-			strcpy(network.hostname, buf+9);
+			strlcpy(network.hostname, buf+9, sizeof(network.hostname));
 		} else if(strncmp_P(buf, PSTR("use11b "), 7) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
 			network.use11b = String(buf+7).toInt() == 1;
@@ -2297,25 +2298,25 @@ void configFileParse() {
 			network.mdns = String(buf+5).toInt() == 1;;
 		} else if(strncmp_P(buf, PSTR("mqttHost "), 9) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			strcpy(mqtt.host, buf+9);
+			strlcpy(mqtt.host, buf+9, sizeof(mqtt.host));
 		} else if(strncmp_P(buf, PSTR("mqttPort "), 9) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			mqtt.port = String(buf+9).toInt();
 		} else if(strncmp_P(buf, PSTR("mqttClientId "), 13) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			strcpy(mqtt.clientId, buf+13);
+			strlcpy(mqtt.clientId, buf+13, sizeof(mqtt.clientId));
 		} else if(strncmp_P(buf, PSTR("mqttPublishTopic "), 17) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			strcpy(mqtt.publishTopic, buf+17);
+			strlcpy(mqtt.publishTopic, buf+17, sizeof(mqtt.publishTopic));
 		} else if(strncmp_P(buf, PSTR("mqttSubscribeTopic "), 19) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			strcpy(mqtt.subscribeTopic, buf+19);
+			strlcpy(mqtt.subscribeTopic, buf+19, sizeof(mqtt.subscribeTopic));
 		} else if(strncmp_P(buf, PSTR("mqttUsername "), 13) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			strcpy(mqtt.username, buf+13);
+			strlcpy(mqtt.username, buf+13, sizeof(mqtt.username));
 		} else if(strncmp_P(buf, PSTR("mqttPassword "), 13) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
-			strcpy(mqtt.password, buf+13);
+			strlcpy(mqtt.password, buf+13, sizeof(mqtt.password));
 		} else if(strncmp_P(buf, PSTR("mqttPayloadFormat "), 18) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			mqtt.payloadFormat = String(buf+18).toInt();
@@ -2336,10 +2337,10 @@ void configFileParse() {
 			web.security = String(buf+12).toInt();
 		} else if(strncmp_P(buf, PSTR("webUsername "), 12) == 0) {
 			if(!lWeb) { config.getWebConfig(web); lWeb = true; };
-			strcpy(web.username, buf+12);
+			strlcpy(web.username, buf+12, sizeof(web.username));
 		} else if(strncmp_P(buf, PSTR("webPassword "), 12) == 0) {
 			if(!lWeb) { config.getWebConfig(web); lWeb = true; };
-			strcpy(web.password, buf+12);
+			strlcpy(web.password, buf+12, sizeof(web.password));
 		} else if(strncmp_P(buf, PSTR("meterBaud "), 10) == 0) {
 			if(!lMeter) { config.getMeterConfig(meter); lMeter = true; };
 			meter.baud = String(buf+10).toInt();
@@ -2453,13 +2454,13 @@ void configFileParse() {
 			domo.cl1idx = String(buf+15).toInt();
 		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryPrefix "), 29) == 0) {
 			if(!lHa) { config.getHomeAssistantConfig(haconf); lHa = true; };
-			strcpy(haconf.discoveryPrefix, buf+29);
+			strlcpy(haconf.discoveryPrefix, buf+29, sizeof(haconf.discoveryPrefix));
 		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryHostname "), 31) == 0) {
 			if(!lHa) { config.getHomeAssistantConfig(haconf); lHa = true; };
-			strcpy(haconf.discoveryHostname, buf+31);
+			strlcpy(haconf.discoveryHostname, buf+31, sizeof(haconf.discoveryHostname));
 		} else if(strncmp_P(buf, PSTR("homeAssistantDiscoveryNameTag "), 30) == 0) {
 			if(!lHa) { config.getHomeAssistantConfig(haconf); lHa = true; };
-			strcpy(haconf.discoveryNameTag, buf+30);
+			strlcpy(haconf.discoveryNameTag, buf+30, sizeof(haconf.discoveryNameTag));
 		} else if(strncmp_P(buf, PSTR("ntpEnable "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			ntp.enable = String(buf+10).toInt() == 1;
@@ -2468,31 +2469,31 @@ void configFileParse() {
 			ntp.dhcp = String(buf+8).toInt() == 1;
 		} else if(strncmp_P(buf, PSTR("ntpServer "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
-			strcpy(ntp.server, buf+10);
+			strlcpy(ntp.server, buf+10, sizeof(ntp.server));
 		} else if(strncmp_P(buf, PSTR("ntpTimezone "), 12) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
-			strcpy(ntp.timezone, buf+12);
+			strlcpy(ntp.timezone, buf+12, sizeof(ntp.timezone));
 		} else if(strncmp_P(buf, PSTR("entsoeToken "), 12) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			strcpy(price.entsoeToken, buf+12);
+			strlcpy(price.entsoeToken, buf+12, sizeof(price.entsoeToken));
 		} else if(strncmp_P(buf, PSTR("entsoeArea "), 11) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			strcpy(price.area, buf+11);
+			strlcpy(price.area, buf+11, sizeof(price.area));
 		} else if(strncmp_P(buf, PSTR("entsoeCurrency "), 15) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			strcpy(price.currency, buf+15);
+			strlcpy(price.currency, buf+15, sizeof(price.currency));
 		} else if(strncmp_P(buf, PSTR("priceEnabled "), 13) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
 			price.enabled = String(buf+13).toInt() == 1;
 		} else if(strncmp_P(buf, PSTR("priceEntsoeToken "), 17) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			strcpy(price.entsoeToken, buf+17);
+			strlcpy(price.entsoeToken, buf+17, sizeof(price.entsoeToken));
 		} else if(strncmp_P(buf, PSTR("priceArea "), 10) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			strcpy(price.area, buf+10);
+			strlcpy(price.area, buf+10, sizeof(price.area));
 		} else if(strncmp_P(buf, PSTR("priceCurrency "), 14) == 0) {
 			if(!lPrice) { config.getPriceServiceConfig(price); lPrice = true; };
-			strcpy(price.currency, buf+14);
+			strlcpy(price.currency, buf+14, sizeof(price.currency));
 		} else if(strncmp_P(buf, PSTR("priceModifier "), 14) == 0) {
 			if(ps == NULL) ps = new PriceService(&Debug);
 			PriceConfig pc;
@@ -2513,7 +2514,7 @@ void configFileParse() {
 				continue;
 			}
 			String name = line.substring(nameStart+1, nameEnd);
-			strcpy(pc.name, name.c_str());
+			strlcpy(pc.name, name.c_str(), sizeof(pc.name));
 			String rest = line.substring(nameEnd+1);
 
 			String direction = getSplit(rest, 0);

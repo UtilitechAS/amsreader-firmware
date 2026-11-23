@@ -23,6 +23,7 @@ ADC_MODE(ADC_VCC);
 #include <ESP32SSDP.h>
 #include <esp_task_wdt.h>
 #include "DnsGuard.h"
+#include "DhcpNtp.h"
 #if defined(BOARD_HAS_PSRAM)
 #include <esp_heap_caps.h>
 #include <mbedtls/platform.h>
@@ -312,6 +313,15 @@ char ntpServerName[64] = "";
 void handleNtp();
 #if defined(ESP8266)
 void handleMdns();
+#endif
+#if defined(ESP32)
+// sntp_servermode_dhcp() is a no-op on ESP32, see DhcpNtp.cpp
+#define DHCP_NTP_MAX_ATTEMPTS 3
+#define DHCP_NTP_RETRY_MS 60000
+bool dhcpNtpWanted = false;
+uint8_t dhcpNtpAttempts = 0;
+uint64_t dhcpNtpNextAttempt = 0;
+void handleDhcpNtp();
 #endif
 #if defined(ESP32) && defined(ENERGY_SPEEDOMETER_PASS)
 void handleEnergySpeedometer();
@@ -788,6 +798,9 @@ void loop() {
 					handleMdns();
 				#endif
 				#if defined(ESP32)
+					handleDhcpNtp();
+				#endif
+				#if defined(ESP32)
 					#if defined(ENERGY_SPEEDOMETER_PASS)
 						handleEnergySpeedometer();
 					#endif
@@ -983,7 +996,13 @@ void handleNtp() {
 			// the DST delta (3600 s in Europe). Passing the full summer offset
 			// here double-counted the base offset during DST.
 			configTime(tz->toLocal(0), (tz->toLocal(JULY1970)-JULY1970) - tz->toLocal(0), ntpServerName, "", "");
-			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0); // Not implemented on ESP32?
+			#if defined(ESP32)
+			dhcpNtpWanted = ntp.enable && ntp.dhcp;
+			dhcpNtpAttempts = 0;
+			dhcpNtpNextAttempt = 0;
+			#else
+			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0);
+			#endif
 			ntpEnabled = ntp.enable;
 
 			ws.setTimezone(tz);
@@ -998,6 +1017,46 @@ void handleNtp() {
 		config.ackNtpChange();
 	}
 }
+
+#if defined(ESP32)
+void handleDhcpNtp() {
+	uint32_t server = 0;
+	switch(dhcpNtpPoll(server)) {
+		case DHCP_NTP_WAITING:
+			return;
+		case DHCP_NTP_FOUND: {
+			IPAddress ip(server);
+			debugI_P(PSTR("Using NTP server %s from DHCP"), ip.toString().c_str());
+			ip_addr_t addr;
+			ip_addr_set_ip4_u32(&addr, server);
+			if(sntp_enabled()) {
+				sntp_stop();
+			}
+			sntp_setserver(0, &addr);
+			sntp_init();
+			dhcpNtpAttempts = DHCP_NTP_MAX_ATTEMPTS;
+			return;
+		}
+		case DHCP_NTP_NONE:
+			debugW_P(PSTR("DHCP server did not offer an NTP server, using %s"), ntpServerName);
+			dhcpNtpAttempts = DHCP_NTP_MAX_ATTEMPTS;
+			return;
+		case DHCP_NTP_TIMEOUT:
+			debugW_P(PSTR("No answer when asking DHCP for an NTP server (attempt %d)"), dhcpNtpAttempts);
+			break;
+		case DHCP_NTP_FAILED:
+			debugW_P(PSTR("Could not ask DHCP for an NTP server (attempt %d)"), dhcpNtpAttempts);
+			break;
+	}
+
+	if(!dhcpNtpWanted || dhcpNtpAttempts >= DHCP_NTP_MAX_ATTEMPTS || millis64() < dhcpNtpNextAttempt) return;
+	if(ch == NULL || ch->getMode() == NETWORK_MODE_WIFI_AP) return;
+	if(dhcpNtpRequest((uint32_t) ch->getIP())) {
+		dhcpNtpAttempts++;
+		dhcpNtpNextAttempt = millis64() + DHCP_NTP_RETRY_MS;
+	}
+}
+#endif
 
 #if defined(ESP8266)
 void handleMdns() {
@@ -2013,6 +2072,11 @@ void handleDataSuccess(AmsData* data) {
 
 void postConnect() {
 	networkConnected = true;
+	#if defined(ESP32)
+	// A new lease may come from another DHCP server, ask again
+	dhcpNtpAttempts = 0;
+	dhcpNtpNextAttempt = 0;
+	#endif
 
 	NetworkConfig network;
 	ch->getCurrentConfig(network);

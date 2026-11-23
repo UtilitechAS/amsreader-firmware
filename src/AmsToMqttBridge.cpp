@@ -1306,6 +1306,7 @@ void handleMeterConfig() {
 			debugE_P(PSTR("Unknown meter source selected: %d"), meterConfig.source);
 		}
 		ws.setMeterConfig(meterConfig.distributionSystem, meterConfig.mainFuse, meterConfig.productionCapacity);
+		ea.setMaxPower(0); // Recalculated from the new fuse on the next frame
 		if(mc != NULL && 
 			#if defined(AMS_REMOTE_DEBUG)
 			Debug.isActive(RemoteDebug::DEBUG)
@@ -1998,6 +1999,10 @@ void handleDataSuccess(AmsData* data) {
 		debugD_P(PSTR("NOT Ready to update (internal clock %02d:%02d:%02d UTC, meter clock: %02d:%02d:%02d, list type %d, est: %d)"), tm.Hour, tm.Minute, tm.Second, mtm.Hour, mtm.Minute, mtm.Second, data->getListType(), wasCounterEstimated);
 	}
 
+	// Phases are only known from list 2 on, as for the dashboard's max power
+	if(meterState.getListType() > 1 && meterConfig.mainFuse > 0 && meterConfig.distributionSystem > 0) {
+		ea.setMaxPower(fuseCapacityW(meterConfig.distributionSystem, meterConfig.mainFuse, meterState.isThreePhase(), meterState.isTwoPhase()));
+	}
 	if(ea.update(dataUpdateTime, data->getLastUpdateMillis(), data->getListType(), data->getActiveImportPower(), data->getActiveExportPower())) {
 		debugI_P(PSTR("Saving energy accounting"));
 		if(!ea.save()) {

@@ -113,6 +113,7 @@ public:
     float getBudgetThisHour();
     float getHeadroom();
     uint8_t getCapacityStatus();
+    void setMaxPower(uint32_t watts);
 
     EnergyAccountingData getData();
     void setData(EnergyAccountingData&);
@@ -134,6 +135,7 @@ private:
     EnergyAccountingRealtimeData* realtimeData = NULL;
     String currency = "";
     uint32_t lastImportPower = 0;
+    uint32_t maxPower = 0;
 
     void calcDayCost();
     bool updateMax(uint16_t val, uint8_t day, uint8_t hour);

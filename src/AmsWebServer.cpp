@@ -354,7 +354,7 @@ uint8_t AmsWebServer::computeServicesAggregate() {
 	{
 		NtpConfig ntp;
 		if(config->getNtpConfig(ntp) && ntp.enable) {
-			bump(time(nullptr) > FirmwareVersion::BuildEpoch ? 1 : 2);
+			bump(AmsJsonGenerator::ntpState());
 		}
 	}
 

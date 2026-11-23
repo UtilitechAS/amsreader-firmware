@@ -36,6 +36,15 @@ uint8_t AmsJsonGenerator::hanState(AmsData* meterState) {
     return 3;
 }
 
+// A set-but-stale clock (NTP stopped resyncing) silently corrupts day-boundary
+// accounting, so report staleness rather than only whether the clock was ever set.
+uint8_t AmsJsonGenerator::ntpState() {
+    uint64_t lastSync = ntpLastSyncMillis();
+    if(lastSync == 0) return 2; // No SNTP sync since boot yet
+    uint32_t ageSec = (uint32_t) ((millis64() - lastSync) / 1000);
+    return ageSec > NTP_STALE_AFTER_SECONDS ? 2 : 1;
+}
+
 uint8_t AmsJsonGenerator::mqttHandlerState(AmsMqttHandler* h) {
     if(h == NULL) return 2;
     if(h->connected()) return 1;
@@ -124,18 +133,7 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx) {
         NtpConfig ntp;
         if(ctx.config->getNtpConfig(ntp) && ntp.enable) {
             const char* server = strlen(ntp.server) > 0 ? ntp.server : "pool.ntp.org";
-            // A set-but-stale clock (NTP stopped resyncing) silently corrupts
-            // day-boundary accounting, so flag staleness rather than only
-            // reporting whether the clock was ever set.
-            uint64_t lastSync = ntpLastSyncMillis();
-            uint8_t s;
-            if(lastSync == 0) {
-                s = 2; // No SNTP sync since boot yet
-            } else {
-                uint32_t ageSec = (uint32_t) ((millis64() - lastSync) / 1000);
-                s = ageSec > NTP_STALE_AFTER_SECONDS ? 2 : 1;
-            }
-            appendServiceEntry(out, "ntp", s, 0, server, NULL);
+            appendServiceEntry(out, "ntp", ntpState(), 0, server, NULL);
         }
     }
 

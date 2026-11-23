@@ -48,8 +48,8 @@ bool AmsFirmwareUpdater::setTargetVersion(const char* version) {
     if(strcmp(version, updateStatus.toVersion) == 0 && updateStatus.errorCode == AMS_UPDATE_ERR_OK) {
         return true;
     }
-    strcpy(updateStatus.fromVersion, FirmwareVersion::VersionString);
-    strcpy(updateStatus.toVersion, version);
+    strlcpy(updateStatus.fromVersion, FirmwareVersion::VersionString, sizeof(updateStatus.fromVersion));
+    strlcpy(updateStatus.toVersion, version, sizeof(updateStatus.toVersion));
     updateStatus.size = 0;
     updateStatus.retry_count = 0;
     updateStatus.block_position = 0;
@@ -266,9 +266,9 @@ bool AmsFirmwareUpdater::fetchNextVersion() {
         int status = http.GET();
         if(status == 204) {
             String nextVersion = http.header("x-version");
-            strcpy(this->nextVersion, nextVersion.c_str());
+            strlcpy(this->nextVersion, nextVersion.c_str(), sizeof(this->nextVersion));
             if(autoUpgrade && strcmp(updateStatus.toVersion, this->nextVersion) != 0) {
-                strcpy(updateStatus.toVersion, this->nextVersion);
+                strlcpy(updateStatus.toVersion, this->nextVersion, sizeof(updateStatus.toVersion));
                 updateStatus.size = 0;
             }
             http.end();

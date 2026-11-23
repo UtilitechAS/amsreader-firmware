@@ -79,6 +79,7 @@ jobs:
           pio test -e native_watchdog
           pio test -e native_localday
           pio test -e native_capacity
+          pio test -e native_boundedsend
 
   comment:
     needs:

@@ -7,8 +7,12 @@ This policy describes how to report security vulnerabilities in products from Ut
 This policy covers:
 
 - The amsreader firmware in this repository
-- Utilitech hardware products running this firmware: Pow-K, Pow-U and Pow-P1 HAN port readers
+- Utilitech HAN port readers based on ESP32: Pow-K+, Pow-U+ and Pow-P1
 - The amsleser.cloud service (https://www.amsleser.cloud)
+
+### Older ESP8266-based readers
+
+The original Pow-K and Pow-U, sold until 2022, are based on the ESP8266. We still accept and handle vulnerability reports for them under this policy, but we do not commit to providing security updates for them. Firmware for ESP8266 may still be released on a best-effort basis.
 
 Not covered: third-party forks or modified builds of the firmware, and third-party hardware not sold by Utilitech AS.
 
@@ -21,6 +25,7 @@ Security fixes are provided in new releases of the firmware. We recommend always
 | Latest stable release | Yes |
 | Release candidates (-rc) | Fixes are included in the next release |
 | Older releases | No; please upgrade |
+| ESP8266 builds | Reports handled; no committed security fixes |
 
 The amsleser.cloud service is always kept at its current version; fixes are deployed directly to the service.
 

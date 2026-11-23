@@ -61,23 +61,31 @@ static void test_second_day_shares_average_with_first(void) {
     EnergyAccountingPeak peaks[5];
     const uint16_t v[5] = { 400, 0, 0, 0, 0 };
     setPeaks(peaks, v);
-    // (400 + v) / 2 <= 500, with the integer division EnergyAccounting uses
-    TEST_ASSERT_EQUAL_UINT16(601, capacityHourBudget(peaks, 3, 2, 5));
+    // The average would allow 6.01 kWh, but the budget never exceeds the threshold
+    TEST_ASSERT_EQUAL_UINT16(500, capacityHourBudget(peaks, 3, 2, 5));
 }
 
 static void test_mid_month_budget(void) {
     EnergyAccountingPeak peaks[5];
     const uint16_t v[5] = { 400, 300, 200, 0, 0 };
     setPeaks(peaks, v);
-    // Today (day 4) replaces the 2 kWh day: (400 + 300 + v) / 3 <= 500
-    TEST_ASSERT_EQUAL_UINT16(802, capacityHourBudget(peaks, 3, 4, 5));
+    // The average would allow 8.02 kWh, the budget stops at the 5 kWh threshold
+    TEST_ASSERT_EQUAL_UINT16(500, capacityHourBudget(peaks, 3, 4, 5));
+}
+
+static void test_peaks_above_threshold_lower_the_budget(void) {
+    EnergyAccountingPeak peaks[5];
+    const uint16_t v[5] = { 700, 600, 200, 0, 0 };
+    setPeaks(peaks, v); // month max 5 kWh, two days above the threshold
+    // Today (day 4) replaces the 2 kWh day: (700 + 600 + v) / 3 <= 500
+    TEST_ASSERT_EQUAL_UINT16(202, capacityHourBudget(peaks, 3, 4, 5));
 }
 
 static void test_today_already_has_a_peak(void) {
     EnergyAccountingPeak peaks[5];
     const uint16_t v[5] = { 400, 300, 200, 600, 0 };
     setPeaks(peaks, v); // day 4 is today with 6 kWh so far
-    TEST_ASSERT_EQUAL_UINT16(802, capacityHourBudget(peaks, 3, 4, 5));
+    TEST_ASSERT_EQUAL_UINT16(500, capacityHourBudget(peaks, 3, 4, 5));
     // An hour below today's peak changes nothing, so the budget is never below it, even
     // when the month max may not rise at all (above every step). 1601 / 3 still truncates to 533.
     const uint16_t w[5] = { 400, 300, 200, 900, 0 };
@@ -89,8 +97,9 @@ static void test_all_five_slots_taken(void) {
     EnergyAccountingPeak peaks[5];
     const uint16_t v[5] = { 500, 450, 400, 350, 300 };
     setPeaks(peaks, v); // days 1-5, today is day 6
-    // A new day enters the top 3 only above 4 kWh: (500 + 450 + v) / 3 <= 500
-    TEST_ASSERT_EQUAL_UINT16(552, capacityHourBudget(peaks, 3, 6, 5));
+    // A new day enters the top 3 only above 4 kWh: (500 + 450 + v) / 3 <= 500 allows 5.52,
+    // capped at the threshold
+    TEST_ASSERT_EQUAL_UINT16(500, capacityHourBudget(peaks, 3, 6, 5));
 }
 
 static void test_above_every_step_holds_month_max(void) {
@@ -101,8 +110,9 @@ static void test_above_every_step_holds_month_max(void) {
     TEST_ASSERT_EQUAL_UINT16(202, capacityHourBudget(peaks, 3, 4, CAPACITY_NO_THRESHOLD));
 }
 
-// The budget is exactly the edge: closing the hour at the budget keeps the month max
-// within the limit, one step more goes over it. Random peaks, hours and thresholds.
+// Closing the hour at the budget keeps the month max within the limit and the budget is
+// never above the threshold. Below the threshold, one step more goes over the limit.
+// Random peaks, hours and thresholds.
 static void test_budget_is_the_edge(void) {
     srand(857);
     for(int n = 0; n < 2000; n++) {
@@ -120,7 +130,8 @@ static void test_budget_is_the_edge(void) {
 
         uint16_t budget = capacityHourBudget(peaks, hours, today, threshold);
         TEST_ASSERT_TRUE(monthMaxAfter(peaks, hours, today, budget) <= limit);
-        if(budget < 0xFFFF) {
+        TEST_ASSERT_TRUE(budget <= threshold * 100);
+        if(budget < threshold * 100) {
             TEST_ASSERT_TRUE(monthMaxAfter(peaks, hours, today, budget + 1) > limit);
         }
     }
@@ -128,13 +139,30 @@ static void test_budget_is_the_edge(void) {
 
 static void test_headroom(void) {
     // 3 kWh left over half an hour is 6 kW; 3 kW is drawn now
-    TEST_ASSERT_FLOAT_WITHIN(0.001, 3.0, capacityHeadroom(5.0, 2.0, 3.0, 1800));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 3.0, capacityHeadroom(5.0, 2.0, 3.0, 1800, 0));
     // Drawing 8 kW: shed 2
-    TEST_ASSERT_FLOAT_WITHIN(0.001, -2.0, capacityHeadroom(5.0, 2.0, 8.0, 1800));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, -2.0, capacityHeadroom(5.0, 2.0, 8.0, 1800, 0));
     // Over the budget: everything drawn is reported as to be shed
-    TEST_ASSERT_FLOAT_WITHIN(0.001, -4.0, capacityHeadroom(5.0, 6.0, 4.0, 1800));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, -4.0, capacityHeadroom(5.0, 6.0, 4.0, 1800, 0));
     // Last seconds of the hour: time floored at 30 s
-    TEST_ASSERT_FLOAT_WITHIN(0.001, 12.0, capacityHeadroom(5.0, 4.9, 0.0, 5));
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 12.0, capacityHeadroom(5.0, 4.9, 0.0, 5, 0));
+}
+
+static void test_headroom_limited_by_main_fuse(void) {
+    // 4 kWh left in 10 minutes would allow 24 kW; a 17.3 kW fuse with 3 kW drawn leaves 14.3
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 14.3, capacityHeadroom(5.0, 1.0, 3.0, 600, 17.3));
+    // Below the fuse the budget decides
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 3.0, capacityHeadroom(5.0, 2.0, 3.0, 1800, 17.3));
+    // Shedding is not limited by the fuse
+    TEST_ASSERT_FLOAT_WITHIN(0.001, -4.0, capacityHeadroom(5.0, 6.0, 4.0, 1800, 17.3));
+}
+
+static void test_fuse_capacity(void) {
+    // 25 A: TN 400 V three phase, IT 230 V three phase, two phase, single phase
+    TEST_ASSERT_EQUAL_UINT32(17320, fuseCapacityW(2, 25, true, false));
+    TEST_ASSERT_EQUAL_UINT32(9959, fuseCapacityW(1, 25, true, false));
+    TEST_ASSERT_EQUAL_UINT32(5750, fuseCapacityW(1, 25, false, true));
+    TEST_ASSERT_EQUAL_UINT32(5750, fuseCapacityW(2, 25, false, false));
 }
 
 static void test_status(void) {
@@ -153,11 +181,14 @@ int main(int argc, char** argv) {
     RUN_TEST(test_first_day_of_month_budget_is_threshold);
     RUN_TEST(test_second_day_shares_average_with_first);
     RUN_TEST(test_mid_month_budget);
+    RUN_TEST(test_peaks_above_threshold_lower_the_budget);
     RUN_TEST(test_today_already_has_a_peak);
     RUN_TEST(test_all_five_slots_taken);
     RUN_TEST(test_above_every_step_holds_month_max);
     RUN_TEST(test_budget_is_the_edge);
     RUN_TEST(test_headroom);
+    RUN_TEST(test_headroom_limited_by_main_fuse);
+    RUN_TEST(test_fuse_capacity);
     RUN_TEST(test_status);
     return UNITY_END();
 }

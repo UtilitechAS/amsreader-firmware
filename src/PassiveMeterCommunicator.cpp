@@ -179,6 +179,7 @@ bool PassiveMeterCommunicator::loop() {
 			debugger->printf_P(PSTR("  payload:\n"));
 			debugPrint(hanBuffer, 0, len, debugger);
 		}
+		publishDebugFrames();
 		len = 0;
 		return false;
 	}
@@ -189,9 +190,7 @@ bool PassiveMeterCommunicator::loop() {
         lastError = pos;
 		printHanReadError(pos);
 		len += hanSerial->readBytes(hanBuffer+len, hanBufferSize-len);
-        if(mqttDebug != NULL) {
-            mqttDebug->publishRaw(hanBuffer, len);
-        }
+        queueDebugFrame(hanBuffer, len);
 		#if defined(AMS_REMOTE_DEBUG)
 		if (debugger->isActive(RemoteDebug::VERBOSE))
 		#endif
@@ -200,6 +199,7 @@ bool PassiveMeterCommunicator::loop() {
 			debugPrint(hanBuffer, 0, len, debugger);
 		}
 		while(hanSerial->available()) hanSerial->read(); // Make sure it is all empty, in case we overflowed buffer above
+		publishDebugFrames();
 		len = 0;
 		return false;
 	}
@@ -218,6 +218,7 @@ bool PassiveMeterCommunicator::loop() {
 			debugger->printf_P(PSTR("  payload:\n"));
 			debugPrint(hanBuffer, 0, len, debugger);
 		}
+		publishDebugFrames();
 		len = 0;
 		return false;
 	}
@@ -244,9 +245,7 @@ AmsData* PassiveMeterCommunicator::getData(AmsData& meterState) {
 	char* payload = ((char *) (hanBuffer)) + pos;
 	if(maxDetectedPayloadSize < pos) maxDetectedPayloadSize = pos;
 	if(ctx.type == DATA_TAG_DLMS) {
-        if(mqttDebug != NULL) {
-            mqttDebug->publishRaw((uint8_t*) payload, ctx.length);
-        }
+        queueDebugFrame((uint8_t*) payload, ctx.length);
 
 		#if defined(AMS_REMOTE_DEBUG)
 		if (debugger->isActive(RemoteDebug::VERBOSE))
@@ -449,18 +448,14 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				if (debugger->isActive(RemoteDebug::VERBOSE))
 				#endif
 				debugger->printf_P(PSTR("HDLC frame:\n"));
-                if(mqttDebug != NULL) {
-                    mqttDebug->publishRaw(buf, curLen);
-                }
+                queueDebugFrame(buf, curLen);
                 break;
             case DATA_TAG_MBUS:
                 #if defined(AMS_REMOTE_DEBUG)
 				if (debugger->isActive(RemoteDebug::VERBOSE))
 				#endif
 				debugger->printf_P(PSTR("MBUS frame:\n"));
-                if(mqttDebug != NULL) {
-                    mqttDebug->publishRaw(buf, curLen);
-                }
+                queueDebugFrame(buf, curLen);
                 break;
             case DATA_TAG_GBT:
                 #if defined(AMS_REMOTE_DEBUG)
@@ -491,9 +486,7 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 				if (debugger->isActive(RemoteDebug::VERBOSE))
 				#endif
 				debugger->printf_P(PSTR("DSMR frame:\n"));
-                if(mqttDebug != NULL) {
-                    mqttDebug->publishRaw(buf, curLen);
-                }
+                queueDebugFrame(buf, curLen);
                 break;
 			case DATA_TAG_SNRM:
                 #if defined(AMS_REMOTE_DEBUG)
@@ -550,6 +543,42 @@ int16_t PassiveMeterCommunicator::unwrapData(uint8_t *buf, DataParserContext &co
 	#endif
 	debugger->printf_P(PSTR("Got to end of unwrap method...\n"));
 	return DATA_PARSE_UNKNOWN_DATA;
+}
+
+void PassiveMeterCommunicator::setMqttHandlerForDebugging(AmsMqttHandler* mqttHandler) {
+	MeterCommunicator::setMqttHandlerForDebugging(mqttHandler);
+	if(mqttHandler == NULL && debugFrames != NULL) {
+		free(debugFrames);
+		debugFrames = NULL;
+		debugFramesLen = 0;
+	}
+}
+
+void PassiveMeterCommunicator::queueDebugFrame(uint8_t* buf, uint16_t length) {
+	if(mqttDebug == NULL || length == 0 || hanBufferSize == 0) return;
+	// Room for a whole frame and the application data unwrapped from it
+	uint32_t capacity = (uint32_t) hanBufferSize * 2;
+	if(debugFrames == NULL) {
+		debugFrames = (uint8_t*) malloc(capacity);
+		if(debugFrames == NULL) return;
+	}
+	if(debugFramesLen + 2 + (uint32_t) length > capacity) return; // Debug output only, drop rather than grow
+	debugFrames[debugFramesLen++] = length >> 8;
+	debugFrames[debugFramesLen++] = length & 0xFF;
+	memcpy(debugFrames + debugFramesLen, buf, length);
+	debugFramesLen += length;
+}
+
+void PassiveMeterCommunicator::publishDebugFrames() {
+	if(mqttDebug != NULL && debugFrames != NULL) {
+		uint16_t i = 0;
+		while(i + 2 <= debugFramesLen) {
+			uint16_t length = (debugFrames[i] << 8) | debugFrames[i+1];
+			mqttDebug->publishRaw(debugFrames + i + 2, length);
+			i += 2 + length;
+		}
+	}
+	debugFramesLen = 0;
 }
 
 void PassiveMeterCommunicator::printHanReadError(int pos) {
@@ -830,6 +859,11 @@ void PassiveMeterCommunicator::setupHanPort(uint32_t baud, uint8_t parityOrdinal
 	if(hanBuffer != NULL) {
 		free(hanBuffer);
 	}
+	if(debugFrames != NULL) {
+		free(debugFrames);
+		debugFrames = NULL;
+	}
+	debugFramesLen = 0;
 	hanBufferSize = max(64 * meterConfig.bufferSize * 3, 512);
 	hanBuffer = (uint8_t*) malloc(hanBufferSize);
 

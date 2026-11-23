@@ -19,6 +19,7 @@
 
 #if defined(ESP32)
 #include <esp_task_wdt.h>
+#include "BoundedWiFiClient.h"
 #endif
 
 class AmsMqttHandler {
@@ -111,7 +112,11 @@ protected:
     #endif
     unsigned long lastMqttRetry = -10000;
     bool caVerification = true;
+    #if defined(ESP32)
+    BoundedWiFiClient *mqttClient = NULL;
+    #else
     WiFiClient *mqttClient = NULL;
+    #endif
     WiFiClientSecure *mqttSecureClient = NULL;
     boolean _connected = false;
     char* json;

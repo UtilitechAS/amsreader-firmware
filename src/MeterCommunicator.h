@@ -30,6 +30,10 @@ public:
     virtual void setMqttHandlerForDebugging(AmsMqttHandler* mqttHandler) {
         this->mqttDebug = mqttHandler;
     };
+    // Publishes the raw frames collected for debugging since the last call.
+    // Called once a frame has been handled, so that a slow MQTT publish does not
+    // stall reading the HAN port in the middle of a frame.
+    virtual void publishDebugFrames() {};
 
 protected:
     AmsMqttHandler* mqttDebug = NULL;

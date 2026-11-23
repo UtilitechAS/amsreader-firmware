@@ -100,8 +100,16 @@ bool AmsMqttHandler::connect() {
 		actualClient = mqttSecureClient;
 	} else {
 		if(mqttClient == NULL) {
+			#if defined(ESP32)
+			mqttClient = new BoundedWiFiClient();
+			#else
 			mqttClient = new WiFiClient();
+			#endif
 		}
+		#if defined(ESP32)
+		// Same limit lwmqtt applies to a whole command, see BoundedSend.h
+		mqttClient->setWriteTimeout(mqttConfig.timeout);
+		#endif
 		actualClient = mqttClient;
 	}
 

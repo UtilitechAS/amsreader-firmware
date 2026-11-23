@@ -32,6 +32,10 @@ It is recommended to use Visual Studio Code with the PlatformIO plugin for devel
 
 For development purposes, copy the ```platformio-user.ini-example``` to ```platformio-user.ini``` and customize to your preference. The code will adapt to the platform and board set in your profile.
 
+## WireGuard VPN (ESP32)
+
+See the [WireGuard VPN wiki guide](https://github.com/UtilitechAS/amsreader-firmware/wiki/WireGuard-VPN) for configuration and requirements.
+
 ## Licensing
 Initially, this project began as a hobby, consuming countless hours of our spare time. However, the time required to support this project has expanded beyond the scope of a hobby. As a result, we established ‘Utilitech’, a company dedicated to maintaining the software and hardware for this project as part of our regular work.
 

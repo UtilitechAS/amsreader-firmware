@@ -351,6 +351,10 @@ uint8_t AmsWebServer::computeServicesAggregate() {
 		else bump(2);
 	}
 
+	#if defined(ESP32)
+	bump(AmsJsonGenerator::wireGuardState(config));
+	#endif
+
 	{
 		NtpConfig ntp;
 		if(config->getNtpConfig(ntp) && ntp.enable) {
@@ -1119,7 +1123,8 @@ void AmsWebServer::handleSave() {
 	#endif
 		debugger->printf(PSTR("Received %d args for /save\n"), server.args());
 		for(uint8_t i = 0; i < server.args(); i++) {
-			debugger->printf_P(PSTR(" %s: %s\n"), server.argName(i).c_str(), server.arg(i).c_str());
+			bool secret = server.argName(i) == F("wgk") || server.argName(i) == F("wgp");
+			debugger->printf_P(PSTR(" %s: %s\n"), server.argName(i).c_str(), secret ? "***" : server.arg(i).c_str());
 		}
 	#if defined(AMS_REMOTE_DEBUG)
 	}
@@ -1312,6 +1317,38 @@ void AmsWebServer::handleSave() {
 			network.ipv6 = server.hasArg(F("nx")) && server.arg(F("nx")) == F("true");
 			network.mdns = server.hasArg(F("nd")) && server.arg(F("nd")) == F("true");
 			config->setNetworkConfig(network);
+
+			#if defined(ESP32)
+			if(server.hasArg(F("wg")) && server.arg(F("wg")) == F("true")) {
+				WireGuardConfig wireGuard;
+				config->getWireGuardConfig(wireGuard);
+				wireGuard.enabled = server.hasArg(F("wge")) && server.arg(F("wge")) == F("true");
+
+				String address = server.arg(F("wga"));
+				strncpy(wireGuard.address, address.c_str(), sizeof(wireGuard.address) - 1);
+				wireGuard.address[sizeof(wireGuard.address) - 1] = 0;
+
+				String privateKey = server.arg(F("wgk"));
+				if(!privateKey.equals(F("***"))) {
+					memset(wireGuard.privateKey, 0, sizeof(wireGuard.privateKey));
+					strncpy(wireGuard.privateKey, privateKey.c_str(), sizeof(wireGuard.privateKey) - 1);
+				}
+				String peerPublicKey = server.arg(F("wgp"));
+				if(!peerPublicKey.equals(F("***"))) {
+					memset(wireGuard.peerPublicKey, 0, sizeof(wireGuard.peerPublicKey));
+					strncpy(wireGuard.peerPublicKey, peerPublicKey.c_str(), sizeof(wireGuard.peerPublicKey) - 1);
+				}
+
+				String endpoint = server.arg(F("wgh"));
+				strncpy(wireGuard.endpoint, endpoint.c_str(), sizeof(wireGuard.endpoint) - 1);
+				wireGuard.endpoint[sizeof(wireGuard.endpoint) - 1] = 0;
+				long port = server.arg(F("wgo")).toInt();
+				if(port > 0 && port <= 65535) {
+					wireGuard.port = port;
+				}
+				config->setWireGuardConfig(wireGuard);
+			}
+			#endif
 		} 
 
 	}
@@ -1639,7 +1676,7 @@ void AmsWebServer::handleSave() {
 		if (debugger->isActive(RemoteDebug::INFO))
 		#endif
 		debugger->printf_P(PSTR("Successfully saved.\n"));
-		if(config->isNetworkConfigChanged() || config->isWebChanged() || performRestart) {
+		if(config->isNetworkConfigChanged() || config->isWireGuardConfigChanged() || config->isWebChanged() || performRestart) {
 			performRestart = true;
 		} else {
 			hw->setup(&sys, gpioConfig);
@@ -2196,6 +2233,16 @@ void AmsWebServer::configFileDownload() {
 		}
 		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("mdns %d\n"), network.mdns ? 1 : 0));
 		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("use11b %d\n"), network.use11b ? 1 : 0));
+		#if defined(ESP32)
+		WireGuardConfig wireGuard;
+		config->getWireGuardConfig(wireGuard);
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("wgEnabled %d\n"), wireGuard.enabled && includeSecrets ? 1 : 0));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("wgAddress %s\n"), wireGuard.address));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("wgPeerPublicKey %s\n"), wireGuard.peerPublicKey));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("wgEndpoint %s\n"), wireGuard.endpoint));
+		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("wgPort %u\n"), wireGuard.port));
+		if(includeSecrets) server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("wgPrivateKey %s\n"), wireGuard.privateKey));
+		#endif
 	}
 	
 	if(includeMqtt) {

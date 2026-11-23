@@ -748,9 +748,23 @@ void loop() {
 		errorBlink();
 	}
 
+	#if defined(ESP32)
+	if(ch != NULL && ch->getMode() == NETWORK_MODE_WIFI_CLIENT && WiFi.status() == WL_CONNECTED) {
+		NetworkConfig network;
+		WireGuardConfig wireGuard;
+		if(config.getNetworkConfig(network) && !network.ipv6
+			&& config.getWireGuardConfig(wireGuard) && wireGuard.enabled) {
+			// Configure SNTP before WireGuard switches the default route to the tunnel.
+			handleNtp();
+		}
+	}
+	#endif
+
 	// Only do normal stuff if we're not booted into setup mode
 	if (!setupMode) {
-		if (ch != NULL && !ch->isConnected()) {
+		if(ch == NULL) {
+			networkConnected = false;
+		} else if(!ch->isConnected()) {
 			if(networkConnected) {
 				#if defined(AMS_REMOTE_DEBUG)
 				Debug.stop();
@@ -1716,6 +1730,19 @@ void connectToNetwork() {
 	NetworkConfig network;
 	if(config.getNetworkConfig(network)) {
 		if(network.mode == 0 || network.mode > 3) network.mode = NETWORK_MODE_WIFI_CLIENT;
+		#if defined(ESP32)
+		WireGuardConfig wireGuard;
+		config.getWireGuardConfig(wireGuard);
+		if(wireGuard.enabled && (network.mode != NETWORK_MODE_WIFI_CLIENT || network.ipv6)) {
+			debugE_P(PSTR("WireGuard requires Wi-Fi client mode with IPv6 disabled; refusing unprotected connection"));
+			if(ch != NULL) {
+				ch->disconnect(0);
+				delete ch;
+				ch = NULL;
+			}
+			return;
+		}
+		#endif
 		if(ch != NULL && ch->getMode() != network.mode) {
 			delete ch;
 			ch = NULL;
@@ -1742,6 +1769,12 @@ void connectToNetwork() {
 		}
 		#if defined(ESP32)
 		dnsGuardSetIpv6Allowed(network.ipv6);
+		#endif
+		#if defined(ESP32)
+		if(network.mode == NETWORK_MODE_WIFI_CLIENT) {
+			config.getWireGuardConfig(wireGuard);
+			((WiFiClientConnectionHandler*) ch)->setWireGuardConfig(wireGuard);
+		}
 		#endif
 		ch->connect(network, sysConfig);
 		ws.setConnectionHandler(ch);
@@ -2227,6 +2260,9 @@ void configFileParse() {
 	bool lNtp = false;
 	bool lPrice = false;
 	bool lEac = false;
+	#if defined(ESP32)
+	bool lWireGuard = false;
+	#endif
 	bool sEa = false;
 	bool sDs = false;
 
@@ -2243,6 +2279,9 @@ void configFileParse() {
 	NtpConfig ntp;
 	PriceServiceConfig price;
 	EnergyAccountingConfig eac;
+	#if defined(ESP32)
+	WireGuardConfig wireGuard;
+	#endif
 	uint8_t priceModifierCount = 0;
 
 	size_t size;
@@ -2296,6 +2335,31 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("mdns "), 5) == 0) {
 			if(!lNetwork) { config.getNetworkConfig(network); lNetwork = true; };
 			network.mdns = String(buf+5).toInt() == 1;;
+		#if defined(ESP32)
+		} else if(strncmp_P(buf, PSTR("wgEnabled "), 10) == 0) {
+			if(!lWireGuard) { config.getWireGuardConfig(wireGuard); lWireGuard = true; };
+			wireGuard.enabled = String(buf+10).toInt() == 1;
+		} else if(strncmp_P(buf, PSTR("wgAddress "), 10) == 0) {
+			if(!lWireGuard) { config.getWireGuardConfig(wireGuard); lWireGuard = true; };
+			strncpy(wireGuard.address, buf+10, sizeof(wireGuard.address) - 1);
+			wireGuard.address[sizeof(wireGuard.address) - 1] = 0;
+		} else if(strncmp_P(buf, PSTR("wgPrivateKey "), 13) == 0) {
+			if(!lWireGuard) { config.getWireGuardConfig(wireGuard); lWireGuard = true; };
+			strncpy(wireGuard.privateKey, buf+13, sizeof(wireGuard.privateKey) - 1);
+			wireGuard.privateKey[sizeof(wireGuard.privateKey) - 1] = 0;
+		} else if(strncmp_P(buf, PSTR("wgPeerPublicKey "), 16) == 0) {
+			if(!lWireGuard) { config.getWireGuardConfig(wireGuard); lWireGuard = true; };
+			strncpy(wireGuard.peerPublicKey, buf+16, sizeof(wireGuard.peerPublicKey) - 1);
+			wireGuard.peerPublicKey[sizeof(wireGuard.peerPublicKey) - 1] = 0;
+		} else if(strncmp_P(buf, PSTR("wgEndpoint "), 11) == 0) {
+			if(!lWireGuard) { config.getWireGuardConfig(wireGuard); lWireGuard = true; };
+			strncpy(wireGuard.endpoint, buf+11, sizeof(wireGuard.endpoint) - 1);
+			wireGuard.endpoint[sizeof(wireGuard.endpoint) - 1] = 0;
+		} else if(strncmp_P(buf, PSTR("wgPort "), 7) == 0) {
+			if(!lWireGuard) { config.getWireGuardConfig(wireGuard); lWireGuard = true; };
+			long port = String(buf+7).toInt();
+			if(port > 0 && port <= 65535) wireGuard.port = port;
+		#endif
 		} else if(strncmp_P(buf, PSTR("mqttHost "), 9) == 0) {
 			if(!lMqtt) { config.getMqttConfig(mqtt); lMqtt = true; };
 			strlcpy(mqtt.host, buf+9, sizeof(mqtt.host));
@@ -2860,6 +2924,9 @@ void configFileParse() {
 	if(lNtp) config.setNtpConfig(ntp);
 	if(lPrice) config.setPriceServiceConfig(price);
 	if(lEac) config.setEnergyAccountingConfig(eac);
+	#if defined(ESP32)
+	if(lWireGuard) config.setWireGuardConfig(wireGuard);
+	#endif
 	if(sDs) ds.save();
 	if(sEa) ea.save();
 	if(priceModifierCount > 0) ps->save();

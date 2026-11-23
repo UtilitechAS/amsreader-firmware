@@ -36,6 +36,7 @@
 #define CONFIG_CLOUD_START 1742
 #define CONFIG_UPGRADE_INFO_START 1934
 #define CONFIG_ZC_START 2000
+#define CONFIG_WIREGUARD_START 2096
 
 #define CONFIG_METER_START_103 32
 #define CONFIG_UPGRADE_INFO_START_103 216
@@ -298,6 +299,16 @@ struct ZmartChargeConfig {
 	char baseUrl[64];
 }; // 86
 
+struct WireGuardConfig {
+	bool enabled;
+	char address[16];
+	char privateKey[45];
+	char peerPublicKey[45];
+	char endpoint[64];
+	uint16_t port;
+	uint8_t magic;
+};
+
 class AmsConfiguration {
 public:
 	bool load();
@@ -398,6 +409,12 @@ public:
 	void clearZmartChargeConfig(ZmartChargeConfig&);
 	bool isZmartChargeConfigChanged();
 	void ackZmartChargeConfig();
+
+	bool getWireGuardConfig(WireGuardConfig&);
+	bool setWireGuardConfig(WireGuardConfig&);
+	void clearWireGuardConfig(WireGuardConfig&);
+	bool isWireGuardConfigChanged();
+	void ackWireGuardConfigChange();
 	
 	uint32_t getChipId();
 	void getUniqueName(char* buffer, size_t length);
@@ -409,7 +426,7 @@ protected:
 private:
 	uint8_t configVersion = 0;
 
-	bool sysChanged = false, networkChanged = false, mqttChanged = false, webChanged = false, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false, zcChanged = true;
+	bool sysChanged = false, networkChanged = false, mqttChanged = false, webChanged = false, meterChanged = true, ntpChanged = true, priceChanged = false, energyAccountingChanged = true, cloudChanged = true, uiLanguageChanged = false, zcChanged = true, wireGuardChanged = false;
 
 	bool relocateConfig103(); // 2.2.12, until, but not including 2.3
 

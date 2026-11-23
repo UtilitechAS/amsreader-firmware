@@ -8,6 +8,7 @@
 #if defined(ESP32)
 #include <esp_wifi.h>
 #include <lwip/dns.h>
+#include <lwip/netif.h>
 #endif
 
 #if defined(AMS_REMOTE_DEBUG)
@@ -20,6 +21,17 @@ WiFiClientConnectionHandler::WiFiClientConnectionHandler(Stream* debugger) {
 }
 
 bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys) {
+	this->config = config;
+
+	#if defined(ESP32)
+	if(WiFi.status() == WL_CONNECTED
+		&& this->config.mode == NETWORK_MODE_WIFI_CLIENT
+		&& wireGuardConfig.enabled) {
+		startWireGuard();
+		return false;
+	}
+	#endif
+
 	if(lastRetry > 0 && (millis() - lastRetry) < timeout) {
 		delay(50);
 		return false;
@@ -130,7 +142,6 @@ bool WiFiClientConnectionHandler::connect(NetworkConfig config, SystemConfig sys
 		WiFi.setAutoReconnect(true);
 		#endif
 		WiFi.persistent(false);
-        this->config = config;
 		#if defined(ESP32)
 		if(begin(config.ssid, config.psk, 0, NULL)) {
 		#else
@@ -255,6 +266,9 @@ void WiFiClientConnectionHandler::disconnect(unsigned long reconnectDelay) {
 	if (debugger->isActive(RemoteDebug::ERROR))
 	#endif
 	debugger->printf_P(PSTR("Disconnecting!\n"));
+	#if defined(ESP32)
+	// Keep the WireGuard default route across Wi-Fi reconnects to avoid a cleartext fallback.
+	#endif
 	#if defined(ESP8266)
 		WiFiClient::stopAll();
 	#endif
@@ -283,6 +297,12 @@ bool WiFiClientConnectionHandler::isConnected() {
 			lastChannel = WiFi.channel();
 		}
 	}
+	#if defined(ESP32)
+	if(wireGuardConfig.enabled) {
+		return wireGuard.is_initialized() && netif_default != NULL
+			&& netif_default->name[0] == 'w' && netif_default->name[1] == 'g';
+	}
+	#endif
 	return true;
 }
 
@@ -318,6 +338,59 @@ void WiFiClientConnectionHandler::applyTxPower(NetworkConfig& config) {
 }
 
 #if defined(ESP32)
+void WiFiClientConnectionHandler::setWireGuardConfig(const WireGuardConfig& config) {
+	wireGuardConfig = config;
+}
+
+bool WiFiClientConnectionHandler::startWireGuard() {
+	if(wireGuard.is_initialized()) {
+		return netif_default != NULL
+			&& netif_default->name[0] == 'w' && netif_default->name[1] == 'g';
+	}
+
+	IPAddress address;
+	if(!address.fromString(wireGuardConfig.address)
+		|| strlen(wireGuardConfig.privateKey) != 44
+		|| strlen(wireGuardConfig.peerPublicKey) != 44
+		|| strlen(wireGuardConfig.endpoint) == 0
+		|| wireGuardConfig.port == 0) {
+		#if defined(AMS_REMOTE_DEBUG)
+		if(debugger->isActive(RemoteDebug::ERROR))
+		#endif
+		debugger->printf_P(PSTR("WireGuard configuration is incomplete or invalid\n"));
+		return false;
+	}
+
+	wireGuard.setDefaultRoute(true);
+	if(!wireGuard.begin(
+		address,
+		wireGuardConfig.privateKey,
+		wireGuardConfig.endpoint,
+		wireGuardConfig.peerPublicKey,
+		wireGuardConfig.port
+	)) {
+		#if defined(AMS_REMOTE_DEBUG)
+		if(debugger->isActive(RemoteDebug::ERROR))
+		#endif
+		debugger->printf_P(PSTR("Unable to initialize WireGuard tunnel\n"));
+		return false;
+	}
+
+	if(netif_default == NULL || netif_default->name[0] != 'w' || netif_default->name[1] != 'g') {
+		#if defined(AMS_REMOTE_DEBUG)
+		if(debugger->isActive(RemoteDebug::ERROR))
+		#endif
+		debugger->printf_P(PSTR("WireGuard did not install the full-tunnel route\n"));
+		return false;
+	}
+
+	#if defined(AMS_REMOTE_DEBUG)
+	if(debugger->isActive(RemoteDebug::INFO))
+	#endif
+	debugger->printf_P(PSTR("WireGuard full-tunnel route is active\n"));
+	return true;
+}
+
 void WiFiClientConnectionHandler::allow11b() {
 	force11b = true;
 }

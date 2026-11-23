@@ -94,6 +94,7 @@ public:
     // Four-state health of a single service: 0 disabled, 1 ok, 2 connecting, 3 error.
     static uint8_t hanState(AmsData* meterState);
     static uint8_t mqttHandlerState(AmsMqttHandler* h);
+    static uint8_t ntpState();
 
     // The contents of the services array, without the enclosing brackets, since
     // both callers embed it in a larger document.

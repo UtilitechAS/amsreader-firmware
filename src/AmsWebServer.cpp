@@ -1114,20 +1114,6 @@ void AmsWebServer::handleSave() {
 	if(!checkSecurity(1))
 		return;
 
-	#if defined(AMS_REMOTE_DEBUG)
-	if (debugger->isActive(RemoteDebug::DEBUG)) {
-	#endif
-		debugger->printf(PSTR("Received %d args for /save\n"), server.args());
-		for(uint8_t i = 0; i < server.args(); i++) {
-			// Keep passwords, meter keys and tokens out of the log, which can be read over telnet
-			String name = server.argName(i);
-			bool secret = name == F("sp") || name == F("wp") || name == F("qa") || name == F("gp") || name == F("mek") || name == F("mea") || name == F("pt") || name == F("czt");
-			debugger->printf_P(PSTR(" %s: %s\n"), name.c_str(), secret ? "***" : server.arg(i).c_str());
-		}
-	#if defined(AMS_REMOTE_DEBUG)
-	}
-	#endif
-
 	// NetworkConfig holds at most 63 PSK characters. A longer key (a 64 digit hex PSK)
 	// would be cut short and the device would drop off WiFi after the reboot, so refuse it.
 	if(server.arg(F("sp")).length() >= sizeof(NetworkConfig::psk) || server.arg(F("wp")).length() >= sizeof(NetworkConfig::psk)) {

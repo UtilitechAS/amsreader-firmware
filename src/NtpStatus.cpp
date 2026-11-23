@@ -19,6 +19,16 @@ uint64_t ntpLastSyncMillis() {
 	return lastSyncMillis;
 }
 
+static uint32_t dhcpServer = 0;
+
+void ntpSetDhcpServer(uint32_t server) {
+	dhcpServer = server;
+}
+
+uint32_t ntpDhcpServer() {
+	return dhcpServer;
+}
+
 #if defined(ESP8266)
 // from_sntp is false when the clock is set manually (e.g. from the meter
 // timestamp), so we only record actual SNTP syncs here.

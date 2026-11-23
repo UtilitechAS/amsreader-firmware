@@ -997,6 +997,7 @@ void handleNtp() {
 			// here double-counted the base offset during DST.
 			configTime(tz->toLocal(0), (tz->toLocal(JULY1970)-JULY1970) - tz->toLocal(0), ntpServerName, "", "");
 			#if defined(ESP32)
+			ntpSetDhcpServer(0);
 			dhcpNtpWanted = ntp.enable && ntp.dhcp;
 			dhcpNtpAttempts = 0;
 			dhcpNtpNextAttempt = 0;
@@ -1034,6 +1035,7 @@ void handleDhcpNtp() {
 			}
 			sntp_setserver(0, &addr);
 			sntp_init();
+			ntpSetDhcpServer(server);
 			dhcpNtpAttempts = DHCP_NTP_MAX_ATTEMPTS;
 			return;
 		}

@@ -17,4 +17,9 @@ void ntpRegisterSyncCallback();
 // (NTP stopped resyncing), which silently corrupts day-boundary accounting.
 uint64_t ntpLastSyncMillis();
 
+// NTP server handed out by DHCP and in use, network byte order, 0 when the
+// configured server is used. Only set on ESP32, see DhcpNtp.cpp.
+void ntpSetDhcpServer(uint32_t server);
+uint32_t ntpDhcpServer();
+
 #endif

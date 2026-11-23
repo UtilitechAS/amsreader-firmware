@@ -124,6 +124,13 @@ String AmsJsonGenerator::generateServicesJson(const ServiceStatusContext& ctx) {
         NtpConfig ntp;
         if(ctx.config->getNtpConfig(ntp) && ntp.enable) {
             const char* server = strlen(ntp.server) > 0 ? ntp.server : "pool.ntp.org";
+            char dhcpServer[16];
+            uint32_t fromDhcp = ntpDhcpServer();
+            if(ntp.dhcp && fromDhcp != 0) {
+                const uint8_t* b = (const uint8_t*) &fromDhcp; // Network byte order
+                snprintf_P(dhcpServer, sizeof(dhcpServer), PSTR("%u.%u.%u.%u"), b[0], b[1], b[2], b[3]);
+                server = dhcpServer;
+            }
             // A set-but-stale clock (NTP stopped resyncing) silently corrupts
             // day-boundary accounting, so flag staleness rather than only
             // reporting whether the clock was ever set.

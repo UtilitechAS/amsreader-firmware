@@ -636,7 +636,11 @@
             <div class="my-1">
                 {translations.conf?.network?.ntp ?? "NTP"} <label class="ml-4"><input name="ntpd" value="true" bind:checked={configuration.n.h} type="checkbox" class="rounded mb-1"/> {translations.conf?.network?.tick_ntp_dhcp ?? "from DHCP"}</label><br/>
                 <div class="flex">
+                    {#if configuration.n.h}
+                    <input value={sysinfo?.services?.find(s => s.k == 'ntp')?.d ?? ''} type="text" class="in-s" disabled/>
+                    {:else}
                     <input name="ntph" bind:value={configuration.n.n1} type="text" class="in-s" pattern={asciiPattern}/>
+                    {/if}
                 </div>
             </div>
         </div>

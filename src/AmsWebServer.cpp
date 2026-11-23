@@ -1321,7 +1321,10 @@ void AmsWebServer::handleSave() {
 		config->getNtpConfig(ntp);
 		ntp.enable = true;
 		ntp.dhcp = server.hasArg(F("ntpd")) && server.arg(F("ntpd")) == F("true");
-		strlcpy(ntp.server, server.arg(F("ntph")).c_str(), sizeof(ntp.server));
+		// The UI disables the server field while DHCP is ticked, so it is not posted. Keep the stored one as fallback.
+		if(server.hasArg(F("ntph"))) {
+			strlcpy(ntp.server, server.arg(F("ntph")).c_str(), sizeof(ntp.server));
+		}
 		config->setNtpConfig(ntp);
 	}
 

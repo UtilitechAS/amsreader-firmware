@@ -827,7 +827,7 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
             newConfig.payloadFormat = mqttObj[F("m")];
         }
         if(mqttObj.containsKey(F("t"))) {
-            newConfig.stateUpdate = mqttObj[F("s")];
+            newConfig.stateUpdate = mqttObj[F("t")];
         }
         if(mqttObj.containsKey(F("d"))) {
             newConfig.stateUpdateInterval = mqttObj[F("d")];

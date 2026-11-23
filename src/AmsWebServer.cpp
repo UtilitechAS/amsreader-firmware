@@ -1580,7 +1580,7 @@ void AmsWebServer::handleSave() {
 				char * pch = strtok ((char*) days.c_str(),",");
 				while (pch != NULL && d < 7) {
 					int day = String(pch).toInt();
-					pc.days |= (0x1 << day);
+					if(day >= 0 && day < 7) pc.days |= (0x1 << day);
 					pch = strtok (NULL, ",");
 					d++;
 				}
@@ -1592,7 +1592,7 @@ void AmsWebServer::handleSave() {
 				pch = strtok ((char*) hours.c_str(),",");
 				while (pch != NULL && h < 24) {
 					int hour = String(pch).toInt();
-					pc.hours |= (0x1 << (hour));
+					if(hour >= 0 && hour < 24) pc.hours |= (0x1 << (hour));
 					pch = strtok (NULL, ",");
 					h++;
 				}
@@ -2362,7 +2362,7 @@ void AmsWebServer::configFileDownload() {
 						default:
 							strcpy_P(direction, PSTR("--"));
 					}
-					char days[3*7] = "";
+					char days[3*7+1] = ""; // "mo,tu,...,su," before the last comma is cut
 					if(p.days == 0x7F) {
 						strcpy_P(days, PSTR("all"));
 					} else {
@@ -2376,7 +2376,7 @@ void AmsWebServer::configFileDownload() {
 						if(strlen(days) > 0) days[strlen(days)-1] = '\0';
 					}
 
-					char hours[3*24] = "";
+					char hours[3*24+1] = ""; // "00,01,...,23," before the last comma is cut
 					if(p.hours == 0xFFFFFF) {
 						strcpy_P(hours, PSTR("all"));
 					} else {

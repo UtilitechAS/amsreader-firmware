@@ -264,7 +264,7 @@ bool AmsWebServer::checkSecurity(byte level, bool send401) {
 			#if defined(AMS_REMOTE_DEBUG)
 if (debugger->isActive(RemoteDebug::WARNING))
 #endif
-debugger->printf_P(PSTR("Unsuccessful login: '%s'\n"), providedPwd.c_str());
+debugger->printf_P(PSTR("Unsuccessful login\n"));
 		}
 	}
 
@@ -1113,17 +1113,6 @@ void AmsWebServer::cloudkeyJson() {
 void AmsWebServer::handleSave() {
 	if(!checkSecurity(1))
 		return;
-
-	#if defined(AMS_REMOTE_DEBUG)
-	if (debugger->isActive(RemoteDebug::DEBUG)) {
-	#endif
-		debugger->printf(PSTR("Received %d args for /save\n"), server.args());
-		for(uint8_t i = 0; i < server.args(); i++) {
-			debugger->printf_P(PSTR(" %s: %s\n"), server.argName(i).c_str(), server.arg(i).c_str());
-		}
-	#if defined(AMS_REMOTE_DEBUG)
-	}
-	#endif
 
 	// NetworkConfig holds at most 63 PSK characters. A longer key (a 64 digit hex PSK)
 	// would be cut short and the device would drop off WiFi after the reboot, so refuse it.

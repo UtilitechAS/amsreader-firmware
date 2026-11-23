@@ -1178,7 +1178,7 @@ void AmsConfiguration::print(Print* debugger)
 				break;
 		}
 		debugger->printf_P(PSTR("SSID:                 '%s'\n"), network.ssid);
-		debugger->printf_P(PSTR("Psk:                  '%s'\n"), network.psk);
+		debugger->printf_P(PSTR("Psk:                  '%s'\n"), strlen(network.psk) > 0 ? "***" : "");
 		if(strlen(network.ip) > 0) {
 			debugger->printf_P(PSTR("IP:                   '%s'\n"), network.ip);
 			debugger->printf_P(PSTR("Gateway:              '%s'\n"), network.gateway);
@@ -1207,7 +1207,7 @@ void AmsConfiguration::print(Print* debugger)
 			debugger->printf_P(PSTR("Subscribe topic:      '%s'\n"), mqtt.subscribeTopic);
 			if (strlen(mqtt.username) > 0) {
 				debugger->printf_P(PSTR("Username:             '%s'\n"), mqtt.username);
-				debugger->printf_P(PSTR("Password:             '%s'\n"), mqtt.password);
+				debugger->printf_P(PSTR("Password:             '%s'\n"), strlen(mqtt.password) > 0 ? "***" : "");
 			}
 			debugger->printf_P(PSTR("Payload format:       %i\n"), mqtt.payloadFormat);
 			debugger->printf_P(PSTR("SSL:                  %s\n"), mqtt.ssl ? "Yes" : "No");
@@ -1228,7 +1228,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf_P(PSTR("Security:             %i\n"), web.security);
 		if (web.security > 0) {
 			debugger->printf_P(PSTR("Username:             '%s'\n"), web.username);
-			debugger->printf_P(PSTR("Password:             '%s'\n"), web.password);
+			debugger->printf_P(PSTR("Password:             '%s'\n"), strlen(web.password) > 0 ? "***" : "");
 		}
 		debugger->println(F(""));
 		delay(10);
@@ -1322,7 +1322,7 @@ void AmsConfiguration::print(Print* debugger)
 			debugger->println(F("--Price configuration--"));
 			debugger->printf_P(PSTR("Area:                 %s\n"), price.area);
 			debugger->printf_P(PSTR("Currency:             %s\n"), price.currency);
-			debugger->printf_P(PSTR("ENTSO-E Token:        %s\n"), price.entsoeToken);
+			debugger->printf_P(PSTR("ENTSO-E Token:        %s\n"), strlen(price.entsoeToken) > 0 ? "***" : "");
 			debugger->println(F(""));
 			delay(10);
 			debugger->flush();
@@ -1362,7 +1362,7 @@ void AmsConfiguration::print(Print* debugger)
 		debugger->printf_P(PSTR("Enabled:              %s\n"), zc.enabled ? "Yes" : "No");
 		if(zc.enabled) {
 			debugger->printf_P(PSTR("Base URL:            '%s'\n"), zc.baseUrl);
-			debugger->printf_P(PSTR("Token:               '%s'\n"), zc.token);
+			debugger->printf_P(PSTR("Token:               '%s'\n"), strlen(zc.token) > 0 ? "***" : "");
 		}
 		debugger->println(F(""));
 		delay(10);

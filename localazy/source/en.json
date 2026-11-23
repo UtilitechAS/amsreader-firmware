@@ -40,6 +40,7 @@
         "title": "Power saving"
       },
       "psk": "Password",
+      "psk_max": "Maximum 63 characters",
       "pwr": "Power",
       "ssid": "SSID",
       "tick_11b": "Allow 802.11b legacy rates",
@@ -189,6 +190,7 @@
       "region": "Price region",
       "title": "Price configuration"
     },
+    "save_failed": "The configuration was not saved",
     "thresholds": {
       "avg": "Average of",
       "title": "Tariff thresholds"

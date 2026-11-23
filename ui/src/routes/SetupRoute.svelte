@@ -3,7 +3,7 @@
     import { translationsStore } from '../lib/TranslationService.js';
     import Mask from '../lib/Mask.svelte'
     import SubnetOptions from '../lib/SubnetOptions.svelte';
-    import { scanForDevice, charAndNumPattern, asciiPatternExt, ipPattern } from '../lib/Helpers.js';
+    import { scanForDevice, charAndNumPattern, asciiPatternExt, ipPattern, wifiPskPattern } from '../lib/Helpers.js';
 
     let translations = {};
     translationsStore.subscribe(update => {
@@ -53,6 +53,10 @@
         });
         let res = (await response.json())
         loadingOrSaving = false;
+        if(!res.success) {
+            alert((translations.conf?.save_failed ?? "The configuration was not saved") + (res.message ? ': ' + res.message : ''));
+            return;
+        }
 
         sysinfoStore.update(s => {
             s.hostname = formData.get('sh');
@@ -163,7 +167,7 @@
                 <div class="my-3">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>
                     <div class="flex">
-                        <input name="sp" bind:value={psk} on:input={resetWifiTest} type="password" pattern={asciiPatternExt} class="in-f w-full" autocomplete="off" required={connectionMode == 2}/>
+                        <input name="sp" bind:value={psk} on:input={resetWifiTest} type="password" pattern={wifiPskPattern} title={translations.conf?.connection?.psk_max ?? "Maximum 63 characters"} class="in-f w-full" autocomplete="off" required={connectionMode == 2}/>
                         <span on:click={toggleShowPass} class="in-post link">👁️</span>
                     </div>
                 </div>

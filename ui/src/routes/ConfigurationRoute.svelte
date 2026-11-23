@@ -3,7 +3,7 @@
     import { sysinfoStore, networksStore, dataStore } from '../lib/DataStores.js';
     import fetchWithTimeout from '../lib/fetchWithTimeout';
     import { translationsStore } from '../lib/TranslationService';
-    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, meterKeyPattern, numPattern, isBusPowered } from '../lib/Helpers.js';
+    import { wiki, ipPattern, asciiPattern, asciiPatternExt, charAndNumPattern, meterKeyPattern, numPattern, isBusPowered, wifiPskPattern } from '../lib/Helpers.js';
     import UartSelectOptions from '../lib/UartSelectOptions.svelte';
     import Mask from '../lib/Mask.svelte'
     import Badge from '../lib/Badge.svelte';
@@ -139,6 +139,11 @@
             body: data
         });
         let res = (await response.json())
+        if(!res.success) {
+            saving = false;
+            alert((translations.conf?.save_failed ?? "The configuration was not saved") + (res.message ? ': ' + res.message : ''));
+            return;
+        }
 
         sysinfoStore.update(s => {
             s.hostname = formData.get('gh');
@@ -568,7 +573,7 @@
                 <div class="my-1">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>
                     <div class="flex">
-                        <input name="wp" bind:value={configuration.w.p} type="password" class="in-f w-full" pattern={asciiPatternExt}/>
+                        <input name="wp" bind:value={configuration.w.p} type="password" class="in-f w-full" pattern={wifiPskPattern} title={translations.conf?.connection?.psk_max ?? "Maximum 63 characters"}/>
                         <span on:click={toggleShowWifiPass} class="in-post link">👁️</span>
                     </div>
                 </div>

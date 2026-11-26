@@ -313,6 +313,7 @@ public:
 
 	bool getNetworkConfig(NetworkConfig&);
 	bool setNetworkConfig(NetworkConfig&);
+	static bool isValidApPsk(const char* psk);
 	void clearNetworkConfig(NetworkConfig&);
 	void clearNetworkConfigIp(NetworkConfig&);
 	bool isNetworkConfigChanged();

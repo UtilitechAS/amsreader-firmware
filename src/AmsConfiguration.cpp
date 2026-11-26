@@ -78,7 +78,14 @@ bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 	NetworkConfig existing;
 	if(config.sleep > 2) config.sleep = 1;
 	if(config.mode < 1 || config.mode > 4) config.mode = 1;
-	if(getNetworkConfig(existing)) {
+	bool hasExisting = getNetworkConfig(existing);
+	// Never store a new access point config without a usable WPA2 passphrase: the AP would be
+	// open, and the web interface does not ask for a login in AP mode. A config that is
+	// already stored that way is left alone, so its other fields can still be saved.
+	if(config.mode == 2 && !isValidApPsk(config.psk) && !(hasExisting && existing.mode == 2 && strcmp(config.psk, existing.psk) == 0)) {
+		return false;
+	}
+	if(hasExisting) {
 		networkChanged |= strcmp(config.ssid, existing.ssid) != 0;
 		networkChanged |= strcmp(config.psk, existing.psk) != 0;
 		networkChanged |= strcmp(config.ip, existing.ip) != 0;
@@ -109,6 +116,12 @@ bool AmsConfiguration::setNetworkConfig(NetworkConfig& config) {
 
 	EEPROM.put(CONFIG_NETWORK_START, config);
 	return networkChanged;
+}
+
+// WPA2 needs a passphrase of 8 to 63 characters
+bool AmsConfiguration::isValidApPsk(const char* psk) {
+	size_t len = strnlen(psk, sizeof(NetworkConfig::psk));
+	return len >= 8 && len < sizeof(NetworkConfig::psk);
 }
 
 void AmsConfiguration::clearNetworkConfig(NetworkConfig& config) {

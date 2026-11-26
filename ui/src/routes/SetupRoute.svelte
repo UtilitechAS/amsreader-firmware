@@ -163,7 +163,7 @@
                 <div class="my-3">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>
                     <div class="flex">
-                        <input name="sp" bind:value={psk} on:input={resetWifiTest} type="password" pattern={asciiPatternExt} class="in-f w-full" autocomplete="off" required={connectionMode == 2}/>
+                        <input name="sp" bind:value={psk} on:input={resetWifiTest} type="password" pattern={asciiPatternExt} class="in-f w-full" autocomplete="off" required={connectionMode == 2} minlength={connectionMode == 2 ? 8 : null}/>
                         <span on:click={toggleShowPass} class="in-post link">👁️</span>
                     </div>
                 </div>

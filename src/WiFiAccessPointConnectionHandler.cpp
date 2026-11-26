@@ -20,7 +20,12 @@ bool WiFiAccessPointConnectionHandler::connect(NetworkConfig config, SystemConfi
 
 		WiFi.mode(WIFI_AP);
 		WiFi.persistent(false);
-		WiFi.softAP(config.ssid, config.psk);
+		if(!WiFi.softAP(config.ssid, config.psk)) {
+			// Rejected SSID or passphrase. Don't leave the radio up as an AP with the core's defaults.
+			WiFi.mode(WIFI_OFF);
+			connected = false;
+			return false;
+		}
 
 		dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
 		dnsServer.start(53, PSTR("*"), WiFi.softAPIP());

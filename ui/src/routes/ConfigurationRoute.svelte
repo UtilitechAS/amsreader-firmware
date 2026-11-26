@@ -568,7 +568,7 @@
                 <div class="my-1">
                     {translations.conf?.connection?.psk ?? "Password"}<br/>
                     <div class="flex">
-                        <input name="wp" bind:value={configuration.w.p} type="password" class="in-f w-full" pattern={asciiPatternExt}/>
+                        <input name="wp" bind:value={configuration.w.p} type="password" class="in-f w-full" pattern={asciiPatternExt} required={configuration.n.c == 2} minlength={configuration.n.c == 2 ? 8 : null}/>
                         <span on:click={toggleShowWifiPass} class="in-post link">👁️</span>
                     </div>
                 </div>

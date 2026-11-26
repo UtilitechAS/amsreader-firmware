@@ -147,6 +147,70 @@ void test_iskra_ie5_croatia_tariffs(void) {
         s1072.getActiveExportCounterTariff1() + s1072.getActiveExportCounterTariff2());
 }
 
+void test_iskra_am550_slovenia_celje_22(void) {
+    // Iskra AM550, Elektro Celje (issue #1332): a 9-field frame led by the
+    // ISK logical device name alternates with a 22-field frame led by a
+    // 12-character serial. The 22-field frame is only recognised once the
+    // 9-field frame has identified the meter, so decode them in that order.
+    AmsData s;
+    delete harness_decode_fixture_seq("test/payloads/iskraemeco/gh1332-1.hex", s);
+    TEST_ASSERT_EQUAL(AmsTypeIskra, s.getMeterType());
+    TEST_ASSERT_EQUAL(2657, s.getActiveImportPower());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 22908.837, s.getActiveImportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 8405.723, s.getActiveImportCounterTariff1());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 14503.114, s.getActiveImportCounterTariff2());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 32634.810, s.getActiveExportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 22074.615, s.getActiveExportCounterTariff1());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 10560.195, s.getActiveExportCounterTariff2());
+
+    AmsData* d = harness_decode_fixture_seq("test/payloads/iskraemeco/gh1332-2.hex", s);
+    TEST_ASSERT_NOT_NULL(d);
+    delete d;
+    TEST_ASSERT_EQUAL(AmsTypeIskra, s.getMeterType());
+    TEST_ASSERT_EQUAL(4, s.getListType());
+    TEST_ASSERT_EQUAL_STRING("000000000000", s.getMeterId().c_str());
+    TEST_ASSERT_EQUAL(2647, s.getActiveImportPower());
+    TEST_ASSERT_EQUAL(0, s.getActiveExportPower());
+    TEST_ASSERT_EQUAL(0, s.getReactiveImportPower());
+    TEST_ASSERT_EQUAL(592, s.getReactiveExportPower());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 22908.838, s.getActiveImportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 32634.810, s.getActiveExportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 15123.091, s.getReactiveImportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 10762.676, s.getReactiveExportCounter());
+    // The 22-field frame carries no tariff registers: keep those from the
+    // 9-field frame instead of zeroing them every other second.
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 8405.723, s.getActiveImportCounterTariff1());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 10560.195, s.getActiveExportCounterTariff2());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 10.48, s.getL1Current());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 1.41, s.getL2Current());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 0.53, s.getL3Current());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 229.7, s.getL1Voltage());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 239.3, s.getL2Voltage());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 240.7, s.getL3Voltage());
+    TEST_ASSERT_EQUAL(2404, s.getL1ActiveImportPower());
+    TEST_ASSERT_EQUAL(192, s.getL2ActiveImportPower());
+    TEST_ASSERT_EQUAL(51, s.getL3ActiveImportPower());
+    TEST_ASSERT_EQUAL(0, s.getL1ActiveExportPower());
+
+    // And back to the 9-field frame: the voltages, currents and serial from
+    // the 22-field frame survive it.
+    delete harness_decode_fixture_seq("test/payloads/iskraemeco/gh1332-1.hex", s);
+    TEST_ASSERT_EQUAL(2657, s.getActiveImportPower());
+    TEST_ASSERT_EQUAL(4, s.getListType());
+    TEST_ASSERT_FLOAT_WITHIN(0.01, 229.7, s.getL1Voltage());
+    TEST_ASSERT_EQUAL_STRING("000000000000", s.getMeterId().c_str());
+
+    // Elektro Ljubljana sends the same 9-field layout (#869).
+    AmsData* lj = harness_decode_fixture("test/payloads/iskraemeco/gh869-6.hex");
+    TEST_ASSERT_NOT_NULL(lj);
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 12789.950, lj->getActiveImportCounter());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 5732.902, lj->getActiveImportCounterTariff1());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 7057.048, lj->getActiveImportCounterTariff2());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 0.112, lj->getActiveExportCounterTariff1());
+    TEST_ASSERT_FLOAT_WITHIN(0.001, 0.138, lj->getActiveExportCounterTariff2());
+    delete lj;
+}
+
 void test_landisgyr_e450_slovenia(void) {
     // L&G E450 (IDIS 2DLM, Slovenia). Descriptor-less push with no OBIS codes:
     // two frame shapes alternate, each led by a different serial register.

@@ -499,17 +499,25 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeImportCounter = ntohl(data->dlu.data) / 1000.0;
 
-                    // 1.8.1?
-                    // 1.8.2?
-                    idx += 2;
-                    
+                    // 1.8.1 (sums with 1.8.2 to 1.8.0 in #1332)
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeImportCounterTariff1 = ntohl(data->dlu.data) / 1000.0;
+
+                    // 1.8.2
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeImportCounterTariff2 = ntohl(data->dlu.data) / 1000.0;
+
                     // 2.8.0?
                     data = getCosemDataAt(idx++, ((char *) (d)));
                     activeExportCounter = ntohl(data->dlu.data) / 1000.0;
 
-                    // 2.8.1?
-                    // 2.8.2?
-                    idx += 2;
+                    // 2.8.1
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeExportCounterTariff1 = ntohl(data->dlu.data) / 1000.0;
+
+                    // 2.8.2
+                    data = getCosemDataAt(idx++, ((char *) (d)));
+                    activeExportCounterTariff2 = ntohl(data->dlu.data) / 1000.0;
 
                     lastUpdateMillis = millis64();
                 }
@@ -817,6 +825,107 @@ IEC6205675::IEC6205675(const char* d, Timezone* tz, uint8_t useMeterType, MeterC
                 l2voltage = sqrt(pow(l1voltage - l3voltage * cos(60 * (PI/180)), 2) + pow(l3voltage * sin(60 * (PI/180)),2));
 
                 listType = 3;
+                lastUpdateMillis = millis64();
+            } else if(data->base.length == 0x16
+                && getCosemDataAt(10, ((char *) (d)))->base.type == CosemTypeLongUnsigned
+                && getCosemDataAt(17, ((char *) (d)))->base.type == CosemTypeDLongUnsigned) {
+                // Elektro Celje, Slovenia (#1332): alternates with the 9-field
+                // ISK frame, which carries the tariff registers this one lacks.
+                apply(state);
+
+                // 96.1.0? Meter serial
+                idx = 1;
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                if(data->base.type == CosemTypeOctetString) {
+                    memcpy(str, data->oct.data, data->oct.length);
+                    str[data->oct.length] = 0x00;
+                    strncpy(meterId, str, sizeof(meterId) - 1);
+                }
+
+                // 1.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportPower = ntohl(data->dlu.data);
+
+                // 2.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportPower = ntohl(data->dlu.data);
+
+                // 3.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                reactiveImportPower = ntohl(data->dlu.data);
+
+                // 4.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                reactiveExportPower = ntohl(data->dlu.data);
+
+                // 1.8.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeImportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                // 2.8.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                activeExportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                // 3.8.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                reactiveImportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                // 4.8.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                reactiveExportCounter = ntohl(data->dlu.data) / 1000.0;
+
+                // 14.7.0 frequency, not stored
+                idx++;
+
+                // 31.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1current = ntohs(data->lu.data) / 100.0;
+
+                // 51.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2current = ntohs(data->lu.data) / 100.0;
+
+                // 71.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3current = ntohs(data->lu.data) / 100.0;
+
+                // 32.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1voltage = ntohs(data->lu.data) / 10.0;
+
+                // 52.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2voltage = ntohs(data->lu.data) / 10.0;
+
+                // 72.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3voltage = ntohs(data->lu.data) / 10.0;
+
+                // 21.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1activeImportPower = ntohl(data->dlu.data);
+
+                // 41.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2activeImportPower = ntohl(data->dlu.data);
+
+                // 61.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3activeImportPower = ntohl(data->dlu.data);
+
+                // 22.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l1activeExportPower = ntohl(data->dlu.data);
+
+                // 42.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l2activeExportPower = ntohl(data->dlu.data);
+
+                // 62.7.0
+                data = getCosemDataAt(idx++, ((char *) (d)));
+                l3activeExportPower = ntohl(data->dlu.data);
+
+                listType = 4;
                 lastUpdateMillis = millis64();
             } else {
                 idx = 5;

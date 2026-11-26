@@ -1134,6 +1134,28 @@ void AmsWebServer::handleSave() {
 		return;
 	}
 
+	// In access point mode the web interface does not ask for a login, so the AP must not be
+	// open. Shorter than 8 characters is not a valid WPA2 passphrase either.
+	bool apPskValid = true;
+	if(server.arg(F("s")) == F("true") && server.arg(F("sc")).toInt() == 2) {
+		apPskValid = AmsConfiguration::isValidApPsk(server.arg(F("sp")).c_str());
+	}
+	if(server.arg(F("w")) == F("true") && server.arg(F("nc")).toInt() == 2) {
+		String psk = server.arg(F("wp"));
+		if(psk.equals("***")) {
+			NetworkConfig existing;
+			config->getNetworkConfig(existing);
+			psk = existing.psk;
+		}
+		apPskValid &= AmsConfiguration::isValidApPsk(psk.c_str());
+	}
+	if(!apPskValid) {
+		snprintf_P(buf, BUF_SIZE_COMMON, RESPONSE_JSON, "false", "Access point password must be at least 8 characters", "false");
+		server.setContentLength(strlen(buf));
+		server.send(200, MIME_JSON, buf);
+		return;
+	}
+
 	SystemConfig sys;
 	config->getSystemConfig(sys);
 

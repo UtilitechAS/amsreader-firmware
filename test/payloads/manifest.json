@@ -209,6 +209,28 @@
   "expect": "ok"
  },
  {
+  "file": "iskraemeco/gh1332-1.hex",
+  "manufacturer": "iskraemeco",
+  "source": "#1332",
+  "model": "AM550",
+  "country": "Slovenia",
+  "protocol": "DLMS",
+  "format": "hex",
+  "encrypted": false,
+  "expect": "ok"
+ },
+ {
+  "file": "iskraemeco/gh1332-2.hex",
+  "manufacturer": "iskraemeco",
+  "source": "#1332",
+  "model": "AM550",
+  "country": "Slovenia",
+  "protocol": "DLMS",
+  "format": "hex",
+  "encrypted": false,
+  "expect": "ok"
+ },
+ {
   "file": "iskraemeco/gh615-1.hex",
   "manufacturer": "iskraemeco",
   "source": "#615",

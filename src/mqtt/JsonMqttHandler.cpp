@@ -765,10 +765,6 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
             strlcpy(ntpConfig.server, networkObj[F("n1")], sizeof(ntpConfig.server));
             config->setNtpConfig(ntpConfig);
         }
-        if(networkObj.containsKey(F("h"))) {
-            ntpConfig.dhcp = networkObj[F("h")];
-            config->setNtpConfig(ntpConfig);
-        }
         config->getNtpConfig(ntpConfig);
     }
 

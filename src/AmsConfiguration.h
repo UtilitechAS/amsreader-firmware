@@ -233,7 +233,7 @@ struct HomeAssistantConfig {
 
 struct NtpConfig {
 	bool enable;
-	bool dhcp;
+	bool unused;
 	char server[64];
 	char timezone[32];
 }; // 98

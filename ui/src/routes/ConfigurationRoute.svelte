@@ -634,7 +634,7 @@
             </div>
             <input type="hidden" name="ntp" value="true"/>
             <div class="my-1">
-                {translations.conf?.network?.ntp ?? "NTP"} <label class="ml-4"><input name="ntpd" value="true" bind:checked={configuration.n.h} type="checkbox" class="rounded mb-1"/> {translations.conf?.network?.tick_ntp_dhcp ?? "from DHCP"}</label><br/>
+                {translations.conf?.network?.ntp ?? "NTP"}<br/>
                 <div class="flex">
                     <input name="ntph" bind:value={configuration.n.n1} type="text" class="in-s" pattern={asciiPattern}/>
                 </div>

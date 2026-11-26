@@ -983,7 +983,10 @@ void handleNtp() {
 			// the DST delta (3600 s in Europe). Passing the full summer offset
 			// here double-counted the base offset during DST.
 			configTime(tz->toLocal(0), (tz->toLocal(JULY1970)-JULY1970) - tz->toLocal(0), ntpServerName, "", "");
-			sntp_servermode_dhcp(ntp.enable && ntp.dhcp ? 1 : 0); // Not implemented on ESP32?
+			// The ESP8266 core takes NTP servers from DHCP by default and would
+			// replace the configured server at the next lease renewal. On ESP32
+			// this is an empty macro, its lwIP is built without DHCP NTP support.
+			sntp_servermode_dhcp(0);
 			ntpEnabled = ntp.enable;
 
 			ws.setTimezone(tz);
@@ -2464,9 +2467,6 @@ void configFileParse() {
 		} else if(strncmp_P(buf, PSTR("ntpEnable "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			ntp.enable = String(buf+10).toInt() == 1;
-		} else if(strncmp_P(buf, PSTR("ntpDhcp "), 8) == 0) {
-			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
-			ntp.dhcp = String(buf+8).toInt() == 1;
 		} else if(strncmp_P(buf, PSTR("ntpServer "), 10) == 0) {
 			if(!lNtp) { config.getNtpConfig(ntp); lNtp = true; };
 			strlcpy(ntp.server, buf+10, sizeof(ntp.server));

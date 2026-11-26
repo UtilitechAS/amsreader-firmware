@@ -330,7 +330,7 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, JsonS
 	);
 
 	// Network
-	EMIT(PSTR(",\"n\":{\"c\":%d,\"m\":\"%s\",\"i\":\"%s\",\"s\":\"%s\",\"g\":\"%s\",\"d1\":\"%s\",\"d2\":\"%s\",\"d\":%s,\"n1\":\"%s\",\"h\":%s,\"x\":%s}"),
+	EMIT(PSTR(",\"n\":{\"c\":%d,\"m\":\"%s\",\"i\":\"%s\",\"s\":\"%s\",\"g\":\"%s\",\"d1\":\"%s\",\"d2\":\"%s\",\"d\":%s,\"n1\":\"%s\",\"x\":%s}"),
 		networkConfig.mode,
 		strlen(networkConfig.ip) > 0 ? "static" : "dhcp",
 		networkConfig.ip,
@@ -340,7 +340,6 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, JsonS
 		networkConfig.dns2,
 		networkConfig.mdns ? "true" : "false",
 		ntpConfig.server,
-		ntpConfig.dhcp ? "true" : "false",
 		networkConfig.ipv6 ? "true" : "false"
 	);
 

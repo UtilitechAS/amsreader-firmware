@@ -1320,7 +1320,6 @@ void AmsWebServer::handleSave() {
 		NtpConfig ntp;
 		config->getNtpConfig(ntp);
 		ntp.enable = true;
-		ntp.dhcp = server.hasArg(F("ntpd")) && server.arg(F("ntpd")) == F("true");
 		strlcpy(ntp.server, server.arg(F("ntph")).c_str(), sizeof(ntp.server));
 		config->setNtpConfig(ntp);
 	}
@@ -2313,7 +2312,6 @@ void AmsWebServer::configFileDownload() {
 		NtpConfig ntp;
 		config->getNtpConfig(ntp);
 		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ntpEnable %d\n"), ntp.enable ? 1 : 0));
-		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ntpDhcp %d\n"), ntp.dhcp ? 1 : 0));
 		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ntpTimezone %s\n"), ntp.timezone));
 		server.sendContent(buf, snprintf_P(buf, BUF_SIZE_COMMON, PSTR("ntpServer %s\n"), ntp.server));
 	}

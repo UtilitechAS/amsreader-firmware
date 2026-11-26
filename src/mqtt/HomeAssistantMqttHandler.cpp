@@ -21,7 +21,7 @@
 #endif
 
 void HomeAssistantMqttHandler::setHomeAssistantConfig(HomeAssistantConfig config, char* hostname) {
-    l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = dInit = hpInit = eInit = false;
+    l1Init = l2Init = l2eInit = l3Init = l3eInit = l3tInit = l3teInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = dInit = hpInit = eInit = false;
 
     if(strlen(config.discoveryNameTag) > 0) {
         snprintf_P(json, 128, PSTR("AMS reader (%s)"), config.discoveryNameTag);
@@ -180,6 +180,8 @@ bool HomeAssistantMqttHandler::publishList2(AmsData* data, EnergyAccounting* ea)
 bool HomeAssistantMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea) {
     publishList3Sensors();
     if(data->getActiveExportCounter() > 0.0) publishList3ExportSensors();
+    if(data->getActiveImportCounterTariff1() > 0.0 || data->getActiveImportCounterTariff2() > 0.0) publishList3TariffSensors();
+    if(data->getActiveExportCounterTariff1() > 0.0 || data->getActiveExportCounterTariff2() > 0.0) publishList3TariffExportSensors();
 
 	char mt[24];
     toJsonIsoTimestamp(data->getMeterTimestamp(), mt, sizeof(mt));
@@ -190,7 +192,11 @@ bool HomeAssistantMqttHandler::publishList3(AmsData* data, EnergyAccounting* ea)
 
     snprintf_P(json, BUF_SIZE_COMMON, HA2_JSON,
         data->getActiveImportCounter(),
+        data->getActiveImportCounterTariff1(),
+        data->getActiveImportCounterTariff2(),
         data->getActiveExportCounter(),
+        data->getActiveExportCounterTariff1(),
+        data->getActiveExportCounterTariff2(),
         data->getReactiveImportCounter(),
         data->getReactiveExportCounter(),
         mt,
@@ -614,6 +620,22 @@ void HomeAssistantMqttHandler::publishList3ExportSensors() {
     l3eInit = true;
 }
 
+void HomeAssistantMqttHandler::publishList3TariffSensors() {
+    if(l3tInit) return;
+    for(uint8_t i = 0; i < List3TariffSensorCount; i++) {
+        publishSensor(List3TariffSensors[i]);
+    }
+    l3tInit = true;
+}
+
+void HomeAssistantMqttHandler::publishList3TariffExportSensors() {
+    if(l3teInit) return;
+    for(uint8_t i = 0; i < List3TariffExportSensorCount; i++) {
+        publishSensor(List3TariffExportSensors[i]);
+    }
+    l3teInit = true;
+}
+
 void HomeAssistantMqttHandler::publishList4Sensors() {
     publishList3Sensors();
     if(l4Init) return;
@@ -928,7 +950,7 @@ void HomeAssistantMqttHandler::onMessage(String &topic, String &payload) {
             if (debugger->isActive(RemoteDebug::INFO))
             #endif
             debugger->printf_P(PSTR("Received online status from HA, resetting sensor status\n"));
-            l1Init = l2Init = l2eInit = l3Init = l3eInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = dInit = hpInit = eInit = false;
+            l1Init = l2Init = l2eInit = l3Init = l3eInit = l3tInit = l3teInit = l4Init = l4eInit = rtInit = rteInit = pInit = sInit = rInit = fInit = dInit = hpInit = eInit = false;
             for(uint8_t i = 0; i < 32; i++) tInit[i] = false;
             priceImportInit = 0;
             priceExportInit = 0;

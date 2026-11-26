@@ -1,6 +1,10 @@
 {
     "tPI" : %.3f,
+    "tPIT1" : %.3f,
+    "tPIT2" : %.3f,
     "tPO" : %.3f,
+    "tPOT1" : %.3f,
+    "tPOT2" : %.3f,
     "tQI" : %.3f,
     "tQO" : %.3f,
     "rtc" : %s,

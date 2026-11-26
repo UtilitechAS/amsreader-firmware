@@ -53,7 +53,7 @@ private:
     String eventTopic;
     String sensorNamePrefix;
 
-    bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit, rInit, fInit, dInit, hpInit, eInit;
+    bool l1Init, l2Init, l2eInit, l3Init, l3eInit, l3tInit, l3teInit, l4Init, l4eInit, rtInit, rteInit, pInit, sInit, rInit, fInit, dInit, hpInit, eInit;
     bool tInit[32] = {false};
     uint8_t priceImportInit = 0, priceExportInit = 0;
     uint32_t lastThresholdPublish = 0;
@@ -73,6 +73,8 @@ private:
     void publishList2ExportSensors();
     void publishList3Sensors();
     void publishList3ExportSensors();
+    void publishList3TariffSensors();
+    void publishList3TariffExportSensors();
     void publishList4Sensors();
     void publishList4ExportSensors();
     void publishRealtimeSensors(EnergyAccounting* ea, PriceService* ps);

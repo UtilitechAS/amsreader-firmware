@@ -57,6 +57,18 @@ const HomeAssistantSensor List3ExportSensors[List3ExportSensorCount] PROGMEM = {
     {"Accumulated active export",  "/energy",  "tPO",               4000, "kWh",  "energy",          "total_increasing", ""}
 };
 
+const uint8_t List3TariffSensorCount PROGMEM = 2;
+const HomeAssistantSensor List3TariffSensors[List3TariffSensorCount] PROGMEM = {
+    {"Accumulated active import tariff 1","/energy","tPIT1",             4000, "kWh",  "energy",          "total_increasing", ""},
+    {"Accumulated active import tariff 2","/energy","tPIT2",             4000, "kWh",  "energy",          "total_increasing", ""}
+};
+
+const uint8_t List3TariffExportSensorCount PROGMEM = 2;
+const HomeAssistantSensor List3TariffExportSensors[List3TariffExportSensorCount] PROGMEM = {
+    {"Accumulated active export tariff 1","/energy","tPOT1",             4000, "kWh",  "energy",          "total_increasing", ""},
+    {"Accumulated active export tariff 2","/energy","tPOT2",             4000, "kWh",  "energy",          "total_increasing", ""}
+};
+
 const uint8_t List4SensorCount PROGMEM = 10;
 const HomeAssistantSensor List4Sensors[List4SensorCount] PROGMEM = {
     {"Power factor",                "/power",   "PF",                  30, "%",    "power_factor",    "measurement", ""},

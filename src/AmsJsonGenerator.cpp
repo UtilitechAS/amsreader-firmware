@@ -274,16 +274,21 @@ void AmsJsonGenerator::generateConfigurationJson(AmsConfiguration* config, JsonS
 		meterConfig.productionCapacity
 	);
 
+	// The meter keys are secrets: report only whether each one is set, like the passwords
 	bool encen = false;
+	bool authen = false;
 	for(uint8_t i = 0; i < 16; i++) {
 		if(meterConfig.encryptionKey[i] > 0) {
 			encen = true;
 		}
+		if(meterConfig.authenticationKey[i] > 0) {
+			authen = true;
+		}
 	}
 	EMIT(PSTR(",\"e\":{\"e\":%s,\"k\":\"%s\",\"a\":\"%s\"}"),
 		encen ? "true" : "false",
-		toHex(meterConfig.encryptionKey, 16).c_str(),
-		toHex(meterConfig.authenticationKey, 16).c_str()
+		encen ? "***" : "",
+		authen ? "***" : ""
 	);
 
 	bool multEnable = false;

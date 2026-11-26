@@ -674,6 +674,7 @@ void JsonMqttHandler::handleConfigMessage(JsonObject& configObj) {
             if(encryptionObj.containsKey(F("e"))) {
                 bool enabled = encryptionObj[F("e")];
                 if(enabled) {
+                    // A masked key ("***", as returned by getconfig) has the wrong length and leaves the stored key untouched
                     if(encryptionObj.containsKey(F("k"))) {
                         String encryptionKeyHex = encryptionObj[F("k")];
                         if(encryptionKeyHex.length() == sizeof(newConfig.encryptionKey) * 2) {

@@ -151,6 +151,7 @@
       "interval": "Interval",
       "keepalive": "Keep-alive",
       "key_ok": "Key OK",
+      "no_ca": "No CA uploaded: the server's identity is not verified",
       "pass": "Password",
       "payload": "Payload",
       "publish": "Publish topic",

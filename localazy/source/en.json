@@ -173,7 +173,6 @@
       "ntp": "NTP",
       "static": "Static",
       "tick_mdns": "enable mDNS",
-      "tick_ntp_dhcp": "obtain from DHCP",
       "title": "Network"
     },
     "price": {

@@ -581,7 +581,6 @@ bool AmsConfiguration::setNtpConfig(NtpConfig& config) {
 				ntpChanged = true;
 			}
 		}
-		ntpChanged |= config.dhcp != existing.dhcp;
 		ntpChanged |= strcmp(config.server, existing.server) != 0;
 		ntpChanged |= strcmp(config.timezone, existing.timezone) != 0;
 	} else {
@@ -605,7 +604,7 @@ void AmsConfiguration::ackNtpChange() {
 
 void AmsConfiguration::clearNtp(NtpConfig& config) {
 	config.enable = true;
-	config.dhcp = true;
+	config.unused = false;
 	strcpy_P(config.server, PSTR("pool.ntp.org"));
 	strcpy_P(config.timezone, PSTR("Europe/Oslo"));
 }
@@ -1309,7 +1308,6 @@ void AmsConfiguration::print(Print* debugger)
 		if(ntp.enable) {
 			debugger->printf_P(PSTR("Timezone:             %s\n"), ntp.timezone);
 			debugger->printf_P(PSTR("Server:               %s\n"), ntp.server);
-			debugger->printf_P(PSTR("DHCP:                 %s\n"), ntp.dhcp ? "Yes" : "No");
 		}
 		debugger->println(F(""));
 		delay(10);

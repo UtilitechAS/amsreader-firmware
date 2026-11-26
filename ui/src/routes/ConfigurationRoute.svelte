@@ -686,6 +686,11 @@
                     {/if}
                 </span>
             </div>
+            {#if !configuration.q.s.c}
+            <div class="my-1">
+                <div class="bd-yellow">{translations.conf?.mqtt?.no_ca ?? "No CA uploaded: the server's identity is not verified"}</div>
+            </div>
+            {/if}
             {/if}
             <div class="my-1">
                 {translations.conf?.mqtt?.user ?? "Username"}<br/>
